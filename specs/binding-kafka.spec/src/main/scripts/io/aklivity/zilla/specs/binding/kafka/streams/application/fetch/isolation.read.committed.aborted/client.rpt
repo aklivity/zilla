@@ -69,6 +69,8 @@ read zilla:begin.ext ${kafka:beginEx()
                                   .build()
                               .build()}
 
+read notify RECEIVED_SKIPPED_MESSAGE
+
 read advised zilla:flush ${kafka:matchFlushEx()
                                .typeId(zilla:id("kafka"))
                                .fetch()

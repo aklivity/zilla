@@ -31,6 +31,7 @@ connected
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
+                             .fetch()
                                .partition(0, 1, 2)
                                .progress(0, 2)
                                .progress(1, 1)
@@ -43,6 +44,7 @@ read "Hello, world"
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
+                             .fetch()
                                .partition(0, 2, 2)
                                .progress(0, 3)
                                .progress(1, 1)
@@ -55,6 +57,7 @@ read "Hello, again"
 read advised zilla:flush ${kafka:matchFlushEx()
                                .typeId(zilla:id("kafka"))
                                .merged()
+                                  .fetch()
                                    .progress(0, 2, 2, 2)
                                    .build()
                                .build()}

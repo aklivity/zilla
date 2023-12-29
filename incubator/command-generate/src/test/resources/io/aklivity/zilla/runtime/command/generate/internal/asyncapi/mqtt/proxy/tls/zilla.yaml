@@ -1,0 +1,72 @@
+name: example
+bindings:
+  tcp_server0:
+    type: tcp
+    kind: server
+    options:
+      host: 0.0.0.0
+      port: 8883
+    routes:
+    - exit: tls_server0
+      when:
+      - port: 8883
+  tls_server0:
+    vault: server
+    type: tls
+    kind: server
+    options:
+      keys:
+      - "${{env.TLS_SERVER_KEY}}"
+      sni:
+      - "${{env.TLS_SERVER_SNI}}"
+      alpn:
+      - "${{env.TLS_SERVER_ALPN}}"
+    exit: mqtt_server0
+  mqtt_server0:
+    type: mqtt
+    kind: server
+    routes:
+    - exit: mqtt_client0
+      when:
+      - publish:
+        - topic: smartylighting/streetlights/1/0/event/*/lighting/measured
+      - subscribe:
+        - topic: smartylighting/streetlights/1/0/event/*/lighting/measured
+  mqtt_client0:
+    type: mqtt
+    kind: client
+    exit: tls_client0
+  tls_client0:
+    vault: client
+    type: tls
+    kind: client
+    options:
+      trust:
+      - "${{env.TLS_CLIENT_TRUST}}"
+      trustcacerts: true
+      sni:
+      - "${{env.TLS_CLIENT_SNI}}"
+      alpn:
+      - "${{env.TLS_CLIENT_ALPN}}"
+    exit: tcp_client0
+  tcp_client0:
+    type: tcp
+    kind: client
+    options:
+      host: "${{env.TCP_CLIENT_HOST}}"
+      port: ${{env.TCP_CLIENT_PORT}}
+vaults:
+  client:
+    type: filesystem
+    options:
+      trust:
+        store: "${{env.TRUSTSTORE_PATH}}"
+        type: "${{env.TRUSTSTORE_TYPE}}"
+        password: "${{env.TRUSTSTORE_PASSWORD}}"
+  server:
+    type: filesystem
+    options:
+      keys:
+        store: "${{env.KEYSTORE_PATH}}"
+        type: "${{env.KEYSTORE_TYPE}}"
+        password: "${{env.KEYSTORE_PASSWORD}}"

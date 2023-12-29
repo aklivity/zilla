@@ -25,7 +25,8 @@ public interface OptionsConfigAdapterSpi extends JsonbAdapter<OptionsConfig, Jso
         BINDING,
         EXPORTER,
         VAULT,
-        GUARD
+        GUARD,
+        CATALOG
     }
 
     Kind kind();

@@ -18,19 +18,28 @@
 
   <modules>
     <module>binding-amqp.spec</module>
-    <module>binding-mqtt.spec</module>
-    <module>binding-mqtt-kafka.spec</module>
+    <module>catalog-inline.spec</module>
+    <module>catalog-schema-registry.spec</module>
     <module>exporter-otlp.spec</module>
+    <module>validator-avro.spec</module>
+    <module>validator-core.spec</module>
+    <module>validator-json.spec</module>
 
     <module>binding-amqp</module>
-    <module>binding-mqtt</module>
-    <module>binding-mqtt-kafka</module>
+
+    <module>catalog-inline</module>
+    <module>catalog-schema-registry</module>
 
     <module>command-log</module>
     <module>command-dump</module>
+    <module>command-generate</module>
     <module>command-tune</module>
 
     <module>exporter-otlp</module>
+
+    <module>validator-avro</module>
+    <module>validator-core</module>
+    <module>validator-json</module>
   </modules>
 
   <dependencyManagement>
@@ -42,12 +51,12 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>binding-mqtt</artifactId>
+        <artifactId>catalog-inline</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>binding-mqtt-kafka</artifactId>
+        <artifactId>catalog-schema-registry</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -67,10 +76,29 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
+        <artifactId>command-generate</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
         <artifactId>exporter-otlp</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>validator-avro</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>validator-core</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>validator-json</artifactId>
         <version>${project.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
-
 </project>

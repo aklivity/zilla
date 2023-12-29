@@ -49,7 +49,7 @@ import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.stream.HttpBe
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.stream.KafkaDataExFW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.stream.KafkaMergedBeginExFW;
-import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.stream.KafkaMergedDataExFW;
+import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.stream.KafkaMergedFetchDataExFW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.stream.WindowFW;
@@ -641,8 +641,8 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                     }
                     else if (kafkaDataEx != null)
                     {
-                        final KafkaMergedDataExFW kafkaMergedDataEx = kafkaDataEx.merged();
-                        final int contentLength = payload.sizeof() + kafkaMergedDataEx.deferred();
+                        final KafkaMergedFetchDataExFW kafkaMergedFetchDataEx = kafkaDataEx.merged().fetch();
+                        final int contentLength = payload.sizeof() + kafkaMergedFetchDataEx.deferred();
 
                         final HttpBeginExFW.Builder builder = httpBeginExRW
                                 .wrap(extBuffer, 0, extBuffer.capacity())
@@ -658,7 +658,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                                    .headersItem(h -> h.name(httpContentLength).value(Integer.toString(contentLength)));
                         }
 
-                        final Array32FW<KafkaHeaderFW> headers = kafkaMergedDataEx.headers();
+                        final Array32FW<KafkaHeaderFW> headers = kafkaMergedFetchDataEx.headers();
 
                         // TODO: header inclusion configuration
                         final KafkaHeaderFW contentType =
@@ -674,7 +674,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                                 headers.matchFirst(h -> httpEtag.value().equals(h.name().value()));
                         if (etag != null)
                         {
-                            final String16FW progress64 = etagHelper.encode(kafkaMergedDataEx.progress());
+                            final String16FW progress64 = etagHelper.encode(kafkaMergedFetchDataEx.progress());
                             String implicitEtag = String.format("%s/%s",
                                 progress64.asString(),
                                 etag.value().value().getStringWithoutLengthAscii(0, etag.valueLen()));
@@ -682,7 +682,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                         }
                         else
                         {
-                            final String16FW progress64 = etagHelper.encode(kafkaMergedDataEx.progress());
+                            final String16FW progress64 = etagHelper.encode(kafkaMergedFetchDataEx.progress());
 
                             builder.headersItem(h -> h
                                 .name(httpEtag.value(), 0, httpEtag.length())
@@ -1174,7 +1174,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
                     replyPadAdjust = reservedPre;
                 }
-                else if (replyMsgs > 0)
+                else if ((flags & DATA_FLAG_INIT) != 0x00 && replyMsgs > 0)
                 {
                     OctetsFW preamble = fetcher.resolved.separator();
                     int reservedSep = preamble.sizeof();
@@ -1386,7 +1386,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             if (timeout > 0L)
             {
                 cancelWait = signaler.signalAt(now().toEpochMilli() + timeout, originId, routedId, initialId,
-                        SIGNAL_WAIT_EXPIRED, 0);
+                        traceId, SIGNAL_WAIT_EXPIRED, 0);
             }
         }
 
@@ -1778,12 +1778,12 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                 kafkaDataEx = kafkaDataExRW
                         .wrap(extBuffer, 0, extBuffer.capacity())
                         .typeId(kafkaTypeId)
-                        .merged(m -> m
+                        .merged(m -> m.produce(mp -> mp
                             .deferred(deferred0)
                             .timestamp(now().toEpochMilli())
                             .partition(p -> p.partitionId(-1).partitionOffset(-1))
                             .key(producer.resolved::key)
-                            .headers(hs -> producer.resolved.headers(headers, hs)))
+                            .headers(hs -> producer.resolved.headers(headers, hs))))
                         .build();
 
                 producer.doKafkaData(traceId, authorization, 0L, 0, DATA_FLAG_INIT, emptyRO, kafkaDataEx);
@@ -1966,9 +1966,9 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                 Flyweight kafkaDataEx = kafkaDataExRW
                         .wrap(extBuffer, 0, extBuffer.capacity())
                         .typeId(kafkaTypeId)
-                        .merged(m -> m
-                                .partition(p -> p.partitionId(-1).partitionOffset(-1))
-                                .headers(producer.resolved::trailers))
+                        .merged(m -> m.produce(mp -> mp
+                            .partition(p -> p.partitionId(-1).partitionOffset(-1))
+                            .headers(producer.resolved::trailers)))
                         .build();
 
                 producer.doKafkaData(traceId, authorization, 0L, 0, DATA_FLAG_INCOMPLETE, emptyRO, kafkaDataEx);
@@ -1989,9 +1989,9 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                 Flyweight kafkaDataEx = kafkaDataExRW
                         .wrap(extBuffer, 0, extBuffer.capacity())
                         .typeId(kafkaTypeId)
-                        .merged(m -> m
-                                .partition(p -> p.partitionId(-1).partitionOffset(-1))
-                                .headers(producer.resolved::trailers))
+                        .merged(m -> m.produce(mp -> mp
+                            .partition(p -> p.partitionId(-1).partitionOffset(-1))
+                            .headers(producer.resolved::trailers)))
                         .build();
 
                 producer.doKafkaData(traceId, authorization, 0L, 0, DATA_FLAG_FIN, emptyRO, kafkaDataEx);
@@ -2218,12 +2218,12 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                 kafkaDataEx = kafkaDataExRW
                         .wrap(extBuffer, 0, extBuffer.capacity())
                         .typeId(kafkaTypeId)
-                        .merged(m -> m
+                        .merged(m -> m.produce(mp -> mp
                             .deferred(deferred0)
                             .timestamp(now().toEpochMilli())
                             .partition(p -> p.partitionId(-1).partitionOffset(-1))
                             .key(delegate.resolved::key)
-                            .headers(hs -> delegate.resolved.headers(contentType, hs)))
+                            .headers(hs -> delegate.resolved.headers(contentType, hs))))
                         .build();
 
                 final int flags = produceNull ? DATA_FLAG_INIT | DATA_FLAG_FIN : DATA_FLAG_INIT;
@@ -3103,9 +3103,9 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
                     if (kafkaDataEx != null)
                     {
-                        final KafkaMergedDataExFW kafkaMergedDataEx = kafkaDataEx.merged();
-                        final Array32FW<KafkaHeaderFW> kafkaHeaders = kafkaMergedDataEx.headers();
-                        final int contentLength = payload != null ? payload.sizeof() + kafkaMergedDataEx.deferred() : 0;
+                        final KafkaMergedFetchDataExFW kafkaMergedFetchDataEx = kafkaDataEx.merged().fetch();
+                        final Array32FW<KafkaHeaderFW> kafkaHeaders = kafkaMergedFetchDataEx.headers();
+                        final int contentLength = payload != null ? payload.sizeof() + kafkaMergedFetchDataEx.deferred() : 0;
 
                         httpBeginEx = httpBeginExRW
                                 .wrap(extBuffer, 0, extBuffer.capacity())
@@ -3342,7 +3342,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             if (timeout > 0L)
             {
                 cancelWait = signaler.signalAt(now().toEpochMilli() + timeout, originId, routedId, initialId,
-                        SIGNAL_WAIT_EXPIRED, 0);
+                        traceId, SIGNAL_WAIT_EXPIRED, 0);
             }
             doKafkaWindow(traceId);
         }
@@ -3729,12 +3729,12 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                 kafkaDataEx = kafkaDataExRW
                         .wrap(extBuffer, 0, extBuffer.capacity())
                         .typeId(kafkaTypeId)
-                        .merged(m -> m
+                        .merged(m -> m.produce(mp -> mp
                             .deferred(deferred0)
                             .timestamp(now().toEpochMilli())
                             .partition(p -> p.partitionId(-1).partitionOffset(-1))
                             .key(producer.resolved::key)
-                            .headers(hs -> producer.resolved.headers(headers, hs)))
+                            .headers(hs -> producer.resolved.headers(headers, hs))))
                         .build();
 
                 producer.doKafkaData(traceId, authorization, 0L, 0, DATA_FLAG_INIT, emptyRO, kafkaDataEx);
@@ -3932,9 +3932,9 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
                     if (kafkaDataEx != null)
                     {
-                        final KafkaMergedDataExFW kafkaMergedDataEx = kafkaDataEx.merged();
-                        final Array32FW<KafkaHeaderFW> kafkaHeaders = kafkaMergedDataEx.headers();
-                        final int contentLength = payload != null ? payload.sizeof() + kafkaMergedDataEx.deferred() : 0;
+                        final KafkaMergedFetchDataExFW kafkaMergedFetchDataEx = kafkaDataEx.merged().fetch();
+                        final Array32FW<KafkaHeaderFW> kafkaHeaders = kafkaMergedFetchDataEx.headers();
+                        final int contentLength = payload != null ? payload.sizeof() + kafkaMergedFetchDataEx.deferred() : 0;
 
                         httpBeginEx = httpBeginExRW
                                 .wrap(extBuffer, 0, extBuffer.capacity())
@@ -3957,9 +3957,9 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                     Flyweight kafkaDataEx = kafkaDataExRW
                             .wrap(extBuffer, 0, extBuffer.capacity())
                             .typeId(kafkaTypeId)
-                            .merged(m -> m
-                                    .partition(p -> p.partitionId(-1).partitionOffset(-1))
-                                    .headers(producer.resolved::trailers))
+                            .merged(m -> m.produce(mp -> mp
+                                .partition(p -> p.partitionId(-1).partitionOffset(-1))
+                                .headers(producer.resolved::trailers)))
                             .build();
 
                     producer.doKafkaData(traceId, authorization, 0L, 0, DATA_FLAG_INCOMPLETE, emptyRO, kafkaDataEx);
@@ -4009,9 +4009,9 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                 Flyweight kafkaDataEx = kafkaDataExRW
                         .wrap(extBuffer, 0, extBuffer.capacity())
                         .typeId(kafkaTypeId)
-                        .merged(m -> m
-                                .partition(p -> p.partitionId(-1).partitionOffset(-1))
-                                .headers(producer.resolved::trailers))
+                        .merged(m -> m.produce(mp -> mp
+                            .partition(p -> p.partitionId(-1).partitionOffset(-1))
+                            .headers(producer.resolved::trailers)))
                         .build();
 
                 producer.doKafkaData(traceId, authorization, 0L, 0, DATA_FLAG_FIN, emptyRO, kafkaDataEx);

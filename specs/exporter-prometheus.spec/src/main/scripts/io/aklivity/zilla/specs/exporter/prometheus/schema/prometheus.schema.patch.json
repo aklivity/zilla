@@ -49,7 +49,7 @@
                                         "port":
                                         {
                                             "title": "Port",
-                                            "type": "int"
+                                            "type": "integer"
                                         },
                                         "path":
                                         {

@@ -26,11 +26,11 @@ accepted
 
 connected
 
-read 233                                # size
+read 238                                # size
      32s                                # describe configs
      0s                                 # v0
      (int:requestId)
-     -1s                                # no client id
+     5s "zilla"                         # client id
      1                                  # resources
        [0x02]                           # topic resource
        4s "test"                        # "test" topic
@@ -47,7 +47,7 @@ read 233                                # size
          21s "max.compaction.lag.ms"
          25s "min.cleanable.dirty.ratio"
 
-write 365                               # size
+write 372                               # size
       ${requestId}
       0
       1                                 # resources
@@ -112,16 +112,11 @@ write 365                               # size
           [0x00]
           [0x00]
 
-accepted
-
-
-connected
-
-read 21                                 # size
+read 26                                 # size
      3s                                 # metadata
      5s                                 # v5
      (int:requestId)
-     -1s                                # no client id
+     5s "zilla"                         # client id
      1                                  # topics
        4s "test"                        #   "test" topic
      [0x00]                             # allow_auto_topic_creation
@@ -160,7 +155,7 @@ write 150                               # size
 
 accepted
 
-read zilla:begin.ext ${proxy:beginEx()
+read zilla:begin.ext ${proxy:matchBeginEx()
                               .typeId(zilla:id("proxy"))
                               .addressInet()
                                 .protocol("stream")
@@ -169,15 +164,18 @@ read zilla:begin.ext ${proxy:beginEx()
                                 .sourcePort(0)
                                 .destinationPort(9092)
                                 .build()
+                              .info()
+                                .authority("broker1.example.com")
+                                .build()
                               .build()}
 
 connected
 
-read 65
+read 70
      1s
      5s
      (int:requestId)
-     -1s
+     5s "zilla"                         # client id
      -1
      [0..4]
      1
@@ -264,11 +262,11 @@ write notify SENT_MESSAGE_A2
 
 write await SEND_MESSAGE_A3
 
-read 65
+read 70
      1s
      5s
      (int:requestId)
-     -1s
+     5s "zilla"                         # client id
      -1
      [0..4]
      1
@@ -429,7 +427,7 @@ write notify SENT_MESSAGE_A6
 
 accepted
 
-read zilla:begin.ext ${proxy:beginEx()
+read zilla:begin.ext ${proxy:matchBeginEx()
                               .typeId(zilla:id("proxy"))
                               .addressInet()
                                 .protocol("stream")
@@ -438,15 +436,18 @@ read zilla:begin.ext ${proxy:beginEx()
                                 .sourcePort(0)
                                 .destinationPort(9092)
                                 .build()
+                              .info()
+                                .authority("broker2.example.com")
+                                .build()
                               .build()}
 
 connected
 
-read 65
+read 70
      1s
      5s
      (int:requestId)
-     -1s
+     5s "zilla"                         # client id
      -1
      [0..4]
      1
@@ -539,11 +540,11 @@ write notify SENT_MESSAGE_B2
 
 write await SEND_MESSAGE_B3
 
-read 65
+read 70
      1s
      5s
      (int:requestId)
-     -1s
+     5s "zilla"                         # client id
      -1
      [0..4]
      1

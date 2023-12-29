@@ -105,6 +105,11 @@ public final class ZpmInstall extends ZpmCommand
             description = "Link jdk.jdwp.agent module")
     public Boolean debug = false;
 
+    @Option(name = { "--instrument" },
+            description = "Link java.instrument module",
+            hidden = true)
+    public Boolean instrument = false;
+
     @Option(name = { "--exclude-local-repository" },
             description = "Exclude the local Maven repository")
     public boolean excludeLocalRepo;
@@ -661,6 +666,10 @@ public final class ZpmInstall extends ZpmCommand
         {
             extraModuleNames.add("jdk.jdwp.agent");
         }
+        if (instrument)
+        {
+            extraModuleNames.add("java.instrument");
+        }
 
         Stream<String> moduleNames = Stream.concat(modules.stream().map(m -> m.name), extraModuleNames.stream());
 
@@ -731,8 +740,12 @@ public final class ZpmInstall extends ZpmCommand
         {
             for (JarEntry entry : list(sourceJar.entries()))
             {
-                Path entryPath = targetDir.resolve(entry.getName());
-                if (entry.isDirectory())
+                Path entryPath = targetDir.resolve(entry.getName()).normalize();
+                if (!entryPath.startsWith(targetDir))
+                {
+                    throw new IOException("Bad zip entry");
+                }
+                else if (entry.isDirectory())
                 {
                     createDirectories(entryPath);
                 }

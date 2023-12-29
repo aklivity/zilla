@@ -23,12 +23,19 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
+import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
+import io.aklivity.zilla.runtime.engine.config.ValidatorConfigAdapter;
 
 public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicConfig, JsonObject>
 {
     private static final String NAME_NAME = "name";
     private static final String DEFAULT_OFFSET_NAME = "defaultOffset";
     private static final String DELTA_TYPE_NAME = "deltaType";
+    private static final String EVENT_KEY = "key";
+    private static final String EVENT_VALUE = "value";
+    private static final String SUBJECT = "subject";
+
+    private final ValidatorConfigAdapter validator  = new ValidatorConfigAdapter();
 
     @Override
     public JsonObject adaptToJson(
@@ -47,6 +54,20 @@ public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicCon
         if (topic.deltaType != null)
         {
             object.add(DELTA_TYPE_NAME, topic.deltaType.toString().toLowerCase());
+        }
+
+        if (topic.key != null)
+        {
+            validator.adaptType(topic.key.type);
+
+            object.add(EVENT_KEY, validator.adaptToJson(topic.key));
+        }
+
+        if (topic.value != null)
+        {
+            validator.adaptType(topic.value.type);
+
+            object.add(EVENT_VALUE, validator.adaptToJson(topic.value));
         }
 
         return object.build();
@@ -68,6 +89,38 @@ public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicCon
                 ? KafkaDeltaType.valueOf(object.getString(DELTA_TYPE_NAME).toUpperCase())
                 : null;
 
-        return new KafkaTopicConfig(name, defaultOffset, deltaType);
+        JsonObject key = object.containsKey(EVENT_KEY)
+                ? object.getJsonObject(EVENT_KEY)
+                : null;
+
+        ValidatorConfig keyConfig = null;
+
+        if (key != null)
+        {
+            JsonObjectBuilder keyObject = Json.createObjectBuilder();
+
+            key.forEach(keyObject::add);
+            keyObject.add(SUBJECT, name + "-key");
+
+            keyConfig = validator.adaptFromJson(keyObject.build());
+        }
+
+        JsonObject value = object.containsKey(EVENT_VALUE)
+                ? object.getJsonObject(EVENT_VALUE)
+                : null;
+
+        ValidatorConfig valueConfig = null;
+
+        if (value != null)
+        {
+            JsonObjectBuilder valueObject = Json.createObjectBuilder();
+
+            value.forEach(valueObject::add);
+            valueObject.add(SUBJECT, name + "-value");
+
+            valueConfig = validator.adaptFromJson(valueObject.build());
+        }
+
+        return new KafkaTopicConfig(name, defaultOffset, deltaType, keyConfig, valueConfig);
     }
 }

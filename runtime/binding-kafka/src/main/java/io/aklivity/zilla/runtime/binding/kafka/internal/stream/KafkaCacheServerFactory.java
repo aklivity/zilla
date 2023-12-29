@@ -47,6 +47,7 @@ public final class KafkaCacheServerFactory implements KafkaStreamFactory
     private final Int2ObjectHashMap<BindingHandler> factories;
     private final Long2ObjectHashMap<KafkaBindingConfig> bindings;
     private final KafkaCacheServerAddressFactory cacheAddressFactory;
+    private final EngineContext context;
 
     public KafkaCacheServerFactory(
         KafkaConfiguration config,
@@ -57,7 +58,7 @@ public final class KafkaCacheServerFactory implements KafkaStreamFactory
         final Long2ObjectHashMap<KafkaBindingConfig> bindings = new Long2ObjectHashMap<>();
         final Int2ObjectHashMap<BindingHandler> factories = new Int2ObjectHashMap<>();
 
-        final KafkaCacheServerBootstrapFactory cacheBootstrapFactory = new KafkaCacheServerBootstrapFactory(
+        final KafkaCacheBootstrapFactory cacheBootstrapFactory = new KafkaCacheBootstrapFactory(
                 config, context, bindings::get);
 
         final KafkaCacheMetaFactory cacheMetaFactory = new KafkaCacheMetaFactory(
@@ -69,6 +70,12 @@ public final class KafkaCacheServerFactory implements KafkaStreamFactory
 
         final KafkaCacheGroupFactory cacheGroupFactory = new KafkaCacheGroupFactory(config, context, bindings::get);
 
+        final KafkaCacheServerConsumerFactory consumerGroupFactory =
+            new KafkaCacheServerConsumerFactory(config, context, bindings::get);
+
+        final KafkaCacheOffsetFetchFactory cacheOffsetFetchFactory =
+            new KafkaCacheOffsetFetchFactory(config, context, bindings::get);
+
         final KafkaCacheServerFetchFactory cacheFetchFactory = new KafkaCacheServerFetchFactory(
                 config, context, bindings::get, supplyCache, supplyCacheRoute);
 
@@ -79,13 +86,15 @@ public final class KafkaCacheServerFactory implements KafkaStreamFactory
         factories.put(KafkaBeginExFW.KIND_META, cacheMetaFactory);
         factories.put(KafkaBeginExFW.KIND_DESCRIBE, cacheDescribeFactory);
         factories.put(KafkaBeginExFW.KIND_GROUP, cacheGroupFactory);
+        factories.put(KafkaBeginExFW.KIND_CONSUMER, consumerGroupFactory);
+        factories.put(KafkaBeginExFW.KIND_OFFSET_FETCH, cacheOffsetFetchFactory);
         factories.put(KafkaBeginExFW.KIND_FETCH, cacheFetchFactory);
         factories.put(KafkaBeginExFW.KIND_PRODUCE, cacheProduceFactory);
 
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.factories = factories;
         this.bindings = bindings;
-
+        this.context = context;
         this.cacheAddressFactory = new KafkaCacheServerAddressFactory(config, context, bindings::get);
     }
 
@@ -93,7 +102,8 @@ public final class KafkaCacheServerFactory implements KafkaStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        KafkaBindingConfig kafkaBinding = new KafkaBindingConfig(binding);
+        KafkaBindingConfig kafkaBinding = new KafkaBindingConfig(binding, context);
+
         bindings.put(binding.id, kafkaBinding);
 
         cacheAddressFactory.onAttached(binding.id);

@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfigurationTest.KAFKA_CLIENT_INSTANCE_ID_NAME;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfigurationTest.KAFKA_CLIENT_SASL_SCRAM_NONCE_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -28,6 +30,7 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class ClientGroupSaslIT
 {
@@ -40,9 +43,9 @@ public class ClientGroupSaslIT
 
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
-        .commandBufferCapacity(1024)
-        .responseBufferCapacity(1024)
-        .counterValuesBufferCapacity(8192)
+        .countersBufferCapacity(8192)
+        .configure(KAFKA_CLIENT_INSTANCE_ID_NAME,
+            "io.aklivity.zilla.runtime.binding.kafka.internal.stream.ClientGroupIT::supplyInstanceId")
         .configurationRoot("io/aklivity/zilla/specs/binding/kafka/config")
         .external("net0")
         .clean();
@@ -54,10 +57,32 @@ public class ClientGroupSaslIT
     @Test
     @Configuration("client.options.sasl.plain.yaml")
     @Specification({
-        "${app}/leader/client",
-        "${net}/leader/server"})
+        "${app}/leader.assignment/client",
+        "${net}/leader.assignment.with.sasl.plain/server"})
     public void shouldBecomeLeader() throws Exception
     {
         k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.options.sasl.scram.yaml")
+    @Specification({
+        "${app}/leader.assignment/client",
+        "${net}/leader.assignment.with.sasl.scram/server"})
+    @Configure(name = KAFKA_CLIENT_SASL_SCRAM_NONCE_NAME,
+        value = "io.aklivity.zilla.runtime.binding.kafka.internal.stream.ClientGroupSaslIT::supplyNonce")
+    public void shouldAssignLeaderWithSaslScram() throws Exception
+    {
+        k3po.finish();
+    }
+
+    public static String supplyInstanceId()
+    {
+        return "zilla";
+    }
+
+    public static String supplyNonce()
+    {
+        return "fyko+d2lbbFgONRv9qkxdawL";
     }
 }

@@ -75,6 +75,12 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
+      <artifactId>binding-mqtt</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
       <artifactId>binding-sse</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>
@@ -112,6 +118,12 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>binding-grpc-kafka</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>binding-mqtt-kafka</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>
     </dependency>
@@ -203,6 +215,8 @@
             <exclude>src/main/docker/*/zpmw</exclude>
             <exclude>src/main/docker/*/zilla</exclude>
             <exclude>src/main/docker/*/zilla.properties</exclude>
+            <exclude>src/main/docker/*/zilla.yaml</exclude>
+            <exclude>src/main/docker/*/.zilla/**</exclude>
             <exclude>src/main/docker/*/zpm.json.template</exclude>
             <exclude>src/main/docker/*/zpm.json</exclude>
             <exclude>src/main/docker/*/.zpm/**</exclude>
@@ -212,7 +226,6 @@
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
-        <version>3.0.0</version>
         <configuration>
           <executableDependency>
             <groupId>${project.groupId}</groupId>
@@ -237,10 +250,10 @@
       <plugin>
         <groupId>io.fabric8</groupId>
         <artifactId>docker-maven-plugin</artifactId>
-        <version>0.39.1</version>
+        <version>0.43.2</version>
         <configuration>
           <filter>${*}</filter>
-          <images>
+          <images combine.children="append">
             <image>
               <alias>zilla</alias>
               <name>ghcr.io/aklivity/zilla:%v</name>
@@ -249,55 +262,15 @@
                 <tags>
                   <tag>latest</tag>
                 </tags>
-                <createImageOptions>
-                  <platform>linux/x86_64</platform>
-                </createImageOptions>
+                <buildx>
+                  <platforms>
+                    <platform>linux/amd64</platform>
+                    <platform>linux/arm64</platform>
+                  </platforms>
+                </buildx>
                 <assemblies>
                   <assembly>
-                    <inline>
-                      <fileSets>
-                        <fileSet>
-                          <directory>${settings.localRepository}</directory>
-                          <outputDirectory>./</outputDirectory>
-                          <useDefaultExcludes>false</useDefaultExcludes>
-                          <includes>
-                            <include>io/aklivity/zilla/zilla/**</include>
-                            <include>io/aklivity/zilla/runtime/**</include>
-                            <include>io/aklivity/zilla/engine/**</include>
-                            <include>io/aklivity/zilla/binding-*/**</include>
-                            <include>io/aklivity/zilla/exporter-*/**</include>
-                            <include>io/aklivity/zilla/guard-*/**</include>
-                            <include>io/aklivity/zilla/metrics-*/**</include>
-                            <include>io/aklivity/zilla/vault-*/**</include>
-                            <include>io/aklivity/zilla/command/**</include>
-                            <include>io/aklivity/zilla/command-*/**</include>
-                            <include>io/aklivity/zilla/manager/**</include>
-                            <include>io/aklivity/zilla/incubator/**</include>
-                            <include>org/agrona/**</include>
-                            <include>jakarta/json/**</include>
-                            <include>jakarta/inject/**</include>
-                            <include>org/leadpony/justify/**</include>
-                            <include>org/leadpony/joy/**</include>
-                            <include>org/snakeyaml/snakeyaml-engine/**</include>
-                            <include>org/eclipse/parsson/**</include>
-                            <include>org/eclipse/yasson/**</include>
-                            <include>org/glassfish/**</include>
-                            <include>com/github/rvesse/**</include>
-                            <include>com/guicedee/**</include>
-                            <include>org/eclipse/ee4j/**</include>
-                            <include>com/ibm/icu/**</include>
-                            <include>org/bitbucket/b_c/jose4j/**</include>
-                            <include>org/slf4j/**</include>
-                            <include>org/antlr/**</include>
-                            <include>org/sonatype/oss/**</include>
-                            <include>com/fasterxml/oss-parent/**</include>
-                            <include>com/fasterxml/jackson/**</include>
-                            <include>org/yaml/snakeyaml/**</include>
-                            <include>org/junit/**</include>
-                          </includes>
-                        </fileSet>
-                      </fileSets>
-                    </inline>
+                    <descriptor>assembly.xml</descriptor>
                   </assembly>
                 </assemblies>
               </build>
@@ -335,13 +308,13 @@
         </dependency>
         <dependency>
           <groupId>${project.groupId}</groupId>
-          <artifactId>binding-mqtt</artifactId>
+          <artifactId>catalog-inline</artifactId>
           <version>${project.version}</version>
           <scope>runtime</scope>
         </dependency>
         <dependency>
           <groupId>${project.groupId}</groupId>
-          <artifactId>binding-mqtt-kafka</artifactId>
+          <artifactId>catalog-schema-registry</artifactId>
           <version>${project.version}</version>
           <scope>runtime</scope>
         </dependency>
@@ -363,7 +336,74 @@
           <version>${project.version}</version>
           <scope>runtime</scope>
         </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>command-generate</artifactId>
+          <version>${project.version}</version>
+          <scope>runtime</scope>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>validator-avro</artifactId>
+          <version>${project.version}</version>
+          <scope>runtime</scope>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>validator-core</artifactId>
+          <version>${project.version}</version>
+          <scope>runtime</scope>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>validator-json</artifactId>
+          <version>${project.version}</version>
+          <scope>runtime</scope>
+        </dependency>
       </dependencies>
+    </profile>
+
+    <profile>
+      <id>alpine</id>
+      <activation>
+        <property>
+          <name>release</name>
+          <value>true</value>
+        </property>
+      </activation>
+
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>io.fabric8</groupId>
+            <artifactId>docker-maven-plugin</artifactId>
+            <configuration>
+              <images>
+                <image>
+                  <alias>zilla-alpine</alias>
+                  <name>ghcr.io/aklivity/zilla:%v-alpine</name>
+                  <build>
+                    <dockerFile>${docker.context}/alpine.Dockerfile</dockerFile>
+                    <tags>
+                      <tag>alpine</tag>
+                    </tags>
+                    <buildx>
+                      <platforms>
+                        <platform>linux/amd64</platform>
+                      </platforms>
+                    </buildx>
+                    <assemblies>
+                      <assembly>
+                        <descriptor>assembly.xml</descriptor>
+                      </assembly>
+                    </assemblies>
+                  </build>
+                </image>
+              </images>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
     </profile>
   </profiles>
 </project>

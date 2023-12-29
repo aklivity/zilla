@@ -77,7 +77,16 @@
                                         "deltaType":
                                         {
                                             "type": "string",
-                                            "enum": [ "none", "json_patch" ]
+                                            "enum": [ "none", "json_patch" ],
+                                            "deprecated": true
+                                        },
+                                        "key":
+                                        {
+                                            "$ref": "#/$defs/validator/type"
+                                        },
+                                        "value":
+                                        {
+                                            "$ref": "#/$defs/validator/type"
                                         }
                                     }
                                 }
@@ -222,7 +231,8 @@
                                             "groupId":
                                             {
                                                 "title": "groupId",
-                                                "type": "string"
+                                                "type": "string",
+                                                "deprecated": true
                                             }
                                         },
                                         "additionalProperties": false

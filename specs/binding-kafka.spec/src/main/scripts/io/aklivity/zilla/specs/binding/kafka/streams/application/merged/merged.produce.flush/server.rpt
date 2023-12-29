@@ -34,6 +34,7 @@ connected
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
                              .merged()
+                                .produce()
                                  .partition(0, 1)
                                  .build()
                              .build()}
@@ -42,6 +43,7 @@ read "Hello, world #A1"
 read advised zilla:flush ${kafka:matchFlushEx()
                                 .typeId(zilla:id("kafka"))
                                 .merged()
+                                  .fetch()
                                     .partition(0, 1)
                                     .build()
                                 .build()}
@@ -49,6 +51,7 @@ read advised zilla:flush ${kafka:matchFlushEx()
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
                              .merged()
+                                .produce()
                                  .partition(1, 1)
                                  .build()
                              .build()}
@@ -57,6 +60,7 @@ read "Hello, world #B1"
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
                              .merged()
+                                .produce()
                                  .partition(0, 2)
                                  .build()
                              .build()}
@@ -65,6 +69,7 @@ read "Hello, world #A2"
 read advised zilla:flush ${kafka:matchFlushEx()
                                 .typeId(zilla:id("kafka"))
                                 .merged()
+                                   .fetch()
                                     .partition(0, 2)
                                     .build()
                                 .build()}
@@ -72,6 +77,7 @@ read advised zilla:flush ${kafka:matchFlushEx()
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
                              .merged()
+                                .produce()
                                  .partition(1, 2)
                                  .build()
                              .build()}
@@ -80,6 +86,7 @@ read "Hello, world #B2"
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
                              .merged()
+                                .produce()
                                  .partition(2, 1)
                                  .build()
                              .build()}
@@ -88,6 +95,7 @@ read "Hi, world #C1"
 read advised zilla:flush ${kafka:matchFlushEx()
                                 .typeId(zilla:id("kafka"))
                                 .merged()
+                                  .fetch()
                                     .partition(2, 1)
                                     .build()
                                 .build()}
@@ -95,6 +103,7 @@ read advised zilla:flush ${kafka:matchFlushEx()
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
                              .merged()
+                                .produce()
                                  .partition(2, 2)
                                  .build()
                              .build()}
@@ -103,6 +112,7 @@ read "Hi, world #C2"
 read advised zilla:flush ${kafka:matchFlushEx()
                                 .typeId(zilla:id("kafka"))
                                 .merged()
+                                  .fetch()
                                     .partition(2, 2)
                                     .build()
                                 .build()}

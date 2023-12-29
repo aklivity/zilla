@@ -1,0 +1,225 @@
+#
+# Copyright 2021-2023 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+accept "zilla://streams/kafka0"
+        option zilla:window 8192
+        option zilla:transmission "duplex"
+
+accepted
+
+read zilla:begin.ext ${kafka:matchBeginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("FETCH_ONLY")
+                                .topic("mqtt-messages")
+                                .filter()
+                                    .headers("zilla:filter")
+                                        .sequence("sensor")
+                                        .sequence("one")
+                                        .build()
+                                    .build()
+                                .evaluation("EAGER")
+                                .build()
+                            .build()}
+
+connected
+
+write zilla:data.ext ${kafka:dataEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                              .fetch()
+                                .timestamp(kafka:timestamp())
+                                .filters(1)
+                                .partition(0, 1, 2)
+                                .progress(0, 2)
+                                .progress(1, 1)
+                                .key("sensor/one")
+                                .header("zilla:filter", "sensor")
+                                .header("zilla:filter", "one")
+                                .header("zilla:local", "client")
+                                .header("zilla:format", "TEXT")
+                                .build()
+                            .build()}
+
+write "message"
+write flush
+
+write zilla:data.ext ${kafka:dataEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                              .fetch()
+                                .timestamp(kafka:timestamp())
+                                .filters(1)
+                                .partition(0, 1, 2)
+                                .progress(0, 2)
+                                .progress(1, 1)
+                                .key("sensor/one")
+                                .header("zilla:filter", "sensor")
+                                .header("zilla:filter", "one")
+                                .header("zilla:local", "client")
+                                .header("zilla:format", "TEXT")
+                                .build()
+                            .build()}
+
+write "message2"
+write flush
+
+read advised zilla:flush ${kafka:flushEx()
+                                .typeId(zilla:id("kafka"))
+                                .merged()
+                                    .fetch()
+                                        .capabilities("FETCH_ONLY")
+                                        .filter()
+                                            .headers("zilla:filter")
+                                                .sequence("sensor")
+                                                .sequence("one")
+                                                .build()
+                                            .build()
+                                        .filter()
+                                            .headers("zilla:filter")
+                                                .sequence("sensor")
+                                                .sequence("two")
+                                                .build()
+                                            .build()
+                                        .build()
+                                .build()}
+
+
+read await RETAIN_FINISHED
+write zilla:data.ext ${kafka:dataEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                              .fetch()
+                                .timestamp(kafka:timestamp())
+                                .filters(1)
+                                .partition(0, 1, 2)
+                                .progress(0, 2)
+                                .progress(1, 1)
+                                .key("sensor/one")
+                                .header("zilla:filter", "sensor")
+                                .header("zilla:filter", "one")
+                                .header("zilla:local", "client")
+                                .header("zilla:format", "TEXT")
+                                .build()
+                            .build()}
+
+write "message3"
+write flush
+
+write zilla:data.ext ${kafka:dataEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                              .fetch()
+                                .timestamp(kafka:timestamp())
+                                .filters(2)
+                                .partition(0, 1, 2)
+                                .progress(0, 2)
+                                .progress(1, 1)
+                                .key("sensor/two")
+                                .header("zilla:filter", "sensor")
+                                .header("zilla:filter", "two")
+                                .header("zilla:local", "client")
+                                .header("zilla:format", "TEXT")
+                                .build()
+                            .build()}
+
+write "message2"
+write flush
+
+write zilla:data.ext ${kafka:dataEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                              .fetch()
+                                .timestamp(kafka:timestamp())
+                                .filters(1)
+                                .partition(0, 1, 2)
+                                .progress(0, 2)
+                                .progress(1, 1)
+                                .key("sensor/one")
+                                .header("zilla:filter", "sensor")
+                                .header("zilla:filter", "one")
+                                .header("zilla:local", "client")
+                                .header("zilla:format", "TEXT")
+                                .build()
+                            .build()}
+
+write "message4"
+write flush
+
+accepted
+
+read zilla:begin.ext ${kafka:matchBeginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("FETCH_ONLY")
+                                .topic("mqtt-retained")
+                                .filter()
+                                    .headers("zilla:filter")
+                                        .sequence("sensor")
+                                        .sequence("two")
+                                        .build()
+                                    .build()
+                                .evaluation("EAGER")
+                                .build()
+                            .build()}
+
+connected
+
+write zilla:data.ext ${kafka:dataEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                              .fetch()
+                                .timestamp(kafka:timestamp())
+                                .filters(1)
+                                .partition(0, 1, 2)
+                                .progress(0, 2)
+                                .progress(1, 1)
+                                .key("sensor/two")
+                                .header("zilla:filter", "sensor")
+                                .header("zilla:filter", "two")
+                                .header("zilla:local", "client")
+                                .header("zilla:format", "TEXT")
+                                .build()
+                            .build()}
+
+write "message"
+write flush
+
+write zilla:data.ext ${kafka:dataEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                              .fetch()
+                                .timestamp(kafka:timestamp())
+                                .filters(1)
+                                .partition(0, 1, 2)
+                                .progress(0, 2)
+                                .progress(1, 1)
+                                .key("sensor/two")
+                                .header("zilla:filter", "sensor")
+                                .header("zilla:filter", "two")
+                                .header("zilla:local", "client")
+                                .header("zilla:format", "TEXT")
+                                .build()
+                            .build()}
+
+write "message2"
+write flush
+
+write advise zilla:flush
+
+read closed
+write close
+
+write notify RETAIN_FINISHED

@@ -21,8 +21,10 @@ import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_CREDITOR
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static java.lang.System.currentTimeMillis;
 import static java.lang.Thread.currentThread;
+import static java.time.Instant.now;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
+import java.nio.ByteBuffer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.LongFunction;
@@ -46,6 +48,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartitio
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheTopic;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaRouteConfig;
+import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaTopicType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaAckMode;
@@ -85,16 +88,21 @@ import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 public final class KafkaCacheClientProduceFactory implements BindingHandler
 {
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(), 0, 0);
+    private static final KafkaKeyFW EMPTY_KEY =
+        new OctetsFW().wrap(new UnsafeBuffer(ByteBuffer.wrap(new byte[] { 0x00 })), 0, 1)
+            .get(new KafkaKeyFW()::wrap);
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
     private static final Array32FW<KafkaHeaderFW> EMPTY_TRAILERS =
             new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
                 .wrap(new UnsafeBuffer(new byte[8]), 0, 8)
                 .build();
+    private static final int PRODUCE_FLUSH_SEQUENCE = -1;
 
     private static final int ERROR_NOT_LEADER_FOR_PARTITION = 6;
     private static final int ERROR_RECORD_LIST_TOO_LARGE = 18;
     private static final int NO_ERROR = -1;
     private static final int UNKNOWN_ERROR = -2;
+    private static final int ERROR_INVALID_RECORD = 87;
 
     private static final Array32FW<KafkaFilterFW> EMPTY_FILTER =
         new Array32FW.Builder<>(new KafkaFilterFW.Builder(), new KafkaFilterFW())
@@ -249,9 +257,10 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 final KafkaCache cache = supplyCache.apply(cacheName);
                 final KafkaCacheTopic topic = cache.supplyTopic(topicName);
                 final KafkaCachePartition partition = topic.supplyProducePartition(partitionId, localIndex);
+                final KafkaTopicType type = binding.topics != null ? binding.topics.get(topicName) : null;
                 final KafkaCacheClientProduceFan newFan =
                         new KafkaCacheClientProduceFan(routedId, resolvedId, authorization, budget,
-                            partition, cacheRoute, topicName);
+                            partition, cacheRoute, topicName, type);
 
                 cacheRoute.clientProduceFansByTopicPartition.put(partitionKey, newFan);
                 fan = newFan;
@@ -493,6 +502,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         private KafkaCacheClientBudget budget;
         private KafkaCacheRoute cacheRoute;
         private String topicName;
+        private KafkaTopicType type;
 
         private int state;
 
@@ -521,7 +531,8 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             KafkaCacheClientBudget budget,
             KafkaCachePartition partition,
             KafkaCacheRoute cacheRoute,
-            String topicName)
+            String topicName,
+            KafkaTopicType type)
         {
             this.originId = originId;
             this.routedId = routedId;
@@ -531,6 +542,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             this.budget = budget;
             this.cacheRoute = cacheRoute;
             this.topicName = topicName;
+            this.type = type;
             this.members = new Long2ObjectHashMap<>();
             this.defaultOffset = KafkaOffsetType.LIVE;
             this.cursor = cursorFactory.newCursor(
@@ -597,7 +609,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 else
                 {
                     this.groupCleanupId = doClientFanoutInitialSignalAt(currentTimeMillis() + SECONDS.toMillis(cleanupDelay),
-                            SIGNAL_GROUP_CLEANUP);
+                            traceId, SIGNAL_GROUP_CLEANUP);
                 }
             }
         }
@@ -681,6 +693,13 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                     break init;
                 }
 
+                if (type != null &&
+                    !partition.validProduceEntry(type, true, key.value()))
+                {
+                    error = ERROR_INVALID_RECORD;
+                    break init;
+                }
+
                 stream.segment = partition.newHeadIfNecessary(partitionOffset, key, valueLength, headersSizeMax);
 
                 if (stream.segment != null)
@@ -704,6 +723,13 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             if (valueFragment != null && error == NO_ERROR)
             {
                 partition.writeProduceEntryContinue(stream.segment, stream.position, valueFragment);
+            }
+
+            if ((flags & FLAGS_FIN) != 0x00 &&
+                type != null &&
+                !partition.validProduceEntry(type, false, stream.segment))
+            {
+                error = ERROR_INVALID_RECORD;
             }
 
             if ((flags & FLAGS_FIN) != 0x00 && error == NO_ERROR)
@@ -730,7 +756,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
             if ((flags & FLAGS_INCOMPLETE) != 0x00)
             {
-                markEntryDirty(stream.partitionOffset);
+                markEntryDirty(traceId, stream.partitionOffset);
             }
 
             if (error != NO_ERROR)
@@ -739,6 +765,49 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 onClientFanMemberClosed(traceId, stream);
             }
 
+            creditor.credit(traceId, partitionIndex, reserved);
+        }
+
+        private void onClientInitialFlush(
+            KafkaCacheClientProduceStream stream,
+            FlushFW flush)
+        {
+            final long traceId = flush.traceId();
+            final int reserved = flush.reserved();
+
+            stream.segment = partition.newHeadIfNecessary(partitionOffset, EMPTY_KEY, 0, 0);
+
+            int error = NO_ERROR;
+            if (stream.segment != null)
+            {
+                final long nextOffset = partition.nextOffset(defaultOffset);
+                assert partitionOffset >= 0 && partitionOffset >= nextOffset
+                    : String.format("%d >= 0 && %d >= %d", partitionOffset, partitionOffset, nextOffset);
+
+                final long keyHash = partition.computeKeyHash(EMPTY_KEY);
+                partition.writeProduceEntryStart(partitionOffset, stream.segment, stream.entryMark, stream.position,
+                    now().toEpochMilli(), stream.initialId, PRODUCE_FLUSH_SEQUENCE,
+                    KafkaAckMode.LEADER_ONLY, EMPTY_KEY, keyHash, 0, EMPTY_TRAILERS, trailersSizeMax);
+                stream.partitionOffset = partitionOffset;
+                partitionOffset++;
+
+                Array32FW<KafkaHeaderFW> trailers = EMPTY_TRAILERS;
+
+                partition.writeProduceEntryFin(stream.segment, stream.entryMark, stream.position, stream.initialSeq, trailers);
+                flushClientFanInitialIfNecessary(traceId);
+            }
+            else
+            {
+                error = ERROR_RECORD_LIST_TOO_LARGE;
+            }
+
+            markEntryDirty(traceId, stream.partitionOffset);
+
+            if (error != NO_ERROR)
+            {
+                stream.cleanupClient(traceId, error);
+                onClientFanMemberClosed(traceId, stream);
+            }
             creditor.credit(traceId, partitionIndex, reserved);
         }
 
@@ -1022,7 +1091,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         {
             while (lastAckOffsetHighWatermark <= partitionOffset)
             {
-                final KafkaCacheEntryFW entry = markEntryDirty(lastAckOffsetHighWatermark);
+                final KafkaCacheEntryFW entry = markEntryDirty(traceId, lastAckOffsetHighWatermark);
                 final long memberStreamId = entry.ownerId();
                 final KafkaCacheClientProduceStream member = members.get(memberStreamId);
                 if (member != null)
@@ -1041,6 +1110,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         }
 
         private KafkaCacheEntryFW markEntryDirty(
+            long traceId,
             long partitionOffset)
         {
             final KafkaCachePartition.Node node = this.partition.seekNotAfter(partitionOffset);
@@ -1059,7 +1129,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 if (compactId == NO_CANCEL_ID)
                 {
                     this.compactAt = newCompactAt;
-                    this.compactId = doClientFanoutInitialSignalAt(newCompactAt, SIGNAL_SEGMENT_COMPACT);
+                    this.compactId = doClientFanoutInitialSignalAt(newCompactAt, traceId, SIGNAL_SEGMENT_COMPACT);
                 }
             }
 
@@ -1082,6 +1152,8 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             AbortFW abort)
         {
             final long traceId = abort.traceId();
+
+            doClientFanInitialAbortIfNecessary(traceId);
 
             members.forEach((s, m) -> m.doClientReplyAbortIfNecessary(traceId));
 
@@ -1117,9 +1189,10 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
         private long doClientFanoutInitialSignalAt(
             long timeMillis,
+            long traceId,
             int signalId)
         {
-            return signaler.signalAt(timeMillis, originId, routedId, initialId, signalId, 0);
+            return signaler.signalAt(timeMillis, originId, routedId, initialId, traceId, signalId, 0);
         }
     }
 
@@ -1294,8 +1367,22 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
             assert initialAck <= initialSeq;
 
+            if (reserved > 0)
+            {
+                if (initialSeq > initialAck + initialMax)
+                {
+                    doClientInitialResetIfNecessary(traceId, EMPTY_OCTETS);
+                    doClientReplyAbortIfNecessary(traceId);
+                    fan.onClientFanMemberClosed(traceId, this);
+                }
+                else
+                {
+                    fan.onClientInitialFlush(this, flush);
+                }
+            }
+
             final int noAck = (int) (initialSeq - initialAck);
-            doClientInitialWindow(traceId, noAck, noAck + initialBudgetMax);
+            doClientInitialWindow(traceId, noAck, initialBudgetMax);
         }
 
         private void onClientInitialEnd(
@@ -1322,7 +1409,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
             if (partitionOffset != DEFAULT_LATEST_OFFSET && dataFlags != FLAGS_FIN)
             {
-                fan.markEntryDirty(partitionOffset);
+                fan.markEntryDirty(traceId, partitionOffset);
             }
 
             fan.onClientFanMemberClosed(traceId, this);

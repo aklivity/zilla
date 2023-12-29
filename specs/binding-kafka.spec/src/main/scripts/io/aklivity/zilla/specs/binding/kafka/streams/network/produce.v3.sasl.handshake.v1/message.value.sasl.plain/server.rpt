@@ -28,11 +28,11 @@ accepted
 
 connected
 
-read 17                                 # size
+read 22                                 # size
      17s                                # sasl.handshake
      1s                                 # v1
      (int:requestId)
-      -1s                               # no client id
+      5s "zilla"                        # client id
       5s "PLAIN"                        # mechanism
 
 write 17                                # size
@@ -41,11 +41,11 @@ write 17                                # size
       1                                 # mechanisms
         5s "PLAIN"                        # PLAIN
 
-read 32                                 # size
+read 37                                 # size
      36s                                # sasl.authenticate
      1s                                 # v1
      (int:requestId)
-     -1s                                # no client id
+     5s "zilla"                         # client id
      18
      [0x00] "username"                  # authentication bytes
      [0x00] "password"
@@ -57,11 +57,11 @@ write 20                                # size
       -1s                               # authentication bytes
       0L                                # session lifetime
 
-read 21                                 # size
+read 26                                 # size
      3s                                 # metadata
      5s                                 # v5
      (int:requestId)
-     -1s                                # no client id
+     5s "zilla"                         # client id
      1                                  # topics
        4s "test"                        #   "test" topic
      [0x00]                             # allow_auto_topic_creation
@@ -90,7 +90,7 @@ write 97                                # size
 
 accepted
 
-read zilla:begin.ext ${proxy:beginEx()
+read zilla:begin.ext ${proxy:matchBeginEx()
                               .typeId(zilla:id("proxy"))
                               .addressInet()
                                 .protocol("stream")
@@ -99,15 +99,18 @@ read zilla:begin.ext ${proxy:beginEx()
                                 .sourcePort(0)
                                 .destinationPort(9092)
                                 .build()
+                              .info()
+                                .authority("broker1.example.com")
+                                .build()
                               .build()}
 
 connected
 
-read 17                                 # size
+read 22                                 # size
      17s                                # sasl.handshake
      1s                                 # v1
      (int:requestId)
-      -1s                               # no client id
+     5s "zilla"                         # client id
       5s "PLAIN"                        # mechanism
 
 write 17                                # size
@@ -116,11 +119,11 @@ write 17                                # size
       1                                 # mechanisms
         5s "PLAIN"                        # PLAIN
 
-read 32                                 # size
+read 37                                 # size
      36s                                # sasl.authenticate
      1s                                 # v1
      (int:requestId)
-     -1s                                # no client id
+     5s "zilla"                         # client id
      18
      [0x00] "username"                  # authentication bytes
      [0x00] "password"
@@ -132,11 +135,11 @@ write 20                                # size
       -1s                               # authentication bytes
       0L                                # session lifetime
 
-read 120
+read 125
      0s
      3s
      (int:requestId)
-     -1s
+     5s "zilla"                         # client id
      -1s
      [0..2]
      [0..4]

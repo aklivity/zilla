@@ -64,6 +64,8 @@ public final class TlsBindingConfig
 {
     private static final String TYPE_DEFAULT = "PKCS12";
 
+    private static final TlsOptionsConfig OPTIONS_DEFAULT = TlsOptionsConfig.builder().build();
+
     public final long id;
     public final long vaultId;
     public final String name;
@@ -80,7 +82,7 @@ public final class TlsBindingConfig
         this.vaultId = binding.vaultId;
         this.name = binding.name;
         this.kind = binding.kind;
-        this.options = TlsOptionsConfig.class.cast(binding.options);
+        this.options = binding.options != null ? TlsOptionsConfig.class.cast(binding.options) : OPTIONS_DEFAULT;
         this.routes = binding.routes.stream().map(TlsRouteConfig::new).collect(toList());
     }
 
@@ -172,7 +174,7 @@ public final class TlsBindingConfig
             engine.setUseClientMode(true);
 
             List<String> sni = options.sni;
-            if (sni == null && beginEx != null)
+            if (beginEx != null)
             {
                 ProxyInfoFW info = beginEx.infos().matchFirst(a -> a.kind() == AUTHORITY);
 

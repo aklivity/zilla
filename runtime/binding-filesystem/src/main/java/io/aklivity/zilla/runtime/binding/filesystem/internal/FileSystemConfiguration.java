@@ -30,8 +30,8 @@ public class FileSystemConfiguration extends Configuration
     static
     {
         final ConfigurationDef config = new ConfigurationDef(String.format("zilla.binding.%s", NAME));
-        FILE_SYSTEM_SERVER_ROOT =
-                config.property(URI.class, "server.root", FileSystemConfiguration::createURI, p -> createURI("."));
+        FILE_SYSTEM_SERVER_ROOT = config.property(URI.class, "server.root",
+            FileSystemConfiguration::decodeServerRoot, new File(".").toURI());
 
         FILE_SYSTEM_CONFIG = config;
     }
@@ -47,7 +47,7 @@ public class FileSystemConfiguration extends Configuration
         return FILE_SYSTEM_SERVER_ROOT.get(this);
     }
 
-    private static URI createURI(
+    private static URI decodeServerRoot(
         String location)
     {
         return location.indexOf(':') != -1 ? URI.create(location) : new File(location).toURI();

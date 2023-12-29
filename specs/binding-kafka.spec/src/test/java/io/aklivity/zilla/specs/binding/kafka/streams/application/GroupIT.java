@@ -26,7 +26,6 @@ import org.junit.rules.Timeout;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 
-
 public class GroupIT
 {
     private final K3poRule k3po = new K3poRule()
@@ -57,9 +56,27 @@ public class GroupIT
 
     @Test
     @Specification({
-        "${app}/leader/client",
-        "${app}/leader/server"})
-    public void shouldBecameLeader() throws Exception
+        "${app}/client.sent.write.abort.after.sync.group.response/client",
+        "${app}/client.sent.write.abort.after.sync.group.response/server"})
+    public void shouldHandleClientSentWriteAbortAfterSyncGroupResponse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/client.sent.read.abort.after.sync.group.response/client",
+        "${app}/client.sent.read.abort.after.sync.group.response/server"})
+    public void shouldHandleClientSentReadAbortAfterSyncGroupResponse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/leader.assignment/client",
+        "${app}/leader.assignment/server"})
+    public void shouldAssignLeader() throws Exception
     {
         k3po.finish();
     }
@@ -69,6 +86,15 @@ public class GroupIT
         "${app}/rebalance.protocol.highlander.migrate.leader/client",
         "${app}/rebalance.protocol.highlander.migrate.leader/server"})
     public void shouldRebalanceProtocolHighlanderMigrateLeader() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/rebalance.protocol.highlander.migrate.leader.in.parallel/client",
+        "${app}/rebalance.protocol.highlander.migrate.leader.in.parallel/server"})
+    public void shouldRebalanceProtocolHighlanderMigrateLeaderInParallel() throws Exception
     {
         k3po.finish();
     }
@@ -87,6 +113,87 @@ public class GroupIT
         "${app}/ignore.heartbeat.before.handshake/client",
         "${app}/ignore.heartbeat.before.handshake/server"})
     public void shouldIgnoreHeartbeatBeforeHandshakeComplete() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/rebalance.sync.group/client",
+        "${app}/rebalance.sync.group/server"})
+    public void shouldHandleRebalanceSyncGroup() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/partition.assignment/client",
+        "${app}/partition.assignment/server"})
+    public void shouldAssignGroupPartition() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/topics.partition.assignment/client",
+        "${app}/topics.partition.assignment/server"})
+    public void shouldAssignMultipleTopicsPartitionGroup() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/reassign.new.topic/client",
+        "${app}/reassign.new.topic/server"})
+    public void shouldReassignOnNewTopic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/rebalance.multiple.members.with.same.group.id/client",
+        "${app}/rebalance.multiple.members.with.same.group.id/server"})
+    public void shouldRebalanceMultipleMembersWithSameGroupId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/rebalance.protocol.highlander.heartbeat.unknown.member/client",
+        "${app}/rebalance.protocol.highlander.heartbeat.unknown.member/server"})
+    public void shouldRebalanceProtocolHighlanderOnHeartbeatUnknownMember() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/group.authorization.failed/client",
+        "${app}/group.authorization.failed/server"})
+    public void shouldPropagateGroupAuthorizationFailedError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/invalid.describe.config/client",
+        "${app}/invalid.describe.config/server"})
+    public void shouldHandleInvalidDescribeConfig() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/invalid.session.timeout/client",
+        "${app}/invalid.session.timeout/server"})
+    public void shouldHandleInvalidSessionTimeout() throws Exception
     {
         k3po.finish();
     }

@@ -38,32 +38,45 @@ write zilla:begin.ext ${kafka:beginEx()
                                .group()
                                    .groupId("test")
                                    .protocol("highlander")
+                                   .instanceId("zilla")
+                                   .host("localhost")
+                                   .port(9092)
                                    .timeout(30000)
                                    .build()
                                .build()}
 write flush
 
-write zilla:data.ext ${kafka:dataEx()
+write advise zilla:flush ${kafka:flushEx()
                              .typeId(zilla:id("kafka"))
                              .group()
+                                 .generationId(0)
                                  .leaderId("memberId-1")
                                  .memberId("memberId-1")
-                                 .members(1)
+                                 .members("memberId-1")
                                  .build()
                              .build()}
+
+read zilla:data.empty
+
+write zilla:data.empty
 write flush
 
 read advised zilla:flush
 
-write zilla:data.ext ${kafka:dataEx()
+write advise zilla:flush ${kafka:flushEx()
                              .typeId(zilla:id("kafka"))
                              .group()
+                                 .generationId(0)
                                  .leaderId("memberId-1")
                                  .memberId("memberId-1")
-                                 .members(2)
+                                 .members("memberId-1")
+                                 .members("memberId-2")
                                  .build()
                              .build()}
-write flush
+
+read zilla:data.empty
+
+write zilla:data.empty
 
 read closed
 write close

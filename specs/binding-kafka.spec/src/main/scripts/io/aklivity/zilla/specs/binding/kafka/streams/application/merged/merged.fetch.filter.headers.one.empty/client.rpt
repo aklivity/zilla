@@ -38,6 +38,7 @@ connected
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
                              .merged()
+                                .fetch()
                                  .partition(1, 5, 6)
                                  .progress(0, 6)
                                  .progress(1, 6)

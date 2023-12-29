@@ -17,6 +17,7 @@
 connect "zilla://streams/app0"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
+    option zilla:budgetId 1
 
 write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
@@ -34,19 +35,26 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                                .group()
                                    .groupId("test")
                                    .protocol("highlander")
+                                   .instanceId("zilla")
+                                   .host("localhost")
+                                   .port(9092)
                                    .timeout(30000)
                                    .build()
                                .build()}
 
 write advise zilla:flush
 
-read zilla:data.ext ${kafka:matchDataEx()
+read advised zilla:flush ${kafka:flushEx()
                              .typeId(zilla:id("kafka"))
                              .group()
+                                 .generationId(0)
                                  .leaderId("memberId-1")
                                  .memberId("memberId-1")
-                                 .members(1)
+                                 .members("memberId-1")
                                  .build()
                              .build()}
-read zilla:data.null
 
+write zilla:data.empty
+write flush
+
+read zilla:data.empty

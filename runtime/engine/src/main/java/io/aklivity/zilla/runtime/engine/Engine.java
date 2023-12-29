@@ -55,10 +55,13 @@ import java.util.stream.Collectors;
 
 import org.agrona.CloseHelper;
 import org.agrona.ErrorHandler;
+import org.agrona.LangUtil;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.concurrent.AgentRunner;
 
 import io.aklivity.zilla.runtime.engine.binding.Binding;
+import io.aklivity.zilla.runtime.engine.catalog.Catalog;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.exporter.Exporter;
@@ -68,6 +71,7 @@ import io.aklivity.zilla.runtime.engine.guard.Guard;
 import io.aklivity.zilla.runtime.engine.internal.Info;
 import io.aklivity.zilla.runtime.engine.internal.LabelManager;
 import io.aklivity.zilla.runtime.engine.internal.Tuning;
+import io.aklivity.zilla.runtime.engine.internal.layouts.BindingsLayout;
 import io.aklivity.zilla.runtime.engine.internal.registry.ConfigurationManager;
 import io.aklivity.zilla.runtime.engine.internal.registry.DispatchAgent;
 import io.aklivity.zilla.runtime.engine.internal.registry.FileWatcherTask;
@@ -76,6 +80,8 @@ import io.aklivity.zilla.runtime.engine.internal.registry.WatcherTask;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
+import io.aklivity.zilla.runtime.engine.validator.ValidatorFactory;
+import io.aklivity.zilla.runtime.engine.validator.ValidatorFactorySpi;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 
 public final class Engine implements Collector, AutoCloseable
@@ -96,6 +102,8 @@ public final class Engine implements Collector, AutoCloseable
     private final URL rootConfigURL;
     private final Collection<DispatchAgent> dispatchers;
     private final boolean readonly;
+    private final EngineConfiguration config;
+    private final Map<String, Binding> bindingsByType;
     private Future<Void> watcherTaskRef;
 
     Engine(
@@ -105,10 +113,13 @@ public final class Engine implements Collector, AutoCloseable
         Collection<Guard> guards,
         Collection<MetricGroup> metricGroups,
         Collection<Vault> vaults,
+        Collection<Catalog> catalogs,
+        ValidatorFactory validatorFactory,
         ErrorHandler errorHandler,
         Collection<EngineAffinity> affinities,
         boolean readonly)
     {
+        this.config = config;
         this.nextTaskId = new AtomicInteger();
         this.factory = Executors.defaultThreadFactory();
 
@@ -158,7 +169,8 @@ public final class Engine implements Collector, AutoCloseable
         {
             DispatchAgent agent =
                 new DispatchAgent(config, tasks, labels, errorHandler, tuning::affinity,
-                        bindings, exporters, guards, vaults, metricGroups, this, coreIndex, readonly);
+                        bindings, exporters, guards, vaults, catalogs, metricGroups, validatorFactory,
+                    this, coreIndex, readonly);
             dispatchers.add(agent);
         }
         this.dispatchers = dispatchers;
@@ -177,7 +189,10 @@ public final class Engine implements Collector, AutoCloseable
         schemaTypes.addAll(guards.stream().map(Guard::type).filter(Objects::nonNull).collect(toList()));
         schemaTypes.addAll(metricGroups.stream().map(MetricGroup::type).filter(Objects::nonNull).collect(toList()));
         schemaTypes.addAll(vaults.stream().map(Vault::type).filter(Objects::nonNull).collect(toList()));
+        schemaTypes.addAll(catalogs.stream().map(Catalog::type).filter(Objects::nonNull).collect(toList()));
+        schemaTypes.addAll(validatorFactory.validatorSpis().stream().map(ValidatorFactorySpi::schema).collect(toList()));
 
+        bindingsByType = bindings.stream().collect(Collectors.toMap(b -> b.name(), b -> b));
         final Map<String, Guard> guardsByType = guards.stream()
             .collect(Collectors.toMap(g -> g.name(), g -> g));
 
@@ -240,6 +255,11 @@ public final class Engine implements Collector, AutoCloseable
     @Override
     public void close() throws Exception
     {
+        if (config.drainOnClose())
+        {
+            dispatchers.forEach(DispatchAgent::drain);
+        }
+
         final List<Throwable> errors = new ArrayList<>();
 
         watcherTask.close();
@@ -287,6 +307,7 @@ public final class Engine implements Collector, AutoCloseable
         NamespaceConfig newNamespace = configurationManager.parse(configURL, configText);
         if (newNamespace != null)
         {
+            writeBindingsLayout(newNamespace);
             NamespaceConfig oldNamespace = namespaces.get(configURL);
             configurationManager.unregister(oldNamespace);
             try
@@ -302,6 +323,29 @@ public final class Engine implements Collector, AutoCloseable
             }
         }
         return newNamespace;
+    }
+
+    private void writeBindingsLayout(
+        NamespaceConfig namespace)
+    {
+        BindingsLayout bindingsLayout = BindingsLayout.builder().directory(config.directory()).build();
+        for (BindingConfig binding : namespace.bindings)
+        {
+            long typeId = namespace.resolveId.applyAsLong(binding.type);
+            long kindId = namespace.resolveId.applyAsLong(binding.kind.name().toLowerCase());
+            Binding b = bindingsByType.get(binding.type);
+            long originTypeId = namespace.resolveId.applyAsLong(b.originType(binding.kind));
+            long routedTypeId = namespace.resolveId.applyAsLong(b.routedType(binding.kind));
+            bindingsLayout.writeBindingInfo(binding.id, typeId, kindId, originTypeId, routedTypeId);
+        }
+        try
+        {
+            bindingsLayout.close();
+        }
+        catch (Exception ex)
+        {
+            LangUtil.rethrowUnchecked(ex);
+        }
     }
 
     public static EngineBuilder builder()

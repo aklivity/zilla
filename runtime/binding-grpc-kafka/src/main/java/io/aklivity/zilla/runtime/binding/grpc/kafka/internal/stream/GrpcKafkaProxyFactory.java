@@ -50,7 +50,7 @@ import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcRe
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.KafkaDataExFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.KafkaMergedBeginExFW;
-import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.KafkaMergedDataExFW;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.KafkaMergedFetchDataExFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.WindowFW;
@@ -73,8 +73,6 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
     private static final String16FW HEADER_VALUE_GRPC_OK = new String16FW("0");
     private static final String16FW HEADER_VALUE_GRPC_ABORTED = new String16FW("10");
     private static final String16FW HEADER_VALUE_GRPC_INTERNAL_ERROR = new String16FW("13");
-    private final String16FW.Builder string16RW =
-        new String16FW.Builder().wrap(new UnsafeBuffer(new byte[256], 0, 256), 0, 256);
 
     private final Varuint32FW.Builder lenRW =
         new Varuint32FW.Builder().wrap(new UnsafeBuffer(new byte[1024 * 8]), 0, 1024 * 8);;
@@ -85,7 +83,6 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
     private final DataFW dataRO = new DataFW();
     private final EndFW endRO = new EndFW();
     private final AbortFW abortRO = new AbortFW();
-
 
     private final String16FW.Builder statusRW = new
         String16FW.Builder().wrap(new UnsafeBuffer(new byte[256], 0, 256), 0, 256);
@@ -105,13 +102,10 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
     private final ExtensionFW extensionRO = new ExtensionFW();
     private final GrpcBeginExFW grpcBeginExRO = new GrpcBeginExFW();
     private final GrpcDataExFW grpcDataExRO = new GrpcDataExFW();
-    private final GrpcResetExFW resetExRO = new GrpcResetExFW();
-    private final GrpcAbortExFW abortExRO = new GrpcAbortExFW();
 
     private final KafkaBeginExFW kafkaBeginExRO = new KafkaBeginExFW();
     private final KafkaDataExFW kafkaDataExRO = new KafkaDataExFW();
 
-    private final GrpcBeginExFW.Builder grpcBeginExRW = new GrpcBeginExFW.Builder();
     private final GrpcDataExFW.Builder grpcDataExRW = new GrpcDataExFW.Builder();
     private final GrpcResetExFW.Builder grpcResetExRW = new GrpcResetExFW.Builder();
     private final GrpcAbortExFW.Builder grpcAbortExRW = new GrpcAbortExFW.Builder();
@@ -300,7 +294,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             int reserved,
             int flags,
             OctetsFW payload,
-            OctetsFW extension)
+            KafkaDataExFW kafkaDataEx)
         {
         }
 
@@ -844,7 +838,8 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 beginEx != null && beginEx.typeId() == kafkaTypeId ? extension.get(kafkaBeginExRO::tryWrap) : null;
             final KafkaMergedBeginExFW kafkaMergedBeginEx =
                 kafkaBeginEx != null && kafkaBeginEx.kind() == KafkaBeginExFW.KIND_MERGED ? kafkaBeginEx.merged() : null;
-            final Array32FW<KafkaOffsetFW> partitions = kafkaMergedBeginEx != null ? kafkaMergedBeginEx.partitions() : null;
+            final Array32FW<KafkaOffsetFW> partitions = kafkaMergedBeginEx != null ?
+                kafkaMergedBeginEx.partitions() : null;
 
             if (kafkaMergedBeginEx != null)
             {
@@ -895,8 +890,9 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                     final ExtensionFW dataEx = extension.get(extensionRO::tryWrap);
                     final KafkaDataExFW kafkaDataEx =
                         dataEx != null && dataEx.typeId() == kafkaTypeId ? extension.get(kafkaDataExRO::tryWrap) : null;
-                    final KafkaMergedDataExFW kafkaMergedDataEx =
-                        kafkaDataEx != null && kafkaDataEx.kind() == KafkaDataExFW.KIND_MERGED ? kafkaDataEx.merged() : null;
+                    final KafkaMergedFetchDataExFW kafkaMergedDataEx =
+                        kafkaDataEx != null && kafkaDataEx.kind() == KafkaDataExFW.KIND_MERGED ?
+                            kafkaDataEx.merged().fetch() : null;
                     progress = kafkaMergedDataEx != null ?
                         messageFieldHelper.encodeProgress(kafkaMergedDataEx.progress()) :
                         null;
@@ -1160,12 +1156,12 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 kafkaDataEx = kafkaDataExRW
                     .wrap(extBuffer, 0, extBuffer.capacity())
                     .typeId(kafkaTypeId)
-                    .merged(m -> m
+                    .merged(m -> m.produce(mp -> mp
                         .deferred(deferred)
                         .timestamp(now().toEpochMilli())
                         .partition(p -> p.partitionId(-1).partitionOffset(-1))
                         .key(producer.result::key)
-                        .headers(producer.result::headers))
+                        .headers(producer.result::headers)))
                     .build();
             }
 
@@ -1298,7 +1294,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             int reserved,
             int flags,
             OctetsFW payload,
-            OctetsFW extension)
+            KafkaDataExFW kafkaDataEx)
         {
             if (GrpcKafkaState.replyClosing(state))
             {
@@ -1310,18 +1306,15 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             {
                 if (payload == null)
                 {
-                    final ExtensionFW dataEx = extension.get(extensionRO::tryWrap);
-                    final KafkaDataExFW kafkaDataEx =
-                        dataEx != null && dataEx.typeId() == kafkaTypeId ? extension.get(kafkaDataExRO::tryWrap) : null;
-
-                    KafkaHeaderFW grpcStatus = kafkaDataEx.merged().headers()
+                    KafkaHeaderFW grpcStatus = kafkaDataEx.merged().fetch().headers()
                         .matchFirst(h -> HEADER_NAME_ZILLA_GRPC_STATUS.value().equals(h.name().value()));
 
                     if (grpcStatus != null &&
                         !HEADER_VALUE_GRPC_OK.value().equals(grpcStatus.value().value()))
                     {
+                        OctetsFW value = grpcStatus.value();
                         String16FW status = statusRW
-                            .set(grpcStatus.value().buffer(), grpcStatus.offset(), grpcStatus.sizeof())
+                            .set(value.buffer(), value.offset(), value.sizeof())
                             .build();
                         doGrpcAbort(traceId, authorization, status);
                     }
@@ -1333,7 +1326,13 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 }
                 else if (GrpcKafkaState.replyOpening(state))
                 {
-                    doGrpcData(traceId, authorization, budgetId, reserved, flags, payload);
+                    int deferred = 0;
+                    if (kafkaDataEx != null)
+                    {
+                        deferred = kafkaDataEx.merged().fetch().deferred();
+                    }
+
+                    doGrpcData(traceId, authorization, budgetId, reserved, deferred, flags, payload);
                 }
             }
         }
@@ -1394,11 +1393,18 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             long authorization,
             long budgetId,
             int reserved,
+            int deferred,
             int flags,
             OctetsFW payload)
         {
+            GrpcDataExFW dataEx = grpcDataExRW
+                .wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(grpcTypeId)
+                .deferred(deferred)
+                .build();
+
             doData(grpc, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                traceId, authorization, budgetId, flags, reserved, payload, emptyRO);
+                traceId, authorization, budgetId, flags, reserved, payload, dataEx);
 
             replySeq += reserved;
 
@@ -1410,7 +1416,8 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             long authorization,
             String16FW status)
         {
-            if (GrpcKafkaState.replyOpened(state) && !GrpcKafkaState.replyClosed(state))
+            if (GrpcKafkaState.replyOpening(state) &&
+                !GrpcKafkaState.replyClosed(state))
             {
                 replySeq = correlater.replySeq;
 
@@ -1764,11 +1771,11 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             Flyweight tombstoneDataEx = kafkaDataExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(kafkaTypeId)
-                .merged(m -> m
+                .merged(m -> m.produce(mp -> mp
                     .timestamp(now().toEpochMilli())
                     .partition(p -> p.partitionId(-1).partitionOffset(-1))
                     .key(result::key)
-                    .headers(result::headers))
+                    .headers(result::headers)))
                 .build();
 
             doKafkaData(traceId, authorization, initialBud, 0, DATA_FLAG_COMPLETE, null, tombstoneDataEx);
@@ -1948,7 +1955,11 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 final OctetsFW payload = data.payload();
                 final OctetsFW extension = data.extension();
 
-                delegate.onKafkaData(traceId, authorization, budgetId, reserved, flags, payload, extension);
+                final ExtensionFW dataEx = extension.get(extensionRO::tryWrap);
+                final KafkaDataExFW kafkaDataEx =
+                    dataEx != null && dataEx.typeId() == kafkaTypeId ? extension.get(kafkaDataExRO::tryWrap) : null;
+
+                delegate.onKafkaData(traceId, authorization, budgetId, reserved, flags, payload, kafkaDataEx);
             }
         }
 

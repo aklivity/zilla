@@ -31,7 +31,9 @@ import org.agrona.collections.Int2ObjectHashMap;
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
 import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
 import io.aklivity.zilla.runtime.engine.config.GuardConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
@@ -54,6 +56,7 @@ public class NamespaceRegistry
     private final Function<String, BindingContext> bindingsByType;
     private final Function<String, GuardContext> guardsByType;
     private final Function<String, VaultContext> vaultsByType;
+    private final Function<String, CatalogContext> catalogsByType;
     private final Function<String, MetricContext> metricsByName;
     private final Function<String, ExporterContext> exportersByType;
     private final ToIntFunction<String> supplyLabelId;
@@ -64,6 +67,7 @@ public class NamespaceRegistry
     private final Int2ObjectHashMap<BindingRegistry> bindingsById;
     private final Int2ObjectHashMap<GuardRegistry> guardsById;
     private final Int2ObjectHashMap<VaultRegistry> vaultsById;
+    private final Int2ObjectHashMap<CatalogRegistry> catalogsById;
     private final Int2ObjectHashMap<MetricRegistry> metricsById;
     private final Int2ObjectHashMap<ExporterRegistry> exportersById;
     private final ObjectLongLongFunction<Metric.Kind, LongConsumer> supplyMetricRecorder;
@@ -75,6 +79,7 @@ public class NamespaceRegistry
         Function<String, BindingContext> bindingsByType,
         Function<String, GuardContext> guardsByType,
         Function<String, VaultContext> vaultsByType,
+        Function<String, CatalogContext> catalogsByType,
         Function<String, MetricContext> metricsByName,
         Function<String, ExporterContext> exportersByType,
         ToIntFunction<String> supplyLabelId,
@@ -89,6 +94,7 @@ public class NamespaceRegistry
         this.bindingsByType = bindingsByType;
         this.guardsByType = guardsByType;
         this.vaultsByType = vaultsByType;
+        this.catalogsByType = catalogsByType;
         this.metricsByName = metricsByName;
         this.exportersByType = exportersByType;
         this.supplyLabelId = supplyLabelId;
@@ -101,6 +107,7 @@ public class NamespaceRegistry
         this.bindingsById = new Int2ObjectHashMap<>();
         this.guardsById = new Int2ObjectHashMap<>();
         this.vaultsById = new Int2ObjectHashMap<>();
+        this.catalogsById = new Int2ObjectHashMap<>();
         this.metricsById = new Int2ObjectHashMap<>();
         this.exportersById = new Int2ObjectHashMap<>();
         this.collector = collector;
@@ -115,6 +122,7 @@ public class NamespaceRegistry
     {
         namespace.vaults.forEach(this::attachVault);
         namespace.guards.forEach(this::attachGuard);
+        namespace.catalogs.forEach(this::attachCatalog);
         namespace.telemetry.metrics.forEach(this::attachMetric);
         namespace.bindings.forEach(this::attachBinding);
         namespace.telemetry.exporters.forEach(this::attachExporter);
@@ -124,6 +132,7 @@ public class NamespaceRegistry
     {
         namespace.vaults.forEach(this::detachVault);
         namespace.guards.forEach(this::detachGuard);
+        namespace.catalogs.forEach(this::detachCatalog);
         namespace.bindings.forEach(this::detachBinding);
         namespace.telemetry.metrics.forEach(this::detachMetric);
         namespace.telemetry.exporters.forEach(this::detachExporter);
@@ -231,7 +240,7 @@ public class NamespaceRegistry
     private void detachBinding(
         BindingConfig config)
     {
-        int bindingId = supplyLabelId.applyAsInt(config.name);
+        int bindingId = NamespacedId.localId(config.id);
         BindingRegistry context = bindingsById.remove(bindingId);
         if (context != null)
         {
@@ -255,7 +264,7 @@ public class NamespaceRegistry
     private void detachVault(
         VaultConfig config)
     {
-        int vaultId = supplyLabelId.applyAsInt(config.name);
+        int vaultId = NamespacedId.localId(config.id);
         VaultRegistry context = vaultsById.remove(vaultId);
         if (context != null)
         {
@@ -278,8 +287,31 @@ public class NamespaceRegistry
     private void detachGuard(
         GuardConfig config)
     {
-        int guardId = supplyLabelId.applyAsInt(config.name);
+        int guardId = NamespacedId.localId(config.id);
         GuardRegistry context = guardsById.remove(guardId);
+        if (context != null)
+        {
+            context.detach();
+        }
+    }
+
+    private void attachCatalog(
+        CatalogConfig config)
+    {
+        CatalogContext context = catalogsByType.apply(config.type);
+        assert context != null : "Missing catalog type: " + config.type;
+
+        int catalogId = supplyLabelId.applyAsInt(config.name);
+        CatalogRegistry registry = new CatalogRegistry(config, context);
+        catalogsById.put(catalogId, registry);
+        registry.attach();
+    }
+
+    private void detachCatalog(
+        CatalogConfig config)
+    {
+        int catalogId = NamespacedId.localId(config.id);
+        CatalogRegistry context = catalogsById.remove(catalogId);
         if (context != null)
         {
             context.detach();
@@ -298,7 +330,7 @@ public class NamespaceRegistry
     private void detachMetric(
         MetricConfig config)
     {
-        int metricId = supplyLabelId.applyAsInt(config.name);
+        int metricId = NamespacedId.localId(config.id);
         metricsById.remove(metricId);
     }
 
@@ -317,7 +349,7 @@ public class NamespaceRegistry
     private void detachExporter(
         ExporterConfig config)
     {
-        int exporterId = supplyLabelId.applyAsInt(config.name);
+        int exporterId = NamespacedId.localId(config.id);
         ExporterRegistry registry = exportersById.remove(exporterId);
         if (registry != null)
         {
@@ -349,6 +381,12 @@ public class NamespaceRegistry
         int vaultId)
     {
         return vaultsById.get(vaultId);
+    }
+
+    CatalogRegistry findCatalog(
+        int catalogId)
+    {
+        return catalogsById.get(catalogId);
     }
 
     MetricRegistry findMetric(

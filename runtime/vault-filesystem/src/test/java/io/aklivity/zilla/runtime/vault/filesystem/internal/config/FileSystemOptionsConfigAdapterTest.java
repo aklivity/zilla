@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.vault.filesystem.internal.config;
 
+import static java.util.function.Function.identity;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
@@ -93,7 +94,9 @@ public class FileSystemOptionsConfigAdapterTest
     public void shouldWriteOptionsWithKeys()
     {
         FileSystemOptionsConfig options = FileSystemOptionsConfig.builder()
+            .inject(identity())
             .keys()
+                .inject(identity())
                 .store("localhost.p12")
                 .type("pkcs12")
                 .password("generated")

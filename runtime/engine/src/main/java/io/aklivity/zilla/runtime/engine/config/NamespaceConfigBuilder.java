@@ -22,10 +22,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 
-public class NamespaceConfigBuilder<T>
+public final class NamespaceConfigBuilder<T> extends ConfigBuilder<T, NamespaceConfigBuilder<T>>
 {
     public static final List<NamespaceRefConfig> NAMESPACES_DEFAULT = emptyList();
     public static final List<BindingConfig> BINDINGS_DEFAULT = emptyList();
+    public static final List<CatalogConfig> CATALOGS_DEFAULT = emptyList();
     public static final List<GuardConfig> GUARDS_DEFAULT = emptyList();
     public static final List<VaultConfig> VAULTS_DEFAULT = emptyList();
     public static final TelemetryConfig TELEMETRY_DEFAULT = TelemetryConfig.EMPTY;
@@ -36,6 +37,7 @@ public class NamespaceConfigBuilder<T>
     private List<NamespaceRefConfig> namespaces;
     private TelemetryConfig telemetry;
     private List<BindingConfig> bindings;
+    private List<CatalogConfig> catalogs;
     private List<GuardConfig> guards;
     private List<VaultConfig> vaults;
 
@@ -43,6 +45,13 @@ public class NamespaceConfigBuilder<T>
         Function<NamespaceConfig, T> mapper)
     {
         this.mapper = mapper;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Class<NamespaceConfigBuilder<T>> thisType()
+    {
+        return (Class<NamespaceConfigBuilder<T>>) getClass();
     }
 
     public NamespaceConfigBuilder<T> name(
@@ -103,6 +112,29 @@ public class NamespaceConfigBuilder<T>
         return this;
     }
 
+    public CatalogConfigBuilder<NamespaceConfigBuilder<T>> catalog()
+    {
+        return new CatalogConfigBuilder<>(this::catalog);
+    }
+
+    public NamespaceConfigBuilder<T> catalog(
+        CatalogConfig catalog)
+    {
+        if (catalogs == null)
+        {
+            catalogs = new LinkedList<>();
+        }
+        catalogs.add(catalog);
+        return this;
+    }
+
+    public NamespaceConfigBuilder<T> catalogs(
+        List<CatalogConfig> catalogs)
+    {
+        this.catalogs = catalogs;
+        return this;
+    }
+
     public GuardConfigBuilder<NamespaceConfigBuilder<T>> guard()
     {
         return new GuardConfigBuilder<>(this::guard);
@@ -157,6 +189,7 @@ public class NamespaceConfigBuilder<T>
             Optional.ofNullable(telemetry).orElse(TELEMETRY_DEFAULT),
             Optional.ofNullable(bindings).orElse(BINDINGS_DEFAULT),
             Optional.ofNullable(guards).orElse(GUARDS_DEFAULT),
-            Optional.ofNullable(vaults).orElse(VAULTS_DEFAULT)));
+            Optional.ofNullable(vaults).orElse(VAULTS_DEFAULT),
+            Optional.ofNullable(catalogs).orElse(CATALOGS_DEFAULT)));
     }
 }

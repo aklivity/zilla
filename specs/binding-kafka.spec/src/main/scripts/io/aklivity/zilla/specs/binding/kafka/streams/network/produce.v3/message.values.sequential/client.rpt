@@ -26,11 +26,11 @@ connect "zilla://streams/net0"
 
 connected
 
-write 21                                # size
+write 26                                # size
       3s                                # metadata
       5s                                # v5
       ${newRequestId}
-      -1s                               # no client id
+      5s "zilla"                        # client id
       1                                 # topics
         4s "test"                       #   "test" topic
       [0x00]                            # allow_auto_topic_creation
@@ -74,15 +74,18 @@ write zilla:begin.ext ${proxy:beginEx()
                                  .sourcePort(0)
                                  .destinationPort(9092)
                                  .build()
+                               .info()
+                                 .authority("broker1.example.com")
+                                 .build()
                                .build()}
 
 connected
 
-write 7690
+write 7283
       0s
       3s
       ${newRequestId}
-      -1s
+      5s "zilla"                        # client id
       -1s
       0s                                # acks
       ${produceWaitMax}
@@ -90,9 +93,9 @@ write 7690
       4s "test"
       1
       0
-      7650                               # record set size
+      7238                               # record set size
       0L                                 # first offset
-      7638                               # length
+      7226                               # length
       -1
       [0x02]
       0x4e8723aa
@@ -104,13 +107,13 @@ write 7690
       -1s
       -1
       1                                  # records
-      ${kafka:varint(7587)}
+      ${kafka:varint(7175)}
       [0x00]
       ${kafka:varint(0)}
       ${kafka:varint(0)}
       ${kafka:varint(-1)}                # key
-      ${kafka:varint(7580)}              # value
-      ${kafka:randomBytes(7580)}
+      ${kafka:varint(7168)}              # value
+      ${kafka:randomBytes(7168)}
       ${kafka:varint(0)}                 # headers
 
 read 44

@@ -16,6 +16,8 @@
 package io.aklivity.zilla.runtime.binding.http.config;
 
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -26,7 +28,7 @@ import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
-public final class HttpOptionsConfigBuilder<T> implements ConfigBuilder<T>
+public final class HttpOptionsConfigBuilder<T> extends ConfigBuilder<T, HttpOptionsConfigBuilder<T>>
 {
     private final Function<OptionsConfig, T> mapper;
 
@@ -34,11 +36,19 @@ public final class HttpOptionsConfigBuilder<T> implements ConfigBuilder<T>
     private Map<String8FW, String16FW>  overrides;
     private HttpAccessControlConfig access;
     private HttpAuthorizationConfig authorization;
+    private List<HttpRequestConfig> requests;
 
     HttpOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
     {
         this.mapper = mapper;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Class<HttpOptionsConfigBuilder<T>> thisType()
+    {
+        return (Class<HttpOptionsConfigBuilder<T>>) getClass();
     }
 
     public HttpOptionsConfigBuilder<T> version(
@@ -64,20 +74,31 @@ public final class HttpOptionsConfigBuilder<T> implements ConfigBuilder<T>
         return this;
     }
 
-    public HttpAccessControlConfigBuilder<HttpOptionsConfigBuilder<T>> access()
+    public HttpOptionsConfigBuilder<T> requests(
+        List<HttpRequestConfig> requests)
     {
-        return new HttpAccessControlConfigBuilder<>(this::access);
+        if (requests == null)
+        {
+            requests = new LinkedList<>();
+        }
+        this.requests = requests;
+        return this;
     }
 
-    public HttpAuthorizationConfigBuilder<HttpOptionsConfigBuilder<T>> authorization()
+    public HttpOptionsConfigBuilder<T> request(
+        HttpRequestConfig request)
     {
-        return new HttpAuthorizationConfigBuilder<>(this::authorization);
+        if (this.requests == null)
+        {
+            this.requests = new LinkedList<>();
+        }
+        this.requests.add(request);
+        return this;
     }
 
-    @Override
-    public T build()
+    public HttpRequestConfigBuilder<HttpOptionsConfigBuilder<T>> request()
     {
-        return mapper.apply(new HttpOptionsConfig(versions, overrides, access, authorization));
+        return new HttpRequestConfigBuilder<>(this::request);
     }
 
     private HttpOptionsConfigBuilder<T> authorization(
@@ -87,10 +108,26 @@ public final class HttpOptionsConfigBuilder<T> implements ConfigBuilder<T>
         return this;
     }
 
+    public HttpAuthorizationConfigBuilder<HttpOptionsConfigBuilder<T>> authorization()
+    {
+        return new HttpAuthorizationConfigBuilder<>(this::authorization);
+    }
+
     private HttpOptionsConfigBuilder<T> access(
         HttpAccessControlConfig access)
     {
         this.access = access;
         return this;
+    }
+
+    public HttpAccessControlConfigBuilder<HttpOptionsConfigBuilder<T>> access()
+    {
+        return new HttpAccessControlConfigBuilder<>(this::access);
+    }
+
+    @Override
+    public T build()
+    {
+        return mapper.apply(new HttpOptionsConfig(versions, overrides, access, authorization, requests));
     }
 }

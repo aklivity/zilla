@@ -761,7 +761,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
 
             // defer reply window credit until next tick
             assert reserved == SIZE_OF_FLUSH_WITH_EXTENSION;
-            signaler.signalNow(originId, routedId, initialId, SIGNAL_FANOUT_REPLY_WINDOW, 0);
+            signaler.signalNow(originId, routedId, initialId, traceId, SIGNAL_FANOUT_REPLY_WINDOW, 0);
         }
 
         private void onClientFanoutReplyEnd(
@@ -899,8 +899,8 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
         private int state;
         private int flushFramesSent;
 
-        private long replyDebitorIndex = NO_DEBITOR_INDEX;
-        private BudgetDebitor replyDebitor;
+        private long replyDebIndex = NO_DEBITOR_INDEX;
+        private BudgetDebitor replyDeb;
 
         private long initialSeq;
         private long initialAck;
@@ -912,7 +912,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
         private int replyMax;
         private int replyMin;
 
-        private long replyBudgetId;
+        private long replyBud;
 
         private long initialOffset;
         private int messageOffset;
@@ -1159,7 +1159,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
         {
             assert !KafkaState.closing(state) :
                 String.format("!replyClosing(%08x) [%016x] [%016x] [%016x] %s",
-                        state, replyBudgetId, replyId, replyDebitorIndex, replyDebitor);
+                        state, replyBud, replyId, replyDebIndex, replyDeb);
 
             final long initialIsolatedOffset = initialGroupIsolatedOffset.getAsLong();
 
@@ -1275,11 +1275,11 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             {
                 int reserved = reservedMax;
                 boolean claimed = false;
-                if (replyDebitorIndex != NO_DEBITOR_INDEX)
+                if (replyDebIndex != NO_DEBITOR_INDEX)
                 {
                     final int lengthMax = Math.min(reservedMax - replyPad, remaining);
                     final int deferredMax = remaining - lengthMax;
-                    reserved = replyDebitor.claim(traceId, replyDebitorIndex, replyId, reservedMin, reservedMax, deferredMax);
+                    reserved = replyDeb.claim(traceId, replyDebIndex, replyId, reservedMin, reservedMax, deferredMax);
                     claimed = reserved > 0;
                 }
 
@@ -1327,8 +1327,9 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                                           reserved, flags, partitionId, partitionOffset, stableOffset, latestOffset);
                     break;
                 case FLAG_INIT:
-                    doClientReplyDataInit(traceId, deferred, timestamp, ownerId, filters, key, deltaType, ancestor, fragment,
-                                          reserved, length, flags, partitionId, partitionOffset, stableOffset, latestOffset);
+                    doClientReplyDataInit(traceId, headers, deferred, timestamp, ownerId, filters, key, deltaType,
+                                          ancestor, fragment, reserved, length, flags, partitionId, partitionOffset,
+                                          stableOffset, latestOffset);
                     break;
                 case FLAG_NONE:
                     doClientReplyDataNone(traceId, fragment, reserved, length, flags);
@@ -1375,7 +1376,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             long latestOffset)
         {
             doData(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, flags, replyBudgetId, reserved, value,
+                    traceId, authorization, flags, replyBud, reserved, value,
                 ex -> ex.set((b, o, l) -> kafkaDataExRW.wrap(b, o, l)
                         .typeId(kafkaTypeId)
                         .fetch(f -> f.timestamp(timestamp)
@@ -1403,6 +1404,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
 
         private void doClientReplyDataInit(
             long traceId,
+            ArrayFW<KafkaHeaderFW> headers,
             int deferred,
             long timestamp,
             long producerId,
@@ -1420,7 +1422,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             long latestOffset)
         {
             doData(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, flags, replyBudgetId, reserved, fragment,
+                    traceId, authorization, flags, replyBud, reserved, fragment,
                 ex -> ex.set((b, o, l) -> kafkaDataExRW.wrap(b, o, l)
                         .typeId(kafkaTypeId)
                         .fetch(f -> f.deferred(deferred)
@@ -1434,7 +1436,11 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                                      .key(k -> k.length(key.length())
                                                 .value(key.value()))
                                      .delta(d -> d.type(t -> t.set(deltaType))
-                                                  .ancestorOffset(ancestorOffset)))
+                                                  .ancestorOffset(ancestorOffset))
+                                     .headers(hs -> headers.forEach(h -> hs.item(i -> i.nameLen(h.nameLen())
+                                        .name(h.name())
+                                        .valueLen(h.valueLen())
+                                        .value(h.value())))))
                         .build()
                         .sizeof()));
 
@@ -1451,7 +1457,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             int flags)
         {
             doData(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, flags, replyBudgetId, reserved, fragment, EMPTY_EXTENSION);
+                    traceId, authorization, flags, replyBud, reserved, fragment, EMPTY_EXTENSION);
 
             replySeq += reserved;
 
@@ -1473,7 +1479,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             long latestOffset)
         {
             doData(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, flags, replyBudgetId, reserved, fragment,
+                    traceId, authorization, flags, replyBud, reserved, fragment,
                 ex -> ex.set((b, o, l) -> kafkaDataExRW.wrap(b, o, l)
                         .typeId(kafkaTypeId)
                         .fetch(f -> f.partition(p -> p.partitionId(partitionId)
@@ -1512,7 +1518,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             assert partitionOffset >= cursor.offset : String.format("%d >= %d", partitionOffset, cursor.offset);
 
             doFlush(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, replyBudgetId, reserved, ex -> ex
+                    traceId, authorization, replyBud, reserved, ex -> ex
                         .set((b, o, l) -> kafkaFlushExRW.wrap(b, o, l)
                         .typeId(kafkaTypeId)
                         .fetch(f -> f
@@ -1546,7 +1552,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             //assert partitionOffset >= cursor.offset : String.format("%d >= %d", partitionOffset, cursor.offset);
 
             doFlush(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, replyBudgetId, reserved, ex -> ex
+                    traceId, authorization, replyBud, reserved, ex -> ex
                             .set((b, o, l) -> kafkaFlushExRW.wrap(b, o, l)
                                     .typeId(kafkaTypeId)
                                     .fetch(f -> f
@@ -1622,8 +1628,8 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             final int padding = window.padding();
             final int minimum = window.minimum();
 
-            assert replyBudgetId == 0L || replyBudgetId == budgetId :
-                String.format("%d == 0 || %d == %d)", replyBudgetId, replyBudgetId, budgetId);
+            assert replyBud == 0L || replyBud == budgetId :
+                String.format("%d == 0 || %d == %d)", replyBud, replyBud, budgetId);
 
             assert acknowledge <= sequence;
             assert sequence <= replySeq;
@@ -1634,17 +1640,17 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             this.replyMax = maximum;
             this.replyPad = padding;
             this.replyMin = minimum;
-            this.replyBudgetId = budgetId;
+            this.replyBud = budgetId;
 
             if (!KafkaState.replyOpened(state))
             {
                 state = KafkaState.openedReply(state);
 
-                if (replyBudgetId != NO_BUDGET_ID && replyDebitorIndex == NO_DEBITOR_INDEX)
+                if (replyBud != NO_BUDGET_ID && replyDebIndex == NO_DEBITOR_INDEX)
                 {
-                    replyDebitor = supplyDebitor.apply(replyBudgetId);
-                    replyDebitorIndex = replyDebitor.acquire(replyBudgetId, replyId, this::doClientReplyDataIfNecessary);
-                    assert replyDebitorIndex != NO_DEBITOR_INDEX;
+                    replyDeb = supplyDebitor.apply(replyBud);
+                    replyDebIndex = replyDeb.acquire(replyBud, replyId, this::doClientReplyDataIfNecessary);
+                    assert replyDebIndex != NO_DEBITOR_INDEX;
                 }
             }
 
@@ -1670,10 +1676,10 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
 
         private void cleanupDebitorIfNecessary()
         {
-            if (replyDebitor != null && replyDebitorIndex != NO_DEBITOR_INDEX)
+            if (replyDeb != null && replyDebIndex != NO_DEBITOR_INDEX)
             {
-                replyDebitor.release(replyBudgetId, replyId);
-                replyDebitorIndex = NO_DEBITOR_INDEX;
+                replyDeb.release(replyBud, replyId);
+                replyDebIndex = NO_DEBITOR_INDEX;
             }
         }
 

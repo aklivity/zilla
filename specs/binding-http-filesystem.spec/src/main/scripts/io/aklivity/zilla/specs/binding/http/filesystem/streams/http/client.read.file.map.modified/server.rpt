@@ -37,7 +37,7 @@ write zilla:begin.ext ${http:beginEx()
                             .header(":status", "200")
                             .header("content-type", "text/html")
                             .header("content-length", "77")
-                            .header("Etag", "BBBBBBBBBBBBBBBB")
+                            .header("etag", "BBBBBBBBBBBBBBBB")
                             .build()}
 write "<html>\n"
       "<head><title>Welcome</title></head>\n"

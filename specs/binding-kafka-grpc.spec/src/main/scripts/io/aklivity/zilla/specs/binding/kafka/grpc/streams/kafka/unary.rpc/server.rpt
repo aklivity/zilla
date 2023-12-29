@@ -24,6 +24,7 @@ read zilla:begin.ext ${kafka:beginEx()
                               .merged()
                                   .capabilities("FETCH_ONLY")
                                   .topic("requests")
+                                  .groupId("zilla:test-remote_server0")
                                   .partition(-1, -2)
                                   .filter()
                                     .key("59410e57-3e0f-4b61-9328-f645a7968ac8-d41d8cd98f00b204e9800998ecf8427e")
@@ -38,6 +39,7 @@ connected
 write zilla:data.ext ${kafka:dataEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
+                              .fetch()
                                 .timestamp(kafka:timestamp())
                                 .partition(0, 1, 2)
                                 .progress(0, 2)
@@ -58,8 +60,11 @@ write flush
 write zilla:data.ext ${kafka:dataEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
-                                .deferred(0)
-                                .partition(-1, -1)
+                              .fetch()
+                                .timestamp(kafka:timestamp())
+                                .partition(0, 2, 2)
+                                .progress(0, 2)
+                                .progress(1, 1)
                                 .key("59410e57-3e0f-4b61-9328-f645a7968ac8-d41d8cd98f00b204e9800998ecf8427e")
                                 .header("zilla:identity", "test")
                                 .header("zilla:service", "example.EchoService")
@@ -70,6 +75,23 @@ write zilla:data.ext ${kafka:dataEx()
                             .build()}
 
 write flush
+
+
+read advised zilla:flush ${kafka:flushEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                .consumer()
+                                  .progress(0, 2)
+                                  .build()
+                              .build()}
+
+read advised zilla:flush ${kafka:flushEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                .consumer()
+                                  .progress(0, 3)
+                                  .build()
+                              .build()}
 
 accepted
 
@@ -88,6 +110,7 @@ connected
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
+                             .produce()
                                .deferred(0)
                                .partition(-1, -1)
                                .key("59410e57-3e0f-4b61-9328-f645a7968ac8-d41d8cd98f00b204e9800998ecf8427e")
@@ -102,6 +125,7 @@ read ${grpc:protobuf()
 read zilla:data.ext ${kafka:matchDataEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
+                              .produce()
                                 .deferred(0)
                                 .partition(-1, -1)
                                 .key("59410e57-3e0f-4b61-9328-f645a7968ac8-d41d8cd98f00b204e9800998ecf8427e")

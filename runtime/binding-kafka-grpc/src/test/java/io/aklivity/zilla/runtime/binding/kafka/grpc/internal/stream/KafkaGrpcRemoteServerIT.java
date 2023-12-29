@@ -40,9 +40,7 @@ public class KafkaGrpcRemoteServerIT
 
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
-        .commandBufferCapacity(1024)
-        .responseBufferCapacity(1024)
-        .counterValuesBufferCapacity(8192)
+        .countersBufferCapacity(8192)
         .configure(ENGINE_BUFFER_SLOT_CAPACITY, 8192)
         .configure(ENGINE_DRAIN_ON_CLOSE, false)
         .configurationRoot("io/aklivity/zilla/specs/binding/kafka/grpc/config")
@@ -59,6 +57,16 @@ public class KafkaGrpcRemoteServerIT
         "${kafka}/unary.rpc/server",
         "${grpc}/unary.rpc/server"})
     public void shouldExchangeMessageWithUnaryRpc() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("remote.server.rpc.yaml")
+    @Specification({
+        "${kafka}/unary.rpc.message.value.100k/server",
+        "${grpc}/unary.rpc.message.value.100k/server"})
+    public void shouldExchangeMessageValue100kWithUnaryRpc() throws Exception
     {
         k3po.finish();
     }

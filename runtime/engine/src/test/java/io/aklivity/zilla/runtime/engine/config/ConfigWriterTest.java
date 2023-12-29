@@ -16,10 +16,14 @@
 package io.aklivity.zilla.runtime.engine.config;
 
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
+import static java.util.function.Function.identity;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
+
+import jakarta.json.Json;
+import jakarta.json.JsonPatch;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -51,6 +55,55 @@ public class ConfigWriterTest
     @Test
     public void shouldWriteNamespace()
     {
+        // GIVEN
+        NamespaceConfig config = NamespaceConfig.builder()
+                .name("test")
+                .binding()
+                    .inject(identity())
+                    .name("test0")
+                    .type("test")
+                    .kind(SERVER)
+                    .options(TestBindingOptionsConfig::builder)
+                        .inject(identity())
+                        .mode("test")
+                        .build()
+                    .route()
+                        .inject(identity())
+                        .when(TestConditionConfig::builder)
+                            .inject(identity())
+                            .match("test")
+                            .build()
+                        .exit("exit0")
+                        .build()
+                    .build()
+                .build();
+
+        // WHEN
+        String text = yaml.write(config);
+
+        // THEN
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo(String.join("\n",
+            new String[] {
+                "name: test",
+                "bindings:",
+                "  test0:",
+                "    type: test",
+                "    kind: server",
+                "    options:",
+                "      mode: test",
+                "    routes:",
+                "    - exit: exit0",
+                "      when:",
+                "      - match: test",
+                ""
+            })));
+    }
+
+    @Test
+    public void shouldPatchAndWriteNamespace()
+    {
+        // GIVEN
         NamespaceConfig config = NamespaceConfig.builder()
                 .name("test")
                 .binding()
@@ -68,16 +121,21 @@ public class ConfigWriterTest
                         .build()
                     .build()
                 .build();
+        JsonPatch patch = Json.createPatchBuilder()
+            .replace("/bindings/test0/type", "newType")
+            .build();
 
-        String text = yaml.write(config);
+        // WHEN
+        String text = yaml.write(config, patch);
 
+        // THEN
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo(String.join("\n",
             new String[] {
                 "name: test",
                 "bindings:",
                 "  test0:",
-                "    type: test",
+                "    type: newType",
                 "    kind: server",
                 "    options:",
                 "      mode: test",

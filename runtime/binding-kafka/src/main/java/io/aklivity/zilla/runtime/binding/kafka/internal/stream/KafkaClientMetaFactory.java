@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
+import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_BUDGET_ID;
+import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_INDEX;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static java.lang.System.currentTimeMillis;
@@ -23,6 +25,7 @@ import static java.util.Objects.requireNonNull;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.LongFunction;
+import java.util.function.UnaryOperator;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
@@ -137,27 +140,34 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
     private final BufferPool encodePool;
     private final Signaler signaler;
     private final BindingHandler streamFactory;
+    private final UnaryOperator<KafkaSaslConfig> resolveSasl;
     private final LongFunction<KafkaBindingConfig> supplyBinding;
     private final LongFunction<KafkaClientRoute> supplyClientRoute;
+    private final LongFunction<BudgetDebitor> supplyDebitor;
 
     public KafkaClientMetaFactory(
         KafkaConfiguration config,
         EngineContext context,
         LongFunction<KafkaBindingConfig> supplyBinding,
         LongFunction<BudgetDebitor> supplyDebitor,
-        LongFunction<KafkaClientRoute> supplyClientRoute)
+        LongFunction<KafkaClientRoute> supplyClientRoute,
+        Signaler signaler,
+        BindingHandler streamFactory,
+        UnaryOperator<KafkaSaslConfig> resolveSasl)
     {
         super(config, context);
         this.maxAgeMillis = Math.min(config.clientMetaMaxAgeMillis(), config.clientMaxIdleMillis() >> 1);
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
-        this.signaler = context.signaler();
-        this.streamFactory = context.streamFactory();
+        this.signaler = signaler;
+        this.streamFactory = streamFactory;
+        this.resolveSasl = resolveSasl;
         this.writeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool();
         this.supplyBinding = supplyBinding;
         this.supplyClientRoute = supplyClientRoute;
+        this.supplyDebitor = supplyDebitor;
     }
 
     @Override
@@ -191,7 +201,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
         if (resolved != null && kafkaBeginEx != null)
         {
             final long resolvedId = resolved.id;
-            final KafkaSaslConfig sasl = binding.sasl();
+            final KafkaSaslConfig sasl = resolveSasl.apply(binding.sasl());
 
             newStream = new KafkaMetaStream(
                     application,
@@ -1118,8 +1128,10 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
             private long initialSeq;
             private long initialAck;
             private int initialMax;
+            private int initialMin;
             private int initialPad;
-            private long initialBudgetId;
+            private long initialBudgetId = NO_BUDGET_ID;
+            private long initialDebIndex = NO_DEBITOR_INDEX;
 
             private long replySeq;
             private long replyAck;
@@ -1137,13 +1149,15 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
             private long nextRequestAt = NO_CANCEL_ID;
 
             private KafkaMetaClientDecoder decoder;
+            private LongLongConsumer encoder;
+            private BudgetDebitor initialDeb;
+
             private int decodeableResponseBytes;
             private int decodeableBrokers;
             private int decodeableTopics;
             private int decodeablePartitions;
             private Int2IntHashMap partitions;
 
-            private LongLongConsumer encoder;
 
             KafkaMetaClient(
                 long originId,
@@ -1309,12 +1323,11 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
             {
                 final long sequence = window.sequence();
                 final long acknowledge = window.acknowledge();
+                final int minimum = window.minimum();
                 final int maximum = window.maximum();
                 final long traceId = window.traceId();
                 final long budgetId = window.budgetId();
                 final int padding = window.padding();
-
-                authorization = window.authorization();
 
                 assert acknowledge <= sequence;
                 assert sequence <= initialSeq;
@@ -1324,21 +1337,37 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                 this.initialAck = acknowledge;
                 this.initialMax = maximum;
                 this.initialPad = padding;
+                this.initialMin = minimum;
                 this.initialBudgetId = budgetId;
 
                 assert initialAck <= initialSeq;
 
+                this.authorization = window.authorization();
+
                 state = KafkaState.openedInitial(state);
 
+                if (initialBudgetId != NO_BUDGET_ID && initialDebIndex == NO_DEBITOR_INDEX)
+                {
+                    initialDeb = supplyDebitor.apply(initialBudgetId);
+                    initialDebIndex = initialDeb.acquire(initialBudgetId, initialId, this::doNetworkDataIfNecessary);
+                    assert initialDebIndex != NO_DEBITOR_INDEX;
+                }
+
+                doNetworkDataIfNecessary(budgetId);
+
+                doEncodeRequestIfNecessary(traceId);
+            }
+
+            private void doNetworkDataIfNecessary(
+                long traceId)
+            {
                 if (encodeSlot != NO_SLOT)
                 {
                     final MutableDirectBuffer buffer = encodePool.buffer(encodeSlot);
                     final int limit = encodeSlotOffset;
 
-                    encodeNetwork(encodeSlotTraceId, authorization, budgetId, buffer, 0, limit);
+                    encodeNetwork(traceId, authorization, initialBudgetId, buffer, 0, limit);
                 }
-
-                doEncodeRequestIfNecessary(traceId);
             }
 
             private void onNetworkSignal(
@@ -1398,6 +1427,9 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
 
                 doEnd(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization, EMPTY_EXTENSION);
+
+                cleanupEncodeSlotIfNecessary();
+                cleanupBudgetIfNecessary();
             }
 
             private void doNetworkAbortIfNecessary(
@@ -1412,6 +1444,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                 }
 
                 cleanupEncodeSlotIfNecessary();
+                cleanupBudgetIfNecessary();
             }
 
             private void doNetworkResetIfNecessary(
@@ -1481,7 +1514,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                         .apiKey(METADATA_API_KEY)
                         .apiVersion(METADATA_API_VERSION)
                         .correlationId(0)
-                        .clientId((String) null)
+                        .clientId(clientId)
                         .build();
 
                 encodeProgress = requestHeader.limit();
@@ -1501,7 +1534,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                         .apiKey(requestHeader.apiKey())
                         .apiVersion(requestHeader.apiVersion())
                         .correlationId(requestId)
-                        .clientId(requestHeader.clientId().asString())
+                        .clientId(requestHeader.clientId())
                         .build();
 
                 doNetworkData(traceId, budgetId, encodeBuffer, encodeOffset, encodeProgress);
@@ -1526,23 +1559,43 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                 int offset,
                 int limit)
             {
-                final int maxLength = limit - offset;
-                final int initialWin = initialMax - (int)(initialSeq - initialAck);
-                final int length = Math.max(Math.min(initialWin - initialPad, maxLength), 0);
+                final int length = limit - offset;
+                final int lengthMin = Math.min(length, 1024);
+                final int initialBudget = Math.max(initialMax - (int)(initialSeq - initialAck), 0);
+                final int reservedMax = Math.max(Math.min(length + initialPad, initialBudget), initialMin);
+                final int reservedMin = Math.max(Math.min(lengthMin + initialPad, reservedMax), initialMin);
 
-                if (length > 0)
+                int reserved = reservedMax;
+
+                flush:
+                if (reserved > 0)
                 {
-                    final int reserved = length + initialPad;
+
+                    boolean claimed = false;
+
+                    if (initialDebIndex != NO_DEBITOR_INDEX)
+                    {
+                        final int lengthMax = Math.min(reserved - initialPad, length);
+                        final int deferredMax = length - lengthMax;
+                        reserved = initialDeb.claim(traceId, initialDebIndex, initialId, reservedMin, reserved, deferredMax);
+                        claimed = reserved > 0;
+                    }
+
+                    if (reserved < initialPad || reserved == initialPad && length > 0)
+                    {
+                        break flush;
+                    }
 
                     doData(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                            traceId, authorization, budgetId, reserved, buffer, offset, length, EMPTY_EXTENSION);
+                        traceId, authorization, budgetId, reserved, buffer, offset, length, EMPTY_EXTENSION);
 
                     initialSeq += reserved;
 
                     assert initialAck <= initialSeq;
                 }
 
-                final int remaining = maxLength - length;
+                final int flushed = Math.max(reserved - initialPad, 0);
+                final int remaining = length - flushed;
                 if (remaining > 0)
                 {
                     if (encodeSlot == NO_SLOT)
@@ -1557,7 +1610,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                     else
                     {
                         final MutableDirectBuffer encodeBuffer = encodePool.buffer(encodeSlot);
-                        encodeBuffer.putBytes(0, buffer, offset + length, remaining);
+                        encodeBuffer.putBytes(0, buffer, offset + flushed, remaining);
                         encodeSlotOffset = remaining;
                     }
                 }
@@ -1762,7 +1815,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                 long traceId)
             {
                 nextResponseId++;
-                signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
+                signaler.signalNow(originId, routedId, initialId, traceId, SIGNAL_NEXT_REQUEST, 0);
             }
 
             private void onDecodeMetaResponse(
@@ -1799,7 +1852,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
 
                 nextResponseId++;
                 nextRequestAt = signaler.signalAt(currentTimeMillis() + maxAgeMillis,
-                        originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
+                        originId, routedId, initialId, traceId, SIGNAL_NEXT_REQUEST, 0);
             }
 
             private void cleanupNetwork(
@@ -1832,6 +1885,15 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                     encodeSlot = NO_SLOT;
                     encodeSlotOffset = 0;
                     encodeSlotTraceId = 0;
+                }
+            }
+
+            private void cleanupBudgetIfNecessary()
+            {
+                if (initialDebIndex != NO_DEBITOR_INDEX)
+                {
+                    initialDeb.release(initialDebIndex, initialId);
+                    initialDebIndex = NO_DEBITOR_INDEX;
                 }
             }
         }

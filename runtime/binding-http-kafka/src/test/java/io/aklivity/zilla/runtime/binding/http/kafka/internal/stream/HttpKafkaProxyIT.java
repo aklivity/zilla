@@ -39,9 +39,7 @@ public class HttpKafkaProxyIT
 
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
-        .commandBufferCapacity(1024)
-        .responseBufferCapacity(1024)
-        .counterValuesBufferCapacity(8192)
+        .countersBufferCapacity(8192)
         .configure(ENGINE_BUFFER_SLOT_CAPACITY, 8192)
         .configurationRoot("io/aklivity/zilla/specs/binding/http/kafka/config")
         .external("kafka0")
@@ -426,6 +424,16 @@ public class HttpKafkaProxyIT
         "${http}/get.items/client",
         "${kafka}/get.items/server"})
     public void shouldGetItems() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.get.items.yaml")
+    @Specification({
+        "${http}/get.items.fragmented/client",
+        "${kafka}/get.items.fragmented/server"})
+    public void shouldGetItemsFragmented() throws Exception
     {
         k3po.finish();
     }

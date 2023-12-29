@@ -38,6 +38,7 @@ import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], JsonObject>
 {
     private static final String VAULT_NAME = "vault";
+    private static final String CATALOG_NAME = "catalog";
     private static final String EXIT_NAME = "exit";
     private static final String TYPE_NAME = "type";
     private static final String KIND_NAME = "kind";
@@ -151,9 +152,10 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
                 binding.options(options.adaptFromJson(item.getJsonObject(OPTIONS_NAME)));
             }
 
-            MutableInteger order = new MutableInteger();
             if (item.containsKey(ROUTES_NAME))
             {
+                MutableInteger order = new MutableInteger();
+
                 item.getJsonArray(ROUTES_NAME)
                     .stream()
                     .map(JsonValue::asJsonObject)
@@ -164,10 +166,7 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
 
             if (item.containsKey(EXIT_NAME))
             {
-                binding.route()
-                    .order(order.value++)
-                    .exit(item.getString(EXIT_NAME))
-                    .build();
+                binding.exit(item.getString(EXIT_NAME));
             }
 
             if (item.containsKey(TELEMETRY_NAME))

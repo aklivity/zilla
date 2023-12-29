@@ -40,9 +40,7 @@ public class ControlIT
 
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
-        .commandBufferCapacity(1024)
-        .responseBufferCapacity(1024)
-        .counterValuesBufferCapacity(4096)
+        .countersBufferCapacity(4096)
         .configurationRoot("io/aklivity/zilla/specs/binding/ws/config")
         .external("app0")
         .clean();
@@ -77,6 +75,26 @@ public class ControlIT
         "${net}/client.send.pong.payload.length.126/handshake.request.and.frame",
         "${app}/client.send.pong.payload.length.126/handshake.response" })
     public void shouldRejectClientPongFrameWithPayloadTooLong() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/client.send.ping.payload.length.0/handshake.request.and.frame",
+        "${app}/client.send.ping.payload.length.0/handshake.response" })
+    public void shouldReceiveClientPingFrameWithEmptyPayload() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/client.send.ping.payload.length.125/handshake.request.and.frame",
+        "${app}/client.send.ping.payload.length.125/handshake.response" })
+    public void shouldReceiveClientPingFrameWithPayload() throws Exception
     {
         k3po.finish();
     }

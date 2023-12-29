@@ -1,0 +1,87 @@
+#
+# Copyright 2021-2023 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+accept "zilla://streams/kafka0"
+    option zilla:window 8192
+    option zilla:transmission "duplex"
+
+accepted
+
+read zilla:begin.ext ${kafka:matchBeginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("PRODUCE_ONLY")
+                                .topic("mqtt-clients")
+                                .partition(-1, -2)
+                                .ackMode("LEADER_ONLY")
+                                .build()
+                            .build()}
+
+connected
+
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                             .produce()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("/clients/client-2/sensors/one")
+                               .hashKey("client-2")
+                               .header("zilla:filter", "")
+                               .header("zilla:filter", "clients")
+                               .header("zilla:filter", "client-2")
+                               .header("zilla:filter", "sensors")
+                               .header("zilla:filter", "one")
+                               .header("zilla:local", "client-1")
+                               .header("zilla:qos", "0")
+                               .build()
+                           .build()}
+read "Hello, world"
+
+
+accepted
+
+read zilla:begin.ext ${kafka:matchBeginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("PRODUCE_ONLY")
+                                .topic("mqtt-clients")
+                                .partition(-1, -2)
+                                .ackMode("LEADER_ONLY")
+                                .build()
+                            .build()}
+
+connected
+
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                             .produce()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("/clients/client-1/device/one")
+                               .hashKey("client-1")
+                               .header("zilla:filter", "")
+                               .header("zilla:filter", "clients")
+                               .header("zilla:filter", "client-1")
+                               .header("zilla:filter", "device")
+                               .header("zilla:filter", "one")
+                               .header("zilla:local", "client-2")
+                               .header("zilla:qos", "0")
+                               .build()
+                           .build()}
+
+read "Hello, again"
+

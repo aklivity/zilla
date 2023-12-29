@@ -21,10 +21,10 @@ This project includes:
   Jakarta Dependency Injection under The Apache Software License, Version 2.0
   Jakarta JSON Processing API under Eclipse Public License 2.0 or GNU General Public License, version 2 with the GNU Classpath Exception
   JSON-B API under Eclipse Public License 2.0 or GNU General Public License, version 2 with the GNU Classpath Exception
-  Plexus :: Component Annotations under The Apache Software License, Version 2.0
+  Plexus :: Component Annotations under Apache License, Version 2.0
   Plexus Cipher: encryption/decryption Component under Apache Public License 2.0
-  Plexus Classworlds under The Apache Software License, Version 2.0
-  Plexus Common Utilities under The Apache Software License, Version 2.0
+  Plexus Classworlds under Apache License, Version 2.0
+  Plexus Common Utilities under Apache License, Version 2.0
   Plexus Security Dispatcher Component under Apache Public License 2.0
   Sisu-Inject-Plexus : Aggregate OSGi bundle under Eclipse Public License, Version 1.0
   Yasson under Eclipse Public License v. 2.0 or Eclipse Distribution License v. 1.0

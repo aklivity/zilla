@@ -1,0 +1,46 @@
+asyncapi: 3.0.0
+info:
+  title: HTTP Zilla Proxy
+  version: 1.0.0
+  license:
+    name:  Aklivity Community License
+servers:
+  plain:
+    host: http://localhost:8080
+    protocol: http
+    protocolVersion: '1.1'
+defaultContentType: application/json
+
+channels:
+  items:
+    address: /items
+  itemsbyid:
+    address: /items/{id}
+
+operations:
+  postEvents:
+    action: send
+    bindings:
+      http:
+        type: request
+        method: POST
+    channel:
+      $ref: '#/channels/items'
+  getEvents:
+    action: receive
+    bindings:
+      http:
+        type: request
+        method: GET
+        query:
+          type: object
+          properties:
+            limit:
+              type: number
+    channel:
+      $ref: '#/channels/itemsbyid'
+
+components:
+  correlationIds:
+    itemsCorrelationId:
+      location: '$message.header#/idempotency-key'

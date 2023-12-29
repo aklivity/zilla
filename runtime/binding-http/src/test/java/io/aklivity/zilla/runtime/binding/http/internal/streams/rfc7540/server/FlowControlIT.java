@@ -19,7 +19,6 @@ import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -41,9 +40,7 @@ public class FlowControlIT
 
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
-        .commandBufferCapacity(1024)
-        .responseBufferCapacity(1024)
-        .counterValuesBufferCapacity(8192)
+        .countersBufferCapacity(8192)
         .configure(HTTP_CONCURRENT_STREAMS, 100)
         .configurationRoot("io/aklivity/zilla/specs/binding/http/config/v2")
         .external("app0")
@@ -62,7 +59,6 @@ public class FlowControlIT
         k3po.finish();
     }
 
-    @Ignore("Address issue/134")
     @Test
     @Configuration("server.yaml")
     @Specification({

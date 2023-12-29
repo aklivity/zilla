@@ -1249,9 +1249,9 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                     final int minimum = Math.min(maximum, 1024);
 
                     int valueClaimed = maximum;
-                    if (valueClaimed != 0 && client.stream.replyDebitorIndex != NO_DEBITOR_INDEX)
+                    if (valueClaimed != 0 && client.stream.replyDebIndex != NO_DEBITOR_INDEX)
                     {
-                        valueClaimed = client.stream.replyDebitor.claim(traceId, client.stream.replyDebitorIndex,
+                        valueClaimed = client.stream.replyDeb.claim(traceId, client.stream.replyDebIndex,
                                 client.stream.replyId, minimum, maximum, 0);
 
                         if (valueClaimed == 0)
@@ -1371,9 +1371,9 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                 final int minimum = Math.min(maximum, 1024);
 
                 int valueClaimed = maximum;
-                if (valueClaimed != 0 && client.stream.replyDebitorIndex != NO_DEBITOR_INDEX)
+                if (valueClaimed != 0 && client.stream.replyDebIndex != NO_DEBITOR_INDEX)
                 {
-                    valueClaimed = client.stream.replyDebitor.claim(traceId, client.stream.replyDebitorIndex,
+                    valueClaimed = client.stream.replyDeb.claim(traceId, client.stream.replyDebIndex,
                             client.stream.replyId, minimum, maximum, 0);
 
                     if (valueClaimed == 0)
@@ -1449,9 +1449,9 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
             final int minimum = Math.min(maximum, 1024);
 
             int valueClaimed = maximum;
-            if (valueClaimed != 0 && client.stream.replyDebitorIndex != NO_DEBITOR_INDEX)
+            if (valueClaimed != 0 && client.stream.replyDebIndex != NO_DEBITOR_INDEX)
             {
-                valueClaimed = client.stream.replyDebitor.claim(traceId, client.stream.replyDebitorIndex,
+                valueClaimed = client.stream.replyDeb.claim(traceId, client.stream.replyDebIndex,
                         client.stream.replyId, minimum, maximum, 0);
 
                 if (valueClaimed == 0)
@@ -1729,9 +1729,9 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
         private int replyMax;
         private int replyPad;
 
-        private long replyDebitorId;
-        private BudgetDebitor replyDebitor;
-        private long replyDebitorIndex = NO_DEBITOR_INDEX;
+        private long replyBud;
+        private BudgetDebitor replyDeb;
+        private long replyDebIndex = NO_DEBITOR_INDEX;
 
         KafkaFetchStream(
             MessageConsumer application,
@@ -1866,14 +1866,14 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
             this.replyAck = acknowledge;
             this.replyMax = maximum;
             this.replyPad = padding;
-            this.replyDebitorId = budgetId;
+            this.replyBud = budgetId;
 
             assert replyAck <= replySeq;
 
-            if (replyDebitorId != 0L && replyDebitor == null)
+            if (replyBud != 0L && replyDeb == null)
             {
-                replyDebitor = supplyDebitor.apply(replyDebitorId);
-                replyDebitorIndex = replyDebitor.acquire(replyDebitorId, replyId, client::decodeNetworkIfNecessary);
+                replyDeb = supplyDebitor.apply(replyBud);
+                replyDebIndex = replyDeb.acquire(replyBud, replyId, client::decodeNetworkIfNecessary);
             }
 
             state = KafkaState.openedReply(state);
@@ -1950,7 +1950,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
             Flyweight extension)
         {
             doData(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, flags, replyDebitorId, reserved, payload, extension);
+                    traceId, authorization, flags, replyBud, reserved, payload, extension);
 
             replySeq += reserved;
 
@@ -2101,11 +2101,11 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
 
         private void cleanupApplicationDebitorIfNecessary()
         {
-            if (replyDebitorIndex != NO_DEBITOR_INDEX)
+            if (replyDebIndex != NO_DEBITOR_INDEX)
             {
-                replyDebitor.release(replyDebitorIndex, replyId);
-                replyDebitorIndex = NO_DEBITOR_INDEX;
-                replyDebitor = null;
+                replyDeb.release(replyDebIndex, replyId);
+                replyDebIndex = NO_DEBITOR_INDEX;
+                replyDeb = null;
             }
         }
 
@@ -2436,6 +2436,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                                                                                                  .destination(broker.host)
                                                                                                  .sourcePort(0)
                                                                                                  .destinationPort(broker.port)))
+                                                                      .infos(i -> i.item(ii -> ii.authority(broker.host)))
                                                                       .build()
                                                                       .sizeof());
                 }
@@ -2606,7 +2607,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                         .apiKey(OFFSETS_API_KEY)
                         .apiVersion(OFFSETS_API_VERSION)
                         .correlationId(0)
-                        .clientId((String) null)
+                        .clientId(clientId)
                         .build();
 
                 encodeProgress = requestHeader.limit();
@@ -2645,7 +2646,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                         .apiKey(requestHeader.apiKey())
                         .apiVersion(requestHeader.apiVersion())
                         .correlationId(requestId)
-                        .clientId(requestHeader.clientId().asString())
+                        .clientId(requestHeader.clientId())
                         .build();
 
                 if (KafkaConfiguration.DEBUG)
@@ -2673,7 +2674,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                         .apiKey(FETCH_API_KEY)
                         .apiVersion(FETCH_API_VERSION)
                         .correlationId(0)
-                        .clientId((String) null)
+                        .clientId(clientId)
                         .build();
 
                 encodeProgress = requestHeader.limit();
@@ -2712,7 +2713,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                         .apiKey(requestHeader.apiKey())
                         .apiVersion(requestHeader.apiVersion())
                         .correlationId(requestId)
-                        .clientId(requestHeader.clientId().asString())
+                        .clientId(requestHeader.clientId())
                         .build();
 
                 if (KafkaConfiguration.DEBUG)
@@ -3117,7 +3118,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                 long traceId)
             {
                 nextResponseId++;
-                signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
+                signaler.signalNow(originId, routedId, initialId, traceId, SIGNAL_NEXT_REQUEST, 0);
             }
 
             private void onDecodeFetchResponse(
@@ -3128,7 +3129,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                 if (topicPartitions.get(partitionId) == leaderId)
                 {
                     doApplicationFlushIfNecessary(traceId, authorization);
-                    signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
+                    signaler.signalNow(originId, routedId, initialId, traceId, SIGNAL_NEXT_REQUEST, 0);
                 }
                 else
                 {

@@ -60,6 +60,7 @@ import java.util.function.LongConsumer;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
+import java.util.function.ToLongFunction;
 
 import org.agrona.DeadlineTimerWheel;
 import org.agrona.DeadlineTimerWheel.TimerHandler;
@@ -89,9 +90,13 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.budget.BudgetCreditor;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
+import io.aklivity.zilla.runtime.engine.catalog.Catalog;
+import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
+import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
+import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 import io.aklivity.zilla.runtime.engine.exporter.Exporter;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterContext;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
@@ -127,6 +132,8 @@ import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
 import io.aklivity.zilla.runtime.engine.util.function.LongLongFunction;
+import io.aklivity.zilla.runtime.engine.validator.Validator;
+import io.aklivity.zilla.runtime.engine.validator.ValidatorFactory;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
@@ -201,6 +208,7 @@ public class DispatchAgent implements EngineContext, Agent
     private final ScalarsLayout countersLayout;
     private final ScalarsLayout gaugesLayout;
     private final HistogramsLayout histogramsLayout;
+    private final ValidatorFactory validatorFactory;
     private long initialId;
     private long promiseId;
     private long traceId;
@@ -219,7 +227,9 @@ public class DispatchAgent implements EngineContext, Agent
         Collection<Exporter> exporters,
         Collection<Guard> guards,
         Collection<Vault> vaults,
+        Collection<Catalog> catalogs,
         Collection<MetricGroup> metricGroups,
+        ValidatorFactory validatorFactory,
         Collector collector,
         int index,
         boolean readonly)
@@ -238,21 +248,21 @@ public class DispatchAgent implements EngineContext, Agent
 
         this.countersLayout = new ScalarsLayout.Builder()
                 .path(config.directory().resolve(String.format("metrics/counters%d", index)))
-                .capacity(config.counterBufferCapacity())
+                .capacity(config.countersBufferCapacity())
                 .readonly(readonly)
                 .label("counters")
                 .build();
 
         this.gaugesLayout = new ScalarsLayout.Builder()
                 .path(config.directory().resolve(String.format("metrics/gauges%d", index)))
-                .capacity(config.counterBufferCapacity())
+                .capacity(config.countersBufferCapacity())
                 .readonly(readonly)
                 .label("gauges")
                 .build();
 
         this.histogramsLayout = new HistogramsLayout.Builder()
                 .path(config.directory().resolve(String.format("metrics/histograms%d", index)))
-                .capacity(config.counterBufferCapacity())
+                .capacity(config.countersBufferCapacity())
                 .readonly(readonly)
                 .build();
 
@@ -300,7 +310,7 @@ public class DispatchAgent implements EngineContext, Agent
         this.timerWheel = new DeadlineTimerWheel(MILLISECONDS, currentTimeMillis(), 512, 1024);
         this.tasksByTimerId = new Long2ObjectHashMap<>();
         this.futuresById = new Long2ObjectHashMap<>();
-        this.signaler = new ElektronSignaler(executor);
+        this.signaler = new ElektronSignaler(executor, Math.max(config.bufferSlotCapacity(), 512));
 
         this.poller = new Poller();
 
@@ -355,6 +365,13 @@ public class DispatchAgent implements EngineContext, Agent
             vaultsByType.put(type, vault.supply(this));
         }
 
+        Map<String, CatalogContext> catalogsByType = new LinkedHashMap<>();
+        for (Catalog catalog : catalogs)
+        {
+            String type = catalog.name();
+            catalogsByType.put(type, catalog.supply(this));
+        }
+
         Map<String, MetricContext> metricsByName = new LinkedHashMap<>();
         for (MetricGroup metricGroup : metricGroups)
         {
@@ -372,14 +389,15 @@ public class DispatchAgent implements EngineContext, Agent
         }
 
         this.configuration = new ConfigurationRegistry(
-                bindingsByType::get, guardsByType::get, vaultsByType::get, metricsByName::get, exportersByType::get,
-                labels::supplyLabelId, this::onExporterAttached, this::onExporterDetached,
+                bindingsByType::get, guardsByType::get, vaultsByType::get, catalogsByType::get, metricsByName::get,
+                exportersByType::get, labels::supplyLabelId, this::onExporterAttached, this::onExporterDetached,
                 this::supplyMetricWriter, this::detachStreams, collector);
         this.taskQueue = new ConcurrentLinkedDeque<>();
         this.correlations = new Long2ObjectHashMap<>();
         this.idleStrategy = idleStrategy;
         this.errorHandler = errorHandler;
         this.exportersById = new Long2ObjectHashMap<>();
+        this.validatorFactory = validatorFactory;
     }
 
     public static int indexOfId(
@@ -629,6 +647,14 @@ public class DispatchAgent implements EngineContext, Agent
     }
 
     @Override
+    public CatalogHandler supplyCatalog(
+        long catalogId)
+    {
+        CatalogRegistry catalog = configuration.resolveCatalog(catalogId);
+        return catalog != null ? catalog.handler() : null;
+    }
+
+    @Override
     public URL resolvePath(
         String path)
     {
@@ -687,17 +713,6 @@ public class DispatchAgent implements EngineContext, Agent
     @Override
     public void onClose()
     {
-        final long closeAt = System.nanoTime();
-        while (config.drainOnClose() &&
-               streamsBuffer.consumerPosition() < streamsBuffer.producerPosition())
-        {
-            ThreadHints.onSpinWait();
-
-            if (System.nanoTime() - closeAt >= Duration.ofSeconds(30).toNanos())
-            {
-                break;
-            }
-        }
         configuration.detachAll();
 
         poller.onClose();
@@ -743,6 +758,20 @@ public class DispatchAgent implements EngineContext, Agent
         }
     }
 
+    public void drain()
+    {
+        final long closeAt = System.nanoTime();
+        while (streamsBuffer.consumerPosition() < streamsBuffer.producerPosition())
+        {
+            ThreadHints.onSpinWait();
+
+            if (System.nanoTime() - closeAt >= Duration.ofSeconds(30).toNanos())
+            {
+                break;
+            }
+        }
+    }
+
     @Override
     public String toString()
     {
@@ -754,7 +783,7 @@ public class DispatchAgent implements EngineContext, Agent
     {
         NamespaceTask attachTask = configuration.attach(namespace);
         taskQueue.offer(attachTask);
-        signaler.signalNow(0L, 0L, 0L, SIGNAL_TASK_QUEUED, 0);
+        signaler.signalNow(0L, 0L, 0L, supplyTraceId(), SIGNAL_TASK_QUEUED, 0);
         return attachTask.future();
     }
 
@@ -763,7 +792,7 @@ public class DispatchAgent implements EngineContext, Agent
     {
         NamespaceTask detachTask = configuration.detach(namespace);
         taskQueue.offer(detachTask);
-        signaler.signalNow(0L, 0L, 0L, SIGNAL_TASK_QUEUED, 0);
+        signaler.signalNow(0L, 0L, 0L, supplyTraceId(), SIGNAL_TASK_QUEUED, 0);
         return detachTask.future();
     }
 
@@ -833,6 +862,13 @@ public class DispatchAgent implements EngineContext, Agent
         return histogramsLayout.supplyWriter(bindingId, metricId);
     }
 
+    @Override
+    public Validator createValidator(
+        ValidatorConfig validator,
+        ToLongFunction<String> resolveId)
+    {
+        return validatorFactory.create(validator, resolveId, this::supplyCatalog);
+    }
 
     private void onSystemMessage(
         int msgTypeId,
@@ -1636,9 +1672,10 @@ public class DispatchAgent implements EngineContext, Agent
         return affinity;
     }
 
-    private static SignalFW.Builder newSignalRW()
+    private static SignalFW.Builder newSignalRW(
+        int capacity)
     {
-        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[512]);
+        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[capacity]);
         return new SignalFW.Builder().wrap(buffer, 0, buffer.capacity());
     }
 
@@ -1655,16 +1692,18 @@ public class DispatchAgent implements EngineContext, Agent
 
     private final class ElektronSignaler implements Signaler
     {
-        private final ThreadLocal<SignalFW.Builder> signalRW = withInitial(DispatchAgent::newSignalRW);
+        private final ThreadLocal<SignalFW.Builder> signalRW;
 
         private final ExecutorService executorService;
 
         private long nextFutureId;
 
         private ElektronSignaler(
-            ExecutorService executorService)
+            ExecutorService executorService,
+            int slotCapacity)
         {
             this.executorService = executorService;
+            signalRW = withInitial(() -> newSignalRW(slotCapacity));
         }
 
         public void executeTaskAt(
@@ -1697,10 +1736,13 @@ public class DispatchAgent implements EngineContext, Agent
             long originId,
             long routedId,
             long streamId,
-            int signalId, int contextId)
+            long traceId,
+            int signalId,
+            int contextId)
         {
             final long timerId = timerWheel.scheduleTimer(timeMillis);
-            final Runnable task = () -> signal(originId, routedId, streamId, 0L, 0L, NO_CANCEL_ID, signalId, contextId);
+            final Runnable task = () -> signal(originId, routedId, streamId, 0L, 0L,
+                traceId, NO_CANCEL_ID, signalId, contextId);
             final Runnable oldTask = tasksByTimerId.put(timerId, task);
             assert oldTask == null;
             assert timerId >= 0L;
@@ -1713,6 +1755,7 @@ public class DispatchAgent implements EngineContext, Agent
             long originId,
             long routedId,
             long streamId,
+            long traceId,
             int signalId,
             int contextId)
         {
@@ -1725,7 +1768,7 @@ public class DispatchAgent implements EngineContext, Agent
                 assert newFutureId != NO_CANCEL_ID;
 
                 final Future<?> newFuture = executorService.submit(
-                    () -> invokeAndSignal(task, originId, routedId, streamId, 0L, 0L, newFutureId, signalId, contextId));
+                    () -> invokeAndSignal(task, originId, routedId, streamId, traceId, 0L, 0L, newFutureId, signalId, contextId));
                 final Future<?> oldFuture = futuresById.put(newFutureId, newFuture);
                 assert oldFuture == null;
                 cancelId = newFutureId;
@@ -1733,7 +1776,7 @@ public class DispatchAgent implements EngineContext, Agent
             else
             {
                 cancelId = NO_CANCEL_ID;
-                invokeAndSignal(task, originId, routedId, streamId, 0L, 0L, cancelId, signalId, contextId);
+                invokeAndSignal(task, originId, routedId, streamId, 0L, 0L, traceId, cancelId, signalId, contextId);
             }
 
             assert cancelId < 0L;
@@ -1746,10 +1789,27 @@ public class DispatchAgent implements EngineContext, Agent
             long originId,
             long routedId,
             long streamId,
+            long traceId,
             int signalId,
             int contextId)
         {
-            signal(originId, routedId, streamId, 0L, 0L, NO_CANCEL_ID, signalId, contextId);
+            signal(originId, routedId, streamId, 0L, 0L, traceId, NO_CANCEL_ID, signalId, contextId);
+        }
+
+        @Override
+        public void signalNow(
+            long originId,
+            long routedId,
+            long streamId,
+            long traceId,
+            int signalId,
+            int contextId,
+            DirectBuffer buffer,
+            int offset,
+            int length)
+        {
+            signal(originId, routedId, streamId, 0L, 0L, traceId, NO_CANCEL_ID, signalId, contextId,
+                buffer, offset, length);
         }
 
         @Override
@@ -1781,6 +1841,7 @@ public class DispatchAgent implements EngineContext, Agent
             long streamId,
             long sequence,
             long acknowledge,
+            long traceId,
             long cancelId,
             int signalId,
             int contextId)
@@ -1791,7 +1852,7 @@ public class DispatchAgent implements EngineContext, Agent
             }
             finally
             {
-                signal(originId, routedId, streamId, sequence, acknowledge, cancelId, signalId, contextId);
+                signal(originId, routedId, streamId, sequence, acknowledge, traceId, cancelId, signalId, contextId);
             }
         }
 
@@ -1801,9 +1862,44 @@ public class DispatchAgent implements EngineContext, Agent
             long streamId,
             long sequence,
             long acknowledge,
+            long traceId,
             long cancelId,
             int signalId,
             int contextId)
+        {
+            final long timestamp = timestamps ? System.nanoTime() : 0L;
+
+            final SignalFW signal = signalRW.get()
+                .rewrap()
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(0)
+                .timestamp(timestamp)
+                .traceId(traceId)
+                .cancelId(cancelId)
+                .signalId(signalId)
+                .contextId(contextId)
+                .build();
+
+            streamsBuffer.write(signal.typeId(), signal.buffer(), signal.offset(), signal.sizeof());
+        }
+
+        private void signal(
+            long originId,
+            long routedId,
+            long streamId,
+            long sequence,
+            long acknowledge,
+            long traceId,
+            long cancelId,
+            int signalId,
+            int contextId,
+            DirectBuffer buffer,
+            int offset,
+            int length)
         {
             final long timestamp = timestamps ? System.nanoTime() : 0L;
 
@@ -1816,10 +1912,11 @@ public class DispatchAgent implements EngineContext, Agent
                                             .acknowledge(acknowledge)
                                             .maximum(0)
                                             .timestamp(timestamp)
-                                            .traceId(supplyTraceId())
+                                            .traceId(traceId)
                                             .cancelId(cancelId)
                                             .signalId(signalId)
                                             .contextId(contextId)
+                                            .payload(buffer, offset, length)
                                             .build();
 
             streamsBuffer.write(signal.typeId(), signal.buffer(), signal.offset(), signal.sizeof());

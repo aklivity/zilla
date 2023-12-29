@@ -37,6 +37,7 @@ connected
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
+                             .fetch()
                                .partition(0, 2, 2)
                                .progress(0, 3)
                                .progress(1, 1)
@@ -51,6 +52,7 @@ read '{ "name": "widget" }'
 read advised zilla:flush ${kafka:matchFlushEx()
                                .typeId(zilla:id("kafka"))
                                .merged()
+                                 .fetch()
                                    .progress(0, 2, 2, 2)
                                    .build()
                                .build()}

@@ -1,0 +1,161 @@
+name: example
+bindings:
+  tcp_server0:
+    type: tcp
+    kind: server
+    options:
+      host: 0.0.0.0
+      port:
+      - 8080
+      - 9090
+    routes:
+    - exit: http_server0
+      when:
+      - port: 8080
+    - exit: tls_server0
+      when:
+      - port: 9090
+  tls_server0:
+    vault: server
+    type: tls
+    kind: server
+    options:
+      keys:
+      - "${{env.TLS_SERVER_KEY}}"
+      sni:
+      - "${{env.TLS_SERVER_SNI}}"
+      alpn:
+      - "${{env.TLS_SERVER_ALPN}}"
+    exit: http_server0
+  http_server0:
+    type: http
+    kind: server
+    options:
+      access-control:
+        policy: cross-origin
+      authorization:
+        jwt0:
+          credentials:
+            headers:
+              authorization: "Bearer {credentials}"
+      requests:
+      - path: "/items/{id}"
+        method: GET
+        params:
+          path:
+            id: string
+        content:
+          type: json
+          catalog:
+            catalog0:
+            - subject: item
+      - path: /items
+        method: POST
+        content:
+          type: json
+          catalog:
+            catalog0:
+            - subject: item
+    routes:
+    - exit: http_client0
+      when:
+      - headers:
+          :scheme: http
+          :authority: localhost:8080
+          :path: /items/*
+          :method: GET
+    - exit: http_client0
+      when:
+      - headers:
+          :scheme: http
+          :authority: localhost:8080
+          :path: /items
+          :method: POST
+    - exit: http_client0
+      when:
+      - headers:
+          :scheme: https
+          :authority: localhost:9090
+          :path: /items/*
+          :method: GET
+      guarded:
+        jwt0:
+        - public
+    - exit: http_client0
+      when:
+      - headers:
+          :scheme: https
+          :authority: localhost:9090
+          :path: /items
+          :method: POST
+      guarded:
+        jwt0:
+        - public
+  http_client0:
+    type: http
+    kind: client
+    exit: tls_client0
+  tls_client0:
+    vault: client
+    type: tls
+    kind: client
+    options:
+      trust:
+      - "${{env.TLS_CLIENT_TRUST}}"
+      trustcacerts: true
+      sni:
+      - "${{env.TLS_CLIENT_SNI}}"
+      alpn:
+      - "${{env.TLS_CLIENT_ALPN}}"
+    exit: tcp_client0
+  tcp_client0:
+    type: tcp
+    kind: client
+    options:
+      host: "${{env.TCP_CLIENT_HOST}}"
+      port: ${{env.TCP_CLIENT_PORT}}
+guards:
+  jwt0:
+    type: jwt
+    options:
+      issuer: "${{env.JWT_ISSUER}}"
+      audience: "${{env.JWT_AUDIENCE}}"
+      keys:
+      - kty: "${{env.JWT_KTY}}"
+        "n": "${{env.JWT_N}}"
+        e: "${{env.JWT_E}}"
+        alg: "${{env.JWT_ALG}}"
+        crv: "${{env.JWT_CRV}}"
+        x: "${{env.JWT_X}}"
+        "y": "${{env.JWT_Y}}"
+        use: "${{env.JWT_USE}}"
+        kid: "${{env.JWT_KID}}"
+vaults:
+  client:
+    type: filesystem
+    options:
+      trust:
+        store: "${{env.TRUSTSTORE_PATH}}"
+        type: "${{env.TRUSTSTORE_TYPE}}"
+        password: "${{env.TRUSTSTORE_PASSWORD}}"
+  server:
+    type: filesystem
+    options:
+      keys:
+        store: "${{env.KEYSTORE_PATH}}"
+        type: "${{env.KEYSTORE_TYPE}}"
+        password: "${{env.KEYSTORE_PASSWORD}}"
+catalogs:
+  catalog0:
+    type: inline
+    options:
+      subjects:
+        item:
+          schema: |
+            type: object
+            properties:
+              greeting:
+                type: string
+            required:
+            - greeting
+          version: latest

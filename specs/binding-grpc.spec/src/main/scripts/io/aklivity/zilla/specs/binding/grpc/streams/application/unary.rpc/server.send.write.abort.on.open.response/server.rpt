@@ -35,7 +35,7 @@ read closed
 
 write zilla:abort.ext ${grpc:abortEx()
                             .typeId(zilla:id("grpc"))
-                            .status("10")
+                            .status("9")
                             .build()}
 write flush
 

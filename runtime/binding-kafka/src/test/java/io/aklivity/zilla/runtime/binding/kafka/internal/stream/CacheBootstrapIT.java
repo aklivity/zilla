@@ -36,15 +36,14 @@ import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 public class CacheBootstrapIT
 {
     private final K3poRule k3po = new K3poRule()
+        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/kafka/streams/application/bootstrap")
         .addScriptRoot("app", "io/aklivity/zilla/specs/binding/kafka/streams/application/merged");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
-        .commandBufferCapacity(1024)
-        .responseBufferCapacity(1024)
-        .counterValuesBufferCapacity(16384)
+        .countersBufferCapacity(16384)
         .configure(ENGINE_BUFFER_SLOT_CAPACITY, 8192)
         .configure(KAFKA_CACHE_SEGMENT_BYTES, 1 * 1024 * 1024)
         .configure(KAFKA_CACHE_SEGMENT_INDEX_BYTES, 256 * 1024)
@@ -70,6 +69,16 @@ public class CacheBootstrapIT
         k3po.awaitBarrier("SENT_MESSAGE_A2");
         k3po.awaitBarrier("SENT_MESSAGE_B2");
         k3po.awaitBarrier("SENT_MESSAGE_C2");
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.yaml")
+    @Specification({
+        "${net}/group.fetch.message.value/client",
+        "${app}/unmerged.group.fetch.message.value/server"})
+    public void shouldReceiveGroupMessageValue() throws Exception
+    {
         k3po.finish();
     }
 }

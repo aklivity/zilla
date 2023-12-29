@@ -1,0 +1,61 @@
+openapi: 3.1.0
+hello: $.openapi
+info:
+  version: 1.0.0
+  title: Zilla CRUD V1
+  license:
+    name: Aklivity Community License
+servers:
+  - url: http://localhost:8080
+paths:
+  /items:
+    get:
+      summary: List all items
+      operationId: listItems
+      tags:
+        - items
+      responses:
+        '200':
+          description: A paged array of items
+          headers:
+            x-next:
+              description: A link to the next page of responses
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Items"
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+components:
+  schemas:
+    Item:
+      type: object
+      required:
+        - greeting
+      properties:
+        greeting:
+          type: string
+        tag:
+          type: string
+    Items:
+      type: array
+      maxItems: 100
+      items:
+        $ref: "#/components/schemas/Item"
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string

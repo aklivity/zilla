@@ -90,12 +90,12 @@
                         ],
                         "additionalProperties": false
                     },
-                    "required":
-                    [
-                        "options"
-                    ],
                     "additionalProperties": false
-                }
+                },
+                "required":
+                [
+                    "options"
+                ]
             }
         }
     }

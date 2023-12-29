@@ -47,6 +47,7 @@ public final class KafkaCacheClientFactory implements KafkaStreamFactory
     private final int kafkaTypeId;
     private final Int2ObjectHashMap<BindingHandler> factories;
     private final Long2ObjectHashMap<KafkaBindingConfig> bindings;
+    private final EngineContext context;
 
     public KafkaCacheClientFactory(
         KafkaConfiguration config,
@@ -66,6 +67,12 @@ public final class KafkaCacheClientFactory implements KafkaStreamFactory
 
         final KafkaCacheGroupFactory cacheGroupFactory = new KafkaCacheGroupFactory(config, context, bindings::get);
 
+        final KafkaCacheClientConsumerFactory consumerGroupFactory =
+            new KafkaCacheClientConsumerFactory(config, context, bindings::get);
+
+        final KafkaCacheOffsetFetchFactory cacheOffsetFetchFactory =
+            new KafkaCacheOffsetFetchFactory(config, context, bindings::get);
+
         final KafkaCacheClientFetchFactory cacheFetchFactory = new KafkaCacheClientFetchFactory(
                 config, context, bindings::get, accountant::supplyDebitor, supplyCache, supplyCacheRoute);
 
@@ -75,24 +82,31 @@ public final class KafkaCacheClientFactory implements KafkaStreamFactory
         final KafkaMergedFactory cacheMergedFactory = new KafkaMergedFactory(
                 config, context, bindings::get, accountant.creditor());
 
+        final KafkaCacheBootstrapFactory cacheBootstrapFactory = new KafkaCacheBootstrapFactory(
+            config, context, bindings::get);
+
         final Int2ObjectHashMap<BindingHandler> factories = new Int2ObjectHashMap<>();
         factories.put(KafkaBeginExFW.KIND_META, cacheMetaFactory);
         factories.put(KafkaBeginExFW.KIND_DESCRIBE, cacheDescribeFactory);
         factories.put(KafkaBeginExFW.KIND_GROUP, cacheGroupFactory);
+        factories.put(KafkaBeginExFW.KIND_CONSUMER, consumerGroupFactory);
+        factories.put(KafkaBeginExFW.KIND_OFFSET_FETCH, cacheOffsetFetchFactory);
         factories.put(KafkaBeginExFW.KIND_FETCH, cacheFetchFactory);
         factories.put(KafkaBeginExFW.KIND_PRODUCE, cacheProduceFactory);
         factories.put(KafkaBeginExFW.KIND_MERGED, cacheMergedFactory);
+        factories.put(KafkaBeginExFW.KIND_BOOTSTRAP, cacheBootstrapFactory);
 
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.factories = factories;
         this.bindings = bindings;
+        this.context = context;
     }
 
     @Override
     public void attach(
         BindingConfig binding)
     {
-        KafkaBindingConfig kafkaBinding = new KafkaBindingConfig(binding);
+        KafkaBindingConfig kafkaBinding = new KafkaBindingConfig(binding, context);
         bindings.put(binding.id, kafkaBinding);
     }
 

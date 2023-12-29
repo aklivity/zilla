@@ -1,0 +1,115 @@
+name: example
+bindings:
+  tcp_server0:
+    type: tcp
+    kind: server
+    options:
+      host: 0.0.0.0
+      port: 8080
+    routes:
+    - exit: http_server0
+      when:
+      - port: 8080
+  http_server0:
+    type: http
+    kind: server
+    options:
+      access-control:
+        policy: cross-origin
+      authorization:
+        jwt0:
+          credentials:
+            headers:
+              authorization: "Bearer {credentials}"
+      requests:
+      - path: /items
+        method: POST
+        content:
+          type: json
+          catalog:
+            catalog0:
+            - subject: Item
+    routes:
+    - exit: http_client0
+      when:
+      - headers:
+          :path: /items
+          :method: GET
+      guarded:
+        jwt0:
+        - list:items
+    - exit: http_client0
+      when:
+      - headers:
+          :path: /items
+          :method: POST
+      guarded:
+        jwt0:
+        - create:items
+  http_client0:
+    type: http
+    kind: client
+    exit: tcp_client0
+  tcp_client0:
+    type: tcp
+    kind: client
+    options:
+      host: "${{env.TCP_CLIENT_HOST}}"
+      port: ${{env.TCP_CLIENT_PORT}}
+guards:
+  jwt0:
+    type: jwt
+    options:
+      issuer: "${{env.JWT_ISSUER}}"
+      audience: "${{env.JWT_AUDIENCE}}"
+      keys:
+      - kty: "${{env.JWT_KTY}}"
+        "n": "${{env.JWT_N}}"
+        e: "${{env.JWT_E}}"
+        alg: "${{env.JWT_ALG}}"
+        crv: "${{env.JWT_CRV}}"
+        x: "${{env.JWT_X}}"
+        "y": "${{env.JWT_Y}}"
+        use: "${{env.JWT_USE}}"
+        kid: "${{env.JWT_KID}}"
+catalogs:
+  catalog0:
+    type: inline
+    options:
+      subjects:
+        Item:
+          schema: |
+            type: object
+            properties:
+              greeting:
+                type: string
+              tag:
+                type: string
+            required:
+            - greeting
+          version: latest
+        Error:
+          schema: |
+            type: object
+            properties:
+              code:
+                type: integer
+              message:
+                type: string
+            required:
+            - code
+            - message
+          version: latest
+        Items:
+          schema: |
+            type: array
+            items:
+              type: object
+              properties:
+                greeting:
+                  type: string
+                tag:
+                  type: string
+              required:
+              - greeting
+          version: latest

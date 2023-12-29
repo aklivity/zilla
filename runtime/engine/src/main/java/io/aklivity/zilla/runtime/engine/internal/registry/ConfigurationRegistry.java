@@ -22,6 +22,7 @@ import java.util.function.ToIntFunction;
 import org.agrona.collections.Int2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
+import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterContext;
 import io.aklivity.zilla.runtime.engine.guard.GuardContext;
@@ -37,6 +38,7 @@ public class ConfigurationRegistry
     private final Function<String, BindingContext> bindingsByType;
     private final Function<String, GuardContext> guardsByType;
     private final Function<String, VaultContext> vaultsByType;
+    private final Function<String, CatalogContext> catalogsByType;
     private final Function<String, MetricContext> metricsByName;
     private final Function<String, ExporterContext> exportersByType;
     private final ToIntFunction<String> supplyLabelId;
@@ -51,6 +53,7 @@ public class ConfigurationRegistry
             Function<String, BindingContext> bindingsByType,
             Function<String, GuardContext> guardsByType,
             Function<String, VaultContext> vaultsByType,
+            Function<String, CatalogContext> catalogsByType,
             Function<String, MetricContext> metricsByName,
             Function<String, ExporterContext> exportersByType,
             ToIntFunction<String> supplyLabelId,
@@ -63,6 +66,7 @@ public class ConfigurationRegistry
         this.bindingsByType = bindingsByType;
         this.guardsByType = guardsByType;
         this.vaultsByType = vaultsByType;
+        this.catalogsByType = catalogsByType;
         this.metricsByName = metricsByName;
         this.exportersByType = exportersByType;
         this.supplyLabelId = supplyLabelId;
@@ -116,6 +120,16 @@ public class ConfigurationRegistry
         return namespace != null ? namespace.findVault(localId) : null;
     }
 
+    public CatalogRegistry resolveCatalog(
+        long catalogId)
+    {
+        int namespaceId = NamespacedId.namespaceId(catalogId);
+        int localId = NamespacedId.localId(catalogId);
+
+        NamespaceRegistry namespace = findNamespace(namespaceId);
+        return namespace != null ? namespace.findCatalog(localId) : null;
+    }
+
     public MetricRegistry resolveMetric(
         long metricId)
     {
@@ -152,9 +166,9 @@ public class ConfigurationRegistry
         NamespaceConfig namespace)
     {
         NamespaceRegistry registry =
-                new NamespaceRegistry(namespace, bindingsByType, guardsByType, vaultsByType, metricsByName, exportersByType,
-                    supplyLabelId, this::resolveMetric, exporterAttached, exporterDetached, supplyMetricRecorder,
-                    detachBinding, collector);
+                new NamespaceRegistry(namespace, bindingsByType, guardsByType, vaultsByType, catalogsByType, metricsByName,
+                    exportersByType, supplyLabelId, this::resolveMetric, exporterAttached, exporterDetached,
+                    supplyMetricRecorder, detachBinding, collector);
         namespacesById.put(registry.namespaceId(), registry);
         registry.attach();
     }

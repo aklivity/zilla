@@ -100,6 +100,15 @@ public class GrpcProduceIT
 
     @Test
     @Specification({
+        "${grpc}/unary.rpc.error/client",
+        "${grpc}/unary.rpc.error/server"})
+    public void shouldRejectUnaryRpcWithError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${grpc}/unary.rpc.rejected/client",
         "${grpc}/unary.rpc.rejected/server"})
     public void shouldRejectUnaryRpc() throws Exception
@@ -112,6 +121,15 @@ public class GrpcProduceIT
         "${grpc}/unary.rpc.sent.write.abort/client",
         "${grpc}/unary.rpc.sent.write.abort/server"})
     public void shouldNotProduceMessageOnUnaryRrcSentWriteAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${grpc}/unary.rpc.message.value.100k/client",
+        "${grpc}/unary.rpc.message.value.100k/server"})
+    public void shouldExchangeMessageValue100kInUnary() throws Exception
     {
         k3po.finish();
     }

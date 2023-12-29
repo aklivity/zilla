@@ -34,6 +34,7 @@ connected
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
                              .merged()
+                                .produce()
                                  .partition(-1, -1)
                                  .build()
                              .build()}
@@ -42,6 +43,7 @@ read "Hello, world #A1"
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
                              .merged()
+                                .produce()
                                  .partition(-1, -1)
                                  .build()
                              .build()}
@@ -50,6 +52,7 @@ read "Hello, world #B1"
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
                              .merged()
+                                .produce()
                                  .partition(-1, -1)
                                  .build()
                              .build()}
@@ -58,6 +61,7 @@ read "Hello, world #C1"
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
                              .merged()
+                                .produce()
                                  .partition(-1, -1)
                                  .build()
                              .build()}
@@ -66,6 +70,7 @@ read "Hello, world #A2"
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
                              .merged()
+                                .produce()
                                  .partition(-1, -1)
                                  .build()
                              .build()}
@@ -74,6 +79,7 @@ read "Hello, world #B2"
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
                              .merged()
+                                .produce()
                                  .partition(-1, -1)
                                  .build()
                              .build()}

@@ -15,14 +15,11 @@
  */
 package io.aklivity.zilla.runtime.engine.test;
 
-import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_COMMAND_BUFFER_CAPACITY;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_CONFIG_URL;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_COUNTERS_BUFFER_CAPACITY;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DIRECTORY;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
-import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_RESPONSE_BUFFER_CAPACITY;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_ROUTED_DELAY_MILLIS;
-import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_STREAMS_BUFFER_CAPACITY;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_SYNTHETIC_ABORT;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKERS;
 import static java.nio.file.FileVisitOption.FOLLOW_LINKS;
@@ -89,29 +86,16 @@ public final class EngineRule implements TestRule
         configure(ENGINE_WORKERS, 1);
     }
 
-    public EngineRule directory(String directory)
+    public EngineRule directory(
+        String directory)
     {
         return configure(ENGINE_DIRECTORY, directory);
     }
 
-    public EngineRule commandBufferCapacity(int commandBufferCapacity)
+    public EngineRule countersBufferCapacity(
+        int countersBufferCapacity)
     {
-        return configure(ENGINE_COMMAND_BUFFER_CAPACITY, commandBufferCapacity);
-    }
-
-    public EngineRule responseBufferCapacity(int responseBufferCapacity)
-    {
-        return configure(ENGINE_RESPONSE_BUFFER_CAPACITY, responseBufferCapacity);
-    }
-
-    public EngineRule counterValuesBufferCapacity(int counterValuesBufferCapacity)
-    {
-        return configure(ENGINE_COUNTERS_BUFFER_CAPACITY, counterValuesBufferCapacity);
-    }
-
-    public EngineRule streamsBufferCapacity(int streamsBufferCapacity)
-    {
-        return configure(ENGINE_STREAMS_BUFFER_CAPACITY, streamsBufferCapacity);
+        return configure(ENGINE_COUNTERS_BUFFER_CAPACITY, countersBufferCapacity);
     }
 
     public <T> EngineRule configure(
@@ -319,6 +303,7 @@ public final class EngineRule implements TestRule
                 final List<Throwable> errors = new ArrayList<>();
                 final ErrorHandler errorHandler = ex ->
                 {
+                    ex.printStackTrace();
                     errors.add(ex);
                     baseThread.interrupt();
                 };

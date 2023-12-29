@@ -20,7 +20,7 @@ import java.util.function.Function;
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
-public final class TcpOptionsConfigBuilder<T> implements ConfigBuilder<T>
+public final class TcpOptionsConfigBuilder<T> extends ConfigBuilder<T, TcpOptionsConfigBuilder<T>>
 {
     public static final int BACKLOG_DEFAULT = 0;
     public static final boolean NODELAY_DEFAULT = true;
@@ -38,6 +38,13 @@ public final class TcpOptionsConfigBuilder<T> implements ConfigBuilder<T>
         Function<OptionsConfig, T> mapper)
     {
         this.mapper = mapper;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Class<TcpOptionsConfigBuilder<T>> thisType()
+    {
+        return (Class<TcpOptionsConfigBuilder<T>>) getClass();
     }
 
     public TcpOptionsConfigBuilder<T> host(

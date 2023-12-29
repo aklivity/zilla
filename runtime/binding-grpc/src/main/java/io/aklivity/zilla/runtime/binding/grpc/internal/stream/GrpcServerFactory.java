@@ -69,6 +69,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
 {
     private static final int GRPC_MESSAGE_PADDING = 5;
     private static final int DATA_FLAG_INIT = 0x02;
+    private static final int DATA_FLAG_CONT = 0x00;
     private static final int DATA_FLAG_FIN = 0x01;
     private static final int EXPIRING_SIGNAL = 1;
     private static final String HTTP_TYPE_NAME = "http";
@@ -493,7 +494,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             if (grpcTimeout > 0L)
             {
                 expiringId = signaler.signalAt(now().toEpochMilli() + grpcTimeout,
-                        originId, routedId, replyId, EXPIRING_SIGNAL, 0);
+                        originId, routedId, replyId, traceId, EXPIRING_SIGNAL, 0);
             }
         }
 
@@ -507,7 +508,6 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             final long budgetId = data.budgetId();
             final int reserved = data.reserved();
             final OctetsFW payload = data.payload();
-            int flags = data.flags();
 
             assert acknowledge <= sequence;
             assert sequence >= initialSeq;
@@ -532,12 +532,12 @@ public final class GrpcServerFactory implements GrpcStreamFactory
                     messageDeferred = messageLength - payloadSize;
 
                     Flyweight dataEx = messageDeferred > 0 ?
-                        grpcDataExRW.wrap(writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
+                        grpcDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
                             .typeId(grpcTypeId)
                             .deferred(messageDeferred)
                             .build() : EMPTY_OCTETS;
 
-                    flags = messageDeferred > 0 ? flags & ~DATA_FLAG_INIT : flags;
+                    int flags = messageDeferred > 0 ? DATA_FLAG_INIT : DATA_FLAG_INIT | DATA_FLAG_FIN;
                     delegate.doAppData(traceId, authorization, budgetId, reserved, flags,
                         buffer, offset + GRPC_MESSAGE_PADDING, payloadSize, dataEx);
                 }
@@ -551,7 +551,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
                 messageDeferred -= size;
                 assert messageDeferred >= 0;
 
-                flags = messageDeferred > 0 ? flags & ~DATA_FLAG_INIT : flags;
+                int flags = messageDeferred > 0 ? DATA_FLAG_CONT : DATA_FLAG_FIN;
 
                 delegate.doAppData(traceId, authorization, budgetId, reserved, flags,
                     buffer, offset, size, EMPTY_OCTETS);
@@ -674,8 +674,6 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             int replyMax)
         {
             this.replySeq = replySeq;
-            this.replyAck = replyAck;
-            this.replyMax = replyMax;
 
             doBegin(network, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization,
                 affinity, hs -> hs.item(h -> h.name(HEADER_NAME_STATUS).value(HEADER_VALUE_STATUS_200))

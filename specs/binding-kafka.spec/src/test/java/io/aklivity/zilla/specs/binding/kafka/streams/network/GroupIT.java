@@ -56,6 +56,24 @@ public class GroupIT
 
     @Test
     @Specification({
+        "${net}/client.sent.write.abort.after.sync.group.response/client",
+        "${net}/client.sent.write.abort.after.sync.group.response/server"})
+    public void shouldHandleClientSentWriteAbortAfterSyncGroupResponse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/client.sent.read.abort.after.sync.group.response/client",
+        "${net}/client.sent.read.abort.after.sync.group.response/server"})
+    public void shouldHandleClientSentReadAbortAfterSyncGroupResponse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/coordinator.not.available/client",
         "${net}/coordinator.not.available/server"})
     public void shouldHandleCoordinatorNotAvailableError() throws Exception
@@ -92,6 +110,15 @@ public class GroupIT
 
     @Test
     @Specification({
+        "${net}/rebalance.protocol.highlander.migrate.leader.in.parallel/client",
+        "${net}/rebalance.protocol.highlander.migrate.leader.in.parallel/server"})
+    public void shouldRebalanceProtocolHighlanderMigrateLeaderInParallel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/rebalance.protocol.unknown/client",
         "${net}/rebalance.protocol.unknown/server"})
     public void shouldRejectSecondStreamOnUnknownProtocol() throws Exception
@@ -116,4 +143,59 @@ public class GroupIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/rebalance.multiple.members.with.same.group.id/client",
+        "${net}/rebalance.multiple.members.with.same.group.id/server"})
+    public void shouldRebalanceMultipleMembersWithSameGroupId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/rebalance.protocol.highlander.heartbeat.unknown.member/client",
+        "${net}/rebalance.protocol.highlander.heartbeat.unknown.member/server"})
+    public void shouldRebalanceProtocolHighlanderOnHeartbeatUnknownMember() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/topics.partition.assignment/client",
+        "${net}/topics.partition.assignment/server"})
+    public void shouldAssignMultipleTopicsPartitionGroup() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/group.authorization.failed/client",
+        "${net}/group.authorization.failed/server"})
+    public void shouldPropagateGroupAuthorizationFailedError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/invalid.describe.config/client",
+        "${net}/invalid.describe.config/server"})
+    public void shouldHandleInvalidDescribeConfig() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/invalid.session.timeout/client",
+        "${net}/invalid.session.timeout/server"})
+    public void shouldHandleInvalidSessionTimeout() throws Exception
+    {
+        k3po.finish();
+    }
+
 }

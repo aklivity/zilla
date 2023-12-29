@@ -39,9 +39,7 @@ public class GrpcKafkaProduceProxyIT
 
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
-        .commandBufferCapacity(1024)
-        .responseBufferCapacity(1024)
-        .counterValuesBufferCapacity(8192)
+        .countersBufferCapacity(8192)
         .configure(ENGINE_BUFFER_SLOT_CAPACITY, 8192)
         .configurationRoot("io/aklivity/zilla/specs/binding/grpc/kafka/config")
         .external("kafka0")
@@ -63,9 +61,29 @@ public class GrpcKafkaProduceProxyIT
     @Test
     @Configuration("produce.proxy.rpc.yaml")
     @Specification({
+        "${grpc}/unary.rpc.message.value.100k/client",
+        "${kafka}/unary.rpc.message.value.100k/server"})
+    public void shouldExchange100kMessageWithUnaryRpc() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("produce.proxy.rpc.yaml")
+    @Specification({
         "${grpc}/unary.rpc.rejected/client",
         "${kafka}/unary.rpc.rejected/server"})
     public void shouldRejectUnaryRpc() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("produce.proxy.rpc.yaml")
+    @Specification({
+        "${grpc}/unary.rpc.error/client",
+        "${kafka}/unary.rpc.error/server"})
+    public void shouldRejectUnaryRpcWithError() throws Exception
     {
         k3po.finish();
     }

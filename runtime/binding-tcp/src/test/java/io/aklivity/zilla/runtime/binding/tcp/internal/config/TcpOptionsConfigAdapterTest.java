@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.tcp.internal.config;
 
+import static java.util.function.Function.identity;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
@@ -100,6 +101,7 @@ public class TcpOptionsConfigAdapterTest
     public void shouldWriteOptions()
     {
         TcpOptionsConfig options = TcpOptionsConfig.builder()
+            .inject(identity())
             .host("localhost")
             .ports(new int[] { 8080 })
             .build();
@@ -134,6 +136,7 @@ public class TcpOptionsConfigAdapterTest
     public void shouldWriteOptionsWithBacklog()
     {
         TcpOptionsConfig options = TcpOptionsConfig.builder()
+                .inject(identity())
                 .host("localhost")
                 .ports(new int[] { 8080 })
                 .backlog(1000)

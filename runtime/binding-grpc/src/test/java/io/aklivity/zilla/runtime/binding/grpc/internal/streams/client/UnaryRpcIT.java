@@ -38,9 +38,7 @@ public class UnaryRpcIT
 
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
-        .commandBufferCapacity(1024)
-        .responseBufferCapacity(1024)
-        .counterValuesBufferCapacity(4096)
+        .countersBufferCapacity(4096)
         .configurationRoot("io/aklivity/zilla/specs/binding/grpc/config")
         .external("net0")
         .clean();
@@ -126,4 +124,36 @@ public class UnaryRpcIT
     }
 
 
+    @Test
+    @Configuration("client.when.yaml")
+    @Specification({
+        "${app}/server.send.write.abort.on.open.response/client",
+        "${net}/response.with.grpc.error/server"
+    })
+    public void shouldAbortResponseWithGrpcError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.when.yaml")
+    @Specification({
+        "${app}/response.missing.grpc.status/client",
+        "${net}/response.missing.grpc.status/server",
+    })
+    public void shouldAbortResponseMissingGrpcStatus() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.when.yaml")
+    @Specification({
+        "${app}/message.exchange.100k/client",
+        "${net}/message.exchange.100k/server"
+    })
+    public void shouldExchange100kMessage() throws Exception
+    {
+        k3po.finish();
+    }
 }

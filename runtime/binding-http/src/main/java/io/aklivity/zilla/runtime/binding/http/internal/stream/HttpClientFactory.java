@@ -2228,7 +2228,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         private final long routedId;
         private final long replyId;
         private final long initialId;
-        private long budgetId;
+        private long initialBudgetId;
         private int state;
 
         private long initialSeq;
@@ -2239,6 +2239,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         private long replySeq;
         private long replyAck;
         private long replyAuth;
+        private int replyPad;
 
         private int decodedStreamId;
         private byte decodedFlags;
@@ -2297,7 +2298,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             this.routedId = pool.resolvedId;
             this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
-            this.budgetId = 0;
+            this.initialBudgetId = 0;
             this.decoder = decodeHttp11EmptyLines;
             this.localSettings = new Http2Settings();
             this.remoteSettings = new Http2Settings();
@@ -2405,17 +2406,18 @@ public final class HttpClientFactory implements HttpStreamFactory
                 beginEx.infos().anyMatch(proxyInfo -> PROXY_ALPN_H2.equals(proxyInfo.alpn())) ||
                 pool.versions.size() == 1 && pool.versions.contains(HTTP_2))
             {
+                assert !HttpState.initialOpened(state);
+                initialBudgetId = supplyBudgetId.getAsLong();
+                assert requestSharedBudgetIndex == NO_CREDITOR_INDEX;
+                requestSharedBudgetIndex = creditor.acquire(initialBudgetId);
+
                 remoteSharedBudget = encodeMax;
+
                 for (HttpExchange exchange: pool.exchanges.values())
                 {
                     exchange.remoteBudget += encodeMax;
                     exchange.flushRequestWindow(traceId, 0);
                 }
-
-                assert !HttpState.initialOpened(state);
-                this.budgetId = supplyBudgetId.getAsLong();
-                assert requestSharedBudgetIndex == NO_CREDITOR_INDEX;
-                requestSharedBudgetIndex = creditor.acquire(budgetId);
 
                 doEncodeHttp2Preface(traceId, authorization);
                 doEncodeHttp2Settings(traceId, authorization);
@@ -2842,10 +2844,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 }
             }
 
-            if (exchange != null && !HttpState.replyClosed(exchange.state))
-            {
-                doNetworkWindow(traceId, budgetId, exchange.responsePad, decodeSlotReserved);
-            }
+            doNetworkWindow(traceId, budgetId, replyPad, decodeSlotReserved);
         }
 
         private void onDecodeHttp11HeadersError(
@@ -3873,7 +3872,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             final int requestSharedBudgetDelta = remoteSharedBudgetMax - (requestSharedBudget + encodeSlotReserved);
             final int initialSharedCredit = Math.min(requestSharedCredit, requestSharedBudgetDelta);
 
-            if (initialSharedCredit > 0)
+            if (initialSharedCredit > 0 && requestSharedBudgetIndex != NO_CREDITOR_INDEX)
             {
                 final long requestSharedPrevious =
                         creditor.credit(traceId, requestSharedBudgetIndex, initialSharedCredit);
@@ -4640,16 +4639,18 @@ public final class HttpClientFactory implements HttpStreamFactory
             final long acknowledge = data.acknowledge();
             final long traceId = data.traceId();
             final long authorization = data.authorization();
+            final int reserved = data.reserved();
 
             assert acknowledge <= sequence;
             assert sequence >= requestSeq;
 
-            requestSeq = sequence + data.reserved();
+            requestSeq = sequence + reserved;
             requestAuth = authorization;
 
             assert requestAck <= requestSeq;
+            client.requestSharedBudget -= reserved;
 
-            if (requestSeq > requestAck + encodeMax)
+            if (requestSeq > requestAck + requestMax)
             {
                 doRequestReset(traceId, authorization);
                 client.doNetworkAbort(traceId, authorization);
@@ -4658,7 +4659,6 @@ public final class HttpClientFactory implements HttpStreamFactory
             {
                 final int flags = data.flags();
                 final long budgetId = data.budgetId();
-                final int reserved = data.reserved();
                 final int length = data.length();
                 final OctetsFW payload = data.payload();
 
@@ -4751,7 +4751,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 state = HttpState.openInitial(state);
 
                 doWindow(application, originId, routedId, requestId, requestSeq, requestAck, requestMax,
-                    traceId, requestAuth, client.budgetId, client.initialPad);
+                    traceId, requestAuth, client.initialBudgetId, client.initialPad);
             }
         }
 
@@ -4897,6 +4897,8 @@ public final class HttpClientFactory implements HttpStreamFactory
             responseBud = budgetId;
             responsePad = padding;
 
+            client.replyPad = Math.max(responsePad, client.replyPad);
+
             assert responseAck <= responseSeq;
 
             state = HttpState.openReply(state);
@@ -4972,7 +4974,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                     assert requestMax >= 0;
 
                     doWindow(application, originId, routedId, requestId, requestSeq, requestAck, requestMax, traceId, sessionId,
-                            client.budgetId, requestPad);
+                            client.initialBudgetId, requestPad);
                 }
             }
         }
@@ -5060,15 +5062,6 @@ public final class HttpClientFactory implements HttpStreamFactory
     private final class Http2HeadersEncoder
     {
         private HpackContext context;
-
-        void encodePromise(
-            HpackContext encodeContext,
-            Array32FW<HttpHeaderFW> headers,
-            HpackHeaderBlockFW.Builder headerBlock)
-        {
-            reset(encodeContext);
-            headers.forEach(h -> headerBlock.header(b -> encodeHeader(h.name(), h.value(), b)));
-        }
 
         void encodeHeaders(
             HpackContext encodeContext,

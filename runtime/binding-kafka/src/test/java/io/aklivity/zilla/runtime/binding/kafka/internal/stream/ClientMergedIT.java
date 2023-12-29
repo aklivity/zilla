@@ -46,12 +46,10 @@ public class ClientMergedIT
 
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
-        .commandBufferCapacity(1024)
-        .responseBufferCapacity(1024)
-        .counterValuesBufferCapacity(8192)
+        .countersBufferCapacity(8192)
         .configure(ENGINE_BUFFER_SLOT_CAPACITY, 8192)
         .configure(KAFKA_CLIENT_META_MAX_AGE_MILLIS, 1000)
-        .configure(KAFKA_CLIENT_PRODUCE_MAX_BYTES, 116)
+        .configure(KAFKA_CLIENT_PRODUCE_MAX_BYTES, 528)
         .configurationRoot("io/aklivity/zilla/specs/binding/kafka/config")
         .external("net0")
         .clean();
@@ -236,7 +234,7 @@ public class ClientMergedIT
     @Configure(
         name = "zilla.binding.kafka.client.produce.max.bytes",
         value = "200000")
-    @ScriptProperty("padding ${512 + 100}")
+    @ScriptProperty("padding ${512 + 512}")
     public void shouldProduceMergedMessageValue10k() throws Exception
     {
         k3po.finish();
@@ -250,7 +248,7 @@ public class ClientMergedIT
     @Configure(
         name = "zilla.binding.kafka.client.produce.max.bytes",
         value = "200000")
-    @ScriptProperty("padding ${512 + 100}")
+    @ScriptProperty("padding ${512 + 512}")
     public void shouldProduceMergedMessageValue100k() throws Exception
     {
         k3po.finish();

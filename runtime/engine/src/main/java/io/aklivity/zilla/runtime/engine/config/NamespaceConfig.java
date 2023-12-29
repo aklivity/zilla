@@ -34,6 +34,7 @@ public class NamespaceConfig
     public final List<BindingConfig> bindings;
     public final List<GuardConfig> guards;
     public final List<VaultConfig> vaults;
+    public final List<CatalogConfig> catalogs;
 
     public static NamespaceConfigBuilder<NamespaceConfig> builder()
     {
@@ -46,7 +47,8 @@ public class NamespaceConfig
         TelemetryConfig telemetry,
         List<BindingConfig> bindings,
         List<GuardConfig> guards,
-        List<VaultConfig> vaults)
+        List<VaultConfig> vaults,
+        List<CatalogConfig> catalogs)
     {
         this.name = requireNonNull(name);
         this.references = requireNonNull(references);
@@ -54,5 +56,6 @@ public class NamespaceConfig
         this.bindings = requireNonNull(bindings);
         this.guards = requireNonNull(guards);
         this.vaults = requireNonNull(vaults);
+        this.catalogs = requireNonNull(catalogs);
     }
 }

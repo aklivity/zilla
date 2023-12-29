@@ -66,6 +66,13 @@
   <dependencyManagement>
     <dependencies>
       <dependency>
+        <groupId>org.apache.maven</groupId>
+        <artifactId>maven</artifactId>
+        <version>3.9.4</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
         <groupId>jakarta.json</groupId>
         <artifactId>jakarta.json-api</artifactId>
         <version>2.0.1</version>
@@ -93,7 +100,7 @@
       <dependency>
         <groupId>junit</groupId>
         <artifactId>junit</artifactId>
-        <version>4.13.1</version>
+        <version>4.13.2</version>
       </dependency>
       <dependency>
         <groupId>org.hamcrest</groupId>
@@ -123,7 +130,12 @@
       <dependency>
         <groupId>com.squareup</groupId>
         <artifactId>javapoet</artifactId>
-        <version>1.9.0</version>
+        <version>1.13.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.avro</groupId>
+        <artifactId>avro</artifactId>
+        <version>1.11.3</version>
       </dependency>
       <dependency>
         <groupId>org.junit.jupiter</groupId>
@@ -144,26 +156,6 @@
         <groupId>org.mockito</groupId>
         <artifactId>mockito-core</artifactId>
         <version>${mockito.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.maven</groupId>
-        <artifactId>maven-core</artifactId>
-        <version>3.6.0</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.maven</groupId>
-        <artifactId>maven-artifact</artifactId>
-        <version>3.5.0</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.maven</groupId>
-        <artifactId>maven-compat</artifactId>
-        <version>3.6.0</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.maven.plugin-tools</groupId>
-        <artifactId>maven-plugin-annotations</artifactId>
-        <version>3.5</version>
       </dependency>
       <dependency>
         <groupId>org.apache.maven.plugin-testing</groupId>
@@ -188,7 +180,7 @@
       <dependency>
         <groupId>com.github.biboudis</groupId>
         <artifactId>jmh-profilers</artifactId>
-        <version>0.1.3</version>
+        <version>0.1.4</version>
       </dependency>
       <dependency>
         <groupId>org.kaazing</groupId>
@@ -297,6 +289,7 @@
               <proto>SLASHSTAR_STYLE</proto>
               <idl>SLASHSTAR_STYLE</idl>
               <rpt>SCRIPT_STYLE</rpt>
+              <lua>LUA</lua>
             </mapping>
             <failIfUnknown>true</failIfUnknown>
             <failIfMissing>true</failIfMissing>
@@ -356,7 +349,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-plugin-plugin</artifactId>
-          <version>3.5</version>
+          <version>3.9.0</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
@@ -371,7 +364,20 @@
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>exec-maven-plugin</artifactId>
-          <version>1.6.0</version>
+          <version>3.1.0</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-shade-plugin</artifactId>
+          <version>3.5.0</version>
+          <executions>
+            <execution>
+              <phase>package</phase>
+              <goals>
+                <goal>shade</goal>
+              </goals>
+            </execution>
+          </executions>
         </plugin>
         <plugin>
           <groupId>org.moditect</groupId>
@@ -402,7 +408,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-jar-plugin</artifactId>
-          <version>3.2.0</version>
+          <version>3.3.0</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
@@ -429,28 +435,6 @@
               <goals>
                 <goal>start</goal>
                 <goal>stop</goal>
-              </goals>
-            </execution>
-          </executions>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-shade-plugin</artifactId>
-          <version>3.0.0</version>
-          <configuration>
-            <filters>
-              <filter>
-                <artifact>*:*</artifact>
-                <excludes>
-                  <exclude>**/module-info.class</exclude>
-                </excludes>
-              </filter>
-            </filters>
-          </configuration>
-          <executions>
-            <execution>
-              <goals>
-                <goal>shade</goal>
               </goals>
             </execution>
           </executions>
@@ -496,7 +480,7 @@
             <dependency>
               <groupId>junit</groupId>
               <artifactId>junit</artifactId>
-              <version>4.13.1</version>
+              <version>4.13.2</version>
             </dependency>
           </dependencies>
           <executions>

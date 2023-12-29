@@ -37,7 +37,6 @@ import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.EndFW;
-import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcAbortExFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcBeginExFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcDataExFW;
@@ -57,6 +56,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
 {
     private static final int GRPC_MESSAGE_PADDING = 5;
     private static final int DATA_FLAG_INIT = 0x02;
+    private static final int DATA_FLAG_CONT = 0x00;
     private static final int DATA_FLAG_FIN = 0x01;
     private final MutableInteger headerOffsetRW = new MutableInteger();
     private static final String HTTP_TYPE_NAME = "http";
@@ -86,7 +86,6 @@ public class GrpcClientFactory implements GrpcStreamFactory
     private final DataFW dataRO = new DataFW();
     private final EndFW endRO = new EndFW();
     private final AbortFW abortRO = new AbortFW();
-    private final FlushFW flushRO = new FlushFW();
     private final WindowFW windowRO = new WindowFW();
     private final ResetFW resetRO = new ResetFW();
 
@@ -94,7 +93,6 @@ public class GrpcClientFactory implements GrpcStreamFactory
     private final DataFW.Builder dataRW = new DataFW.Builder();
     private final EndFW.Builder endRW = new EndFW.Builder();
     private final AbortFW.Builder abortRW = new AbortFW.Builder();
-    private final FlushFW.Builder flushRW = new FlushFW.Builder();
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
     private final OctetsFW.Builder octetsRW = new OctetsFW.Builder();
@@ -105,12 +103,12 @@ public class GrpcClientFactory implements GrpcStreamFactory
     private final HttpEndExFW endExRO = new HttpEndExFW();
     private final GrpcMessageFW grpcMessageRO = new GrpcMessageFW();
     private final HttpBeginExFW.Builder httpBeginExRW = new HttpBeginExFW.Builder();
-    private final HttpEndExFW.Builder httpEndExRW = new HttpEndExFW.Builder();
-    private final GrpcBeginExFW.Builder grpcBeginExRW = new GrpcBeginExFW.Builder();
     private final GrpcDataExFW.Builder grpcDataExRW = new GrpcDataExFW.Builder();
     private final GrpcAbortExFW.Builder grpcAbortExRW = new GrpcAbortExFW.Builder();
     private final GrpcResetExFW.Builder grpcResetExRW = new GrpcResetExFW.Builder();
     private final GrpcMessageFW.Builder grpcMessageRW = new GrpcMessageFW.Builder();
+
+    private final GrpcAbortExFW grpcAbortedStatusRO;
 
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer metadataBuffer;
@@ -138,6 +136,11 @@ public class GrpcClientFactory implements GrpcStreamFactory
         this.grpcTypeId = context.supplyTypeId(GrpcBinding.NAME);
         this.bindings = new Long2ObjectHashMap<>();
         this.helper = new HttpGrpcResponseHeaderHelper();
+
+        this.grpcAbortedStatusRO = grpcAbortExRW.wrap(new UnsafeBuffer(new byte[32]), 0, 32)
+                .typeId(grpcTypeId)
+                .status(HEADER_VALUE_GRPC_ABORTED)
+                .build();
     }
 
     @Override
@@ -233,6 +236,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
         private int replyPad;
 
         private int state;
+        private String grpcStatus;
 
         private GrpcClient(
             MessageConsumer application,
@@ -334,13 +338,24 @@ public class GrpcClientFactory implements GrpcStreamFactory
             assert acknowledge <= sequence;
             assert sequence >= initialSeq;
 
-            initialSeq = sequence;
+            initialSeq = sequence + reserved;
 
             assert initialAck <= initialSeq;
 
-            final GrpcDataExFW grpcDataEx = extension.get(grpcDataExRO::tryWrap);
-            final int deferred = grpcDataEx != null ? grpcDataEx.deferred() : 0;
-            delegate.doNetData(traceId, authorization, budgetId, reserved, deferred, flags, payload);
+            if (initialSeq > initialAck + initialMax)
+            {
+                delegate.doNetAbort(traceId, authorization);
+                delegate.doNetReset(traceId, authorization);
+
+                doAppReset(traceId, authorization);
+                doAppAbort(traceId, authorization, EMPTY_OCTETS);
+            }
+            else
+            {
+                final GrpcDataExFW grpcDataEx = extension.get(grpcDataExRO::tryWrap);
+                final int deferred = grpcDataEx != null ? grpcDataEx.deferred() : 0;
+                delegate.doNetData(traceId, authorization, budgetId, reserved, deferred, flags, payload);
+            }
         }
 
         private void onAppEnd(
@@ -402,7 +417,14 @@ public class GrpcClientFactory implements GrpcStreamFactory
             replyPad = padding;
             state = GrpcState.openReply(state);
 
-            delegate.doNetWindow(traceId, authorization, budgetId, padding, replyAck, replyMax);
+            if (GrpcState.replyClosing(state))
+            {
+                doAppAbortDeferred(traceId, authorization);
+            }
+            else
+            {
+                delegate.doNetWindow(traceId, authorization, budgetId, padding, replyAck, replyMax);
+            }
 
             assert replyAck <= replySeq;
 
@@ -449,21 +471,49 @@ public class GrpcClientFactory implements GrpcStreamFactory
             assert replySeq <= replyAck + replyMax;
         }
 
-        private void doAppAbort(
+        private void doAppAbortDeferring(
+            long traceId,
+            long authorization,
+            String16FW grpcStatus)
+        {
+            this.grpcStatus = grpcStatus != null ? grpcStatus.asString() : null;
+            this.state = GrpcState.closingReply(state);
+
+            if (GrpcState.replyOpened(state))
+            {
+                doAppAbortDeferred(traceId, authorization);
+            }
+        }
+
+        private void doAppAbortDeferred(
             long traceId,
             long authorization)
         {
-            if (!GrpcState.replyClosed(state))
+            GrpcAbortExFW abortEx = grpcStatus != null
+                    ? grpcAbortExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                            .typeId(grpcTypeId)
+                            .status(grpcStatus)
+                            .build()
+                    : grpcAbortExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                            .typeId(grpcTypeId)
+                            .status(HEADER_VALUE_GRPC_INTERNAL_ERROR)
+                            .build();
+
+            doAppAbort(traceId, authorization, abortEx);
+        }
+
+        private void doAppAbort(
+            long traceId,
+            long authorization,
+            Flyweight extension)
+        {
+            if (GrpcState.replyOpening(state) &&
+                !GrpcState.replyClosed(state))
             {
                 state = GrpcState.closeReply(state);
 
-                GrpcAbortExFW abortEx = grpcAbortExRW.wrap(extBuffer, 0, extBuffer.capacity())
-                    .typeId(grpcTypeId)
-                    .status(HEADER_VALUE_GRPC_ABORTED)
-                    .build();
-
                 doAbort(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, abortEx);
+                    traceId, authorization, extension);
             }
         }
 
@@ -495,19 +545,25 @@ public class GrpcClientFactory implements GrpcStreamFactory
 
             doWindow(application, originId, routedId, initialId, initialSeq, this.initialAck, this.initialMax,
                 traceId, authorization, budgetId, padding);
+
+            assert initialSeq <= initialAck + initialMax;
         }
 
         private void doAppReset(
             long traceId,
-            long authorization,
-            Flyweight extension)
+            long authorization)
         {
             if (!GrpcState.initialClosed(state))
             {
                 state = GrpcState.closeInitial(state);
 
+                GrpcResetExFW resetEx = grpcResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                        .typeId(grpcTypeId)
+                        .status(HEADER_VALUE_GRPC_ABORTED)
+                        .build();
+
                 doReset(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, authorization, extension);
+                    traceId, authorization, resetEx);
             }
         }
     }
@@ -724,21 +780,13 @@ public class GrpcClientFactory implements GrpcStreamFactory
             replyMax = maximum;
             state = GrpcState.openingReply(state);
 
+            delegate.doAppBegin(traceId, authorization, affinity);
+
             if (!HTTP_HEADER_VALUE_STATUS_200.equals(status) ||
                 grpcStatus != null && !HEADER_VALUE_GRPC_OK.equals(grpcStatus))
             {
-                final String16FW newGrpcStatus = grpcStatus == null ? HEADER_VALUE_GRPC_INTERNAL_ERROR : grpcStatus;
-                GrpcResetExFW resetEx = grpcResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
-                        .typeId(grpcTypeId)
-                        .status(newGrpcStatus)
-                        .build();
-
-                delegate.doAppReset(traceId, authorization, resetEx);
-                doNetAbort(traceId, authorization);
-            }
-            else
-            {
-                delegate.doAppBegin(traceId, authorization, affinity);
+                delegate.doAppAbortDeferring(traceId, authorization, grpcStatus);
+                doNetReset(traceId, authorization);
             }
         }
 
@@ -752,8 +800,6 @@ public class GrpcClientFactory implements GrpcStreamFactory
             final long budgetId = data.budgetId();
             final int reserved = data.reserved();
             final OctetsFW payload = data.payload();
-
-            int flags = data.flags();
 
             assert acknowledge <= sequence;
             assert sequence >= replySeq;
@@ -775,13 +821,12 @@ public class GrpcClientFactory implements GrpcStreamFactory
                 messageDeferred = messageLength - payloadSize;
 
                 Flyweight dataEx = messageDeferred > 0 ?
-                    grpcDataExRW.wrap(writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
+                    grpcDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
                         .typeId(grpcTypeId)
                         .deferred(messageDeferred)
                         .build() : EMPTY_OCTETS;
 
-
-                flags = messageDeferred > 0 ? flags & ~DATA_FLAG_INIT : flags;
+                int flags = messageDeferred > 0 ? DATA_FLAG_INIT : DATA_FLAG_INIT | DATA_FLAG_FIN;
                 delegate.doAppData(traceId, authorization, budgetId, reserved, flags,
                     buffer, offset + GRPC_MESSAGE_PADDING, payloadSize, dataEx);
             }
@@ -790,7 +835,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
                 messageDeferred -= size;
                 assert messageDeferred >= 0;
 
-                flags = messageDeferred > 0 ? flags & ~DATA_FLAG_INIT : flags;
+                int flags = messageDeferred > 0 ? DATA_FLAG_CONT : DATA_FLAG_FIN;
 
                 delegate.doAppData(traceId, authorization, budgetId, reserved, flags,
                     buffer, offset, size, EMPTY_OCTETS);
@@ -824,10 +869,9 @@ public class GrpcClientFactory implements GrpcStreamFactory
             }
             else
             {
-                delegate.doAppAbort(traceId, authorization);
+                delegate.doAppAbortDeferring(traceId, authorization,
+                        grpcStatus != null ? grpcStatus.value() : HEADER_VALUE_GRPC_INTERNAL_ERROR);
             }
-
-
         }
 
         private void onNetAbort(
@@ -847,7 +891,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
 
             state = GrpcState.closeReply(state);
 
-            delegate.doAppAbort(traceId, authorization);
+            delegate.doAppAbort(traceId, authorization, grpcAbortedStatusRO);
         }
 
         private void onNetReset(
@@ -858,12 +902,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
 
             state = GrpcState.closeInitial(state);
 
-            GrpcResetExFW resetEx = grpcResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
-                .typeId(grpcTypeId)
-                .status(HEADER_VALUE_GRPC_ABORTED)
-                .build();
-
-            delegate.doAppReset(traceId, authorization, resetEx);
+            delegate.doAppReset(traceId, authorization);
         }
 
         private void onNetWindow(
@@ -886,7 +925,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
             initialMax = maximum;
             state = GrpcState.openInitial(state);
 
-            assert initialAck <= initialMax;
+            assert initialAck <= initialSeq;
 
             delegate.doAppWindow(traceId, authorization, budgetId, padding + GRPC_MESSAGE_PADDING,
                 initialAck, initialMax);
