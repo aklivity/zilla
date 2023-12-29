@@ -89,42 +89,42 @@ output:
 > Content-Type: application/json
 ...
 < HTTP/1.1 202 Accepted
-< Location: /items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07;1-e75a4e507cc0dc66a28f5a9617392fe8
+< Location: /items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07;cid=<location_cid>
 ```
 
-Use the returned location to attempt to verify completion of the asynchronous request within `10 seconds`.
+Use the returned location with correlation id specified by the `cid` param to attempt completion of the asynchronous request within `10 seconds`.
 Note that no correlated response has been produced to the kafka `items-responses` topic, so this will timeout after `10 seconds`.
 
 ```bash
 curl -v \
-       "http://localhost:7114/items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07;1-e75a4e507cc0dc66a28f5a9617392fe8" \
+       "http://localhost:7114/items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07;cid=<location_cid>" \
        -H "Prefer: wait=10"
 ```
 
 output:
 
 ```text
-> GET /items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07;1-e75a4e507cc0dc66a28f5a9617392fe8 HTTP/1.1
+> GET /items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07;cid=<location_cid> HTTP/1.1
 > Prefer: wait=10
 ...
 < HTTP/1.1 202 Accepted
-< Location: /items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07;1-e75a4e507cc0dc66a28f5a9617392fe8
+< Location: /items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07;cid=<location_cid>
 ...
 ```
 
-Use the returned location to attempt to verify completion of the asynchronous request within `60 seconds`.
+Use the returned location with correlation id specified by the `cid` param to attempt completion of the asynchronous request within `60 seconds`.
 Note that the response will not return until you complete the following step to produce the response with `kcat`.
 
 ```bash
 curl -v \
-       "http://localhost:7114/items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07;1-e75a4e507cc0dc66a28f5a9617392fe8" \
+       "http://localhost:7114/items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07;cid=<location_cid>" \
        -H "Prefer: wait=60"
 ```
 
 output:
 
 ```text
-> GET /items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07;1-e75a4e507cc0dc66a28f5a9617392fe8 HTTP/1.1
+> GET /items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07;cid=<location_cid> HTTP/1.1
 > Prefer: wait=60
 ...
 < HTTP/1.1 OK
@@ -168,7 +168,7 @@ output:
     "zilla:reply-to",
     "items-responses",
     "zilla:correlation-id",
-    "1-e75a4e507cc0dc66a28f5a9617392fe8"
+    "<location_cid>"
   ],
   "key": "5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07",
   "payload": "{\"greeting\":\"Hello, world\"}"
@@ -185,7 +185,7 @@ echo "{\"greeting\":\"Hello, world `date`\"}" | \
          -t items-responses \
          -k "5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07" \
          -H ":status=200" \
-         -H "zilla:correlation-id=1-e75a4e507cc0dc66a28f5a9617392fe8"
+         -H "zilla:correlation-id=<location_cid>"
 ```
 
 The previous asynchronous request will complete with `200 OK` if done within `60 seconds` window, otherwise `202 Accepted` is returned again.
@@ -193,7 +193,7 @@ The previous asynchronous request will complete with `200 OK` if done within `60
 ```text
 < HTTP/1.1 202 Accepted
 < Content-Length: 0
-< Location: /items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07;1-e75a4e507cc0dc66a28f5a9617392fe8
+< Location: /items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07;cid=<location_cid>
 <
 * Connection #0 to host localhost left intact
 ```
@@ -218,7 +218,7 @@ output:
     ":status",
     "200",
     "zilla:correlation-id",
-    "1-e75a4e507cc0dc66a28f5a9617392fe8"
+    "<location_cid>"
   ],
   "key": "5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07",
   "payload": "{\"greeting\":\"Hello, world Thu Oct 26 11:37:15 EDT 2023\"}"

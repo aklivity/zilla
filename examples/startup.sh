@@ -95,16 +95,17 @@ if [[ ! -d "$WORKDIR/$EXAMPLE_FOLDER/$HELM_FOLDER" && ! -d "$WORKDIR/$EXAMPLE_FO
     START_KAFKA=false
 fi
 
-# use helm if there isn't a compose implimentation
-if [[ $USE_HELM == false && ! -d "$WORKDIR/$EXAMPLE_FOLDER/$COMPOSE_FOLDER" ]]; then
-    echo "==== This example only supports Helm currently ===";
-    USE_HELM=true
-fi
 
 # use compose if there isn't a helm implimentation
 if [[ $USE_HELM == true && ! -d "$WORKDIR/$EXAMPLE_FOLDER/$HELM_FOLDER" ]]; then
     echo "==== This example only supports Compose currently ===";
     USE_HELM=false
+fi
+
+# use helm if there isn't a compose implimentation
+if [[ $USE_HELM == false && ! -d "$WORKDIR/$EXAMPLE_FOLDER/$COMPOSE_FOLDER" ]]; then
+    echo "==== This example only supports Helm currently ===";
+    USE_HELM=true
 fi
 
 # force use of kafka if helm is being used

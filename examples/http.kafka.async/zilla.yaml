@@ -54,9 +54,10 @@ bindings:
     kind: proxy
     routes:
       - when:
+          - method: PUT
+            path: /items/{id}
           - method: GET
-            path: /items/{id};{correlationId}
-          - path: /items/{id}
+            path: /items/{id};cid={correlationId}
         exit: north_kafka_cache_client
         with:
           capability: produce
@@ -64,7 +65,7 @@ bindings:
           key: ${params.id}
           reply-to: items-responses
           async:
-            location: /items/${params.id};${correlationId}
+            location: /items/${params.id};cid=${correlationId}
   north_kafka_cache_client:
     type: kafka
     kind: cache_client
