@@ -1437,14 +1437,6 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             final OctetsFW payload = payloadRO.wrap(buffer, offset, limit);
 
-            if (mqttPublishHeaderRO.payloadFormat.equals(MqttPayloadFormat.TEXT) && invalidUtf8(payload))
-            {
-                reasonCode = PAYLOAD_FORMAT_INVALID;
-                server.onDecodeError(traceId, authorization, reasonCode);
-                server.decoder = decodeIgnoreAll;
-                break decode;
-            }
-
             server.decodePublisherKey = topicKey;
 
             boolean canPublish = MqttState.initialOpened(publisher.state);
@@ -3162,6 +3154,11 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             int reasonCode = SUCCESS;
 
+            if (mqttPublishHeaderRO.payloadFormat.equals(MqttPayloadFormat.TEXT) && invalidUtf8(payload))
+            {
+                reasonCode = PAYLOAD_FORMAT_INVALID;
+            }
+
             if (validators != null && !validContent(mqttPublishHeaderRO.topic, payload))
             {
                 reasonCode = PAYLOAD_FORMAT_INVALID;
@@ -3229,6 +3226,10 @@ public final class MqttServerFactory implements MqttStreamFactory
                             publishPayloadBytes -= length;
                         }
                     }
+                }
+                else
+                {
+                    publishPayloadBytes -= length;
                 }
             }
         }
