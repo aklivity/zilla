@@ -30,7 +30,8 @@ write [0x10 0x38]                                      # CONNECT
       [0x00 0x03] "one"                                # client id
       [0x00]                                           # will properties
       [0x00 0x09] "wills/one"                          # will topic
-write [0x00 0x1a] "client one session expired"         # will payload
+      [0x00 0x1a]                                      # will payload size
+write  "client one session expired"                    # will payload
 
 read  [0x20 0x07]                                      # CONNACK
       [0x00]                                           # flags = none
