@@ -902,8 +902,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                 final int partitionId = partition.partitionId();
                 final int errorCode = partition.errorCode();
 
-                client.stableOffset = partition.lastStableOffset() - 1;
-                client.latestOffset = partition.highWatermark() - 1;
+                client.stableOffset = partition.lastStableOffset();
+                client.latestOffset = partition.highWatermark();
                 assert client.stableOffset <= client.latestOffset;
 
                 client.decodePartitionError = errorCode;
@@ -1673,6 +1673,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
             client.decoder = decodeFetchPartition;
         }
 
+        client.onIgnoreRecordSet(traceId);
+
         return progress;
     }
 
@@ -1718,7 +1720,6 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
         private final KafkaFetchClient client;
 
         private int state;
-        private int flushFramesSent;
 
         private long initialSeq;
         private long initialAck;
@@ -1937,8 +1938,6 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                                                                      .isolation(i -> i.set(isolation)))
                                                         .build()
                                                         .sizeof()));
-            client.initialLatestOffset = latestOffset;
-            client.initialStableOffset = stableOffset;
         }
 
         private void doApplicationData(
@@ -1970,8 +1969,6 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
             replySeq += reserved;
 
             assert replyAck <= replySeq;
-
-            flushFramesSent++;
         }
 
         private void doApplicationFlushIfNecessary(
@@ -1979,9 +1976,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
             long authorization)
         {
             if (KafkaState.replyOpening(state) &&
-                    client.decodeRecordBatchLastOffset >= client.initialLatestOffset &&
-                    client.decodableRecords == 0 &&
-                    flushFramesSent == 0)
+                client.initialStableOffset <  client.stableOffset &&
+                client.initialLatestOffset < client.latestOffset)
             {
                 final KafkaFlushExFW kafkaFlushEx = kafkaFlushExRW.wrap(extBuffer, 0, extBuffer.capacity())
                         .typeId(kafkaTypeId)
@@ -1989,8 +1985,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                                 .partition(p -> p
                                         .partitionId(client.partitionId)
                                         .partitionOffset(client.decodeRecordBatchLastOffset)
-                                        .stableOffset(client.initialStableOffset)
-                                        .latestOffset(client.initialLatestOffset)))
+                                        .stableOffset(client.stableOffset)
+                                        .latestOffset(client.latestOffset)))
                         .build();
 
                 doFlush(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
@@ -2000,7 +1996,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
 
                 assert replyAck <= replySeq;
 
-                flushFramesSent++;
+                client.initialStableOffset = client.stableOffset;
+                client.initialLatestOffset = client.latestOffset;
             }
         }
 
@@ -3111,6 +3108,12 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                         .build();
 
                 doApplicationData(traceId, authorization, FLAG_FIN, reserved, value, kafkaDataEx);
+            }
+
+            private void onIgnoreRecordSet(
+                long traceId)
+            {
+                doApplicationFlushIfNecessary(traceId, authorization);
             }
 
             @Override
