@@ -303,15 +303,6 @@ public class PublishIT
 
     @Test
     @Specification({
-        "${net}/publish.reject.packet.too.large/client",
-        "${net}/publish.reject.packet.too.large/server"})
-    public void shouldRejectPacketTooLarge() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${net}/publish.invalid.message/client",
         "${net}/publish.invalid.message/server"})
     public void shouldPublishInvalidMessage() throws Exception

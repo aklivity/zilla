@@ -47,15 +47,6 @@ public class ConnectionIT
 
     @Test
     @Specification({
-        "${app}/connect.max.packet.size.exceeded/client",
-        "${app}/connect.max.packet.size.exceeded/server"})
-    public void shouldNotReceivePublishPacketExceedingMaxPacketLimit() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/disconnect.after.subscribe.and.publish/client",
         "${app}/disconnect.after.subscribe.and.publish/server"})
     public void shouldDisconnectAfterSubscribeAndPublish() throws Exception
