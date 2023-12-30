@@ -39,6 +39,9 @@ write zilla:begin.ext ${http:beginEx()
                             .header("content-type", "text/html; charset=UTF-8")
                             .header("content-length", "100000")
                             .build()}
+write flush
+
+write await HTTP2_SETTINGS_ACK_RECEIVED
 
 write ${http:randomBytes(100000)}
 write flush
