@@ -13,7 +13,7 @@
 # specific language governing permissions and limitations under the License.
 #
 
-FROM eclipse-temurin:20-jdk AS build
+FROM eclipse-temurin:21-jdk AS build
 
 RUN apt update && apt install -y gettext
 
