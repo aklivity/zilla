@@ -143,7 +143,6 @@ public final class TlsBindingConfig
         ProxyBeginExFW beginEx)
     {
         Array32FW<ProxyInfoFW> infos = beginEx != null ? beginEx.infos() : null;
-
         ProxyInfoFW authorityInfo = infos != null ? infos.matchFirst(a -> a.kind() == AUTHORITY) : null;
         String authority = authorityInfo != null ? authorityInfo.authority().asString() : null;
 
