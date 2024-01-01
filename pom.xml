@@ -51,7 +51,7 @@
     <jmock.version>2.6.0</jmock.version>
     <mockito.version>5.8.0</mockito.version>
     <k3po.version>3.1.0</k3po.version>
-    <jmh.version>1.12</jmh.version>
+    <jmh.version>1.37</jmh.version>
   </properties>
 
   <modules>
