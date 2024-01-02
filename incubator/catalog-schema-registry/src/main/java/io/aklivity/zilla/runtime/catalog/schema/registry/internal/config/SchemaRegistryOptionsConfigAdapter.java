@@ -92,10 +92,6 @@ public class SchemaRegistryOptionsConfigAdapter implements OptionsConfigAdapterS
             {
                 options.maxAge(Duration.ofSeconds(object.getJsonNumber(MAX_AGE_NAME).longValue()));
             }
-            else
-            {
-                options.maxAge();
-            }
         }
 
         return options.build();

@@ -64,15 +64,13 @@ public final class SchemaRegistryOptionsConfigBuilder<T> extends ConfigBuilder<T
         return this;
     }
 
-    public SchemaRegistryOptionsConfigBuilder<T> maxAge()
-    {
-        this.maxAge = Duration.ofSeconds(MAX_AGE_DEFAULT);
-        return this;
-    }
-
     @Override
     public T build()
     {
+        if (maxAge == null)
+        {
+            this.maxAge = Duration.ofSeconds(MAX_AGE_DEFAULT);
+        }
         return mapper.apply(new SchemaRegistryOptionsConfig(url, context, maxAge));
     }
 }
