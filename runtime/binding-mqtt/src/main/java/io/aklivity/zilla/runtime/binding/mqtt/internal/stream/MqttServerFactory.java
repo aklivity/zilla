@@ -1433,7 +1433,8 @@ public final class MqttServerFactory implements MqttStreamFactory
             final long topicKey = topicKey(topic, mqttPublishHeaderRO.qos);
             MqttServer.MqttPublishStream publisher = server.publishes.get(topicKey);
 
-            int publishablePayloadSize = Math.min(Math.min(server.publishPayloadBytes, publisher.initialBudget()), length);
+            int publishablePayloadSize =
+                Math.min(Math.min(server.publishPayloadBytes, publisher.initialBudget() - publisher.initialPad), length);
 
             final OctetsFW payload = payloadRO.wrap(buffer, offset, limit);
 
