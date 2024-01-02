@@ -19,6 +19,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 
+import java.time.Duration;
+
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.config.SchemaRegistryOptionsConfig;
@@ -45,8 +47,11 @@ public class SchemaRegistryCatalogFactoryTest
         CatalogContext context = catalog.supply(mock(EngineContext.class));
         assertThat(context, instanceOf(SchemaRegistryCatalogContext.class));
 
-        SchemaRegistryOptionsConfig catalogConfig =
-            new SchemaRegistryOptionsConfig("http://localhost:8081", "default");
+        SchemaRegistryOptionsConfig catalogConfig = SchemaRegistryOptionsConfig.builder()
+            .url("http://localhost:8081")
+            .context("default")
+            .maxAge(Duration.ofSeconds(100))
+            .build();
         CatalogConfig options = new CatalogConfig("catalog0", "schema-registry", catalogConfig);
         CatalogHandler handler = context.attach(options);
         assertThat(handler, instanceOf(SchemaRegistryCatalogHandler.class));

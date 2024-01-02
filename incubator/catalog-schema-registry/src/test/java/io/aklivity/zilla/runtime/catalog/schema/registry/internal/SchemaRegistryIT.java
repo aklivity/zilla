@@ -21,6 +21,8 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.rules.RuleChain.outerRule;
 
+import java.time.Duration;
+
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Before;
@@ -51,7 +53,11 @@ public class SchemaRegistryIT
     @Before
     public void setup()
     {
-        config = new SchemaRegistryOptionsConfig("http://localhost:8081", "default");
+        config = SchemaRegistryOptionsConfig.builder()
+            .url("http://localhost:8081")
+            .context("default")
+            .maxAge(Duration.ofSeconds(1))
+            .build();
     }
 
     @Test
