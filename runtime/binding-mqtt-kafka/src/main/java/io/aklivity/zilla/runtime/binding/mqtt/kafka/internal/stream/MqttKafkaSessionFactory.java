@@ -565,7 +565,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                                 .value(clientId.value(), 0, clientId.length()))))
                         .build();
 
-
                     session.doKafkaData(traceId, authorization, budgetId, length, sessionPadding, flags,
                         willMessageBuffer, 0, length, kafkaDataEx);
                     sessionPadding += kafkaPayload.sizeof() - will.sizeof();
