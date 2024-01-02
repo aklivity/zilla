@@ -23,6 +23,7 @@ import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
+import org.kaazing.k3po.junit.annotation.ScriptProperty;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 
@@ -194,6 +195,15 @@ public class GroupIT
         "${app}/invalid.session.timeout/client",
         "${app}/invalid.session.timeout/server"})
     public void shouldHandleInvalidSessionTimeout() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/server.sent.read.abort.after.join.group/client",
+        "${app}/server.sent.read.abort.after.join.group/server"})
+    public void shouldHandleServerSentReadAbortAfterJoinGroup() throws Exception
     {
         k3po.finish();
     }

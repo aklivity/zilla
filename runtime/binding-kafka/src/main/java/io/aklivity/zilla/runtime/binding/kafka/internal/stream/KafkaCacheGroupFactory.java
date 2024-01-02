@@ -536,8 +536,6 @@ public final class KafkaCacheGroupFactory implements BindingHandler
             assert delegate.initialAck <= delegate.initialSeq;
 
             delegate.doGroupInitialReset(traceId);
-
-            doGroupReplyReset(traceId);
         }
 
 
