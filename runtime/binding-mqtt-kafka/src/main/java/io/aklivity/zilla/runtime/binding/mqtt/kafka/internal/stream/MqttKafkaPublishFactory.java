@@ -200,6 +200,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         private OctetsFW clientIdOctets;
         private boolean retainAvailable;
         private boolean retainedData;
+        private boolean fragmentedData;
 
         private MqttPublishProxy(
             MessageConsumer mqtt,
@@ -449,6 +450,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                 retainedData = (mqttPublishDataEx.flags() & 1 << MqttPublishFlags.RETAIN.value()) != 0;
             }
 
+            fragmentedData = (flags & DATA_FLAG_FIN) == 0;
             messages.doKafkaData(traceId, authorization, budgetId, reserved, flags, payload, kafkaDataEx);
 
             if (retainAvailable)
@@ -669,7 +671,8 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             int capabilities)
         {
             final long newInitialAck = retainAvailable ? Math.min(messages.initialAck, retained.initialAck) : messages.initialAck;
-            final int newInitialMax = retainAvailable ? Math.min(messages.initialMax, retained.initialMax) : messages.initialMax;
+            final int newInitialMax = retainAvailable && !fragmentedData ?
+                Math.min(messages.initialMax, retained.initialMax) : messages.initialMax;
 
             if (initialAck != newInitialAck || initialMax != newInitialMax)
             {
