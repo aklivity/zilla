@@ -50,7 +50,7 @@ public class SchemaRegistryCatalogFactoryTest
         SchemaRegistryOptionsConfig catalogConfig = SchemaRegistryOptionsConfig.builder()
             .url("http://localhost:8081")
             .context("default")
-            .maxAge(Duration.ofSeconds(300))
+            .maxAge(Duration.ofSeconds(100))
             .build();
         CatalogConfig options = new CatalogConfig("catalog0", "schema-registry", catalogConfig);
         CatalogHandler handler = context.attach(options);

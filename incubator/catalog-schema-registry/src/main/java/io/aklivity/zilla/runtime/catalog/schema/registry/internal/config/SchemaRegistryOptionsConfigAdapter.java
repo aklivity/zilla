@@ -66,11 +66,6 @@ public class SchemaRegistryOptionsConfigAdapter implements OptionsConfigAdapterS
         {
             catalog.add(MAX_AGE_NAME, maxAge.toSeconds());
         }
-        else
-        {
-            catalog.add(MAX_AGE_NAME, 300);
-        }
-
 
         return catalog.build();
     }
@@ -99,7 +94,7 @@ public class SchemaRegistryOptionsConfigAdapter implements OptionsConfigAdapterS
             }
             else
             {
-                options.maxAge(Duration.ofSeconds(300));
+                options.maxAge();
             }
         }
 
