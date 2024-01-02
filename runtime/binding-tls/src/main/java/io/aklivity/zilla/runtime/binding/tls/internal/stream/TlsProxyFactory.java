@@ -168,7 +168,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
 
         MessageConsumer newStream = null;
 
-        if (binding != null && !binding.routes.isEmpty())
+        if (binding != null && binding.resolvePortOnly(authorization, port) != null)
         {
             newStream = new TlsProxy(
                 net,
