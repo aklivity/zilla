@@ -19,6 +19,8 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
+import java.time.Duration;
+
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
@@ -52,7 +54,7 @@ public class SchemaRegistryOptionsConfigAdapterTest
         assertThat(catalog, not(nullValue()));
         assertThat(catalog.url, equalTo("http://localhost:8081"));
         assertThat(catalog.context, equalTo("default"));
-        assertThat(catalog.cacheTtl, equalTo(300L));
+        assertThat(catalog.maxAge.toSeconds(), equalTo(300L));
     }
 
     @Test
@@ -61,12 +63,12 @@ public class SchemaRegistryOptionsConfigAdapterTest
         SchemaRegistryOptionsConfig catalog = SchemaRegistryOptionsConfig.builder()
             .url("http://localhost:8081")
             .context("default")
-            .cacheTtl(300)
+            .maxAge(Duration.ofSeconds(300))
             .build();
 
         String text = jsonb.toJson(catalog);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"url\":\"http://localhost:8081\",\"context\":\"default\",\"cacheTTL\":300}"));
+        assertThat(text, equalTo("{\"url\":\"http://localhost:8081\",\"context\":\"default\",\"max-age\":300}"));
     }
 }

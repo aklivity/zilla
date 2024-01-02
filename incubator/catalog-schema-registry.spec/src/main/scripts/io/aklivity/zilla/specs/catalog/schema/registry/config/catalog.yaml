@@ -21,4 +21,4 @@ catalogs:
     options:
       url: http://localhost:8081
       context: default
-      cacheTTL: 30
+      max-age: 30

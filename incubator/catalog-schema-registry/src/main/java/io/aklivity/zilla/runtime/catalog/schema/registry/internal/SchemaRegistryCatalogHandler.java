@@ -50,7 +50,7 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
     private final CRC32C crc32c;
     private final Int2ObjectCache<CachedSchema> schemas;
     private final Int2ObjectCache<CachedSchemaId> schemaIds;
-    private final long cacheTtl;
+    private final long maxAgeMillis;
 
     public SchemaRegistryCatalogHandler(
         SchemaRegistryOptionsConfig config)
@@ -61,7 +61,7 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
         this.crc32c = new CRC32C();
         this.schemas = new Int2ObjectCache<>(1, 1024, i -> {});
         this.schemaIds = new Int2ObjectCache<>(1, 1024, i -> {});
-        this.cacheTtl = config.cacheTtl * 1000;
+        this.maxAgeMillis = config.maxAge.toMillis();
     }
 
     @Override
@@ -98,7 +98,7 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
     {
         String schema;
         if (schemas.containsKey(schemaId) &&
-            (System.currentTimeMillis() - schemas.get(schemaId).timestamp) < cacheTtl)
+            (System.currentTimeMillis() - schemas.get(schemaId).timestamp) < maxAgeMillis)
         {
             schema = schemas.get(schemaId).schema;
         }
@@ -123,7 +123,7 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
 
         int checkSum = generateCRC32C(subject, version);
         if (schemaIds.containsKey(checkSum) &&
-            (System.currentTimeMillis() - schemaIds.get(checkSum).timestamp) < cacheTtl)
+            (System.currentTimeMillis() - schemaIds.get(checkSum).timestamp) < maxAgeMillis)
         {
             schemaId = schemaIds.get(checkSum).id;
         }

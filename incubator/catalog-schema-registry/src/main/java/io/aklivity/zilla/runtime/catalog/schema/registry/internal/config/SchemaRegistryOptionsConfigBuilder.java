@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.catalog.schema.registry.internal.config;
 
+import java.time.Duration;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
@@ -25,7 +26,7 @@ public final class SchemaRegistryOptionsConfigBuilder<T> extends ConfigBuilder<T
 
     private String url;
     private String context;
-    private long cacheTtl;
+    private Duration maxAge;
 
     SchemaRegistryOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
@@ -54,16 +55,16 @@ public final class SchemaRegistryOptionsConfigBuilder<T> extends ConfigBuilder<T
         return this;
     }
 
-    public SchemaRegistryOptionsConfigBuilder<T> cacheTtl(
-        long cacheTtl)
+    public SchemaRegistryOptionsConfigBuilder<T> maxAge(
+        Duration maxAge)
     {
-        this.cacheTtl = cacheTtl;
+        this.maxAge = maxAge;
         return this;
     }
 
     @Override
     public T build()
     {
-        return mapper.apply(new SchemaRegistryOptionsConfig(url, context, cacheTtl));
+        return mapper.apply(new SchemaRegistryOptionsConfig(url, context, maxAge));
     }
 }

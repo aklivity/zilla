@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.catalog.schema.registry.internal.config;
 
+import java.time.Duration;
+
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
@@ -26,7 +28,7 @@ public class SchemaRegistryOptionsConfigAdapter implements OptionsConfigAdapterS
 {
     private static final String URL = "url";
     private static final String CONTEXT = "context";
-    private static final String CACHETTL = "cacheTTL";
+    private static final String MAX_AGE_NAME = "max-age";
 
     @Override
     public Kind kind()
@@ -59,13 +61,14 @@ public class SchemaRegistryOptionsConfigAdapter implements OptionsConfigAdapterS
             catalog.add(CONTEXT, config.context);
         }
 
-        if (config.cacheTtl > 0)
+        Duration maxAge = config.maxAge;
+        if (maxAge != null)
         {
-            catalog.add(CACHETTL, config.cacheTtl);
+            catalog.add(MAX_AGE_NAME, maxAge.toSeconds());
         }
         else
         {
-            catalog.add(CACHETTL, 300);
+            catalog.add(MAX_AGE_NAME, 300);
         }
 
 
@@ -90,13 +93,13 @@ public class SchemaRegistryOptionsConfigAdapter implements OptionsConfigAdapterS
                 options.context(object.getString(CONTEXT));
             }
 
-            if (object.containsKey(CACHETTL))
+            if (object.containsKey(MAX_AGE_NAME))
             {
-                options.cacheTtl(object.getInt(CACHETTL));
+                options.maxAge(Duration.ofSeconds(object.getJsonNumber(MAX_AGE_NAME).longValue()));
             }
             else
             {
-                options.cacheTtl(300);
+                options.maxAge(Duration.ofSeconds(300));
             }
         }
 

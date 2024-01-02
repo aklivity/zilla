@@ -40,9 +40,10 @@
                                 "type": "string",
                                 "default": "default"
                             },
-                            "cacheTTL":
+                            "max-age":
                             {
-                                "type": "integer",
+                                "title": "Max Age",
+                                "type": "number",
                                 "default": 300
                             }
                         },
