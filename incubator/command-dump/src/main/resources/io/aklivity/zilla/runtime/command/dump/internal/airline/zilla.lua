@@ -93,6 +93,34 @@ local grpc_types = {
     [1] = "BASE64"
 }
 
+local mqtt_ext_kinds = {
+    [0] = "PUBLISH",
+    [1] = "SUBSCRIBE",
+    [2] = "SESSION",
+}
+
+local mqtt_ext_qos_types = {
+    [0] = "AT_MOST_ONCE",
+    [1] = "AT_LEAST_ONCE",
+    [2] = "EXACTLY_ONCE",
+}
+
+local mqtt_ext_subscribe_flags = {
+    [0] = "SEND_RETAINED",
+    [1] = "RETAIN_AS_PUBLISHED",
+    [2] = "NO_LOCAL",
+    [3] = "RETAIN",
+}
+
+local mqtt_ext_publish_flags = {
+    [0] = "RETAIN",
+}
+
+local mqtt_ext_session_flags = {
+    [1] = "CLEAN_START",
+    [2] = "WILL",
+}
+
 local fields = {
     -- header
     frame_type_id = ProtoField.uint32("zilla.frame_type_id", "Frame Type ID", base.HEX),
@@ -265,6 +293,56 @@ local fields = {
     filesystem_ext_tag_length = ProtoField.int16("zilla.filesystem_ext.tag_length", "Length", base.DEC),
     filesystem_ext_tag = ProtoField.string("zilla.filesystem_ext.tag", "Tag", base.NONE),
     filesystem_ext_timeout = ProtoField.int64("zilla.filesystem_ext.timeout", "Timeout", base.DEC),
+
+    -- mqtt extension
+    mqtt_ext_kind = ProtoField.uint8("zilla.mqtt_ext.kind", "Kind", base.DEC, mqtt_ext_kinds),
+    mqtt_ext_qos = ProtoField.uint8("zilla.mqtt_ext.qos", "QoS", base.DEC, mqtt_ext_qos_types),
+    mqtt_ext_client_id_length = ProtoField.int16("zilla.mqtt_ext.client_id_length", "Length", base.DEC),
+    mqtt_ext_client_id = ProtoField.string("zilla.mqtt_ext.client_id", "Client ID", base.NONE),
+    mqtt_ext_topic_length = ProtoField.int16("zilla.mqtt_ext.topic_length", "Length", base.DEC),
+    mqtt_ext_topic = ProtoField.string("zilla.mqtt_ext.topic", "Topic", base.NONE),
+    mqtt_ext_expiry = ProtoField.int32("zilla.mqtt_ext.expiry", "Expiry", base.DEC),
+    mqtt_ext_qos_max = ProtoField.uint16("zilla.mqtt_ext.qos_max", "QoS Maximum", base.DEC),
+    mqtt_ext_packet_size_max = ProtoField.uint32("zilla.mqtt_ext.packet_size_max", "Packet Size Maximum", base.DEC),
+    --     capabilities
+    mqtt_ext_capabilities = ProtoField.uint8("zilla.mqtt_ext.capabilities", "Capabilities", base.HEX),
+    mqtt_ext_capabilities_retain = ProtoField.uint8("zilla.mqtt_ext.capabilities_retain", "RETAIN",
+        base.DEC, flags_types, 0x01),
+    mqtt_ext_capabilities_wildcard = ProtoField.uint8("zilla.mqtt_ext.capabilities_wildcard", "WILDCARD",
+        base.DEC, flags_types, 0x02),
+    mqtt_ext_capabilities_subscription_ids = ProtoField.uint8("zilla.mqtt_ext.capabilities_subscription_ids", "SUBSCRIPTION_IDS",
+        base.DEC, flags_types, 0x04),
+    mqtt_ext_capabilities_shared_subscriptions = ProtoField.uint8("zilla.mqtt_ext.capabilities_shared_subscriptions", "SHARED_SUBSCRIPTIONS",
+        base.DEC, flags_types, 0x08),
+    --     subscribe flags
+    mqtt_ext_subscribe_flags = ProtoField.uint8("zilla.mqtt_ext.subscribe_flags", "Flags", base.HEX),
+    mqtt_ext_subscribe_flags_send_retained = ProtoField.uint8("zilla.mqtt_ext.subscribe_flags_send_retained",
+        "SEND_RETAINED", base.DEC, flags_types, 0x01),
+    mqtt_ext_subscribe_flags_retain_as_published = ProtoField.uint8("zilla.mqtt_ext.subscribe_flags_retain_as_published",
+        "RETAIN_AS_PUBLISHED", base.DEC, flags_types, 0x02),
+    mqtt_ext_subscribe_flags_no_local = ProtoField.uint8("zilla.mqtt_ext.subscribe_flags_no_local",
+        "NO_LOCAL", base.DEC, flags_types, 0x04),
+    mqtt_ext_subscribe_flags_retain = ProtoField.uint8("zilla.mqtt_ext.subscribe_flags_retain",
+        "RETAIN", base.DEC, flags_types, 0x08),
+    --     publish flags
+    mqtt_ext_publish_flags = ProtoField.uint8("zilla.mqtt_ext.publish_flags", "Flags", base.HEX),
+    mqtt_ext_publish_flags_retain = ProtoField.uint8("zilla.mqtt_ext.publish_flags_retain",
+        "RETAIN", base.DEC, flags_types, 0x01),
+    --     session flags
+    mqtt_ext_session_flags = ProtoField.uint8("zilla.mqtt_ext.session_flags", "Flags", base.HEX),
+    mqtt_ext_session_flags_clean_start = ProtoField.uint8("zilla.mqtt_ext.session_flags_clean_start",
+        "CLEAN_START", base.DEC, flags_types, 0x02),
+    mqtt_ext_session_flags_will = ProtoField.uint8("zilla.mqtt_ext.session_flags_will",
+        "WILL", base.DEC, flags_types, 0x04),
+    --     filters
+    mqtt_ext_filters_array_length = ProtoField.int8("zilla.mqtt_ext.filters_array_length", "Length", base.DEC),
+    mqtt_ext_filters_array_size = ProtoField.int8("zilla.mqtt_ext.filters_array_size", "Size", base.DEC),
+    mqtt_ext_filter_subscription_id = ProtoField.uint32("zilla.mqtt_ext.filter_subscription_id", "Subscription ID", base.HEX),
+    mqtt_ext_filter_qos = ProtoField.uint8("zilla.mqtt_ext.filter_qos", "QoS", base.DEC, mqtt_ext_qos_types),
+    mqtt_ext_filter_flags = ProtoField.uint8("zilla.mqtt_ext.filter_flags", "Flags", base.DEC, mqtt_ext_subscribe_flags),
+    mqtt_ext_filter_reason_code = ProtoField.uint8("zilla.mqtt_ext.filter_reason_code", "Reason Code", base.DEC),
+    mqtt_ext_filter_pattern_length = ProtoField.int16("zilla.mqtt_ext.filter_pattern_length", "Length", base.DEC),
+    mqtt_ext_filter_pattern = ProtoField.string("zilla.mqtt_ext.filter_pattern", "Pattern", base.NONE),
 }
 
 zilla_protocol.fields = fields;
@@ -591,6 +669,8 @@ function handle_extension(buffer, subtree, pinfo, info, offset, frame_type_id)
             handle_sse_extension(buffer, extension_subtree, offset + 4, frame_type_id)
         elseif stream_type_id == WS_ID then
             handle_ws_extension(buffer, extension_subtree, offset + 4, frame_type_id)
+        elseif stream_type_id == MQTT_ID then
+            handle_mqtt_extension(buffer, extension_subtree, offset + 4, frame_type_id)
         end
 
         if stream_type and stream_type ~= "" then
@@ -1031,6 +1111,166 @@ function handle_filesystem_extension(buffer, extension_subtree, offset)
     local timeout_length = 8
     local slice_timeout = buffer(timeout_offset, timeout_length)
     extension_subtree:add_le(fields.filesystem_ext_timeout, slice_timeout)
+end
+
+function handle_mqtt_extension(buffer, extension_subtree, offset, frame_type_id)
+    local slice_mqtt_ext_kind
+    local mqtt_ext_kind
+    if frame_type_id == BEGIN_ID or frame_type_id == DATA_ID or frame_type_id == FLUSH_ID then
+        slice_mqtt_ext_kind = buffer(offset, 1)
+        mqtt_ext_kind = mqtt_ext_kinds[slice_mqtt_ext_kind:le_int()]
+        extension_subtree:add_le(fields.mqtt_ext_kind, slice_mqtt_ext_kind)
+        if frame_type_id == BEGIN_ID then
+            if mqtt_ext_kind == "SUBSCRIBE" then
+                handle_mqtt_begin_subscribe_extension(buffer, extension_subtree, offset + 1)
+            elseif mqtt_ext_kind == "PUBLISH" then
+                handle_mqtt_begin_publish_extension(buffer, extension_subtree, offset + 1)
+            elseif mqtt_ext_kind == "SESSION" then
+                handle_mqtt_begin_session_extension(buffer, extension_subtree, offset + 1)
+            end
+        elseif frame_type_id == DATA_ID then
+            -- TODO
+        elseif frame_type_id == FLUSH_ID then
+            -- TODO
+        end
+    elseif frame_type_id == RESET_ID then
+        -- TODO
+    end
+
+    if frame_type_id == BEGIN_ID then
+    elseif frame_type_id == DATA_ID then
+    elseif frame_type_id == FLUSH_ID then
+    end
+end
+
+function handle_mqtt_begin_subscribe_extension(buffer, extension_subtree, offset)
+    -- client_id
+    local client_id_offset = offset
+    local client_id_length, slice_client_id_length, slice_client_id_text = dissect_length_value(buffer, client_id_offset, 2)
+    add_simple_string_as_subtree(buffer(client_id_offset, client_id_length), extension_subtree, "Client ID: %s",
+        slice_client_id_length, slice_client_id_text, fields.mqtt_ext_client_id_length, fields.mqtt_ext_client_id)
+    -- qos
+    local qos_offset = client_id_offset + client_id_length
+    local qos_length = 1
+    local slice_qos = buffer(qos_offset, qos_length)
+    extension_subtree:add_le(fields.mqtt_ext_qos, slice_qos)
+    -- topic_filters
+    local topic_filters_offset = qos_offset + qos_length
+    dissect_and_add_mqtt_topic_filters(buffer, extension_subtree, topic_filters_offset)
+end
+
+function dissect_and_add_mqtt_topic_filters(buffer, extension_subtree, offset)
+    local slice_filters_array_length = buffer(offset, 4)
+    local slice_filters_array_size = buffer(offset + 4, 4)
+    local filters_array_size = slice_filters_array_size:le_int()
+    local length = 8
+    local label = string.format("Topic Filters (%d items)", filters_array_size)
+    local filters_array_subtree = extension_subtree:add(zilla_protocol, buffer(offset, length), label)
+    filters_array_subtree:add_le(fields.mqtt_ext_filters_array_length, slice_filters_array_length)
+    filters_array_subtree:add_le(fields.mqtt_ext_filters_array_size, slice_filters_array_size)
+    local item_offset = offset + length
+    for i = 1, filters_array_size do
+        -- subscription_id
+        local subscription_id_offset = item_offset
+        local subscription_id_length = 4
+        local slice_subscription_id = buffer(subscription_id_offset, subscription_id_length)
+        -- qos
+        local qos_offset = subscription_id_offset + subscription_id_length
+        local qos_length = 1
+        local slice_qos = buffer(qos_offset, qos_length)
+        -- flags
+        local flags_offset = qos_offset + qos_length
+        local flags_length = 1
+        local slice_flags = buffer(flags_offset, flags_length)
+        local flags_label = string.format("Flags: 0x%02x", slice_flags:le_uint())
+        -- reason_code
+        local reason_code_offset = flags_offset + flags_length
+        local reason_code_length = 1
+        local slice_reason_code = buffer(reason_code_offset, reason_code_length)
+        -- pattern
+        local pattern_offset = reason_code_offset + reason_code_length
+        local pattern_length, slice_pattern_length, slice_pattern_text = dissect_length_value(buffer, pattern_offset, 2)
+        -- add fields
+        local record_length = subscription_id_length + qos_length + flags_length + reason_code_length + pattern_length
+        local label = "Topic Filter"
+        local subtree = extension_subtree:add(zilla_protocol, buffer(item_offset, record_length), label)
+        subtree:add_le(fields.mqtt_ext_filter_subscription_id, slice_subscription_id)
+        subtree:add_le(fields.mqtt_ext_filter_qos, slice_qos)
+        local flags_subtree = subtree:add(zilla_protocol, slice_flags, flags_label)
+        flags_subtree:add_le(fields.mqtt_ext_subscribe_flags_send_retained, slice_flags)
+        flags_subtree:add_le(fields.mqtt_ext_subscribe_flags_retain_as_published, slice_flags)
+        flags_subtree:add_le(fields.mqtt_ext_subscribe_flags_no_local, slice_flags)
+        flags_subtree:add_le(fields.mqtt_ext_subscribe_flags_retain, slice_flags)
+        subtree:add_le(fields.mqtt_ext_filter_reason_code, slice_reason_code)
+        add_simple_string_as_subtree(buffer(pattern_offset, pattern_length), subtree, "Pattern: %s",
+            slice_pattern_length, slice_pattern_text, fields.mqtt_ext_filter_pattern_length, fields.mqtt_ext_filter_pattern)
+    end
+end
+
+function handle_mqtt_begin_publish_extension(buffer, extension_subtree, offset)
+    -- client_id
+    local client_id_offset = offset
+    local client_id_length, slice_client_id_length, slice_client_id_text = dissect_length_value(buffer, client_id_offset, 2)
+    add_simple_string_as_subtree(buffer(client_id_offset, client_id_length), extension_subtree, "Client ID: %s",
+        slice_client_id_length, slice_client_id_text, fields.mqtt_ext_client_id_length, fields.mqtt_ext_client_id)
+    -- topic
+    local topic_offset = client_id_offset + client_id_length
+    local topic_length, slice_topic_length, slice_topic_text = dissect_length_value(buffer, topic_offset, 2)
+    add_simple_string_as_subtree(buffer(topic_offset, topic_length), extension_subtree, "Topic: %s",
+        slice_topic_length, slice_topic_text, fields.mqtt_ext_topic_length, fields.mqtt_ext_topic)
+    -- flags
+    local flags_offset = topic_offset + topic_length
+    local flags_length = 1
+    local slice_flags = buffer(flags_offset, flags_length)
+    local flags_label = string.format("Flags: 0x%02x", slice_flags:le_uint())
+    local flags_subtree = extension_subtree:add(zilla_protocol, slice_flags, flags_label)
+    flags_subtree:add_le(fields.mqtt_ext_publish_flags_retain, slice_flags)
+    -- qos
+    local qos_offset = flags_offset + flags_length
+    local qos_length = 1
+    local slice_qos = buffer(qos_offset, qos_length)
+    extension_subtree:add_le(fields.mqtt_ext_qos, slice_qos)
+end
+
+function handle_mqtt_begin_session_extension(buffer, extension_subtree, offset)
+    -- flags
+    local flags_offset = offset
+    local flags_length = 1
+    local slice_flags = buffer(flags_offset, flags_length)
+    local flags_label = string.format("Flags: 0x%02x", slice_flags:le_uint())
+    local flags_subtree = extension_subtree:add(zilla_protocol, slice_flags, flags_label)
+    flags_subtree:add_le(fields.mqtt_ext_session_flags_clean_start, slice_flags)
+    flags_subtree:add_le(fields.mqtt_ext_session_flags_will, slice_flags)
+    -- expiry
+    local expiry_offset = flags_offset + flags_length
+    local expiry_length = 4
+    local slice_expiry = buffer(expiry_offset, expiry_length)
+    extension_subtree:add_le(fields.mqtt_ext_expiry, slice_expiry)
+    -- qos_max
+    local qos_max_offset = expiry_offset + expiry_length
+    local qos_max_length = 2
+    local slice_qos_max = buffer(qos_max_offset, qos_max_length)
+    extension_subtree:add_le(fields.mqtt_ext_qos_max, slice_qos_max)
+    -- packet_size_max
+    local packet_size_max_offset = qos_max_offset + qos_max_length
+    local packet_size_max_length = 4
+    local slice_packet_size_max = buffer(packet_size_max_offset, packet_size_max_length)
+    extension_subtree:add_le(fields.mqtt_ext_packet_size_max, slice_packet_size_max)
+    -- capabilities
+    local capabilities_offset = packet_size_max_offset + packet_size_max_length
+    local capabilities_length = 1
+    local slice_capabilities = buffer(capabilities_offset, capabilities_length)
+    local capabilities_label = string.format("Capabilities: 0x%02x", slice_capabilities:le_uint())
+    local capabilities_subtree = extension_subtree:add(zilla_protocol, slice_capabilities, capabilities_label)
+    capabilities_subtree:add_le(fields.mqtt_ext_capabilities_retain, slice_capabilities)
+    capabilities_subtree:add_le(fields.mqtt_ext_capabilities_wildcard, slice_capabilities)
+    capabilities_subtree:add_le(fields.mqtt_ext_capabilities_subscription_ids, slice_capabilities)
+    capabilities_subtree:add_le(fields.mqtt_ext_capabilities_shared_subscriptions, slice_capabilities)
+    -- client_id
+    local client_id_offset = capabilities_offset + capabilities_length
+    local client_id_length, slice_client_id_length, slice_client_id_text = dissect_length_value(buffer, client_id_offset, 2)
+    add_simple_string_as_subtree(buffer(client_id_offset, client_id_length), extension_subtree, "Client ID: %s",
+        slice_client_id_length, slice_client_id_text, fields.mqtt_ext_client_id_length, fields.mqtt_ext_client_id)
 end
 
 local data_dissector = DissectorTable.get("tcp.port")
