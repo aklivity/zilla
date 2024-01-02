@@ -3734,6 +3734,8 @@ public final class HttpClientFactory implements HttpStreamFactory
                                 break;
                             }
                             stream.remoteBudget = (int) newRemoteBudget;
+
+                            stream.flushRequestWindow(traceId, 0);
                         }
                     }
                 }

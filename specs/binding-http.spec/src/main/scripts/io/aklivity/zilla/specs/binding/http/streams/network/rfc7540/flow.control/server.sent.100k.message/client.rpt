@@ -64,6 +64,8 @@ read [0x00 0x00 0x00]                   # length = 0
      [0x01]                             # ACK
      [0x00 0x00 0x00 0x00]              # stream_id = 0
 
+read notify HTTP2_SETTINGS_ACK_RECEIVED
+
 read [0x00 0x00 0x5c]                                         # length
      [0x01]                                                   # HTTP2 HEADERS frame
      [0x04]                                                   # END_HEADERS
@@ -73,6 +75,7 @@ read [0x00 0x00 0x5c]                                         # length
      [0x0f 0x12] [0x1d] "Wed, 01 Feb 2017 19:12:46 GMT"       # date
      [0x0f 0x10] [0x18] "text/html; charset=UTF-8"            # content-type
      [0x0f 0x0d] [0x06] "100000"                              # content-length
+
 
 read [0x00 0x40 0x00]                  # length = 16384
      [0x00]                            # HTTP2 DATA frame

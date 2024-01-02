@@ -5084,29 +5084,35 @@ public final class MqttServerFactory implements MqttStreamFactory
                 final OctetsFW extension = reset.extension();
                 final MqttResetExFW mqttResetEx = extension.get(mqttResetExRO::tryWrap);
 
+                byte reasonCode = SESSION_TAKEN_OVER;
+                boolean serverRefExists = false;
+                String16FW serverRef = null;
+                String16FW reason = null;
+
                 if (mqttResetEx != null)
                 {
-                    String16FW serverRef = mqttResetEx.serverRef();
-                    byte reasonCode = (byte) mqttResetEx.reasonCode();
-                    String16FW reason = mqttResetEx.reason();
-                    boolean serverRefExists = serverRef != null && serverRef.asString() != null;
+                    serverRef = mqttResetEx.serverRef();
+                    reasonCode = (byte) mqttResetEx.reasonCode();
+                    reason = mqttResetEx.reason();
+                    serverRefExists = serverRef != null && serverRef.asString() != null;
 
                     if (reasonCode == SUCCESS)
                     {
                         reasonCode = serverRefExists ? SERVER_MOVED : SESSION_TAKEN_OVER;
                     }
-
-                    if (!connected)
-                    {
-                        doCancelConnectTimeout();
-                        doEncodeConnack(traceId, authorization, reasonCode, assignedClientId,
-                            false, serverRefExists ? serverRef : null, reason, version);
-                    }
-                    else if (version == MQTT_PROTOCOL_VERSION_5)
-                    {
-                        doEncodeDisconnect(traceId, authorization, reasonCode, serverRefExists ? serverRef : null, reason);
-                    }
                 }
+
+                if (!connected)
+                {
+                    doCancelConnectTimeout();
+                    doEncodeConnack(traceId, authorization, reasonCode, assignedClientId,
+                        false, serverRefExists ? serverRef : null, reason, version);
+                }
+                else if (version == MQTT_PROTOCOL_VERSION_5)
+                {
+                    doEncodeDisconnect(traceId, authorization, reasonCode, serverRefExists ? serverRef : null, reason);
+                }
+
                 doNetworkEnd(traceId, authorization);
                 setInitialClosed();
                 decodeNetwork(traceId);
