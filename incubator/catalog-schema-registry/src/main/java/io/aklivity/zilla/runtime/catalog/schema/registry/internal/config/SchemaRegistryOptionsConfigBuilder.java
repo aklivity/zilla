@@ -22,7 +22,7 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public final class SchemaRegistryOptionsConfigBuilder<T> extends ConfigBuilder<T, SchemaRegistryOptionsConfigBuilder<T>>
 {
-    private static final int MAX_AGE_DEFAULT = 300;
+    private static final Duration MAX_AGE_DEFAULT = Duration.ofSeconds(300);
 
     private final Function<OptionsConfig, T> mapper;
 
@@ -67,10 +67,7 @@ public final class SchemaRegistryOptionsConfigBuilder<T> extends ConfigBuilder<T
     @Override
     public T build()
     {
-        if (maxAge == null)
-        {
-            this.maxAge = Duration.ofSeconds(MAX_AGE_DEFAULT);
-        }
+        Duration maxAge = (this.maxAge != null) ? this.maxAge : MAX_AGE_DEFAULT;
         return mapper.apply(new SchemaRegistryOptionsConfig(url, context, maxAge));
     }
 }
