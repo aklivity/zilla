@@ -670,8 +670,8 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             int padding,
             int capabilities)
         {
-            final long newInitialAck = retainAvailable ? Math.min(messages.initialAck, retained.initialAck) : messages.initialAck;
-            final int newInitialMax = retainAvailable ? Math.max(messages.initialMax, retained.initialMax) : messages.initialMax;
+            final long newInitialAck = retainedData ? Math.min(messages.initialAck, retained.initialAck) : messages.initialAck;
+            final int newInitialMax = retainedData ? Math.max(messages.initialMax, retained.initialMax) : messages.initialMax;
 
             if (initialAck != newInitialAck || initialMax != newInitialMax)
             {
@@ -1351,8 +1351,8 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             final int capabilities = window.capabilities();
 
             assert acknowledge <= sequence;
-            assert acknowledge >= delegate.initialAck;
-            assert maximum >= delegate.initialMax;
+            assert acknowledge >= initialAck;
+            assert maximum >= initialMax;
 
             initialAck = acknowledge;
             initialPad = padding;
@@ -1372,11 +1372,11 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             final long traceId = reset.traceId();
 
             assert acknowledge <= sequence;
-            assert acknowledge >= delegate.initialAck;
+            assert acknowledge >= initialAck;
 
-            delegate.initialAck = acknowledge;
+            initialAck = acknowledge;
 
-            assert delegate.initialAck <= delegate.initialSeq;
+            assert initialAck <= initialSeq;
 
             delegate.doMqttReset(traceId);
         }
