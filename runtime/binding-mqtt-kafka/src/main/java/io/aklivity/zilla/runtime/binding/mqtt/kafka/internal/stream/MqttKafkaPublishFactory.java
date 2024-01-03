@@ -469,7 +469,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                                 .capabilities(c -> c.set(KafkaCapabilities.PRODUCE_ONLY))
                                 .key(key)))
                             .build();
-                    retained.doKafkaFlush(traceId, authorization, budgetId, reserved, kafkaFlushEx);
+                    retained.doKafkaFlush(traceId, authorization, budgetId, kafkaFlushEx);
                 }
             }
 
@@ -671,8 +671,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             int capabilities)
         {
             final long newInitialAck = retainAvailable ? Math.min(messages.initialAck, retained.initialAck) : messages.initialAck;
-            final int newInitialMax = retainAvailable && !fragmentedData ?
-                Math.min(messages.initialMax, retained.initialMax) : messages.initialMax;
+            final int newInitialMax = retainAvailable ? Math.max(messages.initialMax, retained.initialMax) : messages.initialMax;
 
             if (initialAck != newInitialAck || initialMax != newInitialMax)
             {
@@ -1105,6 +1104,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
 
         private long initialSeq;
         private long initialAck;
+        private int initialPad;
         private int initialMax;
 
         private long replySeq;
@@ -1132,8 +1132,8 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             long affinity,
             int qos)
         {
-            initialSeq = delegate.initialSeq;
-            initialAck = delegate.initialAck;
+            initialSeq = 0;
+            initialAck = 0;
             initialMax = delegate.initialMax;
             state = MqttKafkaState.openingInitial(state);
 
@@ -1162,13 +1162,12 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             long traceId,
             long authorization,
             long budgetId,
-            int reserved,
             KafkaFlushExFW extension)
         {
             doFlush(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, authorization, budgetId, reserved, extension);
+                traceId, authorization, budgetId, initialPad, extension);
 
-            initialSeq += reserved;
+            initialSeq += initialPad;
 
             assert initialSeq <= initialAck + initialMax;
         }
@@ -1180,9 +1179,6 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         {
             if (!MqttKafkaState.initialClosed(state))
             {
-                initialSeq = delegate.initialSeq;
-                initialAck = delegate.initialAck;
-                initialMax = delegate.initialMax;
                 state = MqttKafkaState.closeInitial(state);
 
                 doEnd(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization);
@@ -1195,9 +1191,6 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         {
             if (!MqttKafkaState.initialClosed(state))
             {
-                initialSeq = delegate.initialSeq;
-                initialAck = delegate.initialAck;
-                initialMax = delegate.initialMax;
                 state = MqttKafkaState.closeInitial(state);
 
                 doAbort(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization);
@@ -1362,6 +1355,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             assert maximum >= delegate.initialMax;
 
             initialAck = acknowledge;
+            initialPad = padding;
             initialMax = maximum;
             state = MqttKafkaState.openInitial(state);
 
