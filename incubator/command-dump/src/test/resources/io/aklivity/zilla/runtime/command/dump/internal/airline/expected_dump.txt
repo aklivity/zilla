@@ -3108,6 +3108,24 @@ Zilla Frame
         Stream Type ID: 0x761ad4d0
         Stream Type: mqtt
         Kind: SUBSCRIBE (1)
+        QoS: EXACTLY_ONCE (2)
+        Packet ID: 0x4221
+        State: INCOMPLETE (1)
+        Topic Filters (1 items)
+            Length: 21
+            Size: 1
+        Topic Filter: filter-1
+            Subscription ID: 0x00000042
+            QoS: AT_MOST_ONCE (0)
+            Flags: 0x00
+                .... ...0 = SEND_RETAINED: Not set (0)
+                .... ..0. = RETAIN_AS_PUBLISHED: Not set (0)
+                .... .0.. = NO_LOCAL: Not set (0)
+                .... 0... = RETAIN: Not set (0)
+            Reason Code: 0
+            Pattern: filter-1
+                Length: 8
+                Pattern: filter-1
 
 Frame 67: 281 bytes on wire (2248 bits), 281 bytes captured (2248 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
@@ -3142,6 +3160,24 @@ Zilla Frame
         Stream Type ID: 0x761ad4d0
         Stream Type: mqtt
         Kind: SUBSCRIBE (1)
+        QoS: AT_MOST_ONCE (0)
+        Packet ID: 0x2117
+        State: COMPLETE (0)
+        Topic Filters (1 items)
+            Length: 23
+            Size: 1
+        Topic Filter: pattern-77
+            Subscription ID: 0x00000077
+            QoS: AT_LEAST_ONCE (1)
+            Flags: 0x0f
+                .... ...1 = SEND_RETAINED: Set (1)
+                .... ..1. = RETAIN_AS_PUBLISHED: Set (1)
+                .... .1.. = NO_LOCAL: Set (1)
+                .... 1... = RETAIN: Set (1)
+            Reason Code: 0
+            Pattern: pattern-77
+                Length: 10
+                Pattern: pattern-77
 
 Frame 68: 264 bytes on wire (2112 bits), 264 bytes captured (2112 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
@@ -3173,6 +3209,13 @@ Zilla Frame
     Extension: mqtt
         Stream Type ID: 0x761ad4d0
         Stream Type: mqtt
+        Server Reference: Server Reference
+            Length: 16
+            Value: Server Reference
+        Reason Code: 42
+        Reason: Reason
+            Length: 6
+            Value: Reason
 
 Frame 69: 269 bytes on wire (2152 bits), 269 bytes captured (2152 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)

@@ -132,6 +132,11 @@ local mqtt_ext_data_kinds = {
     [1] = "WILL",
 }
 
+local mqtt_ext_offset_state_flags = {
+    [0] = "COMPLETE",
+    [1] = "INCOMPLETE",
+}
+
 local fields = {
     -- header
     frame_type_id = ProtoField.uint32("zilla.frame_type_id", "Frame Type ID", base.HEX),
@@ -375,6 +380,14 @@ local fields = {
     mqtt_ext_subscription_ids_array_size = ProtoField.int8("zilla.mqtt_ext.subscription_ids_array_size", "Size", base.DEC),
     mqtt_ext_subscription_id_varuint = ProtoField.bytes("zilla.mqtt_ext.subsciption_id_varuint", "Subscription ID (varuint32)", base.NONE),
     mqtt_ext_subscription_id = ProtoField.int32("zilla.mqtt_ext.subsciption_id", "Subscription ID", base.DEC),
+    --     reset
+    mqtt_ext_server_ref_length = ProtoField.int16("zilla.mqtt_ext.server_ref_length", "Length", base.DEC),
+    mqtt_ext_server_ref = ProtoField.string("zilla.mqtt_ext.server_ref", "Value", base.NONE),
+    mqtt_ext_reason_code = ProtoField.uint8("zilla.mqtt_ext.reason_code", "Reason Code", base.DEC),
+    mqtt_ext_reason_length = ProtoField.int16("zilla.mqtt_ext.reason_length", "Length", base.DEC),
+    mqtt_ext_reason = ProtoField.string("zilla.mqtt_ext.reason", "Value", base.NONE),
+    --     reset
+    mqtt_ext_state = ProtoField.uint8("zilla.mqtt_ext.state", "State", base.DEC, mqtt_ext_offset_state_flags),
 }
 
 zilla_protocol.fields = fields;
@@ -1189,10 +1202,10 @@ function handle_mqtt_extension(buffer, extension_subtree, offset, frame_type_id)
                 handle_mqtt_data_session_extension(buffer, extension_subtree, offset + kind_length)
             end
         elseif frame_type_id == FLUSH_ID then
-            -- TODO
+            handle_mqtt_flush_subscribe_extension(buffer, extension_subtree, offset + kind_length)
         end
     elseif frame_type_id == RESET_ID then
-        -- TODO
+        handle_mqtt_reset_extension(buffer, extension_subtree, offset)
     end
 
     if frame_type_id == BEGIN_ID then
@@ -1493,7 +1506,6 @@ function dissect_and_add_mqtt_subscription_ids(buffer, offset, subtree)
     for i = 1, array_size do
         -- subscription_id
         local subscription_id, slice_subscription_id_varuint, subscription_id_length = decode_varuint32(buffer, item_offset)
-        -- TODO: decode_varuint32
         local label = string.format("Subscription ID: %d", subscription_id)
         local varint_subtree = subtree:add(zilla_protocol, buffer(item_offset, subscription_id_length), label)
         varint_subtree:add(fields.mqtt_ext_subscription_id_varuint, slice_subscription_id_varuint)
@@ -1510,6 +1522,45 @@ function handle_mqtt_data_session_extension(buffer, extension_subtree, offset)
     local data_kind_length = 1
     slice_data_kind = buffer(data_kind_offset, data_kind_length)
     extension_subtree:add_le(fields.mqtt_ext_data_kind, slice_data_kind)
+end
+
+function handle_mqtt_flush_subscribe_extension(buffer, extension_subtree, offset)
+    -- qos
+    local qos_offset = offset
+    local qos_length = 1
+    local slice_qos = buffer(qos_offset, qos_length)
+    extension_subtree:add_le(fields.mqtt_ext_qos, slice_qos)
+    -- packet_id
+    local packet_id_offset = qos_offset + qos_length
+    local packet_id_length = 2
+    local slice_packet_id = buffer(packet_id_offset, packet_id_length)
+    extension_subtree:add_le(fields.mqtt_ext_packet_id, slice_packet_id)
+    -- state
+    local state_offset = packet_id_offset + packet_id_length
+    local state_length = 1
+    local slice_state = buffer(state_offset, state_length)
+    extension_subtree:add_le(fields.mqtt_ext_state, slice_state)
+    -- topic_filters
+    local topic_filters_offset = state_offset + state_length
+    dissect_and_add_mqtt_topic_filters(buffer, extension_subtree, topic_filters_offset)
+end
+
+function handle_mqtt_reset_extension(buffer, extension_subtree, offset)
+    -- server_ref
+    local server_ref_offset = offset
+    local server_ref_length, slice_server_ref_length, slice_server_ref_text = dissect_length_value(buffer, server_ref_offset, 2)
+    add_simple_string_as_subtree(buffer(server_ref_offset, server_ref_length), extension_subtree, "Server Reference: %s",
+        slice_server_ref_length, slice_server_ref_text, fields.mqtt_ext_server_ref_length, fields.mqtt_ext_server_ref)
+    -- reason_code
+    local reason_code_offset = server_ref_offset + server_ref_length
+    local reason_code_length = 1
+    local slice_reason_code = buffer(reason_code_offset, reason_code_length)
+    extension_subtree:add_le(fields.mqtt_ext_reason_code, slice_reason_code)
+    -- server_ref
+    local reason_offset = reason_code_offset + reason_code_length
+    local reason_length, slice_reason_length, slice_reason_text = dissect_length_value(buffer, reason_offset, 2)
+    add_simple_string_as_subtree(buffer(reason_offset, reason_length), extension_subtree, "Reason: %s",
+        slice_reason_length, slice_reason_text, fields.mqtt_ext_reason_length, fields.mqtt_ext_reason)
 end
 
 local data_dissector = DissectorTable.get("tcp.port")

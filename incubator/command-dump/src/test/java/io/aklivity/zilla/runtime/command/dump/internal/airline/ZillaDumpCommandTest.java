@@ -1401,7 +1401,7 @@ public class ZillaDumpCommandTest
                 .qos("EXACTLY_ONCE")
                 .packetId(0x4221)
                 .state("INCOMPLETE")
-                .filter("filter-1", 42)
+                .filter("filter-1", 0x42)
                 .build()
             .build());
         FlushFW flush3 = flushRW.wrap(frameBuffer, 0, frameBuffer.capacity())
