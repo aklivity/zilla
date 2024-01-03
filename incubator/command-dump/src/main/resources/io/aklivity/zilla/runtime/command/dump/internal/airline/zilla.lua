@@ -1250,7 +1250,7 @@ function dissect_and_add_mqtt_topic_filters(buffer, extension_subtree, offset)
         local pattern_length, slice_pattern_length, slice_pattern_text = dissect_length_value(buffer, pattern_offset, 2)
         -- add fields
         local record_length = subscription_id_length + qos_length + flags_length + reason_code_length + pattern_length
-        local label = "Topic Filter"
+        local label = string.format("Topic Filter: %s", slice_pattern_text:string())
         local subtree = extension_subtree:add(zilla_protocol, buffer(item_offset, record_length), label)
         subtree:add_le(fields.mqtt_ext_filter_subscription_id, slice_subscription_id)
         subtree:add_le(fields.mqtt_ext_filter_qos, slice_qos)
@@ -1447,10 +1447,7 @@ function handle_mqtt_data_subscribe_extension(buffer, extension_subtree, offset)
     local slice_flags = buffer(flags_offset, flags_length)
     local flags_label = string.format("Flags: 0x%02x", slice_flags:le_uint())
     local flags_subtree = extension_subtree:add(zilla_protocol, slice_flags, flags_label)
-    flags_subtree:add_le(fields.mqtt_ext_subscribe_flags_send_retained, slice_flags)
-    flags_subtree:add_le(fields.mqtt_ext_subscribe_flags_retain_as_published, slice_flags)
-    flags_subtree:add_le(fields.mqtt_ext_subscribe_flags_no_local, slice_flags)
-    flags_subtree:add_le(fields.mqtt_ext_subscribe_flags_retain, slice_flags)
+    flags_subtree:add_le(fields.mqtt_ext_publish_flags_retain, slice_flags)
     -- subscription_ids
     local subscription_ids_offset = flags_offset + flags_length
     local next_offset = dissect_and_add_mqtt_subscription_ids(buffer, subscription_ids_offset, extension_subtree)
