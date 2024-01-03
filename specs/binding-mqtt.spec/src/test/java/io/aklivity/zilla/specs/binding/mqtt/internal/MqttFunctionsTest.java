@@ -26,6 +26,7 @@ import java.util.Objects;
 
 import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
+import org.agrona.collections.IntArrayList;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 import org.kaazing.k3po.lang.el.BytesMatcher;
@@ -35,10 +36,10 @@ import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSessionSignalFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSessionSignalType;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSessionStateFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttWillMessageFW;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.String16FW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttBeginExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttDataExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttFlushExFW;
-import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttOffsetMetadataFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttResetExFW;
 
 public class MqttFunctionsTest
@@ -1272,16 +1273,18 @@ public class MqttFunctionsTest
             .metadata(2)
             .build();
 
-        DirectBuffer buffer = new UnsafeBuffer(BitUtil.fromHex(state));
-        MqttOffsetMetadataFW offsetMetadata = new MqttOffsetMetadataFW().wrap(buffer, 0, buffer.capacity());
+        final IntArrayList metadataList = new IntArrayList();
+        int offset = 0;
+        final DirectBuffer buffer = new String16FW(state).value();
+        byte version = buffer.getByte(offset++);
+        for (; offset < buffer.capacity(); offset += BitUtil.SIZE_OF_SHORT)
+        {
+            metadataList.add((int) buffer.getShort(offset));
+        }
 
-        assertNotNull(offsetMetadata.metadata()
-            .matchFirst(m ->
-                    1 == m.packetId()));
-
-        assertNotNull(offsetMetadata.metadata()
-            .matchFirst(m ->
-                2 == m.packetId()));
+        assertEquals(1, version);
+        assertEquals(1, (int) metadataList.get(0));
+        assertEquals(2, (int) metadataList.get(1));
     }
 
     @Test

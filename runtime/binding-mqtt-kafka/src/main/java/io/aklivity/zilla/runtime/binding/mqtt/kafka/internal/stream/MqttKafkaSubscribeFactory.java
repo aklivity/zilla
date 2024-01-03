@@ -82,7 +82,6 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaM
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttBeginExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttDataExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttFlushExFW;
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttOffsetMetadataFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttOffsetStateFlags;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttSubscribeBeginExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttSubscribeFlushExFW;
@@ -108,6 +107,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
     private static final int DATA_FLAG_INIT = 0x02;
     private static final int DATA_FLAG_FIN = 0x01;
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(new byte[0]), 0, 0);
+    private static final String16FW EMPTY_STRING = new String16FW("");
 
     private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBuffer(0L, 0), 0, 0);
     private final BeginFW beginRO = new BeginFW();
@@ -128,7 +128,6 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
     private final MqttSubscribeMessageFW.Builder mqttSubscribeMessageRW = new MqttSubscribeMessageFW.Builder();
-    private final MqttOffsetMetadataFW.Builder mqttOffsetMetadataRW = new MqttOffsetMetadataFW.Builder();
 
     private final ExtensionFW extensionRO = new ExtensionFW();
     private final MqttBeginExFW mqttBeginExRO = new MqttBeginExFW();
@@ -138,7 +137,6 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
     private final KafkaFlushExFW kafkaFlushExRO = new KafkaFlushExFW();
     private final KafkaHeaderFW kafkaHeaderRO = new KafkaHeaderFW();
     private final MqttSubscribeMessageFW mqttSubscribeMessageRO = new MqttSubscribeMessageFW();
-    private final MqttOffsetMetadataFW mqttOffsetMetadataRO = new MqttOffsetMetadataFW();
 
     private final MqttDataExFW.Builder mqttDataExRW = new MqttDataExFW.Builder();
     private final MqttFlushExFW.Builder mqttFlushExRW = new MqttFlushExFW.Builder();
@@ -1200,8 +1198,8 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                         {
                             p.partitionId(offset.partitionId).partitionOffset(offset.offset + 1);
                             final IntArrayList incomplete = incompletePacketIds.get(offset.partitionId);
-                            final String partitionMetadata =
-                                incomplete == null || incomplete.isEmpty() ? "" : offSetMetadataListToString(incomplete);
+                            final String16FW partitionMetadata = incomplete == null || incomplete.isEmpty() ?
+                                EMPTY_STRING : offsetMetadataListToString(incomplete);
                             p.metadata(partitionMetadata);
                         });
                         f.correlationId(correlationId);
@@ -1826,26 +1824,39 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         }
     }
 
-    //TODO: how to make these more efficient while keeping the internal object easily modifieable (not using FW)?
     private IntArrayList stringToOffsetMetadataList(
         String16FW metadata)
     {
         final IntArrayList metadataList = new IntArrayList();
-        UnsafeBuffer buffer = new UnsafeBuffer(BitUtil.fromHex(metadata.asString()));
-        final MqttOffsetMetadataFW offsetMetadata = mqttOffsetMetadataRO.wrap(buffer, 0, buffer.capacity());
-        offsetMetadata.metadata().forEach(m -> metadataList.add(m.packetId()));
+        int offset = 0;
+        final DirectBuffer buffer = metadata.value();
+        byte version = buffer.getByte(offset++);
+        for (; offset < buffer.capacity(); offset += BitUtil.SIZE_OF_SHORT)
+        {
+            metadataList.add((int) buffer.getShort(offset));
+        }
+
         return metadataList;
     }
 
-    private String offSetMetadataListToString(
+    private String16FW offsetMetadataListToString(
         IntArrayList metadataList)
     {
-        mqttOffsetMetadataRW.wrap(offsetBuffer, 0, offsetBuffer.capacity());
-        metadataList.forEach(m -> mqttOffsetMetadataRW.metadataItem(mi -> mi.packetId(m)));
-        final MqttOffsetMetadataFW offsetMetadata = mqttOffsetMetadataRW.build();
-        final byte[] array = new byte[offsetMetadata.sizeof()];
-        offsetMetadata.buffer().getBytes(offsetMetadata.offset(), array);
-        return BitUtil.toHex(array);
+        final int length = metadataList.size() * BitUtil.SIZE_OF_SHORT + 1;
+        final int capacity = BitUtil.SIZE_OF_SHORT + length;
+        int offset = 0;
+
+        offsetBuffer.putShort(offset, (short) length);
+        offset += BitUtil.SIZE_OF_SHORT;
+        offsetBuffer.putByte(offset++, (byte) 1);
+
+        for (int value : metadataList)
+        {
+            offsetBuffer.putShort(offset, (short) value);
+            offset += BitUtil.SIZE_OF_SHORT;
+        }
+
+        return new String16FW().wrap(offsetBuffer, 0, capacity);
     }
 
     final class KafkaRetainedProxy extends KafkaProxy
@@ -1972,8 +1983,8 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                         {
                             p.partitionId(offset.partitionId).partitionOffset(offset.offset + 1);
                             final IntArrayList incomplete = incompletePacketIds.get(offset.partitionId);
-                            final String partitionMetadata =
-                                incomplete == null || incomplete.isEmpty() ? "" : offSetMetadataListToString(incomplete);
+                            final String16FW partitionMetadata = incomplete == null || incomplete.isEmpty() ?
+                                EMPTY_STRING : offsetMetadataListToString(incomplete);
                             p.metadata(partitionMetadata);
                         });
                         f.correlationId(correlationId);
