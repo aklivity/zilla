@@ -127,6 +127,11 @@ local mqtt_ext_payload_format_types = {
     [2] = "NONE",
 }
 
+local mqtt_ext_data_kinds = {
+    [0] = "STATE",
+    [1] = "WILL",
+}
+
 local fields = {
     -- header
     frame_type_id = ProtoField.uint32("zilla.frame_type_id", "Frame Type ID", base.HEX),
@@ -364,6 +369,7 @@ local fields = {
     mqtt_ext_property_key = ProtoField.string("zilla.mqtt_ext.property_key", "Key", base.NONE),
     mqtt_ext_property_value_length = ProtoField.int16("zilla.mqtt_ext.property_value_length", "Length", base.DEC),
     mqtt_ext_property_value = ProtoField.string("zilla.mqtt_ext.property_value", "Value", base.NONE),
+    mqtt_ext_data_kind = ProtoField.uint8("zilla.mqtt_ext.data_kind", "Data Kind", base.HEX, mqtt_ext_data_kinds),
 }
 
 zilla_protocol.fields = fields;
@@ -1155,7 +1161,7 @@ function handle_mqtt_extension(buffer, extension_subtree, offset, frame_type_id)
             elseif mqtt_ext_kind == "SUBSCRIBE" then
                 -- TODO
             elseif mqtt_ext_kind == "SESSION" then
-                -- TODO
+                handle_mqtt_data_session_extension(buffer, extension_subtree, offset + 1)
             end
         elseif frame_type_id == FLUSH_ID then
             -- TODO
@@ -1387,6 +1393,14 @@ function dissect_and_add_mqtt_properties(buffer, offset, tree)
         local record_length = 2 + key_length + 2 + value_length
         item_offset = item_offset + record_length
     end
+end
+
+function handle_mqtt_data_session_extension(buffer, extension_subtree, offset)
+    -- data_kind
+    local data_kind_offset = offset
+    local data_kind_length = 1
+    slice_data_kind = buffer(data_kind_offset, data_kind_length)
+    extension_subtree:add_le(fields.mqtt_ext_data_kind, slice_data_kind)
 end
 
 local data_dissector = DissectorTable.get("tcp.port")
