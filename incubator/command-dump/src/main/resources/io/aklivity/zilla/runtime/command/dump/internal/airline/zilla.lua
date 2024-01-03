@@ -311,6 +311,7 @@ local fields = {
     filesystem_ext_timeout = ProtoField.int64("zilla.filesystem_ext.timeout", "Timeout", base.DEC),
 
     -- mqtt extension
+    --     begin
     mqtt_ext_kind = ProtoField.uint8("zilla.mqtt_ext.kind", "Kind", base.DEC, mqtt_ext_kinds),
     mqtt_ext_qos = ProtoField.uint8("zilla.mqtt_ext.qos", "QoS", base.DEC, mqtt_ext_qos_types),
     mqtt_ext_client_id_length = ProtoField.int16("zilla.mqtt_ext.client_id_length", "Length", base.DEC),
@@ -1201,16 +1202,11 @@ function handle_mqtt_extension(buffer, extension_subtree, offset, frame_type_id)
             elseif kind == "SESSION" then
                 handle_mqtt_data_session_extension(buffer, extension_subtree, offset + kind_length)
             end
-        elseif frame_type_id == FLUSH_ID then
+        elseif frame_type_id == FLUSH_ID and kind == "SUBSCRIBE" then
             handle_mqtt_flush_subscribe_extension(buffer, extension_subtree, offset + kind_length)
         end
     elseif frame_type_id == RESET_ID then
         handle_mqtt_reset_extension(buffer, extension_subtree, offset)
-    end
-
-    if frame_type_id == BEGIN_ID then
-    elseif frame_type_id == DATA_ID then
-    elseif frame_type_id == FLUSH_ID then
     end
 end
 
