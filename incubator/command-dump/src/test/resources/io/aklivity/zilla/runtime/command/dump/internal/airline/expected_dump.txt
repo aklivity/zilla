@@ -2619,10 +2619,10 @@ Zilla Frame
             .... ...1 = RETAIN: Set (1)
         QoS: EXACTLY_ONCE (2)
 
-Frame 60: 335 bytes on wire (2680 bits), 335 bytes captured (2680 bits)
+Frame 60: 381 bytes on wire (3048 bits), 381 bytes captured (3048 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::20, Dst: fe80::21
-Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 192, Ack: 193, Len: 261
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 192, Ack: 193, Len: 307
 Zilla Frame
     Frame Type ID: 0x00000002
     Frame Type: DATA
@@ -2677,21 +2677,42 @@ Zilla Frame
         Correlation
             Length: 11
             Correlation: 436f7272656c6174696f6e
-        Properties (0 items)
-            Length: 4
-            Size: 0
+        Properties (3 items)
+            Length: 50
+            Size: 3
+        Property: key1: value1
+            Key: key1
+                Length: 4
+                Key: key1
+            Value: value1
+                Length: 6
+                Value: value1
+        Property: key42: value42
+            Key: key42
+                Length: 5
+                Key: key42
+            Value: value42
+                Length: 7
+                Value: value42
+        Property: key77: value77
+            Key: key77
+                Length: 5
+                Key: key77
+            Value: value77
+                Length: 7
+                Value: value77
 
-Frame 61: 335 bytes on wire (2680 bits), 335 bytes captured (2680 bits)
+Frame 61: 349 bytes on wire (2792 bits), 349 bytes captured (2792 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::21, Dst: fe80::20
-Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 193, Ack: 453, Len: 261
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 193, Ack: 499, Len: 275
 Zilla Frame
     Frame Type ID: 0x00000002
     Frame Type: DATA
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00001bf0
+    Offset: 0x00001c18
     Origin ID: 0x0000000900000022
     Origin Namespace: example
     Origin Binding: north_mqtt_server
@@ -2739,9 +2760,16 @@ Zilla Frame
         Correlation
             Length: 11
             Correlation: 436f7272656c6174696f6e
-        Properties (0 items)
-            Length: 4
-            Size: 0
+        Properties (1 items)
+            Length: 18
+            Size: 1
+        Property: key1: value1
+            Key: key1
+                Length: 4
+                Key: key1
+            Value: value1
+                Length: 6
+                Value: value1
 
 Frame 62: 338 bytes on wire (2704 bits), 338 bytes captured (2704 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
@@ -2753,7 +2781,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00001ca8
+    Offset: 0x00001cd8
     Origin ID: 0x0000000900000022
     Origin Namespace: example
     Origin Binding: north_mqtt_server
@@ -2841,7 +2869,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00001d60
+    Offset: 0x00001d90
     Origin ID: 0x0000000900000022
     Origin Namespace: example
     Origin Binding: north_mqtt_server
@@ -2919,17 +2947,17 @@ Zilla Frame
                 Length: 9
                 Pattern: pattern-4
 
-Frame 64: 366 bytes on wire (2928 bits), 366 bytes captured (2928 bits)
+Frame 64: 396 bytes on wire (3168 bits), 396 bytes captured (3168 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::22, Dst: fe80::23
-Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 264, Ack: 265, Len: 292
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 264, Ack: 265, Len: 322
 Zilla Frame
     Frame Type ID: 0x00000002
     Frame Type: DATA
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00001e18
+    Offset: 0x00001e48
     Origin ID: 0x0000000900000022
     Origin Namespace: example
     Origin Binding: north_mqtt_server
@@ -2999,21 +3027,35 @@ Zilla Frame
         Correlation
             Length: 11
             Correlation: 436f7272656c6174696f6e
-        Properties (0 items)
-            Length: 4
-            Size: 0
+        Properties (2 items)
+            Length: 34
+            Size: 2
+        Property: key1: value1
+            Key: key1
+                Length: 4
+                Key: key1
+            Value: value1
+                Length: 6
+                Value: value1
+        Property: key42: value42
+            Key: key42
+                Length: 5
+                Key: key42
+            Value: value42
+                Length: 7
+                Value: value42
 
-Frame 65: 357 bytes on wire (2856 bits), 357 bytes captured (2856 bits)
+Frame 65: 387 bytes on wire (3096 bits), 387 bytes captured (3096 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::23, Dst: fe80::22
-Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 265, Ack: 556, Len: 283
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 265, Ack: 586, Len: 313
 Zilla Frame
     Frame Type ID: 0x00000002
     Frame Type: DATA
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00001ef0
+    Offset: 0x00001f38
     Origin ID: 0x0000000900000022
     Origin Namespace: example
     Origin Binding: north_mqtt_server
@@ -3071,21 +3113,35 @@ Zilla Frame
         Correlation
             Length: 11
             Correlation: 436f7272656c6174696f6e
-        Properties (0 items)
-            Length: 4
-            Size: 0
+        Properties (2 items)
+            Length: 34
+            Size: 2
+        Property: key1: value1
+            Key: key1
+                Length: 4
+                Key: key1
+            Value: value1
+                Length: 6
+                Value: value1
+        Property: key42: value42
+            Key: key42
+                Length: 5
+                Key: key42
+            Value: value42
+                Length: 7
+                Value: value42
 
 Frame 66: 279 bytes on wire (2232 bits), 279 bytes captured (2232 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::22, Dst: fe80::23
-Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 556, Ack: 548, Len: 205
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 586, Ack: 578, Len: 205
 Zilla Frame
     Frame Type ID: 0x00000005
     Frame Type: FLUSH
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00001fb8
+    Offset: 0x00002020
     Origin ID: 0x0000000900000022
     Origin Namespace: example
     Origin Binding: north_mqtt_server
@@ -3130,14 +3186,14 @@ Zilla Frame
 Frame 67: 281 bytes on wire (2248 bits), 281 bytes captured (2248 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::22, Dst: fe80::23
-Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 761, Ack: 548, Len: 207
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 791, Ack: 578, Len: 207
 Zilla Frame
     Frame Type ID: 0x00000005
     Frame Type: FLUSH
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00002038
+    Offset: 0x000020a0
     Origin ID: 0x0000000900000022
     Origin Namespace: example
     Origin Binding: north_mqtt_server
@@ -3182,14 +3238,14 @@ Zilla Frame
 Frame 68: 264 bytes on wire (2112 bits), 264 bytes captured (2112 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::22, Dst: fe80::23
-Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 968, Ack: 548, Len: 190
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 998, Ack: 578, Len: 190
 Zilla Frame
     Frame Type ID: 0x40000001
     Frame Type: RESET
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x000020b8
+    Offset: 0x00002120
     Origin ID: 0x0000000900000022
     Origin Namespace: example
     Origin Binding: north_mqtt_server
@@ -3227,7 +3283,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00002128
+    Offset: 0x00002190
     Origin ID: 0x0000000900000022
     Origin Namespace: example
     Origin Binding: north_mqtt_server
@@ -3274,7 +3330,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00002198
+    Offset: 0x00002200
     Origin ID: 0x0000000900000022
     Origin Namespace: example
     Origin Binding: north_mqtt_server
@@ -3321,7 +3377,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00002208
+    Offset: 0x00002270
     Origin ID: 0x0000000900000022
     Origin Namespace: example
     Origin Binding: north_mqtt_server
@@ -3366,7 +3422,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00002280
+    Offset: 0x000022e8
     Origin ID: 0x0000000900000022
     Origin Namespace: example
     Origin Binding: north_mqtt_server

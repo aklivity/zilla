@@ -1423,12 +1423,14 @@ function dissect_and_add_mqtt_properties(buffer, offset, tree)
         local value_offset = key_offset + key_length
         local value_length, slice_value_length, slice_value_text = dissect_length_value(buffer, value_offset, 2)
         -- add fields
+        local record_length = key_length + value_length
+        local label = string.format("Property: %s: %s", slice_key_text:string(), slice_value_text:string())
+        local subtree = tree:add(zilla_protocol, buffer(item_offset, record_length), label)
         add_simple_string_as_subtree(buffer(key_offset, key_length), subtree, "Key: %s",
             slice_key_length, slice_key_text, fields.mqtt_ext_property_key_length, fields.mqtt_ext_property_key)
         add_simple_string_as_subtree(buffer(value_offset, value_length), subtree, "Value: %s",
             slice_value_length, slice_value_text, fields.mqtt_ext_property_value_length, fields.mqtt_ext_property_value)
         -- next
-        local record_length = 2 + key_length + 2 + value_length
         item_offset = item_offset + record_length
     end
 end

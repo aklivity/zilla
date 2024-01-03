@@ -1223,8 +1223,9 @@ public class ZillaDumpCommandTest
                 .format("TEXT")
                 .responseTopic("Response Topic")
                 .correlation("Correlation")
-                //.userProperty("key1", "value1")
-                //.userProperty("key42", "value42")
+                .userProperty("key1", "value1")
+                .userProperty("key42", "value42")
+                .userProperty("key77", "value77")
                 .build()
             .build());
         DataFW data17 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
@@ -1253,7 +1254,7 @@ public class ZillaDumpCommandTest
                 .format("BINARY")
                 .responseTopic("Response Topic")
                 .correlation("Correlation")
-                //.userProperty("key1", "value1")
+                .userProperty("key1", "value1")
                 .build()
             .build());
         DataFW data18 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
@@ -1342,8 +1343,8 @@ public class ZillaDumpCommandTest
                 // format omitted, should be NONE
                 .responseTopic("Response Topic")
                 .correlation("Correlation")
-                //.userProperty("key1", "value1")
-                //.userProperty("key42", "value42")
+                .userProperty("key1", "value1")
+                .userProperty("key42", "value42")
                 .build()
             .build());
         DataFW data19 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
@@ -1375,8 +1376,8 @@ public class ZillaDumpCommandTest
                 .format("BINARY")
                 .responseTopic("Response Topic")
                 .correlation("Correlation")
-                //.userProperty("key1", "value1")
-                //.userProperty("key42", "value42")
+                .userProperty("key1", "value1")
+                .userProperty("key42", "value42")
                 .build()
             .build());
         DataFW data20 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
