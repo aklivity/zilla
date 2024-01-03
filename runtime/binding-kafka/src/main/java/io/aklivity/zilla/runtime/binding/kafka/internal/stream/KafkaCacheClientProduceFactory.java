@@ -1446,7 +1446,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 initialAck = newInitialAck;
                 assert initialAck <= initialSeq;
 
-                initialMax = minInitialMax;
+                initialMax = minInitialNoAck == 0 ? initialBudgetMax : minInitialMax;
 
                 state = KafkaState.openedInitial(state);
 
