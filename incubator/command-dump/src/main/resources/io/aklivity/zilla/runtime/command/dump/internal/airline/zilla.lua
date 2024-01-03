@@ -373,7 +373,7 @@ local fields = {
     mqtt_ext_packet_id = ProtoField.uint16("zilla.mqtt_ext.packet_id", "Packet ID", base.HEX),
     mqtt_ext_subscription_ids_array_length = ProtoField.int8("zilla.mqtt_ext.subscription_ids_array_length", "Length", base.DEC),
     mqtt_ext_subscription_ids_array_size = ProtoField.int8("zilla.mqtt_ext.subscription_ids_array_size", "Size", base.DEC),
-    mqtt_ext_subscription_id_varint = ProtoField.bytes("zilla.mqtt_ext.subsciption_id_varint", "Subscription ID (varuint32)", base.NONE),
+    mqtt_ext_subscription_id_varuint = ProtoField.bytes("zilla.mqtt_ext.subsciption_id_varuint", "Subscription ID (varuint32)", base.NONE),
     mqtt_ext_subscription_id = ProtoField.int32("zilla.mqtt_ext.subsciption_id", "Subscription ID", base.DEC),
 }
 
@@ -1015,6 +1015,27 @@ function decode_varint32(buffer, offset)
     return result, buffer(offset, length), length
 end
 
+function decode_varuint32(buffer, offset)
+    local max_length = 5
+    local limit = math.min(buffer:len(), offset + max_length)
+    local value = 0
+    local progress = offset
+
+    if progress < limit then
+        local shift = 0
+        local bits
+        repeat
+            bits = buffer(progress, 1):uint()
+            value = bit.bor(value, bit.lshift(bit.band(bits, 0x7F), shift))
+            shift = shift + 7
+            progress = progress + 1
+        until progress >= limit or bit.band(bits, 0x80) == 0
+    end
+
+    local length = progress - offset
+    return value, buffer(offset, length), length
+end
+
 function handle_sse_extension(buffer, extension_subtree, offset, frame_type_id)
     if frame_type_id == BEGIN_ID then
         -- scheme
@@ -1146,27 +1167,26 @@ function handle_filesystem_extension(buffer, extension_subtree, offset)
 end
 
 function handle_mqtt_extension(buffer, extension_subtree, offset, frame_type_id)
-    local slice_mqtt_ext_kind
-    local mqtt_ext_kind
     if frame_type_id == BEGIN_ID or frame_type_id == DATA_ID or frame_type_id == FLUSH_ID then
-        slice_mqtt_ext_kind = buffer(offset, 1)
-        mqtt_ext_kind = mqtt_ext_kinds[slice_mqtt_ext_kind:le_int()]
-        extension_subtree:add_le(fields.mqtt_ext_kind, slice_mqtt_ext_kind)
+        local kind_length = 1
+        local slice_kind = buffer(offset, kind_length)
+        local kind = mqtt_ext_kinds[slice_kind:le_int()]
+        extension_subtree:add_le(fields.mqtt_ext_kind, slice_kind)
         if frame_type_id == BEGIN_ID then
-            if mqtt_ext_kind == "PUBLISH" then
-                handle_mqtt_begin_publish_extension(buffer, extension_subtree, offset + 1)
-            elseif mqtt_ext_kind == "SUBSCRIBE" then
-                handle_mqtt_begin_subscribe_extension(buffer, extension_subtree, offset + 1)
-            elseif mqtt_ext_kind == "SESSION" then
-                handle_mqtt_begin_session_extension(buffer, extension_subtree, offset + 1)
+            if kind == "PUBLISH" then
+                handle_mqtt_begin_publish_extension(buffer, extension_subtree, offset + kind_length)
+            elseif kind == "SUBSCRIBE" then
+                handle_mqtt_begin_subscribe_extension(buffer, extension_subtree, offset + kind_length)
+            elseif kind == "SESSION" then
+                handle_mqtt_begin_session_extension(buffer, extension_subtree, offset + kind_length)
             end
         elseif frame_type_id == DATA_ID then
-            if mqtt_ext_kind == "PUBLISH" then
-                handle_mqtt_data_publish_extension(buffer, extension_subtree, offset + 1)
-            elseif mqtt_ext_kind == "SUBSCRIBE" then
-                handle_mqtt_data_subscribe_extension(buffer, extension_subtree, offset + 1)
-            elseif mqtt_ext_kind == "SESSION" then
-                handle_mqtt_data_session_extension(buffer, extension_subtree, offset + 1)
+            if kind == "PUBLISH" then
+                handle_mqtt_data_publish_extension(buffer, extension_subtree, offset + kind_length)
+            elseif kind == "SUBSCRIBE" then
+                handle_mqtt_data_subscribe_extension(buffer, extension_subtree, offset + kind_length)
+            elseif kind == "SESSION" then
+                handle_mqtt_data_session_extension(buffer, extension_subtree, offset + kind_length)
             end
         elseif frame_type_id == FLUSH_ID then
             -- TODO
@@ -1475,11 +1495,11 @@ function dissect_and_add_mqtt_subscription_ids(buffer, offset, subtree)
     local item_offset = offset + length
     for i = 1, array_size do
         -- subscription_id
-        local subscription_id, slice_subscription_id_varint, subscription_id_length = decode_varint32(buffer, item_offset)
+        local subscription_id, slice_subscription_id_varuint, subscription_id_length = decode_varuint32(buffer, item_offset)
         -- TODO: decode_varuint32
-        local label = "Subscription ID"
+        local label = string.format("Subscription ID: %d", subscription_id)
         local varint_subtree = subtree:add(zilla_protocol, buffer(item_offset, subscription_id_length), label)
-        varint_subtree:add(fields.mqtt_ext_subscription_id_varint, slice_subscription_id_varint)
+        varint_subtree:add(fields.mqtt_ext_subscription_id_varuint, slice_subscription_id_varuint)
         varint_subtree:add(fields.mqtt_ext_subscription_id, subscription_id)
         -- next
         item_offset = item_offset + subscription_id_length
