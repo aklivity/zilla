@@ -261,6 +261,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/server.port.not.routed/client",
+        "${net}/server.port.not.routed/server"})
+    public void shouldRejectServerWhenPortNotRouted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/client.sent.read.abort.before.handshake/client",
         "${net}/client.sent.read.abort.before.handshake/server"})
     public void shouldReceiveClientSentReadAbortBeforeHandshake() throws Exception
