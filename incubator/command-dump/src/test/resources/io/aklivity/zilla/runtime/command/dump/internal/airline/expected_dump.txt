@@ -1479,26 +1479,26 @@ Zilla Frame
             Size: 3
         Metadata: [TEXT] grpc-accept-encoding: gzip
             Type: TEXT (0)
-            Length (Varint): 28
+            Length (varint32): 28
             Length: 20
             Name: grpc-accept-encoding
-            Length (Varint): 08
+            Length (varint32): 08
             Length: 4
             Value: gzip
         Metadata: [TEXT] metadata-2: hello
             Type: TEXT (0)
-            Length (Varint): 14
+            Length (varint32): 14
             Length: 10
             Name: metadata-2
-            Length (Varint): 0a
+            Length (varint32): 0a
             Length: 5
             Value: hello
         Metadata: [BASE64] metadata-3: 4242
             Type: BASE64 (1)
-            Length (Varint): 14
+            Length (varint32): 14
             Length: 10
             Name: metadata-3
-            Length (Varint): 08
+            Length (varint32): 08
             Length: 4
             Value: 4242
 
@@ -1550,18 +1550,18 @@ Zilla Frame
             Size: 2
         Metadata: [TEXT] long field: ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ
             Type: TEXT (0)
-            Length (Varint): 14
+            Length (varint32): 14
             Length: 10
             Name: long field
-            Length (Varint): 9003
+            Length (varint32): 9003
             Length: 200
             Value: ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ
         Metadata: [TEXT] metadata-2: hello
             Type: TEXT (0)
-            Length (Varint): 14
+            Length (varint32): 14
             Length: 10
             Name: metadata-2
-            Length (Varint): 0a
+            Length (varint32): 0a
             Length: 5
             Value: hello
 

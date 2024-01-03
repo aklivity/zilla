@@ -251,10 +251,10 @@ local fields = {
     grpc_ext_metadata_array_length = ProtoField.int8("zilla.grpc_ext.metadata_array_length", "Length", base.DEC),
     grpc_ext_metadata_array_size = ProtoField.int8("zilla.grpc_ext.metadata_array_size", "Size", base.DEC),
     grpc_ext_metadata_type = ProtoField.uint8("zilla.grpc_ext.metadata_type", "Type", base.DEC, grpc_types),
-    grpc_ext_metadata_name_length_varint = ProtoField.bytes("zilla.grpc_ext.metadata_name_varint", "Length (Varint)", base.NONE),
+    grpc_ext_metadata_name_length_varint = ProtoField.bytes("zilla.grpc_ext.metadata_name_varint", "Length (varint32)", base.NONE),
     grpc_ext_metadata_name_length = ProtoField.int32("zilla.grpc_ext.metadata_name_length", "Length", base.DEC),
     grpc_ext_metadata_name = ProtoField.string("zilla.grpc_ext.metadata_name", "Name", base.NONE),
-    grpc_ext_metadata_value_length_varint = ProtoField.bytes("zilla.grpc_ext.metadata_value_length_varint", "Length (Varint)", base.NONE),
+    grpc_ext_metadata_value_length_varint = ProtoField.bytes("zilla.grpc_ext.metadata_value_length_varint", "Length (varint32)", base.NONE),
     grpc_ext_metadata_value_length = ProtoField.int32("zilla.grpc_ext.metadata_value_length", "Length", base.DEC),
     grpc_ext_metadata_value = ProtoField.string("zilla.grpc_ext.metadata_value", "Value", base.NONE),
 
@@ -370,6 +370,11 @@ local fields = {
     mqtt_ext_property_value_length = ProtoField.int16("zilla.mqtt_ext.property_value_length", "Length", base.DEC),
     mqtt_ext_property_value = ProtoField.string("zilla.mqtt_ext.property_value", "Value", base.NONE),
     mqtt_ext_data_kind = ProtoField.uint8("zilla.mqtt_ext.data_kind", "Data Kind", base.HEX, mqtt_ext_data_kinds),
+    mqtt_ext_packet_id = ProtoField.uint16("zilla.mqtt_ext.packet_id", "Packet ID", base.HEX),
+    mqtt_ext_subscription_ids_array_length = ProtoField.int8("zilla.mqtt_ext.subscription_ids_array_length", "Length", base.DEC),
+    mqtt_ext_subscription_ids_array_size = ProtoField.int8("zilla.mqtt_ext.subscription_ids_array_size", "Size", base.DEC),
+    mqtt_ext_subscription_id_varint = ProtoField.bytes("zilla.mqtt_ext.subsciption_id_varint", "Subscription ID (varuint32)", base.NONE),
+    mqtt_ext_subscription_id = ProtoField.int32("zilla.mqtt_ext.subsciption_id", "Subscription ID", base.DEC),
 }
 
 zilla_protocol.fields = fields;
@@ -1159,7 +1164,7 @@ function handle_mqtt_extension(buffer, extension_subtree, offset, frame_type_id)
             if mqtt_ext_kind == "PUBLISH" then
                 handle_mqtt_data_publish_extension(buffer, extension_subtree, offset + 1)
             elseif mqtt_ext_kind == "SUBSCRIBE" then
-                -- TODO
+                handle_mqtt_data_subscribe_extension(buffer, extension_subtree, offset + 1)
             elseif mqtt_ext_kind == "SESSION" then
                 handle_mqtt_data_session_extension(buffer, extension_subtree, offset + 1)
             end
@@ -1393,6 +1398,93 @@ function dissect_and_add_mqtt_properties(buffer, offset, tree)
         local record_length = 2 + key_length + 2 + value_length
         item_offset = item_offset + record_length
     end
+end
+
+function handle_mqtt_data_subscribe_extension(buffer, extension_subtree, offset)
+    -- deferred
+    local deferred_offset = offset
+    local deferred_length = 4
+    local slice_deferred = buffer(deferred_offset, deferred_length)
+    extension_subtree:add_le(fields.mqtt_ext_deferred, slice_deferred)
+    -- topic
+    local topic_offset = deferred_offset + deferred_length
+    local topic_length, slice_topic_length, slice_topic_text = dissect_length_value(buffer, topic_offset, 2)
+    add_simple_string_as_subtree(buffer(topic_offset, topic_length), extension_subtree, "Topic: %s",
+        slice_topic_length, slice_topic_text, fields.mqtt_ext_topic_length, fields.mqtt_ext_topic)
+    -- packet_id
+    local packet_id_offset = topic_offset + topic_length
+    local packet_id_length = 2
+    local slice_packet_id = buffer(packet_id_offset, packet_id_length)
+    extension_subtree:add_le(fields.mqtt_ext_packet_id, slice_packet_id)
+    -- qos
+    local qos_offset = packet_id_offset + packet_id_length
+    local qos_length = 1
+    local slice_qos = buffer(qos_offset, qos_length)
+    extension_subtree:add_le(fields.mqtt_ext_qos, slice_qos)
+    -- flags
+    local flags_offset = qos_offset + qos_length
+    local flags_length = 1
+    local slice_flags = buffer(flags_offset, flags_length)
+    local flags_label = string.format("Flags: 0x%02x", slice_flags:le_uint())
+    local flags_subtree = extension_subtree:add(zilla_protocol, slice_flags, flags_label)
+    flags_subtree:add_le(fields.mqtt_ext_subscribe_flags_send_retained, slice_flags)
+    flags_subtree:add_le(fields.mqtt_ext_subscribe_flags_retain_as_published, slice_flags)
+    flags_subtree:add_le(fields.mqtt_ext_subscribe_flags_no_local, slice_flags)
+    flags_subtree:add_le(fields.mqtt_ext_subscribe_flags_retain, slice_flags)
+    -- subscription_ids
+    local subscription_ids_offset = flags_offset + flags_length
+    local next_offset = dissect_and_add_mqtt_subscription_ids(buffer, subscription_ids_offset, extension_subtree)
+    -- expiry_interval
+    local expiry_interval_offset = next_offset
+    local expiry_interval_length = 4
+    local slice_expiry_interval = buffer(expiry_interval_offset, expiry_interval_length)
+    extension_subtree:add_le(fields.mqtt_ext_expiry_interval, slice_expiry_interval)
+    -- content_type
+    local content_type_offset = expiry_interval_offset + expiry_interval_length
+    local content_type_length, slice_content_type_length, slice_content_type_text = dissect_length_value(buffer, content_type_offset, 2)
+    add_simple_string_as_subtree(buffer(content_type_offset, content_type_length), extension_subtree, "Content Type: %s",
+        slice_content_type_length, slice_content_type_text, fields.mqtt_ext_content_type_length, fields.mqtt_ext_content_type)
+    -- payload_format
+    local payload_format_offset = content_type_offset + content_type_length
+    local payload_format_length = 1
+    slice_payload_format = buffer(payload_format_offset, payload_format_length)
+    extension_subtree:add_le(fields.mqtt_ext_payload_format, slice_payload_format)
+    -- response_topic
+    local response_topic_offset = payload_format_offset + payload_format_length
+    local response_topic_length, slice_response_topic_length, slice_response_topic_text = dissect_length_value(buffer, response_topic_offset, 2)
+    add_simple_string_as_subtree(buffer(response_topic_offset, response_topic_length), extension_subtree, "Response Topic: %s",
+        slice_response_topic_length, slice_response_topic_text, fields.mqtt_ext_response_topic_length, fields.mqtt_ext_response_topic)
+    -- correlation
+    local correlation_offset = response_topic_offset + response_topic_length
+    local correlation_length = add_mqtt_binary_as_subtree(buffer, correlation_offset, extension_subtree, "Correlation",
+        fields.mqtt_ext_correlation_length, fields.mqtt_ext_correlation)
+    -- properties
+    local properties_offset = correlation_offset + correlation_length
+    dissect_and_add_mqtt_properties(buffer, properties_offset, extension_subtree)
+end
+
+function dissect_and_add_mqtt_subscription_ids(buffer, offset, subtree)
+    local slice_array_length = buffer(offset, 4)
+    local slice_array_size = buffer(offset + 4, 4)
+    local array_size = slice_array_size:le_int()
+    local length = 8
+    local label = string.format("Subscription IDs (%d items)", array_size)
+    local subscription_ids_array_subtree = subtree:add(zilla_protocol, buffer(offset, length), label)
+    subscription_ids_array_subtree:add_le(fields.mqtt_ext_subscription_ids_array_length, slice_array_length)
+    subscription_ids_array_subtree:add_le(fields.mqtt_ext_subscription_ids_array_size, slice_array_size)
+    local item_offset = offset + length
+    for i = 1, array_size do
+        -- subscription_id
+        local subscription_id, slice_subscription_id_varint, subscription_id_length = decode_varint32(buffer, item_offset)
+        -- TODO: decode_varuint32
+        local label = "Subscription ID"
+        local varint_subtree = subtree:add(zilla_protocol, buffer(item_offset, subscription_id_length), label)
+        varint_subtree:add(fields.mqtt_ext_subscription_id_varint, slice_subscription_id_varint)
+        varint_subtree:add(fields.mqtt_ext_subscription_id, subscription_id)
+        -- next
+        item_offset = item_offset + subscription_id_length
+    end
+    return item_offset
 end
 
 function handle_mqtt_data_session_extension(buffer, extension_subtree, offset)
