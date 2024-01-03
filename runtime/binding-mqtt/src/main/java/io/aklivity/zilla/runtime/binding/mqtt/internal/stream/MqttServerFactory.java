@@ -3186,11 +3186,13 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                     if (publishPayloadDeferred == 0)
                     {
+                        publishPayloadDeferred = publishPayloadBytes - length;
                         final Flyweight dataEx = mqttPublishDataExRW.wrap(dataExtBuffer, 0, dataExtBuffer.capacity())
                             .typeId(mqttTypeId)
                             .publish(p ->
                             {
-                                p.qos(mqttPublishHeaderRO.qos)
+                                p.deferred(publishPayloadDeferred)
+                                    .qos(mqttPublishHeaderRO.qos)
                                     .flags(mqttPublishHeaderRO.flags)
                                     .expiryInterval(mqttPublishHeaderRO.expiryInterval)
                                     .contentType(mqttPublishHeaderRO.contentType)
@@ -3203,7 +3205,6 @@ public final class MqttServerFactory implements MqttStreamFactory
                                     userProperties.forEach(c -> p.propertiesItem(pi -> pi.key(c.key()).value(c.value())));
                                 }
                             }).build();
-                        publishPayloadDeferred = publishPayloadBytes - length;
 
                         int flags = publishPayloadDeferred > 0 ? FLAG_INIT : FLAG_INIT | FLAG_FIN;
 
@@ -5818,7 +5819,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 final long traceId = signal.traceId();
 
                 final long now = System.currentTimeMillis();
-                if (now >= publishExpiresAt)
+                if (now >= publishExpiresAt && publishPayloadBytes == 0)
                 {
                     doPublishAppEnd(traceId);
                 }
