@@ -26,15 +26,6 @@ write "PRI * HTTP/2.0\r\n"
       "\r\n"
 write flush
 
-# server connection preface - SETTINGS frame
-read [0x00 0x00 0x12]                   # length = 18
-     [0x04]                             # HTTP2 SETTINGS frame
-     [0x00]                             # flags = 0x00
-     [0x00 0x00 0x00 0x00]              # stream_id = 0
-     [0x00 0x03 0x00 0x00 0x00 0x64]    # SETTINGS_MAX_CONCURRENT_STREAMS(0x03) = 100
-     [0x00 0x04 0x00 0x00 0x00 0x00]    # SETTINGS_INITIAL_WINDOW_SIZE(0x04) = 0
-     [0x00 0x06 0x00 0x00 0x20 0x00]    # SETTINGS_MAX_HEADER_LIST_SIZE(0x06) = 8192
-
 write [0x00 0x00 0x0c]                   # length = 12
       [0x04]                             # HTTP2 SETTINGS frame
       [0x00]                             # flags = 0x00
@@ -43,11 +34,7 @@ write [0x00 0x00 0x0c]                   # length = 12
       [0x00 0x04 0x00 0x00 0xff 0xff]    # SETTINGS_INITIAL_WINDOW_SIZE(0x04) = 65535
 write flush
 
-read [0x00 0x00 0x00]                   # length = 0
-     [0x04]                             # HTTP2 SETTINGS frame
-     [0x01]                             # ACK
-     [0x00 0x00 0x00 0x00]              # stream_id = 0
-
+# ==================== HTTP2 stream-id=1  =================
 write [0x00 0x00 0x33]                                      # length = 51
       [0x01]                                                # HEADERS frame
       [0x04]                                                # END_HEADERS
@@ -67,10 +54,24 @@ write [0x00 0x00 0x0c]                  # length = 12
       "Hello, world"
 write flush
 
+# server connection preface - SETTINGS frame
+read [0x00 0x00 0x12]                   # length = 18
+     [0x04]                             # HTTP2 SETTINGS frame
+     [0x00]                             # flags = 0x00
+     [0x00 0x00 0x00 0x00]              # stream_id = 0
+     [0x00 0x03 0x00 0x00 0x00 0x64]    # SETTINGS_MAX_CONCURRENT_STREAMS(0x03) = 100
+     [0x00 0x04 0x00 0x00 0x00 0x00]    # SETTINGS_INITIAL_WINDOW_SIZE(0x04) = 0
+     [0x00 0x06 0x00 0x00 0x20 0x00]    # SETTINGS_MAX_HEADER_LIST_SIZE(0x06) = 8192
+
 write [0x00 0x00 0x00]                  # length = 0
       [0x04]                            # HTTP2 SETTINGS frame
       [0x01]                            # ACK
       [0x00 0x00 0x00 0x00]             # stream_id = 0
 write flush
+
+read [0x00 0x00 0x00]                   # length = 0
+     [0x04]                             # HTTP2 SETTINGS frame
+     [0x01]                             # ACK
+     [0x00 0x00 0x00 0x00]              # stream_id = 0
 
 read closed

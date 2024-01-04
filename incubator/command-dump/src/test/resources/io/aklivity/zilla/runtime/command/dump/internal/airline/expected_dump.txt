@@ -20,8 +20,8 @@ Zilla Frame
     Trace ID: 0x0000000000000001
     Authorization: 0x0000000000000000
     Cancel ID: 0x0000000000007701
-    Signal ID: 30466
-    Context ID: 30467
+    Signal ID: 0x00007702
+    Context ID: 0x00007703
     Payload
         Length: -1
 
@@ -47,8 +47,8 @@ Zilla Frame
     Trace ID: 0x0100000000000001
     Authorization: 0x0000000000000000
     Cancel ID: 0x0000000000008801
-    Signal ID: 34818
-    Context ID: 34819
+    Signal ID: 0x00008802
+    Context ID: 0x00008803
     Payload
         Length: -1
 
@@ -74,8 +74,8 @@ Zilla Frame
     Trace ID: 0x0200000000000001
     Authorization: 0x0000000000000000
     Cancel ID: 0x0000000000008801
-    Signal ID: 39170
-    Context ID: 39171
+    Signal ID: 0x00009902
+    Context ID: 0x00009903
     Payload
         Length: -1
 
@@ -101,8 +101,8 @@ Zilla Frame
     Trace ID: 0x0000000000000000
     Authorization: 0x0000000000000000
     Cancel ID: 0x0000000000007801
-    Signal ID: 30722
-    Context ID: 30723
+    Signal ID: 0x00007802
+    Context ID: 0x00007803
     Payload
         Length: 12
         Payload
@@ -347,23 +347,23 @@ Zilla Frame
     Progress: 0
     Progress/Maximum: 0/65536
 
-Frame 13: 232 bytes on wire (1856 bits), 232 bytes captured (1856 bits)
+Frame 13: 241 bytes on wire (1928 bits), 241 bytes captured (1928 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::76, Dst: fe80::77
-Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 0, Ack: 1, Len: 158
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 0, Ack: 1, Len: 167
 Zilla Frame
     Frame Type ID: 0x00000001
     Frame Type: BEGIN
-    Protocol Type ID: 0x99f321bc
-    Protocol Type: tls
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
     Worker: 0
     Offset: 0x00000240
-    Origin ID: 0x000000090000000b
+    Origin ID: 0x000000090000000d
     Origin Namespace: example
-    Origin Binding: north_tcp_server
-    Routed ID: 0x000000090000000c
+    Origin Binding: north_http_server
+    Routed ID: 0x000000090000000e
     Routed Namespace: example
-    Routed Binding: north_tls_server
+    Routed Binding: north_http_kafka_mapping
     Stream ID: 0x0000000000000077
     Initial ID: 0x0000000000000077
     Reply ID: 0x0000000000000076
@@ -1305,7 +1305,7 @@ Zilla Frame
     Sequence: 301
     Acknowledge: 302
     Maximum: 3344
-    Timestamp: 0x0000000000000020
+    Timestamp: 0x000000000000001a
     Trace ID: 0x0000000000000011
     Authorization: 0x0000000000000000
     Budget ID: 0x0000000000000000
@@ -1357,7 +1357,7 @@ Zilla Frame
     Sequence: 501
     Acknowledge: 502
     Maximum: 5577
-    Timestamp: 0x0000000000000021
+    Timestamp: 0x000000000000001b
     Trace ID: 0x0000000000000011
     Authorization: 0x0000000000000000
     Extension: http
@@ -1406,7 +1406,7 @@ Zilla Frame
     Sequence: 742
     Acknowledge: 427
     Maximum: 60000
-    Timestamp: 0x0000000000000022
+    Timestamp: 0x000000000000001c
     Trace ID: 0x0000000000000011
     Authorization: 0x0000000000000000
     Extension: http
@@ -1455,7 +1455,7 @@ Zilla Frame
     Sequence: 0
     Acknowledge: 0
     Maximum: 0
-    Timestamp: 0x0000000000000023
+    Timestamp: 0x000000000000001d
     Trace ID: 0x0000000000000013
     Authorization: 0x0000000000000000
     Affinity: 0x0000000000000000
@@ -1479,26 +1479,26 @@ Zilla Frame
             Size: 3
         Metadata: [TEXT] grpc-accept-encoding: gzip
             Type: TEXT (0)
-            Length (Varint): 28
+            Length (varint32): 28
             Length: 20
             Name: grpc-accept-encoding
-            Length (Varint): 08
+            Length (varint32): 08
             Length: 4
             Value: gzip
         Metadata: [TEXT] metadata-2: hello
             Type: TEXT (0)
-            Length (Varint): 14
+            Length (varint32): 14
             Length: 10
             Name: metadata-2
-            Length (Varint): 0a
+            Length (varint32): 0a
             Length: 5
             Value: hello
         Metadata: [BASE64] metadata-3: 4242
             Type: BASE64 (1)
-            Length (Varint): 14
+            Length (varint32): 14
             Length: 10
             Name: metadata-3
-            Length (Varint): 08
+            Length (varint32): 08
             Length: 4
             Value: 4242
 
@@ -1526,7 +1526,7 @@ Zilla Frame
     Sequence: 0
     Acknowledge: 0
     Maximum: 0
-    Timestamp: 0x0000000000000024
+    Timestamp: 0x000000000000001e
     Trace ID: 0x0000000000000013
     Authorization: 0x0000000000000000
     Affinity: 0x0000000000000000
@@ -1550,18 +1550,18 @@ Zilla Frame
             Size: 2
         Metadata: [TEXT] long field: ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ
             Type: TEXT (0)
-            Length (Varint): 14
+            Length (varint32): 14
             Length: 10
             Name: long field
-            Length (Varint): 9003
+            Length (varint32): 9003
             Length: 200
             Value: ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ
         Metadata: [TEXT] metadata-2: hello
             Type: TEXT (0)
-            Length (Varint): 14
+            Length (varint32): 14
             Length: 10
             Name: metadata-2
-            Length (Varint): 0a
+            Length (varint32): 0a
             Length: 5
             Value: hello
 
@@ -1589,7 +1589,7 @@ Zilla Frame
     Sequence: 0
     Acknowledge: 0
     Maximum: 0
-    Timestamp: 0x0000000000000025
+    Timestamp: 0x000000000000001f
     Trace ID: 0x0000000000000013
     Authorization: 0x0000000000000000
     Flags: 0x03
@@ -1632,7 +1632,7 @@ Zilla Frame
     Sequence: 0
     Acknowledge: 0
     Maximum: 0
-    Timestamp: 0x0000000000000026
+    Timestamp: 0x0000000000000020
     Trace ID: 0x0000000000000013
     Authorization: 0x0000000000000000
     Flags: 0x03
@@ -1675,7 +1675,7 @@ Zilla Frame
     Sequence: 0
     Acknowledge: 0
     Maximum: 0
-    Timestamp: 0x0000000000000027
+    Timestamp: 0x0000000000000021
     Trace ID: 0x0000000000000013
     Authorization: 0x0000000000000000
     Flags: 0x03
@@ -1719,7 +1719,7 @@ Zilla Frame
     Sequence: 0
     Acknowledge: 0
     Maximum: 0
-    Timestamp: 0x0000000000000028
+    Timestamp: 0x0000000000000022
     Trace ID: 0x0000000000000013
     Authorization: 0x0000000000000000
     Extension: grpc
@@ -1753,7 +1753,7 @@ Zilla Frame
     Sequence: 0
     Acknowledge: 0
     Maximum: 0
-    Timestamp: 0x0000000000000029
+    Timestamp: 0x0000000000000023
     Trace ID: 0x0000000000000013
     Authorization: 0x0000000000000000
     Extension: grpc
@@ -1762,4 +1762,1698 @@ Zilla Frame
         Status: reset
             Length: 5
             Status: reset
+
+Frame 42: 267 bytes on wire (2136 bits), 267 bytes captured (2136 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::14, Dst: fe80::15
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 0, Ack: 1, Len: 193
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00001230
+    Origin ID: 0x000000090000001c
+    Origin Namespace: example
+    Origin Binding: north_sse_server
+    Routed ID: 0x000000090000001d
+    Routed Namespace: example
+    Routed Binding: south_sse_client
+    Stream ID: 0x0000000000000015
+    Initial ID: 0x0000000000000015
+    Reply ID: 0x0000000000000014
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000024
+    Trace ID: 0x0000000000000015
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+    Extension: sse
+        Stream Type ID: 0x2e9e4003
+        Stream Type: sse
+        Scheme: http
+            Length: 4
+            Scheme: http
+        Authority: localhost:7153
+            Length: 14
+            Authority: localhost:7153
+        Path: /hello
+            Length: 6
+            Path: /hello
+        Last ID: 
+            Length: -1
+            Last ID: 
+
+Frame 43: 273 bytes on wire (2184 bits), 273 bytes captured (2184 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::15, Dst: fe80::14
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1, Ack: 193, Len: 199
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x000012a8
+    Origin ID: 0x000000090000001c
+    Origin Namespace: example
+    Origin Binding: north_sse_server
+    Routed ID: 0x000000090000001d
+    Routed Namespace: example
+    Routed Binding: south_sse_client
+    Stream ID: 0x0000000000000014
+    Initial ID: 0x0000000000000015
+    Reply ID: 0x0000000000000014
+    Direction: REP
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000025
+    Trace ID: 0x0000000000000015
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+    Extension: sse
+        Stream Type ID: 0x2e9e4003
+        Stream Type: sse
+        Scheme: http
+            Length: 4
+            Scheme: http
+        Authority: localhost:7153
+            Length: 14
+            Authority: localhost:7153
+        Path: /hello
+            Length: 6
+            Path: /hello
+        Last ID: lastId
+            Length: 6
+            Last ID: lastId
+
+Frame 44: 261 bytes on wire (2088 bits), 261 bytes captured (2088 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::14, Dst: fe80::15
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 193, Ack: 200, Len: 187
+Zilla Frame
+    Frame Type ID: 0x00000002
+    Frame Type: DATA
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00001328
+    Origin ID: 0x000000090000001c
+    Origin Namespace: example
+    Origin Binding: north_sse_server
+    Routed ID: 0x000000090000001d
+    Routed Namespace: example
+    Routed Binding: south_sse_client
+    Stream ID: 0x0000000000000015
+    Initial ID: 0x0000000000000015
+    Reply ID: 0x0000000000000014
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000026
+    Trace ID: 0x0000000000000015
+    Authorization: 0x0000000000000000
+    Flags: 0x03
+        .... ...1 = FIN: Set (1)
+        .... ..1. = INIT: Set (1)
+        .... .0.. = INCOMPLETE: Not set (0)
+        .... 0... = SKIP: Not set (0)
+    Budget ID: 0x0000000000000015
+    Reserved: 66
+    Progress: 66
+    Progress/Maximum: 66/0
+    Payload
+        Length: -1
+    Extension: sse
+        Stream Type ID: 0x2e9e4003
+        Stream Type: sse
+        Timestamp: 0x0000000000000026
+        ID: id
+            Length: 2
+            ID: id
+        Type: type
+            Length: 4
+            Type: type
+
+Frame 45: 273 bytes on wire (2184 bits), 273 bytes captured (2184 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::15, Dst: fe80::14
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 200, Ack: 380, Len: 199
+Zilla Frame
+    Frame Type ID: 0x00000002
+    Frame Type: DATA
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x000013a0
+    Origin ID: 0x000000090000001c
+    Origin Namespace: example
+    Origin Binding: north_sse_server
+    Routed ID: 0x000000090000001d
+    Routed Namespace: example
+    Routed Binding: south_sse_client
+    Stream ID: 0x0000000000000014
+    Initial ID: 0x0000000000000015
+    Reply ID: 0x0000000000000014
+    Direction: REP
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000027
+    Trace ID: 0x0000000000000015
+    Authorization: 0x0000000000000000
+    Flags: 0x03
+        .... ...1 = FIN: Set (1)
+        .... ..1. = INIT: Set (1)
+        .... .0.. = INCOMPLETE: Not set (0)
+        .... 0... = SKIP: Not set (0)
+    Budget ID: 0x0000000000000015
+    Reserved: 66
+    Progress: 66
+    Progress/Maximum: 66/0
+    Payload
+        Length: 10
+        Payload
+    Extension: sse
+        Stream Type ID: 0x2e9e4003
+        Stream Type: sse
+        Timestamp: 0x0000000000000027
+        ID: 
+            Length: -1
+            ID: 
+        Type: fortytwo
+            Length: 8
+            Type: fortytwo
+
+Frame 46: 239 bytes on wire (1912 bits), 239 bytes captured (1912 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::15, Dst: fe80::14
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 399, Ack: 380, Len: 165
+Zilla Frame
+    Frame Type ID: 0x00000003
+    Frame Type: END
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00001420
+    Origin ID: 0x000000090000001c
+    Origin Namespace: example
+    Origin Binding: north_sse_server
+    Routed ID: 0x000000090000001d
+    Routed Namespace: example
+    Routed Binding: south_sse_client
+    Stream ID: 0x0000000000000014
+    Initial ID: 0x0000000000000015
+    Reply ID: 0x0000000000000014
+    Direction: REP
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000028
+    Trace ID: 0x0000000000000015
+    Authorization: 0x0000000000000000
+    Extension: sse
+        Stream Type ID: 0x2e9e4003
+        Stream Type: sse
+        Id: sse-end-id
+            Length: 10
+            ID: sse-end-id
+
+Frame 47: 268 bytes on wire (2144 bits), 268 bytes captured (2144 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::16, Dst: fe80::17
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 0, Ack: 1, Len: 194
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00001480
+    Origin ID: 0x000000090000001e
+    Origin Namespace: example
+    Origin Binding: north_ws_server
+    Routed ID: 0x000000090000001f
+    Routed Namespace: example
+    Routed Binding: north_echo_server
+    Stream ID: 0x0000000000000017
+    Initial ID: 0x0000000000000017
+    Reply ID: 0x0000000000000016
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000029
+    Trace ID: 0x0000000000000017
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+    Extension: ws
+        Stream Type ID: 0xe9cd9d56
+        Stream Type: ws
+        Protocol: echo
+            Length: 4
+            Protocol: echo
+        Scheme: http
+            Length: 4
+            Scheme: http
+        Authority: localhost:7114
+            Length: 14
+            Authority: localhost:7114
+        Path: /hello
+            Length: 6
+            Path: /hello
+
+Frame 48: 268 bytes on wire (2144 bits), 268 bytes captured (2144 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::17, Dst: fe80::16
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1, Ack: 194, Len: 194
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x000014f8
+    Origin ID: 0x000000090000001e
+    Origin Namespace: example
+    Origin Binding: north_ws_server
+    Routed ID: 0x000000090000001f
+    Routed Namespace: example
+    Routed Binding: north_echo_server
+    Stream ID: 0x0000000000000016
+    Initial ID: 0x0000000000000017
+    Reply ID: 0x0000000000000016
+    Direction: REP
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x000000000000002a
+    Trace ID: 0x0000000000000017
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+    Extension: ws
+        Stream Type ID: 0xe9cd9d56
+        Stream Type: ws
+        Protocol: echo
+            Length: 4
+            Protocol: echo
+        Scheme: http
+            Length: 4
+            Scheme: http
+        Authority: localhost:7114
+            Length: 14
+            Authority: localhost:7114
+        Path: /hello
+            Length: 6
+            Path: /hello
+
+Frame 49: 246 bytes on wire (1968 bits), 246 bytes captured (1968 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::16, Dst: fe80::17
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 194, Ack: 195, Len: 172
+Zilla Frame
+    Frame Type ID: 0x00000002
+    Frame Type: DATA
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00001570
+    Origin ID: 0x000000090000001e
+    Origin Namespace: example
+    Origin Binding: north_ws_server
+    Routed ID: 0x000000090000001f
+    Routed Namespace: example
+    Routed Binding: north_echo_server
+    Stream ID: 0x0000000000000017
+    Initial ID: 0x0000000000000017
+    Reply ID: 0x0000000000000016
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x000000000000002b
+    Trace ID: 0x0000000000000017
+    Authorization: 0x0000000000000000
+    Flags: 0x03
+        .... ...1 = FIN: Set (1)
+        .... ..1. = INIT: Set (1)
+        .... .0.. = INCOMPLETE: Not set (0)
+        .... 0... = SKIP: Not set (0)
+    Budget ID: 0x0000000000000017
+    Reserved: 66
+    Progress: 66
+    Progress/Maximum: 66/0
+    Payload
+        Length: -1
+    Extension: ws
+        Stream Type ID: 0xe9cd9d56
+        Stream Type: ws
+        Flags: 0x42
+
+Frame 50: 268 bytes on wire (2144 bits), 268 bytes captured (2144 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::17, Dst: fe80::16
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 195, Ack: 366, Len: 194
+Zilla Frame
+    Frame Type ID: 0x00000002
+    Frame Type: DATA
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x000015d8
+    Origin ID: 0x000000090000001e
+    Origin Namespace: example
+    Origin Binding: north_ws_server
+    Routed ID: 0x000000090000001f
+    Routed Namespace: example
+    Routed Binding: north_echo_server
+    Stream ID: 0x0000000000000016
+    Initial ID: 0x0000000000000017
+    Reply ID: 0x0000000000000016
+    Direction: REP
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x000000000000002c
+    Trace ID: 0x0000000000000017
+    Authorization: 0x0000000000000000
+    Flags: 0x03
+        .... ...1 = FIN: Set (1)
+        .... ..1. = INIT: Set (1)
+        .... .0.. = INCOMPLETE: Not set (0)
+        .... 0... = SKIP: Not set (0)
+    Budget ID: 0x0000000000000017
+    Reserved: 66
+    Progress: 66
+    Progress/Maximum: 66/0
+    Payload
+        Length: 16
+        Payload
+    Extension: ws
+        Stream Type ID: 0xe9cd9d56
+        Stream Type: ws
+        Flags: 0x33
+        Info: 427744332107
+
+Frame 51: 236 bytes on wire (1888 bits), 236 bytes captured (1888 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::16, Dst: fe80::17
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 366, Ack: 389, Len: 162
+Zilla Frame
+    Frame Type ID: 0x00000003
+    Frame Type: END
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00001650
+    Origin ID: 0x000000090000001e
+    Origin Namespace: example
+    Origin Binding: north_ws_server
+    Routed ID: 0x000000090000001f
+    Routed Namespace: example
+    Routed Binding: north_echo_server
+    Stream ID: 0x0000000000000017
+    Initial ID: 0x0000000000000017
+    Reply ID: 0x0000000000000016
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x000000000000002d
+    Trace ID: 0x0000000000000017
+    Authorization: 0x0000000000000000
+    Extension: ws
+        Stream Type ID: 0xe9cd9d56
+        Stream Type: ws
+        Code: 42
+        Reason: hello
+            Length: 5
+            Reason: hello
+
+Frame 52: 293 bytes on wire (2344 bits), 293 bytes captured (2344 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::18, Dst: fe80::19
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 0, Ack: 1, Len: 219
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x000016a8
+    Origin ID: 0x0000000900000020
+    Origin Namespace: example
+    Origin Binding: east_http_filesystem_mapping
+    Routed ID: 0x0000000900000021
+    Routed Namespace: example
+    Routed Binding: east_filesystem_server
+    Stream ID: 0x0000000000000019
+    Initial ID: 0x0000000000000019
+    Reply ID: 0x0000000000000018
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x000000000000002e
+    Trace ID: 0x0000000000000019
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+    Extension: filesystem
+        Stream Type ID: 0x9eaae6e4
+        Stream Type: filesystem
+        Capabilities: 0x00000007
+            .... .... .... .... .... .... .... ...1 = READ_PAYLOAD: Set (1)
+            .... .... .... .... .... .... .... ..1. = READ_EXTENSION: Set (1)
+            .... .... .... .... .... .... .... .1.. = READ_CHANGES: Set (1)
+        Path: /hello
+            Length: 6
+            Path: /hello
+        Type: type
+            Length: 4
+            Type: type
+        Payload Size: 42000000000
+        Tag: tag
+            Length: 3
+            Tag: tag
+        Timeout: 77
+
+Frame 53: 293 bytes on wire (2344 bits), 293 bytes captured (2344 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::19, Dst: fe80::18
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1, Ack: 219, Len: 219
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00001728
+    Origin ID: 0x0000000900000020
+    Origin Namespace: example
+    Origin Binding: east_http_filesystem_mapping
+    Routed ID: 0x0000000900000021
+    Routed Namespace: example
+    Routed Binding: east_filesystem_server
+    Stream ID: 0x0000000000000018
+    Initial ID: 0x0000000000000019
+    Reply ID: 0x0000000000000018
+    Direction: REP
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x000000000000002f
+    Trace ID: 0x0000000000000019
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+    Extension: filesystem
+        Stream Type ID: 0x9eaae6e4
+        Stream Type: filesystem
+        Capabilities: 0x00000002
+            .... .... .... .... .... .... .... ...0 = READ_PAYLOAD: Not set (0)
+            .... .... .... .... .... .... .... ..1. = READ_EXTENSION: Set (1)
+            .... .... .... .... .... .... .... .0.. = READ_CHANGES: Not set (0)
+        Path: /hello
+            Length: 6
+            Path: /hello
+        Type: type
+            Length: 4
+            Type: type
+        Payload Size: 0
+        Tag: tag
+            Length: 3
+            Tag: tag
+        Timeout: 0
+
+Frame 54: 368 bytes on wire (2944 bits), 368 bytes captured (2944 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::1b, Dst: fe80::1a
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1, Ack: 1, Len: 294
+Zilla Frame
+    Frame Type ID: 0x00000002
+    Frame Type: DATA
+    Protocol Type ID: 0x99f321bc
+    Protocol Type: tls
+    Worker: 0
+    Offset: 0x000017a8
+    Origin ID: 0x000000090000000b
+    Origin Namespace: example
+    Origin Binding: north_tcp_server
+    Routed ID: 0x000000090000000c
+    Routed Namespace: example
+    Routed Binding: north_tls_server
+    Stream ID: 0x000000000000001a
+    Initial ID: 0x000000000000001b
+    Reply ID: 0x000000000000001a
+    Direction: REP
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000030
+    Trace ID: 0x000000000000001a
+    Authorization: 0x0000000000000000
+    Flags: 0x03
+        .... ...1 = FIN: Set (1)
+        .... ..1. = INIT: Set (1)
+        .... .0.. = INCOMPLETE: Not set (0)
+        .... 0... = SKIP: Not set (0)
+    Budget ID: 0x000000000000001a
+    Reserved: 66
+    Progress: 66
+    Progress/Maximum: 66/0
+    Payload
+        Length: 127
+        Payload
+Transport Layer Security
+    TLSv1.2 Record Layer: Handshake Protocol: Server Hello
+        Content Type: Handshake (22)
+        Version: TLS 1.2 (0x0303)
+        Length: 122
+        Handshake Protocol: Server Hello
+            Handshake Type: Server Hello (2)
+            Length: 118
+            Version: TLS 1.2 (0x0303)
+            Random: 328f126a2dc67b1d107023f088ca43560c8b1535c9d7e1be8b217b60b8cefa32
+            Session ID Length: 32
+            Session ID: 9d830c3919bea4f53b3ace6b5f6837c9914c982f1421d3e162606c3eb5907c16
+            Cipher Suite: TLS_AES_256_GCM_SHA384 (0x1302)
+            Compression Method: null (0)
+            Extensions Length: 46
+            Extension: supported_versions (len=2) TLS 1.3
+                Type: supported_versions (43)
+                Length: 2
+                Supported Version: TLS 1.3 (0x0304)
+            Extension: key_share (len=36) x25519
+                Type: key_share (51)
+                Length: 36
+                Key Share extension
+                    Key Share Entry: Group: x25519, Key Exchange length: 32
+                        Group: x25519 (29)
+                        Key Exchange Length: 32
+                        Key Exchange: 1c00c791d3e7b6b5dc3f191be9e29a7e220e8ea695696b281e7f92e27a05f27e
+            [JA3S Fullstring: 771,4866,43-51]
+            [JA3S: 15af977ce25de452b96affa2addb1036]
+
+Frame 55: 260 bytes on wire (2080 bits), 260 bytes captured (2080 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::1a, Dst: fe80::1b
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 1, Ack: 295, Len: 186
+Zilla Frame
+    Frame Type ID: 0x00000002
+    Frame Type: DATA
+    Protocol Type ID: 0xd0d41a76
+    Protocol Type: mqtt
+    Worker: 0
+    Offset: 0x00001888
+    Origin ID: 0x000000090000000b
+    Origin Namespace: example
+    Origin Binding: north_tcp_server
+    Routed ID: 0x0000000900000022
+    Routed Namespace: example
+    Routed Binding: north_mqtt_server
+    Stream ID: 0x000000000000001b
+    Initial ID: 0x000000000000001b
+    Reply ID: 0x000000000000001a
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000031
+    Trace ID: 0x000000000000001b
+    Authorization: 0x0000000000000000
+    Flags: 0x03
+        .... ...1 = FIN: Set (1)
+        .... ..1. = INIT: Set (1)
+        .... .0.. = INCOMPLETE: Not set (0)
+        .... 0... = SKIP: Not set (0)
+    Budget ID: 0x000000000000001b
+    Reserved: 119
+    Progress: 119
+    Progress/Maximum: 119/0
+    Payload
+        Length: 18
+        Payload
+MQ Telemetry Transport Protocol, Connect Command
+    Header Flags: 0x10, Message Type: Connect Command
+        0001 .... = Message Type: Connect Command (1)
+        .... 0000 = Reserved: 0
+    Msg Len: 16
+    Protocol Name Length: 4
+    Protocol Name: MQTT
+    Version: MQTT v5.0 (5)
+    Connect Flags: 0x02, QoS Level: At most once delivery (Fire and Forget), Clean Session Flag
+        0... .... = User Name Flag: Not set
+        .0.. .... = Password Flag: Not set
+        ..0. .... = Will Retain: Not set
+        ...0 0... = QoS Level: At most once delivery (Fire and Forget) (0)
+        .... .0.. = Will Flag: Not set
+        .... ..1. = Clean Session Flag: Set
+        .... ...0 = (Reserved): Not set
+    Keep Alive: 60
+    Properties
+        Total Length: 3
+        ID: Receive Maximum (0x21)
+        Value: 20
+    Client ID Length: 0
+    Client ID: 
+
+Frame 56: 328 bytes on wire (2624 bits), 328 bytes captured (2624 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::1c, Dst: fe80::1d
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 1, Ack: 1, Len: 254
+Zilla Frame
+    Frame Type ID: 0x00000002
+    Frame Type: DATA
+    Protocol Type ID: 0x084b20e1
+    Protocol Type: kafka
+    Worker: 0
+    Offset: 0x000018f8
+    Origin ID: 0x0000000900000011
+    Origin Namespace: example
+    Origin Binding: south_kafka_client
+    Routed ID: 0x0000000900000012
+    Routed Namespace: example
+    Routed Binding: south_tcp_client
+    Stream ID: 0x000000000000001d
+    Initial ID: 0x000000000000001d
+    Reply ID: 0x000000000000001c
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000032
+    Trace ID: 0x000000000000001d
+    Authorization: 0x0000000000000000
+    Flags: 0x03
+        .... ...1 = FIN: Set (1)
+        .... ..1. = INIT: Set (1)
+        .... .0.. = INCOMPLETE: Not set (0)
+        .... 0... = SKIP: Not set (0)
+    Budget ID: 0x000000000000001d
+    Reserved: 136
+    Progress: 136
+    Progress/Maximum: 136/0
+    Payload
+        Length: 85
+        Payload
+Kafka (Fetch v5 Request)
+    Length: 81
+    API Key: Fetch (1)
+    API Version: 5
+    Correlation ID: 1
+    Client ID: zilla
+    Replica ID: -1
+    Max Wait Time: 0
+    Min Bytes: 1
+    Max Bytes: 52428800
+    Isolation Level: Read Uncommitted (0)
+    Topic (1 partitions)
+        Topic Name: items-responses
+        Partition (ID=0, Offset=0)
+            Partition ID: 0
+            Offset: 0
+            Log Start Offset: -1
+            Max Bytes: 52428800
+
+Frame 57: 318 bytes on wire (2544 bits), 318 bytes captured (2544 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::1d, Dst: fe80::1c
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1, Ack: 255, Len: 244
+Zilla Frame
+    Frame Type ID: 0x00000002
+    Frame Type: DATA
+    Protocol Type ID: 0x084b20e1
+    Protocol Type: kafka
+    Worker: 0
+    Offset: 0x000019b0
+    Origin ID: 0x0000000900000011
+    Origin Namespace: example
+    Origin Binding: south_kafka_client
+    Routed ID: 0x0000000900000012
+    Routed Namespace: example
+    Routed Binding: south_tcp_client
+    Stream ID: 0x000000000000001c
+    Initial ID: 0x000000000000001d
+    Reply ID: 0x000000000000001c
+    Direction: REP
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000033
+    Trace ID: 0x000000000000001d
+    Authorization: 0x0000000000000000
+    Flags: 0x03
+        .... ...1 = FIN: Set (1)
+        .... ..1. = INIT: Set (1)
+        .... .0.. = INCOMPLETE: Not set (0)
+        .... 0... = SKIP: Not set (0)
+    Budget ID: 0x000000000000001d
+    Reserved: 136
+    Progress: 136
+    Progress/Maximum: 136/0
+    Payload
+        Length: 75
+        Payload
+Kafka (Fetch v5 Response)
+    Length: 71
+    Correlation ID: 1
+    [Request Frame: 56]
+    [API Key: Fetch (1)]
+    [API Version: 5]
+    Throttle time: 0
+    Topic (1 partitions)
+        Topic Name: items-responses
+        Partition (ID=0, Offset=0)
+            Partition ID: 0
+            Error: No Error (0)
+            Offset: 0
+            Last Stable Offset: 0
+            Log Start Offset: 0
+            Aborted Transactions
+
+Frame 58: 266 bytes on wire (2128 bits), 266 bytes captured (2128 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::20, Dst: fe80::21
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 0, Ack: 1, Len: 192
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00001a58
+    Origin ID: 0x0000000900000022
+    Origin Namespace: example
+    Origin Binding: north_mqtt_server
+    Routed ID: 0x0000000900000023
+    Routed Namespace: example
+    Routed Binding: north_mqtt_kafka_mapping
+    Stream ID: 0x0000000000000021
+    Initial ID: 0x0000000000000021
+    Reply ID: 0x0000000000000020
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000034
+    Trace ID: 0x0000000000000021
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+    Extension: mqtt
+        Stream Type ID: 0x761ad4d0
+        Stream Type: mqtt
+        Kind: PUBLISH (0)
+        Client ID: client-id
+            Length: 9
+            Client ID: client-id
+        Topic: topic
+            Length: 5
+            Topic: topic
+        Flags: 0x00
+            .... ...0 = RETAIN: Not set (0)
+        QoS: AT_LEAST_ONCE (1)
+
+Frame 59: 266 bytes on wire (2128 bits), 266 bytes captured (2128 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::21, Dst: fe80::20
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1, Ack: 192, Len: 192
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00001ac8
+    Origin ID: 0x0000000900000022
+    Origin Namespace: example
+    Origin Binding: north_mqtt_server
+    Routed ID: 0x0000000900000023
+    Routed Namespace: example
+    Routed Binding: north_mqtt_kafka_mapping
+    Stream ID: 0x0000000000000020
+    Initial ID: 0x0000000000000021
+    Reply ID: 0x0000000000000020
+    Direction: REP
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000035
+    Trace ID: 0x0000000000000021
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+    Extension: mqtt
+        Stream Type ID: 0x761ad4d0
+        Stream Type: mqtt
+        Kind: PUBLISH (0)
+        Client ID: client-id
+            Length: 9
+            Client ID: client-id
+        Topic: topic
+            Length: 5
+            Topic: topic
+        Flags: 0x01
+            .... ...1 = RETAIN: Set (1)
+        QoS: EXACTLY_ONCE (2)
+
+Frame 60: 381 bytes on wire (3048 bits), 381 bytes captured (3048 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::20, Dst: fe80::21
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 192, Ack: 193, Len: 307
+Zilla Frame
+    Frame Type ID: 0x00000002
+    Frame Type: DATA
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00001b38
+    Origin ID: 0x0000000900000022
+    Origin Namespace: example
+    Origin Binding: north_mqtt_server
+    Routed ID: 0x0000000900000023
+    Routed Namespace: example
+    Routed Binding: north_mqtt_kafka_mapping
+    Stream ID: 0x0000000000000021
+    Initial ID: 0x0000000000000021
+    Reply ID: 0x0000000000000020
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000036
+    Trace ID: 0x0000000000000021
+    Authorization: 0x0000000000000000
+    Flags: 0x03
+        .... ...1 = FIN: Set (1)
+        .... ..1. = INIT: Set (1)
+        .... .0.. = INCOMPLETE: Not set (0)
+        .... 0... = SKIP: Not set (0)
+    Budget ID: 0x0000000000000021
+    Reserved: 0
+    Progress: 0
+    Progress/Maximum: 0/0
+    Payload
+        Length: 16
+        Payload
+    Extension: mqtt
+        Stream Type ID: 0x761ad4d0
+        Stream Type: mqtt
+        Kind: PUBLISH (0)
+        Deferred: 0
+        QoS: AT_LEAST_ONCE (1)
+        Flags: 0x00
+            .... ...0 = RETAIN: Not set (0)
+        Expiry Interval: 42
+        Content Type: Content Type
+            Length: 12
+            Content Type: Content Type
+        Payload Format: TEXT (1)
+        Response Topic: Response Topic
+            Length: 14
+            Response Topic: Response Topic
+        Correlation
+            Length: 11
+            Correlation: 436f7272656c6174696f6e
+        Properties (3 items)
+            Length: 50
+            Size: 3
+        Property: key1: value1
+            Key: key1
+                Length: 4
+                Key: key1
+            Value: value1
+                Length: 6
+                Value: value1
+        Property: key42: value42
+            Key: key42
+                Length: 5
+                Key: key42
+            Value: value42
+                Length: 7
+                Value: value42
+        Property: key77: value77
+            Key: key77
+                Length: 5
+                Key: key77
+            Value: value77
+                Length: 7
+                Value: value77
+
+Frame 61: 349 bytes on wire (2792 bits), 349 bytes captured (2792 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::21, Dst: fe80::20
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 193, Ack: 499, Len: 275
+Zilla Frame
+    Frame Type ID: 0x00000002
+    Frame Type: DATA
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00001c18
+    Origin ID: 0x0000000900000022
+    Origin Namespace: example
+    Origin Binding: north_mqtt_server
+    Routed ID: 0x0000000900000023
+    Routed Namespace: example
+    Routed Binding: north_mqtt_kafka_mapping
+    Stream ID: 0x0000000000000020
+    Initial ID: 0x0000000000000021
+    Reply ID: 0x0000000000000020
+    Direction: REP
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000037
+    Trace ID: 0x0000000000000021
+    Authorization: 0x0000000000000000
+    Flags: 0x03
+        .... ...1 = FIN: Set (1)
+        .... ..1. = INIT: Set (1)
+        .... .0.. = INCOMPLETE: Not set (0)
+        .... 0... = SKIP: Not set (0)
+    Budget ID: 0x0000000000000021
+    Reserved: 0
+    Progress: 0
+    Progress/Maximum: 0/0
+    Payload
+        Length: 16
+        Payload
+    Extension: mqtt
+        Stream Type ID: 0x761ad4d0
+        Stream Type: mqtt
+        Kind: PUBLISH (0)
+        Deferred: 0
+        QoS: EXACTLY_ONCE (2)
+        Flags: 0x01
+            .... ...1 = RETAIN: Set (1)
+        Expiry Interval: 77
+        Content Type: Content Type
+            Length: 12
+            Content Type: Content Type
+        Payload Format: BINARY (0)
+        Response Topic: Response Topic
+            Length: 14
+            Response Topic: Response Topic
+        Correlation
+            Length: 11
+            Correlation: 436f7272656c6174696f6e
+        Properties (1 items)
+            Length: 18
+            Size: 1
+        Property: key1: value1
+            Key: key1
+                Length: 4
+                Key: key1
+            Value: value1
+                Length: 6
+                Value: value1
+
+Frame 62: 338 bytes on wire (2704 bits), 338 bytes captured (2704 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::22, Dst: fe80::23
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 0, Ack: 1, Len: 264
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00001cd8
+    Origin ID: 0x0000000900000022
+    Origin Namespace: example
+    Origin Binding: north_mqtt_server
+    Routed ID: 0x0000000900000023
+    Routed Namespace: example
+    Routed Binding: north_mqtt_kafka_mapping
+    Stream ID: 0x0000000000000023
+    Initial ID: 0x0000000000000023
+    Reply ID: 0x0000000000000022
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000038
+    Trace ID: 0x0000000000000023
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+    Extension: mqtt
+        Stream Type ID: 0x761ad4d0
+        Stream Type: mqtt
+        Kind: SUBSCRIBE (1)
+        Client ID: client-id
+            Length: 9
+            Client ID: client-id
+        QoS: AT_LEAST_ONCE (1)
+        Topic Filters (4 items)
+            Length: 76
+            Size: 4
+        Topic Filter: pattern-1
+            Subscription ID: 0x00000000
+            QoS: AT_MOST_ONCE (0)
+            Flags: 0x00
+                .... ...0 = SEND_RETAINED: Not set (0)
+                .... ..0. = RETAIN_AS_PUBLISHED: Not set (0)
+                .... .0.. = NO_LOCAL: Not set (0)
+                .... 0... = RETAIN: Not set (0)
+            Reason Code: 0
+            Pattern: pattern-1
+                Length: 9
+                Pattern: pattern-1
+        Topic Filter: pattern-2
+            Subscription ID: 0x00000042
+            QoS: AT_MOST_ONCE (0)
+            Flags: 0x03
+                .... ...1 = SEND_RETAINED: Set (1)
+                .... ..1. = RETAIN_AS_PUBLISHED: Set (1)
+                .... .0.. = NO_LOCAL: Not set (0)
+                .... 0... = RETAIN: Not set (0)
+            Reason Code: 0
+            Pattern: pattern-2
+                Length: 9
+                Pattern: pattern-2
+        Topic Filter: pattern-3
+            Subscription ID: 0x00000077
+            QoS: AT_LEAST_ONCE (1)
+            Flags: 0x0c
+                .... ...0 = SEND_RETAINED: Not set (0)
+                .... ..0. = RETAIN_AS_PUBLISHED: Not set (0)
+                .... .1.. = NO_LOCAL: Set (1)
+                .... 1... = RETAIN: Set (1)
+            Reason Code: 0
+            Pattern: pattern-3
+                Length: 9
+                Pattern: pattern-3
+        Topic Filter: pattern-4
+            Subscription ID: 0x00000000
+            QoS: AT_MOST_ONCE (0)
+            Flags: 0x00
+                .... ...0 = SEND_RETAINED: Not set (0)
+                .... ..0. = RETAIN_AS_PUBLISHED: Not set (0)
+                .... .0.. = NO_LOCAL: Not set (0)
+                .... 0... = RETAIN: Not set (0)
+            Reason Code: 0
+            Pattern: pattern-4
+                Length: 9
+                Pattern: pattern-4
+
+Frame 63: 338 bytes on wire (2704 bits), 338 bytes captured (2704 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::23, Dst: fe80::22
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1, Ack: 264, Len: 264
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00001d90
+    Origin ID: 0x0000000900000022
+    Origin Namespace: example
+    Origin Binding: north_mqtt_server
+    Routed ID: 0x0000000900000023
+    Routed Namespace: example
+    Routed Binding: north_mqtt_kafka_mapping
+    Stream ID: 0x0000000000000022
+    Initial ID: 0x0000000000000023
+    Reply ID: 0x0000000000000022
+    Direction: REP
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000039
+    Trace ID: 0x0000000000000023
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+    Extension: mqtt
+        Stream Type ID: 0x761ad4d0
+        Stream Type: mqtt
+        Kind: SUBSCRIBE (1)
+        Client ID: client-id
+            Length: 9
+            Client ID: client-id
+        QoS: EXACTLY_ONCE (2)
+        Topic Filters (4 items)
+            Length: 76
+            Size: 4
+        Topic Filter: pattern-1
+            Subscription ID: 0x00000000
+            QoS: AT_MOST_ONCE (0)
+            Flags: 0x00
+                .... ...0 = SEND_RETAINED: Not set (0)
+                .... ..0. = RETAIN_AS_PUBLISHED: Not set (0)
+                .... .0.. = NO_LOCAL: Not set (0)
+                .... 0... = RETAIN: Not set (0)
+            Reason Code: 0
+            Pattern: pattern-1
+                Length: 9
+                Pattern: pattern-1
+        Topic Filter: pattern-2
+            Subscription ID: 0x00000021
+            QoS: EXACTLY_ONCE (2)
+            Flags: 0x00
+                .... ...0 = SEND_RETAINED: Not set (0)
+                .... ..0. = RETAIN_AS_PUBLISHED: Not set (0)
+                .... .0.. = NO_LOCAL: Not set (0)
+                .... 0... = RETAIN: Not set (0)
+            Reason Code: 0
+            Pattern: pattern-2
+                Length: 9
+                Pattern: pattern-2
+        Topic Filter: pattern-3
+            Subscription ID: 0x00000071
+            QoS: AT_LEAST_ONCE (1)
+            Flags: 0x0f
+                .... ...1 = SEND_RETAINED: Set (1)
+                .... ..1. = RETAIN_AS_PUBLISHED: Set (1)
+                .... .1.. = NO_LOCAL: Set (1)
+                .... 1... = RETAIN: Set (1)
+            Reason Code: 0
+            Pattern: pattern-3
+                Length: 9
+                Pattern: pattern-3
+        Topic Filter: pattern-4
+            Subscription ID: 0x00000081
+            QoS: AT_MOST_ONCE (0)
+            Flags: 0x00
+                .... ...0 = SEND_RETAINED: Not set (0)
+                .... ..0. = RETAIN_AS_PUBLISHED: Not set (0)
+                .... .0.. = NO_LOCAL: Not set (0)
+                .... 0... = RETAIN: Not set (0)
+            Reason Code: 0
+            Pattern: pattern-4
+                Length: 9
+                Pattern: pattern-4
+
+Frame 64: 396 bytes on wire (3168 bits), 396 bytes captured (3168 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::22, Dst: fe80::23
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 264, Ack: 265, Len: 322
+Zilla Frame
+    Frame Type ID: 0x00000002
+    Frame Type: DATA
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00001e48
+    Origin ID: 0x0000000900000022
+    Origin Namespace: example
+    Origin Binding: north_mqtt_server
+    Routed ID: 0x0000000900000023
+    Routed Namespace: example
+    Routed Binding: north_mqtt_kafka_mapping
+    Stream ID: 0x0000000000000023
+    Initial ID: 0x0000000000000023
+    Reply ID: 0x0000000000000022
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x000000000000003a
+    Trace ID: 0x0000000000000023
+    Authorization: 0x0000000000000000
+    Flags: 0x03
+        .... ...1 = FIN: Set (1)
+        .... ..1. = INIT: Set (1)
+        .... .0.. = INCOMPLETE: Not set (0)
+        .... 0... = SKIP: Not set (0)
+    Budget ID: 0x0000000000000023
+    Reserved: 0
+    Progress: 0
+    Progress/Maximum: 0/0
+    Payload
+        Length: 16
+        Payload
+    Extension: mqtt
+        Stream Type ID: 0x761ad4d0
+        Stream Type: mqtt
+        Kind: SUBSCRIBE (1)
+        Deferred: 0
+        Topic: topic
+            Length: 5
+            Topic: topic
+        Packet ID: 0x0021
+        QoS: AT_LEAST_ONCE (1)
+        Flags: 0x00
+            .... ...0 = RETAIN: Not set (0)
+        Subscription IDs (5 items)
+            Length: 18
+            Size: 5
+        Subscription ID: 13
+            Subscription ID (varuint32): 0d
+            Subscription ID: 13
+        Subscription ID: 42000
+            Subscription ID (varuint32): 90c802
+            Subscription ID: 42000
+        Subscription ID: 42000024
+            Subscription ID (varuint32): 98bd8314
+            Subscription ID: 42000024
+        Subscription ID: 2147483647
+            Subscription ID (varuint32): ffffffff07
+            Subscription ID: 2147483647
+        Subscription ID: 0
+            Subscription ID (varuint32): 00
+            Subscription ID: 0
+        Expiry Interval: 42
+        Content Type: Content Type
+            Length: 12
+            Content Type: Content Type
+        Payload Format: NONE (2)
+        Response Topic: Response Topic
+            Length: 14
+            Response Topic: Response Topic
+        Correlation
+            Length: 11
+            Correlation: 436f7272656c6174696f6e
+        Properties (2 items)
+            Length: 34
+            Size: 2
+        Property: key1: value1
+            Key: key1
+                Length: 4
+                Key: key1
+            Value: value1
+                Length: 6
+                Value: value1
+        Property: key42: value42
+            Key: key42
+                Length: 5
+                Key: key42
+            Value: value42
+                Length: 7
+                Value: value42
+
+Frame 65: 387 bytes on wire (3096 bits), 387 bytes captured (3096 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::23, Dst: fe80::22
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 265, Ack: 586, Len: 313
+Zilla Frame
+    Frame Type ID: 0x00000002
+    Frame Type: DATA
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00001f38
+    Origin ID: 0x0000000900000022
+    Origin Namespace: example
+    Origin Binding: north_mqtt_server
+    Routed ID: 0x0000000900000023
+    Routed Namespace: example
+    Routed Binding: north_mqtt_kafka_mapping
+    Stream ID: 0x0000000000000022
+    Initial ID: 0x0000000000000023
+    Reply ID: 0x0000000000000022
+    Direction: REP
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x000000000000003b
+    Trace ID: 0x0000000000000023
+    Authorization: 0x0000000000000000
+    Flags: 0x03
+        .... ...1 = FIN: Set (1)
+        .... ..1. = INIT: Set (1)
+        .... .0.. = INCOMPLETE: Not set (0)
+        .... 0... = SKIP: Not set (0)
+    Budget ID: 0x0000000000000023
+    Reserved: 0
+    Progress: 0
+    Progress/Maximum: 0/0
+    Payload
+        Length: 16
+        Payload
+    Extension: mqtt
+        Stream Type ID: 0x761ad4d0
+        Stream Type: mqtt
+        Kind: SUBSCRIBE (1)
+        Deferred: 0
+        Topic: topic
+            Length: 5
+            Topic: topic
+        Packet ID: 0x0042
+        QoS: EXACTLY_ONCE (2)
+        Flags: 0x01
+            .... ...1 = RETAIN: Set (1)
+        Subscription IDs (1 items)
+            Length: 9
+            Size: 1
+        Subscription ID: 777777777
+            Subscription ID (varuint32): f1e4eff202
+            Subscription ID: 777777777
+        Expiry Interval: 21
+        Content Type: Content Type
+            Length: 12
+            Content Type: Content Type
+        Payload Format: BINARY (0)
+        Response Topic: Response Topic
+            Length: 14
+            Response Topic: Response Topic
+        Correlation
+            Length: 11
+            Correlation: 436f7272656c6174696f6e
+        Properties (2 items)
+            Length: 34
+            Size: 2
+        Property: key1: value1
+            Key: key1
+                Length: 4
+                Key: key1
+            Value: value1
+                Length: 6
+                Value: value1
+        Property: key42: value42
+            Key: key42
+                Length: 5
+                Key: key42
+            Value: value42
+                Length: 7
+                Value: value42
+
+Frame 66: 279 bytes on wire (2232 bits), 279 bytes captured (2232 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::22, Dst: fe80::23
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 586, Ack: 578, Len: 205
+Zilla Frame
+    Frame Type ID: 0x00000005
+    Frame Type: FLUSH
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00002020
+    Origin ID: 0x0000000900000022
+    Origin Namespace: example
+    Origin Binding: north_mqtt_server
+    Routed ID: 0x0000000900000023
+    Routed Namespace: example
+    Routed Binding: north_mqtt_kafka_mapping
+    Stream ID: 0x0000000000000023
+    Initial ID: 0x0000000000000023
+    Reply ID: 0x0000000000000022
+    Direction: INI
+    Sequence: 401
+    Acknowledge: 402
+    Maximum: 7777
+    Timestamp: 0x000000000000003c
+    Trace ID: 0x0000000000000023
+    Authorization: 0x0000000000000000
+    Budget ID: 0x0000000000000000
+    Reserved: 0
+    Extension: mqtt
+        Stream Type ID: 0x761ad4d0
+        Stream Type: mqtt
+        Kind: SUBSCRIBE (1)
+        QoS: EXACTLY_ONCE (2)
+        Packet ID: 0x4221
+        State: INCOMPLETE (1)
+        Topic Filters (1 items)
+            Length: 21
+            Size: 1
+        Topic Filter: filter-1
+            Subscription ID: 0x00000042
+            QoS: AT_MOST_ONCE (0)
+            Flags: 0x00
+                .... ...0 = SEND_RETAINED: Not set (0)
+                .... ..0. = RETAIN_AS_PUBLISHED: Not set (0)
+                .... .0.. = NO_LOCAL: Not set (0)
+                .... 0... = RETAIN: Not set (0)
+            Reason Code: 0
+            Pattern: filter-1
+                Length: 8
+                Pattern: filter-1
+
+Frame 67: 281 bytes on wire (2248 bits), 281 bytes captured (2248 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::22, Dst: fe80::23
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 791, Ack: 578, Len: 207
+Zilla Frame
+    Frame Type ID: 0x00000005
+    Frame Type: FLUSH
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x000020a0
+    Origin ID: 0x0000000900000022
+    Origin Namespace: example
+    Origin Binding: north_mqtt_server
+    Routed ID: 0x0000000900000023
+    Routed Namespace: example
+    Routed Binding: north_mqtt_kafka_mapping
+    Stream ID: 0x0000000000000023
+    Initial ID: 0x0000000000000023
+    Reply ID: 0x0000000000000022
+    Direction: INI
+    Sequence: 401
+    Acknowledge: 402
+    Maximum: 7777
+    Timestamp: 0x000000000000003d
+    Trace ID: 0x0000000000000023
+    Authorization: 0x0000000000000000
+    Budget ID: 0x0000000000000000
+    Reserved: 0
+    Extension: mqtt
+        Stream Type ID: 0x761ad4d0
+        Stream Type: mqtt
+        Kind: SUBSCRIBE (1)
+        QoS: AT_MOST_ONCE (0)
+        Packet ID: 0x2117
+        State: COMPLETE (0)
+        Topic Filters (1 items)
+            Length: 23
+            Size: 1
+        Topic Filter: pattern-77
+            Subscription ID: 0x00000077
+            QoS: AT_LEAST_ONCE (1)
+            Flags: 0x0f
+                .... ...1 = SEND_RETAINED: Set (1)
+                .... ..1. = RETAIN_AS_PUBLISHED: Set (1)
+                .... .1.. = NO_LOCAL: Set (1)
+                .... 1... = RETAIN: Set (1)
+            Reason Code: 0
+            Pattern: pattern-77
+                Length: 10
+                Pattern: pattern-77
+
+Frame 68: 264 bytes on wire (2112 bits), 264 bytes captured (2112 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::22, Dst: fe80::23
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 998, Ack: 578, Len: 190
+Zilla Frame
+    Frame Type ID: 0x40000001
+    Frame Type: RESET
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00002120
+    Origin ID: 0x0000000900000022
+    Origin Namespace: example
+    Origin Binding: north_mqtt_server
+    Routed ID: 0x0000000900000023
+    Routed Namespace: example
+    Routed Binding: north_mqtt_kafka_mapping
+    Stream ID: 0x0000000000000023
+    Initial ID: 0x0000000000000023
+    Reply ID: 0x0000000000000022
+    Direction: INI
+    Sequence: 501
+    Acknowledge: 502
+    Maximum: 8888
+    Timestamp: 0x000000000000003e
+    Trace ID: 0x0000000000000023
+    Authorization: 0x0000000000000000
+    Extension: mqtt
+        Stream Type ID: 0x761ad4d0
+        Stream Type: mqtt
+        Server Reference: Server Reference
+            Length: 16
+            Value: Server Reference
+        Reason Code: 42
+        Reason: Reason
+            Length: 6
+            Value: Reason
+
+Frame 69: 269 bytes on wire (2152 bits), 269 bytes captured (2152 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::24, Dst: fe80::25
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 0, Ack: 1, Len: 195
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00002190
+    Origin ID: 0x0000000900000022
+    Origin Namespace: example
+    Origin Binding: north_mqtt_server
+    Routed ID: 0x0000000900000023
+    Routed Namespace: example
+    Routed Binding: north_mqtt_kafka_mapping
+    Stream ID: 0x0000000000000025
+    Initial ID: 0x0000000000000025
+    Reply ID: 0x0000000000000024
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x000000000000003f
+    Trace ID: 0x0000000000000025
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+    Extension: mqtt
+        Stream Type ID: 0x761ad4d0
+        Stream Type: mqtt
+        Kind: SESSION (2)
+        Flags: 0x02
+            .... ..1. = CLEAN_START: Set (1)
+            .... .0.. = WILL: Not set (0)
+        Expiry: 42
+        QoS Maximum: 2
+        Packet Size Maximum: 42000
+        Capabilities: 0x01
+            .... ...1 = RETAIN: Set (1)
+            .... ..0. = WILDCARD: Not set (0)
+            .... .0.. = SUBSCRIPTION_IDS: Not set (0)
+            .... 0... = SHARED_SUBSCRIPTIONS: Not set (0)
+        Client ID: client-id
+            Length: 9
+            Client ID: client-id
+
+Frame 70: 269 bytes on wire (2152 bits), 269 bytes captured (2152 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::25, Dst: fe80::24
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1, Ack: 195, Len: 195
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00002200
+    Origin ID: 0x0000000900000022
+    Origin Namespace: example
+    Origin Binding: north_mqtt_server
+    Routed ID: 0x0000000900000023
+    Routed Namespace: example
+    Routed Binding: north_mqtt_kafka_mapping
+    Stream ID: 0x0000000000000024
+    Initial ID: 0x0000000000000025
+    Reply ID: 0x0000000000000024
+    Direction: REP
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000040
+    Trace ID: 0x0000000000000025
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+    Extension: mqtt
+        Stream Type ID: 0x761ad4d0
+        Stream Type: mqtt
+        Kind: SESSION (2)
+        Flags: 0x06
+            .... ..1. = CLEAN_START: Set (1)
+            .... .1.. = WILL: Set (1)
+        Expiry: 42
+        QoS Maximum: 2
+        Packet Size Maximum: 42000
+        Capabilities: 0x0f
+            .... ...1 = RETAIN: Set (1)
+            .... ..1. = WILDCARD: Set (1)
+            .... .1.. = SUBSCRIPTION_IDS: Set (1)
+            .... 1... = SHARED_SUBSCRIPTIONS: Set (1)
+        Client ID: client-id
+            Length: 9
+            Client ID: client-id
+
+Frame 71: 276 bytes on wire (2208 bits), 276 bytes captured (2208 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::24, Dst: fe80::25
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 195, Ack: 196, Len: 202
+Zilla Frame
+    Frame Type ID: 0x00000002
+    Frame Type: DATA
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00002270
+    Origin ID: 0x0000000900000022
+    Origin Namespace: example
+    Origin Binding: north_mqtt_server
+    Routed ID: 0x0000000900000023
+    Routed Namespace: example
+    Routed Binding: north_mqtt_kafka_mapping
+    Stream ID: 0x0000000000000025
+    Initial ID: 0x0000000000000025
+    Reply ID: 0x0000000000000024
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000041
+    Trace ID: 0x0000000000000025
+    Authorization: 0x0000000000000000
+    Flags: 0x03
+        .... ...1 = FIN: Set (1)
+        .... ..1. = INIT: Set (1)
+        .... .0.. = INCOMPLETE: Not set (0)
+        .... 0... = SKIP: Not set (0)
+    Budget ID: 0x0000000000000025
+    Reserved: 0
+    Progress: 0
+    Progress/Maximum: 0/0
+    Payload
+        Length: 20
+        Payload
+    Extension: mqtt
+        Stream Type ID: 0x761ad4d0
+        Stream Type: mqtt
+        Kind: SESSION (2)
+        Data Kind: STATE (0x00)
+
+Frame 72: 276 bytes on wire (2208 bits), 276 bytes captured (2208 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::25, Dst: fe80::24
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 196, Ack: 397, Len: 202
+Zilla Frame
+    Frame Type ID: 0x00000002
+    Frame Type: DATA
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x000022e8
+    Origin ID: 0x0000000900000022
+    Origin Namespace: example
+    Origin Binding: north_mqtt_server
+    Routed ID: 0x0000000900000023
+    Routed Namespace: example
+    Routed Binding: north_mqtt_kafka_mapping
+    Stream ID: 0x0000000000000024
+    Initial ID: 0x0000000000000025
+    Reply ID: 0x0000000000000024
+    Direction: REP
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000042
+    Trace ID: 0x0000000000000025
+    Authorization: 0x0000000000000000
+    Flags: 0x03
+        .... ...1 = FIN: Set (1)
+        .... ..1. = INIT: Set (1)
+        .... .0.. = INCOMPLETE: Not set (0)
+        .... 0... = SKIP: Not set (0)
+    Budget ID: 0x0000000000000025
+    Reserved: 0
+    Progress: 0
+    Progress/Maximum: 0/0
+    Payload
+        Length: 20
+        Payload
+    Extension: mqtt
+        Stream Type ID: 0x761ad4d0
+        Stream Type: mqtt
+        Kind: SESSION (2)
+        Data Kind: WILL (0x01)
 

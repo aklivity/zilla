@@ -15,8 +15,11 @@
  */
 package io.aklivity.zilla.runtime.binding.tls.internal.config;
 
+import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import org.agrona.collections.IntHashSet;
 
 import io.aklivity.zilla.runtime.binding.tls.config.TlsConditionConfig;
 
@@ -24,20 +27,30 @@ public final class TlsConditionMatcher
 {
     public final Matcher authorityMatch;
     public final Matcher alpnMatch;
+    public final IntHashSet ports;
 
     public TlsConditionMatcher(
         TlsConditionConfig condition)
     {
         this.authorityMatch = condition.authority != null ? asMatcher(condition.authority) : null;
         this.alpnMatch = condition.alpn != null ? asMatcher(condition.alpn) : null;
+        this.ports = condition.ports != null ? asIntHashSet(condition.ports) : null;
     }
 
     public boolean matches(
         String authority,
-        String alpn)
+        String alpn,
+        int port)
     {
         return matchesAuthority(authority) &&
-                matchesAlpn(alpn);
+                matchesAlpn(alpn) &&
+                matchesPort(port);
+    }
+
+    public boolean matchesPortOnly(
+        int port)
+    {
+        return matchesPort(port);
     }
 
     private boolean matchesAuthority(
@@ -52,9 +65,23 @@ public final class TlsConditionMatcher
         return alpnMatch == null || alpn != null && alpnMatch.reset(alpn).matches();
     }
 
+    private boolean matchesPort(
+        int port)
+    {
+        return ports == null || ports.contains(port);
+    }
+
     private static Matcher asMatcher(
         String wildcard)
     {
         return Pattern.compile(wildcard.replace(".", "\\.").replace("*", ".*")).matcher("");
+    }
+
+    private static IntHashSet asIntHashSet(
+        int[] ports)
+    {
+        IntHashSet set = new IntHashSet(ports.length);
+        Arrays.stream(ports).forEach(set::add);
+        return set;
     }
 }

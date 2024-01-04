@@ -75,6 +75,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/connection.established.with.port/client",
+        "${app}/connection.established.with.port/server"})
+    public void shouldEstablishConnectionWithPort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/connection.established/client",
         "${app}/connection.established/server"})
     @ScriptProperty("authorization 0x0001_000000000000L")

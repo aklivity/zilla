@@ -299,51 +299,58 @@ public final class ZillaDumpCommand extends ZillaCommand
             .forEach(filtered::add);
         final LongPredicate filter = filtered.isEmpty() ? b -> true : filtered::contains;
 
-        try (Stream<Path> files = Files.walk(directory, 3);
-             WritableByteChannel writer = Files.newByteChannel(output, CREATE, WRITE, TRUNCATE_EXISTING))
+        if (output != null)
         {
-            final RingBufferSpy[] streamBuffers = files
-                .filter(this::isStreamsFile)
-                .sorted()
-                .peek(this::onDiscovered)
-                .map(this::createStreamBuffer)
-                .collect(Collectors.toList())
-                .toArray(RingBufferSpy[]::new);
-            final int streamBufferCount = streamBuffers.length;
-
-            final IdleStrategy idleStrategy = new BackoffIdleStrategy(MAX_SPINS, MAX_YIELDS, MIN_PARK_NS, MAX_PARK_NS);
-            final BindingsLayoutReader bindings = BindingsLayoutReader.builder().directory(directory).build();
-            final DumpHandler[] dumpHandlers = new DumpHandler[streamBufferCount];
-            for (int i = 0; i < streamBufferCount; i++)
+            try (Stream<Path> files = Files.walk(directory, 3);
+                 WritableByteChannel writer = Files.newByteChannel(output, CREATE, WRITE, TRUNCATE_EXISTING))
             {
-                dumpHandlers[i] = new DumpHandler(i, filter, labels::lookupLabel, bindings.bindings()::get, writer);
-            }
+                final RingBufferSpy[] streamBuffers = files
+                    .filter(this::isStreamsFile)
+                    .sorted()
+                    .peek(this::onDiscovered)
+                    .map(this::createStreamBuffer)
+                    .collect(Collectors.toList())
+                    .toArray(RingBufferSpy[]::new);
+                final int streamBufferCount = streamBuffers.length;
 
-            final MutableDirectBuffer buffer = writeBuffer;
-            encodePcapGlobal(buffer);
-            writePcapOutput(writer, buffer, 0, PCAP_GLOBAL_SIZE);
-
-            final int exitWorkCount = continuous ? -1 : 0;
-            int workCount;
-            do
-            {
-                workCount = 0;
+                final IdleStrategy idleStrategy = new BackoffIdleStrategy(MAX_SPINS, MAX_YIELDS, MIN_PARK_NS, MAX_PARK_NS);
+                final BindingsLayoutReader bindings = BindingsLayoutReader.builder().directory(directory).build();
+                final DumpHandler[] dumpHandlers = new DumpHandler[streamBufferCount];
                 for (int i = 0; i < streamBufferCount; i++)
                 {
-                    final RingBufferSpy streamBuffer = streamBuffers[i];
-                    MessagePredicate spyHandler = dumpHandlers[i]::handleFrame;
-                    workCount += streamBuffer.spy(spyHandler, 1);
+                    dumpHandlers[i] = new DumpHandler(i, filter, labels::lookupLabel, bindings.bindings()::get, writer);
                 }
-                idleStrategy.idle(workCount);
-            } while (workCount != exitWorkCount);
-        }
-        catch (Exception ex)
-        {
-            if (exceptions)
-            {
-                ex.printStackTrace();
+
+                final MutableDirectBuffer buffer = writeBuffer;
+                encodePcapGlobal(buffer);
+                writePcapOutput(writer, buffer, 0, PCAP_GLOBAL_SIZE);
+
+                final int exitWorkCount = continuous ? -1 : 0;
+                int workCount;
+                do
+                {
+                    workCount = 0;
+                    for (int i = 0; i < streamBufferCount; i++)
+                    {
+                        final RingBufferSpy streamBuffer = streamBuffers[i];
+                        MessagePredicate spyHandler = dumpHandlers[i]::handleFrame;
+                        workCount += streamBuffer.spy(spyHandler, 1);
+                    }
+                    idleStrategy.idle(workCount);
+                } while (workCount != exitWorkCount);
             }
-            rethrowUnchecked(ex);
+            catch (Exception ex)
+            {
+                if (exceptions)
+                {
+                    ex.printStackTrace();
+                }
+                rethrowUnchecked(ex);
+            }
+        }
+        else if (verbose)
+        {
+            System.out.println("Output file not specified, exiting now.");
         }
     }
 

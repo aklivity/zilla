@@ -33,6 +33,7 @@ public final class KafkaGrpcFetchHeaderHelper
     private final OctetsFW methodRO = new OctetsFW();
     private final OctetsFW replyToRO = new OctetsFW();
     private final OctetsFW correlatedIdRO = new OctetsFW();
+
     public int partitionId;
     public long partitionOffset;
 

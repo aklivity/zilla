@@ -1733,6 +1733,12 @@ public final class KafkaMergedFactory implements BindingHandler
                 produceStreams.forEach(p -> initialNoAckRW.value = Math.max(p.initialNoAck(), initialNoAckRW.value));
                 produceStreams.forEach(p -> initialPadRW.value = Math.max(p.initialPad, initialPadRW.value));
                 produceStreams.forEach(p -> initialMaxRW.value = Math.min(p.initialMax, initialMaxRW.value));
+
+                if (producer != null)
+                {
+                    initialMaxRW.value = Math.max(producer.initialMax, initialMaxRW.value);
+                }
+
                 maxInitialNoAck = initialNoAckRW.value;
                 maxInitialPad = initialPadRW.value;
                 minInitialMax = initialMaxRW.value;
