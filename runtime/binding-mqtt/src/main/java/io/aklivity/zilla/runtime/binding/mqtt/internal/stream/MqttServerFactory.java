@@ -3176,7 +3176,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 if (!unreleasedPacketIds.contains(packetId))
                 {
-                    if (mqttPublishHeaderRO.qos == 2)
+                    if (mqttPublishHeaderRO.qos == 2 && (mqttPublishHeaderRO.flags & FLAG_FIN) != 0)
                     {
                         unreleasedPacketIds.add(packetId);
                     }
@@ -3625,7 +3625,6 @@ public final class MqttServerFactory implements MqttStreamFactory
                                 int qos = level;
                                 MqttSubscribeStream stream = routeSubscribes.computeIfAbsent(qos,
                                     s -> new MqttSubscribeStream(routedId, key, implicitSubscribe, qos));
-                                stream.packetId = packetId;
                                 subscriptionList.removeIf(s -> s.reasonCode > GRANTED_QOS_2);
                                 stream.doSubscribeBeginOrFlush(traceId, affinity, subscriptionList);
                             }
@@ -4061,7 +4060,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                             .build();
 
                     int limit = DataFW.FIELD_OFFSET_PAYLOAD + publish.sizeof();
-                    writeBuffer.putBytes(limit, payload.buffer(), payload.offset(), payload.limit());
+                    writeBuffer.putBytes(limit, payload.buffer(), payload.offset(), payload.sizeof());
                     limit += payload.sizeof();
                     doNetworkData(traceId, authorization, 0L, writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, limit);
                 }
@@ -4077,7 +4076,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                             .build();
 
                     int limit = DataFW.FIELD_OFFSET_PAYLOAD + publish.sizeof();
-                    writeBuffer.putBytes(limit, payload.buffer(), payload.offset(), payload.limit());
+                    writeBuffer.putBytes(limit, payload.buffer(), payload.offset(), payload.sizeof());
                     limit += payload.sizeof();
                     doNetworkData(traceId, authorization, 0L, writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, limit);
                 }
@@ -4218,7 +4217,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                             .build();
 
                     int limit = DataFW.FIELD_OFFSET_PAYLOAD + publish.sizeof();
-                    writeBuffer.putBytes(limit, payload.buffer(), payload.offset(), payload.limit());
+                    writeBuffer.putBytes(limit, payload.buffer(), payload.offset(), payload.sizeof());
                     limit += payload.sizeof();
                     doNetworkData(traceId, authorization, 0L, writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, limit);
                 }
@@ -5186,7 +5185,11 @@ public final class MqttServerFactory implements MqttStreamFactory
                         {
                             if (isCleanStart(connectFlags))
                             {
-                                doSessionData(traceId, 0, emptyRO, emptyRO);
+                                final MqttDataExFW.Builder sessionDataExBuilder =
+                                    mqttSessionDataExRW.wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())
+                                        .typeId(mqttTypeId)
+                                        .session(sessionBuilder -> sessionBuilder.kind(k -> k.set(MqttSessionDataKind.STATE)));
+                                doSessionData(traceId, 0, sessionDataExBuilder.build(), emptyRO);
                             }
                             else
                             {
@@ -5570,11 +5573,12 @@ public final class MqttServerFactory implements MqttStreamFactory
                 initialSeq += reserved;
                 assert initialSeq <= initialAck + initialMax;
 
-                if (mqttPublishHeaderRO.qos == 1)
+                boolean completed = (flags & FLAG_FIN) != 0;
+                if (mqttPublishHeaderRO.qos == 1 && completed)
                 {
                     unAckedReceivedQos1PacketIds.put(initialSeq, packetId);
                 }
-                else if (mqttPublishHeaderRO.qos == 2)
+                else if (mqttPublishHeaderRO.qos == 2 && completed)
                 {
                     unAckedReceivedQos2PacketIds.put(initialSeq, packetId);
                 }
@@ -6263,19 +6267,25 @@ public final class MqttServerFactory implements MqttStreamFactory
                     {
                         droppedHandler.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
                     }
-                    if (qos == 0)
+
+                    if ((flags & FLAG_INIT) != 0)
+                    {
+                        packetId = subscribeDataEx.subscribe().packetId();
+                    }
+
+                    if (qos == 0 || (flags & FLAG_FIN) == 0)
                     {
                         doSubscribeWindow(traceId, encodeSlotOffset, encodeBudgetMax);
                     }
                     else if (qos == 1)
                     {
                         //Save packetId and subscribeStream, so we can ack in the correct stream.
-                        qos1Subscribes.put(subscribeDataEx.subscribe().packetId(), this);
+                        qos1Subscribes.put(packetId, this);
                     }
                     else if (qos == 2)
                     {
                         //Save packetId and subscribeStream, so we can ack in the correct stream.
-                        qos2Subscribes.put(subscribeDataEx.subscribe().packetId(), this);
+                        qos2Subscribes.put(packetId, this);
                     }
                 }
             }

@@ -2905,8 +2905,11 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 int keyLen = key.length();
                 if (keyLen == delegate.clientId.length())
                 {
-                    MqttSessionStateFW sessionState =
-                        mqttSessionStateRO.wrap(payload.buffer(), payload.offset(), payload.limit());
+                    MqttSessionStateFW sessionState = null;
+                    if (payload.sizeof() > 0)
+                    {
+                        sessionState = mqttSessionStateRO.wrap(payload.buffer(), payload.offset(), payload.limit());
+                    }
                     delegate.doMqttData(traceId, authorization, budgetId, reserved, flags, sessionState);
                 }
                 else if (keyLen == delegate.clientIdMigrate.length())
