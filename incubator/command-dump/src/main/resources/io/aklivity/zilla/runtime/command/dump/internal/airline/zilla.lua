@@ -738,26 +738,26 @@ function handle_extension(buffer, subtree, pinfo, info, offset, frame_type_id)
         local stream_type = resolve_type(stream_type_id)
         local extension_label = string.format("Extension: %s", stream_type)
         local slice_extension = buffer(offset)
-        local extension_subtree = subtree:add(zilla_protocol, slice_extension, extension_label)
-        extension_subtree:add(fields.stream_type_id, slice_stream_type_id)
-        extension_subtree:add(fields.stream_type, stream_type)
+        local ext_subtree = subtree:add(zilla_protocol, slice_extension, extension_label)
+        ext_subtree:add(fields.stream_type_id, slice_stream_type_id)
+        ext_subtree:add(fields.stream_type, stream_type)
 
         if stream_type_id == PROXY_ID then
-            handle_proxy_extension(buffer, extension_subtree, offset + 4)
+            handle_proxy_extension(buffer, offset + 4, ext_subtree)
         elseif stream_type_id == FILESYSTEM_ID then
-            handle_filesystem_extension(buffer, extension_subtree, offset + 4)
+            handle_filesystem_extension(buffer, offset + 4, ext_subtree)
         elseif stream_type_id == HTTP_ID then
-            handle_http_extension(buffer, extension_subtree, offset + 4, frame_type_id)
+            handle_http_extension(buffer, offset + 4, ext_subtree, frame_type_id)
         elseif stream_type_id == GRPC_ID then
-            handle_grpc_extension(buffer, extension_subtree, offset + 4, frame_type_id)
+            handle_grpc_extension(buffer, offset + 4, ext_subtree, frame_type_id)
         elseif stream_type_id == SSE_ID then
-            handle_sse_extension(buffer, extension_subtree, offset + 4, frame_type_id)
+            handle_sse_extension(buffer, offset + 4, ext_subtree, frame_type_id)
         elseif stream_type_id == WS_ID then
-            handle_ws_extension(buffer, extension_subtree, offset + 4, frame_type_id)
+            handle_ws_extension(buffer, offset + 4, ext_subtree, frame_type_id)
         elseif stream_type_id == MQTT_ID then
-            handle_mqtt_extension(buffer, extension_subtree, offset + 4, frame_type_id)
+            handle_mqtt_extension(buffer, offset + 4, ext_subtree, frame_type_id)
         elseif stream_type_id == KAFKA_ID then
-            handle_kafka_extension(buffer, extension_subtree, offset + 4, frame_type_id)
+            handle_kafka_extension(buffer, offset + 4, ext_subtree, frame_type_id)
         end
 
         if stream_type and stream_type ~= "" then
@@ -766,7 +766,7 @@ function handle_extension(buffer, subtree, pinfo, info, offset, frame_type_id)
     end
 end
 
-function handle_proxy_extension(buffer, extension_subtree, offset)
+function handle_proxy_extension(buffer, offset, ext_subtree)
     -- BEGIN frame
     -- address
     local slice_address_family = buffer(offset, 1)
@@ -783,7 +783,7 @@ function handle_proxy_extension(buffer, extension_subtree, offset)
         local slice_source_port = buffer(offset + 6 + source_length + destination_length, 2)
         local slice_destination_port = buffer(offset + 8 + source_length + destination_length, 2)
         local length = 10 + source_length + destination_length
-        local address_subtree = extension_subtree:add(zilla_protocol, buffer(offset, length), address_subtree_label)
+        local address_subtree = ext_subtree:add(zilla_protocol, buffer(offset, length), address_subtree_label)
         address_subtree:add(fields.proxy_ext_address_family, slice_address_family)
         address_subtree:add(fields.proxy_ext_address_protocol, slice_protocol)
         address_subtree:add(fields.proxy_ext_address_inet_source, slice_source)
@@ -798,7 +798,7 @@ function handle_proxy_extension(buffer, extension_subtree, offset)
         local slice_source_port = buffer(offset + 10, 2)
         local slice_destination_port = buffer(offset + 12, 2)
         local length = 14;
-        local address_subtree = extension_subtree:add(zilla_protocol, buffer(offset, length), address_subtree_label)
+        local address_subtree = ext_subtree:add(zilla_protocol, buffer(offset, length), address_subtree_label)
         address_subtree:add(fields.proxy_ext_address_family, slice_address_family)
         address_subtree:add(fields.proxy_ext_address_protocol, slice_protocol)
         address_subtree:add(fields.proxy_ext_address_inet4_source, slice_source)
@@ -813,7 +813,7 @@ function handle_proxy_extension(buffer, extension_subtree, offset)
         local slice_source_port = buffer(offset + 34, 2)
         local slice_destination_port = buffer(offset + 36, 2)
         local length = 38;
-        local address_subtree = extension_subtree:add(zilla_protocol, buffer(offset, length), address_subtree_label)
+        local address_subtree = ext_subtree:add(zilla_protocol, buffer(offset, length), address_subtree_label)
         address_subtree:add(fields.proxy_ext_address_family, slice_address_family)
         address_subtree:add(fields.proxy_ext_address_protocol, slice_protocol)
         address_subtree:add(fields.proxy_ext_address_inet6_source, slice_source)
@@ -826,7 +826,7 @@ function handle_proxy_extension(buffer, extension_subtree, offset)
         local slice_source = buffer(offset + 2, 108)
         local slice_destination = buffer(offset + 110, 108)
         local length = 218
-        local address_subtree = extension_subtree:add(zilla_protocol, buffer(offset, length), address_subtree_label)
+        local address_subtree = ext_subtree:add(zilla_protocol, buffer(offset, length), address_subtree_label)
         address_subtree:add(fields.proxy_ext_address_family, slice_address_family)
         address_subtree:add(fields.proxy_ext_address_protocol, slice_protocol)
         address_subtree:add(fields.proxy_ext_address_unix_source, slice_source)
@@ -834,7 +834,7 @@ function handle_proxy_extension(buffer, extension_subtree, offset)
         info_offset = offset + length
     elseif address_family == "NONE" then
         local length = 1
-        local address_subtree = extension_subtree:add(zilla_protocol, buffer(offset, length), address_subtree_label)
+        local address_subtree = ext_subtree:add(zilla_protocol, buffer(offset, length), address_subtree_label)
         address_subtree:add(fields.proxy_ext_address_family, slice_address_family)
         info_offset = offset + length
     end
@@ -846,7 +846,7 @@ function handle_proxy_extension(buffer, extension_subtree, offset)
     local info_array_size = slice_info_array_size:le_int()
     local length = 8
     local label = string.format("Info (%d items)", info_array_size)
-    local info_array_subtree = extension_subtree:add(zilla_protocol, buffer(info_offset, length), label)
+    local info_array_subtree = ext_subtree:add(zilla_protocol, buffer(info_offset, length), label)
     info_array_subtree:add_le(fields.proxy_ext_info_array_length, slice_info_array_length)
     info_array_subtree:add_le(fields.proxy_ext_info_array_size, slice_info_array_size)
     local item_offset = info_offset + length
@@ -858,18 +858,18 @@ function handle_proxy_extension(buffer, extension_subtree, offset)
         item_offset = item_offset + 1
         if type == "ALPN" then
             local item_length, slice_length, slice_text = dissect_length_value(buffer, item_offset, 1)
-            add_proxy_string_as_subtree(buffer(item_offset - 1, item_length + 1), extension_subtree, label_format, slice_type_id,
+            add_proxy_string_as_subtree(buffer(item_offset - 1, item_length + 1), ext_subtree, label_format, slice_type_id,
                 slice_length, slice_text, fields.proxy_ext_info_type, fields.proxy_ext_info_length, fields.proxy_ext_info_alpn)
             item_offset = item_offset + item_length
         elseif type == "AUTHORITY" then
             local item_length, slice_length, slice_text = dissect_length_value(buffer, item_offset, 2)
-            add_proxy_string_as_subtree(buffer(item_offset - 1, item_length + 1), extension_subtree, label_format, slice_type_id,
+            add_proxy_string_as_subtree(buffer(item_offset - 1, item_length + 1), ext_subtree, label_format, slice_type_id,
                 slice_length, slice_text, fields.proxy_ext_info_type, fields.proxy_ext_info_length, fields.proxy_ext_info_authority)
             item_offset = item_offset + item_length
         elseif type == "IDENTITY" then
             local item_length, slice_length, slice_bytes = dissect_length_value(buffer, item_offset, 2)
             local label = string.format("Info: %s: 0x%s", type, slice_bytes:bytes())
-            local subtree = extension_subtree:add(zilla_protocol, buffer(item_offset - 1, item_length + 1), label)
+            local subtree = ext_subtree:add(zilla_protocol, buffer(item_offset - 1, item_length + 1), label)
             subtree:add(fields.proxy_ext_info_type, slice_type_id)
             subtree:add_le(fields.proxy_ext_info_length, slice_length)
             subtree:add(fields.proxy_ext_info_identity, slice_bytes)
@@ -887,7 +887,7 @@ function handle_proxy_extension(buffer, extension_subtree, offset)
             end
             local item_length, slice_length, slice_text = dissect_length_value(buffer, item_offset, length_length)
             local label = string.format("Info: %s: %s: %s", type, secure_type, slice_text:string())
-            local subtree = extension_subtree:add(zilla_protocol, buffer(item_offset - 1, item_length + 1), label)
+            local subtree = ext_subtree:add(zilla_protocol, buffer(item_offset - 1, item_length + 1), label)
             subtree:add(fields.proxy_ext_info_type, slice_type_id)
             subtree:add(fields.proxy_ext_info_secure_type, slice_secure_type_id)
             subtree:add_le(fields.proxy_ext_info_length, slice_length)
@@ -895,17 +895,17 @@ function handle_proxy_extension(buffer, extension_subtree, offset)
             item_offset = item_offset + item_length
         elseif type == "NAMESPACE" then
             local item_length, slice_length, slice_text = dissect_length_value(buffer, item_offset, 2)
-            add_proxy_string_as_subtree(buffer(item_offset - 1, item_length + 1), extension_subtree, label_format, slice_type_id,
+            add_proxy_string_as_subtree(buffer(item_offset - 1, item_length + 1), ext_subtree, label_format, slice_type_id,
                 slice_length, slice_text, fields.proxy_ext_info_type, fields.proxy_ext_info_length, fields.proxy_ext_info_namespace)
             item_offset = item_offset + item_length
         end
     end
 end
 
-function dissect_length_value(buffer, item_offset, length_length)
-    local slice_length = buffer(item_offset, length_length)
+function dissect_length_value(buffer, offset, length_length)
+    local slice_length = buffer(offset, length_length)
     local length = math.max(slice_length:le_int(), 0)
-    local slice_value = buffer(item_offset + length_length, length)
+    local slice_value = buffer(offset + length_length, length)
     local item_length = length + length_length
     return item_length, slice_length, slice_value
 end
@@ -922,25 +922,25 @@ function add_proxy_string_as_subtree(buffer, tree, label_format, slice_type_id, 
     subtree:add(field_text, slice_text)
 end
 
-function handle_http_extension(buffer, extension_subtree, offset, frame_type_id)
+function handle_http_extension(buffer, offset, ext_subtree, frame_type_id)
     if frame_type_id == BEGIN_ID or frame_type_id == RESET_ID or frame_type_id == CHALLENGE_ID then
-        dissect_and_add_http_headers(buffer, extension_subtree, offset, "Headers", "Header")
+        dissect_and_add_http_headers(buffer, offset, ext_subtree, "Headers", "Header")
     elseif frame_type_id == END_ID then
-        dissect_and_add_http_headers(buffer, extension_subtree, offset, "Trailers", "Trailer")
+        dissect_and_add_http_headers(buffer, offset, ext_subtree, "Trailers", "Trailer")
     elseif frame_type_id == FLUSH_ID then
         slice_promise_id = buffer(offset, 8)
-        extension_subtree:add_le(fields.http_ext_promise_id, slice_promise_id)
-        dissect_and_add_http_headers(buffer, extension_subtree, offset + 8, "Promises", "Promise")
+        ext_subtree:add_le(fields.http_ext_promise_id, slice_promise_id)
+        dissect_and_add_http_headers(buffer, offset + 8, ext_subtree, "Promises", "Promise")
     end
 end
 
-function dissect_and_add_http_headers(buffer, extension_subtree, offset, plural_name, singular_name)
+function dissect_and_add_http_headers(buffer, offset, tree, plural_name, singular_name)
     local slice_headers_array_length = buffer(offset, 4)
     local slice_headers_array_size = buffer(offset + 4, 4)
     local headers_array_size = slice_headers_array_size:le_int()
     local length = 8
     local label = string.format("%s (%d items)", plural_name, headers_array_size)
-    local headers_array_subtree = extension_subtree:add(zilla_protocol, buffer(offset, length), label)
+    local headers_array_subtree = tree:add(zilla_protocol, buffer(offset, length), label)
     headers_array_subtree:add_le(fields.http_ext_headers_array_length, slice_headers_array_length)
     headers_array_subtree:add_le(fields.http_ext_headers_array_size, slice_headers_array_size)
     local item_offset = offset + length
@@ -949,7 +949,7 @@ function dissect_and_add_http_headers(buffer, extension_subtree, offset, plural_
         local value_offset = item_offset + name_length
         local value_length, slice_value_length, slice_value = dissect_length_value(buffer, value_offset, 2)
         local label = string.format("%s: %s: %s", singular_name, slice_name:string(), slice_value:string())
-        local subtree = extension_subtree:add(zilla_protocol, buffer(item_offset, name_length + value_length), label)
+        local subtree = tree:add(zilla_protocol, buffer(item_offset, name_length + value_length), label)
         subtree:add_le(fields.http_ext_header_name_length, slice_name_length)
         subtree:add(fields.http_ext_header_name, slice_name)
         subtree:add_le(fields.http_ext_header_value_length, slice_value_length)
@@ -958,27 +958,27 @@ function dissect_and_add_http_headers(buffer, extension_subtree, offset, plural_
     end
 end
 
-function handle_grpc_extension(buffer, extension_subtree, offset, frame_type_id)
+function handle_grpc_extension(buffer, offset, ext_subtree, frame_type_id)
     if frame_type_id == BEGIN_ID then
         -- scheme
         local scheme_offset = offset
         local scheme_length, slice_scheme_length, slice_scheme_text = dissect_length_value(buffer, scheme_offset, 2)
-        add_string_as_subtree(buffer(scheme_offset, scheme_length), extension_subtree, "Scheme: %s", slice_scheme_length,
+        add_string_as_subtree(buffer(scheme_offset, scheme_length), ext_subtree, "Scheme: %s", slice_scheme_length,
             slice_scheme_text, fields.grpc_ext_scheme_length, fields.grpc_ext_scheme)
         -- authority
         local authority_offset = scheme_offset + scheme_length
         local authority_length, slice_authority_length, slice_authority_text = dissect_length_value(buffer, authority_offset, 2)
-        add_string_as_subtree(buffer(authority_offset, authority_length), extension_subtree, "Authority: %s", slice_authority_length,
+        add_string_as_subtree(buffer(authority_offset, authority_length), ext_subtree, "Authority: %s", slice_authority_length,
             slice_authority_text, fields.grpc_ext_authority_length, fields.grpc_ext_authority)
         -- service
         local service_offset = authority_offset + authority_length
         local service_length, slice_service_length, slice_service_text = dissect_length_value(buffer, service_offset, 2)
-        add_string_as_subtree(buffer(service_offset, service_length), extension_subtree, "Service: %s", slice_service_length,
+        add_string_as_subtree(buffer(service_offset, service_length), ext_subtree, "Service: %s", slice_service_length,
             slice_service_text, fields.grpc_ext_service_length, fields.grpc_ext_service)
         -- method
         local method_offset = service_offset + service_length
         local method_length, slice_method_length, slice_method_text = dissect_length_value(buffer, method_offset, 2)
-        add_string_as_subtree(buffer(method_offset, method_length), extension_subtree, "Method: %s", slice_method_length,
+        add_string_as_subtree(buffer(method_offset, method_length), ext_subtree, "Method: %s", slice_method_length,
             slice_method_text, fields.grpc_ext_method_length, fields.grpc_ext_method)
         -- metadata array
         local metadata_array_offset = method_offset + method_length
@@ -988,20 +988,20 @@ function handle_grpc_extension(buffer, extension_subtree, offset, frame_type_id)
         local metadata_array_size = slice_metadata_array_size:le_int()
         local length = 8
         local label = string.format("Metadata (%d items)", metadata_array_size)
-        local metadata_array_subtree = extension_subtree:add(zilla_protocol, buffer(metadata_array_offset, length), label)
+        local metadata_array_subtree = ext_subtree:add(zilla_protocol, buffer(metadata_array_offset, length), label)
         metadata_array_subtree:add_le(fields.grpc_ext_metadata_array_length, slice_metadata_array_length)
         metadata_array_subtree:add_le(fields.grpc_ext_metadata_array_size, slice_metadata_array_size)
         local item_offset = metadata_array_offset + length
         for i = 1, metadata_array_size do
-            local record_length = dissect_and_add_grpc_metadata(buffer, extension_subtree, item_offset)
+            local record_length = dissect_and_add_grpc_metadata(buffer, item_offset, ext_subtree)
             item_offset = item_offset + record_length
         end
     elseif frame_type_id == DATA_ID then
         local slice_deferred = buffer(offset, 4)
-        extension_subtree:add_le(fields.grpc_ext_deferred, slice_deferred)
+        ext_subtree:add_le(fields.grpc_ext_deferred, slice_deferred)
     elseif frame_type_id == ABORT_ID or frame_type_id == RESET_ID then
         local status_length, slice_status_length, slice_status_text = dissect_length_value(buffer, offset, 2)
-        add_string_as_subtree(buffer(offset, status_length), extension_subtree, "Status: %s", slice_status_length,
+        add_string_as_subtree(buffer(offset, status_length), ext_subtree, "Status: %s", slice_status_length,
             slice_status_text, fields.grpc_ext_status_length, fields.grpc_ext_status)
     end
 end
@@ -1014,36 +1014,37 @@ function add_string_as_subtree(buffer, tree, label_format, slice_length, slice_t
     subtree:add(field_text, slice_text)
 end
 
-function dissect_and_add_grpc_metadata(buffer, extension_subtree, metadata_offset)
-    local offset = metadata_offset
+function dissect_and_add_grpc_metadata(buffer, offset, tree)
     -- type
-    local slice_type_id = buffer(offset, 1)
+    local type_offset = offset
+    local type_length = 1
+    local slice_type_id = buffer(offset, type_length)
     local type = grpc_types[slice_type_id:le_int()]
-    offset = offset + 1
     -- name_length
-    local name_length, slice_name_length_varint, length_name_length = decode_varint32(buffer, offset)
-    offset = offset + length_name_length
+    local name_length_offset = type_offset + type_length
+    local name_length, slice_name_length_varint, name_length_length = decode_varint32(buffer, name_length_offset)
     -- name
-    local slice_name = buffer(offset, name_length)
+    local name_offset = name_length_offset + name_length_length
+    local slice_name = buffer(name_offset, name_length)
     local name = slice_name:string()
-    offset = offset + name_length
     -- value_length
-    local value_length, slice_value_length_varint, length_value_length = decode_varint32(buffer, offset)
-    offset = offset + length_value_length
+    local value_length_offset = name_offset + name_length
+    local value_length, slice_value_length_varint, value_length_length = decode_varint32(buffer, value_length_offset)
     -- value
-    local slice_value = buffer(offset, value_length)
+    local value_offset = value_length_offset + value_length_length
+    local slice_value = buffer(value_offset, value_length)
     local value = slice_value:string()
     -- add subtree
-    local record_length = 1 + length_name_length + name_length + length_value_length + value_length
+    local record_length = type_length + name_length_length + name_length + value_length_length + value_length
     local label = string.format("Metadata: [%s] %s: %s", type, name, value)
-    local metadata_subtree = extension_subtree:add(zilla_protocol, buffer(metadata_offset, record_length), label)
-    metadata_subtree:add(fields.grpc_ext_metadata_type, slice_type_id)
-    metadata_subtree:add(fields.grpc_ext_metadata_name_length_varint, slice_name_length_varint)
-    metadata_subtree:add(fields.grpc_ext_metadata_name_length, name_length)
-    metadata_subtree:add(fields.grpc_ext_metadata_name, slice_name)
-    metadata_subtree:add(fields.grpc_ext_metadata_value_length_varint, slice_value_length_varint)
-    metadata_subtree:add(fields.grpc_ext_metadata_value_length, value_length)
-    metadata_subtree:add(fields.grpc_ext_metadata_value, slice_value)
+    local subtree = tree:add(zilla_protocol, buffer(metadata_offset, record_length), label)
+    subtree:add(fields.grpc_ext_metadata_type, slice_type_id)
+    subtree:add(fields.grpc_ext_metadata_name_length_varint, slice_name_length_varint)
+    subtree:add(fields.grpc_ext_metadata_name_length, name_length)
+    subtree:add(fields.grpc_ext_metadata_name, slice_name)
+    subtree:add(fields.grpc_ext_metadata_value_length_varint, slice_value_length_varint)
+    subtree:add(fields.grpc_ext_metadata_value_length, value_length)
+    subtree:add(fields.grpc_ext_metadata_value, slice_value)
     return record_length
 end
 
@@ -1091,193 +1092,193 @@ function decode_varuint32(buffer, offset)
     return value, buffer(offset, length), length
 end
 
-function handle_sse_extension(buffer, extension_subtree, offset, frame_type_id)
+function handle_sse_extension(buffer, offset, ext_subtree, frame_type_id)
     if frame_type_id == BEGIN_ID then
         -- scheme
         local scheme_offset = offset
         local scheme_length, slice_scheme_length, slice_scheme_text = dissect_length_value(buffer, scheme_offset, 2)
-        add_string_as_subtree(buffer(scheme_offset, scheme_length), extension_subtree, "Scheme: %s", slice_scheme_length,
+        add_string_as_subtree(buffer(scheme_offset, scheme_length), ext_subtree, "Scheme: %s", slice_scheme_length,
             slice_scheme_text, fields.sse_ext_scheme_length, fields.sse_ext_scheme)
         -- authority
         local authority_offset = scheme_offset + scheme_length
         local authority_length, slice_authority_length, slice_authority_text = dissect_length_value(buffer, authority_offset, 2)
-        add_string_as_subtree(buffer(authority_offset, authority_length), extension_subtree, "Authority: %s", slice_authority_length,
+        add_string_as_subtree(buffer(authority_offset, authority_length), ext_subtree, "Authority: %s", slice_authority_length,
             slice_authority_text, fields.sse_ext_authority_length, fields.sse_ext_authority)
         -- path
         local path_offset = authority_offset + authority_length
         local path_length, slice_path_length, slice_path_text = dissect_length_value(buffer, path_offset, 2)
-        add_string_as_subtree(buffer(path_offset, path_length), extension_subtree, "Path: %s", slice_path_length,
+        add_string_as_subtree(buffer(path_offset, path_length), ext_subtree, "Path: %s", slice_path_length,
             slice_path_text, fields.sse_ext_path_length, fields.sse_ext_path)
         -- last_id
         local last_id_offset = path_offset + path_length
         local last_id_length, slice_last_id_length, slice_last_id_text = dissect_length_value(buffer, last_id_offset, 1)
-        add_string_as_subtree(buffer(last_id_offset, last_id_length), extension_subtree, "Last ID: %s", slice_last_id_length,
+        add_string_as_subtree(buffer(last_id_offset, last_id_length), ext_subtree, "Last ID: %s", slice_last_id_length,
             slice_last_id_text, fields.sse_ext_last_id_length, fields.sse_ext_last_id)
     elseif frame_type_id == DATA_ID then
         -- timestamp
         local timestamp_offset = offset
         local timestamp_length = 8
         local slice_timestamp = buffer(timestamp_offset, timestamp_length)
-        extension_subtree:add_le(fields.sse_ext_timestamp, slice_timestamp)
+        ext_subtree:add_le(fields.sse_ext_timestamp, slice_timestamp)
         -- id
         local id_offset = timestamp_offset + timestamp_length
         local id_length, slice_id_length, slice_id_text = dissect_length_value(buffer, id_offset, 1)
-        add_string_as_subtree(buffer(id_offset, id_length), extension_subtree, "ID: %s", slice_id_length,
+        add_string_as_subtree(buffer(id_offset, id_length), ext_subtree, "ID: %s", slice_id_length,
             slice_id_text, fields.sse_ext_id_length, fields.sse_ext_id)
         -- type
         local type_offset = id_offset + id_length
         local type_length, slice_type_length, slice_type_text = dissect_length_value(buffer, type_offset, 1)
-        add_string_as_subtree(buffer(type_offset, type_length), extension_subtree, "Type: %s", slice_type_length,
+        add_string_as_subtree(buffer(type_offset, type_length), ext_subtree, "Type: %s", slice_type_length,
             slice_type_text, fields.sse_ext_type_length, fields.sse_ext_type)
     elseif frame_type_id == END_ID then
         local id_length, slice_id_length, slice_id_text = dissect_length_value(buffer, offset, 1)
-        add_string_as_subtree(buffer(offset, id_length), extension_subtree, "Id: %s", slice_id_length,
+        add_string_as_subtree(buffer(offset, id_length), ext_subtree, "Id: %s", slice_id_length,
             slice_id_text, fields.sse_ext_id_length, fields.sse_ext_id)
     end
 end
 
-function handle_ws_extension(buffer, extension_subtree, offset, frame_type_id)
+function handle_ws_extension(buffer, offset, ext_subtree, frame_type_id)
     if frame_type_id == BEGIN_ID then
         -- protocol
         local protocol_offset = offset
         local protocol_length, slice_protocol_length, slice_protocol_text = dissect_length_value(buffer, protocol_offset, 1)
-        add_string_as_subtree(buffer(protocol_offset, protocol_length), extension_subtree, "Protocol: %s",
+        add_string_as_subtree(buffer(protocol_offset, protocol_length), ext_subtree, "Protocol: %s",
             slice_protocol_length, slice_protocol_text, fields.ws_ext_protocol_length, fields.ws_ext_protocol)
         -- scheme
         local scheme_offset = protocol_offset + protocol_length
         local scheme_length, slice_scheme_length, slice_scheme_text = dissect_length_value(buffer, scheme_offset, 1)
-        add_string_as_subtree(buffer(scheme_offset, scheme_length), extension_subtree, "Scheme: %s",
+        add_string_as_subtree(buffer(scheme_offset, scheme_length), ext_subtree, "Scheme: %s",
             slice_scheme_length, slice_scheme_text, fields.ws_ext_scheme_length, fields.ws_ext_scheme)
         -- authority
         local authority_offset = scheme_offset + scheme_length
         local authority_length, slice_authority_length, slice_authority_text = dissect_length_value(buffer, authority_offset, 1)
-        add_string_as_subtree(buffer(authority_offset, authority_length), extension_subtree, "Authority: %s",
+        add_string_as_subtree(buffer(authority_offset, authority_length), ext_subtree, "Authority: %s",
             slice_authority_length, slice_authority_text, fields.ws_ext_authority_length, fields.ws_ext_authority)
         -- path
         local path_offset = authority_offset + authority_length
         local path_length, slice_path_length, slice_path_text = dissect_length_value(buffer, path_offset, 1)
-        add_string_as_subtree(buffer(path_offset, path_length), extension_subtree, "Path: %s",
+        add_string_as_subtree(buffer(path_offset, path_length), ext_subtree, "Path: %s",
             slice_path_length, slice_path_text, fields.ws_ext_path_length, fields.ws_ext_path)
     elseif frame_type_id == DATA_ID then
         -- flags
         local flags_offset = offset
         local flags_length = 1
         local slice_flags = buffer(flags_offset, flags_length)
-        extension_subtree:add(fields.ws_ext_flags, slice_flags)
+        ext_subtree:add(fields.ws_ext_flags, slice_flags)
         -- info
         local info_offset = flags_offset + flags_length
         if (info_offset < buffer:len()) then
-            extension_subtree:add(fields.ws_ext_info, buffer(info_offset))
+            ext_subtree:add(fields.ws_ext_info, buffer(info_offset))
         end
     elseif frame_type_id == END_ID then
         -- code
         local code_offset = offset
         local code_length = 2
         local slice_code = buffer(code_offset, code_length)
-        extension_subtree:add_le(fields.ws_ext_code, slice_code)
+        ext_subtree:add_le(fields.ws_ext_code, slice_code)
         -- reason
         local reason_offset = code_offset + code_length
         local reason_length, slice_reason_length, slice_reason_text = dissect_length_value(buffer, reason_offset, 1)
-        add_string_as_subtree(buffer(reason_offset, reason_length), extension_subtree, "Reason: %s",
+        add_string_as_subtree(buffer(reason_offset, reason_length), ext_subtree, "Reason: %s",
             slice_reason_length, slice_reason_text, fields.ws_ext_reason_length, fields.ws_ext_reason)
     end
 end
 
-function handle_filesystem_extension(buffer, extension_subtree, offset)
+function handle_filesystem_extension(buffer, offset, ext_subtree)
     -- BEGIN frame
     -- capabilities
     local capabilities_offset = offset
     local capabilities_length = 4
     local slice_capabilities = buffer(capabilities_offset, capabilities_length)
     local capabilities_label = string.format("Capabilities: 0x%08x", slice_capabilities:le_uint())
-    local capabilities_subtree = extension_subtree:add(zilla_protocol, slice_capabilities, capabilities_label)
+    local capabilities_subtree = ext_subtree:add(zilla_protocol, slice_capabilities, capabilities_label)
     capabilities_subtree:add_le(fields.filesystem_ext_capabilities_read_payload, slice_capabilities)
     capabilities_subtree:add_le(fields.filesystem_ext_capabilities_read_extension, slice_capabilities)
     capabilities_subtree:add_le(fields.filesystem_ext_capabilities_read_changes, slice_capabilities)
     -- path
     local path_offset = capabilities_offset + capabilities_length
     local path_length, slice_path_length, slice_path_text = dissect_length_value(buffer, path_offset, 2)
-    add_string_as_subtree(buffer(path_offset, path_length), extension_subtree, "Path: %s",
+    add_string_as_subtree(buffer(path_offset, path_length), ext_subtree, "Path: %s",
         slice_path_length, slice_path_text, fields.filesystem_ext_path_length, fields.filesystem_ext_path)
     -- type
     local type_offset = path_offset + path_length
     local type_length, slice_type_length, slice_type_text = dissect_length_value(buffer, type_offset, 2)
-    add_string_as_subtree(buffer(type_offset, type_length), extension_subtree, "Type: %s", slice_type_length,
+    add_string_as_subtree(buffer(type_offset, type_length), ext_subtree, "Type: %s", slice_type_length,
         slice_type_text, fields.filesystem_ext_type_length, fields.filesystem_ext_type)
     -- payload_size
     local payload_size_offset = type_offset + type_length
     local payload_size_length = 8
     local slice_payload_size = buffer(payload_size_offset, payload_size_length)
-    extension_subtree:add_le(fields.filesystem_ext_payload_size, slice_payload_size)
+    ext_subtree:add_le(fields.filesystem_ext_payload_size, slice_payload_size)
     -- tag
     local tag_offset = payload_size_offset + payload_size_length
     local tag_length, slice_tag_length, slice_tag_text = dissect_length_value(buffer, tag_offset, 2)
-    add_string_as_subtree(buffer(tag_offset, tag_length), extension_subtree, "Tag: %s", slice_tag_length,
+    add_string_as_subtree(buffer(tag_offset, tag_length), ext_subtree, "Tag: %s", slice_tag_length,
         slice_tag_text, fields.filesystem_ext_tag_length, fields.filesystem_ext_tag)
     -- timeout
     local timeout_offset = tag_offset + tag_length
     local timeout_length = 8
     local slice_timeout = buffer(timeout_offset, timeout_length)
-    extension_subtree:add_le(fields.filesystem_ext_timeout, slice_timeout)
+    ext_subtree:add_le(fields.filesystem_ext_timeout, slice_timeout)
 end
 
-function handle_mqtt_extension(buffer, extension_subtree, offset, frame_type_id)
+function handle_mqtt_extension(buffer, offset, ext_subtree, frame_type_id)
     if frame_type_id == BEGIN_ID or frame_type_id == DATA_ID or frame_type_id == FLUSH_ID then
         local kind_length = 1
         local slice_kind = buffer(offset, kind_length)
         local kind = mqtt_ext_kinds[slice_kind:le_int()]
-        extension_subtree:add_le(fields.mqtt_ext_kind, slice_kind)
+        ext_subtree:add_le(fields.mqtt_ext_kind, slice_kind)
         if frame_type_id == BEGIN_ID then
             if kind == "PUBLISH" then
-                handle_mqtt_begin_publish_extension(buffer, extension_subtree, offset + kind_length)
+                handle_mqtt_begin_publish_extension(buffer, offset + kind_length, ext_subtree)
             elseif kind == "SUBSCRIBE" then
-                handle_mqtt_begin_subscribe_extension(buffer, extension_subtree, offset + kind_length)
+                handle_mqtt_begin_subscribe_extension(buffer, offset + kind_length, ext_subtree)
             elseif kind == "SESSION" then
-                handle_mqtt_begin_session_extension(buffer, extension_subtree, offset + kind_length)
+                handle_mqtt_begin_session_extension(buffer, offset + kind_length, ext_subtree)
             end
         elseif frame_type_id == DATA_ID then
             if kind == "PUBLISH" then
-                handle_mqtt_data_publish_extension(buffer, extension_subtree, offset + kind_length)
+                handle_mqtt_data_publish_extension(buffer, offset + kind_length, ext_subtree)
             elseif kind == "SUBSCRIBE" then
-                handle_mqtt_data_subscribe_extension(buffer, extension_subtree, offset + kind_length)
+                handle_mqtt_data_subscribe_extension(buffer, offset + kind_length, ext_subtree)
             elseif kind == "SESSION" then
-                handle_mqtt_data_session_extension(buffer, extension_subtree, offset + kind_length)
+                handle_mqtt_data_session_extension(buffer, offset + kind_length, ext_subtree)
             end
         elseif frame_type_id == FLUSH_ID and kind == "SUBSCRIBE" then
-            handle_mqtt_flush_subscribe_extension(buffer, extension_subtree, offset + kind_length)
+            handle_mqtt_flush_subscribe_extension(buffer, offset + kind_length, ext_subtree)
         end
     elseif frame_type_id == RESET_ID then
-        handle_mqtt_reset_extension(buffer, extension_subtree, offset)
+        handle_mqtt_reset_extension(buffer, offset, ext_subtree)
     end
 end
 
-function handle_mqtt_begin_subscribe_extension(buffer, extension_subtree, offset)
+function handle_mqtt_begin_subscribe_extension(buffer, offset, ext_subtree)
     -- client_id
     local client_id_offset = offset
     local client_id_length, slice_client_id_length, slice_client_id_text = dissect_length_value(buffer, client_id_offset, 2)
-    add_string_as_subtree(buffer(client_id_offset, client_id_length), extension_subtree, "Client ID: %s",
+    add_string_as_subtree(buffer(client_id_offset, client_id_length), ext_subtree, "Client ID: %s",
         slice_client_id_length, slice_client_id_text, fields.mqtt_ext_client_id_length, fields.mqtt_ext_client_id)
     -- qos
     local qos_offset = client_id_offset + client_id_length
     local qos_length = 1
     local slice_qos = buffer(qos_offset, qos_length)
-    extension_subtree:add_le(fields.mqtt_ext_qos, slice_qos)
+    ext_subtree:add_le(fields.mqtt_ext_qos, slice_qos)
     -- topic_filters
     local topic_filters_offset = qos_offset + qos_length
-    dissect_and_add_mqtt_topic_filters(buffer, extension_subtree, topic_filters_offset)
+    dissect_and_add_mqtt_topic_filters(buffer, topic_filters_offset, ext_subtree)
 end
 
-function dissect_and_add_mqtt_topic_filters(buffer, extension_subtree, offset)
-    local slice_filters_array_length = buffer(offset, 4)
-    local slice_filters_array_size = buffer(offset + 4, 4)
-    local filters_array_size = slice_filters_array_size:le_int()
+function dissect_and_add_mqtt_topic_filters(buffer, offset, tree)
+    local slice_array_length = buffer(offset, 4)
+    local slice_array_size = buffer(offset + 4, 4)
+    local array_size = slice_array_size:le_int()
     local length = 8
-    local label = string.format("Topic Filters (%d items)", filters_array_size)
-    local filters_array_subtree = extension_subtree:add(zilla_protocol, buffer(offset, length), label)
-    filters_array_subtree:add_le(fields.mqtt_ext_filters_array_length, slice_filters_array_length)
-    filters_array_subtree:add_le(fields.mqtt_ext_filters_array_size, slice_filters_array_size)
+    local label = string.format("Topic Filters (%d items)", array_size)
+    local array_subtree = tree:add(zilla_protocol, buffer(offset, length), label)
+    array_subtree:add_le(fields.mqtt_ext_filters_array_length, slice_array_length)
+    array_subtree:add_le(fields.mqtt_ext_filters_array_size, slice_array_size)
     local item_offset = offset + length
-    for i = 1, filters_array_size do
+    for i = 1, array_size do
         -- subscription_id
         local subscription_id_offset = item_offset
         local subscription_id_length = 4
@@ -1301,77 +1302,77 @@ function dissect_and_add_mqtt_topic_filters(buffer, extension_subtree, offset)
         -- add fields
         local record_length = subscription_id_length + qos_length + flags_length + reason_code_length + pattern_length
         local label = string.format("Topic Filter: %s", slice_pattern_text:string())
-        local subtree = extension_subtree:add(zilla_protocol, buffer(item_offset, record_length), label)
-        subtree:add_le(fields.mqtt_ext_filter_subscription_id, slice_subscription_id)
-        subtree:add_le(fields.mqtt_ext_filter_qos, slice_qos)
-        local flags_subtree = subtree:add(zilla_protocol, slice_flags, flags_label)
+        local item_subtree = tree:add(zilla_protocol, buffer(item_offset, record_length), label)
+        item_subtree:add_le(fields.mqtt_ext_filter_subscription_id, slice_subscription_id)
+        item_subtree:add_le(fields.mqtt_ext_filter_qos, slice_qos)
+        local flags_subtree = item_subtree:add(zilla_protocol, slice_flags, flags_label)
         flags_subtree:add_le(fields.mqtt_ext_subscribe_flags_send_retained, slice_flags)
         flags_subtree:add_le(fields.mqtt_ext_subscribe_flags_retain_as_published, slice_flags)
         flags_subtree:add_le(fields.mqtt_ext_subscribe_flags_no_local, slice_flags)
         flags_subtree:add_le(fields.mqtt_ext_subscribe_flags_retain, slice_flags)
-        subtree:add_le(fields.mqtt_ext_filter_reason_code, slice_reason_code)
-        add_string_as_subtree(buffer(pattern_offset, pattern_length), subtree, "Pattern: %s",
+        item_subtree:add_le(fields.mqtt_ext_filter_reason_code, slice_reason_code)
+        add_string_as_subtree(buffer(pattern_offset, pattern_length), item_subtree, "Pattern: %s",
             slice_pattern_length, slice_pattern_text, fields.mqtt_ext_filter_pattern_length, fields.mqtt_ext_filter_pattern)
         -- next
         item_offset = item_offset + record_length
     end
 end
 
-function handle_mqtt_begin_publish_extension(buffer, extension_subtree, offset)
+function handle_mqtt_begin_publish_extension(buffer, offset, ext_subtree)
     -- client_id
     local client_id_offset = offset
     local client_id_length, slice_client_id_length, slice_client_id_text = dissect_length_value(buffer, client_id_offset, 2)
-    add_string_as_subtree(buffer(client_id_offset, client_id_length), extension_subtree, "Client ID: %s",
+    add_string_as_subtree(buffer(client_id_offset, client_id_length), ext_subtree, "Client ID: %s",
         slice_client_id_length, slice_client_id_text, fields.mqtt_ext_client_id_length, fields.mqtt_ext_client_id)
     -- topic
     local topic_offset = client_id_offset + client_id_length
     local topic_length, slice_topic_length, slice_topic_text = dissect_length_value(buffer, topic_offset, 2)
-    add_string_as_subtree(buffer(topic_offset, topic_length), extension_subtree, "Topic: %s",
+    add_string_as_subtree(buffer(topic_offset, topic_length), ext_subtree, "Topic: %s",
         slice_topic_length, slice_topic_text, fields.mqtt_ext_topic_length, fields.mqtt_ext_topic)
     -- flags
     local flags_offset = topic_offset + topic_length
     local flags_length = 1
     local slice_flags = buffer(flags_offset, flags_length)
     local flags_label = string.format("Flags: 0x%02x", slice_flags:le_uint())
-    local flags_subtree = extension_subtree:add(zilla_protocol, slice_flags, flags_label)
+    local flags_subtree = ext_subtree:add(zilla_protocol, slice_flags, flags_label)
     flags_subtree:add_le(fields.mqtt_ext_publish_flags_retain, slice_flags)
     -- qos
     local qos_offset = flags_offset + flags_length
     local qos_length = 1
     local slice_qos = buffer(qos_offset, qos_length)
-    extension_subtree:add_le(fields.mqtt_ext_qos, slice_qos)
+    ext_subtree:add_le(fields.mqtt_ext_qos, slice_qos)
 end
 
-function handle_mqtt_begin_session_extension(buffer, extension_subtree, offset)
+function handle_mqtt_begin_session_extension(buffer, offset, ext_subtree)
     -- flags
     local flags_offset = offset
     local flags_length = 1
     local slice_flags = buffer(flags_offset, flags_length)
     local flags_label = string.format("Flags: 0x%02x", slice_flags:le_uint())
-    local flags_subtree = extension_subtree:add(zilla_protocol, slice_flags, flags_label)
+    local flags_subtree = ext_subtree:add(zilla_protocol, slice_flags, flags_label)
     flags_subtree:add_le(fields.mqtt_ext_session_flags_clean_start, slice_flags)
     flags_subtree:add_le(fields.mqtt_ext_session_flags_will, slice_flags)
     -- expiry
     local expiry_offset = flags_offset + flags_length
     local expiry_length = 4
     local slice_expiry = buffer(expiry_offset, expiry_length)
-    extension_subtree:add_le(fields.mqtt_ext_expiry, slice_expiry)
+    ext_subtree:add_le(fields.mqtt_ext_expiry, slice_expiry)
     -- qos_max
     local qos_max_offset = expiry_offset + expiry_length
     local qos_max_length = 2
     local slice_qos_max = buffer(qos_max_offset, qos_max_length)
-    extension_subtree:add_le(fields.mqtt_ext_qos_max, slice_qos_max)
+    ext_subtree:add_le(fields.mqtt_ext_qos_max, slice_qos_max)
     -- packet_size_max
     local packet_size_max_offset = qos_max_offset + qos_max_length
     local packet_size_max_length = 4
     local slice_packet_size_max = buffer(packet_size_max_offset, packet_size_max_length)
-    extension_subtree:add_le(fields.mqtt_ext_packet_size_max, slice_packet_size_max)
+    ext_subtree:add_le(fields.mqtt_ext_packet_size_max, slice_packet_size_max)
     -- capabilities
     local capabilities_offset = packet_size_max_offset + packet_size_max_length
     local capabilities_length = 1
     local slice_capabilities = buffer(capabilities_offset, capabilities_length)
     local capabilities_label = string.format("Capabilities: 0x%02x", slice_capabilities:le_uint())
-    local capabilities_subtree = extension_subtree:add(zilla_protocol, slice_capabilities, capabilities_label)
+    local capabilities_subtree = ext_subtree:add(zilla_protocol, slice_capabilities, capabilities_label)
     capabilities_subtree:add_le(fields.mqtt_ext_capabilities_retain, slice_capabilities)
     capabilities_subtree:add_le(fields.mqtt_ext_capabilities_wildcard, slice_capabilities)
     capabilities_subtree:add_le(fields.mqtt_ext_capabilities_subscription_ids, slice_capabilities)
@@ -1379,55 +1380,55 @@ function handle_mqtt_begin_session_extension(buffer, extension_subtree, offset)
     -- client_id
     local client_id_offset = capabilities_offset + capabilities_length
     local client_id_length, slice_client_id_length, slice_client_id_text = dissect_length_value(buffer, client_id_offset, 2)
-    add_string_as_subtree(buffer(client_id_offset, client_id_length), extension_subtree, "Client ID: %s",
+    add_string_as_subtree(buffer(client_id_offset, client_id_length), ext_subtree, "Client ID: %s",
         slice_client_id_length, slice_client_id_text, fields.mqtt_ext_client_id_length, fields.mqtt_ext_client_id)
 end
 
-function handle_mqtt_data_publish_extension(buffer, extension_subtree, offset)
+function handle_mqtt_data_publish_extension(buffer, offset, ext_subtree)
     -- deferred
     local deferred_offset = offset
     local deferred_length = 4
     local slice_deferred = buffer(deferred_offset, deferred_length)
-    extension_subtree:add_le(fields.mqtt_ext_deferred, slice_deferred)
+    ext_subtree:add_le(fields.mqtt_ext_deferred, slice_deferred)
     -- qos
     local qos_offset = deferred_offset + deferred_length
     local qos_length = 1
     local slice_qos = buffer(qos_offset, qos_length)
-    extension_subtree:add_le(fields.mqtt_ext_qos, slice_qos)
+    ext_subtree:add_le(fields.mqtt_ext_qos, slice_qos)
     -- flags
     local flags_offset = qos_offset + qos_length
     local flags_length = 1
     local slice_flags = buffer(flags_offset, flags_length)
     local flags_label = string.format("Flags: 0x%02x", slice_flags:le_uint())
-    local flags_subtree = extension_subtree:add(zilla_protocol, slice_flags, flags_label)
+    local flags_subtree = ext_subtree:add(zilla_protocol, slice_flags, flags_label)
     flags_subtree:add_le(fields.mqtt_ext_publish_flags_retain, slice_flags)
     -- expiry_interval
     local expiry_interval_offset = flags_offset + flags_length
     local expiry_interval_length = 4
     local slice_expiry_interval = buffer(expiry_interval_offset, expiry_interval_length)
-    extension_subtree:add_le(fields.mqtt_ext_expiry_interval, slice_expiry_interval)
+    ext_subtree:add_le(fields.mqtt_ext_expiry_interval, slice_expiry_interval)
     -- content_type
     local content_type_offset = expiry_interval_offset + expiry_interval_length
     local content_type_length, slice_content_type_length, slice_content_type_text = dissect_length_value(buffer, content_type_offset, 2)
-    add_string_as_subtree(buffer(content_type_offset, content_type_length), extension_subtree, "Content Type: %s",
+    add_string_as_subtree(buffer(content_type_offset, content_type_length), ext_subtree, "Content Type: %s",
         slice_content_type_length, slice_content_type_text, fields.mqtt_ext_content_type_length, fields.mqtt_ext_content_type)
     -- payload_format
     local payload_format_offset = content_type_offset + content_type_length
     local payload_format_length = 1
     slice_payload_format = buffer(payload_format_offset, payload_format_length)
-    extension_subtree:add_le(fields.mqtt_ext_payload_format, slice_payload_format)
+    ext_subtree:add_le(fields.mqtt_ext_payload_format, slice_payload_format)
     -- response_topic
     local response_topic_offset = payload_format_offset + payload_format_length
     local response_topic_length, slice_response_topic_length, slice_response_topic_text = dissect_length_value(buffer, response_topic_offset, 2)
-    add_string_as_subtree(buffer(response_topic_offset, response_topic_length), extension_subtree, "Response Topic: %s",
+    add_string_as_subtree(buffer(response_topic_offset, response_topic_length), ext_subtree, "Response Topic: %s",
         slice_response_topic_length, slice_response_topic_text, fields.mqtt_ext_response_topic_length, fields.mqtt_ext_response_topic)
     -- correlation
     local correlation_offset = response_topic_offset + response_topic_length
-    local correlation_length = add_mqtt_binary_as_subtree(buffer, correlation_offset, extension_subtree, "Correlation",
+    local correlation_length = add_mqtt_binary_as_subtree(buffer, correlation_offset, ext_subtree, "Correlation",
         fields.mqtt_ext_correlation_length, fields.mqtt_ext_correlation)
     -- properties
     local properties_offset = correlation_offset + correlation_length
-    dissect_and_add_mqtt_properties(buffer, properties_offset, extension_subtree)
+    dissect_and_add_mqtt_properties(buffer, properties_offset, ext_subtree)
 end
 
 function add_mqtt_binary_as_subtree(buffer, offset, tree, label, field_length, field_bytes)
@@ -1472,81 +1473,81 @@ function dissect_and_add_mqtt_properties(buffer, offset, tree)
     end
 end
 
-function handle_mqtt_data_subscribe_extension(buffer, extension_subtree, offset)
+function handle_mqtt_data_subscribe_extension(buffer, offset, ext_subtree)
     -- deferred
     local deferred_offset = offset
     local deferred_length = 4
     local slice_deferred = buffer(deferred_offset, deferred_length)
-    extension_subtree:add_le(fields.mqtt_ext_deferred, slice_deferred)
+    ext_subtree:add_le(fields.mqtt_ext_deferred, slice_deferred)
     -- topic
     local topic_offset = deferred_offset + deferred_length
     local topic_length, slice_topic_length, slice_topic_text = dissect_length_value(buffer, topic_offset, 2)
-    add_string_as_subtree(buffer(topic_offset, topic_length), extension_subtree, "Topic: %s",
+    add_string_as_subtree(buffer(topic_offset, topic_length), ext_subtree, "Topic: %s",
         slice_topic_length, slice_topic_text, fields.mqtt_ext_topic_length, fields.mqtt_ext_topic)
     -- packet_id
     local packet_id_offset = topic_offset + topic_length
     local packet_id_length = 2
     local slice_packet_id = buffer(packet_id_offset, packet_id_length)
-    extension_subtree:add_le(fields.mqtt_ext_packet_id, slice_packet_id)
+    ext_subtree:add_le(fields.mqtt_ext_packet_id, slice_packet_id)
     -- qos
     local qos_offset = packet_id_offset + packet_id_length
     local qos_length = 1
     local slice_qos = buffer(qos_offset, qos_length)
-    extension_subtree:add_le(fields.mqtt_ext_qos, slice_qos)
+    ext_subtree:add_le(fields.mqtt_ext_qos, slice_qos)
     -- flags
     local flags_offset = qos_offset + qos_length
     local flags_length = 1
     local slice_flags = buffer(flags_offset, flags_length)
     local flags_label = string.format("Flags: 0x%02x", slice_flags:le_uint())
-    local flags_subtree = extension_subtree:add(zilla_protocol, slice_flags, flags_label)
+    local flags_subtree = ext_subtree:add(zilla_protocol, slice_flags, flags_label)
     flags_subtree:add_le(fields.mqtt_ext_publish_flags_retain, slice_flags)
     -- subscription_ids
     local subscription_ids_offset = flags_offset + flags_length
-    local next_offset = dissect_and_add_mqtt_subscription_ids(buffer, subscription_ids_offset, extension_subtree)
+    local next_offset = dissect_and_add_mqtt_subscription_ids(buffer, subscription_ids_offset, ext_subtree)
     -- expiry_interval
     local expiry_interval_offset = next_offset
     local expiry_interval_length = 4
     local slice_expiry_interval = buffer(expiry_interval_offset, expiry_interval_length)
-    extension_subtree:add_le(fields.mqtt_ext_expiry_interval, slice_expiry_interval)
+    ext_subtree:add_le(fields.mqtt_ext_expiry_interval, slice_expiry_interval)
     -- content_type
     local content_type_offset = expiry_interval_offset + expiry_interval_length
     local content_type_length, slice_content_type_length, slice_content_type_text = dissect_length_value(buffer, content_type_offset, 2)
-    add_string_as_subtree(buffer(content_type_offset, content_type_length), extension_subtree, "Content Type: %s",
+    add_string_as_subtree(buffer(content_type_offset, content_type_length), ext_subtree, "Content Type: %s",
         slice_content_type_length, slice_content_type_text, fields.mqtt_ext_content_type_length, fields.mqtt_ext_content_type)
     -- payload_format
     local payload_format_offset = content_type_offset + content_type_length
     local payload_format_length = 1
     slice_payload_format = buffer(payload_format_offset, payload_format_length)
-    extension_subtree:add_le(fields.mqtt_ext_payload_format, slice_payload_format)
+    ext_subtree:add_le(fields.mqtt_ext_payload_format, slice_payload_format)
     -- response_topic
     local response_topic_offset = payload_format_offset + payload_format_length
     local response_topic_length, slice_response_topic_length, slice_response_topic_text = dissect_length_value(buffer, response_topic_offset, 2)
-    add_string_as_subtree(buffer(response_topic_offset, response_topic_length), extension_subtree, "Response Topic: %s",
+    add_string_as_subtree(buffer(response_topic_offset, response_topic_length), ext_subtree, "Response Topic: %s",
         slice_response_topic_length, slice_response_topic_text, fields.mqtt_ext_response_topic_length, fields.mqtt_ext_response_topic)
     -- correlation
     local correlation_offset = response_topic_offset + response_topic_length
-    local correlation_length = add_mqtt_binary_as_subtree(buffer, correlation_offset, extension_subtree, "Correlation",
+    local correlation_length = add_mqtt_binary_as_subtree(buffer, correlation_offset, ext_subtree, "Correlation",
         fields.mqtt_ext_correlation_length, fields.mqtt_ext_correlation)
     -- properties
     local properties_offset = correlation_offset + correlation_length
-    dissect_and_add_mqtt_properties(buffer, properties_offset, extension_subtree)
+    dissect_and_add_mqtt_properties(buffer, properties_offset, ext_subtree)
 end
 
-function dissect_and_add_mqtt_subscription_ids(buffer, offset, subtree)
+function dissect_and_add_mqtt_subscription_ids(buffer, offset, tree)
     local slice_array_length = buffer(offset, 4)
     local slice_array_size = buffer(offset + 4, 4)
     local array_size = slice_array_size:le_int()
     local length = 8
     local label = string.format("Subscription IDs (%d items)", array_size)
-    local subscription_ids_array_subtree = subtree:add(zilla_protocol, buffer(offset, length), label)
-    subscription_ids_array_subtree:add_le(fields.mqtt_ext_subscription_ids_array_length, slice_array_length)
-    subscription_ids_array_subtree:add_le(fields.mqtt_ext_subscription_ids_array_size, slice_array_size)
+    local array_subtree = tree:add(zilla_protocol, buffer(offset, length), label)
+    array_subtree:add_le(fields.mqtt_ext_subscription_ids_array_length, slice_array_length)
+    array_subtree:add_le(fields.mqtt_ext_subscription_ids_array_size, slice_array_size)
     local item_offset = offset + length
     for i = 1, array_size do
         -- subscription_id
         local subscription_id, slice_subscription_id_varuint, subscription_id_length = decode_varuint32(buffer, item_offset)
         local label = string.format("Subscription ID: %d", subscription_id)
-        local varint_subtree = subtree:add(zilla_protocol, buffer(item_offset, subscription_id_length), label)
+        local varint_subtree = tree:add(zilla_protocol, buffer(item_offset, subscription_id_length), label)
         varint_subtree:add(fields.mqtt_ext_subscription_id_varuint, slice_subscription_id_varuint)
         varint_subtree:add(fields.mqtt_ext_subscription_id, subscription_id)
         -- next
@@ -1555,62 +1556,62 @@ function dissect_and_add_mqtt_subscription_ids(buffer, offset, subtree)
     return item_offset
 end
 
-function handle_mqtt_data_session_extension(buffer, extension_subtree, offset)
+function handle_mqtt_data_session_extension(buffer, offset, ext_subtree)
     -- data_kind
     local data_kind_offset = offset
     local data_kind_length = 1
     slice_data_kind = buffer(data_kind_offset, data_kind_length)
-    extension_subtree:add_le(fields.mqtt_ext_data_kind, slice_data_kind)
+    ext_subtree:add_le(fields.mqtt_ext_data_kind, slice_data_kind)
 end
 
-function handle_mqtt_flush_subscribe_extension(buffer, extension_subtree, offset)
+function handle_mqtt_flush_subscribe_extension(buffer, offset, ext_subtree)
     -- qos
     local qos_offset = offset
     local qos_length = 1
     local slice_qos = buffer(qos_offset, qos_length)
-    extension_subtree:add_le(fields.mqtt_ext_qos, slice_qos)
+    ext_subtree:add_le(fields.mqtt_ext_qos, slice_qos)
     -- packet_id
     local packet_id_offset = qos_offset + qos_length
     local packet_id_length = 2
     local slice_packet_id = buffer(packet_id_offset, packet_id_length)
-    extension_subtree:add_le(fields.mqtt_ext_packet_id, slice_packet_id)
+    ext_subtree:add_le(fields.mqtt_ext_packet_id, slice_packet_id)
     -- state
     local state_offset = packet_id_offset + packet_id_length
     local state_length = 1
     local slice_state = buffer(state_offset, state_length)
-    extension_subtree:add_le(fields.mqtt_ext_state, slice_state)
+    ext_subtree:add_le(fields.mqtt_ext_state, slice_state)
     -- topic_filters
     local topic_filters_offset = state_offset + state_length
-    dissect_and_add_mqtt_topic_filters(buffer, extension_subtree, topic_filters_offset)
+    dissect_and_add_mqtt_topic_filters(buffer, topic_filters_offset, ext_subtree)
 end
 
-function handle_mqtt_reset_extension(buffer, extension_subtree, offset)
+function handle_mqtt_reset_extension(buffer, offset, ext_subtree)
     -- server_ref
     local server_ref_offset = offset
     local server_ref_length, slice_server_ref_length, slice_server_ref_text = dissect_length_value(buffer, server_ref_offset, 2)
-    add_string_as_subtree(buffer(server_ref_offset, server_ref_length), extension_subtree, "Server Reference: %s",
+    add_string_as_subtree(buffer(server_ref_offset, server_ref_length), ext_subtree, "Server Reference: %s",
         slice_server_ref_length, slice_server_ref_text, fields.mqtt_ext_server_ref_length, fields.mqtt_ext_server_ref)
     -- reason_code
     local reason_code_offset = server_ref_offset + server_ref_length
     local reason_code_length = 1
     local slice_reason_code = buffer(reason_code_offset, reason_code_length)
-    extension_subtree:add_le(fields.mqtt_ext_reason_code, slice_reason_code)
+    ext_subtree:add_le(fields.mqtt_ext_reason_code, slice_reason_code)
     -- reason
     local reason_offset = reason_code_offset + reason_code_length
     local reason_length, slice_reason_length, slice_reason_text = dissect_length_value(buffer, reason_offset, 2)
-    add_string_as_subtree(buffer(reason_offset, reason_length), extension_subtree, "Reason: %s",
+    add_string_as_subtree(buffer(reason_offset, reason_length), ext_subtree, "Reason: %s",
         slice_reason_length, slice_reason_text, fields.mqtt_ext_reason_length, fields.mqtt_ext_reason)
 end
 
-function handle_kafka_extension(buffer, extension_subtree, offset, frame_type_id)
+function handle_kafka_extension(buffer, offset, ext_subtree, frame_type_id)
     if frame_type_id == BEGIN_ID or frame_type_id == DATA_ID or frame_type_id == FLUSH_ID then
         local api_length = 1
         local slice_api = buffer(offset, api_length)
         local api = kafka_ext_apis[slice_api:le_uint()]
-        extension_subtree:add_le(fields.kafka_ext_api, slice_api)
+        ext_subtree:add_le(fields.kafka_ext_api, slice_api)
         if frame_type_id == BEGIN_ID then
             if api == "CONSUMER" then
-                handle_kafka_begin_consumer_extension(buffer, extension_subtree, offset + api_length)
+                handle_kafka_begin_consumer_extension(buffer, offset + api_length, ext_subtree)
             elseif api == "GROUP" then
                 -- TODO
             elseif api == "BOOTSTRAP" then
@@ -1632,7 +1633,7 @@ function handle_kafka_extension(buffer, extension_subtree, offset, frame_type_id
             end
         elseif frame_type_id == DATA_ID then
             if api == "CONSUMER" then
-                handle_kafka_data_consumer_extension(buffer, extension_subtree, offset + api_length)
+                handle_kafka_data_consumer_extension(buffer, offset + api_length, ext_subtree)
             elseif api == "MERGED" then
                 -- TODO
             elseif api == "META" then
@@ -1650,7 +1651,7 @@ function handle_kafka_extension(buffer, extension_subtree, offset, frame_type_id
             end
         elseif frame_type_id == FLUSH_ID then
             if api == "CONSUMER" then
-                handle_kafka_flush_consumer_extension(buffer, extension_subtree, offset + api_length)
+                handle_kafka_flush_consumer_extension(buffer, offset + api_length, ext_subtree)
             elseif api == "GROUP" then
                 -- TODO
             elseif api == "MERGED" then
@@ -1662,65 +1663,65 @@ function handle_kafka_extension(buffer, extension_subtree, offset, frame_type_id
             end
         end
     elseif frame_type_id == RESET_ID then
-        handle_kafka_reset_extension(buffer, extension_subtree, offset)
+        handle_kafka_reset_extension(buffer, offset, ext_subtree)
     end
 end
 
-function handle_kafka_begin_consumer_extension(buffer, extension_subtree, offset)
+function handle_kafka_begin_consumer_extension(buffer, offset, ext_subtree)
     -- group_id
     local group_id_offset = offset
     local group_id_length, slice_group_id_length, slice_group_id_text = dissect_length_value(buffer, group_id_offset, 2)
-    add_string_as_subtree(buffer(group_id_offset, group_id_length), extension_subtree, "Group ID: %s",
+    add_string_as_subtree(buffer(group_id_offset, group_id_length), ext_subtree, "Group ID: %s",
         slice_group_id_length, slice_group_id_text, fields.kafka_ext_group_id_length, fields.kafka_ext_group_id)
     -- consumer_id
     local consumer_id_offset = group_id_offset + group_id_length
     local consumer_id_length, slice_consumer_id_length, slice_consumer_id_text = dissect_length_value(buffer, consumer_id_offset, 2)
-    add_string_as_subtree(buffer(consumer_id_offset, consumer_id_length), extension_subtree, "Consumer ID: %s",
+    add_string_as_subtree(buffer(consumer_id_offset, consumer_id_length), ext_subtree, "Consumer ID: %s",
         slice_consumer_id_length, slice_consumer_id_text, fields.kafka_ext_consumer_id_length, fields.kafka_ext_consumer_id)
     -- host
     local host_offset = consumer_id_offset + consumer_id_length
     local host_length, slice_host_length, slice_host_text = dissect_length_value(buffer, host_offset, 2)
-    add_string_as_subtree(buffer(host_offset, host_length), extension_subtree, "Host: %s",
+    add_string_as_subtree(buffer(host_offset, host_length), ext_subtree, "Host: %s",
         slice_host_length, slice_host_text, fields.kafka_ext_host_length, fields.kafka_ext_host)
     -- port
     local port_offset = host_offset + host_length
     local port_length = 4
     local slice_port = buffer(port_offset, port_length)
-    extension_subtree:add_le(fields.kafka_ext_port, slice_port)
+    ext_subtree:add_le(fields.kafka_ext_port, slice_port)
     -- timeout
     local timeout_offset = port_offset + port_length
     local timeout_length = 4
     local slice_timeout = buffer(timeout_offset, timeout_length)
-    extension_subtree:add_le(fields.kafka_ext_timeout, slice_timeout)
+    ext_subtree:add_le(fields.kafka_ext_timeout, slice_timeout)
     -- topic
     local topic_offset = timeout_offset + timeout_length
     local topic_length, slice_topic_length, slice_topic_text = dissect_length_value(buffer, topic_offset, 2)
-    add_string_as_subtree(buffer(topic_offset, topic_length), extension_subtree, "Topic: %s",
+    add_string_as_subtree(buffer(topic_offset, topic_length), ext_subtree, "Topic: %s",
         slice_topic_length, slice_topic_text, fields.kafka_ext_topic_length, fields.kafka_ext_topic)
     -- partition_ids
     local partition_ids_offset = topic_offset + topic_length
-    dissect_and_add_kafka_topic_partition_ids(buffer, partition_ids_offset, extension_subtree)
+    dissect_and_add_kafka_topic_partition_ids(buffer, partition_ids_offset, ext_subtree)
 end
 
-function dissect_and_add_kafka_topic_partition_ids(buffer, offset, subtree)
+function dissect_and_add_kafka_topic_partition_ids(buffer, offset, tree)
     local slice_array_length = buffer(offset, 4)
     local slice_array_size = buffer(offset + 4, 4)
     local array_size = slice_array_size:le_int()
     local length = 8
     local label = string.format("Partition IDs (%d items)", array_size)
-    local array_subtree = subtree:add(zilla_protocol, buffer(offset, length), label)
+    local array_subtree = tree:add(zilla_protocol, buffer(offset, length), label)
     array_subtree:add_le(fields.kafka_ext_partition_ids_array_length, slice_array_length)
     array_subtree:add_le(fields.kafka_ext_partition_ids_array_size, slice_array_size)
     local item_offset = offset + length
     local partition_id_length = 4
     for i = 1, array_size do
         local slice_partition_id = buffer(item_offset, partition_id_length)
-        subtree:add_le(fields.kafka_ext_partition_id, slice_partition_id)
+        tree:add_le(fields.kafka_ext_partition_id, slice_partition_id)
         item_offset = item_offset + partition_id_length
     end
 end
 
-function calculate_length_of_kafka_topic_partition_ids(buffer, offset, subtree)
+function calculate_length_of_kafka_topic_partition_ids(buffer, offset)
     local slice_array_length = buffer(offset, 4)
     local slice_array_size = buffer(offset + 4, 4)
     local array_size = slice_array_size:le_int()
@@ -1729,23 +1730,23 @@ function calculate_length_of_kafka_topic_partition_ids(buffer, offset, subtree)
     return length + array_size * partition_id_length
 end
 
-function handle_kafka_data_consumer_extension(buffer, extension_subtree, offset)
+function handle_kafka_data_consumer_extension(buffer, offset, ext_subtree)
     -- partition_ids
     local partition_ids_offset = offset
-    local partition_ids_length = calculate_length_of_kafka_topic_partition_ids(buffer, partition_ids_offset, extension_subtree)
-    dissect_and_add_kafka_topic_partition_ids(buffer, partition_ids_offset, extension_subtree)
+    local partition_ids_length = calculate_length_of_kafka_topic_partition_ids(buffer, partition_ids_offset)
+    dissect_and_add_kafka_topic_partition_ids(buffer, partition_ids_offset, ext_subtree)
     -- assignments
     local assignments_offset = partition_ids_offset + partition_ids_length
-    dissect_and_add_kafka_consumer_assignments(buffer, assignments_offset, extension_subtree)
+    dissect_and_add_kafka_consumer_assignments(buffer, assignments_offset, ext_subtree)
 end
 
-function dissect_and_add_kafka_consumer_assignments(buffer, offset, subtree)
+function dissect_and_add_kafka_consumer_assignments(buffer, offset, tree)
     local slice_array_length = buffer(offset, 4)
     local slice_array_size = buffer(offset + 4, 4)
     local array_size = slice_array_size:le_int()
     local length = 8
     local label = string.format("Consumer Assignments (%d items)", array_size)
-    local array_subtree = subtree:add(zilla_protocol, buffer(offset, length), label)
+    local array_subtree = tree:add(zilla_protocol, buffer(offset, length), label)
     array_subtree:add_le(fields.kafka_ext_consumer_assignments_array_length, slice_array_length)
     array_subtree:add_le(fields.kafka_ext_consumer_assignments_array_size, slice_array_size)
     local item_offset = offset + length
@@ -1755,11 +1756,11 @@ function dissect_and_add_kafka_consumer_assignments(buffer, offset, subtree)
         local consumer_id_length, slice_consumer_id_length, slice_consumer_id_text = dissect_length_value(buffer, consumer_id_offset, 2)
         -- partition_ids
         local partition_ids_offset = consumer_id_offset + consumer_id_length
-        local partition_ids_length = calculate_length_of_kafka_topic_partition_ids(buffer, partition_ids_offset, subtree)
+        local partition_ids_length = calculate_length_of_kafka_topic_partition_ids(buffer, partition_ids_offset)
         -- add fields
         local record_length = consumer_id_length + partition_ids_length
         local label = string.format("Consumer Assignment: %s", slice_consumer_id_text:string())
-        local consumer_assignment_subtree = subtree:add(zilla_protocol, buffer(item_offset, record_length), label)
+        local consumer_assignment_subtree = tree:add(zilla_protocol, buffer(item_offset, record_length), label)
         add_string_as_subtree(buffer(consumer_id_offset, consumer_id_length), consumer_assignment_subtree, "Consumer ID: %s",
             slice_consumer_id_length, slice_consumer_id_text, fields.kafka_ext_consumer_id_length, fields.kafka_ext_consumer_id)
         dissect_and_add_kafka_topic_partition_ids(buffer, partition_ids_offset, consumer_assignment_subtree)
@@ -1769,13 +1770,16 @@ function dissect_and_add_kafka_consumer_assignments(buffer, offset, subtree)
     return item_offset
 end
 
-function handle_kafka_flush_consumer_extension(buffer, extension_subtree, offset)
+function handle_kafka_flush_consumer_extension(buffer, offset, ext_subtree)
     -- progress
     local progress_offset = offset
-    dissect_and_add_kafka_offset(buffer, progress_offset, extension_subtree, "Progress: %d: %d")
+    dissect_and_add_kafka_offset(buffer, progress_offset, ext_subtree, "Progress: %d: %d")
+    -- TODO
+    -- leader_epoch
+    -- correlation_id
 end
 
-function dissect_and_add_kafka_offset(buffer, offset, subtree, label_format)
+function dissect_and_add_kafka_offset(buffer, offset, tree, label_format)
     local partition_id_length = 4
     local partition_offset_length = 8
     local stable_offset_length = 8
@@ -1798,7 +1802,7 @@ function dissect_and_add_kafka_offset(buffer, offset, subtree, label_format)
     local slice_latest_offset = buffer(latest_offset_offset, latest_offset_length)
     -- add fields
     local label = string.format(label_format, slice_partition_id:le_int(), tostring(slice_partition_offset:le_int64()))
-    local offset_subtree = subtree:add(zilla_protocol, buffer(offset, record_length), label)
+    local offset_subtree = tree:add(zilla_protocol, buffer(offset, record_length), label)
     offset_subtree:add_le(fields.kafka_ext_partition_id, slice_partition_id)
     offset_subtree:add_le(fields.kafka_ext_partition_offset, slice_partition_offset)
     offset_subtree:add_le(fields.kafka_ext_stable_offset, slice_stable_offset)
@@ -1807,16 +1811,16 @@ function dissect_and_add_kafka_offset(buffer, offset, subtree, label_format)
         slice_metadata_length, slice_metadata_text, fields.kafka_ext_metadata_length, fields.kafka_ext_metadata)
 end
 
-function handle_kafka_reset_extension(buffer, extension_subtree, offset)
+function handle_kafka_reset_extension(buffer, offset, ext_subtree)
     -- error
     local error_offset = offset
     local error_length = 4
     local slice_error = buffer(error_offset, error_length)
-    extension_subtree:add_le(fields.kafka_ext_error, slice_error)
+    ext_subtree:add_le(fields.kafka_ext_error, slice_error)
     -- consumer_id
     local consumer_id_offset = error_offset + error_length
     local consumer_id_length, slice_consumer_id_length, slice_consumer_id_text = dissect_length_value(buffer, consumer_id_offset, 2)
-    add_string_as_subtree(buffer(consumer_id_offset, consumer_id_length), extension_subtree, "Consumer ID: %s",
+    add_string_as_subtree(buffer(consumer_id_offset, consumer_id_length), ext_subtree, "Consumer ID: %s",
         slice_consumer_id_length, slice_consumer_id_text, fields.kafka_ext_consumer_id_length, fields.kafka_ext_consumer_id)
 end
 
