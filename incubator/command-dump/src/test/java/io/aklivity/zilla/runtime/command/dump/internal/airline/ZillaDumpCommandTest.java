@@ -51,6 +51,7 @@ import io.aklivity.zilla.runtime.engine.internal.layouts.StreamsLayout;
 import io.aklivity.zilla.specs.binding.filesystem.internal.FileSystemFunctions;
 import io.aklivity.zilla.specs.binding.grpc.internal.GrpcFunctions;
 import io.aklivity.zilla.specs.binding.http.internal.HttpFunctions;
+import io.aklivity.zilla.specs.binding.kafka.internal.KafkaFunctions;
 import io.aklivity.zilla.specs.binding.mqtt.internal.MqttFunctions;
 import io.aklivity.zilla.specs.binding.proxy.internal.ProxyFunctions;
 import io.aklivity.zilla.specs.binding.sse.internal.SseFunctions;
@@ -68,8 +69,9 @@ public class ZillaDumpCommandTest
     private static final int FILESYSTEM_TYPE_ID = 1;
     private static final int GRPC_TYPE_ID = 2;
     private static final int HTTP_TYPE_ID = 3;
-    private static final int MQTT_TYPE_ID = 6;
+    private static final int KAFKA_TYPE_ID = 4;
     private static final int PROXY_TYPE_ID = 5;
+    private static final int MQTT_TYPE_ID = 6;
     private static final int SSE_TYPE_ID = 7;
     private static final int WS_TYPE_ID = 8;
 
@@ -1559,6 +1561,134 @@ public class ZillaDumpCommandTest
             .extension(mqttSessionDataEx2, 0, mqttSessionDataEx2.capacity())
             .build();
         streams[0].write(DataFW.TYPE_ID, data22.buffer(), 0, data22.sizeof());
+
+        // kafka extension
+        // - CONSUMER
+        DirectBuffer kafkaConsumerBeginEx1 = new UnsafeBuffer(KafkaFunctions.beginEx()
+            .typeId(KAFKA_TYPE_ID)
+            .consumer()
+                .groupId("group-id")
+                .consumerId("consumer-id")
+                .timeout(42)
+                .topic("topic")
+                .partition(21)
+                .partition(33)
+                .partition(77)
+                .partition(88)
+                .build()
+            .build());
+        BeginFW begin25 = beginRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000000fL) // north_kafka_cache_client
+            .routedId(0x0000000900000010L) // south_kafka_cache_server
+            .streamId(0x0000000000000027L) // INI
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x0000000000000043L)
+            .traceId(0x0000000000000027L)
+            .affinity(0x0000000000000000L)
+            .extension(kafkaConsumerBeginEx1, 0, kafkaConsumerBeginEx1.capacity())
+            .build();
+        streams[0].write(BeginFW.TYPE_ID, begin25.buffer(), 0, begin25.sizeof());
+
+        DirectBuffer kafkaConsumerBeginEx2 = new UnsafeBuffer(KafkaFunctions.beginEx()
+            .typeId(KAFKA_TYPE_ID)
+            .consumer()
+                .groupId("group-id")
+                .consumerId("consumer-id")
+                .timeout(99)
+                .topic("topic")
+                .build()
+            .build());
+        BeginFW begin26 = beginRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000000fL) // north_kafka_cache_client
+            .routedId(0x0000000900000010L) // south_kafka_cache_server
+            .streamId(0x0000000000000026L) // REP
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x0000000000000044L)
+            .traceId(0x0000000000000027L)
+            .affinity(0x0000000000000000L)
+            .extension(kafkaConsumerBeginEx2, 0, kafkaConsumerBeginEx2.capacity())
+            .build();
+        streams[0].write(BeginFW.TYPE_ID, begin26.buffer(), 0, begin26.sizeof());
+
+        DirectBuffer kafkaConsumerDataPayload = new String8FW("kafka consumer data payload").value();
+        DirectBuffer kafkaConsumerDataEx1 = new UnsafeBuffer(KafkaFunctions.dataEx()
+            .typeId(KAFKA_TYPE_ID)
+            .consumer()
+                .partition(33)
+                .partition(44)
+                .partition(55)
+                .assignments()
+                    .id("consumer-id-1")
+                    .partition(101)
+                    .partition(102)
+                    .build()
+                .assignments()
+                    .id("consumer-id-2")
+                    .partition(201)
+                    .partition(202)
+                    .build()
+                .build()
+            .build());
+        DataFW data23 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000000fL) // north_kafka_cache_client
+            .routedId(0x0000000900000010L) // south_kafka_cache_server
+            .streamId(0x0000000000000027L) // INI
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x0000000000000045L)
+            .traceId(0x0000000000000027L)
+            .budgetId(0x0000000000000000L)
+            .reserved(0x00000000)
+            .payload(kafkaConsumerDataPayload, 0, kafkaConsumerDataPayload.capacity())
+            .extension(kafkaConsumerDataEx1, 0, kafkaConsumerDataEx1.capacity())
+            .build();
+        streams[0].write(DataFW.TYPE_ID, data23.buffer(), 0, data23.sizeof());
+
+        DirectBuffer kafkaConsumerFlushEx1 = new UnsafeBuffer(KafkaFunctions.flushEx()
+            .typeId(KAFKA_TYPE_ID)
+            .consumer()
+                .progress(17, 21, "metadata")
+                .leaderEpoch(42)
+                .correlationId(77)
+                .build()
+            .build());
+        FlushFW flush5 = flushRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000000fL) // north_kafka_cache_client
+            .routedId(0x0000000900000010L) // south_kafka_cache_server
+            .streamId(0x0000000000000027L) // INI
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x0000000000000046L)
+            .traceId(0x0000000000000027L)
+            .budgetId(0x0000000000000000L)
+            .reserved(0x00000000)
+            .extension(kafkaConsumerFlushEx1, 0, kafkaConsumerFlushEx1.capacity())
+            .build();
+        streams[0].write(FlushFW.TYPE_ID, flush5.buffer(), 0, flush5.sizeof());
+
+        DirectBuffer kafkaResetEx1 = new UnsafeBuffer(KafkaFunctions.resetEx()
+            .typeId(KAFKA_TYPE_ID)
+            .error(666)
+            .consumerId("consumer-id")
+            .build());
+        ResetFW reset5 = resetRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000000fL) // north_kafka_cache_client
+            .routedId(0x0000000900000010L) // south_kafka_cache_server
+            .streamId(0x0000000000000027L) // INI
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x0000000000000047L)
+            .traceId(0x0000000000000027L)
+            .extension(kafkaResetEx1, 0, kafkaResetEx1.capacity())
+            .build();
+        streams[0].write(ResetFW.TYPE_ID, reset5.buffer(), 0, reset5.sizeof());
     }
 
     @BeforeEach
