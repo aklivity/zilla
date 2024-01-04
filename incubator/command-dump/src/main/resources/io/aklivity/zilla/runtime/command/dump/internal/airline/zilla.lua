@@ -428,6 +428,8 @@ local fields = {
     kafka_ext_latest_offset = ProtoField.int64("zilla.kafka_ext.latest_offset", "Latest Offset", base.DEC),
     kafka_ext_metadata_length = ProtoField.int16("zilla.kafka_ext.metadata_length", "Length", base.DEC),
     kafka_ext_metadata = ProtoField.string("zilla.kafka_ext.metadata", "Metadata", base.NONE),
+    kafka_ext_leader_epoch = ProtoField.int32("zilla.kafka_ext.leader_epoch", "Leader Epoch", base.DEC),
+    kafka_ext_correlation_id = ProtoField.int64("zilla.kafka_ext.correlation_id", "Correlation ID", base.DEC),
 }
 
 zilla_protocol.fields = fields;
@@ -1773,10 +1775,18 @@ end
 function handle_kafka_flush_consumer_extension(buffer, offset, ext_subtree)
     -- progress
     local progress_offset = offset
+    local progress_length = calculate_length_of_kafka_offset(buffer, progress_offset)
     dissect_and_add_kafka_offset(buffer, progress_offset, ext_subtree, "Progress: %d: %d")
-    -- TODO
     -- leader_epoch
+    local leader_epoch_offset = progress_offset + progress_length
+    local leader_epoch_length = 4
+    local slice_leader_epoch = buffer(leader_epoch_offset, leader_epoch_length)
+    ext_subtree:add_le(fields.kafka_ext_leader_epoch, slice_leader_epoch)
     -- correlation_id
+    local correlation_id_offset = leader_epoch_offset + leader_epoch_length
+    local correlation_id_length = 8
+    local slice_correlation_id = buffer(correlation_id_offset, correlation_id_length)
+    ext_subtree:add_le(fields.kafka_ext_correlation_id, slice_correlation_id)
 end
 
 function dissect_and_add_kafka_offset(buffer, offset, tree, label_format)
@@ -1809,6 +1819,16 @@ function dissect_and_add_kafka_offset(buffer, offset, tree, label_format)
     offset_subtree:add_le(fields.kafka_ext_latest_offset, slice_latest_offset)
     add_string_as_subtree(buffer(metadata_offset, metadata_length), offset_subtree, "Metadata: %s",
         slice_metadata_length, slice_metadata_text, fields.kafka_ext_metadata_length, fields.kafka_ext_metadata)
+end
+
+function calculate_length_of_kafka_offset(buffer, offset)
+    local partition_id_length = 4
+    local partition_offset_length = 8
+    local stable_offset_length = 8
+    local latest_offset_length = 8
+    local metadata_offset = offset + partition_id_length + partition_offset_length + stable_offset_length + latest_offset_length
+    local metadata_length, slice_metadata_length, slice_metadata_text = dissect_length_value(buffer, metadata_offset, 2)
+    return partition_id_length + partition_offset_length + stable_offset_length + latest_offset_length + metadata_length
 end
 
 function handle_kafka_reset_extension(buffer, offset, ext_subtree)

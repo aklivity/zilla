@@ -3673,6 +3673,8 @@ Zilla Frame
             Metadata: metadata
                 Length: 8
                 Metadata: metadata
+        Leader Epoch: 42
+        Correlation ID: 77
 
 Frame 77: 261 bytes on wire (2088 bits), 261 bytes captured (2088 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
