@@ -1837,6 +1837,98 @@ public class ZillaDumpCommandTest
             .extension(kafkaBootstrapBeginEx2, 0, kafkaBootstrapBeginEx2.capacity())
             .build();
         streams[0].write(BeginFW.TYPE_ID, begin30.buffer(), 0, begin30.sizeof());
+
+        // - MERGED
+        DirectBuffer kafkaMergedBeginEx1 = new UnsafeBuffer(KafkaFunctions.beginEx()
+            .typeId(KAFKA_TYPE_ID)
+            .merged()
+                .capabilities("PRODUCE_ONLY")
+                .topic("topic")
+                .groupId("group-id")
+                .consumerId("consumer-id")
+                // timeout omitted, should be 0
+                .partition(1, 42_000, 43_000, 44_000, "metadata")
+                .partition(2, 77_000)
+                .partition(3, 88_000)
+                // filters
+                .evaluation("LAZY")
+                .isolation("READ_UNCOMMITTED")
+                .deltaType("NONE")
+                .ackMode("NONE")
+                .build()
+            .build());
+        BeginFW begin31 = beginRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000000fL) // north_kafka_cache_client
+            .routedId(0x0000000900000010L) // south_kafka_cache_server
+            .streamId(0x0000000000000033L) // INI
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x000000000000004eL)
+            .traceId(0x0000000000000033L)
+            .affinity(0x0000000000000000L)
+            .extension(kafkaMergedBeginEx1, 0, kafkaMergedBeginEx1.capacity())
+            .build();
+        streams[0].write(BeginFW.TYPE_ID, begin31.buffer(), 0, begin31.sizeof());
+
+        DirectBuffer kafkaMergedBeginEx2 = new UnsafeBuffer(KafkaFunctions.beginEx()
+            .typeId(KAFKA_TYPE_ID)
+            .merged()
+                .capabilities("FETCH_ONLY") // TODO - Ati: PRODUCE_AND_FETCH
+                .topic("topic")
+                .groupId("group-id")
+                .consumerId("consumer-id")
+                .timeout(42)
+                // filters
+                .evaluation("EAGER")
+                .isolation("READ_COMMITTED")
+                .deltaType("JSON_PATCH")
+                .ackMode("LEADER_ONLY")
+                .build()
+            .build());
+        BeginFW begin32 = beginRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000000fL) // north_kafka_cache_client
+            .routedId(0x0000000900000010L) // south_kafka_cache_server
+            .streamId(0x0000000000000032L) // INI
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x000000000000004fL)
+            .traceId(0x0000000000000033L)
+            .affinity(0x0000000000000000L)
+            .extension(kafkaMergedBeginEx2, 0, kafkaMergedBeginEx2.capacity())
+            .build();
+        streams[0].write(BeginFW.TYPE_ID, begin32.buffer(), 0, begin32.sizeof());
+
+        DirectBuffer kafkaMergedBeginEx3 = new UnsafeBuffer(KafkaFunctions.beginEx()
+            .typeId(KAFKA_TYPE_ID)
+            .merged()
+                .capabilities("PRODUCE_AND_FETCH")
+                .topic("topic")
+                .groupId("group-id")
+                .consumerId("consumer-id")
+                .timeout(3600)
+                .partition(42, 123_456)
+                // filters
+                .evaluation("EAGER")
+                .isolation("READ_COMMITTED")
+                .deltaType("JSON_PATCH")
+                .ackMode("IN_SYNC_REPLICAS")
+                .build()
+            .build());
+        BeginFW begin33 = beginRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000000fL) // north_kafka_cache_client
+            .routedId(0x0000000900000010L) // south_kafka_cache_server
+            .streamId(0x0000000000000032L) // INI
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x0000000000000050L)
+            .traceId(0x0000000000000033L)
+            .affinity(0x0000000000000000L)
+            .extension(kafkaMergedBeginEx3, 0, kafkaMergedBeginEx3.capacity())
+            .build();
+        streams[0].write(BeginFW.TYPE_ID, begin33.buffer(), 0, begin33.sizeof());
     }
 
     @BeforeEach

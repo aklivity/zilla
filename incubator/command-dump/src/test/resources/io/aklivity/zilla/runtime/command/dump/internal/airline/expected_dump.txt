@@ -4008,3 +4008,197 @@ Zilla Frame
             Consumer ID: consumer-id
         Timeout: 999999
 
+Frame 84: 407 bytes on wire (3256 bits), 407 bytes captured (3256 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::32, Dst: fe80::33
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 0, Ack: 1, Len: 333
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x000029b8
+    Origin ID: 0x000000090000000f
+    Origin Namespace: example
+    Origin Binding: north_kafka_cache_client
+    Routed ID: 0x0000000900000010
+    Routed Namespace: example
+    Routed Binding: south_kafka_cache_server
+    Stream ID: 0x0000000000000033
+    Initial ID: 0x0000000000000033
+    Reply ID: 0x0000000000000032
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x000000000000004e
+    Trace ID: 0x0000000000000033
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+    Extension: kafka
+        Stream Type ID: 0xe1204b08
+        Stream Type: kafka
+        API: MERGED (255)
+        Capabilities: PRODUCE_ONLY (1)
+        Topic: topic
+            Length: 5
+            Topic: topic
+        Group ID: group-id
+            Length: 8
+            Group ID: group-id
+        Consumer ID: consumer-id
+            Length: 11
+            Consumer ID: consumer-id
+        Timeout: 0
+        Partitions (3 items)
+            Length: 102
+            Size: 3
+        Partition: 1
+            Partition ID: 1
+            Partition Offset: 42000
+            Stable Offset: 43000
+            Latest Offset: 44000
+            Metadata: metadata
+                Length: 8
+                Metadata: metadata
+        Partition: 2
+            Partition ID: 2
+            Partition Offset: 77000
+            Stable Offset: -1
+            Latest Offset: -1
+            Metadata: 
+                Length: -1
+                Metadata: 
+        Partition: 3
+            Partition ID: 3
+            Partition Offset: 88000
+            Stable Offset: -1
+            Latest Offset: -1
+            Metadata: 
+                Length: -1
+                Metadata: 
+        Filters (0 items)
+            Length: 4
+            Size: 0
+        Evaluation: LAZY (0)
+        Isolation: READ_UNCOMMITTED (0)
+        Isolation: NONE (0)
+        Ack Mode: NONE (0)
+
+Frame 85: 309 bytes on wire (2472 bits), 309 bytes captured (2472 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::33, Dst: fe80::32
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1, Ack: 333, Len: 235
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00002ab0
+    Origin ID: 0x000000090000000f
+    Origin Namespace: example
+    Origin Binding: north_kafka_cache_client
+    Routed ID: 0x0000000900000010
+    Routed Namespace: example
+    Routed Binding: south_kafka_cache_server
+    Stream ID: 0x0000000000000032
+    Initial ID: 0x0000000000000033
+    Reply ID: 0x0000000000000032
+    Direction: REP
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x000000000000004f
+    Trace ID: 0x0000000000000033
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+    Extension: kafka
+        Stream Type ID: 0xe1204b08
+        Stream Type: kafka
+        API: MERGED (255)
+        Capabilities: FETCH_ONLY (2)
+        Topic: topic
+            Length: 5
+            Topic: topic
+        Group ID: group-id
+            Length: 8
+            Group ID: group-id
+        Consumer ID: consumer-id
+            Length: 11
+            Consumer ID: consumer-id
+        Timeout: 42
+        Partitions (0 items)
+            Length: 4
+            Size: 0
+        Filters (0 items)
+            Length: 4
+            Size: 0
+        Evaluation: EAGER (1)
+        Isolation: READ_COMMITTED (1)
+        Isolation: JSON_PATCH (1)
+        Ack Mode: LEADER_ONLY (1)
+
+Frame 86: 339 bytes on wire (2712 bits), 339 bytes captured (2712 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::33, Dst: fe80::32
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 236, Ack: 333, Len: 265
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00002b48
+    Origin ID: 0x000000090000000f
+    Origin Namespace: example
+    Origin Binding: north_kafka_cache_client
+    Routed ID: 0x0000000900000010
+    Routed Namespace: example
+    Routed Binding: south_kafka_cache_server
+    Stream ID: 0x0000000000000032
+    Initial ID: 0x0000000000000033
+    Reply ID: 0x0000000000000032
+    Direction: REP
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000050
+    Trace ID: 0x0000000000000033
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+    Extension: kafka
+        Stream Type ID: 0xe1204b08
+        Stream Type: kafka
+        API: MERGED (255)
+        Capabilities: PRODUCE_AND_FETCH (3)
+        Topic: topic
+            Length: 5
+            Topic: topic
+        Group ID: group-id
+            Length: 8
+            Group ID: group-id
+        Consumer ID: consumer-id
+            Length: 11
+            Consumer ID: consumer-id
+        Timeout: 3600
+        Partitions (1 items)
+            Length: 34
+            Size: 1
+        Partition: 42
+            Partition ID: 42
+            Partition Offset: 123456
+            Stable Offset: -1
+            Latest Offset: -1
+            Metadata: 
+                Length: -1
+                Metadata: 
+        Filters (0 items)
+            Length: 4
+            Size: 0
+        Evaluation: EAGER (1)
+        Isolation: READ_COMMITTED (1)
+        Isolation: JSON_PATCH (1)
+        Ack Mode: Unknown (-1)
+
