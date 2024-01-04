@@ -3665,7 +3665,7 @@ Zilla Frame
         Stream Type ID: 0xe1204b08
         Stream Type: kafka
         API: CONSUMER (252)
-        Progress: 17: 21
+        Progress: 17 [21]
             Partition ID: 17
             Partition Offset: 21
             Stable Offset: -1
