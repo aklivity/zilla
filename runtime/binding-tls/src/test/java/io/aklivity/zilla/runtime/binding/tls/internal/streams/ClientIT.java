@@ -118,6 +118,17 @@ public class ClientIT
     }
 
     @Test
+    @Configuration("client.ports.yaml")
+    @Specification({
+        "${app}/connection.established.with.port/client",
+        "${net}/connection.established/server"
+    })
+    public void shouldEstablishedConnectionWithPort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("client.yaml")
     @Specification({
         "${app}/connection.established.no.hostname.no.alpn/client",

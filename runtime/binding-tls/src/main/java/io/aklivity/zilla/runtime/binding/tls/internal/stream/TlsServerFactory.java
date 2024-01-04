@@ -62,6 +62,7 @@ import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.EndFW;
+import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.ExtensionFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.ProxyBeginExFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.ResetFW;
@@ -93,6 +94,8 @@ public final class TlsServerFactory implements TlsStreamFactory
     private final EndFW endRO = new EndFW();
     private final AbortFW abortRO = new AbortFW();
     private final SignalFW signalRO = new SignalFW();
+
+    private final ExtensionFW extensionRO = new ExtensionFW();
 
     private final ProxyBeginExFW beginExRO = new ProxyBeginExFW();
 
@@ -239,14 +242,19 @@ public final class TlsServerFactory implements TlsStreamFactory
         final long routedId = begin.routedId();
         final long initialId = begin.streamId();
         final long authorization = begin.authorization();
+        final ExtensionFW extension = begin.extension().get(extensionRO::tryWrap);
+        final ProxyBeginExFW beginEx = extension != null && extension.typeId() == proxyTypeId
+            ? begin.extension().get(beginExRO::tryWrap)
+            : null;
+        final int port = TlsBindingConfig.resolveDestinationPort(beginEx);
 
         TlsBindingConfig binding = bindings.get(routedId);
 
         MessageConsumer newStream = null;
 
-        if (binding != null)
+        if (binding != null && binding.resolvePortOnly(authorization, port) != null)
         {
-            final SSLEngine tlsEngine = binding.newServerEngine(authorization);
+            final SSLEngine tlsEngine = binding.newServerEngine(authorization, port);
 
             if (tlsEngine != null)
             {
@@ -257,6 +265,7 @@ public final class TlsServerFactory implements TlsStreamFactory
                     routedId,
                     initialId,
                     authorization,
+                    port,
                     tlsEngine,
                     dname -> 0L)::onNetMessage;
             }
@@ -876,6 +885,7 @@ public final class TlsServerFactory implements TlsStreamFactory
         private final long routedId;
         private final long initialId;
         private final long authorization;
+        private final int port;
         private ToLongFunction<String> supplyAuthorization;
         private final long replyId;
         private long affinity;
@@ -917,6 +927,7 @@ public final class TlsServerFactory implements TlsStreamFactory
             long routedId,
             long initialId,
             long authorization,
+            int port,
             SSLEngine tlsEngine,
             ToLongFunction<String> supplyAuthorization)
         {
@@ -927,6 +938,7 @@ public final class TlsServerFactory implements TlsStreamFactory
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.authorization = authorization;
+            this.port = port;
             this.decoder = decodeBeforeHandshake;
             this.stream = NULL_STREAM;
             this.tlsEngine = requireNonNull(tlsEngine);
@@ -1588,7 +1600,7 @@ public final class TlsServerFactory implements TlsStreamFactory
             String tlsProtocol = "".equals(alpn) ? null : alpn;
 
             final TlsBindingConfig binding = bindings.get(routedId);
-            final TlsRouteConfig route = binding != null ? binding.resolve(authorization, tlsHostname, tlsProtocol) : null;
+            final TlsRouteConfig route = binding != null ? binding.resolve(authorization, tlsHostname, tlsProtocol, port) : null;
 
             if (route != null)
             {
