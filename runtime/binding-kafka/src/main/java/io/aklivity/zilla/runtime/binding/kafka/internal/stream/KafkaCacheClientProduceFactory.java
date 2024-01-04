@@ -1356,7 +1356,8 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             // TODO: defer initialAck until previous DATA frames acked
             final boolean incomplete = (dataFlags & FLAGS_INCOMPLETE) != 0x00;
             final int noAck = incomplete ? 0 : (int) (initialSeq - initialAck);
-            doClientInitialWindow(traceId, noAck, noAck + initialBudgetMax);
+            final int initialMax = incomplete ? initialBudgetMax : noAck + initialBudgetMax;
+            doClientInitialWindow(traceId, noAck, initialMax);
         }
 
         private void onClientInitialFlush(
@@ -1589,7 +1590,8 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             long acknowledge)
         {
             cursor.advance(partitionOffset);
-            doClientInitialWindow(traceId, initialSeq - acknowledge, initialMax);
+            doClientInitialWindow(traceId, initialSeq - acknowledge,
+                Math.max(initialMax - (int) (acknowledge - initialAck), initialBudgetMax));
 
             if (KafkaState.initialClosed(state) && partitionOffset == this.partitionOffset)
             {
