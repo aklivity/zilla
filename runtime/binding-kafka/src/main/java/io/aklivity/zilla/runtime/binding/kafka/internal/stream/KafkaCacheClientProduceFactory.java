@@ -1590,7 +1590,8 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             long acknowledge)
         {
             cursor.advance(partitionOffset);
-            doClientInitialWindow(traceId, initialSeq - acknowledge, initialMax);
+            doClientInitialWindow(traceId, initialSeq - acknowledge,
+                Math.max(initialMax - (int) (acknowledge - initialAck), initialBudgetMax));
 
             if (KafkaState.initialClosed(state) && partitionOffset == this.partitionOffset)
             {
