@@ -1629,7 +1629,7 @@ function handle_kafka_extension(buffer, offset, ext_subtree, frame_type_id)
             elseif api == "GROUP" then
                 handle_kafka_group_begin_extension(buffer, offset + api_length, ext_subtree)
             elseif api == "BOOTSTRAP" then
-                -- TODO
+                handle_kafka_begin_bootstrap_extension(buffer, offset + api_length, ext_subtree)
             elseif api == "MERGED" then
                 -- TODO
             elseif api == "META" then
@@ -1947,6 +1947,29 @@ function dissect_and_add_kafka_group_members(buffer, offset, tree)
         item_offset = item_offset + record_length
     end
     return item_offset
+end
+
+function handle_kafka_begin_bootstrap_extension(buffer, offset, ext_subtree)
+    -- topic
+    local topic_offset = offset
+    local topic_length, slice_topic_length, slice_topic_text = dissect_length_value(buffer, topic_offset, 2)
+    add_string_as_subtree(buffer(topic_offset, topic_length), ext_subtree, "Topic: %s",
+        slice_topic_length, slice_topic_text, fields.kafka_ext_topic_length, fields.kafka_ext_topic)
+    -- group_id
+    local group_id_offset = topic_offset + topic_length
+    local group_id_length, slice_group_id_length, slice_group_id_text = dissect_length_value(buffer, group_id_offset, 2)
+    add_string_as_subtree(buffer(group_id_offset, group_id_length), ext_subtree, "Group ID: %s",
+        slice_group_id_length, slice_group_id_text, fields.kafka_ext_group_id_length, fields.kafka_ext_group_id)
+    -- consumer_id
+    local consumer_id_offset = group_id_offset + group_id_length
+    local consumer_id_length, slice_consumer_id_length, slice_consumer_id_text = dissect_length_value(buffer, consumer_id_offset, 2)
+    add_string_as_subtree(buffer(consumer_id_offset, consumer_id_length), ext_subtree, "Consumer ID: %s",
+        slice_consumer_id_length, slice_consumer_id_text, fields.kafka_ext_consumer_id_length, fields.kafka_ext_consumer_id)
+    -- timeout
+    local timeout_offset = consumer_id_offset + consumer_id_length
+    local timeout_length = 4
+    local slice_timeout = buffer(timeout_offset, timeout_length)
+    ext_subtree:add_le(fields.kafka_ext_timeout, slice_timeout)
 end
 
 function handle_kafka_reset_extension(buffer, offset, ext_subtree)
