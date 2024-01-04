@@ -177,6 +177,13 @@ local kafka_ext_ack_modes = {
     [-1] = "IN_SYNC_REPLICAS",
 }
 
+local kafka_ext_condition_types = {
+    [0] = "KEY",
+    [1] = "HEADER",
+    [2] = "NOT",
+    [3] = "HEADERS",
+}
+
 local fields = {
     -- header
     frame_type_id = ProtoField.uint32("zilla.frame_type_id", "Frame Type ID", base.HEX),
@@ -475,6 +482,12 @@ local fields = {
     kafka_ext_partitions_array_size = ProtoField.int8("zilla.kafka_ext.partitions_array_size", "Size", base.DEC),
     kafka_ext_filters_array_length = ProtoField.int8("zilla.kafka_ext.filters_array_length", "Length", base.DEC),
     kafka_ext_filters_array_size = ProtoField.int8("zilla.kafka_ext.filters_array_size", "Size", base.DEC),
+    kafka_ext_conditions_array_length = ProtoField.int8("zilla.kafka_ext.conditions_array_length", "Length", base.DEC),
+    kafka_ext_conditions_array_size = ProtoField.int8("zilla.kafka_ext.conditions_array_size", "Size", base.DEC),
+    kafka_ext_condition_type = ProtoField.int8("zilla.kafka_ext.condition_type", "Type", base.DEC, kafka_ext_condition_types),
+    kafka_ext_key_length_varint = ProtoField.bytes("zilla.kafka_ext.key_length_varint", "Length (varint32)", base.NONE),
+    kafka_ext_key_length = ProtoField.int32("zilla.kafka_ext.key_length", "Length", base.DEC),
+    kafka_ext_key = ProtoField.bytes("zilla.kafka_ext.key", "Key", base.NONE),
     -- TODO: filters .....
     kafka_ext_evaluation = ProtoField.uint8("zilla.kafka_ext.evaluation", "Evaluation", base.DEC, kafka_ext_evaluation_types),
     kafka_ext_isolation = ProtoField.uint8("zilla.kafka_ext.isolation", "Isolation", base.DEC, kafka_ext_isolation_types),
@@ -2061,7 +2074,7 @@ function handle_kafka_begin_merged_extension(buffer, offset, ext_subtree)
         fields.kafka_ext_partitions_array_length, fields.kafka_ext_partitions_array_size, "Partitions", "Partition")
     -- filters
     local filters_offset = partitions_offset + partitions_length
-    local filters_length = dissect_and_add_kafka_filters(buffer, filters_offset, ext_subtree,
+    local filters_length = dissect_and_add_kafka_filters_array(buffer, filters_offset, ext_subtree,
         fields.kafka_ext_filters_array_length, fields.kafka_ext_filters_array_size)
     -- evaluation
     local evaluation_offset = filters_offset + filters_length
@@ -2085,7 +2098,7 @@ function handle_kafka_begin_merged_extension(buffer, offset, ext_subtree)
     ext_subtree:add_le(fields.kafka_ext_ack_mode, slice_ack_mode)
 end
 
-function dissect_and_add_kafka_filters(buffer, offset, tree, field_array_length, field_array_size)
+function dissect_and_add_kafka_filters_array(buffer, offset, tree, field_array_length, field_array_size)
     local slice_array_length = buffer(offset, 4)
     local slice_array_size = buffer(offset + 4, 4)
     local array_size = slice_array_size:le_int()
@@ -2097,12 +2110,74 @@ function dissect_and_add_kafka_filters(buffer, offset, tree, field_array_length,
     local total_length = 4 + slice_array_length:le_int()
     local item_offset = offset + length
     for i = 1, array_size do
-        -- TODO: parse filter
-        local item_length = 0 -- TODO
+        local filter_label = string.format("Filter #%d", i)
+        local item_length = calculate_length_of_array(buffer, item_offset)
+        local item_subtree = tree:add(zilla_protocol, buffer(item_offset, item_length), filter_label)
+        dissect_and_add_kafka_conditions_array(buffer, item_offset, item_subtree,
+            fields.kafka_ext_conditions_array_length, fields.kafka_ext_conditions_array_size)
         item_offset = item_offset + item_length
-        total_length = total_length + item_length
     end
     return total_length
+end
+
+function calculate_length_of_array(buffer, offset)
+    local slice_array_length = buffer(offset, 4)
+    return 4 + slice_array_length:le_int()
+end
+
+function dissect_and_add_kafka_conditions_array(buffer, offset, tree, field_array_length, field_array_size)
+    local slice_array_length = buffer(offset, 4)
+    local slice_array_size = buffer(offset + 4, 4)
+    local array_size = slice_array_size:le_int()
+    local length = 8
+    local label = string.format("Conditions (%d items)", array_size)
+    local array_subtree = tree:add(zilla_protocol, buffer(offset, length), label)
+    array_subtree:add_le(field_array_length, slice_array_length)
+    array_subtree:add_le(field_array_size, slice_array_size)
+    local total_length = 4 + slice_array_length:le_int()
+    local item_offset = offset + length
+    for i = 1, array_size do
+        -- TODO: parse condition
+        local condition_label = string.format("Condition #%d", i)
+        local item_length = 1 -- TODO... calculate_length_of_...
+        local item_subtree = tree:add(zilla_protocol, buffer(item_offset, item_length), condition_label)
+        dissect_and_add_kafka_condition(buffer, item_offset, item_subtree)
+        item_offset = item_offset + item_length
+    end
+end
+
+function dissect_and_add_kafka_condition(buffer, offset, tree)
+    -- condition_type
+    local condition_type_offset = offset
+    local condition_type_length = 1
+    local slice_condition_type = buffer(condition_type_offset, condition_type_length)
+    local condition_type = kafka_ext_condition_types[slice_condition_type:le_int()]
+    tree:add_le(fields.kafka_ext_condition_type, slice_condition_type)
+    if condition_type == "KEY" then
+        dissect_and_add_kafka_key(buffer, offset + condition_type_length, tree)
+    elseif condition_type == "HEADER" then
+        -- TODO
+    elseif condition_type == "NOT" then
+        -- TODO
+    elseif condition_type == "HEADERS" then
+        -- TODO
+    end
+end
+
+function dissect_and_add_kafka_key(buffer, offset, tree)
+    -- length
+    local length_offset = offset
+    local length, slice_length_varint, length_length = decode_varint32(buffer, length_offset)
+    local label = string.format("Length: %d", length)
+    local varint_subtree = tree:add(zilla_protocol, buffer(length_offset, length_length), label)
+    varint_subtree:add(fields.kafka_ext_key_length_varint, slice_length_varint)
+    varint_subtree:add(fields.kafka_ext_key_length, length)
+    -- value
+    if (length > 0) then
+        local value_offset = length_offset + length_length
+        local slice_value = buffer(value_offset, length)
+        tree:add(fields.kafka_ext_key, slice_value)
+    end
 end
 
 function handle_kafka_reset_extension(buffer, offset, ext_subtree)
