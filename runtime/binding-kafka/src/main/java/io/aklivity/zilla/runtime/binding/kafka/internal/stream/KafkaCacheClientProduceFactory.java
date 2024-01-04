@@ -758,7 +758,6 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 }
 
                 partition.writeProduceEntryFin(stream.segment, stream.entryMark, stream.position, stream.initialSeq, trailers);
-                flushClientFanInitialIfNecessary(traceId);
             }
 
             if ((flags & FLAGS_INCOMPLETE) != 0x00)
@@ -770,6 +769,10 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             {
                 stream.cleanupClient(traceId, error);
                 onClientFanMemberClosed(traceId, stream);
+            }
+            else
+            {
+                flushClientFanInitialIfNecessary(traceId);
             }
 
             creditor.credit(traceId, partitionIndex, reserved);
@@ -1353,9 +1356,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 fan.onClientInitialData(this, data);
             }
 
-            // TODO: defer initialAck until previous DATA frames acked
-            final boolean incomplete = (dataFlags & FLAGS_INCOMPLETE) != 0x00;
-            final int noAck = incomplete ? 0 : (int) (initialSeq - initialAck);
+            final int noAck = (int) (initialSeq - initialAck);
             doClientInitialWindow(traceId, noAck, noAck + initialBudgetMax);
         }
 
@@ -1589,7 +1590,8 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             long acknowledge)
         {
             cursor.advance(partitionOffset);
-            doClientInitialWindow(traceId, initialSeq - acknowledge, initialMax);
+            final int minInitialNoAck = (int) (initialSeq - acknowledge);
+            doClientInitialWindow(traceId, minInitialNoAck, minInitialNoAck + initialBudgetMax);
 
             if (KafkaState.initialClosed(state) && partitionOffset == this.partitionOffset)
             {
