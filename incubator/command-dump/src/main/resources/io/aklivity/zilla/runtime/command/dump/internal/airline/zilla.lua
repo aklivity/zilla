@@ -426,10 +426,22 @@ local fields = {
     kafka_ext_partition_offset = ProtoField.int64("zilla.kafka_ext.partition_offset", "Partition Offset", base.DEC),
     kafka_ext_stable_offset = ProtoField.int64("zilla.kafka_ext.stable_offset", "Stable Offset", base.DEC),
     kafka_ext_latest_offset = ProtoField.int64("zilla.kafka_ext.latest_offset", "Latest Offset", base.DEC),
-    kafka_ext_metadata_length = ProtoField.int16("zilla.kafka_ext.metadata_length", "Length", base.DEC),
+    kafka_ext_metadata_length = ProtoField.int32("zilla.kafka_ext.metadata_length", "Length", base.DEC),
     kafka_ext_metadata = ProtoField.string("zilla.kafka_ext.metadata", "Metadata", base.NONE),
     kafka_ext_leader_epoch = ProtoField.int32("zilla.kafka_ext.leader_epoch", "Leader Epoch", base.DEC),
     kafka_ext_correlation_id = ProtoField.int64("zilla.kafka_ext.correlation_id", "Correlation ID", base.DEC),
+    --     group
+    kafka_ext_protocol_length = ProtoField.int16("zilla.kafka_ext.protocol_length", "Length", base.DEC),
+    kafka_ext_protocol = ProtoField.string("zilla.kafka_ext.protocol", "Protocol", base.NONE),
+    kafka_ext_instance_id_length = ProtoField.int16("zilla.kafka_ext.instance_id_length", "Length", base.DEC),
+    kafka_ext_instance_id = ProtoField.string("zilla.kafka_ext.instance_id", "Instance ID", base.NONE),
+    kafka_ext_metadata_length_varint = ProtoField.bytes("zilla.kafka_ext.metadata_length_varint", "Length (varint32)", base.NONE),
+    kafka_ext_metadata_bytes = ProtoField.bytes("zilla.kafka_ext.metadata_bytes", "Metadata", base.NONE),
+    kafka_ext_generation_id = ProtoField.int32("zilla.kafka_ext.generation_id", "Generation ID", base.DEC),
+    kafka_ext_leader_id_length = ProtoField.int16("zilla.kafka_ext.leader_id_length", "Length", base.DEC),
+    kafka_ext_leader_id = ProtoField.string("zilla.kafka_ext.leader_id", "Leader ID", base.NONE),
+    kafka_ext_member_id_length = ProtoField.int16("zilla.kafka_ext.member_id_length", "Length", base.DEC),
+    kafka_ext_member_id = ProtoField.string("zilla.kafka_ext.member_id", "Member ID", base.NONE),
 }
 
 zilla_protocol.fields = fields;
@@ -1615,7 +1627,7 @@ function handle_kafka_extension(buffer, offset, ext_subtree, frame_type_id)
             if api == "CONSUMER" then
                 handle_kafka_begin_consumer_extension(buffer, offset + api_length, ext_subtree)
             elseif api == "GROUP" then
-                -- TODO
+                handle_kafka_group_begin_extension(buffer, offset + api_length, ext_subtree)
             elseif api == "BOOTSTRAP" then
                 -- TODO
             elseif api == "MERGED" then
@@ -1655,7 +1667,7 @@ function handle_kafka_extension(buffer, offset, ext_subtree, frame_type_id)
             if api == "CONSUMER" then
                 handle_kafka_flush_consumer_extension(buffer, offset + api_length, ext_subtree)
             elseif api == "GROUP" then
-                -- TODO
+                handle_kafka_group_flush_extension(buffer, offset + api_length, ext_subtree)
             elseif api == "MERGED" then
                 -- TODO
             elseif api == "FETCH" then
@@ -1829,6 +1841,112 @@ function calculate_length_of_kafka_offset(buffer, offset)
     local metadata_offset = offset + partition_id_length + partition_offset_length + stable_offset_length + latest_offset_length
     local metadata_length, slice_metadata_length, slice_metadata_text = dissect_length_value(buffer, metadata_offset, 2)
     return partition_id_length + partition_offset_length + stable_offset_length + latest_offset_length + metadata_length
+end
+
+function handle_kafka_group_begin_extension(buffer, offset, ext_subtree)
+    -- group_id
+    local group_id_offset = offset
+    local group_id_length, slice_group_id_length, slice_group_id_text = dissect_length_value(buffer, group_id_offset, 2)
+    add_string_as_subtree(buffer(group_id_offset, group_id_length), ext_subtree, "Group ID: %s",
+        slice_group_id_length, slice_group_id_text, fields.kafka_ext_group_id_length, fields.kafka_ext_group_id)
+    -- protocol
+    local protocol_offset = group_id_offset + group_id_length
+    local protocol_length, slice_protocol_length, slice_protocol_text = dissect_length_value(buffer, protocol_offset, 2)
+    add_string_as_subtree(buffer(protocol_offset, protocol_length), ext_subtree, "Protocol: %s",
+        slice_protocol_length, slice_protocol_text, fields.kafka_ext_protocol_length, fields.kafka_ext_protocol)
+    -- instance_id
+    local instance_id_offset = protocol_offset + protocol_length
+    local instance_id_length, slice_instance_id_length, slice_instance_id_text = dissect_length_value(buffer, instance_id_offset, 2)
+    add_string_as_subtree(buffer(instance_id_offset, instance_id_length), ext_subtree, "Instance ID: %s",
+        slice_instance_id_length, slice_instance_id_text, fields.kafka_ext_instance_id_length, fields.kafka_ext_instance_id)
+    -- host
+    local host_offset = instance_id_offset + instance_id_length
+    local host_length, slice_host_length, slice_host_text = dissect_length_value(buffer, host_offset, 2)
+    add_string_as_subtree(buffer(host_offset, host_length), ext_subtree, "Host: %s",
+        slice_host_length, slice_host_text, fields.kafka_ext_host_length, fields.kafka_ext_host)
+    -- port
+    local port_offset = host_offset + host_length
+    local port_length = 4
+    local slice_port = buffer(port_offset, port_length)
+    ext_subtree:add_le(fields.kafka_ext_port, slice_port)
+    -- timeout
+    local timeout_offset = port_offset + port_length
+    local timeout_length = 4
+    local slice_timeout = buffer(timeout_offset, timeout_length)
+    ext_subtree:add_le(fields.kafka_ext_timeout, slice_timeout)
+    -- metadata_length_varint
+    local metadata_length_offset = timeout_offset + timeout_length
+    local metadata_length, slice_metadata_length_varint, metadata_length_length = decode_varint32(buffer, metadata_length_offset)
+    local label = string.format("Metadata Length: %d", metadata_length)
+    local varint_subtree = ext_subtree:add(zilla_protocol, buffer(metadata_length_offset, metadata_length_length), label)
+    varint_subtree:add(fields.kafka_ext_metadata_length_varint, slice_metadata_length_varint)
+    varint_subtree:add(fields.kafka_ext_metadata_length, metadata_length)
+    -- metadata_bytes
+    if (metadata_length > 0) then
+        local metadata_bytes_offset = metadata_length_offset + metadata_length_length
+        local slice_metadata_bytes = buffer(metadata_bytes_offset, metadata_length)
+        ext_subtree:add(fields.kafka_ext_metadata_bytes, slice_metadata_bytes)
+    end
+end
+
+function handle_kafka_group_flush_extension(buffer, offset, ext_subtree)
+    -- generation_id
+    local generation_id_offset = offset
+    local generation_id_length = 4
+    local slice_generation_id = buffer(generation_id_offset, generation_id_length)
+    ext_subtree:add_le(fields.kafka_ext_generation_id, slice_generation_id)
+    -- leader_id
+    local leader_id_offset = generation_id_offset + generation_id_length
+    local leader_id_length, slice_leader_id_length, slice_leader_id_text = dissect_length_value(buffer, leader_id_offset, 2)
+    add_string_as_subtree(buffer(leader_id_offset, leader_id_length), ext_subtree, "Leader ID: %s",
+        slice_leader_id_length, slice_leader_id_text, fields.kafka_ext_leader_id_length, fields.kafka_ext_leader_id)
+    -- member_id
+    local member_id_offset = leader_id_offset + leader_id_length
+    local member_id_length, slice_member_id_length, slice_member_id_text = dissect_length_value(buffer, member_id_offset, 2)
+    add_string_as_subtree(buffer(member_id_offset, member_id_length), ext_subtree, "Member ID: %s",
+        slice_member_id_length, slice_member_id_text, fields.kafka_ext_member_id_length, fields.kafka_ext_member_id)
+    -- members
+    local members_offset = member_id_offset + member_id_length
+    dissect_and_add_kafka_group_members(buffer, members_offset, ext_subtree)
+end
+
+function dissect_and_add_kafka_group_members(buffer, offset, tree)
+    local slice_array_length = buffer(offset, 4)
+    local slice_array_size = buffer(offset + 4, 4)
+    local array_size = slice_array_size:le_int()
+    local length = 8
+    local label = string.format("Members (%d items)", array_size)
+    local array_subtree = tree:add(zilla_protocol, buffer(offset, length), label)
+    array_subtree:add_le(fields.kafka_ext_consumer_assignments_array_length, slice_array_length)
+    array_subtree:add_le(fields.kafka_ext_consumer_assignments_array_size, slice_array_size)
+    local item_offset = offset + length
+    for i = 1, array_size do
+        -- member_id
+        local member_id_offset = item_offset
+        local member_id_length, slice_member_id_length, slice_member_id_text = dissect_length_value(buffer, member_id_offset, 2)
+        -- metadata_length_varint
+        local metadata_length_offset = member_id_offset + member_id_length
+        local metadata_length, slice_metadata_length_varint, metadata_length_length = decode_varint32(buffer, metadata_length_offset)
+        local metadata_length_label = string.format("Metadata Length: %d", metadata_length)
+        -- add fields
+        local record_length = member_id_length + metadata_length_length + metadata_length
+        local member_label = string.format("Member: %s", slice_member_id_text:string())
+        local member_subtree = tree:add(zilla_protocol, buffer(item_offset, record_length), member_label)
+        add_string_as_subtree(buffer(member_id_offset, member_id_length), member_subtree, "Member ID: %s",
+            slice_member_id_length, slice_member_id_text, fields.kafka_ext_member_id_length, fields.kafka_ext_member_id)
+        local varint_subtree = member_subtree:add(zilla_protocol, buffer(metadata_length_offset, metadata_length_length), metadata_length_label)
+        varint_subtree:add(fields.kafka_ext_metadata_length_varint, slice_metadata_length_varint)
+        varint_subtree:add(fields.kafka_ext_metadata_length, metadata_length)
+        -- metadata_bytes
+        if (metadata_length > 0) then
+            local metadata_bytes_offset = metadata_length_offset + metadata_length_length
+            local slice_metadata_bytes = buffer(metadata_bytes_offset, metadata_length)
+            member_subtree:add(fields.kafka_ext_metadata_bytes, slice_metadata_bytes)
+        end
+        -- next
+        item_offset = item_offset + record_length
+    end
+    return item_offset
 end
 
 function handle_kafka_reset_extension(buffer, offset, ext_subtree)

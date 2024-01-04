@@ -1689,6 +1689,107 @@ public class ZillaDumpCommandTest
             .extension(kafkaResetEx1, 0, kafkaResetEx1.capacity())
             .build();
         streams[0].write(ResetFW.TYPE_ID, reset5.buffer(), 0, reset5.sizeof());
+
+        // - GROUP
+        DirectBuffer kafkaGroupBeginEx1 = new UnsafeBuffer(KafkaFunctions.beginEx()
+            .typeId(KAFKA_TYPE_ID)
+            .group()
+                .groupId("group-id")
+                .protocol("protocol")
+                .instanceId("instance-id")
+                .host("host")
+                .port(42)
+                .timeout(77)
+                .metadata(BitUtil.fromHex("1122334455"))
+                .build()
+            .build());
+        BeginFW begin27 = beginRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000000fL) // north_kafka_cache_client
+            .routedId(0x0000000900000010L) // south_kafka_cache_server
+            .streamId(0x0000000000000029L) // INI
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x0000000000000048L)
+            .traceId(0x0000000000000029L)
+            .affinity(0x0000000000000000L)
+            .extension(kafkaGroupBeginEx1, 0, kafkaGroupBeginEx1.capacity())
+            .build();
+        streams[0].write(BeginFW.TYPE_ID, begin27.buffer(), 0, begin27.sizeof());
+
+        DirectBuffer kafkaGroupBeginEx2 = new UnsafeBuffer(KafkaFunctions.beginEx()
+            .typeId(KAFKA_TYPE_ID)
+            .group()
+                .groupId("group-id")
+                .protocol("protocol")
+                .instanceId("instance-id")
+                .host("host")
+                .port(42)
+                .timeout(77)
+                .build()
+            .build());
+        BeginFW begin28 = beginRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000000fL) // north_kafka_cache_client
+            .routedId(0x0000000900000010L) // south_kafka_cache_server
+            .streamId(0x0000000000000028L) // REP
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x0000000000000049L)
+            .traceId(0x0000000000000029L)
+            .affinity(0x0000000000000000L)
+            .extension(kafkaGroupBeginEx2, 0, kafkaGroupBeginEx2.capacity())
+            .build();
+        streams[0].write(BeginFW.TYPE_ID, begin28.buffer(), 0, begin28.sizeof());
+
+        DirectBuffer kafkaGroupFlushEx1 = new UnsafeBuffer(KafkaFunctions.flushEx()
+            .typeId(KAFKA_TYPE_ID)
+            .group()
+                .generationId(77)
+                .leaderId("leader-id")
+                .memberId("member-id")
+                .build()
+            .build());
+        FlushFW flush6 = flushRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000000fL) // north_kafka_cache_client
+            .routedId(0x0000000900000010L) // south_kafka_cache_server
+            .streamId(0x0000000000000029L) // INI
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x0000000000000046L)
+            .traceId(0x0000000000000029L)
+            .budgetId(0x0000000000000000L)
+            .reserved(0x00000000)
+            .extension(kafkaGroupFlushEx1, 0, kafkaGroupFlushEx1.capacity())
+            .build();
+        streams[0].write(FlushFW.TYPE_ID, flush6.buffer(), 0, flush6.sizeof());
+
+        DirectBuffer kafkaGroupFlushEx2 = new UnsafeBuffer(KafkaFunctions.flushEx()
+            .typeId(KAFKA_TYPE_ID)
+            .group()
+                .generationId(99)
+                .leaderId("leader-id")
+                .memberId("member-id")
+                .members("member-1")
+                .members("member-2-with-metadata", BitUtil.fromHex("778899aabb"))
+                .members("member-3")
+                .build()
+            .build());
+        FlushFW flush7 = flushRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000000fL) // north_kafka_cache_client
+            .routedId(0x0000000900000010L) // south_kafka_cache_server
+            .streamId(0x0000000000000028L) // REP
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x0000000000000046L)
+            .traceId(0x0000000000000029L)
+            .budgetId(0x0000000000000000L)
+            .reserved(0x00000000)
+            .extension(kafkaGroupFlushEx2, 0, kafkaGroupFlushEx2.capacity())
+            .build();
+        streams[0].write(FlushFW.TYPE_ID, flush7.buffer(), 0, flush7.sizeof());
     }
 
     @BeforeEach

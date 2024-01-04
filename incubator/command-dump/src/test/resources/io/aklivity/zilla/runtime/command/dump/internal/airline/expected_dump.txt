@@ -3711,3 +3711,214 @@ Zilla Frame
             Length: 11
             Consumer ID: consumer-id
 
+Frame 78: 306 bytes on wire (2448 bits), 306 bytes captured (2448 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::28, Dst: fe80::29
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 0, Ack: 1, Len: 232
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00002660
+    Origin ID: 0x000000090000000f
+    Origin Namespace: example
+    Origin Binding: north_kafka_cache_client
+    Routed ID: 0x0000000900000010
+    Routed Namespace: example
+    Routed Binding: south_kafka_cache_server
+    Stream ID: 0x0000000000000029
+    Initial ID: 0x0000000000000029
+    Reply ID: 0x0000000000000028
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000048
+    Trace ID: 0x0000000000000029
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+    Extension: kafka
+        Stream Type ID: 0xe1204b08
+        Stream Type: kafka
+        API: GROUP (253)
+        Group ID: group-id
+            Length: 8
+            Group ID: group-id
+        Protocol: protocol
+            Length: 8
+            Protocol: protocol
+        Instance ID: instance-id
+            Length: 11
+            Instance ID: instance-id
+        Host: host
+            Length: 4
+            Host: host
+        Port: 42
+        Timeout: 77
+        Metadata Length: 5
+            Length (varint32): 0a
+            Length: 5
+        Metadata: 1122334455
+
+Frame 79: 301 bytes on wire (2408 bits), 301 bytes captured (2408 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::29, Dst: fe80::28
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1, Ack: 232, Len: 227
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x000026f0
+    Origin ID: 0x000000090000000f
+    Origin Namespace: example
+    Origin Binding: north_kafka_cache_client
+    Routed ID: 0x0000000900000010
+    Routed Namespace: example
+    Routed Binding: south_kafka_cache_server
+    Stream ID: 0x0000000000000028
+    Initial ID: 0x0000000000000029
+    Reply ID: 0x0000000000000028
+    Direction: REP
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000049
+    Trace ID: 0x0000000000000029
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+    Extension: kafka
+        Stream Type ID: 0xe1204b08
+        Stream Type: kafka
+        API: GROUP (253)
+        Group ID: group-id
+            Length: 8
+            Group ID: group-id
+        Protocol: protocol
+            Length: 8
+            Protocol: protocol
+        Instance ID: instance-id
+            Length: 11
+            Instance ID: instance-id
+        Host: host
+            Length: 4
+            Host: host
+        Port: 42
+        Timeout: 77
+        Metadata Length: 0
+            Length (varint32): 01
+            Length: 0
+
+Frame 80: 291 bytes on wire (2328 bits), 291 bytes captured (2328 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::28, Dst: fe80::29
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 232, Ack: 228, Len: 217
+Zilla Frame
+    Frame Type ID: 0x00000005
+    Frame Type: FLUSH
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00002780
+    Origin ID: 0x000000090000000f
+    Origin Namespace: example
+    Origin Binding: north_kafka_cache_client
+    Routed ID: 0x0000000900000010
+    Routed Namespace: example
+    Routed Binding: south_kafka_cache_server
+    Stream ID: 0x0000000000000029
+    Initial ID: 0x0000000000000029
+    Reply ID: 0x0000000000000028
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000046
+    Trace ID: 0x0000000000000029
+    Authorization: 0x0000000000000000
+    Budget ID: 0x0000000000000000
+    Reserved: 0
+    Extension: kafka
+        Stream Type ID: 0xe1204b08
+        Stream Type: kafka
+        API: GROUP (253)
+        Generation ID: 77
+        Leader ID: leader-id
+            Length: 9
+            Leader ID: leader-id
+        Member ID: member-id
+            Length: 9
+            Member ID: member-id
+        Members (0 items)
+            Length: 4
+            Size: 0
+
+Frame 81: 343 bytes on wire (2744 bits), 343 bytes captured (2744 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::29, Dst: fe80::28
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 228, Ack: 449, Len: 269
+Zilla Frame
+    Frame Type ID: 0x00000005
+    Frame Type: FLUSH
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00002800
+    Origin ID: 0x000000090000000f
+    Origin Namespace: example
+    Origin Binding: north_kafka_cache_client
+    Routed ID: 0x0000000900000010
+    Routed Namespace: example
+    Routed Binding: south_kafka_cache_server
+    Stream ID: 0x0000000000000028
+    Initial ID: 0x0000000000000029
+    Reply ID: 0x0000000000000028
+    Direction: REP
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000046
+    Trace ID: 0x0000000000000029
+    Authorization: 0x0000000000000000
+    Budget ID: 0x0000000000000000
+    Reserved: 0
+    Extension: kafka
+        Stream Type ID: 0xe1204b08
+        Stream Type: kafka
+        API: GROUP (253)
+        Generation ID: 99
+        Leader ID: leader-id
+            Length: 9
+            Leader ID: leader-id
+        Member ID: member-id
+            Length: 9
+            Member ID: member-id
+        Members (3 items)
+            Length: 56
+            Size: 3
+        Member: member-1
+            Member ID: member-1
+                Length: 8
+                Member ID: member-1
+            Metadata Length: 0
+                Length (varint32): 01
+                Length: 0
+        Member: member-2-with-metadata
+            Member ID: member-2-with-metadata
+                Length: 22
+                Member ID: member-2-with-metadata
+            Metadata Length: 5
+                Length (varint32): 0a
+                Length: 5
+            Metadata: 778899aabb
+        Member: member-3
+            Member ID: member-3
+                Length: 8
+                Member ID: member-3
+            Metadata Length: 0
+                Length (varint32): 01
+                Length: 0
+
