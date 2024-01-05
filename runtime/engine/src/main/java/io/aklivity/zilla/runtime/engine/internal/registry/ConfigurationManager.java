@@ -61,7 +61,7 @@ public class ConfigurationManager
     private final ToIntFunction<String> supplyId;
     private final IntFunction<ToIntFunction<KindConfig>> maxWorkers;
     private final Tuning tuning;
-    private final Collection<DispatchAgent> dispatchers;
+    private final Collection<EngineWorker> dispatchers;
     private final Consumer<String> logger;
     private final EngineExtContext context;
     private final EngineConfiguration config;
@@ -75,7 +75,7 @@ public class ConfigurationManager
         ToIntFunction<String> supplyId,
         IntFunction<ToIntFunction<KindConfig>> maxWorkers,
         Tuning tuning,
-        Collection<DispatchAgent> dispatchers,
+        Collection<EngineWorker> dispatchers,
         Consumer<String> logger,
         EngineExtContext context,
         EngineConfiguration config,
@@ -177,14 +177,14 @@ public class ConfigurationManager
                                 .filter(g -> g.id == guarded.id)
                                 .findFirst()
                                 .map(g -> guardByType.apply(g.type))
-                                .map(g -> g.verifier(DispatchAgent::indexOfId, guarded))
+                                .map(g -> g.verifier(EngineWorker::indexOfId, guarded))
                                 .orElse(session -> false);
 
                             LongFunction<String> identifier = namespace.guards.stream()
                                 .filter(g -> g.id == guarded.id)
                                 .findFirst()
                                 .map(g -> guardByType.apply(g.type))
-                                .map(g -> g.identifier(DispatchAgent::indexOfId, guarded))
+                                .map(g -> g.identifier(EngineWorker::indexOfId, guarded))
                                 .orElse(session -> null);
 
                             guarded.identity = identifier;
