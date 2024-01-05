@@ -513,7 +513,8 @@ local fields = {
     kafka_ext_evaluation = ProtoField.uint8("zilla.kafka_ext.evaluation", "Evaluation", base.DEC, kafka_ext_evaluation_types),
     kafka_ext_isolation = ProtoField.uint8("zilla.kafka_ext.isolation", "Isolation", base.DEC, kafka_ext_isolation_types),
     kafka_ext_delta_type = ProtoField.uint8("zilla.kafka_ext.delta_type", "Isolation", base.DEC, kafka_ext_delta_types),
-    kafka_ext_ack_mode = ProtoField.int16("zilla.kafka_ext.ack_mode", "Ack Mode", base.DEC, kafka_ext_ack_modes),
+    kafka_ext_ack_mode_id = ProtoField.int16("zilla.kafka_ext.ack_mode_id", "Ack Mode ID", base.DEC),
+    kafka_ext_ack_mode = ProtoField.string("zilla.kafka_ext.ack_mode", "Ack Mode", base.NONE),
 }
 
 zilla_protocol.fields = fields;
@@ -2122,8 +2123,10 @@ function handle_kafka_begin_merged_extension(buffer, offset, ext_subtree)
     -- ack_mode
     local ack_mode_offset = delta_type_offset + delta_type_length
     local ack_mode_length = 2
-    local slice_ack_mode = buffer(ack_mode_offset, ack_mode_length)
-    ext_subtree:add_le(fields.kafka_ext_ack_mode, slice_ack_mode)
+    local slice_ack_mode_id = buffer(ack_mode_offset, ack_mode_length)
+    local ack_mode = kafka_ext_ack_modes[slice_ack_mode_id:le_int()]
+    ext_subtree:add_le(fields.kafka_ext_ack_mode_id, slice_ack_mode_id)
+    ext_subtree:add(fields.kafka_ext_ack_mode, ack_mode)
 end
 
 function dissect_and_add_kafka_filters_array(buffer, offset, tree, field_array_length, field_array_size)

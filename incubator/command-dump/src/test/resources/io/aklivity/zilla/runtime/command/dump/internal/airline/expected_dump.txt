@@ -4258,7 +4258,8 @@ Zilla Frame
         Evaluation: LAZY (0)
         Isolation: READ_UNCOMMITTED (0)
         Isolation: NONE (0)
-        Ack Mode: NONE (0)
+        Ack Mode ID: 0
+        Ack Mode: NONE
 
 Frame 85: 407 bytes on wire (3256 bits), 407 bytes captured (3256 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
@@ -4336,7 +4337,8 @@ Zilla Frame
         Evaluation: EAGER (1)
         Isolation: READ_COMMITTED (1)
         Isolation: JSON_PATCH (1)
-        Ack Mode: LEADER_ONLY (1)
+        Ack Mode ID: 1
+        Ack Mode: LEADER_ONLY
 
 Frame 86: 339 bytes on wire (2712 bits), 339 bytes captured (2712 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
@@ -4398,5 +4400,6 @@ Zilla Frame
         Evaluation: EAGER (1)
         Isolation: READ_COMMITTED (1)
         Isolation: JSON_PATCH (1)
-        Ack Mode: Unknown (-1)
+        Ack Mode ID: -1
+        Ack Mode: IN_SYNC_REPLICAS
 

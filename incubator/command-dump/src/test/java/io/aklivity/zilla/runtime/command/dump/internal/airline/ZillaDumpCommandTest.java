@@ -65,7 +65,7 @@ import io.aklivity.zilla.specs.engine.internal.types.stream.WindowFW;
 public class ZillaDumpCommandTest
 {
     private static final int WORKERS = 3;
-    private static final int STREAMS_CAPACITY = 16 * 1024;
+    private static final int STREAMS_CAPACITY = 32 * 1024;
     private static final Path ENGINE_PATH =
         Path.of("src/test/resources/io/aklivity/zilla/runtime/command/dump/internal/airline/engine");
     private static final int FILESYSTEM_TYPE_ID = 1;
