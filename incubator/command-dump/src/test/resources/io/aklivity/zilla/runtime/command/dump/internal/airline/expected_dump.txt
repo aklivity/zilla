@@ -4008,10 +4008,10 @@ Zilla Frame
             Consumer ID: consumer-id
         Timeout: 999999
 
-Frame 84: 407 bytes on wire (3256 bits), 407 bytes captured (3256 bits)
+Frame 84: 658 bytes on wire (5264 bits), 658 bytes captured (5264 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::32, Dst: fe80::33
-Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 0, Ack: 1, Len: 333
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 0, Ack: 1, Len: 584
 Zilla Frame
     Frame Type ID: 0x00000001
     Frame Type: BEGIN
@@ -4051,52 +4051,226 @@ Zilla Frame
             Length: 11
             Consumer ID: consumer-id
         Timeout: 0
-        Partitions (3 items)
-            Length: 102
-            Size: 3
-        Partition: 1
-            Partition ID: 1
-            Partition Offset: 42000
-            Stable Offset: 43000
-            Latest Offset: 44000
-            Metadata: metadata
+        Partitions (1 items)
+            Length: 34
+            Size: 1
+        Partition: 42
+            Partition ID: 42
+            Partition Offset: 4242
+            Stable Offset: -1
+            Latest Offset: -1
+            Metadata: 
+                Length: -1
+                Metadata: 
+        Filters (5 items)
+            Length: 323
+            Size: 5
+        Filter #1
+            Conditions (1 items)
+                Length: 10
+                Size: 1
+            Condition: [KEY] key1
+                Type: KEY (0)
+                Length: 4
+                    Length (varint32): 08
+                    Length: 4
+                Key: key1
+        Filter #2
+            Conditions (4 items)
+                Length: 44
+                Size: 4
+            Condition: [KEY] key1
+                Type: KEY (0)
+                Length: 4
+                    Length (varint32): 08
+                    Length: 4
+                Key: key1
+            Condition: [KEY] key2
+                Type: KEY (0)
+                Length: 4
+                    Length (varint32): 08
+                    Length: 4
+                Key: key2
+            Condition: [HEADER] name1: value1
+                Type: HEADER (1)
+                Length: 5
+                    Length (varint32): 0a
+                    Length: 5
+                Name: name1
+                Length: 6
+                    Length (varint32): 0c
+                    Length: 6
+                Value: value1
+            Condition: [HEADER] name2: value2
+                Type: HEADER (1)
+                Length: 5
+                    Length (varint32): 0a
+                    Length: 5
+                Name: name2
+                Length: 6
+                    Length (varint32): 0c
+                    Length: 6
+                Value: value2
+        Filter #3
+            Conditions (4 items)
+                Length: 60
+                Size: 4
+            Condition: [NOT] [KEY] key-n1
+                Type: NOT (2)
+                Type: KEY (0)
+                Length: 6
+                    Length (varint32): 0c
+                    Length: 6
+                Key: key-n1
+            Condition: [NOT] [KEY] key-n2
+                Type: NOT (2)
+                Type: KEY (0)
+                Length: 6
+                    Length (varint32): 0c
+                    Length: 6
+                Key: key-n2
+            Condition: [NOT] [HEADER] name-n1: value-n1
+                Type: NOT (2)
+                Type: HEADER (1)
+                Length: 7
+                    Length (varint32): 0e
+                    Length: 7
+                Name: name-n1
                 Length: 8
-                Metadata: metadata
-        Partition: 2
-            Partition ID: 2
-            Partition Offset: 77000
-            Stable Offset: -1
-            Latest Offset: -1
-            Metadata: 
-                Length: -1
-                Metadata: 
-        Partition: 3
-            Partition ID: 3
-            Partition Offset: 88000
-            Stable Offset: -1
-            Latest Offset: -1
-            Metadata: 
-                Length: -1
-                Metadata: 
-        Filters (0 items)
-            Length: 4
-            Size: 0
+                    Length (varint32): 10
+                    Length: 8
+                Value: value-n1
+            Condition: [NOT] [HEADER] name-n2: value-n2
+                Type: NOT (2)
+                Type: HEADER (1)
+                Length: 7
+                    Length (varint32): 0e
+                    Length: 7
+                Name: name-n2
+                Length: 8
+                    Length (varint32): 10
+                    Length: 8
+                Value: value-n2
+        Filter #4
+            Conditions (3 items)
+                Length: 94
+                Size: 3
+            Condition: [KEY] key
+                Type: KEY (0)
+                Length: 3
+                    Length (varint32): 06
+                    Length: 3
+                Key: key
+            Condition: [HEADERS] headers-1: value-1, value-2, value-3
+                Type: HEADERS (3)
+                Length: 9
+                    Length (varint32): 12
+                    Length: 9
+                Name: headers-1
+                Value Matches (3 items)
+                    Length: 31
+                    Size: 3
+                Value Match: value-1
+                    Type: VALUE (0)
+                    Length: 7
+                        Length (varint32): 0e
+                        Length: 7
+                    Value: value-1
+                Value Match: value-2
+                    Type: VALUE (0)
+                    Length: 7
+                        Length (varint32): 0e
+                        Length: 7
+                    Value: value-2
+                Value Match: value-3
+                    Type: VALUE (0)
+                    Length: 7
+                        Length (varint32): 0e
+                        Length: 7
+                    Value: value-3
+            Condition: [HEADERS] headers-2: value-01, value-02
+                Type: HEADERS (3)
+                Length: 9
+                    Length (varint32): 12
+                    Length: 9
+                Name: headers-2
+                Value Matches (2 items)
+                    Length: 24
+                    Size: 2
+                Value Match: value-01
+                    Type: VALUE (0)
+                    Length: 8
+                        Length (varint32): 10
+                        Length: 8
+                    Value: value-01
+                Value Match: value-02
+                    Type: VALUE (0)
+                    Length: 8
+                        Length (varint32): 10
+                        Length: 8
+                    Value: value-02
+        Filter #5
+            Conditions (2 items)
+                Length: 91
+                Size: 2
+            Condition: [HEADERS] headers-skip: value-s1, [SKIP]
+                Type: HEADERS (3)
+                Length: 12
+                    Length (varint32): 18
+                    Length: 12
+                Name: headers-skip
+                Value Matches (2 items)
+                    Length: 16
+                    Size: 2
+                Value Match: value-s1
+                    Type: VALUE (0)
+                    Length: 8
+                        Length (varint32): 10
+                        Length: 8
+                    Value: value-s1
+                Value Match: [SKIP]
+                    Type: SKIP (1)
+                    Skip Type: SKIP (0)
+            Condition: [HEADERS] headers-skip-many: value-sm01, value-sm02, [SKIP_MANY]
+                Type: HEADERS (3)
+                Length: 17
+                    Length (varint32): 22
+                    Length: 17
+                Name: headers-skip-many
+                Value Matches (3 items)
+                    Length: 30
+                    Size: 3
+                Value Match: value-sm01
+                    Type: VALUE (0)
+                    Length: 10
+                        Length (varint32): 14
+                        Length: 10
+                    Value: value-sm01
+                Value Match: value-sm02
+                    Type: VALUE (0)
+                    Length: 10
+                        Length (varint32): 14
+                        Length: 10
+                    Value: value-sm02
+                Value Match: [SKIP_MANY]
+                    Type: SKIP (1)
+                    Skip Type: SKIP_MANY (1)
         Evaluation: LAZY (0)
         Isolation: READ_UNCOMMITTED (0)
         Isolation: NONE (0)
         Ack Mode: NONE (0)
 
-Frame 85: 309 bytes on wire (2472 bits), 309 bytes captured (2472 bits)
+Frame 85: 407 bytes on wire (3256 bits), 407 bytes captured (3256 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::33, Dst: fe80::32
-Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1, Ack: 333, Len: 235
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1, Ack: 584, Len: 333
 Zilla Frame
     Frame Type ID: 0x00000001
     Frame Type: BEGIN
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00002ab0
+    Offset: 0x00002ba8
     Origin ID: 0x000000090000000f
     Origin Namespace: example
     Origin Binding: north_kafka_cache_client
@@ -4129,9 +4303,33 @@ Zilla Frame
             Length: 11
             Consumer ID: consumer-id
         Timeout: 42
-        Partitions (0 items)
-            Length: 4
-            Size: 0
+        Partitions (3 items)
+            Length: 102
+            Size: 3
+        Partition: 1
+            Partition ID: 1
+            Partition Offset: 42000
+            Stable Offset: 43000
+            Latest Offset: 44000
+            Metadata: metadata
+                Length: 8
+                Metadata: metadata
+        Partition: 2
+            Partition ID: 2
+            Partition Offset: 77000
+            Stable Offset: -1
+            Latest Offset: -1
+            Metadata: 
+                Length: -1
+                Metadata: 
+        Partition: 3
+            Partition ID: 3
+            Partition Offset: 88000
+            Stable Offset: -1
+            Latest Offset: -1
+            Metadata: 
+                Length: -1
+                Metadata: 
         Filters (0 items)
             Length: 4
             Size: 0
@@ -4143,14 +4341,14 @@ Zilla Frame
 Frame 86: 339 bytes on wire (2712 bits), 339 bytes captured (2712 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::33, Dst: fe80::32
-Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 236, Ack: 333, Len: 265
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 334, Ack: 584, Len: 265
 Zilla Frame
     Frame Type ID: 0x00000001
     Frame Type: BEGIN
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00002b48
+    Offset: 0x00002ca0
     Origin ID: 0x000000090000000f
     Origin Namespace: example
     Origin Binding: north_kafka_cache_client
