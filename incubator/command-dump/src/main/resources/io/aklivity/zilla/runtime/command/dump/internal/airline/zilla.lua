@@ -1815,7 +1815,7 @@ function dissect_and_add_kafka_topic_partition_ids(buffer, offset, tree)
     end
 end
 
-function calculate_length_of_kafka_topic_partition_ids(buffer, offset)
+function resolve_length_of_kafka_topic_partition_ids(buffer, offset)
     local slice_array_length = buffer(offset, 4)
     local slice_array_size = buffer(offset + 4, 4)
     local array_size = slice_array_size:le_int()
@@ -1827,7 +1827,7 @@ end
 function handle_kafka_data_consumer_extension(buffer, offset, ext_subtree)
     -- partition_ids
     local partition_ids_offset = offset
-    local partition_ids_length = calculate_length_of_kafka_topic_partition_ids(buffer, partition_ids_offset)
+    local partition_ids_length = resolve_length_of_kafka_topic_partition_ids(buffer, partition_ids_offset)
     dissect_and_add_kafka_topic_partition_ids(buffer, partition_ids_offset, ext_subtree)
     -- assignments
     local assignments_offset = partition_ids_offset + partition_ids_length
@@ -1850,7 +1850,7 @@ function dissect_and_add_kafka_consumer_assignments(buffer, offset, tree)
         local consumer_id_length, slice_consumer_id_length, slice_consumer_id_text = dissect_length_value(buffer, consumer_id_offset, 2)
         -- partition_ids
         local partition_ids_offset = consumer_id_offset + consumer_id_length
-        local partition_ids_length = calculate_length_of_kafka_topic_partition_ids(buffer, partition_ids_offset)
+        local partition_ids_length = resolve_length_of_kafka_topic_partition_ids(buffer, partition_ids_offset)
         -- add fields
         local record_length = consumer_id_length + partition_ids_length
         local label = string.format("Consumer Assignment: %s", slice_consumer_id_text:string())
@@ -1867,7 +1867,7 @@ end
 function handle_kafka_flush_consumer_extension(buffer, offset, ext_subtree)
     -- progress
     local progress_offset = offset
-    local progress_length = calculate_length_of_kafka_offset(buffer, progress_offset)
+    local progress_length = resolve_length_of_kafka_offset(buffer, progress_offset)
     dissect_and_add_kafka_offset(buffer, progress_offset, ext_subtree, "Progress: %d [%d]")
     -- leader_epoch
     local leader_epoch_offset = progress_offset + progress_length
@@ -1913,7 +1913,7 @@ function dissect_and_add_kafka_offset(buffer, offset, tree, label_format)
         slice_metadata_length, slice_metadata_text, fields.kafka_ext_metadata_length, fields.kafka_ext_metadata)
 end
 
-function calculate_length_of_kafka_offset(buffer, offset)
+function resolve_length_of_kafka_offset(buffer, offset)
     local partition_id_length = 4
     local partition_offset_length = 8
     local stable_offset_length = 8
@@ -1935,7 +1935,7 @@ function dissect_and_add_kafka_offset_array(buffer, offset, tree, field_array_le
     local total_length = 4 + slice_array_length:le_int()
     local item_offset = offset + length
     for i = 1, array_size do
-        local item_length = calculate_length_of_kafka_offset(buffer, item_offset)
+        local item_length = resolve_length_of_kafka_offset(buffer, item_offset)
         dissect_and_add_kafka_offset(buffer, item_offset, tree, string.format("%s: %%s", singular_name))
         item_offset = item_offset + item_length
     end
