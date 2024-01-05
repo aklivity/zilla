@@ -61,7 +61,8 @@
                             "trustcacerts":
                             {
                                 "title": "Trust CA Certificates",
-                                "type": "boolean"
+                                "type": "boolean",
+                                "default": true
                             },
                             "sni":
                             {

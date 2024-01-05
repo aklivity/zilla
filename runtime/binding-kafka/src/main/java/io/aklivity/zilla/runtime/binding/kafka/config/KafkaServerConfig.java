@@ -15,26 +15,22 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.config;
 
-import java.util.List;
-
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
-
-public final class KafkaOptionsConfig extends OptionsConfig
+public class KafkaServerConfig
 {
-    public final List<String> bootstrap;
-    public final List<KafkaTopicConfig> topics;
-    public final List<KafkaServerConfig> servers;
-    public final KafkaSaslConfig sasl;
+    public final String host;
+    public final int port;
 
-    public KafkaOptionsConfig(
-        List<String> bootstrap,
-        List<KafkaTopicConfig> topics,
-        List<KafkaServerConfig> servers,
-        KafkaSaslConfig sasl)
+    public KafkaServerConfig(
+        String host,
+        int port)
     {
-        this.bootstrap = bootstrap;
-        this.topics = topics;
-        this.servers = servers;
-        this.sasl = sasl;
+        this.host = host;
+        this.port = port;
+    }
+
+    @Override
+    public String toString()
+    {
+        return String.format("%s:%d]", host, port);
     }
 }

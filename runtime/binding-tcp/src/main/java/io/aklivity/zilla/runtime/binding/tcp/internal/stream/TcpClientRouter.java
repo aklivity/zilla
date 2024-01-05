@@ -75,13 +75,18 @@ public final class TcpClientRouter
         ProxyBeginExFW beginEx)
     {
         final TcpOptionsConfig options = binding.options;
-        final int port = options.ports != null && options.ports.length > 0 ? options.ports[0] : 0;
+        final int port = options != null && options.ports != null && options.ports.length > 0 ? options.ports[0] : 0;
 
         InetSocketAddress resolved = null;
 
         if (beginEx == null)
         {
             resolved = new InetSocketAddress(options.host, port);
+        }
+        else if (options == null)
+        {
+            ProxyAddressInetFW inet = beginEx.address().inet();
+            resolved = new InetSocketAddress(inet.destination().asString(), inet.destinationPort());
         }
         else
         {

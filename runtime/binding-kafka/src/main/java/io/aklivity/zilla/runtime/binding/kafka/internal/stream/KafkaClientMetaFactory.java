@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.kafka.internal.types.ProxyAddressProtocol.STREAM;
 import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_BUDGET_ID;
 import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_INDEX;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
@@ -22,7 +23,9 @@ import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static java.lang.System.currentTimeMillis;
 import static java.util.Objects.requireNonNull;
 
+import java.util.List;
 import java.util.Objects;
+import java.util.Random;
 import java.util.function.Consumer;
 import java.util.function.LongFunction;
 import java.util.function.UnaryOperator;
@@ -35,6 +38,7 @@ import org.agrona.collections.LongLongConsumer;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
@@ -59,6 +63,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaDataExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaResetExFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ProxyBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.WindowFW;
@@ -76,6 +81,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
 
     private static final int SIGNAL_NEXT_REQUEST = 1;
 
+    private static final Random RANDOM_SERVER_ID_GENERATOR = new Random();
     private static final DirectBuffer EMPTY_BUFFER = new UnsafeBuffer();
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
@@ -103,6 +109,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
     private final KafkaBeginExFW.Builder kafkaBeginExRW = new KafkaBeginExFW.Builder();
     private final KafkaDataExFW.Builder kafkaDataExRW = new KafkaDataExFW.Builder();
     private final KafkaResetExFW.Builder kafkaResetExRW = new KafkaResetExFW.Builder();
+    private final ProxyBeginExFW.Builder proxyBeginExRW = new ProxyBeginExFW.Builder();
 
     private final RequestHeaderFW.Builder requestHeaderRW = new RequestHeaderFW.Builder();
     private final MetadataRequestFW.Builder metadataRequestRW = new MetadataRequestFW.Builder();
@@ -134,6 +141,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
 
     private final long maxAgeMillis;
     private final int kafkaTypeId;
+    private final int proxyTypeId;
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer extBuffer;
     private final BufferPool decodePool;
@@ -158,6 +166,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
         super(config, context);
         this.maxAgeMillis = Math.min(config.clientMetaMaxAgeMillis(), config.clientMaxIdleMillis() >> 1);
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
+        this.proxyTypeId = context.supplyTypeId("proxy");
         this.signaler = signaler;
         this.streamFactory = streamFactory;
         this.resolveSasl = resolveSasl;
@@ -211,6 +220,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                     affinity,
                     resolvedId,
                     topicName,
+                    binding.servers(),
                     sasl)::onApplication;
         }
 
@@ -834,6 +844,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
             long affinity,
             long resolvedId,
             String topic,
+            List<KafkaServerConfig> servers,
             KafkaSaslConfig sasl)
         {
             this.application = application;
@@ -843,7 +854,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = affinity;
             this.clientRoute = supplyClientRoute.apply(resolvedId);
-            this.client = new KafkaMetaClient(routedId, resolvedId, topic, sasl);
+            this.client = new KafkaMetaClient(routedId, resolvedId, topic, servers, sasl);
         }
 
         private void onApplication(
@@ -1118,6 +1129,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
             private MessageConsumer network;
             private final String topic;
             private final Int2IntHashMap topicPartitions;
+            private final List<KafkaServerConfig> servers;
 
             private final Long2ObjectHashMap<KafkaBrokerInfo> newBrokers;
             private final Int2IntHashMap newPartitions;
@@ -1163,11 +1175,13 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                 long originId,
                 long routedId,
                 String topic,
+                List<KafkaServerConfig> servers,
                 KafkaSaslConfig sasl)
             {
                 super(sasl, originId, routedId);
                 this.topic = requireNonNull(topic);
                 this.topicPartitions = clientRoute.supplyPartitions(topic);
+                this.servers = servers;
                 this.newBrokers = new Long2ObjectHashMap<>();
                 this.newPartitions = new Int2IntHashMap(-1);
 
@@ -1391,8 +1405,27 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
             {
                 state = KafkaState.openingInitial(state);
 
+                Consumer<OctetsFW.Builder> extension = EMPTY_EXTENSION;
+
+                final int randomServerId = RANDOM_SERVER_ID_GENERATOR.nextInt(servers.size() + 1);
+                final KafkaServerConfig kafkaServerConfig = servers.get(randomServerId);
+
+                if (kafkaServerConfig != null)
+                {
+                    extension =  e -> e.set((b, o, l) -> proxyBeginExRW.wrap(b, o, l)
+                        .typeId(proxyTypeId)
+                        .address(a -> a.inet(i -> i.protocol(p -> p.set(STREAM))
+                            .source("0.0.0.0")
+                            .destination(kafkaServerConfig.host)
+                            .sourcePort(0)
+                            .destinationPort(kafkaServerConfig.port)))
+                        .infos(i -> i.item(ii -> ii.authority(kafkaServerConfig.host)))
+                        .build()
+                        .sizeof());
+                }
+
                 network = newStream(this::onNetwork, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                        traceId, authorization, affinity, EMPTY_EXTENSION);
+                        traceId, authorization, affinity, extension);
             }
 
             @Override

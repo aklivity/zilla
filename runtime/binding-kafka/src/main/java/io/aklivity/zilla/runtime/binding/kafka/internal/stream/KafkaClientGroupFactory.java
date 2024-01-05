@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.function.Consumer;
 import java.util.function.LongFunction;
 import java.util.function.Supplier;
@@ -45,6 +46,7 @@ import org.agrona.collections.Object2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
@@ -147,6 +149,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private static final String GROUP_MIN_SESSION_TIMEOUT = "group.min.session.timeout.ms";
     private static final String GROUP_MAX_SESSION_TIMEOUT = "group.max.session.timeout.ms";
     private static final byte GROUP_KEY_TYPE = 0x00;
+    private static final Random RANDOM_SERVER_ID_GENERATOR = new Random();
     private static final DirectBuffer EMPTY_BUFFER = new UnsafeBuffer();
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
@@ -380,6 +383,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                         protocol,
                         timeout,
                         groupMembership,
+                        binding.servers(),
                         sasl);
                     newStream = newGroup::onStream;
 
@@ -1223,6 +1227,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         private final DescribeClient describeClient;
         private final CoordinatorClient coordinatorClient;
         private final GroupMembership groupMembership;
+        private final List<KafkaServerConfig> servers;
         private final String groupId;
         private final String protocol;
         private final long resolvedId;
@@ -1266,6 +1271,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             String protocol,
             int timeout,
             GroupMembership groupMembership,
+            List<KafkaServerConfig> servers,
             KafkaSaslConfig sasl)
         {
             this.sender = sender;
@@ -1279,6 +1285,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             this.timeout = timeout;
             this.resolvedId = resolvedId;
             this.groupMembership = groupMembership;
+            this.servers = servers;
             this.clusterClient = new ClusterClient(routedId, resolvedId, sasl, this);
             this.describeClient = new DescribeClient(routedId, resolvedId, sasl, this);
             this.coordinatorClient = new CoordinatorClient(routedId, resolvedId, sasl, this);
@@ -1996,8 +2003,27 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             state = KafkaState.openingInitial(state);
 
+            Consumer<OctetsFW.Builder> extension = EMPTY_EXTENSION;
+
+            final int randomServerId = RANDOM_SERVER_ID_GENERATOR.nextInt(delegate.servers.size() + 1);
+            final KafkaServerConfig kafkaServerConfig = delegate.servers.get(randomServerId);
+
+            if (kafkaServerConfig != null)
+            {
+                extension =  e -> e.set((b, o, l) -> proxyBeginExRW.wrap(b, o, l)
+                    .typeId(proxyTypeId)
+                    .address(a -> a.inet(i -> i.protocol(p -> p.set(STREAM))
+                        .source("0.0.0.0")
+                        .destination(kafkaServerConfig.host)
+                        .sourcePort(0)
+                        .destinationPort(kafkaServerConfig.port)))
+                    .infos(i -> i.item(ii -> ii.authority(kafkaServerConfig.host)))
+                    .build()
+                    .sizeof());
+            }
+
             network = newStream(this::onNetwork, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, authorization, affinity, EMPTY_EXTENSION);
+                traceId, authorization, affinity, extension);
         }
 
         @Override
