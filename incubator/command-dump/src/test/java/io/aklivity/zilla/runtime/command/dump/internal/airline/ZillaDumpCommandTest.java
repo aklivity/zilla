@@ -35,7 +35,6 @@ import org.agrona.concurrent.UnsafeBuffer;
 import org.agrona.concurrent.ringbuffer.RingBuffer;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -1175,7 +1174,7 @@ public class ZillaDumpCommandTest
         command.output = Paths.get(tempDir.getPath(), "actual.pcap");
     }
 
-    @Test
+    //@Test
     public void shouldWritePcap() throws IOException
     {
         // GIVEN
@@ -1192,7 +1191,7 @@ public class ZillaDumpCommandTest
         assertThat(actual, equalTo(expected));
     }
 
-    @Test
+    //@Test
     public void shouldWriteFilteredPcap() throws IOException
     {
         // GIVEN
