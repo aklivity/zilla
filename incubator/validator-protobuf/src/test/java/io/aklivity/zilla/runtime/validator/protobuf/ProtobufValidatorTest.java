@@ -40,11 +40,33 @@ import io.aklivity.zilla.runtime.validator.protobuf.config.ProtobufValidatorConf
 public class ProtobufValidatorTest
 {
     private static final String SCHEMA = "syntax = \"proto3\";" +
-                                    "package io.confluent.examples.clients.basicavro;" +
+                                    "package io.aklivity.examples.clients.proto;" +
                                     "message SimpleMessage " +
                                     "{  " +
                                         "string content = 1;" +
-                                        "string date_time = 2;" +
+                                        "optional string date_time = 2;" +
+                                        "message DeviceMessage2 " +
+                                        "{  " +
+                                        "int32 id = 1;" +
+                                        "message DeviceMessage6 " +
+                                        "{  " +
+                                        "int32 id = 1;" +
+                                        "}" +
+                                        "}" +
+                                        "DeviceMessage2 device = 3;" +
+                                    "}" +
+                                    "message DemoMessage " +
+                                    "{  " +
+                                        "string status = 1;" +
+                                        "message DeviceMessage " +
+                                        "{  " +
+                                            "int32 id = 1;" +
+                                        "}" +
+                                        "message DeviceMessage1 " +
+                                        "{  " +
+                                        "int32 id = 1;" +
+                                        "}" +
+                                        "optional string date_time = 2;" +
                                     "}";
 
     private final ProtobufValidatorConfig protobufConfig = ProtobufValidatorConfig.builder()
@@ -54,6 +76,7 @@ public class ProtobufValidatorTest
                     .strategy("topic")
                     .version("latest")
                     .subject("test-value")
+                    .record("SimpleMessage")
                     .build()
                 .build()
             .build();
@@ -82,14 +105,8 @@ public class ProtobufValidatorTest
 
         DirectBuffer data = new UnsafeBuffer();
 
-        byte[] bytes = {0x06, 0x69, 0x64, 0x30, 0x10, 0x70, 0x6f,
-            0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
+        byte[] bytes = {0x0a, 0x02, 0x4f, 0x4b, 0x12, 0x08, 0x30, 0x31, 0x30, 0x31, 0x32, 0x30, 0x32, 0x34};
         data.wrap(bytes, 0, bytes.length);
-
-        byte[] expectedBytes = {0x00, 0x00, 0x00, 0x00, 0x01, 0x06, 0x69, 0x64,
-            0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
-        DirectBuffer expected = new UnsafeBuffer();
-        expected.wrap(expectedBytes);
-        assertEquals(expected.capacity(), validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertEquals(data.capacity(), validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
     }
 }

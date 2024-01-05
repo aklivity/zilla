@@ -49,9 +49,9 @@
         <version>3.24.4</version>
     </dependency>
     <dependency>
-        <groupId>com.squareup.wire</groupId>
-        <artifactId>wire-schema-jvm</artifactId>
-        <version>4.4.3</version>
+        <groupId>org.antlr</groupId>
+        <artifactId>antlr4-runtime</artifactId>
+        <scope>provided</scope>
     </dependency>
     <dependency>
         <groupId>${project.groupId}</groupId>
@@ -91,6 +91,10 @@
             <artifactId>maven-checkstyle-plugin</artifactId>
         </plugin>
         <plugin>
+            <groupId>org.antlr</groupId>
+            <artifactId>antlr4-maven-plugin</artifactId>
+        </plugin>
+        <plugin>
             <artifactId>maven-dependency-plugin</artifactId>
             <executions>
                 <execution>
@@ -115,6 +119,24 @@
                         <outputDirectory>${project.build.directory}/classes</outputDirectory>
                     </configuration>
                 </execution>
+                <execution>
+                    <id>unpack-proto</id>
+                    <phase>generate-sources</phase>
+                    <goals>
+                        <goal>unpack</goal>
+                    </goals>
+                    <configuration>
+                        <artifactItems>
+                            <artifactItem>
+                                <groupId>${project.groupId}</groupId>
+                                <artifactId>validator-protobuf.spec</artifactId>
+                                <version>${project.version}</version>
+                                <outputDirectory>${basedir}/target/test-classes</outputDirectory>
+                                <includes>**\/*.proto</includes>
+                            </artifactItem>
+                        </artifactItems>
+                    </configuration>
+                </execution>
             </executions>
         </plugin>
         <plugin>
@@ -137,6 +159,9 @@
             <groupId>org.jacoco</groupId>
             <artifactId>jacoco-maven-plugin</artifactId>
             <configuration>
+                <excludes>
+                    <exclude>io/aklivity/zilla/runtime/validator/protobuf/internal/parser/**/*.class</exclude>
+                </excludes>
                 <rules>
                     <rule>
                         <element>BUNDLE</element>

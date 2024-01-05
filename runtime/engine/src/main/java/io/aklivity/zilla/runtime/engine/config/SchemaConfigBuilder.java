@@ -25,6 +25,7 @@ public class SchemaConfigBuilder<T> extends ConfigBuilder<T, SchemaConfigBuilder
     private String version;
     private String subject;
     private int id;
+    private String record;
 
     public SchemaConfigBuilder(
         Function<SchemaConfig, T> mapper)
@@ -67,9 +68,16 @@ public class SchemaConfigBuilder<T> extends ConfigBuilder<T, SchemaConfigBuilder
         return this;
     }
 
+    public SchemaConfigBuilder<T> record(
+        String record)
+    {
+        this.record = record;
+        return this;
+    }
+
     @Override
     public T build()
     {
-        return mapper.apply(new SchemaConfig(strategy, subject, version, id));
+        return mapper.apply(new SchemaConfig(strategy, subject, version, id, record));
     }
 }

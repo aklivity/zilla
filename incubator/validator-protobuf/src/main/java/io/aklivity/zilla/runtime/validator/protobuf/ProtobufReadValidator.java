@@ -25,9 +25,9 @@ import io.aklivity.zilla.runtime.engine.validator.function.FragmentConsumer;
 import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
 import io.aklivity.zilla.runtime.validator.protobuf.config.ProtobufValidatorConfig;
 
-public class ProtobufWriteValidator extends ProtobufValidator implements ValueValidator, FragmentValidator
+public class ProtobufReadValidator  extends ProtobufValidator implements ValueValidator, FragmentValidator
 {
-    public ProtobufWriteValidator(
+    public ProtobufReadValidator(
         ProtobufValidatorConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
     {
@@ -40,17 +40,7 @@ public class ProtobufWriteValidator extends ProtobufValidator implements ValueVa
         int index,
         int length)
     {
-        return handler.encodePadding();
-    }
-
-    @Override
-    public int validate(
-        DirectBuffer data,
-        int index,
-        int length,
-        ValueConsumer next)
-    {
-        return validateComplete(data, index, length, next);
+        return FragmentValidator.super.padding(data, index, length);
     }
 
     @Override
@@ -61,28 +51,16 @@ public class ProtobufWriteValidator extends ProtobufValidator implements ValueVa
         int length,
         FragmentConsumer next)
     {
-        return (flags & FLAGS_FIN) != 0x00
-            ? validateComplete(data, index, length, (b, i, l) -> next.accept(FLAGS_COMPLETE, b, i, l))
-            : 0;
+        return 0;
     }
 
-    private int validateComplete(
+    @Override
+    public int validate(
         DirectBuffer data,
         int index,
         int length,
         ValueConsumer next)
     {
-        int valLength = -1;
-
-        int schemaId = catalog != null && catalog.id > 0
-                ? catalog.id
-                : handler.resolve(subject, catalog.version);
-
-        if (validate(schemaId, data, index, length))
-        {
-            valLength = handler.encode(schemaId, data, index, length, next, CatalogHandler.Encoder.IDENTITY);
-            // message::encode
-        }
-        return valLength;
+        return 0;
     }
 }

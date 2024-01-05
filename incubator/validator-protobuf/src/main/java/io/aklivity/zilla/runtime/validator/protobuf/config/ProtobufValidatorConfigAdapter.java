@@ -33,7 +33,7 @@ import io.aklivity.zilla.runtime.engine.config.ValidatorConfigAdapterSpi;
 
 public final class ProtobufValidatorConfigAdapter implements ValidatorConfigAdapterSpi, JsonbAdapter<ValidatorConfig, JsonValue>
 {
-    private static final String JSON = "json";
+    private static final String PROTOBUF = "protobuf";
     private static final String TYPE_NAME = "type";
     private static final String CATALOG_NAME = "catalog";
     private static final String SUBJECT_NAME = "subject";
@@ -43,7 +43,7 @@ public final class ProtobufValidatorConfigAdapter implements ValidatorConfigAdap
     @Override
     public String type()
     {
-        return JSON;
+        return PROTOBUF;
     }
 
     @Override
@@ -52,7 +52,7 @@ public final class ProtobufValidatorConfigAdapter implements ValidatorConfigAdap
     {
         ProtobufValidatorConfig protobufConfig = (ProtobufValidatorConfig) config;
         JsonObjectBuilder validator = Json.createObjectBuilder();
-        validator.add(TYPE_NAME, JSON);
+        validator.add(TYPE_NAME, PROTOBUF);
         if (protobufConfig.cataloged != null && !protobufConfig.cataloged.isEmpty())
         {
             JsonObjectBuilder catalogs = Json.createObjectBuilder();

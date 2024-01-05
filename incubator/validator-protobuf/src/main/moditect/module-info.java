@@ -14,5 +14,6 @@
  */
 module io.aklivity.zilla.runtime.validator.protobuf
 {
+    requires org.antlr.antlr4.runtime;
     requires io.aklivity.zilla.runtime.engine;
 }

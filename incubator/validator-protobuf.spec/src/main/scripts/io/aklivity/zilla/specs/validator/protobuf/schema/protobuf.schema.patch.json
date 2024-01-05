@@ -46,6 +46,10 @@
                                                 "id":
                                                 {
                                                     "type": "integer"
+                                                },
+                                                "record":
+                                                {
+                                                    "type": "string"
                                                 }
                                             },
                                             "required":
@@ -66,6 +70,10 @@
                                                 {
                                                     "type": "string",
                                                     "default": "latest"
+                                                },
+                                                "record":
+                                                {
+                                                    "type": "string"
                                                 }
                                             },
                                             "required":
@@ -86,6 +94,10 @@
                                                 {
                                                     "type": "string",
                                                     "default": "latest"
+                                                },
+                                                "record":
+                                                {
+                                                    "type": "string"
                                                 }
                                             },
                                             "required":
@@ -106,6 +118,10 @@
                                                 {
                                                     "type": "string",
                                                     "default": "latest"
+                                                },
+                                                "record":
+                                                {
+                                                    "type": "string"
                                                 }
                                             },
                                             "required":
