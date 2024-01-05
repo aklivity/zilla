@@ -23,15 +23,18 @@ public final class KafkaOptionsConfig extends OptionsConfig
 {
     public final List<String> bootstrap;
     public final List<KafkaTopicConfig> topics;
+    public final List<String> servers;
     public final KafkaSaslConfig sasl;
 
     public KafkaOptionsConfig(
         List<String> bootstrap,
         List<KafkaTopicConfig> topics,
+        List<String> servers,
         KafkaSaslConfig sasl)
     {
         this.bootstrap = bootstrap;
         this.topics = topics;
+        this.servers = servers;
         this.sasl = sasl;
     }
 }

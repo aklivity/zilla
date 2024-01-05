@@ -88,6 +88,7 @@ public class KafkaOptionsConfigAdapterTest
         KafkaOptionsConfig options = new KafkaOptionsConfig(
                 singletonList("test"),
                 singletonList(new KafkaTopicConfig("test", LIVE, JSON_PATCH, null, TestValidatorConfig.builder().build())),
+                singletonList("localhost:9092"),
                 new KafkaSaslConfig("plain", "username", "password"));
 
         String text = jsonb.toJson(options);
@@ -96,6 +97,7 @@ public class KafkaOptionsConfigAdapterTest
         assertThat(text, equalTo("{\"bootstrap\":[\"test\"]," +
                 "\"topics\":[{\"name\":\"test\",\"defaultOffset\":\"live\",\"deltaType\":\"json_patch\"," +
                 "\"value\":\"test\"}]," +
+                "\"servers\":[\"localhost:9092\"]," +
                 "\"sasl\":{\"mechanism\":\"plain\",\"username\":\"username\",\"password\":\"password\"}}"));
     }
 
@@ -141,6 +143,7 @@ public class KafkaOptionsConfigAdapterTest
         KafkaOptionsConfig options = new KafkaOptionsConfig(
                 singletonList("test"),
                 singletonList(new KafkaTopicConfig("test", LIVE, JSON_PATCH, null, null)),
+                singletonList("localhost:9092"),
                 new KafkaSaslConfig("scram-sha-256", "username", "password"));
 
         String text = jsonb.toJson(options);
@@ -148,6 +151,7 @@ public class KafkaOptionsConfigAdapterTest
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo("{\"bootstrap\":[\"test\"]," +
                 "\"topics\":[{\"name\":\"test\",\"defaultOffset\":\"live\",\"deltaType\":\"json_patch\"}]," +
+                "\"servers\":[\"localhost:9092\"]," +
                 "\"sasl\":{\"mechanism\":\"scram-sha-256\",\"username\":\"username\",\"password\":\"password\"}}"));
     }
 
@@ -157,6 +161,7 @@ public class KafkaOptionsConfigAdapterTest
         KafkaOptionsConfig options = new KafkaOptionsConfig(
                 singletonList("test"),
                 singletonList(new KafkaTopicConfig("test", LIVE, JSON_PATCH, null, new TestValidatorConfig())),
+                singletonList("localhost:9092"),
                 new KafkaSaslConfig("plain", "username", "password"));
 
         String text = jsonb.toJson(options);
@@ -165,6 +170,7 @@ public class KafkaOptionsConfigAdapterTest
         assertThat(text, equalTo("{\"bootstrap\":[\"test\"]," +
                 "\"topics\":[{\"name\":\"test\",\"defaultOffset\":\"live\",\"deltaType\":\"json_patch\"," +
                 "\"value\":\"test\"}]," +
+                "\"servers\":[\"localhost:9092\"]," +
                 "\"sasl\":{\"mechanism\":\"plain\",\"username\":\"username\",\"password\":\"password\"}}"));
     }
 }

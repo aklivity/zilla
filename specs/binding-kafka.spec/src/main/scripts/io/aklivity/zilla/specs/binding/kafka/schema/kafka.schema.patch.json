@@ -91,6 +91,15 @@
                                     }
                                 }
                             },
+                            "servers":
+                            {
+                                "title": "Servers",
+                                "type": "array",
+                                "items":
+                                {
+                                    "type": "string"
+                                }
+                            },
                             "sasl":
                             {
                                 "title": "SASL",

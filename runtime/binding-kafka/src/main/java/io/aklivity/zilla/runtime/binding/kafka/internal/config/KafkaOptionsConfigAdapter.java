@@ -36,6 +36,7 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 public final class KafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
     private static final String BOOTSTRAP_NAME = "bootstrap";
+    private static final String SERVERS_NAME = "servers";
     private static final String TOPICS_NAME = "topics";
     private static final String SASL_NAME = "sasl";
     private static final String SASL_MECHANISM_NAME = "mechanism";
@@ -82,6 +83,15 @@ public final class KafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi,
             object.add(TOPICS_NAME, entries);
         }
 
+        if (kafkaOptions.servers != null &&
+            !kafkaOptions.servers.isEmpty())
+        {
+            JsonArrayBuilder entries = Json.createArrayBuilder();
+            kafkaOptions.servers.forEach(b -> entries.add(b));
+
+            object.add(SERVERS_NAME, entries);
+        }
+
         if (kafkaOptions.sasl != null)
         {
             JsonObjectBuilder sasl = Json.createObjectBuilder();
@@ -109,6 +119,10 @@ public final class KafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi,
                 ? object.getJsonArray(TOPICS_NAME)
                 : null;
 
+        JsonArray serversArray = object.containsKey(SERVERS_NAME)
+            ? object.getJsonArray(SERVERS_NAME)
+            : null;
+
         JsonObject saslObject = object.containsKey(SASL_NAME)
                 ? object.getJsonObject(SASL_NAME)
                 : null;
@@ -131,6 +145,15 @@ public final class KafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi,
             topics = topics0;
         }
 
+        List<String> servers = null;
+
+        if (serversArray != null)
+        {
+            List<String> servers0 = new ArrayList<>();
+            serversArray.forEach(v -> servers0.add(JsonString.class.cast(v).getString()));
+            servers = servers0;
+        }
+
         KafkaSaslConfig sasl = null;
 
         if (saslObject != null)
@@ -142,6 +165,6 @@ public final class KafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi,
             sasl = new KafkaSaslConfig(mechanism, username, password);
         }
 
-        return new KafkaOptionsConfig(bootstrap, topics, sasl);
+        return new KafkaOptionsConfig(bootstrap, topics, servers, sasl);
     }
 }
