@@ -46,7 +46,7 @@
     <checkstyle.suppressions.location>io/aklivity/zilla/conf/checkstyle/suppressions.xml</checkstyle.suppressions.location>
     <antlr4.version>4.13.0</antlr4.version>
     <agrona.version>1.6.0</agrona.version>
-    <junit.version>5.8.2</junit.version>
+    <junit.version>5.10.1</junit.version>
     <byteman.version>4.0.21</byteman.version>
     <jmock.version>2.6.0</jmock.version>
     <mockito.version>5.8.0</mockito.version>
@@ -333,7 +333,7 @@
         <plugin>
           <groupId>org.jacoco</groupId>
           <artifactId>jacoco-maven-plugin</artifactId>
-          <version>0.8.10</version>
+          <version>0.8.11</version>
           <configuration>
             <propertyName>jacoco.java.option</propertyName>
           </configuration>
@@ -364,7 +364,7 @@
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>exec-maven-plugin</artifactId>
-          <version>3.1.0</version>
+          <version>3.1.1</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
@@ -382,7 +382,7 @@
         <plugin>
           <groupId>org.moditect</groupId>
           <artifactId>moditect-maven-plugin</artifactId>
-          <version>1.0.0.Final</version>
+          <version>1.1.0</version>
           <configuration>
             <module>
               <moduleInfoFile>src/main/moditect/module-info.java</moduleInfoFile>
