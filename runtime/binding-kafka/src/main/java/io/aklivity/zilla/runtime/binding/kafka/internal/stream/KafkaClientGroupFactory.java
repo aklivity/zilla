@@ -2151,10 +2151,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             int limit)
         {
             final int length = limit - offset;
-            final int lengthMin = Math.min(length, 1024);
             final int initialBudget = Math.max(initialMax - (int)(initialSeq - initialAck), 0);
             final int reservedMax = Math.max(Math.min(length + initialPad, initialBudget), initialMin);
-            final int reservedMin = Math.max(Math.min(lengthMin + initialPad, reservedMax), initialMin);
 
             int reserved = reservedMax;
 
@@ -2166,9 +2164,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
                 if (initialDebIndex != NO_DEBITOR_INDEX)
                 {
-                    final int lengthMax = Math.min(reserved - initialPad, length);
-                    final int deferredMax = length - lengthMax;
-                    reserved = initialDeb.claim(traceId, initialDebIndex, initialId, reservedMin, reserved, deferredMax);
+                    reserved = initialDeb.claim(traceId, initialDebIndex, initialId, reservedMax, reservedMax, 0);
                     claimed = reserved > 0;
                 }
 
@@ -2905,10 +2901,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             int limit)
         {
             final int length = limit - offset;
-            final int lengthMin = Math.min(length, 1024);
             final int initialBudget = Math.max(initialMax - (int)(initialSeq - initialAck), 0);
             final int reservedMax = Math.max(Math.min(length + initialPad, initialBudget), initialMin);
-            final int reservedMin = Math.max(Math.min(lengthMin + initialPad, reservedMax), initialMin);
 
             int reserved = reservedMax;
 
@@ -2920,9 +2914,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
                 if (initialDebIndex != NO_DEBITOR_INDEX)
                 {
-                    final int lengthMax = Math.min(reserved - initialPad, length);
-                    final int deferredMax = length - lengthMax;
-                    reserved = initialDeb.claim(traceId, initialDebIndex, initialId, reservedMin, reserved, deferredMax);
+                    reserved = initialDeb.claim(traceId, initialDebIndex, initialId, reservedMax, reservedMax, 0);
                     claimed = reserved > 0;
                 }
 
@@ -3606,7 +3598,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             long traceId,
             long budgetId)
         {
-            if (nextRequestId == nextResponseId)
+            if (nextRequestId == nextResponseId && !encoders.isEmpty())
             {
                 LongLongConsumer encoder = encoders.remove();
                 encoder.accept(traceId, budgetId);
@@ -4060,10 +4052,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             int limit)
         {
             final int length = limit - offset;
-            final int lengthMin = Math.min(length, 1024);
             final int initialBudget = Math.max(initialMax - (int)(initialSeq - initialAck), 0);
             final int reservedMax = Math.max(Math.min(length + initialPad, initialBudget), initialMin);
-            final int reservedMin = Math.max(Math.min(lengthMin + initialPad, reservedMax), initialMin);
 
             int reserved = reservedMax;
 
@@ -4075,9 +4065,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
                 if (initialDebIndex != NO_DEBITOR_INDEX)
                 {
-                    final int lengthMax = Math.min(reserved - initialPad, length);
-                    final int deferredMax = length - lengthMax;
-                    reserved = initialDeb.claim(traceId, initialDebIndex, initialId, reservedMin, reserved, deferredMax);
+                    reserved = initialDeb.claim(traceId, initialDebIndex, initialId, reserved, reserved, 0);
                     claimed = reserved > 0;
                 }
 

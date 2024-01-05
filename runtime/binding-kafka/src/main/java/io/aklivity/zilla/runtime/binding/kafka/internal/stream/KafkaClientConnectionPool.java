@@ -1816,8 +1816,10 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
 
             if (!responseAcks.contains(streamId))
             {
-                if (streamsByInitialId.remove(streamId) != null)
+                KafkaClientStream stream = streamsByInitialId.get(streamId);
+                if (stream != null && stream.initialAck == stream.initialSeq)
                 {
+                    streamsByInitialId.remove(streamId);
                     doSignalStreamCleanup();
                 }
             }
