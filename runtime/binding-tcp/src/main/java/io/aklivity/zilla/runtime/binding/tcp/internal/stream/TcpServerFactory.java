@@ -275,7 +275,8 @@ public class TcpServerFactory implements TcpStreamFactory
             assert initialSeq >= initialAck;
 
             final int initialNoAck = (int)(initialSeq - initialAck);
-            final int limit = Math.min(initialMax - initialPad - initialNoAck, readBuffer.capacity());
+            final int initialBudget = Math.max(initialMax - initialPad - initialNoAck, 0);
+            final int limit = Math.min(initialBudget, readBuffer.capacity());
 
             ((Buffer) readByteBuffer).position(0);
             ((Buffer) readByteBuffer).limit(limit);
