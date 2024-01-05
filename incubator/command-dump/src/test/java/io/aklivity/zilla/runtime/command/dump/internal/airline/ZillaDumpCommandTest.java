@@ -19,6 +19,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.TestInstance.Lifecycle.PER_CLASS;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -38,6 +39,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.io.TempDir;
+import org.testcontainers.shaded.org.apache.commons.io.HexDump;
 
 import io.aklivity.zilla.runtime.command.dump.internal.types.String8FW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.AbortFW;
@@ -1989,9 +1991,9 @@ public class ZillaDumpCommandTest
         // THEN
         File[] files = tempDir.listFiles();
         assert files != null;
-        byte[] actual = Files.readAllBytes(files[0].toPath());
         assertThat(files.length, equalTo(1));
-        assertThat(actual, equalTo(expected));
+        byte[] actual = Files.readAllBytes(files[0].toPath());
+        assertThat(hexDump(actual), equalTo(hexDump(expected)));
     }
 
     @Test
@@ -2007,9 +2009,24 @@ public class ZillaDumpCommandTest
         // THEN
         File[] files = tempDir.listFiles();
         assert files != null;
-        byte[] actual = Files.readAllBytes(files[0].toPath());
         assertThat(files.length, equalTo(1));
-        assertThat(actual, equalTo(expected));
+        byte[] actual = Files.readAllBytes(files[0].toPath());
+        assertThat(hexDump(actual), equalTo(hexDump(expected)));
+    }
+
+    private static String hexDump(
+        byte[] bytes)
+    {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try
+        {
+            HexDump.dump(bytes, 0, baos, 0);
+        }
+        catch (IOException ex)
+        {
+            ex.printStackTrace();
+        }
+        return baos.toString();
     }
 
     private static byte[] getResourceAsBytes(
