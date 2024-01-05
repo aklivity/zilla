@@ -3367,10 +3367,10 @@ Zilla Frame
             Length: 9
             Client ID: client-id
 
-Frame 71: 276 bytes on wire (2208 bits), 276 bytes captured (2208 bits)
+Frame 71: 280 bytes on wire (2240 bits), 280 bytes captured (2240 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::24, Dst: fe80::25
-Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 195, Ack: 196, Len: 202
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 195, Ack: 196, Len: 206
 Zilla Frame
     Frame Type ID: 0x00000002
     Frame Type: DATA
@@ -3410,19 +3410,20 @@ Zilla Frame
         Stream Type ID: 0x761ad4d0
         Stream Type: mqtt
         Kind: SESSION (2)
+        Deferred: 77
         Data Kind: STATE (0x00)
 
-Frame 72: 276 bytes on wire (2208 bits), 276 bytes captured (2208 bits)
+Frame 72: 280 bytes on wire (2240 bits), 280 bytes captured (2240 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::25, Dst: fe80::24
-Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 196, Ack: 397, Len: 202
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 196, Ack: 401, Len: 206
 Zilla Frame
     Frame Type ID: 0x00000002
     Frame Type: DATA
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x000022e8
+    Offset: 0x000022f0
     Origin ID: 0x0000000900000022
     Origin Namespace: example
     Origin Binding: north_mqtt_server
@@ -3455,5 +3456,6 @@ Zilla Frame
         Stream Type ID: 0x761ad4d0
         Stream Type: mqtt
         Kind: SESSION (2)
+        Deferred: 88
         Data Kind: WILL (0x01)
 

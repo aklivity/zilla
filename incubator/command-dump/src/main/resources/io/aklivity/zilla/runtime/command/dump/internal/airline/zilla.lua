@@ -1515,8 +1515,13 @@ function dissect_and_add_mqtt_subscription_ids(buffer, offset, subtree)
 end
 
 function handle_mqtt_data_session_extension(buffer, extension_subtree, offset)
+    -- deferred
+    local deferred_offset = offset
+    local deferred_length = 4
+    local slice_deferred = buffer(deferred_offset, deferred_length)
+    extension_subtree:add_le(fields.mqtt_ext_deferred, slice_deferred)
     -- data_kind
-    local data_kind_offset = offset
+    local data_kind_offset = deferred_offset + deferred_length
     local data_kind_length = 1
     slice_data_kind = buffer(data_kind_offset, data_kind_length)
     extension_subtree:add_le(fields.mqtt_ext_data_kind, slice_data_kind)
