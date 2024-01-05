@@ -138,7 +138,7 @@ import io.aklivity.zilla.runtime.engine.vault.Vault;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
-public class DispatchAgent implements EngineContext, Agent
+public class EngineWorker implements EngineContext, Agent
 {
     private static final int RESERVED_SIZE = 33;
 
@@ -217,7 +217,7 @@ public class DispatchAgent implements EngineContext, Agent
 
     private long lastReadStreamId;
 
-    public DispatchAgent(
+    public EngineWorker(
         EngineConfiguration config,
         ExecutorService executor,
         LabelManager labels,

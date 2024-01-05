@@ -1507,10 +1507,8 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
             int limit)
         {
             final int length = limit - offset;
-            final int lengthMin = Math.min(length, 1024);
             final int initialBudget = Math.max(initialMax - (int)(initialSeq - initialAck), 0);
             final int reservedMax = Math.max(Math.min(length + initialPad, initialBudget), initialMin);
-            final int reservedMin = Math.max(Math.min(lengthMin + initialPad, reservedMax), initialMin);
 
             int reserved = reservedMax;
 
@@ -1522,9 +1520,7 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
 
                 if (initialDebIndex != NO_DEBITOR_INDEX)
                 {
-                    final int lengthMax = Math.min(reserved - initialPad, length);
-                    final int deferredMax = length - lengthMax;
-                    reserved = initialDeb.claim(traceId, initialDebIndex, initialId, reservedMin, reserved, deferredMax);
+                    reserved = initialDeb.claim(traceId, initialDebIndex, initialId, reserved, reserved, 0);
                     claimed = reserved > 0;
                 }
 
