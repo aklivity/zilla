@@ -1640,10 +1640,8 @@ function dissect_and_add_mqtt_subscription_ids(buffer, offset, tree)
     for i = 1, array_size do
         -- subscription_id
         local subscription_id, slice_subscription_id_varuint, subscription_id_length = decode_varuint32(buffer, item_offset)
-        local label = string.format("Subscription ID: %d", subscription_id)
-        local varint_subtree = tree:add(zilla_protocol, buffer(item_offset, subscription_id_length), label)
-        varint_subtree:add(fields.mqtt_ext_subscription_id_varuint, slice_subscription_id_varuint)
-        varint_subtree:add(fields.mqtt_ext_subscription_id, subscription_id)
+        add_varint_as_subtree(buffer(item_offset, subscription_id_length), tree, "Subscription ID: %d",
+            slice_subscription_id_varuint, subscription_id, fields.mqtt_ext_subscription_id_varuint, fields.mqtt_ext_subscription_id)
         -- next
         item_offset = item_offset + subscription_id_length
     end
@@ -1976,10 +1974,8 @@ function handle_kafka_group_begin_extension(buffer, offset, ext_subtree)
     -- metadata_length_varint
     local metadata_length_offset = timeout_offset + timeout_length
     local metadata_length, slice_metadata_length_varint, metadata_length_length = decode_varint32(buffer, metadata_length_offset)
-    local label = string.format("Metadata Length: %d", metadata_length)
-    local varint_subtree = ext_subtree:add(zilla_protocol, buffer(metadata_length_offset, metadata_length_length), label)
-    varint_subtree:add(fields.kafka_ext_metadata_length_varint, slice_metadata_length_varint)
-    varint_subtree:add(fields.kafka_ext_metadata_length, metadata_length)
+    add_varint_as_subtree(buffer(metadata_length_offset, metadata_length_length), ext_subtree, "Metadata Length: %d",
+        slice_metadata_length_varint, metadata_length, fields.kafka_ext_metadata_length_varint, fields.kafka_ext_metadata_length)
     -- metadata_bytes
     if (metadata_length > 0) then
         local metadata_bytes_offset = metadata_length_offset + metadata_length_length
@@ -2026,16 +2022,14 @@ function dissect_and_add_kafka_group_members(buffer, offset, tree)
         -- metadata_length_varint
         local metadata_length_offset = member_id_offset + member_id_length
         local metadata_length, slice_metadata_length_varint, metadata_length_length = decode_varint32(buffer, metadata_length_offset)
-        local metadata_length_label = string.format("Metadata Length: %d", metadata_length)
         -- add fields
         local record_length = member_id_length + metadata_length_length + metadata_length
         local member_label = string.format("Member: %s", slice_member_id_text:string())
         local member_subtree = tree:add(zilla_protocol, buffer(item_offset, record_length), member_label)
         add_string_as_subtree(buffer(member_id_offset, member_id_length), member_subtree, "Member ID: %s",
             slice_member_id_length, slice_member_id_text, fields.kafka_ext_member_id_length, fields.kafka_ext_member_id)
-        local varint_subtree = member_subtree:add(zilla_protocol, buffer(metadata_length_offset, metadata_length_length), metadata_length_label)
-        varint_subtree:add(fields.kafka_ext_metadata_length_varint, slice_metadata_length_varint)
-        varint_subtree:add(fields.kafka_ext_metadata_length, metadata_length)
+        add_varint_as_subtree(buffer(metadata_length_offset, metadata_length_length), member_subtree, "Metadata Length: %d",
+            slice_metadata_length_varint, metadata_length, fields.kafka_ext_metadata_length_varint, fields.kafka_ext_metadata_length)
         -- metadata_bytes
         if (metadata_length > 0) then
             local metadata_bytes_offset = metadata_length_offset + metadata_length_length
