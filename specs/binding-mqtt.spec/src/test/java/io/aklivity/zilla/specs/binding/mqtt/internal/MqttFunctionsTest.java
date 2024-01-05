@@ -1157,6 +1157,7 @@ public class MqttFunctionsTest
         final byte[] array = MqttFunctions.dataEx()
             .typeId(0)
             .session()
+                .deferred(10)
                 .kind("WILL")
                 .build()
             .build();
@@ -1165,6 +1166,7 @@ public class MqttFunctionsTest
         MqttDataExFW mqttPublishDataEx = new MqttDataExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(0, mqttPublishDataEx.typeId());
+        assertEquals(10, mqttPublishDataEx.session().deferred());
         assertEquals("WILL", mqttPublishDataEx.session().kind().toString());
     }
 

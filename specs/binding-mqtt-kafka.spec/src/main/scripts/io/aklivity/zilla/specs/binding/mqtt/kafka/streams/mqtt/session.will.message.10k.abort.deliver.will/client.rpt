@@ -33,6 +33,7 @@ write option zilla:flags "init"
 write zilla:data.ext ${mqtt:dataEx()
                              .typeId(zilla:id("mqtt"))
                              .session()
+                                .deferred(2330)
                                 .kind("WILL")
                                 .build()
                              .build()}

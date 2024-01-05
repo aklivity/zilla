@@ -1714,9 +1714,10 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                         doKafkaEnd(traceId, authorization);
                     }
                 }
-                else if ((flags & DATA_FLAG_FIN) != 0)
+                else if (payload != null && (flags & DATA_FLAG_FIN) != 0)
                 {
-                    willProducer.doKafkaData(traceId, authorization, budgetId, payload.sizeof(), flags, payload, EMPTY_OCTETS);
+                    willProducer.doKafkaData(traceId, authorization, budgetId, payload.sizeof(), flags, payload,
+                        EMPTY_OCTETS);
                     if (willRetain)
                     {
                         willRetainProducer

@@ -630,6 +630,13 @@ public final class MqttFunctions
                 sessionDataExRW.wrap(writeBuffer, MqttBeginExFW.FIELD_OFFSET_SESSION, writeBuffer.capacity());
             }
 
+            public MqttSessionDataExBuilder deferred(
+                int deferred)
+            {
+                sessionDataExRW.deferred(deferred);
+                return this;
+            }
+
             public MqttSessionDataExBuilder kind(
                 String kind)
             {

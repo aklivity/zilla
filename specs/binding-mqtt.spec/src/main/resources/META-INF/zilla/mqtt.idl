@@ -220,6 +220,7 @@ scope mqtt
 
         struct MqttSessionDataEx
         {
+            int32 deferred = 0;
             MqttSessionDataKind kind;
         }
 
