@@ -69,7 +69,7 @@ public class TlsOptionsConfigAdapterTest
         String text = jsonb.toJson(options);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"version\":\"TLSv1.2\"}"));
+        assertThat(text, equalTo("{\"version\":\"TLSv1.2\",\"trustcacerts\":true}"));
     }
 
     @Test
@@ -97,7 +97,7 @@ public class TlsOptionsConfigAdapterTest
         String text = jsonb.toJson(options);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"keys\":[\"localhost\"]}"));
+        assertThat(text, equalTo("{\"keys\":[\"localhost\"],\"trustcacerts\":true}"));
     }
 
     @Test
@@ -181,7 +181,7 @@ public class TlsOptionsConfigAdapterTest
         String text = jsonb.toJson(options);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"sni\":[\"example.net\"]}"));
+        assertThat(text, equalTo("{\"trustcacerts\":true,\"sni\":[\"example.net\"]}"));
     }
 
     @Test
@@ -209,7 +209,7 @@ public class TlsOptionsConfigAdapterTest
         String text = jsonb.toJson(options);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"alpn\":[\"echo\"]}"));
+        assertThat(text, equalTo("{\"trustcacerts\":true,\"alpn\":[\"echo\"]}"));
     }
 
     @Test
@@ -237,7 +237,7 @@ public class TlsOptionsConfigAdapterTest
         String text = jsonb.toJson(options);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"mutual\":\"requested\"}"));
+        assertThat(text, equalTo("{\"trustcacerts\":true,\"mutual\":\"requested\"}"));
     }
 
     @Test
@@ -265,6 +265,6 @@ public class TlsOptionsConfigAdapterTest
         String text = jsonb.toJson(options);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"signers\":[\"clientca\"]}"));
+        assertThat(text, equalTo("{\"trustcacerts\":true,\"signers\":[\"clientca\"]}"));
     }
 }
