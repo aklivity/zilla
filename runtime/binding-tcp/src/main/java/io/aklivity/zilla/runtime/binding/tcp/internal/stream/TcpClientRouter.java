@@ -83,10 +83,15 @@ public final class TcpClientRouter
         {
             resolved = options != null ? new InetSocketAddress(options.host, port) : null;
         }
-        else if (binding.routes.isEmpty())
+        else if (binding.routes.size() == 1)
         {
             ProxyAddressInetFW inet = beginEx.address().inet();
-            resolved = new InetSocketAddress(inet.destination().asString(), inet.destinationPort());
+            InetSocketAddress newResolved = new InetSocketAddress(inet.destination().asString(), inet.destinationPort());
+
+            if (binding.routes.get(0).matches(newResolved))
+            {
+                resolved = newResolved;
+            }
         }
         else
         {

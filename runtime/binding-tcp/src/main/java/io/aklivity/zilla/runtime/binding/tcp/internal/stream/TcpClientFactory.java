@@ -255,7 +255,7 @@ public class TcpClientFactory implements TcpStreamFactory
             try
             {
                 state = TcpState.openingInitial(state);
-                net.setOption(SO_KEEPALIVE, options.keepalive);
+                net.setOption(SO_KEEPALIVE, options != null && options.keepalive);
 
                 if (net.connect(remoteAddress))
                 {
