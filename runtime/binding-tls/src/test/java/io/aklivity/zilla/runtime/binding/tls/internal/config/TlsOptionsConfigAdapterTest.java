@@ -69,7 +69,7 @@ public class TlsOptionsConfigAdapterTest
         String text = jsonb.toJson(options);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"version\":\"TLSv1.2\",\"trustcacerts\":true}"));
+        assertThat(text, equalTo("{\"version\":\"TLSv1.2\"}"));
     }
 
     @Test
@@ -97,7 +97,7 @@ public class TlsOptionsConfigAdapterTest
         String text = jsonb.toJson(options);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"keys\":[\"localhost\"],\"trustcacerts\":true}"));
+        assertThat(text, equalTo("{\"keys\":[\"localhost\"]}"));
     }
 
     @Test
@@ -147,13 +147,13 @@ public class TlsOptionsConfigAdapterTest
     {
         TlsOptionsConfig options = TlsOptionsConfig.builder()
             .inject(identity())
-            .trustcacerts(true)
+            .trustcacerts(false)
             .build();
 
         String text = jsonb.toJson(options);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"trustcacerts\":true}"));
+        assertThat(text, equalTo("{\"trustcacerts\":false}"));
     }
 
     @Test
@@ -181,7 +181,7 @@ public class TlsOptionsConfigAdapterTest
         String text = jsonb.toJson(options);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"trustcacerts\":true,\"sni\":[\"example.net\"]}"));
+        assertThat(text, equalTo("{\"sni\":[\"example.net\"]}"));
     }
 
     @Test
@@ -209,7 +209,7 @@ public class TlsOptionsConfigAdapterTest
         String text = jsonb.toJson(options);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"trustcacerts\":true,\"alpn\":[\"echo\"]}"));
+        assertThat(text, equalTo("{\"alpn\":[\"echo\"]}"));
     }
 
     @Test
@@ -237,7 +237,7 @@ public class TlsOptionsConfigAdapterTest
         String text = jsonb.toJson(options);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"trustcacerts\":true,\"mutual\":\"requested\"}"));
+        assertThat(text, equalTo("{\"mutual\":\"requested\"}"));
     }
 
     @Test
@@ -265,6 +265,6 @@ public class TlsOptionsConfigAdapterTest
         String text = jsonb.toJson(options);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"trustcacerts\":true,\"signers\":[\"clientca\"]}"));
+        assertThat(text, equalTo("{\"signers\":[\"clientca\"]}"));
     }
 }
