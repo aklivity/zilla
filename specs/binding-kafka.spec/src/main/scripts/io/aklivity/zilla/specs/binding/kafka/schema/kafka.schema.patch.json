@@ -97,7 +97,8 @@
                                 "type": "array",
                                 "items":
                                 {
-                                    "type": "string"
+                                    "type": "string",
+                                    "pattern": "([^\\:]+):(\\d+)"
                                 }
                             },
                             "sasl":

@@ -32,6 +32,7 @@ import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.validator.config.TestValidatorConfig;
 
@@ -88,7 +89,7 @@ public class KafkaOptionsConfigAdapterTest
         KafkaOptionsConfig options = new KafkaOptionsConfig(
                 singletonList("test"),
                 singletonList(new KafkaTopicConfig("test", LIVE, JSON_PATCH, null, TestValidatorConfig.builder().build())),
-                singletonList("localhost:9092"),
+                singletonList(new KafkaServerConfig("localhost", 9092)),
                 new KafkaSaslConfig("plain", "username", "password"));
 
         String text = jsonb.toJson(options);
@@ -143,7 +144,7 @@ public class KafkaOptionsConfigAdapterTest
         KafkaOptionsConfig options = new KafkaOptionsConfig(
                 singletonList("test"),
                 singletonList(new KafkaTopicConfig("test", LIVE, JSON_PATCH, null, null)),
-                singletonList("localhost:9092"),
+                singletonList(new KafkaServerConfig("localhost", 9092)),
                 new KafkaSaslConfig("scram-sha-256", "username", "password"));
 
         String text = jsonb.toJson(options);
@@ -161,7 +162,7 @@ public class KafkaOptionsConfigAdapterTest
         KafkaOptionsConfig options = new KafkaOptionsConfig(
                 singletonList("test"),
                 singletonList(new KafkaTopicConfig("test", LIVE, JSON_PATCH, null, new TestValidatorConfig())),
-                singletonList("localhost:9092"),
+                singletonList(new KafkaServerConfig("localhost", 9092)),
                 new KafkaSaslConfig("plain", "username", "password"));
 
         String text = jsonb.toJson(options);

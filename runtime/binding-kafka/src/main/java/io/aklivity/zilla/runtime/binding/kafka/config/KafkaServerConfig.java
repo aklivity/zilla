@@ -31,6 +31,6 @@ public class KafkaServerConfig
     @Override
     public String toString()
     {
-        return String.format("%s:%d]", host, port);
+        return String.format("%s:%d", host, port);
     }
 }

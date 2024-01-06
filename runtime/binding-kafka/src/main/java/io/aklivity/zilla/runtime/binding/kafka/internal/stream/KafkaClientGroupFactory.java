@@ -25,13 +25,13 @@ import static java.lang.System.currentTimeMillis;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.nio.ByteOrder;
+import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.function.Consumer;
 import java.util.function.LongFunction;
 import java.util.function.Supplier;
@@ -149,7 +149,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private static final String GROUP_MIN_SESSION_TIMEOUT = "group.min.session.timeout.ms";
     private static final String GROUP_MAX_SESSION_TIMEOUT = "group.max.session.timeout.ms";
     private static final byte GROUP_KEY_TYPE = 0x00;
-    private static final Random RANDOM_SERVER_ID_GENERATOR = new Random();
     private static final DirectBuffer EMPTY_BUFFER = new UnsafeBuffer();
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
@@ -271,6 +270,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         this::decodeLeaveGroupResponse;
     private final KafkaGroupCoordinatorClientDecoder decodeCoordinatorIgnoreAll = this::decodeIgnoreAll;
     private final KafkaGroupCoordinatorClientDecoder decodeCoordinatorReject = this::decodeCoordinatorReject;
+
+    private final SecureRandom randomServerIdGenerator = new SecureRandom();
 
     private final int kafkaTypeId;
     private final int proxyTypeId;
@@ -2005,8 +2006,9 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             Consumer<OctetsFW.Builder> extension = EMPTY_EXTENSION;
 
-            final int randomServerId = RANDOM_SERVER_ID_GENERATOR.nextInt(delegate.servers.size() + 1);
-            final KafkaServerConfig kafkaServerConfig = delegate.servers.get(randomServerId);
+            final KafkaServerConfig kafkaServerConfig =
+                delegate.servers != null ?
+                    delegate.servers.get(randomServerIdGenerator.nextInt(delegate.servers.size())) : null;
 
             if (kafkaServerConfig != null)
             {

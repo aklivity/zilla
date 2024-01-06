@@ -81,9 +81,9 @@ public final class TcpClientRouter
 
         if (beginEx == null)
         {
-            resolved = new InetSocketAddress(options.host, port);
+            resolved = options != null ? new InetSocketAddress(options.host, port) : null;
         }
-        else if (options == null)
+        else if (binding.routes.isEmpty())
         {
             ProxyAddressInetFW inet = beginEx.address().inet();
             resolved = new InetSocketAddress(inet.destination().asString(), inet.destinationPort());
@@ -129,7 +129,10 @@ public final class TcpClientRouter
                 }
             }
 
-            if (resolved == null && options.host != null && !"*".equals(options.host))
+            if (resolved == null &&
+                options != null &&
+                options.host != null &&
+                !"*".equals(options.host))
             {
                 final List<InetSocketAddress> host = Arrays
                     .stream(resolveHost.apply(options.host))

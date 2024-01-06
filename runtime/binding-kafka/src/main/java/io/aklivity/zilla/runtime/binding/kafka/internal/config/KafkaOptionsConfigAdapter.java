@@ -38,7 +38,7 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
 public final class KafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
-    private static final Pattern SERVER_PATTERN = Pattern.compile("([\\w-]+(?:\\.[\\w-]+)*):(\\d+)");
+    private static final Pattern SERVER_PATTERN = Pattern.compile("([^\\:]+):(\\d+)");
     private static final String BOOTSTRAP_NAME = "bootstrap";
     private static final String SERVERS_NAME = "servers";
     private static final String TOPICS_NAME = "topics";

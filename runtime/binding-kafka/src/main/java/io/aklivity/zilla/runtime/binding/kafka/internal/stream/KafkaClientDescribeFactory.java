@@ -24,12 +24,12 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
 import java.nio.ByteOrder;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Random;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.LongFunction;
@@ -82,7 +82,6 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
 
     private static final int SIGNAL_NEXT_REQUEST = 1;
 
-    private static final Random RANDOM_SERVER_ID_GENERATOR = new Random();
     private static final DirectBuffer EMPTY_BUFFER = new UnsafeBuffer();
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
@@ -134,6 +133,8 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
     private final KafkaDescribeClientDecoder decodeDescribeResponse = this::decodeDescribeResponse;
     private final KafkaDescribeClientDecoder decodeIgnoreAll = this::decodeIgnoreAll;
     private final KafkaDescribeClientDecoder decodeReject = this::decodeReject;
+
+    private final SecureRandom randomServerIdGenerator = new SecureRandom();
 
     private final long maxAgeMillis;
     private final int kafkaTypeId;
@@ -1195,8 +1196,8 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
 
                 Consumer<OctetsFW.Builder> extension = EMPTY_EXTENSION;
 
-                final int randomServerId = RANDOM_SERVER_ID_GENERATOR.nextInt(servers.size() + 1);
-                final KafkaServerConfig kafkaServerConfig = servers.get(randomServerId);
+                final KafkaServerConfig kafkaServerConfig =
+                    servers != null ? servers.get(randomServerIdGenerator.nextInt(servers.size())) : null;
 
                 if (kafkaServerConfig != null)
                 {
