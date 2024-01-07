@@ -101,9 +101,6 @@ public class ProtoListener extends Protobuf3BaseListener
         builder.setName(name);
         messageHierarchy.push(name);
 
-        String parentNodes = String.join(".", messageHierarchy);
-        System.out.println("Message Hierarchy: " + parentNodes);
-
         for (Protobuf3Parser.MessageElementContext element : ctx.messageBody().messageElement())
         {
             if (element.field() != null)

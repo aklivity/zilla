@@ -14,9 +14,12 @@
  */
 package io.aklivity.zilla.runtime.validator.protobuf;
 
-import java.io.IOException;
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.function.LongFunction;
 
+import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
 import org.agrona.collections.Int2ObjectCache;
 import org.agrona.io.DirectBufferInputStream;
@@ -26,10 +29,8 @@ import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
-import com.google.protobuf.Descriptors.Descriptor;
 import com.google.protobuf.Descriptors.DescriptorValidationException;
 import com.google.protobuf.Descriptors.FileDescriptor;
-import com.google.protobuf.DynamicMessage;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
@@ -40,12 +41,15 @@ import io.aklivity.zilla.runtime.validator.protobuf.internal.parser.Protobuf3Par
 
 public class ProtobufValidator
 {
+    protected static final byte ZERO_INDEX = 0x0;
+
     protected final SchemaConfig catalog;
     protected final CatalogHandler handler;
     protected final String subject;
+    protected final List<Integer> indexes;
+    protected final DirectBufferInputStream in;
 
     private final Int2ObjectCache<FileDescriptor> descriptors;
-    private final DirectBufferInputStream in;
     private final FileDescriptor[] dependencies;
 
     protected ProtobufValidator(
@@ -61,36 +65,69 @@ public class ProtobufValidator
         this.descriptors = new Int2ObjectCache<>(1, 1024, i -> {});
         this.in = new DirectBufferInputStream();
         this.dependencies = new FileDescriptor[0];
+        this.indexes = new LinkedList<>();
     }
 
-    protected boolean validate(
-        int schemaId,
-        DirectBuffer buffer,
-        int index,
-        int length)
-    {
-        boolean status = false;
-        Descriptor descriptor = supplyDescriptor(schemaId).findMessageTypeByName(catalog.record);
-        if (descriptor != null)
-        {
-            try
-            {
-                in.wrap(buffer, index, length);
-                DynamicMessage message = DynamicMessage.parseFrom(descriptor, in);
-                status = message.getUnknownFields().asMap().isEmpty();
-            }
-            catch (IOException e)
-            {
-                e.printStackTrace();
-            }
-        }
-        return status;
-    }
-
-    private FileDescriptor supplyDescriptor(
+    protected FileDescriptor supplyDescriptor(
         int schemaId)
     {
         return descriptors.computeIfAbsent(schemaId, this::createDescriptors);
+    }
+
+    protected byte[] encodeIndexes()
+    {
+        int size = indexes.size();
+
+        byte[] indexes = new byte[size * 5];
+
+        int index = 0;
+        for (int i = 0; i < size; i++)
+        {
+            int entry = this.indexes.get(i);
+            int value = (entry << 1) ^ (entry >> 31);
+            while ((value & ~0x7F) != 0)
+            {
+                indexes[index++] = (byte) ((value & 0x7F) | 0x80);
+                value >>>= 7;
+            }
+            indexes[index++] = (byte) value;
+        }
+
+        return Arrays.copyOf(indexes, index);
+    }
+
+    protected int decodeIndexes(
+        DirectBuffer data,
+        int index,
+        int length)
+    {
+        int progress = 0;
+        int encodedLength = decodeIndex(data.getByte(index));
+        progress += BitUtil.SIZE_OF_BYTE;
+        if (encodedLength == 0)
+        {
+            indexes.add(encodedLength);
+        }
+        for (int i = 0; i < encodedLength; i++)
+        {
+            indexes.add(decodeIndex(data.getByte(index + progress)));
+            progress += BitUtil.SIZE_OF_BYTE;
+        }
+        return progress;
+    }
+
+    private int decodeIndex(
+        byte encodedByte)
+    {
+        int result = 0;
+        int shift = 0;
+        do
+        {
+            result |= (encodedByte & 0x7F) << shift;
+            shift += 7;
+        }
+        while ((encodedByte & 0x80) != 0);
+        return (result >>> 1) ^ -(result & 1);
     }
 
     private FileDescriptor createDescriptors(

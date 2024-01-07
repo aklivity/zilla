@@ -107,6 +107,24 @@ public class ProtobufValidatorTest
 
         byte[] bytes = {0x0a, 0x02, 0x4f, 0x4b, 0x12, 0x08, 0x30, 0x31, 0x30, 0x31, 0x32, 0x30, 0x32, 0x34};
         data.wrap(bytes, 0, bytes.length);
-        assertEquals(data.capacity(), validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertEquals(data.capacity() + 1, validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
+    }
+
+    @Test
+    public void shouldReadValidProtobufEvent()
+    {
+        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+            TestCatalogOptionsConfig.builder()
+                .id(1)
+                .schema(SCHEMA)
+                .build());
+        LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
+        ProtobufReadValidator validator = new ProtobufReadValidator(protobufConfig, handler);
+
+        DirectBuffer data = new UnsafeBuffer();
+
+        byte[] bytes = {0x00, 0x0a, 0x02, 0x4f, 0x4b, 0x12, 0x08, 0x30, 0x31, 0x30, 0x31, 0x32, 0x30, 0x32, 0x34};
+        data.wrap(bytes, 0, bytes.length);
+        assertEquals(data.capacity() - 1, validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
     }
 }
