@@ -2067,7 +2067,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             int initialPad)
         {
             final int initialMax = exchange != null ? decodeMax : 0;
-            final int decodable = decodeMax - initialMax;
+            final int decodable = decodeMax - decodeSlotOffset;
 
             final long initialAckMax = Math.min(initialAck + decodable, initialSeq);
             if (initialAckMax > initialAck || !HttpState.initialOpened(state))

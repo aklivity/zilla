@@ -177,4 +177,14 @@ public class FlowControlIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/flow.control/request.sent.100k.message/client",
+        "${app}/flow.control/request.sent.100k.message/server"})
+    public void shouldProcessRequestWith100kMessage() throws Exception
+    {
+        k3po.finish();
+    }
 }
