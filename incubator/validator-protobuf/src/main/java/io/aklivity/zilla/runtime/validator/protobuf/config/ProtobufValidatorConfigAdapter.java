@@ -37,6 +37,7 @@ public final class ProtobufValidatorConfigAdapter implements ValidatorConfigAdap
     private static final String TYPE_NAME = "type";
     private static final String CATALOG_NAME = "catalog";
     private static final String SUBJECT_NAME = "subject";
+    private static final String FORMAT = "format";
 
     private final SchemaConfigAdapter schema = new SchemaConfigAdapter();
 
@@ -53,6 +54,12 @@ public final class ProtobufValidatorConfigAdapter implements ValidatorConfigAdap
         ProtobufValidatorConfig protobufConfig = (ProtobufValidatorConfig) config;
         JsonObjectBuilder validator = Json.createObjectBuilder();
         validator.add(TYPE_NAME, PROTOBUF);
+
+        if (protobufConfig.format != null)
+        {
+            validator.add(FORMAT, protobufConfig.format);
+        }
+
         if (protobufConfig.cataloged != null && !protobufConfig.cataloged.isEmpty())
         {
             JsonObjectBuilder catalogs = Json.createObjectBuilder();
@@ -97,6 +104,10 @@ public final class ProtobufValidatorConfigAdapter implements ValidatorConfigAdap
                 ? object.getString(SUBJECT_NAME)
                 : null;
 
-        return new ProtobufValidatorConfig(catalogs, subject);
+        String format = object.containsKey(FORMAT)
+                ? object.getString(FORMAT)
+                : null;
+
+        return new ProtobufValidatorConfig(catalogs, subject, format);
     }
 }

@@ -23,13 +23,16 @@ import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 public final class ProtobufValidatorConfig extends ValidatorConfig
 {
     public final String subject;
+    public final String format;
 
     ProtobufValidatorConfig(
         List<CatalogedConfig> cataloged,
-        String subject)
+        String subject,
+        String format)
     {
         super("protobuf", cataloged);
         this.subject = subject;
+        this.format = format;
     }
 
     public static <T> ProtobufValidatorConfigBuilder<T> builder(

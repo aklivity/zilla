@@ -27,6 +27,14 @@
                     {
                         "const": "protobuf"
                     },
+                    "format":
+                    {
+                        "type": "string",
+                        "enum":
+                        [
+                            "json"
+                        ]
+                    },
                     "catalog":
                     {
                         "type": "object",

@@ -18,6 +18,7 @@ import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DIRECT
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Properties;
 import java.util.function.LongFunction;
 
@@ -67,19 +68,12 @@ public class ProtobufValidatorTest
                                         "int32 id = 1;" +
                                         "}" +
                                         "optional string date_time = 2;" +
+                                        "message SimpleMessage " +
+                                        "{  " +
+                                            "string content = 1;" +
+                                            "optional string date_time = 2;" +
+                                        "}" +
                                     "}";
-
-    private final ProtobufValidatorConfig protobufConfig = ProtobufValidatorConfig.builder()
-            .catalog()
-                .name("test0")
-                .schema()
-                    .strategy("topic")
-                    .version("latest")
-                    .subject("test-value")
-                    .record("SimpleMessage")
-                    .build()
-                .build()
-            .build();
     private CatalogContext context;
 
     @Before
@@ -100,14 +94,86 @@ public class ProtobufValidatorTest
                 .id(1)
                 .schema(SCHEMA)
                 .build());
+
+        ProtobufValidatorConfig config = ProtobufValidatorConfig.builder()
+                .catalog()
+                    .name("test0")
+                    .schema()
+                        .strategy("topic")
+                        .version("latest")
+                        .subject("test-value")
+                        .record("SimpleMessage")
+                        .build()
+                    .build()
+                .build();
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        ProtobufWriteValidator validator = new ProtobufWriteValidator(protobufConfig, handler);
+        ProtobufWriteValidator validator = new ProtobufWriteValidator(config, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
         byte[] bytes = {0x0a, 0x02, 0x4f, 0x4b, 0x12, 0x08, 0x30, 0x31, 0x30, 0x31, 0x32, 0x30, 0x32, 0x34};
         data.wrap(bytes, 0, bytes.length);
         assertEquals(data.capacity() + 1, validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
+    }
+
+    @Test
+    public void shouldWriteValidProtobufEventNestedMessage()
+    {
+        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+            TestCatalogOptionsConfig.builder()
+                .id(1)
+                .schema(SCHEMA)
+                .build());
+
+        ProtobufValidatorConfig config = ProtobufValidatorConfig.builder()
+                .catalog()
+                    .name("test0")
+                        .schema()
+                        .strategy("topic")
+                        .version("latest")
+                        .subject("test-value")
+                        .record("DemoMessage.SimpleMessage")
+                        .build()
+                    .build()
+                .build();
+        LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
+        ProtobufWriteValidator validator = new ProtobufWriteValidator(config, handler);
+
+        DirectBuffer data = new UnsafeBuffer();
+
+        byte[] bytes = {0x0a, 0x02, 0x4f, 0x4b, 0x12, 0x08, 0x30, 0x31, 0x30, 0x31, 0x32, 0x30, 0x32, 0x34};
+        data.wrap(bytes, 0, bytes.length);
+        assertEquals(data.capacity() + 3, validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
+    }
+
+    @Test
+    public void shouldWriteValidProtobufEventIncorrectRecordName()
+    {
+        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+            TestCatalogOptionsConfig.builder()
+                .id(1)
+                .schema(SCHEMA)
+                .build());
+
+        ProtobufValidatorConfig config = ProtobufValidatorConfig.builder()
+                .catalog()
+                    .name("test0")
+                        .schema()
+                        .strategy("topic")
+                        .version("latest")
+                        .subject("test-value")
+                        .record("DemoMessage.IncorrectRecord")
+                        .build()
+                    .build()
+                .build();
+        LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
+        ProtobufWriteValidator validator = new ProtobufWriteValidator(config, handler);
+
+        DirectBuffer data = new UnsafeBuffer();
+
+        byte[] bytes = {0x0a, 0x02, 0x4f, 0x4b, 0x12, 0x08, 0x30, 0x31, 0x30, 0x31, 0x32, 0x30, 0x32, 0x34};
+        data.wrap(bytes, 0, bytes.length);
+        assertEquals(-1, validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -118,13 +184,193 @@ public class ProtobufValidatorTest
                 .id(1)
                 .schema(SCHEMA)
                 .build());
+
+        ProtobufValidatorConfig config = ProtobufValidatorConfig.builder()
+                .catalog()
+                    .name("test0")
+                    .schema()
+                        .strategy("topic")
+                        .version("latest")
+                        .subject("test-value")
+                        .build()
+                    .build()
+                .build();
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        ProtobufReadValidator validator = new ProtobufReadValidator(protobufConfig, handler);
+        ProtobufReadValidator validator = new ProtobufReadValidator(config, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
         byte[] bytes = {0x00, 0x0a, 0x02, 0x4f, 0x4b, 0x12, 0x08, 0x30, 0x31, 0x30, 0x31, 0x32, 0x30, 0x32, 0x34};
         data.wrap(bytes, 0, bytes.length);
         assertEquals(data.capacity() - 1, validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
+    }
+
+    @Test
+    public void shouldReadValidProtobufEventNestedMessage()
+    {
+        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+            TestCatalogOptionsConfig.builder()
+                .id(1)
+                .schema(SCHEMA)
+                .build());
+
+        ProtobufValidatorConfig config = ProtobufValidatorConfig.builder()
+                .catalog()
+                    .name("test0")
+                        .schema()
+                        .strategy("topic")
+                        .version("latest")
+                        .subject("test-value")
+                        .build()
+                    .build()
+                .build();
+        LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
+        ProtobufReadValidator validator = new ProtobufReadValidator(config, handler);
+
+        DirectBuffer data = new UnsafeBuffer();
+
+        byte[] bytes = {0x04, 0x02, 0x04, 0x0a, 0x02, 0x4f, 0x4b, 0x12, 0x08, 0x30, 0x31, 0x30, 0x31, 0x32, 0x30, 0x32, 0x34};
+        data.wrap(bytes, 0, bytes.length);
+        assertEquals(data.capacity() - 3, validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
+    }
+
+    @Test
+    public void shouldReadValidProtobufEventFormatJson()
+    {
+        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+            TestCatalogOptionsConfig.builder()
+                .id(1)
+                .schema(SCHEMA)
+                .build());
+
+        ProtobufValidatorConfig config = ProtobufValidatorConfig.builder()
+                .format("json")
+                .catalog()
+                    .name("test0")
+                    .schema()
+                        .strategy("topic")
+                        .version("latest")
+                        .subject("test-value")
+                        .build()
+                    .build()
+                .build();
+
+        LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
+        ProtobufReadValidator validator = new ProtobufReadValidator(config, handler);
+
+        DirectBuffer data = new UnsafeBuffer();
+
+        byte[] bytes = {0x00, 0x0a, 0x02, 0x4f, 0x4b, 0x12, 0x08, 0x30, 0x31, 0x30, 0x31, 0x32, 0x30, 0x32, 0x34};
+        data.wrap(bytes, 0, bytes.length);
+
+        String json =
+                "{\n" +
+                    "  \"content\": \"OK\",\n" +
+                    "  \"dateTime\": \"01012024\"\n" +
+                "}";
+
+        final ValueConsumer consumer = (buffer, index, length) ->
+        {
+            byte[] jsonBytes = new byte[length];
+            buffer.getBytes(index, jsonBytes);
+            assertEquals(json, new String(jsonBytes, StandardCharsets.UTF_8));
+        };
+        validator.validate(data, 0, data.capacity(), consumer);
+    }
+
+    @Test
+    public void shouldWriteValidProtobufEventFormatJson()
+    {
+        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+            TestCatalogOptionsConfig.builder()
+                .id(1)
+                .schema(SCHEMA)
+                .build());
+
+        ProtobufValidatorConfig config = ProtobufValidatorConfig.builder()
+                .format("json")
+                .catalog()
+                    .name("test0")
+                    .schema()
+                        .strategy("topic")
+                        .version("latest")
+                        .subject("test-value")
+                        .record("SimpleMessage")
+                        .build()
+                    .build()
+                .build();
+
+        LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
+        ProtobufWriteValidator validator = new ProtobufWriteValidator(config, handler);
+
+        DirectBuffer data = new UnsafeBuffer();
+
+        String json =
+                "{\n" +
+                    "  \"content\": \"OK\",\n" +
+                    "  \"dateTime\": \"01012024\"\n" +
+                "}";
+        data.wrap(json.getBytes(), 0, json.getBytes().length);
+
+        byte[] expectedBytes = {0x00, 0x0a, 0x02, 0x4f, 0x4b, 0x12, 0x08, 0x30, 0x31, 0x30, 0x31, 0x32, 0x30, 0x32, 0x34};
+        DirectBuffer expected = new UnsafeBuffer();
+        expected.wrap(expectedBytes, 0, expectedBytes.length);
+
+        assertEquals(expected.capacity(), validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
+    }
+
+    @Test
+    public void shouldVerifyJsonFormatPaddingLength()
+    {
+        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+                TestCatalogOptionsConfig.builder()
+                        .id(9)
+                        .schema(SCHEMA)
+                        .build());
+        LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
+        ProtobufValidatorConfig config = ProtobufValidatorConfig.builder()
+                .format("json")
+                .catalog()
+                    .name("test0")
+                        .schema()
+                        .strategy("topic")
+                        .version("latest")
+                        .subject("test-value")
+                        .build()
+                    .build()
+                .build();
+        ProtobufReadValidator validator = new ProtobufReadValidator(config, handler);
+
+        DirectBuffer data = new UnsafeBuffer();
+
+        assertEquals(1584, validator.padding(data, 0, data.capacity()));
+    }
+
+    @Test
+    public void shouldVerifyIndexPaddingLength()
+    {
+        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+                TestCatalogOptionsConfig.builder()
+                        .id(9)
+                        .schema(SCHEMA)
+                        .build());
+        LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
+        ProtobufValidatorConfig config = ProtobufValidatorConfig.builder()
+                .catalog()
+                    .name("test0")
+                        .schema()
+                        .strategy("topic")
+                        .version("latest")
+                        .subject("test-value")
+                        .record("DemoMessage.SimpleMessage")
+                        .build()
+                    .build()
+                .build();
+        ProtobufWriteValidator validator = new ProtobufWriteValidator(config, handler);
+
+        DirectBuffer data = new UnsafeBuffer();
+
+        assertEquals(3, validator.padding(data, 0, data.capacity()));
+
     }
 }

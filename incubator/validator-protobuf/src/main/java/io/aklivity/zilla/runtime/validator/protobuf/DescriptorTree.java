@@ -83,7 +83,7 @@ public class DescriptorTree
 
         for (Integer index : indexes)
         {
-            current = current.getChild(index);
+            current = current.findChild(index);
             if (current == null)
             {
                 return null;
@@ -100,7 +100,7 @@ public class DescriptorTree
         return this.children.getOrDefault(part, null);
     }
 
-    private DescriptorTree getChild(
+    private DescriptorTree findChild(
         int index)
     {
         DescriptorTree tree = this;

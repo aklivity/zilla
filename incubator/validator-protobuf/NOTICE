@@ -10,7 +10,13 @@ WARRANTIES OF ANY KIND, either express or implied.  See the License for the
 specific language governing permissions and limitations under the License.
 
 This project includes:
+  error-prone annotations under Apache 2.0
+  FindBugs-jsr305 under The Apache Software License, Version 2.0
+  Gson under Apache-2.0
+  Guava: Google Core Libraries for Java under Apache License, Version 2.0
+  J2ObjC Annotations under Apache License, Version 2.0
   Protocol Buffers [Core] under BSD-3-Clause
+  Protocol Buffers [Util] under BSD-3-Clause
 
 
 This project also includes code under copyright of the following entities:

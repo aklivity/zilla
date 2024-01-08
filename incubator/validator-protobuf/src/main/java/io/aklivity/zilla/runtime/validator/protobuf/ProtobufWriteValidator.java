@@ -18,10 +18,13 @@ import java.io.IOException;
 import java.util.function.LongFunction;
 
 import org.agrona.DirectBuffer;
+import org.agrona.ExpandableDirectByteBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
+import org.agrona.io.ExpandableDirectBufferOutputStream;
 
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
+import com.google.protobuf.util.JsonFormat;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.validator.FragmentValidator;
@@ -32,14 +35,16 @@ import io.aklivity.zilla.runtime.validator.protobuf.config.ProtobufValidatorConf
 
 public class ProtobufWriteValidator extends ProtobufValidator implements ValueValidator, FragmentValidator
 {
-    private final DirectBuffer valueRO;
+    private final DirectBuffer indexesRO;
+    private final ExpandableDirectBufferOutputStream out;
 
     public ProtobufWriteValidator(
         ProtobufValidatorConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
     {
         super(config, supplyCatalog);
-        this.valueRO = new UnsafeBuffer();
+        this.indexesRO = new UnsafeBuffer();
+        this.out = new ExpandableDirectBufferOutputStream(new ExpandableDirectByteBuffer());
     }
 
     @Override
@@ -48,7 +53,11 @@ public class ProtobufWriteValidator extends ProtobufValidator implements ValueVa
         int index,
         int length)
     {
-        return handler.encodePadding();
+        int schemaId = catalog != null && catalog.id > 0
+                ? catalog.id
+                : handler.resolve(subject, catalog.version);
+
+        return handler.encodePadding() + supplyIndexPadding(schemaId);
     }
 
     @Override
@@ -86,7 +95,11 @@ public class ProtobufWriteValidator extends ProtobufValidator implements ValueVa
                 ? catalog.id
                 : handler.resolve(subject, catalog.version);
 
-        if (validate(schemaId, data, index, length))
+        if (FORMAT_JSON.equals(format))
+        {
+            valLength = handler.encode(schemaId, data, index, length, next, this::serializeJsonRecord);
+        }
+        else if (validate(schemaId, data, index, length))
         {
             valLength = handler.encode(schemaId, data, index, length, next, this::encode);
         }
@@ -134,16 +147,56 @@ public class ProtobufWriteValidator extends ProtobufValidator implements ValueVa
         int valLength = 0;
         if (indexes.size() == 2 && indexes.get(0) == 1 && indexes.get(1) == 0)
         {
-            valueRO.wrap(new byte[]{ZERO_INDEX});
+            indexesRO.wrap(new byte[]{ZERO_INDEX});
             valLength = 1;
         }
         else
         {
-            valueRO.wrap(encodeIndexes());
+            indexesRO.wrap(encodeIndexes());
             valLength = indexes.size();
         }
         next.accept(valueRO, 0, valLength);
         next.accept(buffer, index, length);
         return valLength + length;
+    }
+
+    private int serializeJsonRecord(
+        int schemaId,
+        DirectBuffer buffer,
+        int index,
+        int length,
+        ValueConsumer next)
+    {
+        int valLength = -1;
+        Descriptors.FileDescriptor fileDescriptor = supplyDescriptor(schemaId);
+        if (fileDescriptor != null)
+        {
+            DescriptorTree tree = new DescriptorTree(fileDescriptor).findByName(catalog.record);
+            if (tree != null)
+            {
+                Descriptors.Descriptor descriptor = tree.descriptor;
+                indexes.add(tree.indexes.size());
+                indexes.addAll(tree.indexes);
+                DynamicMessage.Builder builder = supplyDynamicMessageBuilder(descriptor);
+                try
+                {
+                    byte[] byteArray = new byte[length];
+                    buffer.getBytes(index, byteArray);
+                    JsonFormat.parser().merge(new String(byteArray), builder);
+                    DynamicMessage message = builder.build();
+                    if (message.isInitialized() && message.getUnknownFields().asMap().isEmpty())
+                    {
+                        out.wrap(out.buffer());
+                        message.writeTo(out);
+                        valLength = encode(schemaId, out.buffer(), 0, out.position(), next);
+                    }
+                }
+                catch (IOException e)
+                {
+                    e.printStackTrace();
+                }
+            }
+        }
+        return valLength;
     }
 }

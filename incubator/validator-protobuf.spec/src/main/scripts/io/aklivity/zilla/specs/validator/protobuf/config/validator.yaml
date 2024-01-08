@@ -33,6 +33,7 @@ bindings:
     options:
       value:
         type: protobuf
+        format: json
         catalog:
           catalog0:
             - subject: test0

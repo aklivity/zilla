@@ -21,7 +21,10 @@ import java.util.function.LongFunction;
 
 import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
+import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Int2ObjectCache;
+import org.agrona.collections.Object2ObjectHashMap;
+import org.agrona.concurrent.UnsafeBuffer;
 import org.agrona.io.DirectBufferInputStream;
 import org.antlr.v4.runtime.BailErrorStrategy;
 import org.antlr.v4.runtime.CharStream;
@@ -29,8 +32,12 @@ import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
+import com.google.protobuf.Descriptors;
 import com.google.protobuf.Descriptors.DescriptorValidationException;
 import com.google.protobuf.Descriptors.FileDescriptor;
+import com.google.protobuf.DynamicMessage;
+import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.protobuf.util.JsonFormat;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
@@ -42,15 +49,20 @@ import io.aklivity.zilla.runtime.validator.protobuf.internal.parser.Protobuf3Par
 public class ProtobufValidator
 {
     protected static final byte ZERO_INDEX = 0x0;
+    protected static final String FORMAT_JSON = "json";
 
     protected final SchemaConfig catalog;
     protected final CatalogHandler handler;
     protected final String subject;
+    protected final String format;
     protected final List<Integer> indexes;
     protected final DirectBufferInputStream in;
+    protected final DirectBuffer valueRO;
 
     private final Int2ObjectCache<FileDescriptor> descriptors;
+    private final Object2ObjectHashMap<String, DynamicMessage.Builder> builders;
     private final FileDescriptor[] dependencies;
+    private final Int2IntHashMap paddings;
 
     protected ProtobufValidator(
         ProtobufValidatorConfig config,
@@ -62,10 +74,14 @@ public class ProtobufValidator
         this.subject = catalog != null && catalog.subject != null
                 ? catalog.subject
                 : config.subject;
+        this.format = config.format;
         this.descriptors = new Int2ObjectCache<>(1, 1024, i -> {});
+        this.builders = new Object2ObjectHashMap<>();
         this.in = new DirectBufferInputStream();
         this.dependencies = new FileDescriptor[0];
         this.indexes = new LinkedList<>();
+        this.paddings = new Int2IntHashMap(-1);
+        this.valueRO = new UnsafeBuffer();
     }
 
     protected FileDescriptor supplyDescriptor(
@@ -116,6 +132,40 @@ public class ProtobufValidator
         return progress;
     }
 
+    protected int supplyIndexPadding(
+        int schemaId)
+    {
+        return paddings.computeIfAbsent(schemaId, id -> calculateIndexPadding(supplyDescriptor(id)));
+    }
+
+    protected int supplyJsonFormatPadding(
+        int schemaId)
+    {
+        return paddings.computeIfAbsent(schemaId, id -> calculateJsonFormatPadding(supplyDescriptor(id)));
+    }
+
+    protected DynamicMessage.Builder supplyDynamicMessageBuilder(
+        Descriptors.Descriptor descriptor)
+    {
+        DynamicMessage.Builder builder;
+        if (builders.containsKey(catalog.record))
+        {
+            builder = builders.get(catalog.record);
+        }
+        else
+        {
+            builder = createDynamicMessageBuilder(descriptor);
+            builders.put(catalog.record, builder);
+        }
+        return builder;
+    }
+
+    private DynamicMessage.Builder createDynamicMessageBuilder(
+        Descriptors.Descriptor descriptor)
+    {
+        return DynamicMessage.newBuilder(descriptor);
+    }
+
     private int decodeIndex(
         byte encodedByte)
     {
@@ -128,6 +178,41 @@ public class ProtobufValidator
         }
         while ((encodedByte & 0x80) != 0);
         return (result >>> 1) ^ -(result & 1);
+    }
+
+    private int calculateIndexPadding(
+        FileDescriptor descriptor)
+    {
+        int padding = 0;
+        if (descriptor != null)
+        {
+            DescriptorTree tree = new DescriptorTree(descriptor).findByName(catalog.record);
+            if (tree != null)
+            {
+                padding = tree.indexes.size() + 1;
+            }
+        }
+        return padding;
+    }
+
+    private int calculateJsonFormatPadding(
+        FileDescriptor descriptor)
+    {
+        int padding = 0;
+
+        if (descriptor != null)
+        {
+            try
+            {
+                padding = 2 + JsonFormat.printer().print(descriptor.toProto()).length();
+            }
+            catch (InvalidProtocolBufferException e)
+            {
+                e.printStackTrace();
+            }
+
+        }
+        return padding;
     }
 
     private FileDescriptor createDescriptors(

@@ -28,6 +28,7 @@ public class ProtobufValidatorConfigBuilder<T> extends ConfigBuilder<T, Protobuf
 
     private List<CatalogedConfig> catalogs;
     private String subject;
+    private String format;
 
     ProtobufValidatorConfigBuilder(
         Function<ProtobufValidatorConfig, T> mapper)
@@ -65,9 +66,16 @@ public class ProtobufValidatorConfigBuilder<T> extends ConfigBuilder<T, Protobuf
         return this;
     }
 
+    public ProtobufValidatorConfigBuilder<T> format(
+        String format)
+    {
+        this.format = format;
+        return this;
+    }
+
     @Override
     public T build()
     {
-        return mapper.apply(new ProtobufValidatorConfig(catalogs, subject));
+        return mapper.apply(new ProtobufValidatorConfig(catalogs, subject, format));
     }
 }

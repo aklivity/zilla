@@ -23,6 +23,7 @@ import org.agrona.DirectBuffer;
 
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
+import com.google.protobuf.util.JsonFormat;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.validator.FragmentValidator;
@@ -33,11 +34,14 @@ import io.aklivity.zilla.runtime.validator.protobuf.config.ProtobufValidatorConf
 
 public class ProtobufReadValidator  extends ProtobufValidator implements ValueValidator, FragmentValidator
 {
+    private final JsonFormat.Printer printer;
+
     public ProtobufReadValidator(
         ProtobufValidatorConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
     {
         super(config, supplyCatalog);
+        this.printer = JsonFormat.printer();
     }
 
     @Override
@@ -46,7 +50,25 @@ public class ProtobufReadValidator  extends ProtobufValidator implements ValueVa
         int index,
         int length)
     {
-        return FragmentValidator.super.padding(data, index, length);
+        int padding = 0;
+        if (FORMAT_JSON.equals(format))
+        {
+            int schemaId = handler.resolve(data, index, length);
+
+            if (schemaId == NO_SCHEMA_ID)
+            {
+                if (catalog.id != NO_SCHEMA_ID)
+                {
+                    schemaId = catalog.id;
+                }
+                else
+                {
+                    schemaId = handler.resolve(subject, catalog.version);
+                }
+            }
+            padding = supplyJsonFormatPadding(schemaId);
+        }
+        return padding;
     }
 
     @Override
@@ -88,8 +110,6 @@ public class ProtobufReadValidator  extends ProtobufValidator implements ValueVa
         int length,
         ValueConsumer next)
     {
-        int valLength = -1;
-
         if (schemaId == NO_SCHEMA_ID)
         {
             if (catalog.id != NO_SCHEMA_ID)
@@ -103,24 +123,18 @@ public class ProtobufReadValidator  extends ProtobufValidator implements ValueVa
         }
 
         int progress = decodeIndexes(data, index, length);
-        int currentIndex = index + progress;
-        int remainingLength = length - progress;
 
-        if (validate(schemaId, data, currentIndex, remainingLength))
-        {
-            next.accept(data, currentIndex, remainingLength);
-            valLength = remainingLength;
-        }
-        return valLength;
+        return validate(schemaId, data, index + progress, length - progress, next);
     }
 
-    private boolean validate(
+    private int validate(
         int schemaId,
-        DirectBuffer buffer,
+        DirectBuffer data,
         int index,
-        int length)
+        int length,
+        ValueConsumer next)
     {
-        boolean status = false;
+        int valLength = -1;
         Descriptors.FileDescriptor fileDescriptor = supplyDescriptor(schemaId);
         if (fileDescriptor != null)
         {
@@ -130,9 +144,24 @@ public class ProtobufReadValidator  extends ProtobufValidator implements ValueVa
                 Descriptors.Descriptor descriptor = tree.descriptor;
                 try
                 {
-                    in.wrap(buffer, index, length);
+                    in.wrap(data, index, length);
                     DynamicMessage message = DynamicMessage.parseFrom(descriptor, in);
-                    status = message.getUnknownFields().asMap().isEmpty();
+                    if (message.getUnknownFields().asMap().isEmpty())
+                    {
+                        if (FORMAT_JSON.equals(format))
+                        {
+                            String json = printer.print(message);
+                            int jsonLength = json.length();
+                            valueRO.wrap(json.getBytes());
+                            next.accept(valueRO, 0, jsonLength);
+                            valLength = jsonLength;
+                        }
+                        else
+                        {
+                            next.accept(data, index, length);
+                            valLength = length;
+                        }
+                    }
                 }
                 catch (IOException e)
                 {
@@ -140,6 +169,6 @@ public class ProtobufReadValidator  extends ProtobufValidator implements ValueVa
                 }
             }
         }
-        return status;
+        return valLength;
     }
 }

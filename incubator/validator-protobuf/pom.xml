@@ -26,7 +26,7 @@
 <properties>
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
-    <jacoco.coverage.ratio>0.84</jacoco.coverage.ratio>
+    <jacoco.coverage.ratio>0.90</jacoco.coverage.ratio>
     <jacoco.missed.count>0</jacoco.missed.count>
 </properties>
 
@@ -47,6 +47,11 @@
         <groupId>com.google.protobuf</groupId>
         <artifactId>protobuf-java</artifactId>
         <version>3.24.4</version>
+    </dependency>
+    <dependency>
+        <groupId>com.google.protobuf</groupId>
+        <artifactId>protobuf-java-util</artifactId>
+        <version>3.25.1</version>
     </dependency>
     <dependency>
         <groupId>org.antlr</groupId>
