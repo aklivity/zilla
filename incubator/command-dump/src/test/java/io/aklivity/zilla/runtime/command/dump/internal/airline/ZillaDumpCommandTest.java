@@ -2221,6 +2221,83 @@ public class ZillaDumpCommandTest
             .extension(kafkaOffsetCommitDataEx1, 0, kafkaOffsetCommitDataEx1.capacity())
             .build();
         streams[0].write(DataFW.TYPE_ID, data27.buffer(), 0, data27.sizeof());
+
+        // - OFFSET_FETCH
+        DirectBuffer kafkaOffsetFetchBegin1 = new UnsafeBuffer(KafkaFunctions.beginEx()
+            .typeId(KAFKA_TYPE_ID)
+            .offsetFetch()
+                .groupId("group")
+                .host("host")
+                .port(42)
+                .topic("topic")
+                .partition(21)
+                .partition(42)
+                .partition(77)
+                .partition(88)
+                .build()
+            .build());
+        BeginFW begin38 = beginRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000000fL) // north_kafka_cache_client
+            .routedId(0x0000000900000010L) // south_kafka_cache_server
+            .streamId(0x0000000000000039L) // INI
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x000000000000005bL)
+            .traceId(0x0000000000000039L)
+            .affinity(0x0000000000000000L)
+            .extension(kafkaOffsetFetchBegin1, 0, kafkaOffsetFetchBegin1.capacity())
+            .build();
+        streams[0].write(BeginFW.TYPE_ID, begin38.buffer(), 0, begin38.sizeof());
+
+        DirectBuffer kafkaOffsetFetchBegin2 = new UnsafeBuffer(KafkaFunctions.beginEx()
+            .typeId(KAFKA_TYPE_ID)
+            .offsetFetch()
+                .groupId("group")
+                .host("host")
+                .port(42)
+                .topic("topic")
+                .partition(42)
+                .build()
+            .build());
+        BeginFW begin39 = beginRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000000fL) // north_kafka_cache_client
+            .routedId(0x0000000900000010L) // south_kafka_cache_server
+            .streamId(0x0000000000000038L) // REP
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x000000000000005cL)
+            .traceId(0x0000000000000039L)
+            .affinity(0x0000000000000000L)
+            .extension(kafkaOffsetFetchBegin2, 0, kafkaOffsetFetchBegin2.capacity())
+            .build();
+        streams[0].write(BeginFW.TYPE_ID, begin39.buffer(), 0, begin39.sizeof());
+
+        DirectBuffer kafkaOffsetFetchDataPayload = new String8FW("kafka offset commit fetch payload").value();
+        DirectBuffer kafkaOffsetFetchDataEx1 = new UnsafeBuffer(KafkaFunctions.dataEx()
+            .typeId(KAFKA_TYPE_ID)
+                .offsetFetch()
+                .partition(17, 21, 42, "metadata1")
+                .partition(18, 22, 43, "metadata2")
+                .partition(19, 23, 44, "metadata3")
+                .build()
+            .build());
+        DataFW data28 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000000fL) // north_kafka_cache_client
+            .routedId(0x0000000900000010L) // south_kafka_cache_server
+            .streamId(0x0000000000000039L) // INI
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x000000000000005dL)
+            .traceId(0x0000000000000039L)
+            .budgetId(0x0000000000000000L)
+            .reserved(0x00000000)
+            .payload(kafkaOffsetFetchDataPayload, 0, kafkaOffsetFetchDataPayload.capacity())
+            .extension(kafkaOffsetFetchDataEx1, 0, kafkaOffsetFetchDataEx1.capacity())
+            .build();
+        streams[0].write(DataFW.TYPE_ID, data28.buffer(), 0, data28.sizeof());
     }
 
     @BeforeEach
