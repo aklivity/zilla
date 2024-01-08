@@ -2327,7 +2327,7 @@ public class ZillaDumpCommandTest
             .typeId(KAFKA_TYPE_ID)
             .describe()
                 .topic("topic")
-                // configs omitted
+            // configs omitted
             .build()
             .build());
         BeginFW begin41 = beginRW.wrap(frameBuffer, 0, frameBuffer.capacity())
