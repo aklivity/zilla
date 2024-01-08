@@ -83,9 +83,7 @@ public final class TcpClientRouter
         {
             resolved = options != null ? new InetSocketAddress(options.host, port) : null;
         }
-        else if (binding.routes.size() == 1 &&
-            binding.routes.get(0).matches() &&
-            options == null)
+        else if (binding.routes == TcpBindingConfig.DEFAULT_CLIENT_ROUTES)
         {
             ProxyAddressInetFW inet = beginEx.address().inet();
             InetSocketAddress newResolved = new InetSocketAddress(inet.destination().asString(), inet.destinationPort());

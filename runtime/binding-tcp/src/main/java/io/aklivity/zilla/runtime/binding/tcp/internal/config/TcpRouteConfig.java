@@ -49,11 +49,6 @@ public final class TcpRouteConfig
         return authorized.test(authorization);
     }
 
-    public boolean matches()
-    {
-        return when.isEmpty();
-    }
-
     public boolean matches(
         InetSocketAddress address)
     {
