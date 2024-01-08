@@ -512,9 +512,18 @@ local fields = {
     kafka_ext_skip_type = ProtoField.uint8("zilla.kafka_ext.skip_type", "Skip Type", base.DEC, kafka_ext_skip_types),
     kafka_ext_evaluation = ProtoField.uint8("zilla.kafka_ext.evaluation", "Evaluation", base.DEC, kafka_ext_evaluation_types),
     kafka_ext_isolation = ProtoField.uint8("zilla.kafka_ext.isolation", "Isolation", base.DEC, kafka_ext_isolation_types),
-    kafka_ext_delta_type = ProtoField.uint8("zilla.kafka_ext.delta_type", "Isolation", base.DEC, kafka_ext_delta_types),
+    kafka_ext_delta_type = ProtoField.uint8("zilla.kafka_ext.delta_type", "Delta Type", base.DEC, kafka_ext_delta_types),
     kafka_ext_ack_mode_id = ProtoField.int16("zilla.kafka_ext.ack_mode_id", "Ack Mode ID", base.DEC),
     kafka_ext_ack_mode = ProtoField.string("zilla.kafka_ext.ack_mode", "Ack Mode", base.NONE),
+    kafka_ext_merged_api = ProtoField.uint8("zilla.kafka_ext.data_api", "Merged API", base.DEC, kafka_ext_apis),
+    kafka_ext_deferred = ProtoField.int32("zilla.kafka_ext.deferred", "Deferred", base.DEC),
+    kafka_ext_filters = ProtoField.int64("zilla.kafka_ext.filters", "Filters", base.DEC),
+    kafka_ext_progress_array_length = ProtoField.int8("zilla.kafka_ext.progress_array_length", "Length", base.DEC),
+    kafka_ext_progress_array_size = ProtoField.int8("zilla.kafka_ext.progress_array_size", "Size", base.DEC),
+    kafka_ext_ancestor_offset = ProtoField.int64("zilla.kafka_ext.ancestor_offset", "Ancestor Offset", base.DEC),
+    kafka_ext_headers_array_length = ProtoField.int8("zilla.kafka_ext.headers_array_length", "Length", base.DEC),
+    kafka_ext_headers_array_size = ProtoField.int8("zilla.kafka_ext.headers_array_size", "Size", base.DEC),
+
 }
 
 zilla_protocol.fields = fields;
@@ -1727,7 +1736,7 @@ function handle_kafka_extension(buffer, offset, ext_subtree, frame_type_id)
             if api == "CONSUMER" then
                 handle_kafka_data_consumer_extension(buffer, offset + api_length, ext_subtree)
             elseif api == "MERGED" then
-                -- TODO
+                handle_kafka_data_merged_extension(buffer, offset + api_length, ext_subtree)
             elseif api == "META" then
                 -- TODO
             elseif api == "OFFSET_COMMIT" then
@@ -1934,10 +1943,9 @@ function dissect_and_add_kafka_offset_array(buffer, offset, tree, field_array_le
     local item_offset = offset + length
     for i = 1, array_size do
         local item_length = resolve_length_of_kafka_offset(buffer, item_offset)
-        dissect_and_add_kafka_offset(buffer, item_offset, tree, string.format("%s: %%s", singular_name))
+        dissect_and_add_kafka_offset(buffer, item_offset, tree, string.format("%s: %%s [%%d]", singular_name))
         item_offset = item_offset + item_length
     end
-    return total_length
 end
 
 function handle_kafka_group_begin_extension(buffer, offset, ext_subtree)
@@ -2093,7 +2101,8 @@ function handle_kafka_begin_merged_extension(buffer, offset, ext_subtree)
     ext_subtree:add_le(fields.kafka_ext_timeout, slice_timeout)
     -- partitions
     local partitions_offset = timeout_offset + timeout_length
-    local partitions_length = dissect_and_add_kafka_offset_array(buffer, partitions_offset, ext_subtree,
+    local partitions_length = resolve_length_of_array(buffer, partitions_offset)
+    dissect_and_add_kafka_offset_array(buffer, partitions_offset, ext_subtree,
         fields.kafka_ext_partitions_array_length, fields.kafka_ext_partitions_array_size, "Partitions", "Partition")
     -- filters
     local filters_offset = partitions_offset + partitions_length
@@ -2446,6 +2455,143 @@ function resolve_length_and_label_of_kafka_value_match(buffer, offset)
         local skip_type = kafka_ext_skip_types[slice_skip_type:le_int()]
         return value_match_type_length + skip_type_length, string.format("[%s]", skip_type)
     end
+end
+
+function handle_kafka_data_merged_extension(buffer, offset, ext_subtree)
+    -- merged_api
+    local merged_api_offset = offset
+    local merged_api_length = 1
+    local slice_merged_api = buffer(merged_api_offset, merged_api_length)
+    local merged_api = kafka_ext_apis[slice_merged_api:le_int()]
+    ext_subtree:add_le(fields.kafka_ext_merged_api, slice_merged_api)
+    if merged_api == "FETCH" then
+        handle_kafka_data_merged_fetch_extension(buffer, offset + merged_api_length, ext_subtree)
+    elseif merged_api == "PRODUCE" then
+        handle_kafka_data_merged_produce_extension(buffer, offset + merged_api_length, ext_subtree)
+    end
+end
+
+function handle_kafka_data_merged_fetch_extension(buffer, offset, ext_subtree)
+    -- deferred
+    local deferred_offset = offset
+    local deferred_length = 4
+    local slice_deferred = buffer(deferred_offset, deferred_length)
+    ext_subtree:add_le(fields.kafka_ext_deferred, slice_deferred)
+    -- timestamp
+    local timestamp_offset = deferred_offset + deferred_length
+    local timestamp_length = 8
+    local slice_timestamp = buffer(timestamp_offset, timestamp_length)
+    ext_subtree:add_le(fields.sse_ext_timestamp, slice_timestamp)
+    -- filters
+    local filters_offset = timestamp_offset + timestamp_length
+    local filters_length = 8
+    local slice_filters = buffer(filters_offset, filters_length)
+    ext_subtree:add_le(fields.kafka_ext_filters, slice_filters)
+    -- partition
+    local partition_offset = filters_offset + filters_length
+    local partition_length = resolve_length_of_kafka_offset(buffer, partition_offset)
+    dissect_and_add_kafka_offset(buffer, partition_offset, ext_subtree, "Partition: %d [%d]")
+    -- progress
+    local progress_offset = partition_offset + partition_length
+    local progress_length = resolve_length_of_array(buffer, progress_offset)
+    dissect_and_add_kafka_offset_array(buffer, progress_offset, ext_subtree,
+        fields.kafka_ext_progress_array_length, fields.kafka_ext_progress_array_size, "Progress", "Progress")
+    -- key
+    local key_offset = progress_offset + progress_length
+    local key_length, key_label = resolve_length_and_label_of_kafka_key(buffer, key_offset, 0)
+    local key_subtree = ext_subtree:add(zilla_protocol, buffer(key_offset, key_length), string.format("Key: %s", key_label))
+    dissect_and_add_kafka_key(buffer, key_offset, key_subtree)
+    -- delta
+    local delta_offset = key_offset + key_length
+    local delta_length, delta_label = resolve_length_and_label_of_kafka_delta(buffer, delta_offset)
+    local delta_subtree = ext_subtree:add(zilla_protocol, buffer(delta_offset, delta_length), string.format("Delta: %s", delta_label))
+    dissect_and_add_kafka_delta(buffer, delta_offset, delta_subtree)
+    -- header_array
+    local header_array_offset = delta_offset + delta_length
+    dissect_and_add_kafka_header_array(buffer, header_array_offset, ext_subtree, fields.kafka_ext_headers_array_length,
+        fields.kafka_ext_headers_array_size)
+end
+
+function dissect_and_add_kafka_delta(buffer, offset, tree)
+    -- delta_type
+    local delta_type_offset = offset
+    local delta_type_length = 1
+    local slice_delta_type = buffer(delta_type_offset, delta_type_length)
+    tree:add_le(fields.kafka_ext_delta_type, slice_delta_type)
+    -- ancestor_offset
+    local ancestor_offset_offset = delta_type_offset + delta_type_length
+    local ancestor_offset_length = 8
+    local slice_ancestor_offset = buffer(ancestor_offset_offset, ancestor_offset_length)
+    tree:add_le(fields.kafka_ext_ancestor_offset, slice_ancestor_offset)
+end
+
+function resolve_length_and_label_of_kafka_delta(buffer, offset)
+    -- delta_type
+    local delta_type_offset = offset
+    local delta_type_length = 1
+    local slice_delta_type = buffer(delta_type_offset, delta_type_length)
+    local delta_type = kafka_ext_delta_types[slice_delta_type:le_int()]
+    -- ancestor_offset
+    local ancestor_offset_offset = delta_type_offset + delta_type_length
+    local ancestor_offset_length = 8
+    local slice_ancestor_offset = buffer(ancestor_offset_offset, ancestor_offset_length)
+    local ancestor_offset = tostring(slice_ancestor_offset:le_int64())
+    -- result
+    local record_length = delta_type_length + ancestor_offset_length
+    local label = string.format("[%s] [%s]", delta_type, ancestor_offset)
+    return record_length, label
+end
+
+function dissect_and_add_kafka_header_array(buffer, offset, tree, field_array_length, field_array_size)
+    local slice_array_length = buffer(offset, 4)
+    local slice_array_size = buffer(offset + 4, 4)
+    local array_size = slice_array_size:le_int()
+    local length = 8
+    local label = string.format("Headers (%d items)", array_size)
+    local array_subtree = tree:add(zilla_protocol, buffer(offset, length), label)
+    array_subtree:add_le(field_array_length, slice_array_length)
+    array_subtree:add_le(field_array_size, slice_array_size)
+    local item_offset = offset + length
+    for i = 1, array_size do
+        local item_length, item_label = resolve_length_and_label_of_kafka_header(buffer, item_offset, 0)
+        local label = string.format("Header: %s", item_label)
+        local item_subtree = tree:add(zilla_protocol, buffer(item_offset, record_length), label)
+        dissect_and_add_kafka_header(buffer, item_offset, item_subtree)
+        item_offset = item_offset + item_length
+    end
+end
+
+function handle_kafka_data_merged_produce_extension(buffer, offset, ext_subtree)
+    -- deferred
+    local deferred_offset = offset
+    local deferred_length = 4
+    local slice_deferred = buffer(deferred_offset, deferred_length)
+    ext_subtree:add_le(fields.kafka_ext_deferred, slice_deferred)
+    -- timestamp
+    local timestamp_offset = deferred_offset + deferred_length
+    local timestamp_length = 8
+    local slice_timestamp = buffer(timestamp_offset, timestamp_length)
+    ext_subtree:add_le(fields.sse_ext_timestamp, slice_timestamp)
+    -- partition
+    local partition_offset = timestamp_offset + timestamp_length
+    local partition_length = resolve_length_of_kafka_offset(buffer, partition_offset)
+    dissect_and_add_kafka_offset(buffer, partition_offset, ext_subtree, "Partition: %d [%d]")
+    -- key
+    local key_offset = partition_offset + partition_length
+    local key_length, key_label = resolve_length_and_label_of_kafka_key(buffer, key_offset, 0)
+    local label = string.format("Key: %s", key_label)
+    local key_subtree = ext_subtree:add(zilla_protocol, buffer(key_offset, key_length), label)
+    dissect_and_add_kafka_key(buffer, key_offset, key_subtree)
+    -- hash_key
+    local hash_key_offset = key_offset + key_length
+    local hash_key_length, hash_key_label = resolve_length_and_label_of_kafka_key(buffer, hash_key_offset, 0)
+    local label = string.format("Hash Key: %s", hash_key_label)
+    local hash_key_subtree = ext_subtree:add(zilla_protocol, buffer(hash_key_offset, hash_key_length), label)
+    dissect_and_add_kafka_key(buffer, hash_key_offset, hash_key_subtree)
+    -- header_array
+    local header_array_offset = hash_key_offset + hash_key_length
+    dissect_and_add_kafka_header_array(buffer, header_array_offset, ext_subtree, fields.kafka_ext_headers_array_length,
+        fields.kafka_ext_headers_array_size)
 end
 
 function handle_kafka_reset_extension(buffer, offset, ext_subtree)

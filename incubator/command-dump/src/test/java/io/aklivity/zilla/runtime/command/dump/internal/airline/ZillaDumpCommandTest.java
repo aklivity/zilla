@@ -1927,7 +1927,7 @@ public class ZillaDumpCommandTest
         BeginFW begin32 = beginRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000000fL) // north_kafka_cache_client
             .routedId(0x0000000900000010L) // south_kafka_cache_server
-            .streamId(0x0000000000000032L) // INI
+            .streamId(0x0000000000000032L) // REP
             .sequence(0)
             .acknowledge(0)
             .maximum(0)
@@ -1957,7 +1957,7 @@ public class ZillaDumpCommandTest
         BeginFW begin33 = beginRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000000fL) // north_kafka_cache_client
             .routedId(0x0000000900000010L) // south_kafka_cache_server
-            .streamId(0x0000000000000032L) // INI
+            .streamId(0x0000000000000032L) // REP
             .sequence(0)
             .acknowledge(0)
             .maximum(0)
@@ -1967,6 +1967,69 @@ public class ZillaDumpCommandTest
             .extension(kafkaMergedBeginEx3, 0, kafkaMergedBeginEx3.capacity())
             .build();
         streams[0].write(BeginFW.TYPE_ID, begin33.buffer(), 0, begin33.sizeof());
+
+        DirectBuffer kafkaMergedFetchDataPayload = new String8FW("kafka merged fetch data payload").value();
+        DirectBuffer kafkaMergedFetchDataEx1 = new UnsafeBuffer(KafkaFunctions.dataEx()
+            .typeId(KAFKA_TYPE_ID)
+            .merged()
+                .fetch()
+                .deferred(99)
+                .timestamp(0x51)
+                .filters(77)
+                .partition(1, 42_000)
+                .progress(17, 42)
+                .progress(19, 77, 2121)
+                .key("key")
+                .delta("JSON_PATCH", 7777)
+                .header("name1", "value1")
+                .header("name2", "value2")
+                .build()
+            .build());
+        DataFW data24 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000000fL) // north_kafka_cache_client
+            .routedId(0x0000000900000010L) // south_kafka_cache_server
+            .streamId(0x0000000000000033L) // INI
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x0000000000000051L)
+            .traceId(0x0000000000000033L)
+            .budgetId(0x0000000000000000L)
+            .reserved(0x00000000)
+            .payload(kafkaMergedFetchDataPayload, 0, kafkaMergedFetchDataPayload.capacity())
+            .extension(kafkaMergedFetchDataEx1, 0, kafkaMergedFetchDataEx1.capacity())
+            .build();
+        streams[0].write(DataFW.TYPE_ID, data24.buffer(), 0, data24.sizeof());
+
+        DirectBuffer kafkaMergedProduceDataPayload = new String8FW("kafka merged produce data payload").value();
+        DirectBuffer kafkaMergedProduceDataEx1 = new UnsafeBuffer(KafkaFunctions.dataEx()
+            .typeId(KAFKA_TYPE_ID)
+            .merged()
+                .produce()
+                .deferred(100)
+                .timestamp(0x52)
+                .partition(1, 77_000)
+                .key("key")
+                .hashKey("hash-key")
+                .header("name1", "value1")
+                .header("name2", "value2")
+                .build()
+            .build());
+        DataFW data25 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000000fL) // north_kafka_cache_client
+            .routedId(0x0000000900000010L) // south_kafka_cache_server
+            .streamId(0x0000000000000033L) // INI
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x0000000000000052L)
+            .traceId(0x0000000000000033L)
+            .budgetId(0x0000000000000000L)
+            .reserved(0x00000000)
+            .payload(kafkaMergedProduceDataPayload, 0, kafkaMergedProduceDataPayload.capacity())
+            .extension(kafkaMergedProduceDataEx1, 0, kafkaMergedProduceDataEx1.capacity())
+            .build();
+        streams[0].write(DataFW.TYPE_ID, data25.buffer(), 0, data25.sizeof());
     }
 
     @BeforeEach

@@ -4054,7 +4054,7 @@ Zilla Frame
         Partitions (1 items)
             Length: 34
             Size: 1
-        Partition: 42
+        Partition: 42 [4242]
             Partition ID: 42
             Partition Offset: 4242
             Stable Offset: -1
@@ -4257,7 +4257,7 @@ Zilla Frame
                     Skip Type: SKIP_MANY (1)
         Evaluation: LAZY (0)
         Isolation: READ_UNCOMMITTED (0)
-        Isolation: NONE (0)
+        Delta Type: NONE (0)
         Ack Mode ID: 0
         Ack Mode: NONE
 
@@ -4307,7 +4307,7 @@ Zilla Frame
         Partitions (3 items)
             Length: 102
             Size: 3
-        Partition: 1
+        Partition: 1 [42000]
             Partition ID: 1
             Partition Offset: 42000
             Stable Offset: 43000
@@ -4315,7 +4315,7 @@ Zilla Frame
             Metadata: metadata
                 Length: 8
                 Metadata: metadata
-        Partition: 2
+        Partition: 2 [77000]
             Partition ID: 2
             Partition Offset: 77000
             Stable Offset: -1
@@ -4323,7 +4323,7 @@ Zilla Frame
             Metadata: 
                 Length: -1
                 Metadata: 
-        Partition: 3
+        Partition: 3 [88000]
             Partition ID: 3
             Partition Offset: 88000
             Stable Offset: -1
@@ -4336,7 +4336,7 @@ Zilla Frame
             Size: 0
         Evaluation: EAGER (1)
         Isolation: READ_COMMITTED (1)
-        Isolation: JSON_PATCH (1)
+        Delta Type: JSON_PATCH (1)
         Ack Mode ID: 1
         Ack Mode: LEADER_ONLY
 
@@ -4386,7 +4386,7 @@ Zilla Frame
         Partitions (1 items)
             Length: 34
             Size: 1
-        Partition: 42
+        Partition: 42 [123456]
             Partition ID: 42
             Partition Offset: 123456
             Stable Offset: -1
@@ -4399,7 +4399,197 @@ Zilla Frame
             Size: 0
         Evaluation: EAGER (1)
         Isolation: READ_COMMITTED (1)
-        Isolation: JSON_PATCH (1)
+        Delta Type: JSON_PATCH (1)
         Ack Mode ID: -1
         Ack Mode: IN_SYNC_REPLICAS
+
+Frame 87: 459 bytes on wire (3672 bits), 459 bytes captured (3672 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::32, Dst: fe80::33
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 584, Ack: 599, Len: 385
+Zilla Frame
+    Frame Type ID: 0x00000002
+    Frame Type: DATA
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00002d50
+    Origin ID: 0x000000090000000f
+    Origin Namespace: example
+    Origin Binding: north_kafka_cache_client
+    Routed ID: 0x0000000900000010
+    Routed Namespace: example
+    Routed Binding: south_kafka_cache_server
+    Stream ID: 0x0000000000000033
+    Initial ID: 0x0000000000000033
+    Reply ID: 0x0000000000000032
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000051
+    Trace ID: 0x0000000000000033
+    Authorization: 0x0000000000000000
+    Flags: 0x03
+        .... ...1 = FIN: Set (1)
+        .... ..1. = INIT: Set (1)
+        .... .0.. = INCOMPLETE: Not set (0)
+        .... 0... = SKIP: Not set (0)
+    Budget ID: 0x0000000000000000
+    Reserved: 0
+    Progress: 0
+    Progress/Maximum: 0/0
+    Payload
+        Length: 31
+        Payload
+    Extension: kafka
+        Stream Type ID: 0xe1204b08
+        Stream Type: kafka
+        API: MERGED (255)
+        Merged API: FETCH (1)
+        Deferred: 99
+        Timestamp: 0x0000000000000051
+        Filters: 77
+        Partition: 1 [42000]
+            Partition ID: 1
+            Partition Offset: 42000
+            Stable Offset: -1
+            Latest Offset: -1
+            Metadata: 
+                Length: -1
+                Metadata: 
+        Progress (2 items)
+            Length: 64
+            Size: 2
+        Progress: 17 [42]
+            Partition ID: 17
+            Partition Offset: 42
+            Stable Offset: -1
+            Latest Offset: -1
+            Metadata: 
+                Length: -1
+                Metadata: 
+        Progress: 19 [77]
+            Partition ID: 19
+            Partition Offset: 77
+            Stable Offset: -1
+            Latest Offset: 2121
+            Metadata: 
+                Length: -1
+                Metadata: 
+        Key: [KEY] key
+            Length: 3
+                Length (varint32): 06
+                Length: 3
+            Key: key
+        Delta: [JSON_PATCH] [7777]
+            Delta Type: JSON_PATCH (1)
+            Ancestor Offset: 7777
+        Headers (2 items)
+            Length: 30
+            Size: 2
+        Header: [HEADER] name1: value1
+            Length: 5
+                Length (varint32): 0a
+                Length: 5
+            Name: name1
+            Length: 6
+                Length (varint32): 0c
+                Length: 6
+            Value: value1
+        Header: [HEADER] name2: value2
+            Length: 5
+                Length (varint32): 0a
+                Length: 5
+            Name: name2
+            Length: 6
+                Length (varint32): 0c
+                Length: 6
+            Value: value2
+
+Frame 88: 385 bytes on wire (3080 bits), 385 bytes captured (3080 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::32, Dst: fe80::33
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 969, Ack: 599, Len: 311
+Zilla Frame
+    Frame Type ID: 0x00000002
+    Frame Type: DATA
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00002e78
+    Origin ID: 0x000000090000000f
+    Origin Namespace: example
+    Origin Binding: north_kafka_cache_client
+    Routed ID: 0x0000000900000010
+    Routed Namespace: example
+    Routed Binding: south_kafka_cache_server
+    Stream ID: 0x0000000000000033
+    Initial ID: 0x0000000000000033
+    Reply ID: 0x0000000000000032
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000052
+    Trace ID: 0x0000000000000033
+    Authorization: 0x0000000000000000
+    Flags: 0x03
+        .... ...1 = FIN: Set (1)
+        .... ..1. = INIT: Set (1)
+        .... .0.. = INCOMPLETE: Not set (0)
+        .... 0... = SKIP: Not set (0)
+    Budget ID: 0x0000000000000000
+    Reserved: 0
+    Progress: 0
+    Progress/Maximum: 0/0
+    Payload
+        Length: 33
+        Payload
+    Extension: kafka
+        Stream Type ID: 0xe1204b08
+        Stream Type: kafka
+        API: MERGED (255)
+        Merged API: PRODUCE (0)
+        Deferred: 100
+        Timestamp: 0x0000000000000052
+        Partition: 1 [77000]
+            Partition ID: 1
+            Partition Offset: 77000
+            Stable Offset: -1
+            Latest Offset: -1
+            Metadata: 
+                Length: -1
+                Metadata: 
+        Key: [KEY] key
+            Length: 3
+                Length (varint32): 06
+                Length: 3
+            Key: key
+        Hash Key: [KEY] hash-key
+            Length: 8
+                Length (varint32): 10
+                Length: 8
+            Key: hash-key
+        Headers (2 items)
+            Length: 30
+            Size: 2
+        Header: [HEADER] name1: value1
+            Length: 5
+                Length (varint32): 0a
+                Length: 5
+            Name: name1
+            Length: 6
+                Length (varint32): 0c
+                Length: 6
+            Value: value1
+        Header: [HEADER] name2: value2
+            Length: 5
+                Length (varint32): 0a
+                Length: 5
+            Name: name2
+            Length: 6
+                Length (varint32): 0c
+                Length: 6
+            Value: value2
 
