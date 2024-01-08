@@ -2149,6 +2149,78 @@ public class ZillaDumpCommandTest
             .extension(kafkaMetaDataEx1, 0, kafkaMetaDataEx1.capacity())
             .build();
         streams[0].write(DataFW.TYPE_ID, data26.buffer(), 0, data26.sizeof());
+
+        // - OFFSET_COMMIT
+        DirectBuffer kafkaOffsetCommitBegin1 = new UnsafeBuffer(KafkaFunctions.beginEx()
+            .typeId(KAFKA_TYPE_ID)
+            .offsetCommit()
+                .topic("topic")
+                .groupId("group")
+                .memberId("member")
+                .instanceId("instance")
+                .build()
+            .build());
+        BeginFW begin36 = beginRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000000fL) // north_kafka_cache_client
+            .routedId(0x0000000900000010L) // south_kafka_cache_server
+            .streamId(0x0000000000000037L) // INI
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x0000000000000058L)
+            .traceId(0x0000000000000037L)
+            .affinity(0x0000000000000000L)
+            .extension(kafkaOffsetCommitBegin1, 0, kafkaOffsetCommitBegin1.capacity())
+            .build();
+        streams[0].write(BeginFW.TYPE_ID, begin36.buffer(), 0, begin36.sizeof());
+
+        DirectBuffer kafkaOffsetCommitBegin2 = new UnsafeBuffer(KafkaFunctions.beginEx()
+            .typeId(KAFKA_TYPE_ID)
+            .offsetCommit()
+                .topic("topic")
+                .groupId("group")
+                .memberId("member")
+                .instanceId("instance")
+                .build()
+            .build());
+        BeginFW begin37 = beginRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000000fL) // north_kafka_cache_client
+            .routedId(0x0000000900000010L) // south_kafka_cache_server
+            .streamId(0x0000000000000036L) // REP
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x0000000000000059L)
+            .traceId(0x0000000000000037L)
+            .affinity(0x0000000000000000L)
+            .extension(kafkaOffsetCommitBegin2, 0, kafkaOffsetCommitBegin2.capacity())
+            .build();
+        streams[0].write(BeginFW.TYPE_ID, begin37.buffer(), 0, begin37.sizeof());
+
+        DirectBuffer kafkaOffsetCommitDataPayload = new String8FW("kafka offset commit data payload").value();
+        DirectBuffer kafkaOffsetCommitDataEx1 = new UnsafeBuffer(KafkaFunctions.dataEx()
+            .typeId(KAFKA_TYPE_ID)
+            .offsetCommit()
+                .progress(21, 1234, "metadata")
+                .generationId(42)
+                .leaderEpoch(77)
+                .build()
+            .build());
+        DataFW data27 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000000fL) // north_kafka_cache_client
+            .routedId(0x0000000900000010L) // south_kafka_cache_server
+            .streamId(0x0000000000000037L) // INI
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x000000000000005aL)
+            .traceId(0x0000000000000037L)
+            .budgetId(0x0000000000000000L)
+            .reserved(0x00000000)
+            .payload(kafkaOffsetCommitDataPayload, 0, kafkaOffsetCommitDataPayload.capacity())
+            .extension(kafkaOffsetCommitDataEx1, 0, kafkaOffsetCommitDataEx1.capacity())
+            .build();
+        streams[0].write(DataFW.TYPE_ID, data27.buffer(), 0, data27.sizeof());
     }
 
     @BeforeEach

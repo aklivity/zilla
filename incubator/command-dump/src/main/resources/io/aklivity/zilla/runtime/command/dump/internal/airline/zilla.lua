@@ -1723,7 +1723,7 @@ function handle_kafka_extension(buffer, offset, ext_subtree, frame_type_id)
             elseif api == "META" then
                 handle_kafka_begin_meta_extension(buffer, offset + api_length, ext_subtree)
             elseif api == "OFFSET_COMMIT" then
-                -- TODO
+                handle_kafka_begin_offset_commit_extension(buffer, offset + api_length, ext_subtree)
             elseif api == "OFFSET_FETCH" then
                 -- TODO
             elseif api == "DESCRIBE" then
@@ -1741,7 +1741,7 @@ function handle_kafka_extension(buffer, offset, ext_subtree, frame_type_id)
             elseif api == "META" then
                 handle_kafka_data_meta_extension(buffer, offset + api_length, ext_subtree)
             elseif api == "OFFSET_COMMIT" then
-                -- TODO
+                handle_kafka_data_offset_commit_extension(buffer, offset + api_length, ext_subtree)
             elseif api == "OFFSET_FETCH" then
                 -- TODO
             elseif api == "DESCRIBE" then
@@ -2694,6 +2694,46 @@ function dissect_and_add_kafka_partition_array(buffer, offset, tree, field_array
         partition_subtree:add_le(fields.kafka_ext_partition_leader_id, slice_leader_id)
         item_offset = item_offset + item_length
     end
+end
+
+function handle_kafka_begin_offset_commit_extension(buffer, offset, ext_subtree)
+    -- topic
+    local topic_offset = offset
+    local topic_length, slice_topic_length, slice_topic_text = dissect_length_value(buffer, topic_offset, 2)
+    add_string_as_subtree(buffer(topic_offset, topic_length), ext_subtree, "Topic: %s",
+        slice_topic_length, slice_topic_text, fields.mqtt_ext_topic_length, fields.mqtt_ext_topic)
+    -- group_id
+    local group_id_offset = topic_offset + topic_length
+    local group_id_length, slice_group_id_length, slice_group_id_text = dissect_length_value(buffer, group_id_offset, 2)
+    add_string_as_subtree(buffer(group_id_offset, group_id_length), ext_subtree, "Group ID: %s",
+        slice_group_id_length, slice_group_id_text, fields.kafka_ext_group_id_length, fields.kafka_ext_group_id)
+    -- member_id
+    local member_id_offset = group_id_offset + group_id_length
+    local member_id_length, slice_member_id_length, slice_member_id_text = dissect_length_value(buffer, member_id_offset, 2)
+    add_string_as_subtree(buffer(member_id_offset, member_id_length), ext_subtree, "Member ID: %s",
+        slice_member_id_length, slice_member_id_text, fields.kafka_ext_member_id_length, fields.kafka_ext_member_id)
+    -- instance_id
+    local instance_id_offset = member_id_offset + member_id_length
+    local instance_id_length, slice_instance_id_length, slice_instance_id_text = dissect_length_value(buffer, instance_id_offset, 2)
+    add_string_as_subtree(buffer(instance_id_offset, instance_id_length), ext_subtree, "Instance ID: %s",
+        slice_instance_id_length, slice_instance_id_text, fields.kafka_ext_instance_id_length, fields.kafka_ext_instance_id)
+end
+
+function handle_kafka_data_offset_commit_extension(buffer, offset, ext_subtree)
+    -- progress
+    local progress_offset = offset
+    local progress_length = resolve_length_of_kafka_offset(buffer, progress_offset)
+    dissect_and_add_kafka_offset(buffer, progress_offset, ext_subtree, "Progress: %d [%d]")
+    -- generation_id
+    local generation_id_offset = progress_offset + progress_length
+    local generation_id_length = 4
+    local slice_generation_id = buffer(generation_id_offset, generation_id_length)
+    ext_subtree:add_le(fields.kafka_ext_generation_id, slice_generation_id)
+    -- leader_epoch
+    local leader_epoch_offset = generation_id_offset + generation_id_length
+    local leader_epoch_length = 4
+    local slice_leader_epoch = buffer(leader_epoch_offset, leader_epoch_length)
+    ext_subtree:add_le(fields.kafka_ext_leader_epoch, slice_leader_epoch)
 end
 
 function handle_kafka_reset_extension(buffer, offset, ext_subtree)
