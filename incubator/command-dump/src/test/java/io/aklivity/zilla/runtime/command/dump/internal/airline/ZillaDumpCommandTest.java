@@ -2486,6 +2486,104 @@ public class ZillaDumpCommandTest
             .extension(kafkaFetchFlushEx, 0, kafkaFetchFlushEx.capacity())
             .build();
         streams[0].write(FlushFW.TYPE_ID, flush10.buffer(), 0, flush10.sizeof());
+
+        // - PRODUCE
+        DirectBuffer kafkaProduceBegin1 = new UnsafeBuffer(KafkaFunctions.beginEx()
+            .typeId(KAFKA_TYPE_ID)
+            .produce()
+                .transaction("transaction")
+                .producerId(0x770042)
+                .topic("topic")
+                .partition(2, 42_000, 77_000)
+                .build()
+            .build());
+        BeginFW begin44 = beginRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000000fL) // north_kafka_cache_client
+            .routedId(0x0000000900000010L) // south_kafka_cache_server
+            .streamId(0x000000000000003fL) // INI
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x0000000000000065L)
+            .traceId(0x000000000000003fL)
+            .affinity(0x0000000000000000L)
+            .extension(kafkaProduceBegin1, 0, kafkaProduceBegin1.capacity())
+            .build();
+        streams[0].write(BeginFW.TYPE_ID, begin44.buffer(), 0, begin44.sizeof());
+
+        DirectBuffer kafkaProduceBegin2 = new UnsafeBuffer(KafkaFunctions.beginEx()
+            .typeId(KAFKA_TYPE_ID)
+            .produce()
+                .transaction("transaction")
+                .producerId(0x210088)
+                .topic("topic")
+                .partition(1, 21_000)
+                .build()
+            .build());
+        BeginFW begin45 = beginRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000000fL) // north_kafka_cache_client
+            .routedId(0x0000000900000010L) // south_kafka_cache_server
+            .streamId(0x000000000000003eL) // REP
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x0000000000000066L)
+            .traceId(0x000000000000003fL)
+            .affinity(0x0000000000000000L)
+            .extension(kafkaProduceBegin2, 0, kafkaProduceBegin2.capacity())
+            .build();
+        streams[0].write(BeginFW.TYPE_ID, begin45.buffer(), 0, begin45.sizeof());
+
+        DirectBuffer kafkaProduceDataPayload = new String8FW("kafka produce payload").value();
+        DirectBuffer kafkaProduceDataEx1 = new UnsafeBuffer(KafkaFunctions.dataEx()
+            .typeId(KAFKA_TYPE_ID)
+            .produce()
+                .deferred(999)
+                .timestamp(0x67)
+                .sequence(777)
+                .ackMode("LEADER_ONLY")
+                .key("key")
+                .header("name1", "value1")
+                .header("name2", "value2")
+                .build()
+            .build());
+        DataFW data31 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000000fL) // north_kafka_cache_client
+            .routedId(0x0000000900000010L) // south_kafka_cache_server
+            .streamId(0x000000000000003fL) // INI
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x0000000000000067L)
+            .traceId(0x000000000000003fL)
+            .budgetId(0x0000000000000000L)
+            .reserved(0x00000000)
+            .payload(kafkaProduceDataPayload, 0, kafkaProduceDataPayload.capacity())
+            .extension(kafkaProduceDataEx1, 0, kafkaProduceDataEx1.capacity())
+            .build();
+        streams[0].write(DataFW.TYPE_ID, data31.buffer(), 0, data31.sizeof());
+
+        DirectBuffer kafkaProduceFlushEx = new UnsafeBuffer(KafkaFunctions.flushEx()
+            .typeId(KAFKA_TYPE_ID)
+            .produce()
+                .partition(2, 42_000, 77_000)
+                .key("key")
+                .build()
+            .build());
+        FlushFW flush11 = flushRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000000fL) // north_kafka_cache_client
+            .routedId(0x0000000900000010L) // south_kafka_cache_server
+            .streamId(0x000000000000003fL) // INI
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x0000000000000068L)
+            .traceId(0x000000000000003fL)
+            .budgetId(0x0000000000000000L)
+            .reserved(0x00000000)
+            .extension(kafkaProduceFlushEx, 0, kafkaProduceFlushEx.capacity())
+            .build();
+        streams[0].write(FlushFW.TYPE_ID, flush11.buffer(), 0, flush11.sizeof());
     }
 
     @BeforeEach
