@@ -530,6 +530,11 @@ local fields = {
     kafka_ext_topic_partition_array_size = ProtoField.int8("zilla.kafka_ext.topic_partition_array_size", "Size", base.DEC),
     kafka_ext_topic_partition_offset_array_length = ProtoField.int8("zilla.kafka_ext.topic_partition_offset_array_length", "Length", base.DEC),
     kafka_ext_topic_partition_offset_array_size = ProtoField.int8("zilla.kafka_ext.topic_partition_offset_array_size", "Size", base.DEC),
+    -- describe
+    kafka_ext_config_array_length = ProtoField.int8("zilla.kafka_ext.config_array_length", "Length", base.DEC),
+    kafka_ext_config_array_size = ProtoField.int8("zilla.kafka_ext.config_array_size", "Size", base.DEC),
+    kafka_ext_config_length = ProtoField.int16("zilla.kafka_ext.config_length", "Length", base.DEC),
+    kafka_ext_config = ProtoField.string("zilla.kafka_ext.config", "Config", base.NONE),
 }
 
 zilla_protocol.fields = fields;
@@ -1732,7 +1737,7 @@ function handle_kafka_extension(buffer, offset, ext_subtree, frame_type_id)
             elseif api == "OFFSET_FETCH" then
                 handle_kafka_begin_offset_fetch_extension(buffer, offset + api_length, ext_subtree)
             elseif api == "DESCRIBE" then
-                -- TODO
+                handle_kafka_begin_describe_extension(buffer, offset + api_length, ext_subtree)
             elseif api == "FETCH" then
                 -- TODO
             elseif api == "PRODUCE" then
@@ -1750,7 +1755,7 @@ function handle_kafka_extension(buffer, offset, ext_subtree, frame_type_id)
             elseif api == "OFFSET_FETCH" then
                 handle_kafka_data_offset_fetch_extension(buffer, offset + api_length, ext_subtree)
             elseif api == "DESCRIBE" then
-                -- TODO
+                handle_kafka_data_describe_extension(buffer, offset + api_length, ext_subtree)
             elseif api == "FETCH" then
                 -- TODO
             elseif api == "PRODUCE" then
@@ -2861,6 +2866,94 @@ function resolve_length_and_label_of_topic_partition_offset(buffer, offset)
     -- result
     local record_length = partition_id_length + partition_offset_length + leader_epoch_length + metadata_length
     local label = string.format("%d [%d]", partition_id, partition_offset)
+    return record_length, label
+end
+
+function handle_kafka_begin_describe_extension(buffer, offset, ext_subtree)
+    -- topic
+    local topic_offset = offset
+    local topic_length, slice_topic_length, slice_topic_text = dissect_length_value(buffer, topic_offset, 2)
+    add_string_as_subtree(buffer(topic_offset, topic_length), ext_subtree, "Topic: %s",
+        slice_topic_length, slice_topic_text, fields.kafka_ext_topic_length, fields.kafka_ext_topic)
+    -- configs
+    local configs_offset = topic_offset + topic_length
+    local configs_length = resolve_length_of_array(buffer, configs_offset)
+    dissect_and_add_kafka_config_array(buffer, configs_offset, ext_subtree, fields.kafka_ext_config_array_length,
+        fields.kafka_ext_config_array_size)
+end
+
+function dissect_and_add_kafka_config_array(buffer, offset, tree, field_array_length, field_array_size)
+    local slice_array_length = buffer(offset, 4)
+    local slice_array_size = buffer(offset + 4, 4)
+    local array_size = slice_array_size:le_int()
+    local length = 8
+    local label = string.format("Configs (%d items)", array_size)
+    local array_subtree = tree:add(zilla_protocol, buffer(offset, length), label)
+    array_subtree:add_le(field_array_length, slice_array_length)
+    array_subtree:add_le(field_array_size, slice_array_size)
+    local item_offset = offset + length
+    for i = 1, array_size do
+        -- config
+        local item_length, slice_length, slice_text = dissect_length_value(buffer, item_offset, 2)
+        add_string_as_subtree(buffer(item_offset, item_length), tree, "Config: %s", slice_length, slice_text,
+            fields.kafka_ext_config_length, fields.kafka_ext_config)
+        item_offset = item_offset + item_length
+    end
+end
+
+function handle_kafka_data_describe_extension(buffer, offset, ext_subtree)
+    -- configs
+    local configs_offset = offset
+    local configs_length = resolve_length_of_array(buffer, configs_offset)
+    dissect_and_add_kafka_config_struct_array(buffer, configs_offset, ext_subtree, fields.kafka_ext_config_array_length,
+        fields.kafka_ext_config_array_size)
+end
+
+function dissect_and_add_kafka_config_struct_array(buffer, offset, tree, field_array_length, field_array_size)
+    local slice_array_length = buffer(offset, 4)
+    local slice_array_size = buffer(offset + 4, 4)
+    local array_size = slice_array_size:le_int()
+    local length = 8
+    local label = string.format("Configs (%d items)", array_size)
+    local array_subtree = tree:add(zilla_protocol, buffer(offset, length), label)
+    array_subtree:add_le(field_array_length, slice_array_length)
+    array_subtree:add_le(field_array_size, slice_array_size)
+    local item_offset = offset + length
+    for i = 1, array_size do
+        -- config
+        local item_length, item_label = resolve_length_and_label_of_kafka_config_struct(buffer, item_offset)
+        local label = string.format("Config: %s", item_label)
+        local config_subtree = tree:add(zilla_protocol, buffer(item_offset, item_length), label)
+        dissect_and_add_kafka_config_struct(buffer, item_offset, config_subtree)
+        item_offset = item_offset + item_length
+    end
+end
+
+function dissect_and_add_kafka_config_struct(buffer, offset, tree, label_format)
+    -- name
+    local name_offset = offset
+    local name_length, slice_name_length, slice_name_text = dissect_length_value(buffer, name_offset, 2)
+    add_string_as_subtree(buffer(name_offset, name_length), tree, "Name: %s", slice_name_length,
+        slice_name_text, fields.kafka_ext_name_length, fields.kafka_ext_name)
+    -- authority
+    local value_offset = name_offset + name_length
+    local value_length, slice_value_length, slice_value_text = dissect_length_value(buffer, value_offset, 2)
+    add_string_as_subtree(buffer(value_offset, value_length), tree, "Value: %s", slice_value_length,
+        slice_value_text, fields.kafka_ext_value_length, fields.kafka_ext_value)
+end
+
+function resolve_length_and_label_of_kafka_config_struct(buffer, offset)
+    -- name
+    local name_offset = offset
+    local name_length, slice_name_length, slice_name_text = dissect_length_value(buffer, name_offset, 2)
+    local name = slice_name_text:string()
+    -- authority
+    local value_offset = name_offset + name_length
+    local value_length, slice_value_length, slice_value_text = dissect_length_value(buffer, value_offset, 2)
+    local value = slice_value_text:string()
+    -- result
+    local record_length = name_length + value_length
+    local label = string.format("%s: %s", name, value)
     return record_length, label
 end
 
