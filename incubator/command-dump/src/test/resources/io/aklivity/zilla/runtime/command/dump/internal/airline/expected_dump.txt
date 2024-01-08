@@ -4726,3 +4726,131 @@ Zilla Frame
                 Length: 3
             Key: key
 
+Frame 91: 260 bytes on wire (2080 bits), 260 bytes captured (2080 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::34, Dst: fe80::35
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 0, Ack: 1, Len: 186
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x000030e8
+    Origin ID: 0x000000090000000f
+    Origin Namespace: example
+    Origin Binding: north_kafka_cache_client
+    Routed ID: 0x0000000900000010
+    Routed Namespace: example
+    Routed Binding: south_kafka_cache_server
+    Stream ID: 0x0000000000000035
+    Initial ID: 0x0000000000000035
+    Reply ID: 0x0000000000000034
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000055
+    Trace ID: 0x0000000000000035
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+    Extension: kafka
+        Stream Type ID: 0xe1204b08
+        Stream Type: kafka
+        API: META (3)
+        Topic: topic
+            Length: 5
+            Topic: topic
+
+Frame 92: 260 bytes on wire (2080 bits), 260 bytes captured (2080 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::35, Dst: fe80::34
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1, Ack: 186, Len: 186
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00003148
+    Origin ID: 0x000000090000000f
+    Origin Namespace: example
+    Origin Binding: north_kafka_cache_client
+    Routed ID: 0x0000000900000010
+    Routed Namespace: example
+    Routed Binding: south_kafka_cache_server
+    Stream ID: 0x0000000000000034
+    Initial ID: 0x0000000000000035
+    Reply ID: 0x0000000000000034
+    Direction: REP
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000056
+    Trace ID: 0x0000000000000035
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+    Extension: kafka
+        Stream Type ID: 0xe1204b08
+        Stream Type: kafka
+        API: META (3)
+        Topic: topic
+            Length: 5
+            Topic: topic
+
+Frame 93: 317 bytes on wire (2536 bits), 317 bytes captured (2536 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::34, Dst: fe80::35
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 186, Ack: 187, Len: 243
+Zilla Frame
+    Frame Type ID: 0x00000002
+    Frame Type: DATA
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x000031a8
+    Origin ID: 0x000000090000000f
+    Origin Namespace: example
+    Origin Binding: north_kafka_cache_client
+    Routed ID: 0x0000000900000010
+    Routed Namespace: example
+    Routed Binding: south_kafka_cache_server
+    Stream ID: 0x0000000000000035
+    Initial ID: 0x0000000000000035
+    Reply ID: 0x0000000000000034
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000057
+    Trace ID: 0x0000000000000035
+    Authorization: 0x0000000000000000
+    Flags: 0x03
+        .... ...1 = FIN: Set (1)
+        .... ..1. = INIT: Set (1)
+        .... .0.. = INCOMPLETE: Not set (0)
+        .... 0... = SKIP: Not set (0)
+    Budget ID: 0x0000000000000000
+    Reserved: 0
+    Progress: 0
+    Progress/Maximum: 0/0
+    Payload
+        Length: 23
+        Payload
+    Extension: kafka
+        Stream Type ID: 0xe1204b08
+        Stream Type: kafka
+        API: META (3)
+        Partitions (3 items)
+            Length: 28
+            Size: 3
+        Partition: 1 [42]
+            Partition ID: 1
+            Leader ID: 42
+        Partition: 10 [420]
+            Partition ID: 10
+            Leader ID: 420
+        Partition: 100 [4200]
+            Partition ID: 100
+            Leader ID: 4200
+
