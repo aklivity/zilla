@@ -875,6 +875,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/publish.reject.large.message/client",
+        "${kafka}/publish.reject.large.message/server"})
+    public void shouldRejectLargeMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/subscribe.receive.message.qos1/client",
         "${kafka}/subscribe.receive.message.qos1/server"})
     public void shouldReceiveMessageQoS1() throws Exception

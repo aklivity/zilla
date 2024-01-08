@@ -32,6 +32,7 @@ write option zilla:flags "init"
 write zilla:data.ext ${mqtt:dataEx()
                             .typeId(zilla:id("mqtt"))
                             .publish()
+                                .deferred(2048)
                                 .build()
                             .build()}
 write ${mqtt:randomBytes(8192)}

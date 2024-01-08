@@ -29,22 +29,9 @@ write zilla:begin.ext ${kafka:beginEx()
 
 connected
 
-write option zilla:flags "init"
-write zilla:data.ext ${kafka:dataEx()
+read zilla:reset.ext ${kafka:resetEx()
                            .typeId(zilla:id("kafka"))
-                           .merged()
-                             .produce()
-                               .deferred(2048)
-                               .partition(-1, -1)
-                               .key("sensor/one")
-                               .header("zilla:filter", "sensor")
-                               .header("zilla:filter", "one")
-                               .header("zilla:local", "client")
-                               .header("zilla:qos", "0")
-                               .build()
+                           .error(18)
                            .build()}
-write ${kafka:randomBytes(8192)}
-write flush
 
-write option zilla:flags "fin"
-write ${kafka:randomBytes(2048)}
+write aborted

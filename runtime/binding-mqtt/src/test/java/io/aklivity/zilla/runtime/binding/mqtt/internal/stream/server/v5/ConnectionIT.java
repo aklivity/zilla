@@ -417,6 +417,16 @@ public class ConnectionIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/connect.max.packet.size.exceeded/client",
+        "${app}/connect.max.packet.size.exceeded/server"})
+    public void shouldIgnorePublishPacketBiggerThanMaxPacketSize() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/connect.server.defined.keep.alive/client",
         "${app}/session.connect/server"})
     @Configure(name = KEEP_ALIVE_MINIMUM_NAME, value = "10")

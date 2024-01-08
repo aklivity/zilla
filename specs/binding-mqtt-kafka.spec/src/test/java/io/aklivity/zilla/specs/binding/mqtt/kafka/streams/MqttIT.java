@@ -109,6 +109,24 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/publish.10k/client",
+        "${mqtt}/publish.10k/server"})
+    public void shouldSendMessage10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/publish.retained.10k/client",
+        "${mqtt}/publish.retained.10k/server"})
+    public void shouldSendRetainedMessage10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/publish.multiple.messages/client",
         "${mqtt}/publish.multiple.messages/server"})
     public void shouldSendMultipleMessages() throws Exception
@@ -676,6 +694,15 @@ public class MqttIT
     public void shouldSendMessageMixtureQos() throws Exception
     {
         k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/publish.reject.large.message/client",
+        "${mqtt}/publish.reject.large.message/server"})
+    public void shouldRejectLargeMessage() throws Exception
+    {
         k3po.finish();
     }
 

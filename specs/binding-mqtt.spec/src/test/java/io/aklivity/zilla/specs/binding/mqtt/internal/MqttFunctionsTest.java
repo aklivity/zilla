@@ -794,6 +794,7 @@ public class MqttFunctionsTest
     {
         BytesMatcher matcher = MqttFunctions.matchDataEx()
             .publish()
+                .deferred(100)
                 .qos("AT_MOST_ONCE")
                 .flags("RETAIN")
                 .expiryInterval(20)
@@ -812,6 +813,7 @@ public class MqttFunctionsTest
             .typeId(0x00)
             .publish(p ->
             {
+                p.deferred(100);
                 p.qos(0);
                 p.flags(1);
                 p.expiryInterval(20);
@@ -890,6 +892,7 @@ public class MqttFunctionsTest
         final byte[] array = MqttFunctions.dataEx()
             .typeId(0)
             .publish()
+            .deferred(100)
             .expiryInterval(15)
             .contentType("message")
             .format("TEXT")
@@ -903,6 +906,7 @@ public class MqttFunctionsTest
         MqttDataExFW mqttPublishDataEx = new MqttDataExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(0, mqttPublishDataEx.typeId());
+        assertEquals(100, mqttPublishDataEx.publish().deferred());
         assertEquals(15, mqttPublishDataEx.publish().expiryInterval());
         assertEquals("message", mqttPublishDataEx.publish().contentType().asString());
         assertEquals("TEXT", mqttPublishDataEx.publish().format().toString());

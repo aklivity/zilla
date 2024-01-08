@@ -33,13 +33,9 @@ connected
 read zilla:data.ext ${mqtt:matchDataEx()
                             .typeId(zilla:id("mqtt"))
                             .publish()
+                                .deferred(2048)
+                                .flags("RETAIN")
                                 .build()
                             .build()}
 read [0..10240]
 
-read zilla:data.ext ${mqtt:matchDataEx()
-                            .typeId(zilla:id("mqtt"))
-                            .publish()
-                                .build()
-                            .build()}
-read [0..10240]

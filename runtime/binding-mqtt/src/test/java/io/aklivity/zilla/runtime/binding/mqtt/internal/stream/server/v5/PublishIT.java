@@ -120,6 +120,16 @@ public class PublishIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/publish.multiple.clients/client",
+        "${app}/publish.multiple.clients/server"})
+    public void shouldPublishMultipleClients() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/publish.multiple.messages.unfragmented/client",
         "${app}/publish.multiple.messages/server"})
     public void shouldPublishMultipleMessagesUnfragmented() throws Exception
@@ -430,6 +440,16 @@ public class PublishIT
         "${app}/publish.10k/server"})
     @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
     public void shouldPublish10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.reject.large.message/client",
+        "${app}/publish.reject.large.message/server"})
+    public void shouldRejectLargeMessage() throws Exception
     {
         k3po.finish();
     }

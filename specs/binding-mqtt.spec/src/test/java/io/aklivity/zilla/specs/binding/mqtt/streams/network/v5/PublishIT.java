@@ -56,6 +56,15 @@ public class PublishIT
 
     @Test
     @Specification({
+        "${net}/publish.multiple.clients/client",
+        "${net}/publish.multiple.clients/server"})
+    public void shouldSendMultipleClients() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/publish.multiple.messages.unfragmented/client",
         "${net}/publish.multiple.messages.unfragmented/server"})
     public void shouldSendMultipleMessagesUnfragmented() throws Exception
@@ -369,6 +378,15 @@ public class PublishIT
         "${net}/publish.10k/client",
         "${net}/publish.10k/server"})
     public void shouldPublish10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/publish.reject.large.message/client",
+        "${net}/publish.reject.large.message/server"})
+    public void shouldRejectLargeMessage() throws Exception
     {
         k3po.finish();
     }

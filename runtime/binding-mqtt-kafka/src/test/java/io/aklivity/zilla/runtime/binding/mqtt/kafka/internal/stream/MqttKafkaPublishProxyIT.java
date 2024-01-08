@@ -339,4 +339,15 @@ public class MqttKafkaPublishProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/publish.reject.large.message/client",
+        "${kafka}/publish.reject.large.message/server"})
+    public void shouldRejectLargeMessage() throws Exception
+    {
+        k3po.finish();
+    }
 }

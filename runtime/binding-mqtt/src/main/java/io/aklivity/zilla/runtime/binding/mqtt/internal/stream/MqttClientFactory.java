@@ -2988,50 +2988,71 @@ public final class MqttClientFactory implements MqttStreamFactory
                     switch (mqttSessionDataEx.kind().get())
                     {
                     case WILL:
-                        MqttWillMessageFW willMessage = mqttWillMessageRO.tryWrap(buffer, offset, limit);
-                        final OctetsFW willPayload = payloadRO.wrap(buffer, willMessage.limit(), limit);
-                        client.doEncodeConnect(traceId, authorization, client.clientId, client.flags,
-                            client.sessionExpiry, willMessage, willPayload);
-                        client.doSignalConnackTimeout(traceId);
+                        onSessionWillData(traceId, authorization, buffer, offset, limit);
                         break;
                     case STATE:
-                        MqttSessionStateFW sessionState = mqttSessionStateRO.tryWrap(buffer, offset, limit);
-
-                        final List<Subscription> newSubscribeState = new ArrayList<>();
-                        sessionState.subscriptions().forEach(filter ->
-                        {
-                            Subscription subscription = new Subscription();
-                            subscription.id = (int) filter.subscriptionId();
-                            subscription.filter = filter.pattern().asString();
-                            subscription.flags = filter.flags();
-                            subscription.qos = filter.qos();
-                            newSubscribeState.add(subscription);
-                        });
-
-
-                        final List<Subscription> newSubscriptions = newSubscribeState.stream()
-                            .filter(s -> !subscriptions.contains(s))
-                            .collect(Collectors.toList());
-
-                        final List<Subscription> oldSubscriptions = subscriptions.stream()
-                            .filter(s -> !newSubscribeState.contains(s))
-                            .collect(Collectors.toList());
-                        final int packetId = client.nextPacketId();
-
-                        if (newSubscriptions.size() > 0)
-                        {
-                            client.doEncodeSubscribe(traceId, authorization, newSubscriptions, packetId);
-                        }
-                        if (oldSubscriptions.size() > 0)
-                        {
-                            client.doEncodeUnsubscribe(traceId, authorization, oldSubscriptions, packetId);
-                        }
-                        client.sessionStream.subscriptions.addAll(newSubscriptions);
-                        client.sessionStream.subscriptions.removeAll(oldSubscriptions);
+                        onSessionStateData(traceId, authorization, buffer, offset, limit);
                         break;
                     }
                 }
             }
+        }
+
+        private void onSessionStateData(
+            long traceId,
+            long authorization,
+            DirectBuffer buffer,
+            int offset,
+            int limit)
+        {
+            MqttSessionStateFW sessionState = mqttSessionStateRO.tryWrap(buffer, offset, limit);
+
+            final List<Subscription> newSubscribeState = new ArrayList<>();
+            sessionState.subscriptions().forEach(filter ->
+            {
+                Subscription subscription = new Subscription();
+                subscription.id = (int) filter.subscriptionId();
+                subscription.filter = filter.pattern().asString();
+                subscription.flags = filter.flags();
+                subscription.qos = filter.qos();
+                newSubscribeState.add(subscription);
+            });
+
+
+            final List<Subscription> newSubscriptions = newSubscribeState.stream()
+                .filter(s -> !subscriptions.contains(s))
+                .collect(Collectors.toList());
+
+            final List<Subscription> oldSubscriptions = subscriptions.stream()
+                .filter(s -> !newSubscribeState.contains(s))
+                .collect(Collectors.toList());
+            final int packetId = client.nextPacketId();
+
+            if (newSubscriptions.size() > 0)
+            {
+                client.doEncodeSubscribe(traceId, authorization, newSubscriptions, packetId);
+            }
+            if (oldSubscriptions.size() > 0)
+            {
+                client.doEncodeUnsubscribe(traceId, authorization, oldSubscriptions, packetId);
+            }
+            client.sessionStream.subscriptions.addAll(newSubscriptions);
+            client.sessionStream.subscriptions.removeAll(oldSubscriptions);
+        }
+
+        private void onSessionWillData(
+            long traceId,
+            long authorization,
+            DirectBuffer buffer,
+            int offset,
+            int limit)
+        {
+            MqttWillMessageFW willMessage = mqttWillMessageRO.tryWrap(buffer, offset, limit);
+            final OctetsFW willPayload = payloadRO.wrap(buffer, willMessage.limit(), limit);
+            client.doEncodeConnect(traceId, authorization, client.clientId, client.flags,
+                client.sessionExpiry, willMessage, willPayload);
+            client.doSignalConnackTimeout(traceId);
+            return;
         }
 
         private void onSessionEnd(

@@ -546,6 +546,13 @@ public final class MqttFunctions
                 publishDataExRW.wrap(writeBuffer, MqttBeginExFW.FIELD_OFFSET_PUBLISH, writeBuffer.capacity());
             }
 
+            public MqttPublishDataExBuilder deferred(
+                int deferred)
+            {
+                publishDataExRW.deferred(deferred);
+                return this;
+            }
+
             public MqttPublishDataExBuilder qos(
                 String qos)
             {
@@ -1849,9 +1856,17 @@ public final class MqttFunctions
             private MqttPayloadFormatFW format;
             private String16FW responseTopic;
             private Array32FW.Builder<MqttUserPropertyFW.Builder, MqttUserPropertyFW> userPropertiesRW;
+            private Integer deferred;
 
             private MqttPublishDataExMatcherBuilder()
             {
+            }
+
+            public MqttPublishDataExMatcherBuilder deferred(
+                int deferred)
+            {
+                this.deferred = deferred;
+                return this;
             }
 
             public MqttPublishDataExMatcherBuilder qos(
@@ -1947,7 +1962,8 @@ public final class MqttFunctions
                 MqttDataExFW dataEx)
             {
                 final MqttPublishDataExFW publishDataEx = dataEx.publish();
-                return matchQos(publishDataEx) &&
+                return matchDeferred(publishDataEx) &&
+                    matchQos(publishDataEx) &&
                     matchFlags(publishDataEx) &&
                     matchExpiryInterval(publishDataEx) &&
                     matchContentType(publishDataEx) &&
@@ -1955,6 +1971,12 @@ public final class MqttFunctions
                     matchResponseTopic(publishDataEx) &&
                     matchCorrelation(publishDataEx) &&
                     matchUserProperties(publishDataEx);
+            }
+
+            private boolean matchDeferred(
+                final MqttPublishDataExFW data)
+            {
+                return deferred == null || deferred == data.deferred();
             }
 
             private boolean matchQos(

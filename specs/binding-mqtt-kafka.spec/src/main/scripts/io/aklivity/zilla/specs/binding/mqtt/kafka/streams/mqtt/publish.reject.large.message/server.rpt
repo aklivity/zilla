@@ -13,7 +13,6 @@
 # specific language governing permissions and limitations under the License.
 #
 
-
 accept "zilla://streams/mqtt0"
         option zilla:window 8192
         option zilla:transmission "duplex"
@@ -30,10 +29,8 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
 
 connected
 
-read zilla:data.ext ${mqtt:matchDataEx()
-                            .typeId(zilla:id("mqtt"))
-                            .publish()
-                                .deferred(2048)
-                                .build()
-                            .build()}
-read [0..10240]
+write zilla:reset.ext ${mqtt:resetEx()
+                           .typeId(zilla:id("mqtt"))
+                           .reasonCode(149)
+                           .build()}
+read abort

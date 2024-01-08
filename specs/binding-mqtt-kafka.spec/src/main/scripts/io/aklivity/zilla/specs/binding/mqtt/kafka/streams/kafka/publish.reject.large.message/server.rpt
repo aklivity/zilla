@@ -13,11 +13,13 @@
 # specific language governing permissions and limitations under the License.
 #
 
-connect "zilla://streams/kafka0"
-         option zilla:window 8192
-         option zilla:transmission "duplex"
+accept "zilla://streams/kafka0"
+    option zilla:window 8192
+    option zilla:transmission "duplex"
 
-write zilla:begin.ext ${kafka:beginEx()
+accepted
+
+read zilla:begin.ext ${kafka:beginEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
                                 .capabilities("PRODUCE_ONLY")
@@ -27,24 +29,12 @@ write zilla:begin.ext ${kafka:beginEx()
                                 .build()
                             .build()}
 
+
 connected
 
-write option zilla:flags "init"
-write zilla:data.ext ${kafka:dataEx()
+write zilla:reset.ext ${kafka:resetEx()
                            .typeId(zilla:id("kafka"))
-                           .merged()
-                             .produce()
-                               .deferred(2048)
-                               .partition(-1, -1)
-                               .key("sensor/one")
-                               .header("zilla:filter", "sensor")
-                               .header("zilla:filter", "one")
-                               .header("zilla:local", "client")
-                               .header("zilla:qos", "0")
-                               .build()
+                           .error(18)
                            .build()}
-write ${kafka:randomBytes(8192)}
-write flush
 
-write option zilla:flags "fin"
-write ${kafka:randomBytes(2048)}
+read abort
