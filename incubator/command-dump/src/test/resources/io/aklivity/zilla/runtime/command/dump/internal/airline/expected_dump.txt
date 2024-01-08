@@ -4593,3 +4593,136 @@ Zilla Frame
                 Length: 6
             Value: value2
 
+Frame 89: 304 bytes on wire (2432 bits), 304 bytes captured (2432 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::32, Dst: fe80::33
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 1280, Ack: 599, Len: 230
+Zilla Frame
+    Frame Type ID: 0x00000005
+    Frame Type: FLUSH
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00002f58
+    Origin ID: 0x000000090000000f
+    Origin Namespace: example
+    Origin Binding: north_kafka_cache_client
+    Routed ID: 0x0000000900000010
+    Routed Namespace: example
+    Routed Binding: south_kafka_cache_server
+    Stream ID: 0x0000000000000033
+    Initial ID: 0x0000000000000033
+    Reply ID: 0x0000000000000032
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000053
+    Trace ID: 0x0000000000000033
+    Authorization: 0x0000000000000000
+    Budget ID: 0x0000000000000000
+    Reserved: 0
+    Extension: kafka
+        Stream Type ID: 0xe1204b08
+        Stream Type: kafka
+        API: MERGED (255)
+        Merged API: CONSUMER (252)
+        Progress: 17 [4242]
+            Partition ID: 17
+            Partition Offset: 4242
+            Stable Offset: -1
+            Latest Offset: -1
+            Metadata: metadata
+                Length: 8
+                Metadata: metadata
+        Correlation ID: 77
+
+Frame 90: 420 bytes on wire (3360 bits), 420 bytes captured (3360 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::32, Dst: fe80::33
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 1510, Ack: 599, Len: 346
+Zilla Frame
+    Frame Type ID: 0x00000005
+    Frame Type: FLUSH
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00002fe8
+    Origin ID: 0x000000090000000f
+    Origin Namespace: example
+    Origin Binding: north_kafka_cache_client
+    Routed ID: 0x0000000900000010
+    Routed Namespace: example
+    Routed Binding: south_kafka_cache_server
+    Stream ID: 0x0000000000000033
+    Initial ID: 0x0000000000000033
+    Reply ID: 0x0000000000000032
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000054
+    Trace ID: 0x0000000000000033
+    Authorization: 0x0000000000000000
+    Budget ID: 0x0000000000000000
+    Reserved: 0
+    Extension: kafka
+        Stream Type ID: 0xe1204b08
+        Stream Type: kafka
+        API: MERGED (255)
+        Merged API: FETCH (1)
+        Partition: 1 [42000]
+            Partition ID: 1
+            Partition Offset: 42000
+            Stable Offset: -1
+            Latest Offset: -1
+            Metadata: 
+                Length: -1
+                Metadata: 
+        Progress (3 items)
+            Length: 94
+            Size: 3
+        Progress: 17 [42]
+            Partition ID: 17
+            Partition Offset: 42
+            Stable Offset: -1
+            Latest Offset: -1
+            Metadata: 
+                Length: -1
+                Metadata: 
+        Progress: 19 [77]
+            Partition ID: 19
+            Partition Offset: 77
+            Stable Offset: -1
+            Latest Offset: 2121
+            Metadata: 
+                Length: -1
+                Metadata: 
+        Progress: 21 [88]
+            Partition ID: 21
+            Partition Offset: 88
+            Stable Offset: 1122
+            Latest Offset: 3344
+            Metadata: 
+                Length: -1
+                Metadata: 
+        Capabilities: PRODUCE_AND_FETCH (3)
+        Filters (1 items)
+            Length: 25
+            Size: 1
+        Filter #1
+            Conditions (1 items)
+                Length: 17
+                Size: 1
+            Condition: [KEY] filter-key1
+                Type: KEY (0)
+                Length: 11
+                    Length (varint32): 16
+                    Length: 11
+                Key: filter-key1
+        Key: [KEY] key
+            Length: 3
+                Length (varint32): 06
+                Length: 3
+            Key: key
+

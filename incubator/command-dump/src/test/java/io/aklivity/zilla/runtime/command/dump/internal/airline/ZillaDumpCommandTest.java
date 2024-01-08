@@ -2030,6 +2030,59 @@ public class ZillaDumpCommandTest
             .extension(kafkaMergedProduceDataEx1, 0, kafkaMergedProduceDataEx1.capacity())
             .build();
         streams[0].write(DataFW.TYPE_ID, data25.buffer(), 0, data25.sizeof());
+
+        DirectBuffer kafkaMergedConsumerFlushEx = new UnsafeBuffer(KafkaFunctions.flushEx()
+            .typeId(KAFKA_TYPE_ID)
+            .merged()
+                .consumer()
+                .progress(17, 4242, "metadata")
+                .correlationId(77)
+                .build()
+            .build());
+        FlushFW flush8 = flushRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000000fL) // north_kafka_cache_client
+            .routedId(0x0000000900000010L) // south_kafka_cache_server
+            .streamId(0x0000000000000033L) // INI
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x0000000000000053L)
+            .traceId(0x0000000000000033L)
+            .budgetId(0x0000000000000000L)
+            .reserved(0x00000000)
+            .extension(kafkaMergedConsumerFlushEx, 0, kafkaMergedConsumerFlushEx.capacity())
+            .build();
+        streams[0].write(FlushFW.TYPE_ID, flush8.buffer(), 0, flush8.sizeof());
+
+        DirectBuffer kafkaMergedFetchFlushEx = new UnsafeBuffer(KafkaFunctions.flushEx()
+            .typeId(KAFKA_TYPE_ID)
+            .merged()
+                .fetch()
+                .partition(1, 42_000)
+                .progress(17, 42)
+                .progress(19, 77, 2121)
+                .progress(21, 88, 1122, 3344)
+                .capabilities("PRODUCE_AND_FETCH")
+                .filter()
+                    .key("filter-key1")
+                    .build()
+                .key("key")
+                .build()
+            .build());
+        FlushFW flush9 = flushRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000000fL) // north_kafka_cache_client
+            .routedId(0x0000000900000010L) // south_kafka_cache_server
+            .streamId(0x0000000000000033L) // INI
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x0000000000000054L)
+            .traceId(0x0000000000000033L)
+            .budgetId(0x0000000000000000L)
+            .reserved(0x00000000)
+            .extension(kafkaMergedFetchFlushEx, 0, kafkaMergedFetchFlushEx.capacity())
+            .build();
+        streams[0].write(FlushFW.TYPE_ID, flush9.buffer(), 0, flush9.sizeof());
     }
 
     @BeforeEach
