@@ -23,13 +23,15 @@ accept "http://localhost:8080/"
 accepted
 connected
 
+read http:method "POST"
 read http:version "HTTP/1.1"
+read http:header "Content-Type" "text/plain;charset=UTF-8"
+read http:header "Content-Length" "100000"
 
-write http:status "200" "OK"
+read [0..100000]
+
 write http:version "HTTP/1.1"
-write http:header "Transfer-Encoding" "chunked"
+write http:status "204" "No Content"
 write flush
-
-write "Hello, world"
 
 write close
