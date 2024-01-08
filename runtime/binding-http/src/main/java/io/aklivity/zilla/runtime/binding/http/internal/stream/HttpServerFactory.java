@@ -1736,6 +1736,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     slotBuffer.putBytes(decodeSlotOffset, buffer, offset, limit - offset);
                     decodeSlotOffset += limit - offset;
                     decodeSlotReserved += reserved;
+
                     buffer = slotBuffer;
                     offset = 0;
                     limit = decodeSlotOffset;
@@ -2064,12 +2065,14 @@ public final class HttpServerFactory implements HttpStreamFactory
         private void flushNetWindow(
             long traceId,
             long budgetId,
-            int initialPad)
+            int initialPad,
+            int minInitialAck)
         {
             final int initialMax = exchange != null ? decodeMax : 0;
             final int decodable = decodeMax - decodeSlotOffset;
+            final int newInitialAck = Math.min(decodable, minInitialAck);
 
-            final long initialAckMax = Math.min(initialAck + decodable, initialSeq);
+            final long initialAckMax = Math.min(initialAck + newInitialAck, initialSeq);
             if (initialAckMax > initialAck || !HttpState.initialOpened(state))
             {
                 initialAck = initialAckMax;
@@ -2770,6 +2773,16 @@ public final class HttpServerFactory implements HttpStreamFactory
                 this.expiringId = expireIfNecessary(guard, sessionId, originId, routedId, replyId, traceId, 0);
             }
 
+            private int requestPendingAck()
+            {
+                return (int)(requestSeq - requestAck);
+            }
+
+            private int requestWindow()
+            {
+                return requestMax - requestPendingAck();
+            }
+
             private void doRequestBegin(
                 long traceId,
                 Flyweight extension)
@@ -2961,7 +2974,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 }
                 else
                 {
-                    flushNetWindow(traceId, budgetId, requestPad);
+                    flushNetWindow(traceId, budgetId, requestPad, requestWindow());
                 }
             }
 
