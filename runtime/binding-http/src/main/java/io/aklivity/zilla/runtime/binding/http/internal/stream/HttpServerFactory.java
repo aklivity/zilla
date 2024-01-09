@@ -2964,8 +2964,8 @@ public final class HttpServerFactory implements HttpStreamFactory
                 }
                 else
                 {
-                    final int newRequestAck = requestMax - (int)(requestSeq - requestAck);
-                    flushNetWindow(traceId, budgetId, requestPad, newRequestAck);
+                    final int requestWin = requestMax - (int)(requestSeq - requestAck);
+                    flushNetWindow(traceId, budgetId, requestPad, requestWin);
                 }
             }
 
