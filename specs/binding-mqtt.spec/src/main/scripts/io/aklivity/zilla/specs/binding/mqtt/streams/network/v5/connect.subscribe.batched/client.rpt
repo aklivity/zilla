@@ -35,11 +35,10 @@ write [0x10 0x13]                   # CONNECT
       [0x00 0x0a] "sensor/one"      # topic filter
       [0x00]                        # options = at-most-once, send retained
 
-read  [0x20 0x08]                   # CONNACK
+read  [0x20 0x03]                   # CONNACK
       [0x00]                        # flags = none
       [0x00]                        # reason code
-      [0x05]                        # properties = none
-      [0x27] 66560                  # maximum packet size = 66560
+      [0x00]                        # properties = none
 
 read  [0x90 0x04]                   # SUBACK
       [0x00 0x01]                   # packet id = 1

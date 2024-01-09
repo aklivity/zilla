@@ -32,10 +32,10 @@ read  [0x20 0x02]                    # CONNACK
       [0x00]                         # flags = none
       [0x00]                         # reason code
 
-write [0x30 0xff 0x7f]               # PUBLISH, remaining length = 16383
+write [0x30 0x8c 0x50]               # PUBLISH
       [0x00 0x0a] "sensor/one"       # topic name
-      ${mqtt:randomBytes(16326)}     # payload
+      ${mqtt:randomBytes(10240)}     # payload
 
-read closed
-write close
-
+write [0x30 0x8c 0x50]               # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      ${mqtt:randomBytes(10240)}     # payload

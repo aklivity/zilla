@@ -1523,6 +1523,7 @@ public class ZillaDumpCommandTest
         DirectBuffer mqttSessionDataEx1 = new UnsafeBuffer(MqttFunctions.dataEx()
             .typeId(MQTT_TYPE_ID)
             .session()
+                .deferred(77)
                 .kind("STATE")
                 .build()
             .build());
@@ -1545,6 +1546,7 @@ public class ZillaDumpCommandTest
         DirectBuffer mqttSessionDataEx2 = new UnsafeBuffer(MqttFunctions.dataEx()
             .typeId(MQTT_TYPE_ID)
                 .session()
+                .deferred(88)
                 .kind("WILL")
                 .build()
             .build());

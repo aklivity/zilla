@@ -3367,10 +3367,10 @@ Zilla Frame
             Length: 9
             Client ID: client-id
 
-Frame 71: 276 bytes on wire (2208 bits), 276 bytes captured (2208 bits)
+Frame 71: 280 bytes on wire (2240 bits), 280 bytes captured (2240 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::24, Dst: fe80::25
-Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 195, Ack: 196, Len: 202
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 195, Ack: 196, Len: 206
 Zilla Frame
     Frame Type ID: 0x00000002
     Frame Type: DATA
@@ -3410,19 +3410,20 @@ Zilla Frame
         Stream Type ID: 0x761ad4d0
         Stream Type: mqtt
         Kind: SESSION (2)
+        Deferred: 77
         Data Kind: STATE (0x00)
 
-Frame 72: 276 bytes on wire (2208 bits), 276 bytes captured (2208 bits)
+Frame 72: 280 bytes on wire (2240 bits), 280 bytes captured (2240 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::25, Dst: fe80::24
-Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 196, Ack: 397, Len: 202
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 196, Ack: 401, Len: 206
 Zilla Frame
     Frame Type ID: 0x00000002
     Frame Type: DATA
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x000022e8
+    Offset: 0x000022f0
     Origin ID: 0x0000000900000022
     Origin Namespace: example
     Origin Binding: north_mqtt_server
@@ -3455,6 +3456,7 @@ Zilla Frame
         Stream Type ID: 0x761ad4d0
         Stream Type: mqtt
         Kind: SESSION (2)
+        Deferred: 88
         Data Kind: WILL (0x01)
 
 Frame 73: 317 bytes on wire (2536 bits), 317 bytes captured (2536 bits)
@@ -3467,7 +3469,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00002360
+    Offset: 0x00002370
     Origin ID: 0x000000090000000f
     Origin Namespace: example
     Origin Binding: north_kafka_cache_client
@@ -3521,7 +3523,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00002400
+    Offset: 0x00002410
     Origin ID: 0x000000090000000f
     Origin Namespace: example
     Origin Binding: north_kafka_cache_client
@@ -3571,7 +3573,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00002490
+    Offset: 0x000024a0
     Origin ID: 0x000000090000000f
     Origin Namespace: example
     Origin Binding: north_kafka_cache_client
@@ -3642,7 +3644,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00002568
+    Offset: 0x00002578
     Origin ID: 0x000000090000000f
     Origin Namespace: example
     Origin Binding: north_kafka_cache_client
@@ -3686,7 +3688,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x000025f8
+    Offset: 0x00002608
     Origin ID: 0x000000090000000f
     Origin Namespace: example
     Origin Binding: north_kafka_cache_client
@@ -3721,7 +3723,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00002660
+    Offset: 0x00002670
     Origin ID: 0x000000090000000f
     Origin Namespace: example
     Origin Binding: north_kafka_cache_client
@@ -3772,7 +3774,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x000026f0
+    Offset: 0x00002700
     Origin ID: 0x000000090000000f
     Origin Namespace: example
     Origin Binding: north_kafka_cache_client
@@ -3822,7 +3824,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00002780
+    Offset: 0x00002790
     Origin ID: 0x000000090000000f
     Origin Namespace: example
     Origin Binding: north_kafka_cache_client
@@ -3866,7 +3868,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00002800
+    Offset: 0x00002810
     Origin ID: 0x000000090000000f
     Origin Namespace: example
     Origin Binding: north_kafka_cache_client
@@ -3932,7 +3934,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x000028b8
+    Offset: 0x000028c8
     Origin ID: 0x000000090000000f
     Origin Namespace: example
     Origin Binding: north_kafka_cache_client
@@ -3975,7 +3977,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00002938
+    Offset: 0x00002948
     Origin ID: 0x000000090000000f
     Origin Namespace: example
     Origin Binding: north_kafka_cache_client
@@ -4018,7 +4020,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x000029b8
+    Offset: 0x000029c8
     Origin ID: 0x000000090000000f
     Origin Namespace: example
     Origin Binding: north_kafka_cache_client
@@ -4271,7 +4273,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00002ba8
+    Offset: 0x00002bb8
     Origin ID: 0x000000090000000f
     Origin Namespace: example
     Origin Binding: north_kafka_cache_client
@@ -4350,7 +4352,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00002ca0
+    Offset: 0x00002cb0
     Origin ID: 0x000000090000000f
     Origin Namespace: example
     Origin Binding: north_kafka_cache_client
@@ -4413,7 +4415,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00002d50
+    Offset: 0x00002d60
     Origin ID: 0x000000090000000f
     Origin Namespace: example
     Origin Binding: north_kafka_cache_client
@@ -4517,7 +4519,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00002e78
+    Offset: 0x00002e88
     Origin ID: 0x000000090000000f
     Origin Namespace: example
     Origin Binding: north_kafka_cache_client
@@ -4603,7 +4605,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00002f58
+    Offset: 0x00002f68
     Origin ID: 0x000000090000000f
     Origin Namespace: example
     Origin Binding: north_kafka_cache_client
@@ -4647,7 +4649,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00002fe8
+    Offset: 0x00002ff8
     Origin ID: 0x000000090000000f
     Origin Namespace: example
     Origin Binding: north_kafka_cache_client
@@ -4736,7 +4738,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x000030e8
+    Offset: 0x000030f8
     Origin ID: 0x000000090000000f
     Origin Namespace: example
     Origin Binding: north_kafka_cache_client
@@ -4772,7 +4774,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00003148
+    Offset: 0x00003158
     Origin ID: 0x000000090000000f
     Origin Namespace: example
     Origin Binding: north_kafka_cache_client
@@ -4808,7 +4810,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x000031a8
+    Offset: 0x000031b8
     Origin ID: 0x000000090000000f
     Origin Namespace: example
     Origin Binding: north_kafka_cache_client
@@ -4864,7 +4866,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00003248
+    Offset: 0x00003258
     Origin ID: 0x000000090000000f
     Origin Namespace: example
     Origin Binding: north_kafka_cache_client
@@ -4909,7 +4911,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x000032c8
+    Offset: 0x000032d8
     Origin ID: 0x000000090000000f
     Origin Namespace: example
     Origin Binding: north_kafka_cache_client
@@ -4954,7 +4956,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00003348
+    Offset: 0x00003358
     Origin ID: 0x000000090000000f
     Origin Namespace: example
     Origin Binding: north_kafka_cache_client
@@ -5008,7 +5010,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x000033f8
+    Offset: 0x00003408
     Origin ID: 0x000000090000000f
     Origin Namespace: example
     Origin Binding: north_kafka_cache_client
@@ -5058,7 +5060,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00003488
+    Offset: 0x00003498
     Origin ID: 0x000000090000000f
     Origin Namespace: example
     Origin Binding: north_kafka_cache_client
@@ -5105,7 +5107,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00003508
+    Offset: 0x00003518
     Origin ID: 0x000000090000000f
     Origin Namespace: example
     Origin Binding: north_kafka_cache_client
@@ -5173,7 +5175,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x000035e8
+    Offset: 0x000035f8
     Origin ID: 0x000000090000000f
     Origin Namespace: example
     Origin Binding: north_kafka_cache_client
@@ -5221,7 +5223,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00003670
+    Offset: 0x00003680
     Origin ID: 0x000000090000000f
     Origin Namespace: example
     Origin Binding: north_kafka_cache_client
@@ -5260,7 +5262,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x000036d8
+    Offset: 0x000036e8
     Origin ID: 0x000000090000000f
     Origin Namespace: example
     Origin Binding: north_kafka_cache_client
@@ -5328,7 +5330,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00003788
+    Offset: 0x00003798
     Origin ID: 0x000000090000000f
     Origin Namespace: example
     Origin Binding: north_kafka_cache_client
@@ -5424,7 +5426,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00003850
+    Offset: 0x00003860
     Origin ID: 0x000000090000000f
     Origin Namespace: example
     Origin Binding: north_kafka_cache_client
@@ -5484,7 +5486,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x000038e8
+    Offset: 0x000038f8
     Origin ID: 0x000000090000000f
     Origin Namespace: example
     Origin Binding: north_kafka_cache_client
@@ -5570,7 +5572,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x000039d0
+    Offset: 0x000039e0
     Origin ID: 0x000000090000000f
     Origin Namespace: example
     Origin Binding: north_kafka_cache_client
@@ -5635,7 +5637,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00003a80
+    Offset: 0x00003a90
     Origin ID: 0x000000090000000f
     Origin Namespace: example
     Origin Binding: north_kafka_cache_client
@@ -5683,7 +5685,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00003b18
+    Offset: 0x00003b28
     Origin ID: 0x000000090000000f
     Origin Namespace: example
     Origin Binding: north_kafka_cache_client
@@ -5731,7 +5733,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00003bb0
+    Offset: 0x00003bc0
     Origin ID: 0x000000090000000f
     Origin Namespace: example
     Origin Binding: north_kafka_cache_client
@@ -5807,7 +5809,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00003c68
+    Offset: 0x00003c78
     Origin ID: 0x000000090000000f
     Origin Namespace: example
     Origin Binding: north_kafka_cache_client

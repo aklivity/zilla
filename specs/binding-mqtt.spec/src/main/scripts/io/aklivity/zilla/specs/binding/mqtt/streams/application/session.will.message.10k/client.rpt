@@ -19,26 +19,47 @@ connect "zilla://streams/app0"
          option zilla:transmission "duplex"
 
 write zilla:begin.ext ${mqtt:beginEx()
-                              .typeId(zilla:id("mqtt"))
-                              .session()
-                                .flags("CLEAN_START")
-                                .clientId("client")
-                                .build()
-                              .build()}
+                           .typeId(zilla:id("mqtt"))
+                           .session()
+                              .flags("WILL", "CLEAN_START")
+                              .clientId("one")
+                              .build()
+                           .build()}
 
 read zilla:begin.ext ${mqtt:matchBeginEx()
                               .typeId(zilla:id("mqtt"))
                               .session()
-                                .flags("CLEAN_START")
+                                .flags("WILL", "CLEAN_START")
                                 .qosMax(2)
-                                .packetSizeMax(9216)
+                                .packetSizeMax(66560)
                                 .capabilities("RETAIN", "WILDCARD", "SUBSCRIPTION_IDS", "SHARED_SUBSCRIPTIONS")
-                                .clientId("client")
+                                .clientId("one")
                                 .build()
                               .build()}
 
 connected
 
+write option zilla:flags "init"
+write zilla:data.ext ${mqtt:dataEx()
+                             .typeId(zilla:id("mqtt"))
+                             .session()
+                                .deferred(2092)
+                                .kind("WILL")
+                                .build()
+                             .build()}
+write ${mqtt:will()
+               .topic("wills/one")
+               .payloadSize(10240)
+               .build()}
+${mqtt:randomBytes(8148)}
+write flush
+
+write option zilla:flags "fin"
+write ${mqtt:randomBytes(2092)}
+write flush
+
+
 read zilla:data.empty
 
-write abort
+write close
+read closed

@@ -70,7 +70,7 @@ public class PublishIT
     @Configuration("server.validator.yaml")
     @Specification({
         "${net}/publish.invalid.message/client",
-        "${app}/publish.invalid.message/server"})
+        "${app}/session.publish/server"})
     public void shouldPublishInvalidMessage() throws Exception
     {
         k3po.finish();
@@ -113,6 +113,16 @@ public class PublishIT
         "${net}/publish.multiple.messages/client",
         "${app}/publish.multiple.messages/server"})
     public void shouldPublishMultipleMessages() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.multiple.clients/client",
+        "${app}/publish.multiple.clients/server"})
+    public void shouldPublishMultipleClients() throws Exception
     {
         k3po.finish();
     }
@@ -257,7 +267,7 @@ public class PublishIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/publish.reject.invalid.payload.format/client",
-        "${app}/session.connect/server"})
+        "${app}/session.publish/server"})
     public void shouldRejectPublishInvalidPayloadFormat() throws Exception
     {
         k3po.finish();
@@ -374,17 +384,6 @@ public class PublishIT
     }
 
     @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/publish.reject.packet.too.large/client",
-        "${app}/publish.reject.packet.too.large/server"})
-    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
-    public void shouldRejectPacketTooLarge() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
     @Configuration("server.route.non.default.yaml")
     @Specification({
         "${net}/publish.unroutable/client",
@@ -430,6 +429,27 @@ public class PublishIT
         "${net}/publish.mixture.qos/client",
         "${app}/publish.mixture.qos/server"})
     public void shouldPublishMixtureQos() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.10k/client",
+        "${app}/publish.10k/server"})
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    public void shouldPublish10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.reject.large.message/client",
+        "${app}/publish.reject.large.message/server"})
+    public void shouldRejectLargeMessage() throws Exception
     {
         k3po.finish();
     }

@@ -40,5 +40,33 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
 connected
 
 read zilla:data.empty
+read notify RECEIVED_SESSION_STATE
 
-write abort
+
+connect await RECEIVED_SESSION_STATE
+        "zilla://streams/app0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"
+
+write zilla:begin.ext ${mqtt:beginEx()
+                             .typeId(zilla:id("mqtt"))
+                              .publish()
+                                .clientId("client")
+                                .topic("sensor/one")
+                                .build()
+                             .build()}
+
+connected
+
+write zilla:data.ext ${mqtt:dataEx()
+                            .typeId(zilla:id("mqtt"))
+                            .publish()
+                                .build()
+                            .build()}
+write "message"
+write flush
+
+read zilla:reset.ext ${mqtt:resetEx()
+                           .typeId(zilla:id("mqtt"))
+                           .reasonCode(149)
+                           .build()}
