@@ -2066,13 +2066,13 @@ public final class HttpServerFactory implements HttpStreamFactory
             long traceId,
             long budgetId,
             int initialPad,
-            int minInitialAck)
+            int minInitialWin)
         {
             final int initialMax = exchange != null ? decodeMax : 0;
             final int decodable = decodeMax - decodeSlotOffset;
-            final int newInitialAck = Math.min(decodable, minInitialAck);
+            final int newInitialWin = Math.min(decodable, minInitialWin);
 
-            final long initialAckMax = Math.min(initialAck + newInitialAck, initialSeq);
+            final long initialAckMax = Math.min(initialAck + newInitialWin, initialSeq);
             if (initialAckMax > initialAck || !HttpState.initialOpened(state))
             {
                 initialAck = initialAckMax;
