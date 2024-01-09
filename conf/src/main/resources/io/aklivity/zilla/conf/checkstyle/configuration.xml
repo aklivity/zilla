@@ -31,7 +31,7 @@
 
     <module name="LineLength">
         <property name="max" value="130"/>
-        <property name="ignorePattern" value="^[ \t]*\*.*@.*$"/>
+        <property name="ignorePattern" value="^(package|import) .*"/>
     </module>
 
     <module name="TreeWalker">
