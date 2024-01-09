@@ -1419,11 +1419,11 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             final long traceId = reset.traceId();
 
             assert acknowledge <= sequence;
-            assert acknowledge >= delegate.initialAck;
+            assert acknowledge >= initialAck;
 
-            delegate.initialAck = acknowledge;
+            initialAck = acknowledge;
 
-            assert delegate.initialAck <= delegate.initialSeq;
+            assert initialAck <= initialSeq;
 
             final OctetsFW extension = reset.extension();
             final ExtensionFW resetEx = extension.get(extensionRO::tryWrap);
