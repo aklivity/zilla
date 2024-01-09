@@ -1059,16 +1059,11 @@ function handle_http_extension(buffer, offset, ext_subtree, frame_type_id)
 end
 
 function dissect_and_add_http_headers(buffer, offset, tree, plural_name, singular_name)
-    local slice_headers_array_length = buffer(offset, 4)
-    local slice_headers_array_size = buffer(offset + 4, 4)
-    local headers_array_size = slice_headers_array_size:le_int()
-    local length = 8
-    local label = string.format("%s (%d items)", plural_name, headers_array_size)
-    local headers_array_subtree = tree:add(zilla_protocol, buffer(offset, length), label)
-    headers_array_subtree:add_le(fields.http_ext_headers_array_length, slice_headers_array_length)
-    headers_array_subtree:add_le(fields.http_ext_headers_array_size, slice_headers_array_size)
+    local label = string.format("%s (%%d items)", plural_name)
+    local length, array_size = dissect_and_add_array_header_as_subtree(buffer, offset, tree, label,
+        fields.http_ext_headers_array_length, fields.http_ext_headers_array_size)
     local item_offset = offset + length
-    for i = 1, headers_array_size do
+    for i = 1, array_size do
         local name_length, slice_name_length, slice_name = dissect_length_value(buffer, item_offset, 1)
         local value_offset = item_offset + name_length
         local value_length, slice_value_length, slice_value = dissect_length_value(buffer, value_offset, 2)
@@ -1400,14 +1395,8 @@ function handle_mqtt_begin_subscribe_extension(buffer, offset, ext_subtree)
 end
 
 function dissect_and_add_mqtt_topic_filters(buffer, offset, tree)
-    local slice_array_length = buffer(offset, 4)
-    local slice_array_size = buffer(offset + 4, 4)
-    local array_size = slice_array_size:le_int()
-    local length = 8
-    local label = string.format("Topic Filters (%d items)", array_size)
-    local array_subtree = tree:add(zilla_protocol, buffer(offset, length), label)
-    array_subtree:add_le(fields.mqtt_ext_filters_array_length, slice_array_length)
-    array_subtree:add_le(fields.mqtt_ext_filters_array_size, slice_array_size)
+    local length, array_size = dissect_and_add_array_header_as_subtree(buffer, offset, tree, "Topic Filters (%d items)",
+        fields.mqtt_ext_filters_array_length, fields.mqtt_ext_filters_array_size)
     local item_offset = offset + length
     for i = 1, array_size do
         -- subscription_id
@@ -1665,14 +1654,8 @@ function handle_mqtt_data_subscribe_extension(buffer, offset, ext_subtree)
 end
 
 function dissect_and_add_mqtt_subscription_ids(buffer, offset, tree)
-    local slice_array_length = buffer(offset, 4)
-    local slice_array_size = buffer(offset + 4, 4)
-    local array_size = slice_array_size:le_int()
-    local length = 8
-    local label = string.format("Subscription IDs (%d items)", array_size)
-    local array_subtree = tree:add(zilla_protocol, buffer(offset, length), label)
-    array_subtree:add_le(fields.mqtt_ext_subscription_ids_array_length, slice_array_length)
-    array_subtree:add_le(fields.mqtt_ext_subscription_ids_array_size, slice_array_size)
+    local length, array_size = dissect_and_add_array_header_as_subtree(buffer, offset, tree, "Subscription IDs (%d items)",
+        fields.mqtt_ext_subscription_ids_array_length, fields.mqtt_ext_subscription_ids_array_size)
     local item_offset = offset + length
     for i = 1, array_size do
         -- subscription_id
@@ -1833,14 +1816,8 @@ function handle_kafka_begin_consumer_extension(buffer, offset, ext_subtree)
 end
 
 function dissect_and_add_kafka_topic_partition_ids(buffer, offset, tree)
-    local slice_array_length = buffer(offset, 4)
-    local slice_array_size = buffer(offset + 4, 4)
-    local array_size = slice_array_size:le_int()
-    local length = 8
-    local label = string.format("Partition IDs (%d items)", array_size)
-    local array_subtree = tree:add(zilla_protocol, buffer(offset, length), label)
-    array_subtree:add_le(fields.kafka_ext_partition_ids_array_length, slice_array_length)
-    array_subtree:add_le(fields.kafka_ext_partition_ids_array_size, slice_array_size)
+    local length, array_size = dissect_and_add_array_header_as_subtree(buffer, offset, tree, "Partition IDs (%d items)",
+        fields.kafka_ext_partition_ids_array_length, fields.kafka_ext_partition_ids_array_size)
     local item_offset = offset + length
     local partition_id_length = 4
     for i = 1, array_size do
@@ -1870,14 +1847,8 @@ function handle_kafka_data_consumer_extension(buffer, offset, ext_subtree)
 end
 
 function dissect_and_add_kafka_consumer_assignments(buffer, offset, tree)
-    local slice_array_length = buffer(offset, 4)
-    local slice_array_size = buffer(offset + 4, 4)
-    local array_size = slice_array_size:le_int()
-    local length = 8
-    local label = string.format("Consumer Assignments (%d items)", array_size)
-    local array_subtree = tree:add(zilla_protocol, buffer(offset, length), label)
-    array_subtree:add_le(fields.kafka_ext_consumer_assignments_array_length, slice_array_length)
-    array_subtree:add_le(fields.kafka_ext_consumer_assignments_array_size, slice_array_size)
+    local length, array_size = dissect_and_add_array_header_as_subtree(buffer, offset, tree, "Consumer Assignments (%d items)",
+        fields.kafka_ext_consumer_assignments_array_length, fields.kafka_ext_consumer_assignments_array_size)
     local item_offset = offset + length
     for i = 1, array_size do
         -- consumer_id
@@ -1959,15 +1930,9 @@ function resolve_length_of_kafka_offset(buffer, offset)
 end
 
 function dissect_and_add_kafka_offset_array(buffer, offset, tree, field_array_length, field_array_size, plural_name, singular_name)
-    local slice_array_length = buffer(offset, 4)
-    local slice_array_size = buffer(offset + 4, 4)
-    local array_size = slice_array_size:le_int()
-    local length = 8
-    local label = string.format("%s (%d items)", plural_name, array_size)
-    local array_subtree = tree:add(zilla_protocol, buffer(offset, length), label)
-    array_subtree:add_le(field_array_length, slice_array_length)
-    array_subtree:add_le(field_array_size, slice_array_size)
-    local total_length = 4 + slice_array_length:le_int()
+    local label = string.format("%s (%%d items)", plural_name)
+    local length, array_size = dissect_and_add_array_header_as_subtree(buffer, offset, tree, label, field_array_length,
+        field_array_size)
     local item_offset = offset + length
     for i = 1, array_size do
         local item_length = resolve_length_of_kafka_offset(buffer, item_offset)
@@ -2042,14 +2007,8 @@ function handle_kafka_group_flush_extension(buffer, offset, ext_subtree)
 end
 
 function dissect_and_add_kafka_group_members(buffer, offset, tree)
-    local slice_array_length = buffer(offset, 4)
-    local slice_array_size = buffer(offset + 4, 4)
-    local array_size = slice_array_size:le_int()
-    local length = 8
-    local label = string.format("Members (%d items)", array_size)
-    local array_subtree = tree:add(zilla_protocol, buffer(offset, length), label)
-    array_subtree:add_le(fields.kafka_ext_consumer_assignments_array_length, slice_array_length)
-    array_subtree:add_le(fields.kafka_ext_consumer_assignments_array_size, slice_array_size)
+    local length, array_size = dissect_and_add_array_header_as_subtree(buffer, offset, tree, "Members (%d items)",
+        fields.kafka_ext_consumer_assignments_array_length, fields.kafka_ext_consumer_assignments_array_size)
     local item_offset = offset + length
     for i = 1, array_size do
         -- member_id
@@ -2162,14 +2121,8 @@ function handle_kafka_begin_merged_extension(buffer, offset, ext_subtree)
 end
 
 function dissect_and_add_kafka_filters_array(buffer, offset, tree, field_array_length, field_array_size)
-    local slice_array_length = buffer(offset, 4)
-    local slice_array_size = buffer(offset + 4, 4)
-    local array_size = slice_array_size:le_int()
-    local length = 8
-    local label = string.format("Filters (%d items)", array_size)
-    local array_subtree = tree:add(zilla_protocol, buffer(offset, length), label)
-    array_subtree:add_le(field_array_length, slice_array_length)
-    array_subtree:add_le(field_array_size, slice_array_size)
+    local length, array_size = dissect_and_add_array_header_as_subtree(buffer, offset, tree, "Filters (%d items)",
+        field_array_length, field_array_size)
     local item_offset = offset + length
     for i = 1, array_size do
         local filter_label = string.format("Filter #%d", i)
@@ -2181,21 +2134,26 @@ function dissect_and_add_kafka_filters_array(buffer, offset, tree, field_array_l
     end
 end
 
+function dissect_and_add_array_header_as_subtree(buffer, offset, tree, label_format, field_array_length, field_array_size)
+    local slice_array_length = buffer(offset, 4)
+    local slice_array_size = buffer(offset + 4, 4)
+    local header_length = 4 + 4
+    local array_size = slice_array_size:le_int()
+    local label = string.format(label_format, array_size)
+    local array_subtree = tree:add(zilla_protocol, buffer(offset, length), label)
+    array_subtree:add_le(field_array_length, slice_array_length)
+    array_subtree:add_le(field_array_size, slice_array_size)
+    return header_length, array_size
+end
+
 function resolve_length_of_array(buffer, offset)
     local slice_array_length = buffer(offset, 4)
     return 4 + slice_array_length:le_int()
 end
 
 function dissect_and_add_kafka_conditions_array(buffer, offset, tree, field_array_length, field_array_size)
-    local slice_array_length = buffer(offset, 4)
-    local slice_array_size = buffer(offset + 4, 4)
-    local array_size = slice_array_size:le_int()
-    local length = 8
-    local label = string.format("Conditions (%d items)", array_size)
-    local array_subtree = tree:add(zilla_protocol, buffer(offset, length), label)
-    array_subtree:add_le(field_array_length, slice_array_length)
-    array_subtree:add_le(field_array_size, slice_array_size)
-    local total_length = 4 + slice_array_length:le_int()
+    local length, array_size = dissect_and_add_array_header_as_subtree(buffer, offset, tree, "Conditions (%d items)",
+        field_array_length, field_array_size)
     local item_offset = offset + length
     for i = 1, array_size do
         local item_length, item_label = resolve_length_and_label_of_kafka_condition(buffer, item_offset)
@@ -2392,14 +2350,8 @@ function resolve_length_and_label_of_kafka_headers(buffer, offset, extra_length)
 end
 
 function dissect_and_add_kafka_value_match_array(buffer, offset, tree, field_array_length, field_array_size)
-    local slice_array_length = buffer(offset, 4)
-    local slice_array_size = buffer(offset + 4, 4)
-    local array_size = slice_array_size:le_int()
-    local length = 8
-    local label = string.format("Value Matches (%d items)", array_size)
-    local array_subtree = tree:add(zilla_protocol, buffer(offset, length), label)
-    array_subtree:add_le(field_array_length, slice_array_length)
-    array_subtree:add_le(field_array_size, slice_array_size)
+    local length, array_size = dissect_and_add_array_header_as_subtree(buffer, offset, tree, "Value Matches (%d items)",
+        field_array_length, field_array_size)
     local item_offset = offset + length
     for i = 1, array_size do
         local filter_label = string.format("Value Match #%d", i)
@@ -2570,14 +2522,8 @@ function resolve_length_and_label_of_kafka_delta(buffer, offset)
 end
 
 function dissect_and_add_kafka_header_array(buffer, offset, tree, field_array_length, field_array_size)
-    local slice_array_length = buffer(offset, 4)
-    local slice_array_size = buffer(offset + 4, 4)
-    local array_size = slice_array_size:le_int()
-    local length = 8
-    local label = string.format("Headers (%d items)", array_size)
-    local array_subtree = tree:add(zilla_protocol, buffer(offset, length), label)
-    array_subtree:add_le(field_array_length, slice_array_length)
-    array_subtree:add_le(field_array_size, slice_array_size)
+    local length, array_size = dissect_and_add_array_header_as_subtree(buffer, offset, tree, "Headers (%d items)",
+        field_array_length, field_array_size)
     local item_offset = offset + length
     for i = 1, array_size do
         local item_length, item_label = resolve_length_and_label_of_kafka_header(buffer, item_offset, 0)
@@ -2692,14 +2638,8 @@ function handle_kafka_data_meta_extension(buffer, offset, ext_subtree)
 end
 
 function dissect_and_add_kafka_partition_array(buffer, offset, tree, field_array_length, field_array_size)
-    local slice_array_length = buffer(offset, 4)
-    local slice_array_size = buffer(offset + 4, 4)
-    local array_size = slice_array_size:le_int()
-    local length = 8
-    local label = string.format("Partitions (%d items)", array_size)
-    local array_subtree = tree:add(zilla_protocol, buffer(offset, length), label)
-    array_subtree:add_le(field_array_length, slice_array_length)
-    array_subtree:add_le(field_array_size, slice_array_size)
+    local length, array_size = dissect_and_add_array_header_as_subtree(buffer, offset, tree, "Partitions (%d items)",
+        field_array_length, field_array_size)
     local item_offset = offset + length
     for i = 1, array_size do
         local item_length = 8
@@ -2791,14 +2731,8 @@ function handle_kafka_begin_offset_fetch_extension(buffer, offset, ext_subtree)
 end
 
 function dissect_and_add_kafka_topic_partition_array(buffer, offset, tree, field_array_length, field_array_size)
-    local slice_array_length = buffer(offset, 4)
-    local slice_array_size = buffer(offset + 4, 4)
-    local array_size = slice_array_size:le_int()
-    local length = 8
-    local label = string.format("Partitions (%d items)", array_size)
-    local array_subtree = tree:add(zilla_protocol, buffer(offset, length), label)
-    array_subtree:add_le(field_array_length, slice_array_length)
-    array_subtree:add_le(field_array_size, slice_array_size)
+    local length, array_size = dissect_and_add_array_header_as_subtree(buffer, offset, tree, "Partitions (%d items)",
+        field_array_length, field_array_size)
     local item_length = 4
     local item_offset = offset + length
     for i = 1, array_size do
@@ -2820,14 +2754,8 @@ function handle_kafka_data_offset_fetch_extension(buffer, offset, ext_subtree)
 end
 
 function dissect_and_add_kafka_topic_partition_offset_array(buffer, offset, tree, field_array_length, field_array_size)
-    local slice_array_length = buffer(offset, 4)
-    local slice_array_size = buffer(offset + 4, 4)
-    local array_size = slice_array_size:le_int()
-    local length = 8
-    local label = string.format("Partition Offsets (%d items)", array_size)
-    local array_subtree = tree:add(zilla_protocol, buffer(offset, length), label)
-    array_subtree:add_le(field_array_length, slice_array_length)
-    array_subtree:add_le(field_array_size, slice_array_size)
+    local length, array_size = dissect_and_add_array_header_as_subtree(buffer, offset, tree, "Partition Offsets (%d items)",
+        field_array_length, field_array_size)
     local item_length = 4
     local item_offset = offset + length
     for i = 1, array_size do
@@ -2900,14 +2828,8 @@ function handle_kafka_begin_describe_extension(buffer, offset, ext_subtree)
 end
 
 function dissect_and_add_kafka_config_array(buffer, offset, tree, field_array_length, field_array_size)
-    local slice_array_length = buffer(offset, 4)
-    local slice_array_size = buffer(offset + 4, 4)
-    local array_size = slice_array_size:le_int()
-    local length = 8
-    local label = string.format("Configs (%d items)", array_size)
-    local array_subtree = tree:add(zilla_protocol, buffer(offset, length), label)
-    array_subtree:add_le(field_array_length, slice_array_length)
-    array_subtree:add_le(field_array_size, slice_array_size)
+    local length, array_size = dissect_and_add_array_header_as_subtree(buffer, offset, tree, "Configs (%d items)",
+        field_array_length, field_array_size)
     local item_offset = offset + length
     for i = 1, array_size do
         -- config
@@ -2927,14 +2849,8 @@ function handle_kafka_data_describe_extension(buffer, offset, ext_subtree)
 end
 
 function dissect_and_add_kafka_config_struct_array(buffer, offset, tree, field_array_length, field_array_size)
-    local slice_array_length = buffer(offset, 4)
-    local slice_array_size = buffer(offset + 4, 4)
-    local array_size = slice_array_size:le_int()
-    local length = 8
-    local label = string.format("Configs (%d items)", array_size)
-    local array_subtree = tree:add(zilla_protocol, buffer(offset, length), label)
-    array_subtree:add_le(field_array_length, slice_array_length)
-    array_subtree:add_le(field_array_size, slice_array_size)
+    local length, array_size = dissect_and_add_array_header_as_subtree(buffer, offset, tree, "Configs (%d items)",
+        field_array_length, field_array_size)
     local item_offset = offset + length
     for i = 1, array_size do
         -- config
@@ -3075,14 +2991,8 @@ function handle_kafka_flush_fetch_extension(buffer, offset, ext_subtree)
 end
 
 function dissect_and_add_kafka_transactions_array(buffer, offset, tree, field_array_length, field_array_size)
-    local slice_array_length = buffer(offset, 4)
-    local slice_array_size = buffer(offset + 4, 4)
-    local array_size = slice_array_size:le_int()
-    local length = 8
-    local label = string.format("Transactions (%d items)", array_size)
-    local array_subtree = tree:add(zilla_protocol, buffer(offset, length), label)
-    array_subtree:add_le(field_array_length, slice_array_length)
-    array_subtree:add_le(field_array_size, slice_array_size)
+    local length, array_size = dissect_and_add_array_header_as_subtree(buffer, offset, tree, "Transactions (%d items)",
+        field_array_length, field_array_size)
     local item_offset = offset + length
     for i = 1, array_size do
         -- transaction
