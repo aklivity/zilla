@@ -13,7 +13,6 @@
 # specific language governing permissions and limitations under the License.
 #
 
-
 connect "zilla://streams/mqtt0"
          option zilla:window 8192
          option zilla:transmission "duplex"
@@ -40,6 +39,7 @@ write zilla:data.ext ${mqtt:dataEx()
 write "message"
 write flush
 
+# triggers PUBREC
 read advised zilla:flush ${mqtt:flushEx()
                                  .typeId(zilla:id("mqtt"))
                                  .publish()
@@ -47,4 +47,50 @@ read advised zilla:flush ${mqtt:flushEx()
                                      .build()
                                  .build()}
 
+# Triggered by PUBREL
+write advise zilla:flush ${mqtt:flushEx()
+                                 .typeId(zilla:id("mqtt"))
+                                 .publish()
+                                     .packetId(1)
+                                     .build()
+                                 .build()}
 
+read advised zilla:flush ${mqtt:flushEx()
+                                 .typeId(zilla:id("mqtt"))
+                                 .publish()
+                                     .packetId(1)
+                                     .build()
+                                 .build()}
+
+write zilla:data.ext ${mqtt:dataEx()
+                            .typeId(zilla:id("mqtt"))
+                            .publish()
+                                .qos("EXACTLY_ONCE")
+                                .packetId(1)
+                                .build()
+                            .build()}
+write "message2"
+write flush
+
+# triggers PUBREC
+read advised zilla:flush ${mqtt:flushEx()
+                                 .typeId(zilla:id("mqtt"))
+                                 .publish()
+                                     .packetId(1)
+                                     .build()
+                                 .build()}
+
+# Triggered by PUBREL
+write advise zilla:flush ${mqtt:flushEx()
+                                 .typeId(zilla:id("mqtt"))
+                                 .publish()
+                                     .packetId(1)
+                                     .build()
+                                 .build()}
+
+read advised zilla:flush ${mqtt:flushEx()
+                                 .typeId(zilla:id("mqtt"))
+                                 .publish()
+                                     .packetId(1)
+                                     .build()
+                                 .build()}

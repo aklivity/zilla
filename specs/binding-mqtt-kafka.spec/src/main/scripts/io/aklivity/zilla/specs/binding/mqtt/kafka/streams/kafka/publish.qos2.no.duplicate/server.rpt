@@ -1,0 +1,112 @@
+#
+# Copyright 2021-2023 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+accept "zilla://streams/kafka0"
+    option zilla:window 8192
+    option zilla:transmission "duplex"
+
+accepted
+
+read zilla:begin.ext ${kafka:beginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("PRODUCE_ONLY")
+                                .topic("mqtt-messages")
+                                .groupId("client-publish")
+                                .partition(-1, -2)
+                                .ackMode("LEADER_ONLY")
+                                .type("IDEMPOTENT") # How to tell kafka binding we're using idempotent producer?
+                                .build()
+                            .build()}
+
+write zilla:begin.ext ${kafka:beginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("PRODUCE_ONLY")
+                                .topic("mqtt-messages")
+                                .partition(0, 2, 3, 3, mqtt:metadata() # metadata -> don't trigger init producer in kafka
+                                                         .metadata(12345, 0, 1)
+                                                         .build())
+                                .build()
+                            .build()}
+
+connected
+# we can send window immediately after receiving the reply begin as we have initialised producer
+
+# should we filter this in the mqtt-kafka binding so we don't cause another network call,
+# or let the Kafka handle no duplicates using the idempotent producer?
+# (we can filter as we have the packetId in the metadata)
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                            .produce()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("sensor/one")
+                               .producerId(12345)
+                               .epoch(0)
+                               .sequence(2)
+                               .header("zilla:filter", "sensor")
+                               .header("zilla:filter", "one")
+                               .header("zilla:local", "client")
+                               .header("zilla:qos", "2")
+                               .build()
+                           .build()}
+read "message"
+
+# After kafka binding acked the data frame we also send an offset commit with metadata
+# (store <sequence, packetId> in a map, and do this for every entry in the map where sequence <= ack
+
+read advised zilla:flush ${kafka:matchFlushEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                .consumer()
+                                  .progress(0, 3,
+                                        mqtt:metadata()
+                                            .metadata(12345, 0, 1) # producerId, producerEpoch, packetId
+                                            .build())
+                                  .correlationId(1)
+                                  .build()
+                              .build()}
+
+write advise zilla:flush ${kafka:flushEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                .consumer()
+                                  .progress(0, 3)
+                                  .correlationId(1)
+                                  .build()
+                              .build()}
+# This is what triggers PUBREC delivery to the client
+
+# receiving PUBREL in the MqttServerFactory triggers this:
+read advised zilla:flush ${kafka:matchFlushEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                .consumer()
+                                  .progress(0, 3, "")
+                                  .correlationId(1)
+                                  .build()
+                              .build()}
+
+# This is what triggers PUBCOMP delivery to the client, also we have to increase the sequence number
+write advise zilla:flush ${kafka:flushEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                .consumer()
+                                  .progress(0, 3)
+                                  .correlationId(1)
+                                  .build()
+                              .build()}
