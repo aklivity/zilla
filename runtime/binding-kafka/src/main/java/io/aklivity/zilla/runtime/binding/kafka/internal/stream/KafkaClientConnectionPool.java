@@ -78,7 +78,6 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
     private static final int SIGNAL_STREAM_WINDOW = 0x80000006;
     private static final int SIGNAL_CONNECTION_CLEANUP = 0x80000007;
     private static final int SIGNAL_NEXT_REQUEST = 0x80000008;
-    private static final StringBuilder CLUSTER = new StringBuilder("");
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -90,7 +89,6 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
     private final ProxyBeginExFW proxyBeginExRO = new ProxyBeginExFW();
     private final ResponseHeaderFW responseHeaderRO = new ResponseHeaderFW();
 
-    private final ProxyBeginExFW.Builder proxyBeginExRW = new ProxyBeginExFW.Builder();
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final DataFW.Builder dataRW = new DataFW.Builder();
     private final EndFW.Builder endRW = new EndFW.Builder();
@@ -173,7 +171,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         final ProxyBeginExFW proxyBeginEx = extension.get(proxyBeginExRO::tryWrap);
 
         MessageConsumer newStream = null;
-        CLUSTER.setLength(0);
+        final StringBuilder cluster = new StringBuilder();
 
         if (proxyBeginEx != null)
         {
@@ -181,21 +179,21 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             String host = inet.destination().asString();
             int port = inet.destinationPort();
 
-            CLUSTER.append(host);
-            CLUSTER.append(":");
-            CLUSTER.append(port);
+            cluster.append(host);
+            cluster.append(":");
+            cluster.append(port);
 
             if (proxyBeginEx.infos() != null)
             {
                 proxyBeginEx.infos().forEach(i ->
                 {
-                    CLUSTER.append(":");
-                    CLUSTER.append(i.authority().asString());
+                    cluster.append(":");
+                    cluster.append(i.authority().asString());
                 });
             }
         }
 
-        final KafkaClientConnection connection = connectionPool.computeIfAbsent(CLUSTER.toString(), s ->
+        final KafkaClientConnection connection = connectionPool.computeIfAbsent(cluster.toString(), s ->
             newConnection(originId, routedId, authorization));
         newStream = connection.newStream(msgTypeId, buffer, index, length, sender);
 
@@ -1340,9 +1338,9 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
                     traceId, authorization, EMPTY_EXTENSION);
 
                 state = KafkaState.closedInitial(state);
-
-                cleanupBudgetCreditorIfNecessary();
             }
+
+            cleanupBudgetCreditorIfNecessary();
         }
 
         private void doConnectionAbort(
@@ -1354,9 +1352,9 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
                     traceId, authorization, EMPTY_EXTENSION);
 
                 state = KafkaState.closedInitial(state);
-
-                cleanupBudgetCreditorIfNecessary();
             }
+
+            cleanupBudgetCreditorIfNecessary();
         }
 
         private void doConnectionSignalNow(
@@ -1627,6 +1625,8 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         {
             final long traceId = abort.traceId();
 
+            state = KafkaState.closedReply(state);
+
             doConnectionAbort(traceId);
 
             cleanupStreams(traceId);
@@ -1678,7 +1678,11 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         {
             final long traceId = reset.traceId();
 
+            state = KafkaState.closedInitial(state);
+
             doConnectionReset(traceId);
+
+            cleanupBudgetCreditorIfNecessary();
 
             cleanupStreams(traceId);
         }
@@ -1818,8 +1822,10 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
 
             if (!responseAcks.contains(streamId))
             {
-                if (streamsByInitialId.remove(streamId) != null)
+                KafkaClientStream stream = streamsByInitialId.get(streamId);
+                if (stream != null && stream.initialAck == stream.initialSeq)
                 {
+                    streamsByInitialId.remove(streamId);
                     doSignalStreamCleanup();
                 }
             }

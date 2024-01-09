@@ -536,8 +536,6 @@ public final class KafkaCacheGroupFactory implements BindingHandler
             assert delegate.initialAck <= delegate.initialSeq;
 
             delegate.doGroupInitialReset(traceId);
-
-            doGroupReplyReset(traceId);
         }
 
 
@@ -893,7 +891,6 @@ public final class KafkaCacheGroupFactory implements BindingHandler
             assert sequence >= initialSeq;
 
             initialSeq = sequence;
-            state = KafkaState.closedInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -921,15 +918,13 @@ public final class KafkaCacheGroupFactory implements BindingHandler
         private void doGroupInitialReset(
             long traceId)
         {
-            if (KafkaState.initialOpening(state) && !KafkaState.initialClosed(state))
+            if (!KafkaState.initialClosed(state))
             {
                 state = KafkaState.closedInitial(state);
 
                 doReset(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization);
             }
-
-            state = KafkaState.closedInitial(state);
         }
 
         private void doGroupInitialWindow(

@@ -773,6 +773,13 @@ public final class MqttFunctions
             return this;
         }
 
+        public MqttResetExBuilder reason(
+            String reason)
+        {
+            resetExRW.reason(reason);
+            return this;
+        }
+
         public byte[] build()
         {
             final MqttResetExFW resetEx = resetExRW.build();

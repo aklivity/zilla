@@ -401,6 +401,8 @@ scope kafka
             string16 groupId;
             string16 protocol;
             string16 instanceId = null;
+            string16 host = null;
+            int32 port = 0;
             int32 timeout;
             varint32 metadataLen;
             octets[metadataLen] metadata = null;
@@ -453,6 +455,8 @@ scope kafka
         {
             string16 groupId;
             string16 consumerId;
+            string16 host = null;
+            int32 port = 0;
             int32 timeout;
             string16 topic;
             KafkaTopicPartition[] partitionIds;
@@ -480,6 +484,8 @@ scope kafka
         struct KafkaOffsetFetchBeginEx
         {
             string16 groupId;
+            string16 host = null;
+            int32 port = 0;
             string16 topic;
             KafkaTopicPartition[] partitions;
         }

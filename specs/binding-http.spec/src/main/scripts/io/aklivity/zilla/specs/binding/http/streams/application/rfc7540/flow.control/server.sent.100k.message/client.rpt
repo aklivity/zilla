@@ -39,6 +39,8 @@ read zilla:begin.ext ${http:beginEx()
                              .header("content-length", "100000")
                              .build()}
 
+read notify HTTP2_SETTINGS_ACK_RECEIVED
+
 read [0..100000]
 
 read closed

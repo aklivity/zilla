@@ -532,7 +532,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
                     messageDeferred = messageLength - payloadSize;
 
                     Flyweight dataEx = messageDeferred > 0 ?
-                        grpcDataExRW.wrap(writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
+                        grpcDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
                             .typeId(grpcTypeId)
                             .deferred(messageDeferred)
                             .build() : EMPTY_OCTETS;
@@ -674,8 +674,6 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             int replyMax)
         {
             this.replySeq = replySeq;
-            this.replyAck = replyAck;
-            this.replyMax = replyMax;
 
             doBegin(network, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization,
                 affinity, hs -> hs.item(h -> h.name(HEADER_NAME_STATUS).value(HEADER_VALUE_STATUS_200))

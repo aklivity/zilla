@@ -15,12 +15,15 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
+import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_BUDGET_ID;
+import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_INDEX;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static java.util.Objects.requireNonNull;
 
 import java.util.ArrayDeque;
 import java.util.function.Consumer;
 import java.util.function.LongFunction;
+import java.util.function.UnaryOperator;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
@@ -59,6 +62,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 
@@ -129,24 +133,32 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
     private final BufferPool encodePool;
     private final Signaler signaler;
     private final BindingHandler streamFactory;
+    private final UnaryOperator<KafkaSaslConfig> resolveSasl;
     private final LongFunction<KafkaBindingConfig> supplyBinding;
+    private final LongFunction<BudgetDebitor> supplyDebitor;
 
     private final int encodeMaxBytes;
 
     public KafkaClientOffsetCommitFactory(
         KafkaConfiguration config,
         EngineContext context,
-        LongFunction<KafkaBindingConfig> supplyBinding)
+        LongFunction<KafkaBindingConfig> supplyBinding,
+        LongFunction<BudgetDebitor> supplyDebitor,
+        Signaler signaler,
+        BindingHandler streamFactory,
+        UnaryOperator<KafkaSaslConfig> resolveSasl)
     {
         super(config, context);
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
-        this.signaler = context.signaler();
-        this.streamFactory = context.streamFactory();
+        this.signaler = signaler;
+        this.streamFactory = streamFactory;
+        this.resolveSasl = resolveSasl;
         this.writeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool();
         this.supplyBinding = supplyBinding;
+        this.supplyDebitor = supplyDebitor;
 
         this.encodeMaxBytes = encodePool.slotCapacity() - OFFSET_COMMIT_REQUEST_OFFSET_MAX;
     }
@@ -186,7 +198,7 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
         if (resolved != null)
         {
             final long resolvedId = resolved.id;
-            final KafkaSaslConfig sasl = binding.sasl();
+            final KafkaSaslConfig sasl = resolveSasl.apply(binding.sasl());
 
             newStream = new KafkaOffsetCommitStream(
                     application,
@@ -934,8 +946,10 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
         private long initialSeq;
         private long initialAck;
         private int initialMax;
+        private int initialMin;
         private int initialPad;
-        private long initialBudgetId;
+        private long initialBudgetId = NO_BUDGET_ID;
+        private long initialDebIndex = NO_DEBITOR_INDEX;
 
         private long replySeq;
         private long replyAck;
@@ -952,6 +966,7 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
         private int nextResponseId;
         private short errorCode;
 
+        private BudgetDebitor initialDeb;
         private KafkaOffsetCommitClientDecoder decoder;
         private LongLongConsumer encoder;
 
@@ -1126,6 +1141,7 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
         {
             final long sequence = window.sequence();
             final long acknowledge = window.acknowledge();
+            final int minimum = window.minimum();
             final int maximum = window.maximum();
             final long traceId = window.traceId();
             final long budgetId = window.budgetId();
@@ -1139,6 +1155,7 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
             this.initialAck = acknowledge;
             this.initialMax = maximum;
             this.initialPad = padding;
+            this.initialMin = minimum;
             this.initialBudgetId = budgetId;
 
             assert initialAck <= initialSeq;
@@ -1147,15 +1164,28 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
 
             state = KafkaState.openedInitial(state);
 
+            if (initialBudgetId != NO_BUDGET_ID && initialDebIndex == NO_DEBITOR_INDEX)
+            {
+                initialDeb = supplyDebitor.apply(initialBudgetId);
+                initialDebIndex = initialDeb.acquire(initialBudgetId, initialId, this::doNetworkDataIfNecessary);
+                assert initialDebIndex != NO_DEBITOR_INDEX;
+            }
+
+            doNetworkDataIfNecessary(budgetId);
+
+            doEncodeRequestIfNecessary(traceId, budgetId);
+        }
+
+        private void doNetworkDataIfNecessary(
+            long traceId)
+        {
             if (encodeSlot != NO_SLOT)
             {
                 final MutableDirectBuffer buffer = encodePool.buffer(encodeSlot);
                 final int limit = encodeSlotOffset;
 
-                encodeNetwork(encodeSlotTraceId, authorization, budgetId, buffer, 0, limit);
+                encodeNetwork(traceId, authorization, initialBudgetId, buffer, 0, limit);
             }
-
-            doEncodeRequestIfNecessary(traceId, budgetId);
         }
 
         private void onNetworkSignal(
@@ -1211,6 +1241,7 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
             state = KafkaState.closedInitial(state);
 
             cleanupEncodeSlotIfNecessary();
+            cleanupBudgetIfNecessary();
 
             doEnd(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, EMPTY_EXTENSION);
@@ -1227,6 +1258,7 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
             }
 
             cleanupEncodeSlotIfNecessary();
+            cleanupBudgetIfNecessary();
         }
 
         private void doNetworkResetIfNecessary(
@@ -1379,13 +1411,28 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
             int offset,
             int limit)
         {
-            final int maxLength = limit - offset;
-            final int initialWin = initialMax - (int)(initialSeq - initialAck);
-            final int length = Math.max(Math.min(initialWin - initialPad, maxLength), 0);
+            final int length = limit - offset;
+            final int initialBudget = Math.max(initialMax - (int)(initialSeq - initialAck), 0);
+            final int reservedMax = Math.max(Math.min(length + initialPad, initialBudget), initialMin);
 
-            if (length > 0)
+            int reserved = reservedMax;
+
+            flush:
+            if (reserved > 0)
             {
-                final int reserved = length + initialPad;
+
+                boolean claimed = false;
+
+                if (initialDebIndex != NO_DEBITOR_INDEX)
+                {
+                    reserved = initialDeb.claim(traceId, initialDebIndex, initialId, reserved, reserved, 0);
+                    claimed = reserved > 0;
+                }
+
+                if (reserved < initialPad || reserved == initialPad && length > 0)
+                {
+                    break flush;
+                }
 
                 doData(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, budgetId, reserved, buffer, offset, length, EMPTY_EXTENSION);
@@ -1395,7 +1442,8 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
                 assert initialAck <= initialSeq;
             }
 
-            final int remaining = maxLength - length;
+            final int flushed = Math.max(reserved - initialPad, 0);
+            final int remaining = length - flushed;
             if (remaining > 0)
             {
                 if (encodeSlot == NO_SLOT)
@@ -1410,7 +1458,7 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
                 else
                 {
                     final MutableDirectBuffer encodeBuffer = encodePool.buffer(encodeSlot);
-                    encodeBuffer.putBytes(0, buffer, offset + length, remaining);
+                    encodeBuffer.putBytes(0, buffer, offset + flushed, remaining);
                     encodeSlotOffset = remaining;
                 }
             }
@@ -1600,6 +1648,15 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
                 encodeSlot = NO_SLOT;
                 encodeSlotOffset = 0;
                 encodeSlotTraceId = 0;
+            }
+        }
+
+        private void cleanupBudgetIfNecessary()
+        {
+            if (initialDebIndex != NO_DEBITOR_INDEX)
+            {
+                initialDeb.release(initialDebIndex, initialId);
+                initialDebIndex = NO_DEBITOR_INDEX;
             }
         }
     }

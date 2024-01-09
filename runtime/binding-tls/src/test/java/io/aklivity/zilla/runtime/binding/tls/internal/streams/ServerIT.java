@@ -301,4 +301,14 @@ public class ServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.ports.yaml")
+    @Specification({
+        "${net}/server.port.not.routed/client"
+    })
+    public void shouldRejectWhenPortNotRouted() throws Exception
+    {
+        k3po.finish();
+    }
 }

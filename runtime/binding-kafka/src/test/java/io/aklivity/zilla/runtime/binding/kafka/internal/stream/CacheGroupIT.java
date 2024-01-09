@@ -63,4 +63,15 @@ public class CacheGroupIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("cache.yaml")
+    @Specification({
+        "${app}/server.sent.read.abort.after.join.group/client",
+        "${app}/server.sent.read.abort.after.join.group/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldHandleServerSentReadAbortAfterJoinGroup() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -53,6 +53,3 @@ read 28                                 # size
        1                                  # partitions
          0                                   # partition index
          3s                                  # unknown topic partition
-
-read abort
-write abort

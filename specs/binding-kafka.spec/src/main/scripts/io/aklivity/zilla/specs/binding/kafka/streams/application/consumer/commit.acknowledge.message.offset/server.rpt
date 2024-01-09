@@ -46,6 +46,8 @@ write zilla:begin.ext ${kafka:beginEx()
                                    .groupId("client-1")
                                    .protocol("rebalance")
                                    .instanceId("zilla")
+                                   .host("localhost")
+                                   .port(9092)
                                    .timeout(30000)
                                    .build()
                                .build()}

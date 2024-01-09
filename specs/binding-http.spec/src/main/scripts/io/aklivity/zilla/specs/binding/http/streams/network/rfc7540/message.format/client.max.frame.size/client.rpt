@@ -17,7 +17,7 @@
 property data20k ${http:randomBytes(20000)}
 
 connect "zilla://streams/net0"
-        option zilla:window 8192
+        option zilla:window 65536
         option zilla:transmission "duplex"
 connected
 
