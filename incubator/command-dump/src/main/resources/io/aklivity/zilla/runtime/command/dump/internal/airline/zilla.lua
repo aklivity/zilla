@@ -1079,50 +1079,62 @@ end
 
 function handle_grpc_extension(buffer, offset, ext_subtree, frame_type_id)
     if frame_type_id == BEGIN_ID then
-        -- scheme
-        local scheme_offset = offset
-        local scheme_length, slice_scheme_length, slice_scheme_text = dissect_length_value(buffer, scheme_offset, 2)
-        add_string_as_subtree(buffer(scheme_offset, scheme_length), ext_subtree, "Scheme: %s", slice_scheme_length,
-            slice_scheme_text, fields.grpc_ext_scheme_length, fields.grpc_ext_scheme)
-        -- authority
-        local authority_offset = scheme_offset + scheme_length
-        local authority_length, slice_authority_length, slice_authority_text = dissect_length_value(buffer, authority_offset, 2)
-        add_string_as_subtree(buffer(authority_offset, authority_length), ext_subtree, "Authority: %s", slice_authority_length,
-            slice_authority_text, fields.grpc_ext_authority_length, fields.grpc_ext_authority)
-        -- service
-        local service_offset = authority_offset + authority_length
-        local service_length, slice_service_length, slice_service_text = dissect_length_value(buffer, service_offset, 2)
-        add_string_as_subtree(buffer(service_offset, service_length), ext_subtree, "Service: %s", slice_service_length,
-            slice_service_text, fields.grpc_ext_service_length, fields.grpc_ext_service)
-        -- method
-        local method_offset = service_offset + service_length
-        local method_length, slice_method_length, slice_method_text = dissect_length_value(buffer, method_offset, 2)
-        add_string_as_subtree(buffer(method_offset, method_length), ext_subtree, "Method: %s", slice_method_length,
-            slice_method_text, fields.grpc_ext_method_length, fields.grpc_ext_method)
-        -- metadata array
-        local metadata_array_offset = method_offset + method_length
-        local slice_metadata_array_length = buffer(metadata_array_offset, 4)
-        local slice_metadata_array_size = buffer(metadata_array_offset + 4, 4)
-        local metadata_array_length = slice_metadata_array_length:le_int()
-        local metadata_array_size = slice_metadata_array_size:le_int()
-        local length = 8
-        local label = string.format("Metadata (%d items)", metadata_array_size)
-        local metadata_array_subtree = ext_subtree:add(zilla_protocol, buffer(metadata_array_offset, length), label)
-        metadata_array_subtree:add_le(fields.grpc_ext_metadata_array_length, slice_metadata_array_length)
-        metadata_array_subtree:add_le(fields.grpc_ext_metadata_array_size, slice_metadata_array_size)
-        local item_offset = metadata_array_offset + length
-        for i = 1, metadata_array_size do
-            local record_length = dissect_and_add_grpc_metadata(buffer, item_offset, ext_subtree)
-            item_offset = item_offset + record_length
-        end
+        handle_grpc_begin_extension(buffer, offset, ext_subtree)
     elseif frame_type_id == DATA_ID then
-        local slice_deferred = buffer(offset, 4)
-        ext_subtree:add_le(fields.grpc_ext_deferred, slice_deferred)
+        handle_grpc_data_extension(buffer, offset, ext_subtree)
     elseif frame_type_id == ABORT_ID or frame_type_id == RESET_ID then
-        local status_length, slice_status_length, slice_status_text = dissect_length_value(buffer, offset, 2)
-        add_string_as_subtree(buffer(offset, status_length), ext_subtree, "Status: %s", slice_status_length,
-            slice_status_text, fields.grpc_ext_status_length, fields.grpc_ext_status)
+        handle_grpc_abort_reset_extension(buffer, offset, ext_subtree)
     end
+end
+
+function handle_grpc_begin_extension(buffer, offset, ext_subtree)
+    -- scheme
+    local scheme_offset = offset
+    local scheme_length, slice_scheme_length, slice_scheme_text = dissect_length_value(buffer, scheme_offset, 2)
+    add_string_as_subtree(buffer(scheme_offset, scheme_length), ext_subtree, "Scheme: %s", slice_scheme_length,
+        slice_scheme_text, fields.grpc_ext_scheme_length, fields.grpc_ext_scheme)
+    -- authority
+    local authority_offset = scheme_offset + scheme_length
+    local authority_length, slice_authority_length, slice_authority_text = dissect_length_value(buffer, authority_offset, 2)
+    add_string_as_subtree(buffer(authority_offset, authority_length), ext_subtree, "Authority: %s", slice_authority_length,
+        slice_authority_text, fields.grpc_ext_authority_length, fields.grpc_ext_authority)
+    -- service
+    local service_offset = authority_offset + authority_length
+    local service_length, slice_service_length, slice_service_text = dissect_length_value(buffer, service_offset, 2)
+    add_string_as_subtree(buffer(service_offset, service_length), ext_subtree, "Service: %s", slice_service_length,
+        slice_service_text, fields.grpc_ext_service_length, fields.grpc_ext_service)
+    -- method
+    local method_offset = service_offset + service_length
+    local method_length, slice_method_length, slice_method_text = dissect_length_value(buffer, method_offset, 2)
+    add_string_as_subtree(buffer(method_offset, method_length), ext_subtree, "Method: %s", slice_method_length,
+        slice_method_text, fields.grpc_ext_method_length, fields.grpc_ext_method)
+    -- metadata array
+    local metadata_array_offset = method_offset + method_length
+    local slice_metadata_array_length = buffer(metadata_array_offset, 4)
+    local slice_metadata_array_size = buffer(metadata_array_offset + 4, 4)
+    local metadata_array_length = slice_metadata_array_length:le_int()
+    local metadata_array_size = slice_metadata_array_size:le_int()
+    local length = 8
+    local label = string.format("Metadata (%d items)", metadata_array_size)
+    local metadata_array_subtree = ext_subtree:add(zilla_protocol, buffer(metadata_array_offset, length), label)
+    metadata_array_subtree:add_le(fields.grpc_ext_metadata_array_length, slice_metadata_array_length)
+    metadata_array_subtree:add_le(fields.grpc_ext_metadata_array_size, slice_metadata_array_size)
+    local item_offset = metadata_array_offset + length
+    for i = 1, metadata_array_size do
+        local record_length = dissect_and_add_grpc_metadata(buffer, item_offset, ext_subtree)
+        item_offset = item_offset + record_length
+    end
+end
+
+function handle_grpc_data_extension(buffer, offset, ext_subtree)
+    local slice_deferred = buffer(offset, 4)
+    ext_subtree:add_le(fields.grpc_ext_deferred, slice_deferred)
+end
+
+function handle_grpc_abort_reset_extension(buffer, offset, ext_subtree)
+    local status_length, slice_status_length, slice_status_text = dissect_length_value(buffer, offset, 2)
+    add_string_as_subtree(buffer(offset, status_length), ext_subtree, "Status: %s", slice_status_length,
+        slice_status_text, fields.grpc_ext_status_length, fields.grpc_ext_status)
 end
 
 function add_string_as_subtree(buffer, tree, label_format, slice_length, slice_text, field_length, field_text)
@@ -1220,94 +1232,118 @@ end
 
 function handle_sse_extension(buffer, offset, ext_subtree, frame_type_id)
     if frame_type_id == BEGIN_ID then
-        -- scheme
-        local scheme_offset = offset
-        local scheme_length, slice_scheme_length, slice_scheme_text = dissect_length_value(buffer, scheme_offset, 2)
-        add_string_as_subtree(buffer(scheme_offset, scheme_length), ext_subtree, "Scheme: %s", slice_scheme_length,
-            slice_scheme_text, fields.sse_ext_scheme_length, fields.sse_ext_scheme)
-        -- authority
-        local authority_offset = scheme_offset + scheme_length
-        local authority_length, slice_authority_length, slice_authority_text = dissect_length_value(buffer, authority_offset, 2)
-        add_string_as_subtree(buffer(authority_offset, authority_length), ext_subtree, "Authority: %s", slice_authority_length,
-            slice_authority_text, fields.sse_ext_authority_length, fields.sse_ext_authority)
-        -- path
-        local path_offset = authority_offset + authority_length
-        local path_length, slice_path_length, slice_path_text = dissect_length_value(buffer, path_offset, 2)
-        add_string_as_subtree(buffer(path_offset, path_length), ext_subtree, "Path: %s", slice_path_length,
-            slice_path_text, fields.sse_ext_path_length, fields.sse_ext_path)
-        -- last_id
-        local last_id_offset = path_offset + path_length
-        local last_id_length, slice_last_id_length, slice_last_id_text = dissect_length_value(buffer, last_id_offset, 1)
-        add_string_as_subtree(buffer(last_id_offset, last_id_length), ext_subtree, "Last ID: %s", slice_last_id_length,
-            slice_last_id_text, fields.sse_ext_last_id_length, fields.sse_ext_last_id)
+        handle_sse_begin_extension(buffer, offset, ext_subtree)
     elseif frame_type_id == DATA_ID then
-        -- timestamp
-        local timestamp_offset = offset
-        local timestamp_length = 8
-        local slice_timestamp = buffer(timestamp_offset, timestamp_length)
-        ext_subtree:add_le(fields.sse_ext_timestamp, slice_timestamp)
-        -- id
-        local id_offset = timestamp_offset + timestamp_length
-        local id_length, slice_id_length, slice_id_text = dissect_length_value(buffer, id_offset, 1)
-        add_string_as_subtree(buffer(id_offset, id_length), ext_subtree, "ID: %s", slice_id_length,
-            slice_id_text, fields.sse_ext_id_length, fields.sse_ext_id)
-        -- type
-        local type_offset = id_offset + id_length
-        local type_length, slice_type_length, slice_type_text = dissect_length_value(buffer, type_offset, 1)
-        add_string_as_subtree(buffer(type_offset, type_length), ext_subtree, "Type: %s", slice_type_length,
-            slice_type_text, fields.sse_ext_type_length, fields.sse_ext_type)
+        handle_sse_data_extension(buffer, offset, ext_subtree)
     elseif frame_type_id == END_ID then
-        local id_length, slice_id_length, slice_id_text = dissect_length_value(buffer, offset, 1)
-        add_string_as_subtree(buffer(offset, id_length), ext_subtree, "Id: %s", slice_id_length,
-            slice_id_text, fields.sse_ext_id_length, fields.sse_ext_id)
+        handle_sse_end_extension(buffer, offset, ext_subtree)
     end
+end
+
+function handle_sse_begin_extension(buffer, offset, ext_subtree)
+    -- scheme
+    local scheme_offset = offset
+    local scheme_length, slice_scheme_length, slice_scheme_text = dissect_length_value(buffer, scheme_offset, 2)
+    add_string_as_subtree(buffer(scheme_offset, scheme_length), ext_subtree, "Scheme: %s", slice_scheme_length,
+        slice_scheme_text, fields.sse_ext_scheme_length, fields.sse_ext_scheme)
+    -- authority
+    local authority_offset = scheme_offset + scheme_length
+    local authority_length, slice_authority_length, slice_authority_text = dissect_length_value(buffer, authority_offset, 2)
+    add_string_as_subtree(buffer(authority_offset, authority_length), ext_subtree, "Authority: %s", slice_authority_length,
+        slice_authority_text, fields.sse_ext_authority_length, fields.sse_ext_authority)
+    -- path
+    local path_offset = authority_offset + authority_length
+    local path_length, slice_path_length, slice_path_text = dissect_length_value(buffer, path_offset, 2)
+    add_string_as_subtree(buffer(path_offset, path_length), ext_subtree, "Path: %s", slice_path_length,
+        slice_path_text, fields.sse_ext_path_length, fields.sse_ext_path)
+    -- last_id
+    local last_id_offset = path_offset + path_length
+    local last_id_length, slice_last_id_length, slice_last_id_text = dissect_length_value(buffer, last_id_offset, 1)
+    add_string_as_subtree(buffer(last_id_offset, last_id_length), ext_subtree, "Last ID: %s", slice_last_id_length,
+        slice_last_id_text, fields.sse_ext_last_id_length, fields.sse_ext_last_id)
+end
+
+function handle_sse_data_extension(buffer, offset, ext_subtree)
+    -- timestamp
+    local timestamp_offset = offset
+    local timestamp_length = 8
+    local slice_timestamp = buffer(timestamp_offset, timestamp_length)
+    ext_subtree:add_le(fields.sse_ext_timestamp, slice_timestamp)
+    -- id
+    local id_offset = timestamp_offset + timestamp_length
+    local id_length, slice_id_length, slice_id_text = dissect_length_value(buffer, id_offset, 1)
+    add_string_as_subtree(buffer(id_offset, id_length), ext_subtree, "ID: %s", slice_id_length,
+        slice_id_text, fields.sse_ext_id_length, fields.sse_ext_id)
+    -- type
+    local type_offset = id_offset + id_length
+    local type_length, slice_type_length, slice_type_text = dissect_length_value(buffer, type_offset, 1)
+    add_string_as_subtree(buffer(type_offset, type_length), ext_subtree, "Type: %s", slice_type_length,
+        slice_type_text, fields.sse_ext_type_length, fields.sse_ext_type)
+end
+
+function handle_sse_end_extension(buffer, offset, ext_subtree)
+    local id_length, slice_id_length, slice_id_text = dissect_length_value(buffer, offset, 1)
+    add_string_as_subtree(buffer(offset, id_length), ext_subtree, "Id: %s", slice_id_length,
+        slice_id_text, fields.sse_ext_id_length, fields.sse_ext_id)
 end
 
 function handle_ws_extension(buffer, offset, ext_subtree, frame_type_id)
     if frame_type_id == BEGIN_ID then
-        -- protocol
-        local protocol_offset = offset
-        local protocol_length, slice_protocol_length, slice_protocol_text = dissect_length_value(buffer, protocol_offset, 1)
-        add_string_as_subtree(buffer(protocol_offset, protocol_length), ext_subtree, "Protocol: %s",
-            slice_protocol_length, slice_protocol_text, fields.ws_ext_protocol_length, fields.ws_ext_protocol)
-        -- scheme
-        local scheme_offset = protocol_offset + protocol_length
-        local scheme_length, slice_scheme_length, slice_scheme_text = dissect_length_value(buffer, scheme_offset, 1)
-        add_string_as_subtree(buffer(scheme_offset, scheme_length), ext_subtree, "Scheme: %s",
-            slice_scheme_length, slice_scheme_text, fields.ws_ext_scheme_length, fields.ws_ext_scheme)
-        -- authority
-        local authority_offset = scheme_offset + scheme_length
-        local authority_length, slice_authority_length, slice_authority_text = dissect_length_value(buffer, authority_offset, 1)
-        add_string_as_subtree(buffer(authority_offset, authority_length), ext_subtree, "Authority: %s",
-            slice_authority_length, slice_authority_text, fields.ws_ext_authority_length, fields.ws_ext_authority)
-        -- path
-        local path_offset = authority_offset + authority_length
-        local path_length, slice_path_length, slice_path_text = dissect_length_value(buffer, path_offset, 1)
-        add_string_as_subtree(buffer(path_offset, path_length), ext_subtree, "Path: %s",
-            slice_path_length, slice_path_text, fields.ws_ext_path_length, fields.ws_ext_path)
+        handle_ws_begin_extension(buffer, offset, ext_subtree)
     elseif frame_type_id == DATA_ID then
-        -- flags
-        local flags_offset = offset
-        local flags_length = 1
-        local slice_flags = buffer(flags_offset, flags_length)
-        ext_subtree:add(fields.ws_ext_flags, slice_flags)
-        -- info
-        local info_offset = flags_offset + flags_length
-        if (info_offset < buffer:len()) then
-            ext_subtree:add(fields.ws_ext_info, buffer(info_offset))
-        end
+        handle_ws_data_extension(buffer, offset, ext_subtree)
     elseif frame_type_id == END_ID then
-        -- code
-        local code_offset = offset
-        local code_length = 2
-        local slice_code = buffer(code_offset, code_length)
-        ext_subtree:add_le(fields.ws_ext_code, slice_code)
-        -- reason
-        local reason_offset = code_offset + code_length
-        local reason_length, slice_reason_length, slice_reason_text = dissect_length_value(buffer, reason_offset, 1)
-        add_string_as_subtree(buffer(reason_offset, reason_length), ext_subtree, "Reason: %s",
-            slice_reason_length, slice_reason_text, fields.ws_ext_reason_length, fields.ws_ext_reason)
+        handle_ws_end_extension(buffer, offset, ext_subtree)
     end
+end
+
+function handle_ws_begin_extension(buffer, offset, ext_subtree)
+    -- protocol
+    local protocol_offset = offset
+    local protocol_length, slice_protocol_length, slice_protocol_text = dissect_length_value(buffer, protocol_offset, 1)
+    add_string_as_subtree(buffer(protocol_offset, protocol_length), ext_subtree, "Protocol: %s",
+        slice_protocol_length, slice_protocol_text, fields.ws_ext_protocol_length, fields.ws_ext_protocol)
+    -- scheme
+    local scheme_offset = protocol_offset + protocol_length
+    local scheme_length, slice_scheme_length, slice_scheme_text = dissect_length_value(buffer, scheme_offset, 1)
+    add_string_as_subtree(buffer(scheme_offset, scheme_length), ext_subtree, "Scheme: %s",
+        slice_scheme_length, slice_scheme_text, fields.ws_ext_scheme_length, fields.ws_ext_scheme)
+    -- authority
+    local authority_offset = scheme_offset + scheme_length
+    local authority_length, slice_authority_length, slice_authority_text = dissect_length_value(buffer, authority_offset, 1)
+    add_string_as_subtree(buffer(authority_offset, authority_length), ext_subtree, "Authority: %s",
+        slice_authority_length, slice_authority_text, fields.ws_ext_authority_length, fields.ws_ext_authority)
+    -- path
+    local path_offset = authority_offset + authority_length
+    local path_length, slice_path_length, slice_path_text = dissect_length_value(buffer, path_offset, 1)
+    add_string_as_subtree(buffer(path_offset, path_length), ext_subtree, "Path: %s",
+        slice_path_length, slice_path_text, fields.ws_ext_path_length, fields.ws_ext_path)
+end
+
+function handle_ws_data_extension(buffer, offset, ext_subtree)
+    -- flags
+    local flags_offset = offset
+    local flags_length = 1
+    local slice_flags = buffer(flags_offset, flags_length)
+    ext_subtree:add(fields.ws_ext_flags, slice_flags)
+    -- info
+    local info_offset = flags_offset + flags_length
+    if (info_offset < buffer:len()) then
+        ext_subtree:add(fields.ws_ext_info, buffer(info_offset))
+    end
+end
+
+function handle_ws_end_extension(buffer, offset, ext_subtree)
+    -- code
+    local code_offset = offset
+    local code_length = 2
+    local slice_code = buffer(code_offset, code_length)
+    ext_subtree:add_le(fields.ws_ext_code, slice_code)
+    -- reason
+    local reason_offset = code_offset + code_length
+    local reason_length, slice_reason_length, slice_reason_text = dissect_length_value(buffer, reason_offset, 1)
+    add_string_as_subtree(buffer(reason_offset, reason_length), ext_subtree, "Reason: %s",
+        slice_reason_length, slice_reason_text, fields.ws_ext_reason_length, fields.ws_ext_reason)
 end
 
 function handle_filesystem_extension(buffer, offset, ext_subtree)
@@ -2746,7 +2782,6 @@ function dissect_and_add_kafka_topic_partition_array(buffer, offset, tree, field
         item_offset = item_offset + item_length
     end
 end
-
 
 function handle_kafka_data_offset_fetch_extension(buffer, offset, ext_subtree)
     dissect_and_add_kafka_topic_partition_offset_array(buffer, offset, ext_subtree,
