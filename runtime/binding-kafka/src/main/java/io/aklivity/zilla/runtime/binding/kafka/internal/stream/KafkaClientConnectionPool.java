@@ -1338,9 +1338,9 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
                     traceId, authorization, EMPTY_EXTENSION);
 
                 state = KafkaState.closedInitial(state);
-
-                cleanupBudgetCreditorIfNecessary();
             }
+
+            cleanupBudgetCreditorIfNecessary();
         }
 
         private void doConnectionAbort(
@@ -1352,9 +1352,9 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
                     traceId, authorization, EMPTY_EXTENSION);
 
                 state = KafkaState.closedInitial(state);
-
-                cleanupBudgetCreditorIfNecessary();
             }
+
+            cleanupBudgetCreditorIfNecessary();
         }
 
         private void doConnectionSignalNow(
@@ -1625,6 +1625,8 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         {
             final long traceId = abort.traceId();
 
+            state = KafkaState.closedReply(state);
+
             doConnectionAbort(traceId);
 
             cleanupStreams(traceId);
@@ -1676,7 +1678,11 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         {
             final long traceId = reset.traceId();
 
+            state = KafkaState.closedInitial(state);
+
             doConnectionReset(traceId);
+
+            cleanupBudgetCreditorIfNecessary();
 
             cleanupStreams(traceId);
         }
@@ -1816,8 +1822,10 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
 
             if (!responseAcks.contains(streamId))
             {
-                if (streamsByInitialId.remove(streamId) != null)
+                KafkaClientStream stream = streamsByInitialId.get(streamId);
+                if (stream != null && stream.initialAck == stream.initialSeq)
                 {
+                    streamsByInitialId.remove(streamId);
                     doSignalStreamCleanup();
                 }
             }

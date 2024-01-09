@@ -34,7 +34,7 @@ public final class TlsOptionsConfigBuilder<T> extends ConfigBuilder<T, TlsOption
     private List<String> alpn;
     private TlsMutualConfig mutual;
     private List<String> signers;
-    private boolean trustcacerts;
+    private Boolean trustcacerts;
 
     TlsOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
@@ -108,7 +108,8 @@ public final class TlsOptionsConfigBuilder<T> extends ConfigBuilder<T, TlsOption
     @Override
     public T build()
     {
-        TlsMutualConfig mutual = this.mutual == null && this.trust != null ? REQUIRED : this.mutual;
+        final TlsMutualConfig mutual = this.mutual == null && this.trust != null ? REQUIRED : this.mutual;
+        final boolean trustcacerts = this.trustcacerts == null ? this.trust == null : this.trustcacerts;
         return mapper.apply(new TlsOptionsConfig(version, keys, trust, sni, alpn, mutual, signers, trustcacerts));
     }
 }
