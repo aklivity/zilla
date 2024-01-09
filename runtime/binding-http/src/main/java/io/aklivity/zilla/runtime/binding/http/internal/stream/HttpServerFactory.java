@@ -1736,6 +1736,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     slotBuffer.putBytes(decodeSlotOffset, buffer, offset, limit - offset);
                     decodeSlotOffset += limit - offset;
                     decodeSlotReserved += reserved;
+
                     buffer = slotBuffer;
                     offset = 0;
                     limit = decodeSlotOffset;
@@ -2064,12 +2065,14 @@ public final class HttpServerFactory implements HttpStreamFactory
         private void flushNetWindow(
             long traceId,
             long budgetId,
-            int initialPad)
+            int initialPad,
+            int minInitialWin)
         {
             final int initialMax = exchange != null ? decodeMax : 0;
-            final int decodable = decodeMax - initialMax;
+            final int decodable = decodeMax - decodeSlotOffset;
+            final int newInitialWin = Math.min(decodable, minInitialWin);
 
-            final long initialAckMax = Math.min(initialAck + decodable, initialSeq);
+            final long initialAckMax = Math.min(initialAck + newInitialWin, initialSeq);
             if (initialAckMax > initialAck || !HttpState.initialOpened(state))
             {
                 initialAck = initialAckMax;
@@ -2961,7 +2964,8 @@ public final class HttpServerFactory implements HttpStreamFactory
                 }
                 else
                 {
-                    flushNetWindow(traceId, budgetId, requestPad);
+                    final int requestWin = requestMax - (int)(requestSeq - requestAck);
+                    flushNetWindow(traceId, budgetId, requestPad, requestWin);
                 }
             }
 

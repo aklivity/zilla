@@ -17,6 +17,8 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.config;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import jakarta.json.Json;
 import jakarta.json.JsonArray;
@@ -28,6 +30,7 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
@@ -35,7 +38,9 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
 public final class KafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
+    private static final Pattern SERVER_PATTERN = Pattern.compile("([^\\:]+):(\\d+)");
     private static final String BOOTSTRAP_NAME = "bootstrap";
+    private static final String SERVERS_NAME = "servers";
     private static final String TOPICS_NAME = "topics";
     private static final String SASL_NAME = "sasl";
     private static final String SASL_MECHANISM_NAME = "mechanism";
@@ -82,6 +87,15 @@ public final class KafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi,
             object.add(TOPICS_NAME, entries);
         }
 
+        if (kafkaOptions.servers != null &&
+            !kafkaOptions.servers.isEmpty())
+        {
+            JsonArrayBuilder entries = Json.createArrayBuilder();
+            kafkaOptions.servers.forEach(s -> entries.add(String.format("%s:%d", s.host, s.port)));
+
+            object.add(SERVERS_NAME, entries);
+        }
+
         if (kafkaOptions.sasl != null)
         {
             JsonObjectBuilder sasl = Json.createObjectBuilder();
@@ -109,6 +123,10 @@ public final class KafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi,
                 ? object.getJsonArray(TOPICS_NAME)
                 : null;
 
+        JsonArray serversArray = object.containsKey(SERVERS_NAME)
+            ? object.getJsonArray(SERVERS_NAME)
+            : null;
+
         JsonObject saslObject = object.containsKey(SASL_NAME)
                 ? object.getJsonObject(SASL_NAME)
                 : null;
@@ -131,6 +149,26 @@ public final class KafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi,
             topics = topics0;
         }
 
+        List<KafkaServerConfig> servers = null;
+
+        if (serversArray != null)
+        {
+            List<KafkaServerConfig> servers0 = new ArrayList<>();
+            serversArray.forEach(v ->
+            {
+                final String server = JsonString.class.cast(v).getString();
+                final Matcher matcher = SERVER_PATTERN.matcher(server);
+                if (matcher.matches())
+                {
+                    final String host = matcher.group(1);
+                    final int port = Integer.parseInt(matcher.group(2));
+
+                    servers0.add(new KafkaServerConfig(host, port));
+                }
+            });
+            servers = servers0;
+        }
+
         KafkaSaslConfig sasl = null;
 
         if (saslObject != null)
@@ -142,6 +180,6 @@ public final class KafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi,
             sasl = new KafkaSaslConfig(mechanism, username, password);
         }
 
-        return new KafkaOptionsConfig(bootstrap, topics, sasl);
+        return new KafkaOptionsConfig(bootstrap, topics, servers, sasl);
     }
 }
