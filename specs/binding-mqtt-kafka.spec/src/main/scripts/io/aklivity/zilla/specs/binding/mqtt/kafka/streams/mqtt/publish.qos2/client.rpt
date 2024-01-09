@@ -18,6 +18,7 @@ connect "zilla://streams/mqtt0"
          option zilla:window 8192
          option zilla:transmission "duplex"
 
+# we should have a dedicated qos2 publish stream to avoid overhead on other streams
 write zilla:begin.ext ${mqtt:beginEx()
                               .typeId(zilla:id("mqtt"))
                               .publish()
@@ -33,7 +34,17 @@ write zilla:data.ext ${mqtt:dataEx()
                             .typeId(zilla:id("mqtt"))
                             .publish()
                                 .qos("EXACTLY_ONCE")
+                                .packetId(1)
                                 .build()
                             .build()}
 write "message"
 write flush
+
+read advised zilla:flush ${mqtt:flushEx()
+                                 .typeId(zilla:id("mqtt"))
+                                 .publish()
+                                     .packetId(1)
+                                     .build()
+                                 .build()}
+
+

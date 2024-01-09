@@ -24,8 +24,24 @@ read zilla:begin.ext ${kafka:beginEx()
                             .merged()
                                 .capabilities("PRODUCE_ONLY")
                                 .topic("mqtt-messages")
+                                .groupId("client-publish")
                                 .partition(-1, -2)
                                 .ackMode("IN_SYNC_REPLICAS")
+                                .producerId(12345) # generated from clientId, this tells kafka that we're using idempotent producer
+                                .build()
+                            .build()}
+
+# This begin triggers InitProducerId with transactional_id = null, producerId = 12345
+# If this is the first time this producerId is used, do we get back UNKNOWN_PRODUCER_ID error?
+# If yes, we'll need to call InitProducerId with transactional_id = null again, this time not specifying the producerId
+
+write zilla:begin.ext ${kafka:beginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("PRODUCE_ONLY")
+                                .topic("mqtt-messages")
+                                .partition(0, 0, 1, 1) # offset = next sequence number
+                                .producerId(67890, 1) #producerId, epoch -> save this in memory along with next sequence number
                                 .build()
                             .build()}
 
@@ -45,3 +61,46 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .build()
                            .build()}
 read "message"
+
+# I guess we don't need to specify producerId + epoch + sequence in the data frame?
+# Along with the data frame we also send an offset commit with metadata
+
+read advised zilla:flush ${kafka:matchFlushEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                .consumer()
+                                  .progress(0, 3,
+                                        mqtt:metadata()
+                                            .metadata(67890, 1, 1) # producerId, producerEpoch, packetId
+                                            .build())
+                                  .correlationId(1)
+                                  .build()
+                              .build()}
+
+write advise zilla:flush ${kafka:flushEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                .consumer()
+                                  .progress(0, 3)
+                                  .correlationId(1)
+                                  .build()
+                              .build()}
+# This is what triggers PUBREC delivery to the client
+
+# receiving PUBREL in the MqttServerFactory triggers this:
+read advised zilla:flush ${kafka:matchFlushEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                .consumer()
+                                  .progress(0, 3, "")
+                                  .build()
+                              .build()}
+
+# This is what triggers PUBCOMP delivery to the client
+write advise zilla:flush ${kafka:flushEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                .consumer()
+                                  .progress(0, 3)
+                                  .build()
+                              .build()}
