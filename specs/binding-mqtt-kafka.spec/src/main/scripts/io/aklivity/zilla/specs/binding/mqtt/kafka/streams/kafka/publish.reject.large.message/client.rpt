@@ -35,3 +35,27 @@ read zilla:reset.ext ${kafka:resetEx()
                            .build()}
 
 write aborted
+
+
+connect "zilla://streams/kafka0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"
+
+write zilla:begin.ext ${kafka:beginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("PRODUCE_ONLY")
+                                .topic("mqtt-messages")
+                                .partition(-1, -2)
+                                .ackMode("LEADER_ONLY")
+                                .build()
+                            .build()}
+
+connected
+
+read zilla:reset.ext ${kafka:resetEx()
+                           .typeId(zilla:id("kafka"))
+                           .error(10)
+                           .build()}
+
+write aborted

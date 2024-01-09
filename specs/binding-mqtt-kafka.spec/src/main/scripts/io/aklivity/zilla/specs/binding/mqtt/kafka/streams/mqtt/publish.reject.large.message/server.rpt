@@ -34,3 +34,21 @@ write zilla:reset.ext ${mqtt:resetEx()
                            .reasonCode(149)
                            .build()}
 read abort
+
+accepted
+
+read zilla:begin.ext ${mqtt:matchBeginEx()
+                             .typeId(zilla:id("mqtt"))
+                             .publish()
+                                .clientId("client")
+                                .topic("sensor/one")
+                                .build()
+                             .build()}
+
+connected
+
+write zilla:reset.ext ${mqtt:resetEx()
+                           .typeId(zilla:id("mqtt"))
+                           .reasonCode(149)
+                           .build()}
+read abort

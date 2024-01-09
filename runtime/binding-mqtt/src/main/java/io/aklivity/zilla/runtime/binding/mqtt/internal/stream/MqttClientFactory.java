@@ -2998,6 +2998,20 @@ public final class MqttClientFactory implements MqttStreamFactory
             }
         }
 
+        private void onSessionWillData(
+            long traceId,
+            long authorization,
+            DirectBuffer buffer,
+            int offset,
+            int limit)
+        {
+            MqttWillMessageFW willMessage = mqttWillMessageRO.tryWrap(buffer, offset, limit);
+            final OctetsFW willPayload = payloadRO.wrap(buffer, willMessage.limit(), limit);
+            client.doEncodeConnect(traceId, authorization, client.clientId, client.flags,
+                client.sessionExpiry, willMessage, willPayload);
+            client.doSignalConnackTimeout(traceId);
+        }
+
         private void onSessionStateData(
             long traceId,
             long authorization,
@@ -3038,21 +3052,6 @@ public final class MqttClientFactory implements MqttStreamFactory
             }
             client.sessionStream.subscriptions.addAll(newSubscriptions);
             client.sessionStream.subscriptions.removeAll(oldSubscriptions);
-        }
-
-        private void onSessionWillData(
-            long traceId,
-            long authorization,
-            DirectBuffer buffer,
-            int offset,
-            int limit)
-        {
-            MqttWillMessageFW willMessage = mqttWillMessageRO.tryWrap(buffer, offset, limit);
-            final OctetsFW willPayload = payloadRO.wrap(buffer, willMessage.limit(), limit);
-            client.doEncodeConnect(traceId, authorization, client.clientId, client.flags,
-                client.sessionExpiry, willMessage, willPayload);
-            client.doSignalConnackTimeout(traceId);
-            return;
         }
 
         private void onSessionEnd(

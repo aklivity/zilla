@@ -510,8 +510,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 dataEx != null && dataEx.typeId() == mqttTypeId ? extension.get(mqttDataExRO::tryWrap) : null;
             final MqttSessionDataExFW mqttSessionDataEx =
                 mqttDataEx != null && mqttDataEx.kind() == MqttDataExFW.KIND_SESSION ? mqttDataEx.session() : null;
-            Flyweight kafkaDataEx;
-            Flyweight kafkaPayload;
             MqttSessionDataKind kind = mqttSessionDataEx != null ? mqttSessionDataEx.kind().get() : null;
             if (mqttSessionDataEx != null && (flags & DATA_FLAG_INIT) != 0)
             {
@@ -571,34 +569,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
                 doFlushProduceAndFetchWithFilter(traceId, authorization, budgetId);
             }
-        }
-
-        private void onMqttStateData(
-            long traceId,
-            long authorization,
-            long budgetId,
-            int flags,
-            int reserved,
-            OctetsFW payload,
-            DirectBuffer buffer,
-            int offset,
-            int limit)
-        {
-            Flyweight kafkaDataEx = kafkaDataExRW
-                .wrap(extBuffer, 0, extBuffer.capacity())
-                .typeId(kafkaTypeId)
-                .merged(m -> m.produce(mp -> mp
-                    .deferred(0)
-                    .timestamp(System.currentTimeMillis())
-                    .partition(p -> p.partitionId(-1).partitionOffset(-1))
-                    .key(b -> b.length(clientId.length())
-                        .value(clientId.value(), 0, clientId.length()))))
-                .build();
-
-            Flyweight kafkaPayload = payload.sizeof() > 0 ? mqttSessionStateRO.wrap(buffer, offset, limit) : EMPTY_OCTETS;
-
-            session.doKafkaData(traceId, authorization, budgetId, reserved,
-                sessionPadding, flags, kafkaPayload, kafkaDataEx);
         }
 
         private void onMqttWillData(
@@ -661,6 +631,34 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             session.doKafkaData(traceId, authorization, budgetId, length, sessionPadding, flags,
                 willMessageBuffer, 0, length, kafkaDataEx);
             sessionPadding += kafkaPayload.sizeof() - will.sizeof();
+        }
+
+        private void onMqttStateData(
+            long traceId,
+            long authorization,
+            long budgetId,
+            int flags,
+            int reserved,
+            OctetsFW payload,
+            DirectBuffer buffer,
+            int offset,
+            int limit)
+        {
+            Flyweight kafkaDataEx = kafkaDataExRW
+                .wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(kafkaTypeId)
+                .merged(m -> m.produce(mp -> mp
+                    .deferred(0)
+                    .timestamp(System.currentTimeMillis())
+                    .partition(p -> p.partitionId(-1).partitionOffset(-1))
+                    .key(b -> b.length(clientId.length())
+                        .value(clientId.value(), 0, clientId.length()))))
+                .build();
+
+            Flyweight kafkaPayload = payload.sizeof() > 0 ? mqttSessionStateRO.wrap(buffer, offset, limit) : EMPTY_OCTETS;
+
+            session.doKafkaData(traceId, authorization, budgetId, reserved,
+                sessionPadding, flags, kafkaPayload, kafkaDataEx);
         }
 
         private void doFlushProduceAndFetchWithFilter(

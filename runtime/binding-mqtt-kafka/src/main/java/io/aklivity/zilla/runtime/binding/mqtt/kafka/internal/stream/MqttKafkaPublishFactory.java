@@ -76,16 +76,18 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
     private static final int DATA_FLAG_INIT = 0x02;
     private static final int DATA_FLAG_FIN = 0x01;
     private static final int DATA_FLAG_COMPLETE = 0x03;
-    public static final int PUBLISH_FLAGS_RETAINED_MASK = 1 << MqttPublishFlags.RETAIN.value();
-    public static final int MQTT_PACKET_TOO_LARGE = 0x95;
-    public static final int MQTT_IMPLEMENTATION_SPECIFIC_ERROR = 0x83;
-    private static final int KAFKA_ERROR_MESSAGE_TOO_LARGE = 18;
-    public static final Int2IntHashMap MQTT_REASON_CODES;
+    private static final int PUBLISH_FLAGS_RETAINED_MASK = 1 << MqttPublishFlags.RETAIN.value();
+    private static final int MQTT_PACKET_TOO_LARGE = 0x95;
+    private static final int MQTT_IMPLEMENTATION_SPECIFIC_ERROR = 0x83;
+    private static final int KAFKA_ERROR_RECORD_LIST_TOO_LARGE = 18;
+    private static final int KAFKA_ERROR_MESSAGE_TOO_LARGE = 10;
+    private static final Int2IntHashMap MQTT_REASON_CODES;
 
     static
     {
         final Int2IntHashMap reasonCodes = new Int2IntHashMap(MQTT_IMPLEMENTATION_SPECIFIC_ERROR);
 
+        reasonCodes.put(KAFKA_ERROR_RECORD_LIST_TOO_LARGE, MQTT_PACKET_TOO_LARGE);
         reasonCodes.put(KAFKA_ERROR_MESSAGE_TOO_LARGE, MQTT_PACKET_TOO_LARGE);
 
         MQTT_REASON_CODES = reasonCodes;
@@ -501,12 +503,6 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             }
         }
 
-        private boolean hasPublishFlagRetained(
-            int publishFlags)
-        {
-            return (publishFlags & PUBLISH_FLAGS_RETAINED_MASK) != 0;
-        }
-
         private void setHashKey(
             KafkaKeyFW.Builder builder)
         {
@@ -808,6 +804,12 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             }
         }
         return byteAt;
+    }
+
+    private static boolean hasPublishFlagRetained(
+        int publishFlags)
+    {
+        return (publishFlags & PUBLISH_FLAGS_RETAINED_MASK) != 0;
     }
 
 

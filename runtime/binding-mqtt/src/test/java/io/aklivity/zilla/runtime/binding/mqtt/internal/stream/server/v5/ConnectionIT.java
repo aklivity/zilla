@@ -419,7 +419,7 @@ public class ConnectionIT
     @Specification({
         "${net}/connect.max.packet.size.exceeded/client",
         "${app}/connect.max.packet.size.exceeded/server"})
-    public void shouldIgnorePublishPacketBiggerThanMaxPacketSize() throws Exception
+    public void shouldRejectMaxPacketSizeExceeded() throws Exception
     {
         k3po.finish();
     }

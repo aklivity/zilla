@@ -31,3 +31,22 @@ read zilla:reset.ext ${mqtt:resetEx()
                            .typeId(zilla:id("mqtt"))
                            .reasonCode(149)
                            .build()}
+
+connect "zilla://streams/mqtt0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"
+
+write zilla:begin.ext ${mqtt:beginEx()
+                             .typeId(zilla:id("mqtt"))
+                              .publish()
+                                .clientId("client")
+                                .topic("sensor/one")
+                                .build()
+                             .build()}
+
+connected
+
+read zilla:reset.ext ${mqtt:resetEx()
+                           .typeId(zilla:id("mqtt"))
+                           .reasonCode(149)
+                           .build()}
