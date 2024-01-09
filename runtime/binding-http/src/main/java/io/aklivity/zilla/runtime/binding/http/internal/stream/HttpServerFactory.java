@@ -2773,16 +2773,6 @@ public final class HttpServerFactory implements HttpStreamFactory
                 this.expiringId = expireIfNecessary(guard, sessionId, originId, routedId, replyId, traceId, 0);
             }
 
-            private int requestPendingAck()
-            {
-                return (int)(requestSeq - requestAck);
-            }
-
-            private int requestWindow()
-            {
-                return requestMax - requestPendingAck();
-            }
-
             private void doRequestBegin(
                 long traceId,
                 Flyweight extension)
@@ -2974,7 +2964,8 @@ public final class HttpServerFactory implements HttpStreamFactory
                 }
                 else
                 {
-                    flushNetWindow(traceId, budgetId, requestPad, requestWindow());
+                    final int newRequestAck = requestMax - (int)(requestSeq - requestAck);
+                    flushNetWindow(traceId, budgetId, requestPad, newRequestAck);
                 }
             }
 
