@@ -38,5 +38,5 @@ bindings:
           catalog0:
             - subject: test0
               version: latest
-              record: SimpleMessage
+              record: example
     exit: test

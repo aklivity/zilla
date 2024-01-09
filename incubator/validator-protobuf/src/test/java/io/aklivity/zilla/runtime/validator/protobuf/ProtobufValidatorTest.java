@@ -114,6 +114,8 @@ public class ProtobufValidatorTest
         byte[] bytes = {0x0a, 0x02, 0x4f, 0x4b, 0x12, 0x08, 0x30, 0x31, 0x30, 0x31, 0x32, 0x30, 0x32, 0x34};
         data.wrap(bytes, 0, bytes.length);
         assertEquals(data.capacity() + 1, validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
+
+        assertEquals(data.capacity() + 1, validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -203,6 +205,8 @@ public class ProtobufValidatorTest
         byte[] bytes = {0x00, 0x0a, 0x02, 0x4f, 0x4b, 0x12, 0x08, 0x30, 0x31, 0x30, 0x31, 0x32, 0x30, 0x32, 0x34};
         data.wrap(bytes, 0, bytes.length);
         assertEquals(data.capacity() - 1, validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
+
+        assertEquals(data.capacity() - 1, validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -264,9 +268,9 @@ public class ProtobufValidatorTest
         data.wrap(bytes, 0, bytes.length);
 
         String json =
-                "{\n" +
-                    "  \"content\": \"OK\",\n" +
-                    "  \"dateTime\": \"01012024\"\n" +
+                "{" +
+                    "\"content\":\"OK\"," +
+                    "\"date_time\":\"01012024\"" +
                 "}";
 
         final ValueConsumer consumer = (buffer, index, length) ->
@@ -275,6 +279,8 @@ public class ProtobufValidatorTest
             buffer.getBytes(index, jsonBytes);
             assertEquals(json, new String(jsonBytes, StandardCharsets.UTF_8));
         };
+        validator.validate(data, 0, data.capacity(), consumer);
+
         validator.validate(data, 0, data.capacity(), consumer);
     }
 
@@ -306,15 +312,17 @@ public class ProtobufValidatorTest
         DirectBuffer data = new UnsafeBuffer();
 
         String json =
-                "{\n" +
-                    "  \"content\": \"OK\",\n" +
-                    "  \"dateTime\": \"01012024\"\n" +
+                "{" +
+                    "\"content\":\"OK\"," +
+                    "\"date_time\":\"01012024\"" +
                 "}";
         data.wrap(json.getBytes(), 0, json.getBytes().length);
 
         byte[] expectedBytes = {0x00, 0x0a, 0x02, 0x4f, 0x4b, 0x12, 0x08, 0x30, 0x31, 0x30, 0x31, 0x32, 0x30, 0x32, 0x34};
         DirectBuffer expected = new UnsafeBuffer();
         expected.wrap(expectedBytes, 0, expectedBytes.length);
+
+        assertEquals(expected.capacity(), validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
 
         assertEquals(expected.capacity(), validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
     }

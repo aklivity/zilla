@@ -21,11 +21,12 @@ import java.util.function.LongFunction;
 
 import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
+import org.agrona.ExpandableDirectByteBuffer;
 import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Int2ObjectCache;
 import org.agrona.collections.Object2ObjectHashMap;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.agrona.io.DirectBufferInputStream;
+import org.agrona.io.ExpandableDirectBufferOutputStream;
 import org.antlr.v4.runtime.BailErrorStrategy;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
@@ -57,9 +58,10 @@ public class ProtobufValidator
     protected final String format;
     protected final List<Integer> indexes;
     protected final DirectBufferInputStream in;
-    protected final DirectBuffer valueRO;
+    protected final ExpandableDirectBufferOutputStream out;
 
     private final Int2ObjectCache<FileDescriptor> descriptors;
+    private final Int2ObjectCache<DescriptorTree> tree;
     private final Object2ObjectHashMap<String, DynamicMessage.Builder> builders;
     private final FileDescriptor[] dependencies;
     private final Int2IntHashMap paddings;
@@ -76,18 +78,25 @@ public class ProtobufValidator
                 : config.subject;
         this.format = config.format;
         this.descriptors = new Int2ObjectCache<>(1, 1024, i -> {});
+        this.tree = new Int2ObjectCache<>(1, 1024, i -> {});
         this.builders = new Object2ObjectHashMap<>();
         this.in = new DirectBufferInputStream();
         this.dependencies = new FileDescriptor[0];
         this.indexes = new LinkedList<>();
         this.paddings = new Int2IntHashMap(-1);
-        this.valueRO = new UnsafeBuffer();
+        this.out = new ExpandableDirectBufferOutputStream(new ExpandableDirectByteBuffer());
     }
 
     protected FileDescriptor supplyDescriptor(
         int schemaId)
     {
         return descriptors.computeIfAbsent(schemaId, this::createDescriptors);
+    }
+
+    protected DescriptorTree supplyDescriptorTree(
+        int schemaId)
+    {
+        return tree.computeIfAbsent(schemaId, this::createDescriptorTree);
     }
 
     protected byte[] encodeIndexes()
@@ -118,6 +127,7 @@ public class ProtobufValidator
         int length)
     {
         int progress = 0;
+        indexes.clear();
         int encodedLength = decodeIndex(data.getByte(index));
         progress += BitUtil.SIZE_OF_BYTE;
         if (encodedLength == 0)
@@ -135,7 +145,7 @@ public class ProtobufValidator
     protected int supplyIndexPadding(
         int schemaId)
     {
-        return paddings.computeIfAbsent(schemaId, id -> calculateIndexPadding(supplyDescriptor(id)));
+        return paddings.computeIfAbsent(schemaId, this::calculateIndexPadding);
     }
 
     protected int supplyJsonFormatPadding(
@@ -148,14 +158,14 @@ public class ProtobufValidator
         Descriptors.Descriptor descriptor)
     {
         DynamicMessage.Builder builder;
-        if (builders.containsKey(catalog.record))
+        if (builders.containsKey(descriptor.getFullName()))
         {
-            builder = builders.get(catalog.record);
+            builder = builders.get(descriptor.getFullName());
         }
         else
         {
             builder = createDynamicMessageBuilder(descriptor);
-            builders.put(catalog.record, builder);
+            builders.put(descriptor.getFullName(), builder);
         }
         return builder;
     }
@@ -181,12 +191,13 @@ public class ProtobufValidator
     }
 
     private int calculateIndexPadding(
-        FileDescriptor descriptor)
+        int schemaId)
     {
         int padding = 0;
-        if (descriptor != null)
+        DescriptorTree trees = supplyDescriptorTree(schemaId);
+        if (trees != null && catalog.record != null)
         {
-            DescriptorTree tree = new DescriptorTree(descriptor).findByName(catalog.record);
+            DescriptorTree tree = trees.findByName(catalog.record);
             if (tree != null)
             {
                 padding = tree.indexes.size() + 1;
@@ -244,5 +255,18 @@ public class ProtobufValidator
             }
         }
         return descriptor;
+    }
+
+    private DescriptorTree createDescriptorTree(
+        int schemaId)
+    {
+        DescriptorTree tree = null;
+        FileDescriptor descriptor = supplyDescriptor(schemaId);
+
+        if (descriptor != null)
+        {
+            tree = new DescriptorTree(descriptor);
+        }
+        return tree;
     }
 }

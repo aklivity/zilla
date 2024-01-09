@@ -61,6 +61,8 @@
         <include>com/fasterxml/jackson/**</include>
         <include>org/yaml/snakeyaml/**</include>
         <include>org/junit/**</include>
+        <include>com/google/**</include>
+        <include>org/checkerframework/**</include>
       </includes>
     </fileSet>
   </fileSets>

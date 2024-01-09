@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.validator.protobuf;
 import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
 
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.util.function.LongFunction;
 
 import org.agrona.DirectBuffer;
@@ -35,13 +36,18 @@ import io.aklivity.zilla.runtime.validator.protobuf.config.ProtobufValidatorConf
 public class ProtobufReadValidator  extends ProtobufValidator implements ValueValidator, FragmentValidator
 {
     private final JsonFormat.Printer printer;
+    private final OutputStreamWriter output;
 
     public ProtobufReadValidator(
         ProtobufValidatorConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
     {
         super(config, supplyCatalog);
-        this.printer = JsonFormat.printer();
+        this.printer = JsonFormat.printer()
+            .omittingInsignificantWhitespace()
+            .preservingProtoFieldNames()
+            .includingDefaultValueFields();
+        this.output = new OutputStreamWriter(out);
     }
 
     @Override
@@ -135,32 +141,38 @@ public class ProtobufReadValidator  extends ProtobufValidator implements ValueVa
         ValueConsumer next)
     {
         int valLength = -1;
-        Descriptors.FileDescriptor fileDescriptor = supplyDescriptor(schemaId);
-        if (fileDescriptor != null)
+        DescriptorTree tree = supplyDescriptorTree(schemaId);
+        if (tree != null)
         {
-            DescriptorTree tree = new DescriptorTree(fileDescriptor).findByIndexes(indexes);
+            tree = tree.findByIndexes(indexes);
             if (tree != null)
             {
                 Descriptors.Descriptor descriptor = tree.descriptor;
+                in.wrap(data, index, length);
+                DynamicMessage.Builder builder = supplyDynamicMessageBuilder(descriptor);
+                validate:
                 try
                 {
-                    in.wrap(data, index, length);
-                    DynamicMessage message = DynamicMessage.parseFrom(descriptor, in);
-                    if (message.getUnknownFields().asMap().isEmpty())
+                    builder.mergeFrom(in);
+                    DynamicMessage message = builder.build();
+                    builder.clear();
+                    if (!message.getUnknownFields().asMap().isEmpty())
                     {
-                        if (FORMAT_JSON.equals(format))
-                        {
-                            String json = printer.print(message);
-                            int jsonLength = json.length();
-                            valueRO.wrap(json.getBytes());
-                            next.accept(valueRO, 0, jsonLength);
-                            valLength = jsonLength;
-                        }
-                        else
-                        {
-                            next.accept(data, index, length);
-                            valLength = length;
-                        }
+                        break validate;
+                    }
+
+                    if (FORMAT_JSON.equals(format))
+                    {
+                        out.wrap(out.buffer());
+                        printer.appendTo(message, output);
+                        output.flush();
+                        valLength = out.position();
+                        next.accept(out.buffer(), 0, valLength);
+                    }
+                    else
+                    {
+                        next.accept(data, index, length);
+                        valLength = length;
                     }
                 }
                 catch (IOException e)

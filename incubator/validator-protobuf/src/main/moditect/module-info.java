@@ -15,9 +15,10 @@
 module io.aklivity.zilla.runtime.validator.protobuf
 {
     requires org.antlr.antlr4.runtime;
+    requires protobuf.java;
     requires io.aklivity.zilla.runtime.engine;
 
-    exports io.aklivity.zilla.runtime.validator.json.config;
+    exports io.aklivity.zilla.runtime.validator.protobuf.config;
 
     provides io.aklivity.zilla.runtime.engine.config.ValidatorConfigAdapterSpi
         with io.aklivity.zilla.runtime.validator.protobuf.config.ProtobufValidatorConfigAdapter;

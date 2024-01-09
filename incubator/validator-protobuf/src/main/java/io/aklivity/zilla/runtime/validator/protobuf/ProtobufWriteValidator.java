@@ -15,12 +15,12 @@
 package io.aklivity.zilla.runtime.validator.protobuf;
 
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.function.LongFunction;
 
 import org.agrona.DirectBuffer;
-import org.agrona.ExpandableDirectByteBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
-import org.agrona.io.ExpandableDirectBufferOutputStream;
+import org.agrona.io.DirectBufferInputStream;
 
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
@@ -36,7 +36,9 @@ import io.aklivity.zilla.runtime.validator.protobuf.config.ProtobufValidatorConf
 public class ProtobufWriteValidator extends ProtobufValidator implements ValueValidator, FragmentValidator
 {
     private final DirectBuffer indexesRO;
-    private final ExpandableDirectBufferOutputStream out;
+    private final InputStreamReader input;
+    private final DirectBufferInputStream in;
+    private final JsonFormat.Parser parser;
 
     public ProtobufWriteValidator(
         ProtobufValidatorConfig config,
@@ -44,7 +46,9 @@ public class ProtobufWriteValidator extends ProtobufValidator implements ValueVa
     {
         super(config, supplyCatalog);
         this.indexesRO = new UnsafeBuffer();
-        this.out = new ExpandableDirectBufferOutputStream(new ExpandableDirectByteBuffer());
+        this.in =  new DirectBufferInputStream();
+        this.input = new InputStreamReader(in);
+        this.parser = JsonFormat.parser();
     }
 
     @Override
@@ -113,19 +117,22 @@ public class ProtobufWriteValidator extends ProtobufValidator implements ValueVa
         int length)
     {
         boolean status = false;
-        Descriptors.FileDescriptor fileDescriptor = supplyDescriptor(schemaId);
-        if (fileDescriptor != null)
+        DescriptorTree trees = supplyDescriptorTree(schemaId);
+        if (trees != null && catalog.record != null)
         {
-            DescriptorTree tree = new DescriptorTree(fileDescriptor).findByName(catalog.record);
+            DescriptorTree tree = trees.findByName(catalog.record);
             if (tree != null)
             {
                 Descriptors.Descriptor descriptor = tree.descriptor;
                 indexes.add(tree.indexes.size());
                 indexes.addAll(tree.indexes);
+                in.wrap(buffer, index, length);
+                DynamicMessage.Builder builder = supplyDynamicMessageBuilder(descriptor);
                 try
                 {
-                    in.wrap(buffer, index, length);
-                    DynamicMessage message = DynamicMessage.parseFrom(descriptor, in);
+                    builder.mergeFrom(in);
+                    DynamicMessage message = builder.build();
+                    builder.clear();
                     status = message.getUnknownFields().asMap().isEmpty();
                 }
                 catch (IOException e)
@@ -155,7 +162,8 @@ public class ProtobufWriteValidator extends ProtobufValidator implements ValueVa
             indexesRO.wrap(encodeIndexes());
             valLength = indexes.size();
         }
-        next.accept(valueRO, 0, valLength);
+        indexes.clear();
+        next.accept(indexesRO, 0, valLength);
         next.accept(buffer, index, length);
         return valLength + length;
     }
@@ -168,22 +176,22 @@ public class ProtobufWriteValidator extends ProtobufValidator implements ValueVa
         ValueConsumer next)
     {
         int valLength = -1;
-        Descriptors.FileDescriptor fileDescriptor = supplyDescriptor(schemaId);
-        if (fileDescriptor != null)
+        DescriptorTree tree = supplyDescriptorTree(schemaId);
+        if (tree != null && catalog.record != null)
         {
-            DescriptorTree tree = new DescriptorTree(fileDescriptor).findByName(catalog.record);
+            tree = tree.findByName(catalog.record);
             if (tree != null)
             {
                 Descriptors.Descriptor descriptor = tree.descriptor;
                 indexes.add(tree.indexes.size());
                 indexes.addAll(tree.indexes);
                 DynamicMessage.Builder builder = supplyDynamicMessageBuilder(descriptor);
+                in.wrap(buffer, index, length);
                 try
                 {
-                    byte[] byteArray = new byte[length];
-                    buffer.getBytes(index, byteArray);
-                    JsonFormat.parser().merge(new String(byteArray), builder);
+                    parser.merge(input, builder);
                     DynamicMessage message = builder.build();
+                    builder.clear();
                     if (message.isInitialized() && message.getUnknownFields().asMap().isEmpty())
                     {
                         out.wrap(out.buffer());
