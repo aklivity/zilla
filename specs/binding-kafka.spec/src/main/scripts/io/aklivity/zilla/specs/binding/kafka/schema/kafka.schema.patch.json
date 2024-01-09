@@ -91,6 +91,16 @@
                                     }
                                 }
                             },
+                            "servers":
+                            {
+                                "title": "Servers",
+                                "type": "array",
+                                "items":
+                                {
+                                    "type": "string",
+                                    "pattern": "([^\\:]+):(\\d+)"
+                                }
+                            },
                             "sasl":
                             {
                                 "title": "SASL",
