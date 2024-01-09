@@ -85,9 +85,8 @@ public final class TcpClientRouter
         }
         else if (binding.routes == TcpBindingConfig.DEFAULT_CLIENT_ROUTES)
         {
-            ProxyAddressInetFW inet = beginEx.address().inet();
-            InetSocketAddress newResolved = new InetSocketAddress(inet.destination().asString(), inet.destinationPort());
-            resolved = newResolved;
+            ProxyAddressFW address = beginEx.address();
+            resolved = resolveInetSocketAddress(address);
         }
         else
         {
@@ -155,6 +154,50 @@ public final class TcpClientRouter
                     }
                 }
             }
+        }
+
+        return resolved;
+    }
+
+    private InetSocketAddress resolveInetSocketAddress(
+        ProxyAddressFW address)
+    {
+        InetSocketAddress resolved = null;
+
+        try
+        {
+            switch (address.kind())
+            {
+            case INET:
+                ProxyAddressInetFW addressInet = address.inet();
+                resolved = new InetSocketAddress(addressInet.destination().asString(), addressInet.destinationPort());
+                break;
+            case INET4:
+                ProxyAddressInet4FW addressInet4 = address.inet4();
+                OctetsFW destinationInet4 = addressInet4.destination();
+                int destinationPortInet4 = addressInet4.destinationPort();
+
+                byte[] ipv4 = ipv4RO;
+                destinationInet4.buffer().getBytes(destinationInet4.offset(), ipv4);
+                resolved = new InetSocketAddress(InetAddress.getByAddress(ipv4), destinationPortInet4);
+                break;
+            case INET6:
+                ProxyAddressInet6FW addressInet6 = address.inet6();
+
+                OctetsFW destinationInet6 = addressInet6.destination();
+                int destinationPortInet6 = addressInet6.destinationPort();
+
+                byte[] ipv6 = ipv6ros;
+                destinationInet6.buffer().getBytes(destinationInet6.offset(), ipv6);
+                resolved = new InetSocketAddress(InetAddress.getByAddress(ipv6), destinationPortInet6);
+                break;
+            default:
+                throw new RuntimeException("Unexpected address kind");
+            }
+        }
+        catch (UnknownHostException e)
+        {
+            //Ignore
         }
 
         return resolved;
