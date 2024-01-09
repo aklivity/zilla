@@ -27,7 +27,7 @@ read zilla:begin.ext ${kafka:beginEx()
                                 .groupId("client-publish")
                                 .partition(-1, -2)
                                 .ackMode("IN_SYNC_REPLICAS")
-                                .type("IDEMPOTENT") # How to tell kafka binding we're using idempotent producer?
+                                .producerId(0)
                                 .build()
                             .build()}
 

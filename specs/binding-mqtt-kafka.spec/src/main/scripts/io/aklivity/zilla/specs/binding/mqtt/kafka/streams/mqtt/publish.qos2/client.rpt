@@ -17,7 +17,8 @@ connect "zilla://streams/mqtt0"
          option zilla:window 8192
          option zilla:transmission "duplex"
 
-# we should have a dedicated qos2 publish stream to avoid overhead on other streams
+# qos = 0 -> ackMode = NONE, qos = 1 -> ackMode = IN_SYNC_REPLICAS, qos = 2 -> IN_SYNC_REPLICAS
+# separate streams for all qos levels
 write zilla:begin.ext ${mqtt:beginEx()
                               .typeId(zilla:id("mqtt"))
                               .publish()

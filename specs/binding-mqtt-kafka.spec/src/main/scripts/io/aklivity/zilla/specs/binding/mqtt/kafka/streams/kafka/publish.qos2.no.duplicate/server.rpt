@@ -21,12 +21,23 @@ accepted
 
 read zilla:begin.ext ${kafka:beginEx()
                             .typeId(zilla:id("kafka"))
+                            .consumer()
+                                .topic("mqtt-messages")
+                                .groupId("client-publish")
+                                .build()
+                            .build()}
+
+accepted
+
+read zilla:begin.ext ${kafka:beginEx()
+                            .typeId(zilla:id("kafka"))
                             .merged()
                                 .capabilities("PRODUCE_ONLY")
                                 .topic("mqtt-messages")
                                 .groupId("client-publish")
                                 .partition(-1, -2)
                                 .ackMode("LEADER_ONLY")
+
                                 .type("IDEMPOTENT") # How to tell kafka binding we're using idempotent producer?
                                 .build()
                             .build()}
