@@ -672,116 +672,104 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
     end
     pinfo.cols.info:set(info)
 
-    -- begin
+    local next_offset = frame_offset + 72
     if frame_type_id == BEGIN_ID then
-        local slice_affinity = buffer(frame_offset + 72, 8)
-        subtree:add_le(fields.affinity, slice_affinity)
-        handle_extension(buffer, subtree, pinfo, info, frame_offset + 80, frame_type_id)
+        handle_begin_frame(buffer, next_offset, subtree, pinfo, info)
+    elseif frame_type_id == DATA_ID then
+        handle_data_frame(buffer, next_offset, tree, subtree, sequence, acknowledge, maximum, pinfo, info, protocol_type)
+    elseif frame_type_id == FLUSH_ID then
+        handle_flush_frame(buffer, next_offset, subtree, pinfo, info)
+    elseif frame_type_id == WINDOW_ID then
+        handle_window_frame(buffer, next_offset, subtree, sequence, acknowledge, maximum, pinfo, info)
+    elseif frame_type_id == SIGNAL_ID then
+        handle_signal_frame(buffer, next_offset, subtree, pinfo, info)
+    elseif frame_type_id == END_ID or frame_type_id == ABORT_ID or frame_type_id == RESET_ID or frame_type_id == CHALLENGE_ID then
+        handle_extension(buffer, subtree, pinfo, info, next_offset, frame_type_id)
+    end
+end
+
+function handle_begin_frame(buffer, offset, subtree, pinfo, info)
+    local slice_affinity = buffer(offset, 8)
+    subtree:add_le(fields.affinity, slice_affinity)
+    handle_extension(buffer, subtree, pinfo, info, offset + 8, BEGIN_ID)
+end
+
+function handle_data_frame(buffer, offset, tree, subtree, sequence, acknowledge, maximum, pinfo, info, protocol_type)
+    local slice_flags = buffer(offset, 1)
+    local flags_label = string.format("Flags: 0x%02x", slice_flags:le_uint())
+    local flags_subtree = subtree:add(zilla_protocol, slice_flags, flags_label)
+    flags_subtree:add_le(fields.flags_fin, slice_flags)
+    flags_subtree:add_le(fields.flags_init, slice_flags)
+    flags_subtree:add_le(fields.flags_incomplete, slice_flags)
+    flags_subtree:add_le(fields.flags_skip, slice_flags)
+
+    local slice_budget_id = buffer(offset + 1, 8)
+    local slice_reserved = buffer(offset + 9, 4)
+    local reserved = slice_reserved:le_int();
+    local progress = sequence - acknowledge + reserved;
+    local progress_maximum = string.format("%s/%s", progress, maximum)
+    subtree:add_le(fields.budget_id, slice_budget_id)
+    subtree:add_le(fields.reserved, slice_reserved)
+    subtree:add(fields.progress, progress)
+    subtree:add(fields.progress_maximum, progress_maximum)
+    pinfo.cols.info:set(string.format("%s [%s]", info, progress_maximum))
+
+    local slice_payload_length = buffer(offset + 13, 4)
+    local payload_length = math.max(slice_payload_length:le_int(), 0)
+    local slice_payload = buffer(offset + 17, payload_length)
+    local payload_subtree = subtree:add(zilla_protocol, buffer(offset + 13, 4 + payload_length), "Payload")
+    payload_subtree:add_le(fields.payload_length, slice_payload_length)
+    if (payload_length > 0) then
+        payload_subtree:add(fields.payload, slice_payload)
     end
 
-    -- data
-    if frame_type_id == DATA_ID then
-        local slice_flags = buffer(frame_offset + 72, 1)
-        local flags_label = string.format("Flags: 0x%02x", slice_flags:le_uint())
-        local flags_subtree = subtree:add(zilla_protocol, slice_flags, flags_label)
-        flags_subtree:add_le(fields.flags_fin, slice_flags)
-        flags_subtree:add_le(fields.flags_init, slice_flags)
-        flags_subtree:add_le(fields.flags_incomplete, slice_flags)
-        flags_subtree:add_le(fields.flags_skip, slice_flags)
+    handle_extension(buffer, subtree, pinfo, info, offset + 17 + payload_length, DATA_ID)
 
-        local slice_budget_id = buffer(frame_offset + 73, 8)
-        local slice_reserved = buffer(frame_offset + 81, 4)
-        local reserved = slice_reserved:le_int();
-        local progress = sequence - acknowledge + reserved;
-        local progress_maximum = string.format("%s/%s", progress, maximum)
-        subtree:add_le(fields.budget_id, slice_budget_id)
-        subtree:add_le(fields.reserved, slice_reserved)
-        subtree:add(fields.progress, progress)
-        subtree:add(fields.progress_maximum, progress_maximum)
-        pinfo.cols.info:set(string.format("%s [%s]", info, progress_maximum))
-
-        local slice_payload_length = buffer(frame_offset + 85, 4)
-        local payload_length = math.max(slice_payload_length:le_int(), 0)
-        local slice_payload = buffer(frame_offset + 89, payload_length)
-        local payload_subtree = subtree:add(zilla_protocol, buffer(frame_offset + 85, 4 + payload_length), "Payload")
-        payload_subtree:add_le(fields.payload_length, slice_payload_length)
-        if (payload_length > 0) then
-            payload_subtree:add(fields.payload, slice_payload)
-        end
-
-        handle_extension(buffer, subtree, pinfo, info, frame_offset + 89 + payload_length, frame_type_id)
-
-        local dissector = resolve_dissector(protocol_type, slice_payload:tvb())
-        if dissector then
-            dissector:call(slice_payload:tvb(), pinfo, tree)
-        end
+    local dissector = resolve_dissector(protocol_type, slice_payload:tvb())
+    if dissector then
+        dissector:call(slice_payload:tvb(), pinfo, tree)
     end
+end
 
-    -- end
-    if frame_type_id == END_ID then
-        handle_extension(buffer, subtree, pinfo, info, frame_offset + 72, frame_type_id)
-    end
+function handle_flush_frame(buffer, offset, subtree, pinfo, info)
+    local slice_budget_id = buffer(offset, 8)
+    local slice_reserved = buffer(offset + 8, 4)
+    subtree:add_le(fields.budget_id, slice_budget_id)
+    subtree:add_le(fields.reserved, slice_reserved)
+    handle_extension(buffer, subtree, pinfo, info, offset + 12, FLUSH_ID)
+end
 
-    -- abort
-    if frame_type_id == ABORT_ID then
-        handle_extension(buffer, subtree, pinfo, info, frame_offset + 72, frame_type_id)
-    end
+function handle_window_frame(buffer, offset, subtree, sequence, acknowledge, maximum, pinfo, info)
+    local slice_budget_id = buffer(offset, 8)
+    local slice_padding = buffer(offset + 8, 4)
+    local slice_minimum = buffer(offset + 12, 4)
+    local slice_capabilities = buffer(offset + 16, 1)
+    subtree:add_le(fields.budget_id, slice_budget_id)
+    subtree:add_le(fields.padding, slice_padding)
+    subtree:add_le(fields.minimum, slice_minimum)
+    subtree:add_le(fields.capabilities, slice_capabilities)
+    local progress = sequence - acknowledge;
+    local progress_maximum = string.format("%s/%s", progress, maximum)
+    subtree:add(fields.progress, progress)
+    subtree:add(fields.progress_maximum, progress_maximum)
+    pinfo.cols.info:set(string.format("%s [%s]", info, progress_maximum))
+end
 
-    -- flush
-    if frame_type_id == FLUSH_ID then
-        local slice_budget_id = buffer(frame_offset + 72, 8)
-        local slice_reserved = buffer(frame_offset + 80, 4)
-        subtree:add_le(fields.budget_id, slice_budget_id)
-        subtree:add_le(fields.reserved, slice_reserved)
-        handle_extension(buffer, subtree, pinfo, info, frame_offset + 84, frame_type_id)
-    end
-
-    -- reset
-    if frame_type_id == RESET_ID then
-        handle_extension(buffer, subtree, pinfo, info, frame_offset + 72, frame_type_id)
-    end
-
-    -- window
-    if frame_type_id == WINDOW_ID then
-        local slice_budget_id = buffer(frame_offset + 72, 8)
-        local slice_padding = buffer(frame_offset + 80, 4)
-        local slice_minimum = buffer(frame_offset + 84, 4)
-        local slice_capabilities = buffer(frame_offset + 88, 1)
-        subtree:add_le(fields.budget_id, slice_budget_id)
-        subtree:add_le(fields.padding, slice_padding)
-        subtree:add_le(fields.minimum, slice_minimum)
-        subtree:add_le(fields.capabilities, slice_capabilities)
-
-        local progress = sequence - acknowledge;
-        local progress_maximum = string.format("%s/%s", progress, maximum)
-        subtree:add(fields.progress, progress)
-        subtree:add(fields.progress_maximum, progress_maximum)
-
-        pinfo.cols.info:set(string.format("%s [%s]", info, progress_maximum))
-    end
-
-    -- signal
-    if frame_type_id == SIGNAL_ID then
-        local slice_cancel_id = buffer(frame_offset + 72, 8)
-        local slice_signal_id = buffer(frame_offset + 80, 4)
-        local slice_context_id = buffer(frame_offset + 84, 4)
-        subtree:add_le(fields.cancel_id, slice_cancel_id)
-        subtree:add_le(fields.signal_id, slice_signal_id)
-        subtree:add_le(fields.context_id, slice_context_id)
-
-        local slice_payload_length = buffer(frame_offset + 88, 4)
-        local payload_length = math.max(slice_payload_length:le_int(), 0)
-        local slice_payload = buffer(frame_offset + 92, payload_length)
-        local payload_subtree = subtree:add(zilla_protocol, slice_payload, "Payload")
-        payload_subtree:add_le(fields.payload_length, slice_payload_length)
-        if (payload_length > 0) then
-            payload_subtree:add(fields.payload, slice_payload)
-        end
-    end
-
-    -- challenge
-    if frame_type_id == CHALLENGE_ID then
-        handle_extension(buffer, subtree, pinfo, info, frame_offset + 72, frame_type_id)
+function handle_signal_frame(buffer, offset, subtree, pinfo, info)
+    local slice_cancel_id = buffer(offset, 8)
+    local slice_signal_id = buffer(offset + 8, 4)
+    local slice_context_id = buffer(offset + 12, 4)
+    subtree:add_le(fields.cancel_id, slice_cancel_id)
+    subtree:add_le(fields.signal_id, slice_signal_id)
+    subtree:add_le(fields.context_id, slice_context_id)
+    -- payload
+    local slice_payload_length = buffer(offset + 16, 4)
+    local payload_length = math.max(slice_payload_length:le_int(), 0)
+    local slice_payload = buffer(offset + 20, payload_length)
+    local payload_subtree = subtree:add(zilla_protocol, slice_payload, "Payload")
+    payload_subtree:add_le(fields.payload_length, slice_payload_length)
+    if (payload_length > 0) then
+        payload_subtree:add(fields.payload, slice_payload)
     end
 end
 
