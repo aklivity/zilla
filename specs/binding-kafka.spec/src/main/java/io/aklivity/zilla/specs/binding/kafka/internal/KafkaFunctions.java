@@ -25,6 +25,8 @@ import java.nio.ByteBuffer;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Predicate;
 
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupOffsetOffsetDataExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupOffsetOffsetTopicPartitionFW;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -77,9 +79,12 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaFetchDat
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaFetchFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupBeginExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupMemberFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupMemberMetadataFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupOffsetCommitDataExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupOffsetCommitTopicPartitionFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupTopicMetadataFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedConsumerFlushExFW;
@@ -1666,6 +1671,13 @@ public final class KafkaFunctions
             return new KafkaProduceDataExBuilder();
         }
 
+        public KafkaGroupDataExBuilder group()
+        {
+            dataExRW.kind(KafkaApi.GROUP.value());
+
+            return new KafkaGroupDataExBuilder();
+        }
+
         public KafkaConsumerDataExBuilder consumer()
         {
             dataExRW.kind(KafkaApi.CONSUMER.value());
@@ -2414,6 +2426,168 @@ public final class KafkaFunctions
                 final KafkaProduceDataExFW produceDataEx = produceDataExRW.build();
                 dataExRO.wrap(writeBuffer, 0, produceDataEx.limit());
                 return KafkaDataExBuilder.this;
+            }
+        }
+
+        public final class KafkaGroupDataExBuilder
+        {
+            private final KafkaGroupDataExFW.Builder groupDataExRW = new KafkaGroupDataExFW.Builder();
+
+            private KafkaGroupDataExBuilder()
+            {
+                groupDataExRW.wrap(writeBuffer, KafkaDataExFW.FIELD_OFFSET_GROUP, writeBuffer.capacity());
+            }
+
+            public KafkaGroupOffsetCommitBuilder offsetCommit()
+            {
+                groupDataExRW.kind(KafkaApi.OFFSET_COMMIT.value());
+
+                return new KafkaGroupOffsetCommitBuilder();
+            }
+
+            public KafkaGroupOffsetFetchBuilder offsetFetch()
+            {
+                groupDataExRW.kind(KafkaApi.OFFSET_FETCH.value());
+
+                return new KafkaGroupOffsetFetchBuilder();
+            }
+
+            public final class KafkaGroupOffsetCommitBuilder
+            {
+                private KafkaGroupOffsetCommitDataExFW.Builder groupDataOffsetCommitExRW =
+                    new KafkaGroupOffsetCommitDataExFW.Builder();
+
+                KafkaGroupOffsetCommitBuilder()
+                {
+                    groupDataOffsetCommitExRW.wrap(
+                        writeBuffer,
+                        KafkaDataExFW.FIELD_OFFSET_GROUP + KafkaGroupDataExFW.FIELD_OFFSET_OFFSET_COMMIT,
+                        writeBuffer.capacity());
+                }
+
+                public KafkaGroupOffsetCommitTopicPartitionBuilder topic()
+                {
+                    KafkaGroupOffsetCommitTopicPartitionBuilder topicBuilder =
+                        new KafkaGroupOffsetCommitTopicPartitionBuilder();
+                    return topicBuilder;
+                }
+
+                public KafkaDataExBuilder build()
+                {
+                    KafkaGroupOffsetCommitDataExFW offsetCommitDataEx = groupDataOffsetCommitExRW.build();
+                    dataExRO.wrap(writeBuffer, 0, offsetCommitDataEx.limit());
+                    return KafkaDataExBuilder.this;
+                }
+
+                public final class KafkaGroupOffsetCommitTopicPartitionBuilder
+                {
+                    private final MutableDirectBuffer topicBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+                    private final KafkaGroupOffsetCommitTopicPartitionFW.Builder dataGroupOffsetCommitTopicExRW =
+                        new KafkaGroupOffsetCommitTopicPartitionFW.Builder();
+
+                    private KafkaGroupOffsetCommitTopicPartitionBuilder()
+                    {
+                        dataGroupOffsetCommitTopicExRW.wrap(topicBuffer, 0, topicBuffer.capacity());
+                    }
+
+                    public KafkaGroupOffsetCommitTopicPartitionBuilder name(
+                        String name)
+                    {
+                        dataGroupOffsetCommitTopicExRW.topic(name);
+                        return this;
+                    }
+
+                    public KafkaGroupOffsetCommitTopicPartitionBuilder progress(
+                        int partitionId,
+                        long partitionOffset)
+                    {
+                        progress(partitionId, partitionOffset, DEFAULT_LATEST_OFFSET);
+                        return this;
+                    }
+
+                    public KafkaGroupOffsetCommitTopicPartitionBuilder progress(
+                        int partitionId,
+                        long partitionOffset,
+                        long latestOffset)
+                    {
+                        dataGroupOffsetCommitTopicExRW.progress(p -> p
+                            .partitionId(partitionId)
+                            .partitionOffset(partitionOffset)
+                            .latestOffset(latestOffset));
+                        return this;
+                    }
+
+                    public KafkaGroupOffsetCommitBuilder build()
+                    {
+                        KafkaGroupOffsetCommitTopicPartitionFW topic = dataGroupOffsetCommitTopicExRW.build();
+                        groupDataOffsetCommitExRW.topicsItem(t -> t.topic(topic.topic()).progress(topic.progress()));
+                        return KafkaGroupOffsetCommitBuilder.this;
+                    }
+                }
+            }
+
+            public final class KafkaGroupOffsetFetchBuilder
+            {
+                private KafkaGroupOffsetOffsetDataExFW.Builder groupDataOffsetFetchExRW =
+                    new KafkaGroupOffsetOffsetDataExFW.Builder();
+
+                private KafkaGroupOffsetFetchBuilder()
+                {
+                    groupDataOffsetFetchExRW.wrap(
+                        writeBuffer,
+                        KafkaDataExFW.FIELD_OFFSET_GROUP + KafkaGroupDataExFW.FIELD_OFFSET_OFFSET_FETCH,
+                        writeBuffer.capacity());
+                }
+
+                public KafkaGroupOffsetFetchTopicPartitionBuilder topic()
+                {
+                    KafkaGroupOffsetFetchTopicPartitionBuilder topicBuilder =
+                        new KafkaGroupOffsetFetchTopicPartitionBuilder();
+                    return topicBuilder;
+                }
+
+                public KafkaDataExBuilder build()
+                {
+                    KafkaGroupOffsetOffsetDataExFW offsetFetchDataEx = groupDataOffsetFetchExRW.build();
+                    dataExRO.wrap(writeBuffer, 0, offsetFetchDataEx.limit());
+                    return KafkaDataExBuilder.this;
+                }
+
+                public final class KafkaGroupOffsetFetchTopicPartitionBuilder
+                {
+                    private final MutableDirectBuffer topicBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+                    private final KafkaGroupOffsetOffsetTopicPartitionFW.Builder dataGroupOffsetFetchTopicExRW =
+                        new KafkaGroupOffsetOffsetTopicPartitionFW.Builder();
+
+                    private KafkaGroupOffsetFetchTopicPartitionBuilder()
+                    {
+                        dataGroupOffsetFetchTopicExRW.wrap(topicBuffer, 0, topicBuffer.capacity());
+                    }
+
+                    public KafkaGroupOffsetFetchTopicPartitionBuilder name(
+                        String name)
+                    {
+                        dataGroupOffsetFetchTopicExRW.topic(name);
+                        return this;
+                    }
+
+                    public KafkaGroupOffsetFetchTopicPartitionBuilder partition(
+                        int partitionId,
+                        long partitionOffset)
+                    {
+                        dataGroupOffsetFetchTopicExRW.partitionsItem(p -> p
+                            .partitionId(partitionId)
+                            .partitionOffset(partitionOffset));
+                        return this;
+                    }
+
+                    public KafkaGroupOffsetFetchBuilder build()
+                    {
+                        KafkaGroupOffsetOffsetTopicPartitionFW topic = dataGroupOffsetFetchTopicExRW.build();
+                        groupDataOffsetFetchExRW.topicsItem(t -> t.topic(topic.topic()).partitions(topic.partitions()));
+                        return KafkaGroupOffsetFetchBuilder.this;
+                    }
+                }
             }
         }
 
