@@ -82,7 +82,6 @@ bindings:
     type: mqtt-kafka
     kind: proxy
     options:
-      server: localhost:7183
       topics:
         sessions: mqtt-sessions
         messages: mqtt-messages
