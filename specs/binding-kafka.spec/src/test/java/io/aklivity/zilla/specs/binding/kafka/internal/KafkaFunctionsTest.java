@@ -73,7 +73,6 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaFetchDat
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaFetchFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupBeginExFW;
-import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupMemberMetadataFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedBeginExFW;
@@ -4386,72 +4385,6 @@ public class KafkaFunctionsTest
         assertEquals(2L, offsetCommitDataEx.progress().partitionOffset());
         assertEquals(0, offsetCommitDataEx.leaderEpoch());
         assertEquals(0, offsetCommitDataEx.generationId());
-    }
-
-    @Test
-    public void shouldGenerateGroupOffsetCommitDataExtension()
-    {
-        byte[] build = KafkaFunctions.dataEx()
-            .typeId(0x01)
-            .group()
-                .offsetCommit()
-                    .topic()
-                        .name("test1")
-                        .progress(0, 1L)
-                        .build()
-                    .topic()
-                        .name("test2")
-                        .progress(1, 2L)
-                        .build()
-                .build()
-        .build();
-
-        DirectBuffer buffer = new UnsafeBuffer(build);
-        KafkaDataExFW dataEx = new KafkaDataExFW().wrap(buffer, 0, buffer.capacity());
-        assertEquals(0x01, dataEx.typeId());
-        assertEquals(KafkaApi.GROUP.value(), dataEx.kind());
-
-        KafkaGroupDataExFW groupDataEx = dataEx.group();
-        assertEquals(KafkaApi.OFFSET_COMMIT.value(), groupDataEx.kind());
-
-        assertNotNull(groupDataEx.offsetCommit().topics()
-            .matchFirst(t -> "test1".equals(t.topic().asString()) && t.progress().partitionOffset() == 1L));
-
-        assertNotNull(groupDataEx.offsetCommit().topics()
-            .matchFirst(t -> "test2".equals(t.topic().asString()) && t.progress().partitionOffset() == 2L));
-    }
-
-    @Test
-    public void shouldGenerateGroupOffsetFetchDataExtension()
-    {
-        byte[] build = KafkaFunctions.dataEx()
-            .typeId(0x01)
-            .group()
-            .offsetFetch()
-                .topic()
-                    .name("test1")
-                    .partition(0, 1L)
-                    .build()
-                .topic()
-                    .name("test2")
-                    .partition(1, 2L)
-                    .build()
-                .build()
-            .build();
-
-        DirectBuffer buffer = new UnsafeBuffer(build);
-        KafkaDataExFW dataEx = new KafkaDataExFW().wrap(buffer, 0, buffer.capacity());
-        assertEquals(0x01, dataEx.typeId());
-        assertEquals(KafkaApi.GROUP.value(), dataEx.kind());
-
-        KafkaGroupDataExFW groupDataEx = dataEx.group();
-        assertEquals(KafkaApi.OFFSET_FETCH.value(), groupDataEx.kind());
-
-        assertNotNull(groupDataEx.offsetFetch().topics()
-            .matchFirst(t -> "test1".equals(t.topic().asString()) && t.partitions().fieldCount() == 1));
-
-        assertNotNull(groupDataEx.offsetFetch().topics()
-            .matchFirst(t -> "test2".equals(t.topic().asString()) && t.partitions().fieldCount() == 1));
     }
 
     @Test
