@@ -63,14 +63,9 @@ public class ProtobufReadValidator  extends ProtobufValidator implements ValueVa
 
             if (schemaId == NO_SCHEMA_ID)
             {
-                if (catalog.id != NO_SCHEMA_ID)
-                {
-                    schemaId = catalog.id;
-                }
-                else
-                {
-                    schemaId = handler.resolve(subject, catalog.version);
-                }
+                schemaId = catalog.id != NO_SCHEMA_ID
+                    ? catalog.id
+                    : handler.resolve(subject, catalog.version);
             }
             padding = supplyJsonFormatPadding(schemaId);
         }
@@ -144,17 +139,15 @@ public class ProtobufReadValidator  extends ProtobufValidator implements ValueVa
         DescriptorTree tree = supplyDescriptorTree(schemaId);
         if (tree != null)
         {
-            tree = tree.findByIndexes(indexes);
-            if (tree != null)
+            Descriptors.Descriptor descriptor = tree.findByIndexes(indexes);
+            if (descriptor != null)
             {
-                Descriptors.Descriptor descriptor = tree.descriptor;
                 in.wrap(data, index, length);
                 DynamicMessage.Builder builder = supplyDynamicMessageBuilder(descriptor);
                 validate:
                 try
                 {
-                    builder.mergeFrom(in);
-                    DynamicMessage message = builder.build();
+                    DynamicMessage message = builder.mergeFrom(in).build();
                     builder.clear();
                     if (!message.getUnknownFields().asMap().isEmpty())
                     {
@@ -175,9 +168,9 @@ public class ProtobufReadValidator  extends ProtobufValidator implements ValueVa
                         valLength = length;
                     }
                 }
-                catch (IOException e)
+                catch (IOException ex)
                 {
-                    e.printStackTrace();
+                    ex.printStackTrace();
                 }
             }
         }

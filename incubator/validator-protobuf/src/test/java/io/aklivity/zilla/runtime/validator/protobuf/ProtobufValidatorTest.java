@@ -351,7 +351,7 @@ public class ProtobufValidatorTest
 
         DirectBuffer data = new UnsafeBuffer();
 
-        assertEquals(1584, validator.padding(data, 0, data.capacity()));
+        assertEquals(71, validator.padding(data, 0, data.capacity()));
     }
 
     @Test

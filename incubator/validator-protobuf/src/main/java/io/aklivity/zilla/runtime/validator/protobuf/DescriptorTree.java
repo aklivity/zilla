@@ -76,7 +76,7 @@ public class DescriptorTree
         return current;
     }
 
-    protected DescriptorTree findByIndexes(
+    protected Descriptor findByIndexes(
         List<Integer> indexes)
     {
         DescriptorTree current = this;
@@ -86,10 +86,10 @@ public class DescriptorTree
             current = current.findChild(index);
             if (current == null)
             {
-                return null;
+                break;
             }
         }
-        return current;
+        return current != null ? current.descriptor : null;
     }
 
     private DescriptorTree findParent(

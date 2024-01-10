@@ -130,14 +130,13 @@ public class ProtobufWriteValidator extends ProtobufValidator implements ValueVa
                 DynamicMessage.Builder builder = supplyDynamicMessageBuilder(descriptor);
                 try
                 {
-                    builder.mergeFrom(in);
-                    DynamicMessage message = builder.build();
+                    DynamicMessage message = builder.mergeFrom(in).build();
                     builder.clear();
                     status = message.getUnknownFields().asMap().isEmpty();
                 }
-                catch (IOException e)
+                catch (IOException ex)
                 {
-                    e.printStackTrace();
+                    ex.printStackTrace();
                 }
             }
         }
@@ -151,10 +150,10 @@ public class ProtobufWriteValidator extends ProtobufValidator implements ValueVa
         int length,
         ValueConsumer next)
     {
-        int valLength = 0;
+        int valLength = -1;
         if (indexes.size() == 2 && indexes.get(0) == 1 && indexes.get(1) == 0)
         {
-            indexesRO.wrap(new byte[]{ZERO_INDEX});
+            indexesRO.wrap(ZERO_INDEX);
             valLength = 1;
         }
         else
@@ -183,6 +182,7 @@ public class ProtobufWriteValidator extends ProtobufValidator implements ValueVa
             if (tree != null)
             {
                 Descriptors.Descriptor descriptor = tree.descriptor;
+                indexes.clear();
                 indexes.add(tree.indexes.size());
                 indexes.addAll(tree.indexes);
                 DynamicMessage.Builder builder = supplyDynamicMessageBuilder(descriptor);
@@ -199,9 +199,9 @@ public class ProtobufWriteValidator extends ProtobufValidator implements ValueVa
                         valLength = encode(schemaId, out.buffer(), 0, out.position(), next);
                     }
                 }
-                catch (IOException e)
+                catch (IOException ex)
                 {
-                    e.printStackTrace();
+                    ex.printStackTrace();
                 }
             }
         }

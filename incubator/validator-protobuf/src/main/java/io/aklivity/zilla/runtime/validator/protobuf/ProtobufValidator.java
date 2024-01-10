@@ -37,8 +37,6 @@ import com.google.protobuf.Descriptors;
 import com.google.protobuf.Descriptors.DescriptorValidationException;
 import com.google.protobuf.Descriptors.FileDescriptor;
 import com.google.protobuf.DynamicMessage;
-import com.google.protobuf.InvalidProtocolBufferException;
-import com.google.protobuf.util.JsonFormat;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
@@ -49,8 +47,11 @@ import io.aklivity.zilla.runtime.validator.protobuf.internal.parser.Protobuf3Par
 
 public class ProtobufValidator
 {
-    protected static final byte ZERO_INDEX = 0x0;
+    protected static final byte[] ZERO_INDEX = new byte[]{0x0};
     protected static final String FORMAT_JSON = "json";
+
+    private static final int JSON_FIELD_STRUCTURE_LENGTH = "\"\":\"\",".length();
+    private static final int JSON_OBJECT_CURLY_BRACES = 2;
 
     protected final SchemaConfig catalog;
     protected final CatalogHandler handler;
@@ -213,13 +214,13 @@ public class ProtobufValidator
 
         if (descriptor != null)
         {
-            try
+            for (Descriptors.Descriptor message : descriptor.getMessageTypes())
             {
-                padding = 2 + JsonFormat.printer().print(descriptor.toProto()).length();
-            }
-            catch (InvalidProtocolBufferException e)
-            {
-                e.printStackTrace();
+                padding += JSON_OBJECT_CURLY_BRACES;
+                for (Descriptors.FieldDescriptor field : message.getFields())
+                {
+                    padding += field.getName().getBytes().length + JSON_FIELD_STRUCTURE_LENGTH;
+                }
             }
 
         }
@@ -249,9 +250,9 @@ public class ProtobufValidator
             {
                 descriptor = FileDescriptor.buildFrom(listener.build(), dependencies);
             }
-            catch (DescriptorValidationException e)
+            catch (DescriptorValidationException ex)
             {
-                e.printStackTrace();
+                ex.printStackTrace();
             }
         }
         return descriptor;
