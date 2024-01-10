@@ -25,6 +25,8 @@ import java.nio.ByteBuffer;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Predicate;
 
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupOffsetOffsetDataExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupOffsetOffsetTopicPartitionFW;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -83,8 +85,6 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupMem
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupMemberMetadataFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupOffsetCommitDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupOffsetCommitTopicPartitionFW;
-import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupOffsetOffsetDataExFW;
-import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupOffsetOffsetTopicPartitionFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupTopicMetadataFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedConsumerFlushExFW;
@@ -2501,21 +2501,19 @@ public final class KafkaFunctions
                         int partitionId,
                         long partitionOffset)
                     {
-                        dataGroupOffsetCommitTopicExRW.progress(p -> p
-                            .partitionId(partitionId)
-                            .partitionOffset(partitionOffset));
+                        progress(partitionId, partitionOffset, DEFAULT_LATEST_OFFSET);
                         return this;
                     }
 
                     public KafkaGroupOffsetCommitTopicPartitionBuilder progress(
                         int partitionId,
                         long partitionOffset,
-                        String metadata)
+                        long latestOffset)
                     {
                         dataGroupOffsetCommitTopicExRW.progress(p -> p
                             .partitionId(partitionId)
                             .partitionOffset(partitionOffset)
-                            .metadata(metadata));
+                            .latestOffset(latestOffset));
                         return this;
                     }
 
@@ -2580,18 +2578,6 @@ public final class KafkaFunctions
                         dataGroupOffsetFetchTopicExRW.partitionsItem(p -> p
                             .partitionId(partitionId)
                             .partitionOffset(partitionOffset));
-                        return this;
-                    }
-
-                    public KafkaGroupOffsetFetchTopicPartitionBuilder partition(
-                        int partitionId,
-                        long partitionOffset,
-                        String metadata)
-                    {
-                        dataGroupOffsetFetchTopicExRW.partitionsItem(p -> p
-                            .partitionId(partitionId)
-                            .partitionOffset(partitionOffset)
-                            .metadata(metadata));
                         return this;
                     }
 
