@@ -24,6 +24,7 @@
     <module>validator-avro.spec</module>
     <module>validator-core.spec</module>
     <module>validator-json.spec</module>
+    <module>validator-protobuf.spec</module>
 
     <module>binding-amqp</module>
 
@@ -40,6 +41,7 @@
     <module>validator-avro</module>
     <module>validator-core</module>
     <module>validator-json</module>
+    <module>validator-protobuf</module>
   </modules>
 
   <dependencyManagement>
@@ -97,6 +99,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>validator-json</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>validator-protobuf</artifactId>
         <version>${project.version}</version>
       </dependency>
     </dependencies>

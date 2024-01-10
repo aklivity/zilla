@@ -190,7 +190,7 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
         SchemaRegistryPrefixFW prefix = prefixRW.rewrap().schemaId(schemaId).build();
         next.accept(prefix.buffer(), prefix.offset(), prefix.sizeof());
         int valLength = encoder.accept(schemaId, data, index, length, next);
-        return valLength != 0 ? prefix.sizeof() + valLength : -1;
+        return valLength > 0 ? prefix.sizeof() + valLength : -1;
     }
 
     @Override
