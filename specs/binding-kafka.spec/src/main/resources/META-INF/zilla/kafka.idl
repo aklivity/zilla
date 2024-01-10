@@ -196,7 +196,6 @@ scope kafka
         union KafkaDataEx switch (uint8) extends core::stream::Extension
         {
             case 252: kafka::stream::KafkaConsumerDataEx consumer;
-            case 253: kafka::stream::KafkaGroupDataEx group;
             case 255: kafka::stream::KafkaMergedDataEx merged;
             case 3: kafka::stream::KafkaMetaDataEx meta;
             case 8: kafka::stream::KafkaOffsetCommitDataEx offsetCommit;
@@ -421,34 +420,6 @@ scope kafka
             string16 leaderId;
             string16 memberId;
             KafkaGroupMember[] members;
-        }
-
-        union KafkaGroupDataEx switch (uint8)
-        {
-            case 8: kafka::stream::KafkaGroupOffsetCommitDataEx offsetCommit;
-            case 9: kafka::stream::KafkaGroupOffsetOffsetDataEx offsetFetch;
-        }
-
-        struct KafkaGroupOffsetCommitTopicPartition
-        {
-            string16 topic;
-            KafkaOffset progress;
-        }
-
-        struct KafkaGroupOffsetCommitDataEx
-        {
-            KafkaGroupOffsetCommitTopicPartition[] topics;
-        }
-
-        struct KafkaGroupOffsetOffsetTopicPartition
-        {
-            string16 topic;
-            KafkaTopicPartitionOffset[] partitions;
-        }
-
-        struct KafkaGroupOffsetOffsetDataEx
-        {
-              KafkaGroupOffsetOffsetTopicPartition[] topics;
         }
 
         struct KafkaConsumerBeginEx
