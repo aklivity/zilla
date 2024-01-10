@@ -50,6 +50,7 @@ import io.aklivity.zilla.runtime.command.dump.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.engine.internal.layouts.StreamsLayout;
+import io.aklivity.zilla.specs.binding.amqp.internal.AmqpFunctions;
 import io.aklivity.zilla.specs.binding.filesystem.internal.FileSystemFunctions;
 import io.aklivity.zilla.specs.binding.grpc.internal.GrpcFunctions;
 import io.aklivity.zilla.specs.binding.http.internal.HttpFunctions;
@@ -76,6 +77,7 @@ public class ZillaDumpCommandTest
     private static final int MQTT_TYPE_ID = 6;
     private static final int SSE_TYPE_ID = 7;
     private static final int WS_TYPE_ID = 8;
+    private static final int AMQP_TYPE_ID = 36;
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final DataFW.Builder dataRW = new DataFW.Builder();
@@ -1103,7 +1105,7 @@ public class ZillaDumpCommandTest
         DataFW data13 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000000bL) // north_tcp_server
             .routedId(0x000000090000000cL) // north_tls_server
-            .streamId(0x000000000000001aL) // REP
+            .streamId(0x000000000000001bL) // INI
             .sequence(0)
             .acknowledge(0)
             .maximum(0)
@@ -1139,13 +1141,13 @@ public class ZillaDumpCommandTest
         DataFW data15 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x0000000900000011L) // south_kafka_client
             .routedId(0x0000000900000012L) // south_tcp_client
-            .streamId(0x000000000000001dL) // INI
+            .streamId(0x000000000000001bL) // INI
             .sequence(0)
             .acknowledge(0)
             .maximum(0)
             .timestamp(0x0000000000000032L)
-            .traceId(0x000000000000001dL)
-            .budgetId(0x000000000000001dL)
+            .traceId(0x000000000000001bL)
+            .budgetId(0x000000000000001bL)
             .reserved(0x00000088)
             .payload(kafkaPayload1, 0, kafkaPayload1.capacity())
             .build();
@@ -1158,17 +1160,34 @@ public class ZillaDumpCommandTest
         DataFW data16 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x0000000900000011L) // south_kafka_client
             .routedId(0x0000000900000012L) // south_tcp_client
-            .streamId(0x000000000000001cL) // REP
+            .streamId(0x000000000000001aL) // REP
             .sequence(0)
             .acknowledge(0)
             .maximum(0)
             .timestamp(0x0000000000000033L)
-            .traceId(0x000000000000001dL)
-            .budgetId(0x000000000000001dL)
+            .traceId(0x000000000000001bL)
+            .budgetId(0x000000000000001bL)
             .reserved(0x00000088)
             .payload(kafkaPayload2, 0, kafkaPayload2.capacity())
             .build();
         streams[0].write(DataFW.TYPE_ID, data16.buffer(), 0, data16.sizeof());
+
+        // data frame with amqp payload: Protocol-Header 1-0-0
+        DirectBuffer amqpPayload1 = new UnsafeBuffer(BitUtil.fromHex("414d515000010000"));
+        DataFW data17 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000000bL) // north_tcp_server
+            .routedId(0x0000000900000025L) // north_amqp_server
+            .streamId(0x000000000000001bL) // INI
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x0000000000000034L)
+            .traceId(0x000000000000001bL)
+            .budgetId(0x000000000000001bL)
+            .reserved(0x00000077)
+            .payload(amqpPayload1, 0, amqpPayload1.capacity())
+            .build();
+        streams[0].write(DataFW.TYPE_ID, data17.buffer(), 0, data17.sizeof());
 
         // mqtt extension
         // - publish
@@ -1187,7 +1206,7 @@ public class ZillaDumpCommandTest
             .sequence(0)
             .acknowledge(0)
             .maximum(0)
-            .timestamp(0x0000000000000034L)
+            .timestamp(0x0000000000000035L)
             .traceId(0x0000000000000021L)
             .affinity(0x0000000000000000L)
             .extension(mqttPublishBeginEx1, 0, mqttPublishBeginEx1.capacity())
@@ -1210,7 +1229,7 @@ public class ZillaDumpCommandTest
             .sequence(0)
             .acknowledge(0)
             .maximum(0)
-            .timestamp(0x0000000000000035L)
+            .timestamp(0x0000000000000036L)
             .traceId(0x0000000000000021L)
             .affinity(0x0000000000000000L)
             .extension(mqttPublishBeginEx2, 0, mqttPublishBeginEx2.capacity())
@@ -1232,21 +1251,21 @@ public class ZillaDumpCommandTest
                 .userProperty("key77", "value77")
                 .build()
             .build());
-        DataFW data17 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+        DataFW data18 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x0000000900000022L) // north_mqtt_server
             .routedId(0x0000000900000023L) // north_mqtt_kafka_mapping
             .streamId(0x0000000000000021L) // INI
             .sequence(0)
             .acknowledge(0)
             .maximum(0)
-            .timestamp(0x0000000000000036L)
+            .timestamp(0x0000000000000037L)
             .traceId(0x0000000000000021L)
             .budgetId(0x0000000000000021L)
             .reserved(0x00000000)
             .payload(mqttPublishDataPayload, 0, mqttPublishDataPayload.capacity())
             .extension(mqttPublishDataEx1, 0, mqttPublishDataEx1.capacity())
             .build();
-        streams[0].write(DataFW.TYPE_ID, data17.buffer(), 0, data17.sizeof());
+        streams[0].write(DataFW.TYPE_ID, data18.buffer(), 0, data18.sizeof());
 
         DirectBuffer mqttPublishDataEx2 = new UnsafeBuffer(MqttFunctions.dataEx()
             .typeId(MQTT_TYPE_ID)
@@ -1261,21 +1280,21 @@ public class ZillaDumpCommandTest
                 .userProperty("key1", "value1")
                 .build()
             .build());
-        DataFW data18 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+        DataFW data19 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x0000000900000022L) // north_mqtt_server
             .routedId(0x0000000900000023L) // north_mqtt_kafka_mapping
             .streamId(0x0000000000000020L) // REP
             .sequence(0)
             .acknowledge(0)
             .maximum(0)
-            .timestamp(0x0000000000000037L)
+            .timestamp(0x0000000000000038L)
             .traceId(0x0000000000000021L)
             .budgetId(0x0000000000000021L)
             .reserved(0x00000000)
             .payload(mqttPublishDataPayload, 0, mqttPublishDataPayload.capacity())
             .extension(mqttPublishDataEx2, 0, mqttPublishDataEx2.capacity())
             .build();
-        streams[0].write(DataFW.TYPE_ID, data18.buffer(), 0, data18.sizeof());
+        streams[0].write(DataFW.TYPE_ID, data19.buffer(), 0, data19.sizeof());
 
         // - subscribe
         DirectBuffer mqttSubscribeBeginEx1 = new UnsafeBuffer(MqttFunctions.beginEx()
@@ -1296,7 +1315,7 @@ public class ZillaDumpCommandTest
             .sequence(0)
             .acknowledge(0)
             .maximum(0)
-            .timestamp(0x0000000000000038L)
+            .timestamp(0x0000000000000039L)
             .traceId(0x0000000000000023L)
             .affinity(0x0000000000000000L)
             .extension(mqttSubscribeBeginEx1, 0, mqttSubscribeBeginEx1.capacity())
@@ -1322,7 +1341,7 @@ public class ZillaDumpCommandTest
             .sequence(0)
             .acknowledge(0)
             .maximum(0)
-            .timestamp(0x0000000000000039L)
+            .timestamp(0x000000000000003aL)
             .traceId(0x0000000000000023L)
             .affinity(0x0000000000000000L)
             .extension(mqttSubscribeBeginEx2, 0, mqttSubscribeBeginEx2.capacity())
@@ -1351,21 +1370,21 @@ public class ZillaDumpCommandTest
                 .userProperty("key42", "value42")
                 .build()
             .build());
-        DataFW data19 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+        DataFW data20 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x0000000900000022L) // north_mqtt_server
             .routedId(0x0000000900000023L) // north_mqtt_kafka_mapping
             .streamId(0x0000000000000023L) // INI
             .sequence(0)
             .acknowledge(0)
             .maximum(0)
-            .timestamp(0x000000000000003aL)
+            .timestamp(0x000000000000003bL)
             .traceId(0x0000000000000023L)
             .budgetId(0x0000000000000023L)
             .reserved(0x00000000)
             .payload(mqttSubscribeDataPayload, 0, mqttSubscribeDataPayload.capacity())
             .extension(mqttSubscribeDataEx1, 0, mqttSubscribeDataEx1.capacity())
             .build();
-        streams[0].write(DataFW.TYPE_ID, data19.buffer(), 0, data19.sizeof());
+        streams[0].write(DataFW.TYPE_ID, data20.buffer(), 0, data20.sizeof());
 
         DirectBuffer mqttSubscribeDataEx2 = new UnsafeBuffer(MqttFunctions.dataEx()
             .typeId(MQTT_TYPE_ID)
@@ -1384,21 +1403,21 @@ public class ZillaDumpCommandTest
                 .userProperty("key42", "value42")
                 .build()
             .build());
-        DataFW data20 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+        DataFW data21 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x0000000900000022L) // north_mqtt_server
             .routedId(0x0000000900000023L) // north_mqtt_kafka_mapping
             .streamId(0x0000000000000022L) // REP
             .sequence(0)
             .acknowledge(0)
             .maximum(0)
-            .timestamp(0x000000000000003bL)
+            .timestamp(0x000000000000003cL)
             .traceId(0x0000000000000023L)
             .budgetId(0x0000000000000023L)
             .reserved(0x00000000)
             .payload(mqttSubscribeDataPayload, 0, mqttSubscribeDataPayload.capacity())
             .extension(mqttSubscribeDataEx2, 0, mqttSubscribeDataEx2.capacity())
             .build();
-        streams[0].write(DataFW.TYPE_ID, data20.buffer(), 0, data20.sizeof());
+        streams[0].write(DataFW.TYPE_ID, data21.buffer(), 0, data21.sizeof());
 
         DirectBuffer mqttSubscribeFlushEx1 = new UnsafeBuffer(MqttFunctions.flushEx()
             .typeId(MQTT_TYPE_ID)
@@ -1416,7 +1435,7 @@ public class ZillaDumpCommandTest
             .sequence(401)
             .acknowledge(402)
             .maximum(7777)
-            .timestamp(0x000000000000003cL)
+            .timestamp(0x000000000000003dL)
             .traceId(0x0000000000000023L)
             .budgetId(0x0000000000000000L)
             .reserved(0x00000000)
@@ -1441,7 +1460,7 @@ public class ZillaDumpCommandTest
             .sequence(401)
             .acknowledge(402)
             .maximum(7777)
-            .timestamp(0x000000000000003dL)
+            .timestamp(0x000000000000003eL)
             .traceId(0x0000000000000023L)
             .budgetId(0x0000000000000000L)
             .reserved(0x00000000)
@@ -1462,7 +1481,7 @@ public class ZillaDumpCommandTest
             .sequence(501)
             .acknowledge(502)
             .maximum(8888)
-            .timestamp(0x000000000000003eL)
+            .timestamp(0x000000000000003fL)
             .traceId(0x0000000000000023L)
             .extension(mqttResetEx1, 0, mqttResetEx1.capacity())
             .build();
@@ -1487,7 +1506,7 @@ public class ZillaDumpCommandTest
             .sequence(0)
             .acknowledge(0)
             .maximum(0)
-            .timestamp(0x000000000000003fL)
+            .timestamp(0x0000000000000040L)
             .traceId(0x0000000000000025L)
             .affinity(0x0000000000000000L)
             .extension(mqttSessionBeginEx1, 0, mqttSessionBeginEx1.capacity())
@@ -1512,7 +1531,7 @@ public class ZillaDumpCommandTest
             .sequence(0)
             .acknowledge(0)
             .maximum(0)
-            .timestamp(0x0000000000000040L)
+            .timestamp(0x0000000000000041L)
             .traceId(0x0000000000000025L)
             .affinity(0x0000000000000000L)
             .extension(mqttSessionBeginEx2, 0, mqttSessionBeginEx2.capacity())
@@ -1527,33 +1546,10 @@ public class ZillaDumpCommandTest
                 .kind("STATE")
                 .build()
             .build());
-        DataFW data21 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
-            .originId(0x0000000900000022L) // north_mqtt_server
-            .routedId(0x0000000900000023L) // north_mqtt_kafka_mapping
-            .streamId(0x0000000000000025L) // INI
-            .sequence(0)
-            .acknowledge(0)
-            .maximum(0)
-            .timestamp(0x0000000000000041L)
-            .traceId(0x0000000000000025L)
-            .budgetId(0x0000000000000025L)
-            .reserved(0x00000000)
-            .payload(mqttSessionDataPayload, 0, mqttSessionDataPayload.capacity())
-            .extension(mqttSessionDataEx1, 0, mqttSessionDataEx1.capacity())
-            .build();
-        streams[0].write(DataFW.TYPE_ID, data21.buffer(), 0, data21.sizeof());
-
-        DirectBuffer mqttSessionDataEx2 = new UnsafeBuffer(MqttFunctions.dataEx()
-            .typeId(MQTT_TYPE_ID)
-                .session()
-                .deferred(88)
-                .kind("WILL")
-                .build()
-            .build());
         DataFW data22 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x0000000900000022L) // north_mqtt_server
             .routedId(0x0000000900000023L) // north_mqtt_kafka_mapping
-            .streamId(0x0000000000000024L) // REP
+            .streamId(0x0000000000000025L) // INI
             .sequence(0)
             .acknowledge(0)
             .maximum(0)
@@ -1562,9 +1558,32 @@ public class ZillaDumpCommandTest
             .budgetId(0x0000000000000025L)
             .reserved(0x00000000)
             .payload(mqttSessionDataPayload, 0, mqttSessionDataPayload.capacity())
-            .extension(mqttSessionDataEx2, 0, mqttSessionDataEx2.capacity())
+            .extension(mqttSessionDataEx1, 0, mqttSessionDataEx1.capacity())
             .build();
         streams[0].write(DataFW.TYPE_ID, data22.buffer(), 0, data22.sizeof());
+
+        DirectBuffer mqttSessionDataEx2 = new UnsafeBuffer(MqttFunctions.dataEx()
+            .typeId(MQTT_TYPE_ID)
+                .session()
+                .deferred(88)
+                .kind("WILL")
+                .build()
+            .build());
+        DataFW data23 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x0000000900000022L) // north_mqtt_server
+            .routedId(0x0000000900000023L) // north_mqtt_kafka_mapping
+            .streamId(0x0000000000000024L) // REP
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x0000000000000043L)
+            .traceId(0x0000000000000025L)
+            .budgetId(0x0000000000000025L)
+            .reserved(0x00000000)
+            .payload(mqttSessionDataPayload, 0, mqttSessionDataPayload.capacity())
+            .extension(mqttSessionDataEx2, 0, mqttSessionDataEx2.capacity())
+            .build();
+        streams[0].write(DataFW.TYPE_ID, data23.buffer(), 0, data23.sizeof());
 
         // kafka extension
         // - CONSUMER
@@ -1588,7 +1607,7 @@ public class ZillaDumpCommandTest
             .sequence(0)
             .acknowledge(0)
             .maximum(0)
-            .timestamp(0x0000000000000043L)
+            .timestamp(0x0000000000000044L)
             .traceId(0x0000000000000027L)
             .affinity(0x0000000000000000L)
             .extension(kafkaConsumerBeginEx1, 0, kafkaConsumerBeginEx1.capacity())
@@ -1611,7 +1630,7 @@ public class ZillaDumpCommandTest
             .sequence(0)
             .acknowledge(0)
             .maximum(0)
-            .timestamp(0x0000000000000044L)
+            .timestamp(0x0000000000000045L)
             .traceId(0x0000000000000027L)
             .affinity(0x0000000000000000L)
             .extension(kafkaConsumerBeginEx2, 0, kafkaConsumerBeginEx2.capacity())
@@ -1637,21 +1656,21 @@ public class ZillaDumpCommandTest
                     .build()
                 .build()
             .build());
-        DataFW data23 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+        DataFW data24 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000000fL) // north_kafka_cache_client
             .routedId(0x0000000900000010L) // south_kafka_cache_server
             .streamId(0x0000000000000027L) // INI
             .sequence(0)
             .acknowledge(0)
             .maximum(0)
-            .timestamp(0x0000000000000045L)
+            .timestamp(0x0000000000000046L)
             .traceId(0x0000000000000027L)
             .budgetId(0x0000000000000000L)
             .reserved(0x00000000)
             .payload(kafkaConsumerDataPayload, 0, kafkaConsumerDataPayload.capacity())
             .extension(kafkaConsumerDataEx1, 0, kafkaConsumerDataEx1.capacity())
             .build();
-        streams[0].write(DataFW.TYPE_ID, data23.buffer(), 0, data23.sizeof());
+        streams[0].write(DataFW.TYPE_ID, data24.buffer(), 0, data24.sizeof());
 
         DirectBuffer kafkaConsumerFlushEx1 = new UnsafeBuffer(KafkaFunctions.flushEx()
             .typeId(KAFKA_TYPE_ID)
@@ -1668,7 +1687,7 @@ public class ZillaDumpCommandTest
             .sequence(0)
             .acknowledge(0)
             .maximum(0)
-            .timestamp(0x0000000000000046L)
+            .timestamp(0x0000000000000047L)
             .traceId(0x0000000000000027L)
             .budgetId(0x0000000000000000L)
             .reserved(0x00000000)
@@ -1688,7 +1707,7 @@ public class ZillaDumpCommandTest
             .sequence(0)
             .acknowledge(0)
             .maximum(0)
-            .timestamp(0x0000000000000047L)
+            .timestamp(0x0000000000000048L)
             .traceId(0x0000000000000027L)
             .extension(kafkaResetEx1, 0, kafkaResetEx1.capacity())
             .build();
@@ -1714,7 +1733,7 @@ public class ZillaDumpCommandTest
             .sequence(0)
             .acknowledge(0)
             .maximum(0)
-            .timestamp(0x0000000000000048L)
+            .timestamp(0x0000000000000049L)
             .traceId(0x0000000000000029L)
             .affinity(0x0000000000000000L)
             .extension(kafkaGroupBeginEx1, 0, kafkaGroupBeginEx1.capacity())
@@ -1739,7 +1758,7 @@ public class ZillaDumpCommandTest
             .sequence(0)
             .acknowledge(0)
             .maximum(0)
-            .timestamp(0x0000000000000049L)
+            .timestamp(0x000000000000004aL)
             .traceId(0x0000000000000029L)
             .affinity(0x0000000000000000L)
             .extension(kafkaGroupBeginEx2, 0, kafkaGroupBeginEx2.capacity())
@@ -1761,7 +1780,7 @@ public class ZillaDumpCommandTest
             .sequence(0)
             .acknowledge(0)
             .maximum(0)
-            .timestamp(0x000000000000004aL)
+            .timestamp(0x000000000000004bL)
             .traceId(0x0000000000000029L)
             .budgetId(0x0000000000000000L)
             .reserved(0x00000000)
@@ -1787,7 +1806,7 @@ public class ZillaDumpCommandTest
             .sequence(0)
             .acknowledge(0)
             .maximum(0)
-            .timestamp(0x000000000000004bL)
+            .timestamp(0x000000000000004cL)
             .traceId(0x0000000000000029L)
             .budgetId(0x0000000000000000L)
             .reserved(0x00000000)
@@ -1812,7 +1831,7 @@ public class ZillaDumpCommandTest
             .sequence(0)
             .acknowledge(0)
             .maximum(0)
-            .timestamp(0x000000000000004cL)
+            .timestamp(0x000000000000004dL)
             .traceId(0x0000000000000031L)
             .affinity(0x0000000000000000L)
             .extension(kafkaBootstrapBeginEx1, 0, kafkaBootstrapBeginEx1.capacity())
@@ -1835,7 +1854,7 @@ public class ZillaDumpCommandTest
             .sequence(0)
             .acknowledge(0)
             .maximum(0)
-            .timestamp(0x000000000000004dL)
+            .timestamp(0x000000000000004eL)
             .traceId(0x0000000000000031L)
             .affinity(0x0000000000000000L)
             .extension(kafkaBootstrapBeginEx2, 0, kafkaBootstrapBeginEx2.capacity())
@@ -1901,7 +1920,7 @@ public class ZillaDumpCommandTest
             .sequence(0)
             .acknowledge(0)
             .maximum(0)
-            .timestamp(0x000000000000004eL)
+            .timestamp(0x000000000000004fL)
             .traceId(0x0000000000000033L)
             .affinity(0x0000000000000000L)
             .extension(kafkaMergedBeginEx1, 0, kafkaMergedBeginEx1.capacity())
@@ -1933,7 +1952,7 @@ public class ZillaDumpCommandTest
             .sequence(0)
             .acknowledge(0)
             .maximum(0)
-            .timestamp(0x000000000000004fL)
+            .timestamp(0x0000000000000050L)
             .traceId(0x0000000000000033L)
             .affinity(0x0000000000000000L)
             .extension(kafkaMergedBeginEx2, 0, kafkaMergedBeginEx2.capacity())
@@ -1963,7 +1982,7 @@ public class ZillaDumpCommandTest
             .sequence(0)
             .acknowledge(0)
             .maximum(0)
-            .timestamp(0x0000000000000050L)
+            .timestamp(0x0000000000000051L)
             .traceId(0x0000000000000033L)
             .affinity(0x0000000000000000L)
             .extension(kafkaMergedBeginEx3, 0, kafkaMergedBeginEx3.capacity())
@@ -1976,43 +1995,13 @@ public class ZillaDumpCommandTest
             .merged()
                 .fetch()
                 .deferred(99)
-                .timestamp(0x51)
+                .timestamp(0x52)
                 .filters(77)
                 .partition(1, 42_000)
                 .progress(17, 42)
                 .progress(19, 77, 2121)
                 .key("key")
                 .delta("JSON_PATCH", 7777)
-                .header("name1", "value1")
-                .header("name2", "value2")
-                .build()
-            .build());
-        DataFW data24 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
-            .originId(0x000000090000000fL) // north_kafka_cache_client
-            .routedId(0x0000000900000010L) // south_kafka_cache_server
-            .streamId(0x0000000000000033L) // INI
-            .sequence(0)
-            .acknowledge(0)
-            .maximum(0)
-            .timestamp(0x0000000000000051L)
-            .traceId(0x0000000000000033L)
-            .budgetId(0x0000000000000000L)
-            .reserved(0x00000000)
-            .payload(kafkaMergedFetchDataPayload, 0, kafkaMergedFetchDataPayload.capacity())
-            .extension(kafkaMergedFetchDataEx1, 0, kafkaMergedFetchDataEx1.capacity())
-            .build();
-        streams[0].write(DataFW.TYPE_ID, data24.buffer(), 0, data24.sizeof());
-
-        DirectBuffer kafkaMergedProduceDataPayload = new String8FW("kafka merged produce data payload").value();
-        DirectBuffer kafkaMergedProduceDataEx1 = new UnsafeBuffer(KafkaFunctions.dataEx()
-            .typeId(KAFKA_TYPE_ID)
-            .merged()
-                .produce()
-                .deferred(100)
-                .timestamp(0x52)
-                .partition(1, 77_000)
-                .key("key")
-                .hashKey("hash-key")
                 .header("name1", "value1")
                 .header("name2", "value2")
                 .build()
@@ -2028,10 +2017,40 @@ public class ZillaDumpCommandTest
             .traceId(0x0000000000000033L)
             .budgetId(0x0000000000000000L)
             .reserved(0x00000000)
+            .payload(kafkaMergedFetchDataPayload, 0, kafkaMergedFetchDataPayload.capacity())
+            .extension(kafkaMergedFetchDataEx1, 0, kafkaMergedFetchDataEx1.capacity())
+            .build();
+        streams[0].write(DataFW.TYPE_ID, data25.buffer(), 0, data25.sizeof());
+
+        DirectBuffer kafkaMergedProduceDataPayload = new String8FW("kafka merged produce data payload").value();
+        DirectBuffer kafkaMergedProduceDataEx1 = new UnsafeBuffer(KafkaFunctions.dataEx()
+            .typeId(KAFKA_TYPE_ID)
+            .merged()
+                .produce()
+                .deferred(100)
+                .timestamp(0x53)
+                .partition(1, 77_000)
+                .key("key")
+                .hashKey("hash-key")
+                .header("name1", "value1")
+                .header("name2", "value2")
+                .build()
+            .build());
+        DataFW data26 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x000000090000000fL) // north_kafka_cache_client
+            .routedId(0x0000000900000010L) // south_kafka_cache_server
+            .streamId(0x0000000000000033L) // INI
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x0000000000000053L)
+            .traceId(0x0000000000000033L)
+            .budgetId(0x0000000000000000L)
+            .reserved(0x00000000)
             .payload(kafkaMergedProduceDataPayload, 0, kafkaMergedProduceDataPayload.capacity())
             .extension(kafkaMergedProduceDataEx1, 0, kafkaMergedProduceDataEx1.capacity())
             .build();
-        streams[0].write(DataFW.TYPE_ID, data25.buffer(), 0, data25.sizeof());
+        streams[0].write(DataFW.TYPE_ID, data26.buffer(), 0, data26.sizeof());
 
         DirectBuffer kafkaMergedConsumerFlushEx = new UnsafeBuffer(KafkaFunctions.flushEx()
             .typeId(KAFKA_TYPE_ID)
@@ -2048,7 +2067,7 @@ public class ZillaDumpCommandTest
             .sequence(0)
             .acknowledge(0)
             .maximum(0)
-            .timestamp(0x0000000000000053L)
+            .timestamp(0x0000000000000054L)
             .traceId(0x0000000000000033L)
             .budgetId(0x0000000000000000L)
             .reserved(0x00000000)
@@ -2078,7 +2097,7 @@ public class ZillaDumpCommandTest
             .sequence(0)
             .acknowledge(0)
             .maximum(0)
-            .timestamp(0x0000000000000054L)
+            .timestamp(0x0000000000000055L)
             .traceId(0x0000000000000033L)
             .budgetId(0x0000000000000000L)
             .reserved(0x00000000)
@@ -2100,7 +2119,7 @@ public class ZillaDumpCommandTest
             .sequence(0)
             .acknowledge(0)
             .maximum(0)
-            .timestamp(0x0000000000000055L)
+            .timestamp(0x0000000000000056L)
             .traceId(0x0000000000000035L)
             .affinity(0x0000000000000000L)
             .extension(kafkaMetaBegin1, 0, kafkaMetaBegin1.capacity())
@@ -2120,7 +2139,7 @@ public class ZillaDumpCommandTest
             .sequence(0)
             .acknowledge(0)
             .maximum(0)
-            .timestamp(0x0000000000000056L)
+            .timestamp(0x0000000000000057L)
             .traceId(0x0000000000000035L)
             .affinity(0x0000000000000000L)
             .extension(kafkaMetaBegin2, 0, kafkaMetaBegin2.capacity())
@@ -2136,21 +2155,21 @@ public class ZillaDumpCommandTest
                 .partition(100, 4200)
                 .build()
             .build());
-        DataFW data26 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+        DataFW data27 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000000fL) // north_kafka_cache_client
             .routedId(0x0000000900000010L) // south_kafka_cache_server
             .streamId(0x0000000000000035L) // INI
             .sequence(0)
             .acknowledge(0)
             .maximum(0)
-            .timestamp(0x0000000000000057L)
+            .timestamp(0x0000000000000058L)
             .traceId(0x0000000000000035L)
             .budgetId(0x0000000000000000L)
             .reserved(0x00000000)
             .payload(kafkaMetaDataPayload, 0, kafkaMetaDataPayload.capacity())
             .extension(kafkaMetaDataEx1, 0, kafkaMetaDataEx1.capacity())
             .build();
-        streams[0].write(DataFW.TYPE_ID, data26.buffer(), 0, data26.sizeof());
+        streams[0].write(DataFW.TYPE_ID, data27.buffer(), 0, data27.sizeof());
 
         // - OFFSET_COMMIT
         DirectBuffer kafkaOffsetCommitBegin1 = new UnsafeBuffer(KafkaFunctions.beginEx()
@@ -2169,7 +2188,7 @@ public class ZillaDumpCommandTest
             .sequence(0)
             .acknowledge(0)
             .maximum(0)
-            .timestamp(0x0000000000000058L)
+            .timestamp(0x0000000000000059L)
             .traceId(0x0000000000000037L)
             .affinity(0x0000000000000000L)
             .extension(kafkaOffsetCommitBegin1, 0, kafkaOffsetCommitBegin1.capacity())
@@ -2192,7 +2211,7 @@ public class ZillaDumpCommandTest
             .sequence(0)
             .acknowledge(0)
             .maximum(0)
-            .timestamp(0x0000000000000059L)
+            .timestamp(0x000000000000005aL)
             .traceId(0x0000000000000037L)
             .affinity(0x0000000000000000L)
             .extension(kafkaOffsetCommitBegin2, 0, kafkaOffsetCommitBegin2.capacity())
@@ -2208,21 +2227,21 @@ public class ZillaDumpCommandTest
                 .leaderEpoch(77)
                 .build()
             .build());
-        DataFW data27 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+        DataFW data28 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000000fL) // north_kafka_cache_client
             .routedId(0x0000000900000010L) // south_kafka_cache_server
             .streamId(0x0000000000000037L) // INI
             .sequence(0)
             .acknowledge(0)
             .maximum(0)
-            .timestamp(0x000000000000005aL)
+            .timestamp(0x000000000000005bL)
             .traceId(0x0000000000000037L)
             .budgetId(0x0000000000000000L)
             .reserved(0x00000000)
             .payload(kafkaOffsetCommitDataPayload, 0, kafkaOffsetCommitDataPayload.capacity())
             .extension(kafkaOffsetCommitDataEx1, 0, kafkaOffsetCommitDataEx1.capacity())
             .build();
-        streams[0].write(DataFW.TYPE_ID, data27.buffer(), 0, data27.sizeof());
+        streams[0].write(DataFW.TYPE_ID, data28.buffer(), 0, data28.sizeof());
 
         // - OFFSET_FETCH
         DirectBuffer kafkaOffsetFetchBegin1 = new UnsafeBuffer(KafkaFunctions.beginEx()
@@ -2245,7 +2264,7 @@ public class ZillaDumpCommandTest
             .sequence(0)
             .acknowledge(0)
             .maximum(0)
-            .timestamp(0x000000000000005bL)
+            .timestamp(0x000000000000005cL)
             .traceId(0x0000000000000039L)
             .affinity(0x0000000000000000L)
             .extension(kafkaOffsetFetchBegin1, 0, kafkaOffsetFetchBegin1.capacity())
@@ -2269,7 +2288,7 @@ public class ZillaDumpCommandTest
             .sequence(0)
             .acknowledge(0)
             .maximum(0)
-            .timestamp(0x000000000000005cL)
+            .timestamp(0x000000000000005dL)
             .traceId(0x0000000000000039L)
             .affinity(0x0000000000000000L)
             .extension(kafkaOffsetFetchBegin2, 0, kafkaOffsetFetchBegin2.capacity())
@@ -2285,21 +2304,21 @@ public class ZillaDumpCommandTest
                 .partition(19, 23, 44, "metadata3")
                 .build()
             .build());
-        DataFW data28 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+        DataFW data29 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000000fL) // north_kafka_cache_client
             .routedId(0x0000000900000010L) // south_kafka_cache_server
             .streamId(0x0000000000000039L) // INI
             .sequence(0)
             .acknowledge(0)
             .maximum(0)
-            .timestamp(0x000000000000005dL)
+            .timestamp(0x000000000000005eL)
             .traceId(0x0000000000000039L)
             .budgetId(0x0000000000000000L)
             .reserved(0x00000000)
             .payload(kafkaOffsetFetchDataPayload, 0, kafkaOffsetFetchDataPayload.capacity())
             .extension(kafkaOffsetFetchDataEx1, 0, kafkaOffsetFetchDataEx1.capacity())
             .build();
-        streams[0].write(DataFW.TYPE_ID, data28.buffer(), 0, data28.sizeof());
+        streams[0].write(DataFW.TYPE_ID, data29.buffer(), 0, data29.sizeof());
 
         // - DESCRIBE
         DirectBuffer kafkaDescribeBegin1 = new UnsafeBuffer(KafkaFunctions.beginEx()
@@ -2318,7 +2337,7 @@ public class ZillaDumpCommandTest
             .sequence(0)
             .acknowledge(0)
             .maximum(0)
-            .timestamp(0x000000000000005eL)
+            .timestamp(0x000000000000005fL)
             .traceId(0x000000000000003bL)
             .affinity(0x0000000000000000L)
             .extension(kafkaDescribeBegin1, 0, kafkaDescribeBegin1.capacity())
@@ -2339,7 +2358,7 @@ public class ZillaDumpCommandTest
             .sequence(0)
             .acknowledge(0)
             .maximum(0)
-            .timestamp(0x000000000000005fL)
+            .timestamp(0x0000000000000060L)
             .traceId(0x000000000000003bL)
             .affinity(0x0000000000000000L)
             .extension(kafkaDescribeBegin2, 0, kafkaDescribeBegin2.capacity())
@@ -2355,21 +2374,21 @@ public class ZillaDumpCommandTest
                 .config("name3", "value3")
                 .build()
             .build());
-        DataFW data29 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+        DataFW data30 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000000fL) // north_kafka_cache_client
             .routedId(0x0000000900000010L) // south_kafka_cache_server
             .streamId(0x000000000000003bL) // INI
             .sequence(0)
             .acknowledge(0)
             .maximum(0)
-            .timestamp(0x0000000000000060L)
+            .timestamp(0x0000000000000061L)
             .traceId(0x000000000000003bL)
             .budgetId(0x0000000000000000L)
             .reserved(0x00000000)
             .payload(kafkaDescribeDataPayload, 0, kafkaDescribeDataPayload.capacity())
             .extension(kafkaDescribeDataEx1, 0, kafkaDescribeDataEx1.capacity())
             .build();
-        streams[0].write(DataFW.TYPE_ID, data29.buffer(), 0, data29.sizeof());
+        streams[0].write(DataFW.TYPE_ID, data30.buffer(), 0, data30.sizeof());
 
         // - FETCH
         DirectBuffer kafkaFetchBegin1 = new UnsafeBuffer(KafkaFunctions.beginEx()
@@ -2398,7 +2417,7 @@ public class ZillaDumpCommandTest
             .sequence(0)
             .acknowledge(0)
             .maximum(0)
-            .timestamp(0x0000000000000061L)
+            .timestamp(0x0000000000000062L)
             .traceId(0x000000000000003dL)
             .affinity(0x0000000000000000L)
             .extension(kafkaFetchBegin1, 0, kafkaFetchBegin1.capacity())
@@ -2425,7 +2444,7 @@ public class ZillaDumpCommandTest
             .sequence(0)
             .acknowledge(0)
             .maximum(0)
-            .timestamp(0x0000000000000062L)
+            .timestamp(0x0000000000000063L)
             .traceId(0x000000000000003dL)
             .affinity(0x0000000000000000L)
             .extension(kafkaFetchBegin2, 0, kafkaFetchBegin2.capacity())
@@ -2437,7 +2456,7 @@ public class ZillaDumpCommandTest
             .typeId(KAFKA_TYPE_ID)
             .fetch()
                 .deferred(7777)
-                .timestamp(0x63)
+                .timestamp(0x64)
                 .producerId(0x12345678)
                 .filters(77)
                 .partition(1, 42_000)
@@ -2447,21 +2466,21 @@ public class ZillaDumpCommandTest
                 .header("name2", "value2")
                 .build()
             .build());
-        DataFW data30 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+        DataFW data31 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000000fL) // north_kafka_cache_client
             .routedId(0x0000000900000010L) // south_kafka_cache_server
             .streamId(0x000000000000003dL) // INI
             .sequence(0)
             .acknowledge(0)
             .maximum(0)
-            .timestamp(0x0000000000000063L)
+            .timestamp(0x0000000000000064L)
             .traceId(0x000000000000003dL)
             .budgetId(0x0000000000000000L)
             .reserved(0x00000000)
             .payload(kafkaFetchDataPayload, 0, kafkaFetchDataPayload.capacity())
             .extension(kafkaFetchDataEx1, 0, kafkaFetchDataEx1.capacity())
             .build();
-        streams[0].write(DataFW.TYPE_ID, data30.buffer(), 0, data30.sizeof());
+        streams[0].write(DataFW.TYPE_ID, data31.buffer(), 0, data31.sizeof());
 
         DirectBuffer kafkaFetchFlushEx = new UnsafeBuffer(KafkaFunctions.flushEx()
             .typeId(KAFKA_TYPE_ID)
@@ -2481,7 +2500,7 @@ public class ZillaDumpCommandTest
             .sequence(0)
             .acknowledge(0)
             .maximum(0)
-            .timestamp(0x0000000000000064L)
+            .timestamp(0x0000000000000065L)
             .traceId(0x000000000000003dL)
             .budgetId(0x0000000000000000L)
             .reserved(0x00000000)
@@ -2506,7 +2525,7 @@ public class ZillaDumpCommandTest
             .sequence(0)
             .acknowledge(0)
             .maximum(0)
-            .timestamp(0x0000000000000065L)
+            .timestamp(0x0000000000000066L)
             .traceId(0x000000000000003fL)
             .affinity(0x0000000000000000L)
             .extension(kafkaProduceBegin1, 0, kafkaProduceBegin1.capacity())
@@ -2529,7 +2548,7 @@ public class ZillaDumpCommandTest
             .sequence(0)
             .acknowledge(0)
             .maximum(0)
-            .timestamp(0x0000000000000066L)
+            .timestamp(0x0000000000000067L)
             .traceId(0x000000000000003fL)
             .affinity(0x0000000000000000L)
             .extension(kafkaProduceBegin2, 0, kafkaProduceBegin2.capacity())
@@ -2541,7 +2560,7 @@ public class ZillaDumpCommandTest
             .typeId(KAFKA_TYPE_ID)
             .produce()
                 .deferred(999)
-                .timestamp(0x67)
+                .timestamp(0x68)
                 .sequence(777)
                 .ackMode("LEADER_ONLY")
                 .key("key")
@@ -2549,21 +2568,21 @@ public class ZillaDumpCommandTest
                 .header("name2", "value2")
                 .build()
             .build());
-        DataFW data31 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+        DataFW data32 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000000fL) // north_kafka_cache_client
             .routedId(0x0000000900000010L) // south_kafka_cache_server
             .streamId(0x000000000000003fL) // INI
             .sequence(0)
             .acknowledge(0)
             .maximum(0)
-            .timestamp(0x0000000000000067L)
+            .timestamp(0x0000000000000068L)
             .traceId(0x000000000000003fL)
             .budgetId(0x0000000000000000L)
             .reserved(0x00000000)
             .payload(kafkaProduceDataPayload, 0, kafkaProduceDataPayload.capacity())
             .extension(kafkaProduceDataEx1, 0, kafkaProduceDataEx1.capacity())
             .build();
-        streams[0].write(DataFW.TYPE_ID, data31.buffer(), 0, data31.sizeof());
+        streams[0].write(DataFW.TYPE_ID, data32.buffer(), 0, data32.sizeof());
 
         DirectBuffer kafkaProduceFlushEx = new UnsafeBuffer(KafkaFunctions.flushEx()
             .typeId(KAFKA_TYPE_ID)
@@ -2579,13 +2598,209 @@ public class ZillaDumpCommandTest
             .sequence(0)
             .acknowledge(0)
             .maximum(0)
-            .timestamp(0x0000000000000068L)
+            .timestamp(0x0000000000000069L)
             .traceId(0x000000000000003fL)
             .budgetId(0x0000000000000000L)
             .reserved(0x00000000)
             .extension(kafkaProduceFlushEx, 0, kafkaProduceFlushEx.capacity())
             .build();
         streams[0].write(FlushFW.TYPE_ID, flush11.buffer(), 0, flush11.sizeof());
+
+        // amqp extension
+        DirectBuffer amqpBeginEx1 = new UnsafeBuffer(AmqpFunctions.beginEx()
+            .typeId(AMQP_TYPE_ID)
+            .address("address")
+            .capabilities("SEND_AND_RECEIVE")
+            .senderSettleMode("SETTLED")
+            .receiverSettleMode("FIRST")
+            .build());
+        BeginFW begin46 = beginRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x0000000900000025L) // north_amqp_server
+            .routedId(0x0000000900000026L) // north_fan_server
+            .streamId(0x0000000000000041L) // INI
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x000000000000006aL)
+            .traceId(0x0000000000000041L)
+            .affinity(0x0000000000000000L)
+            .extension(amqpBeginEx1, 0, amqpBeginEx1.capacity())
+            .build();
+        streams[0].write(BeginFW.TYPE_ID, begin46.buffer(), 0, begin46.sizeof());
+
+        DirectBuffer amqpBeginEx2 = new UnsafeBuffer(AmqpFunctions.beginEx()
+            .typeId(AMQP_TYPE_ID)
+            .address("address")
+            .capabilities("SEND_ONLY")
+            .senderSettleMode("MIXED")
+            .receiverSettleMode("SECOND")
+            .build());
+        BeginFW begin47 = beginRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x0000000900000025L) // north_amqp_server
+            .routedId(0x0000000900000026L) // north_fan_server
+            .streamId(0x0000000000000040L) // REP
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x000000000000006bL)
+            .traceId(0x0000000000000041L)
+            .affinity(0x0000000000000000L)
+            .extension(amqpBeginEx2, 0, amqpBeginEx2.capacity())
+            .build();
+        streams[0].write(BeginFW.TYPE_ID, begin47.buffer(), 0, begin47.sizeof());
+
+        DirectBuffer amqpPayload = new String8FW("amqp payload").value();
+        DirectBuffer amqpDataEx1 = new UnsafeBuffer(AmqpFunctions.dataEx()
+            .typeId(AMQP_TYPE_ID)
+            .deliveryTag("delivery-tag")
+            .messageFormat(7777)
+            .flags("BATCHABLE")
+            // annotations:
+            .annotation("annotation1", "value1".getBytes(StandardCharsets.UTF_8))
+            .annotation(0x8888L, "value2".getBytes(StandardCharsets.UTF_8))
+            // properties:
+            .messageId("message-id")
+            .to("to")
+            .correlationId("correlation-id")
+            // application properties:
+            .property("app-property1", "value1".getBytes(StandardCharsets.UTF_8))
+            .property("app-property2", "value2".getBytes(StandardCharsets.UTF_8))
+            .bodyKind("VALUE")
+            .deferred(9999)
+            .build());
+        DataFW data33 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x0000000900000025L) // north_amqp_server
+            .routedId(0x0000000900000026L) // north_fan_server
+            .streamId(0x0000000000000041L) // INI
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x000000000000006cL)
+            .traceId(0x0000000000000041L)
+            .budgetId(0x0000000000000000L)
+            .reserved(0x00000000)
+            .payload(amqpPayload, 0, amqpPayload.capacity())
+            .extension(amqpDataEx1, 0, amqpDataEx1.capacity())
+            .build();
+        streams[0].write(DataFW.TYPE_ID, data33.buffer(), 0, data33.sizeof());
+
+        DirectBuffer amqpDataEx2 = new UnsafeBuffer(AmqpFunctions.dataEx()
+            .typeId(AMQP_TYPE_ID)
+            .deliveryTag("delivery-tag")
+            .messageFormat(1111)
+            .flags("BATCHABLE", "ABORTED", "RESUME", "SETTLED")
+            // annotations:
+            .annotation("annotation1", "value1".getBytes(StandardCharsets.UTF_8))
+            .annotation(0x2222L, "value2".getBytes(StandardCharsets.UTF_8))
+            // properties:
+            .messageId(0x77L)
+            .userId("user-id")
+            .to("to")
+            .subject("subject")
+            .replyTo("reply-to")
+            .correlationId(0x88L)
+            .contentType("content-type")
+            .contentEncoding("content-encoding")
+            .absoluteExpiryTime(123_456)
+            .creationTime(654_321)
+            .groupId("group-id")
+            .groupSequence(456_789)
+            .replyToGroupId("reply-to-group-id")
+            // application properties:
+            .property("app-property1", "value1".getBytes(StandardCharsets.UTF_8))
+            .property("app-property2", "value2".getBytes(StandardCharsets.UTF_8))
+            .bodyKind("VALUE_STRING32")
+            .deferred(3333)
+            .build());
+        DataFW data34 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x0000000900000025L) // north_amqp_server
+            .routedId(0x0000000900000026L) // north_fan_server
+            .streamId(0x0000000000000040L) // REP
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x000000000000006dL)
+            .traceId(0x0000000000000042L)
+            .budgetId(0x0000000000000000L)
+            .reserved(0x00000000)
+            .payload(amqpPayload, 0, amqpPayload.capacity())
+            .extension(amqpDataEx2, 0, amqpDataEx2.capacity())
+            .build();
+        streams[0].write(DataFW.TYPE_ID, data34.buffer(), 0, data34.sizeof());
+
+        DirectBuffer amqpDataEx3 = new UnsafeBuffer(AmqpFunctions.dataEx()
+            .typeId(AMQP_TYPE_ID)
+            .deliveryTag("delivery-tag")
+            .messageFormat(2222)
+            .flags("BATCHABLE", "ABORTED", "RESUME", "SETTLED")
+            // annotations:
+            .annotation("annotation1", "value1".getBytes(StandardCharsets.UTF_8))
+            .annotation(0x3333L, "value2".getBytes(StandardCharsets.UTF_8))
+            // properties:
+            .messageId("message-id".getBytes(StandardCharsets.UTF_8))
+            .replyTo("reply-to")
+            .correlationId("correlation-id".getBytes(StandardCharsets.UTF_8))
+            .contentType("content-type")
+            .contentEncoding("content-encoding")
+            .groupId("group-id")
+            .replyToGroupId("reply-to-group-id")
+            // application properties:
+            .property("app-property1", "value1".getBytes(StandardCharsets.UTF_8))
+            .property("app-property2", "value2".getBytes(StandardCharsets.UTF_8))
+            .bodyKind("VALUE_STRING32")
+            .deferred(4444)
+            .build());
+        DataFW data35 = dataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x0000000900000025L) // north_amqp_server
+            .routedId(0x0000000900000026L) // north_fan_server
+            .streamId(0x0000000000000041L) // INI
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x000000000000006eL)
+            .traceId(0x0000000000000042L)
+            .budgetId(0x0000000000000000L)
+            .reserved(0x00000000)
+            .payload(amqpPayload, 0, amqpPayload.capacity())
+            .extension(amqpDataEx3, 0, amqpDataEx3.capacity())
+            .build();
+        streams[0].write(DataFW.TYPE_ID, data35.buffer(), 0, data35.sizeof());
+
+        DirectBuffer amqpFlushEx = new UnsafeBuffer(new byte[]{
+            AMQP_TYPE_ID, 0, 0, 0,  // int32 typeId
+            3                       // uint8 AmqpCapabilities
+        });
+        FlushFW flush12 = flushRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x0000000900000025L) // north_amqp_server
+            .routedId(0x0000000900000026L) // north_fan_server
+            .streamId(0x0000000000000041L) // INI
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x000000000000006fL)
+            .traceId(0x0000000000000041L)
+            .budgetId(0x0000000000000000L)
+            .reserved(0x00000000)
+            .extension(amqpFlushEx, 0, amqpFlushEx.capacity())
+            .build();
+        streams[0].write(FlushFW.TYPE_ID, flush12.buffer(), 0, flush12.sizeof());
+
+        DirectBuffer amqpAbortEx = new UnsafeBuffer(AmqpFunctions.abortEx()
+            .typeId(AMQP_TYPE_ID)
+            .condition("condition")
+            .build());
+        AbortFW abort3 = abortRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x0000000900000025L) // north_amqp_server
+            .routedId(0x0000000900000026L) // north_fan_server
+            .streamId(0x0000000000000041L) // INI
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .timestamp(0x0000000000000070L)
+            .traceId(0x0000000000000041L)
+            .extension(amqpAbortEx, 0, amqpAbortEx.capacity())
+            .build();
+        streams[0].write(AbortFW.TYPE_ID, abort3.buffer(), 0, abort3.sizeof());
     }
 
     @BeforeEach
