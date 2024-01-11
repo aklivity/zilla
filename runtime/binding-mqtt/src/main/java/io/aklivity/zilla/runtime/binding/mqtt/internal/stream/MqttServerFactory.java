@@ -922,25 +922,25 @@ public final class MqttServerFactory implements MqttStreamFactory
         final int offset,
         final int limit)
     {
-        final MqttPacketHeaderFW packet = mqttPacketHeaderRO.tryWrap(buffer, offset, limit);
+        final MqttPacketHeaderFW header = mqttPacketHeaderRO.tryWrap(buffer, offset, limit);
 
-        if (packet != null)
+        if (header != null)
         {
-            final int length = packet.remainingLength();
-            MqttPacketType packetType = MqttPacketType.valueOf(packet.typeAndFlags() >> 4);
+            final int length = header.remainingLength();
+            MqttPacketType packetType = MqttPacketType.valueOf(header.typeAndFlags() >> 4);
 
             final MqttServerDecoder decoder = server.version == MQTT_PROTOCOL_VERSION_4 ?
                 decodersByPacketTypeV4.getOrDefault(packetType, decodeUnknownType) :
                 decodersByPacketTypeV5.getOrDefault(packetType, decodeUnknownType);
 
-            if (packet.sizeof() + length > maximumPacketSize)
+            if (header.sizeof() + length > maximumPacketSize)
             {
                 server.onDecodeError(traceId, authorization, PACKET_TOO_LARGE);
                 server.decoder = decodeIgnoreAll;
             }
-            else if (limit - packet.limit() >= length)
+            else if (length <= limit - header.limit() || server.decodeWindow() == 0)
             {
-                server.decodeablePacketBytes = packet.sizeof() + length;
+                server.decodeablePacketBytes = header.sizeof() + length;
                 server.decoder = decoder;
             }
         }
@@ -957,25 +957,25 @@ public final class MqttServerFactory implements MqttStreamFactory
         final int offset,
         final int limit)
     {
-        final MqttPacketHeaderFW packet = mqttPacketHeaderRO.tryWrap(buffer, offset, limit);
+        final MqttPacketHeaderFW header = mqttPacketHeaderRO.tryWrap(buffer, offset, limit);
 
-        if (packet != null)
+        if (header != null)
         {
-            final int length = packet.remainingLength();
-            MqttPacketType packetType = MqttPacketType.valueOf(packet.typeAndFlags() >> 4);
+            final int length = header.remainingLength();
+            MqttPacketType packetType = MqttPacketType.valueOf(header.typeAndFlags() >> 4);
 
             final MqttServerDecoder decoder = server.version == MQTT_PROTOCOL_VERSION_4 ?
                 decodersByPacketTypeV4.getOrDefault(packetType, decodeUnknownType) :
                 decodersByPacketTypeV5.getOrDefault(packetType, decodeUnknownType);
 
-            if (packet.sizeof() + length > maximumPacketSize)
+            if (header.sizeof() + length > maximumPacketSize)
             {
                 server.onDecodeError(traceId, authorization, PACKET_TOO_LARGE);
                 server.decoder = decodeIgnoreAll;
             }
-            else if (limit - packet.limit() >= length || server.decodeBudget() == 0)
+            else if (length <= limit - header.limit() || server.decodeWindow() == 0)
             {
-                server.decodeablePacketBytes = packet.sizeof() + length;
+                server.decodeablePacketBytes = header.sizeof() + length;
                 server.decoder = decoder;
             }
         }
@@ -1480,7 +1480,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             MqttServer.MqttPublishStream publisher = server.publishes.get(server.decodePublisherKey);
 
             int publishablePayloadSize =
-                Math.min(Math.min(server.publishPayloadBytes, publisher.initialBudget()), length);
+                Math.min(Math.min(server.publishPayloadBytes, publisher.initialWindow()), length);
 
             final OctetsFW payload = payloadRO.wrap(buffer, offset, limit);
 
@@ -3098,14 +3098,14 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                         final MqttWillMessageFW will = willMessageBuilder.build();
                         final int headerSize = willMessageBuilder.sizeof();
-                        int payloadSize = Math.min(limit - offset, session.initialBudget() - headerSize);
+                        int payloadSize = Math.min(limit - offset, session.initialWindow() - headerSize);
 
                         final OctetsFW payload = payloadRO.wrap(buffer, offset, offset + payloadSize);
 
                         willMessageBuffer.putBytes(will.limit(), payload.buffer(), payload.offset(), payload.limit());
 
-                        int flags = willPayloadBytes + headerSize > session.initialBudget() ? FLAG_INIT : FLAG_INIT | FLAG_FIN;
-                        int deferred = Math.max(willPayloadBytes + headerSize - session.initialBudget(), 0);
+                        int flags = willPayloadBytes + headerSize > session.initialWindow() ? FLAG_INIT : FLAG_INIT | FLAG_FIN;
+                        int deferred = Math.max(willPayloadBytes + headerSize - session.initialWindow(), 0);
                         willPayloadDeferred = deferred;
 
                         final MqttDataExFW.Builder sessionDataExBuilder =
@@ -4083,6 +4083,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             int minInitialNoAck,
             int minInitialMax)
         {
+            //TODO: maybe consider decodeMax
             final long newInitialAck = Math.max(decodeSeq - minInitialNoAck, decodeAck);
 
             if (newInitialAck > decodeAck || minInitialMax > decodeMax || !MqttState.initialOpened(state))
@@ -4836,7 +4837,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     final MutableDirectBuffer slotBuffer = bufferPool.buffer(decodeSlot);
                     slotBuffer.putBytes(0, buffer, progress, limit - progress);
                     decodeSlotOffset = limit - progress;
-                    decodeSlotReserved = (limit - progress) * reserved / (limit - offset);
+                    decodeSlotReserved = (int) ((long) reserved * (limit - progress) / (limit - offset));
                 }
             }
             else
@@ -4853,7 +4854,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             if (!MqttState.initialClosed(state))
             {
-                doNetworkWindow(traceId, authorization, 0, budgetId, decodeSlotOffset, decodeMax);
+                doNetworkWindow(traceId, authorization, 0, budgetId, decodeSlotReserved, decodeMax);
             }
         }
 
@@ -4981,7 +4982,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             return flags;
         }
 
-        private int decodeBudget()
+        private int decodeWindow()
         {
             return decodeMax - (int) (decodeSeq - decodeAck);
         }
@@ -5440,7 +5441,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 assert MqttState.initialOpening(state);
 
                 final int length = limit - offset;
-                int minBudget = Math.min(length, session.initialBudget());
+                int minBudget = Math.min(length, session.initialWindow());
                 int publishablePayloadSize = minBudget > minimum ? minBudget : 0;
                 int reserved = publishablePayloadSize + initialPad;
 
@@ -5554,7 +5555,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 return subscriptions;
             }
 
-            private int initialBudget()
+            private int initialWindow()
             {
                 return initialMax - (int)(initialSeq - initialAck) - initialPad;
             }
@@ -6027,7 +6028,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 doCancelPublishExpiration();
             }
 
-            private int initialBudget()
+            private int initialWindow()
             {
                 return initialMax - (int)(initialSeq - initialAck) - initialPad;
             }
