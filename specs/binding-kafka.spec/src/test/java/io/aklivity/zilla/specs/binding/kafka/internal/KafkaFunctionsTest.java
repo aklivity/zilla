@@ -582,7 +582,7 @@ public class KafkaFunctionsTest
                                          .deferred(0)
                                          .timestamp(12345678L)
                                          .produceId(8L)
-                                         .produceEpoch((short) 2)
+                                         .producerEpoch((short) 2)
                                          .partition(0, 0L)
                                          .key("match")
                                          .hashKey("hashKey")
@@ -4381,9 +4381,9 @@ public class KafkaFunctionsTest
         assertEquals(0x01, beginEx.typeId());
         assertEquals(KafkaApi.INIT_PRODUCER_ID.value(), beginEx.kind());
 
-        KafkaInitProducerIdBeginExFW initProduceIdBeginEx = beginEx.initProducerId();
-        assertEquals(1L, initProduceIdBeginEx.producerId());
-        assertEquals(2, initProduceIdBeginEx.producerEpoch());
+        KafkaInitProducerIdBeginExFW initProducerIdBeginEx = beginEx.initProducerId();
+        assertEquals(1L, initProducerIdBeginEx.producerId());
+        assertEquals(2, initProducerIdBeginEx.producerEpoch());
     }
 
     @Test

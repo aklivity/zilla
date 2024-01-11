@@ -2135,7 +2135,7 @@ public final class KafkaFunctions
                     return this;
                 }
 
-                public KafkaMergedProduceDataExBuilder produceEpoch(
+                public KafkaMergedProduceDataExBuilder producerEpoch(
                     short produceEpoch)
                 {
                     mergedProduceDataExRW.producerEpoch(produceEpoch);
