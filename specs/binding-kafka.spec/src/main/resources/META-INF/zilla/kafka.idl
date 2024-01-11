@@ -186,7 +186,7 @@ scope kafka
             case 253: kafka::stream::KafkaGroupBeginEx group;
             case 254: kafka::stream::KafkaBootstrapBeginEx bootstrap;
             case 255: kafka::stream::KafkaMergedBeginEx merged;
-            case 22: kafka::stream::KafkaInitProduceIdBeginEx initProducerId;
+            case 22: kafka::stream::KafkaInitProducerIdBeginEx initProducerId;
             case 3: kafka::stream::KafkaMetaBeginEx meta;
             case 8: kafka::stream::KafkaOffsetCommitBeginEx offsetCommit;
             case 9: kafka::stream::KafkaOffsetFetchBeginEx offsetFetch;
@@ -486,7 +486,7 @@ scope kafka
             int32 leaderEpoch;
         }
 
-        struct KafkaInitProduceIdBeginEx
+        struct KafkaInitProducerIdBeginEx
         {
             int64 producerId;
             int16 producerEpoch;

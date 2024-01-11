@@ -81,7 +81,7 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupFlu
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupMemberFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupMemberMetadataFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupTopicMetadataFW;
-import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaInitProduceIdBeginExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaInitProducerIdBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedConsumerFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedDataExFW;
@@ -975,11 +975,11 @@ public final class KafkaFunctions
             return new KafkaOffsetCommitBeginExBuilder();
         }
 
-        public KafkaInitProduceIdBeginExBuilder initProduceId()
+        public KafkaInitProducerIdBeginExBuilder initProducerId()
         {
             beginExRW.kind(KafkaApi.INIT_PRODUCER_ID.value());
 
-            return new KafkaInitProduceIdBeginExBuilder();
+            return new KafkaInitProducerIdBeginExBuilder();
         }
 
         public byte[] build()
@@ -1603,25 +1603,25 @@ public final class KafkaFunctions
             }
         }
 
-        public final class KafkaInitProduceIdBeginExBuilder
+        public final class KafkaInitProducerIdBeginExBuilder
         {
-            private final KafkaInitProduceIdBeginExFW.Builder initProduceIdBeginExRW =
-                new KafkaInitProduceIdBeginExFW.Builder();
+            private final KafkaInitProducerIdBeginExFW.Builder initProduceIdBeginExRW =
+                new KafkaInitProducerIdBeginExFW.Builder();
 
-            private KafkaInitProduceIdBeginExBuilder()
+            private KafkaInitProducerIdBeginExBuilder()
             {
                 initProduceIdBeginExRW.wrap(writeBuffer, KafkaDataExFW.FIELD_OFFSET_OFFSET_FETCH, writeBuffer.capacity());
             }
 
 
-            public KafkaInitProduceIdBeginExBuilder producerId(
+            public KafkaInitProducerIdBeginExBuilder producerId(
                 long producerId)
             {
                 initProduceIdBeginExRW.producerId(producerId);
                 return this;
             }
 
-            public KafkaInitProduceIdBeginExBuilder producerEpoch(
+            public KafkaInitProducerIdBeginExBuilder producerEpoch(
                 short producerEpoch)
             {
                 initProduceIdBeginExRW.producerEpoch(producerEpoch);
@@ -1630,7 +1630,7 @@ public final class KafkaFunctions
 
             public KafkaBeginExBuilder build()
             {
-                KafkaInitProduceIdBeginExFW initProduceIdBeginEx = initProduceIdBeginExRW.build();
+                KafkaInitProducerIdBeginExFW initProduceIdBeginEx = initProduceIdBeginExRW.build();
                 beginExRO.wrap(writeBuffer, 0, initProduceIdBeginEx.limit());
                 return KafkaBeginExBuilder.this;
             }

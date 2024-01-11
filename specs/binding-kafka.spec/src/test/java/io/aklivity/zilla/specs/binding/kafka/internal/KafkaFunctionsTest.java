@@ -75,7 +75,7 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaFlushExF
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupMemberMetadataFW;
-import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaInitProduceIdBeginExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaInitProducerIdBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedFetchDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedFlushExFW;
@@ -4370,7 +4370,7 @@ public class KafkaFunctionsTest
     {
         byte[] build = KafkaFunctions.beginEx()
             .typeId(0x01)
-            .initProduceId()
+            .initProducerId()
                 .producerId(1L)
                 .producerEpoch((short) 2)
                 .build()
@@ -4381,7 +4381,7 @@ public class KafkaFunctionsTest
         assertEquals(0x01, beginEx.typeId());
         assertEquals(KafkaApi.INIT_PRODUCER_ID.value(), beginEx.kind());
 
-        KafkaInitProduceIdBeginExFW initProduceIdBeginEx = beginEx.initProduceId();
+        KafkaInitProducerIdBeginExFW initProduceIdBeginEx = beginEx.initProducerId();
         assertEquals(1L, initProduceIdBeginEx.producerId());
         assertEquals(2, initProduceIdBeginEx.producerEpoch());
     }

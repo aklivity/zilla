@@ -42,7 +42,7 @@ import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 
-public final class KafkaCacheInitProduceIdFactory implements BindingHandler
+public final class KafkaCacheInitProducerIdFactory implements BindingHandler
 {
     private static final DirectBuffer EMPTY_BUFFER = new UnsafeBuffer();
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
@@ -72,7 +72,7 @@ public final class KafkaCacheInitProduceIdFactory implements BindingHandler
     private final LongUnaryOperator supplyReplyId;
     private final LongFunction<KafkaBindingConfig> supplyBinding;
 
-    public KafkaCacheInitProduceIdFactory(
+    public KafkaCacheInitProducerIdFactory(
         KafkaConfiguration config,
         EngineContext context,
         LongFunction<KafkaBindingConfig> supplyBinding)
@@ -119,14 +119,14 @@ public final class KafkaCacheInitProduceIdFactory implements BindingHandler
         {
             final long resolvedId = resolved.id;
 
-            newStream = new KafkaCacheinitProduceIdApp(
+            newStream = new KafkaCacheInitProducerrIdApp(
                     sender,
                     originId,
                     routedId,
                     initialId,
                     affinity,
                     authorization,
-                    resolvedId)::onInitProduceIdMessage;
+                    resolvedId)::onInitProducerIdMessage;
         }
 
         return newStream;
@@ -340,12 +340,12 @@ public final class KafkaCacheInitProduceIdFactory implements BindingHandler
         sender.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
     }
 
-    final class KafkaCacheinitProduceIdNet
+    final class KafkaCacheInitProducerrIdNet
     {
         private final long originId;
         private final long routedId;
         private final long authorization;
-        private final KafkaCacheinitProduceIdApp delegate;
+        private final KafkaCacheInitProducerrIdApp delegate;
 
         private long initialId;
         private long replyId;
@@ -363,8 +363,8 @@ public final class KafkaCacheInitProduceIdFactory implements BindingHandler
         private int replyMax;
         private int replyPad;
 
-        private KafkaCacheinitProduceIdNet(
-            KafkaCacheinitProduceIdApp delegate,
+        private KafkaCacheInitProducerrIdNet(
+            KafkaCacheInitProducerrIdApp delegate,
             long originId,
             long routedId,
             long authorization)
@@ -376,7 +376,7 @@ public final class KafkaCacheInitProduceIdFactory implements BindingHandler
             this.authorization = authorization;
         }
 
-        private void doInitProduceIdInitialBegin(
+        private void doInitProducerIdInitialBegin(
             long traceId,
             OctetsFW extension)
         {
@@ -391,14 +391,14 @@ public final class KafkaCacheInitProduceIdFactory implements BindingHandler
 
                 this.initialId = supplyInitialId.applyAsLong(routedId);
                 this.replyId = supplyReplyId.applyAsLong(initialId);
-                this.receiver = newStream(this::onInitProduceIdMessage,
+                this.receiver = newStream(this::onInitProducerIdMessage,
                     originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, 0L, extension);
                 state = KafkaState.openingInitial(state);
             }
         }
 
-        private void doInitProduceIdInitialData(
+        private void doInitProducerIdInitialData(
             long traceId,
             long authorization,
             long budgetId,
@@ -416,7 +416,7 @@ public final class KafkaCacheInitProduceIdFactory implements BindingHandler
         }
 
 
-        private void doInitProduceIdInitialEnd(
+        private void doInitProducerIdInitialEnd(
             long traceId)
         {
             if (!KafkaState.initialClosed(state))
@@ -428,7 +428,7 @@ public final class KafkaCacheInitProduceIdFactory implements BindingHandler
             }
         }
 
-        private void doInitProduceIdInitialAbort(
+        private void doInitProducerIdInitialAbort(
             long traceId)
         {
             if (!KafkaState.initialClosed(state))
@@ -440,7 +440,7 @@ public final class KafkaCacheInitProduceIdFactory implements BindingHandler
             }
         }
 
-        private void onInitProduceIdInitialReset(
+        private void onInitProducerIdInitialReset(
             ResetFW reset)
         {
             final long sequence = reset.sequence();
@@ -456,11 +456,11 @@ public final class KafkaCacheInitProduceIdFactory implements BindingHandler
 
             assert delegate.initialAck <= delegate.initialSeq;
 
-            delegate.doInitProduceIdInitialReset(traceId, extension);
+            delegate.doInitProducerIdInitialReset(traceId, extension);
         }
 
 
-        private void onInitProduceIdInitialWindow(
+        private void onInitProducerIdInitialWindow(
             WindowFW window)
         {
             final long sequence = window.sequence();
@@ -483,10 +483,10 @@ public final class KafkaCacheInitProduceIdFactory implements BindingHandler
 
             assert initialAck <= initialSeq;
 
-            delegate.doInitProduceIdInitialWindow(authorization, traceId, budgetId, padding);
+            delegate.doInitProducerIdInitialWindow(authorization, traceId, budgetId, padding);
         }
 
-        private void onInitProduceIdMessage(
+        private void onInitProducerIdMessage(
             int msgTypeId,
             DirectBuffer buffer,
             int index,
@@ -496,44 +496,44 @@ public final class KafkaCacheInitProduceIdFactory implements BindingHandler
             {
             case BeginFW.TYPE_ID:
                 final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-                onInitProduceIdReplyBegin(begin);
+                onInitProducerIdReplyBegin(begin);
                 break;
             case DataFW.TYPE_ID:
                 final DataFW data = dataRO.wrap(buffer, index, index + length);
-                onInitProduceIdReplyData(data);
+                onInitProducerIdReplyData(data);
                 break;
             case EndFW.TYPE_ID:
                 final EndFW end = endRO.wrap(buffer, index, index + length);
-                onInitProduceIdReplyEnd(end);
+                onInitProducerIdReplyEnd(end);
                 break;
             case AbortFW.TYPE_ID:
                 final AbortFW abort = abortRO.wrap(buffer, index, index + length);
-                onInitProduceIdReplyAbort(abort);
+                onInitProducerIdReplyAbort(abort);
                 break;
             case ResetFW.TYPE_ID:
                 final ResetFW reset = resetRO.wrap(buffer, index, index + length);
-                onInitProduceIdInitialReset(reset);
+                onInitProducerIdInitialReset(reset);
                 break;
             case WindowFW.TYPE_ID:
                 final WindowFW window = windowRO.wrap(buffer, index, index + length);
-                onInitProduceIdInitialWindow(window);
+                onInitProducerIdInitialWindow(window);
                 break;
             default:
                 break;
             }
         }
 
-        private void onInitProduceIdReplyBegin(
+        private void onInitProducerIdReplyBegin(
             BeginFW begin)
         {
             final long traceId = begin.traceId();
 
             state = KafkaState.openingReply(state);
 
-            delegate.doInitProduceIdReplyBegin(traceId, begin.extension());
+            delegate.doInitProducerIdReplyBegin(traceId, begin.extension());
         }
 
-        private void onInitProduceIdReplyData(
+        private void onInitProducerIdReplyData(
             DataFW data)
         {
             final long sequence = data.sequence();
@@ -552,10 +552,10 @@ public final class KafkaCacheInitProduceIdFactory implements BindingHandler
             assert replyAck <= replySeq;
             assert replySeq <= replyAck + replyMax;
 
-            delegate.doInitProduceIdReplyData(traceId, flags, reserved, payload, extension);
+            delegate.doInitProducerIdReplyData(traceId, flags, reserved, payload, extension);
         }
 
-        private void onInitProduceIdReplyEnd(
+        private void onInitProducerIdReplyEnd(
             EndFW end)
         {
             final long sequence = end.sequence();
@@ -570,10 +570,10 @@ public final class KafkaCacheInitProduceIdFactory implements BindingHandler
 
             assert replyAck <= replySeq;
 
-            delegate.doInitProduceIdReplyEnd(traceId);
+            delegate.doInitProducerIdReplyEnd(traceId);
         }
 
-        private void onInitProduceIdReplyAbort(
+        private void onInitProducerIdReplyAbort(
             AbortFW abort)
         {
             final long sequence = abort.sequence();
@@ -588,10 +588,10 @@ public final class KafkaCacheInitProduceIdFactory implements BindingHandler
 
             assert replyAck <= replySeq;
 
-            delegate.doInitProduceIdReplyAbort(traceId);
+            delegate.doInitProducerIdReplyAbort(traceId);
         }
 
-        private void doInitProduceIdReplyReset(
+        private void doInitProducerIdReplyReset(
             long traceId,
             Flyweight extension)
         {
@@ -604,7 +604,7 @@ public final class KafkaCacheInitProduceIdFactory implements BindingHandler
             }
         }
 
-        private void doInitProduceIdReplyWindow(
+        private void doInitProducerIdReplyWindow(
             long traceId,
             long authorization,
             long budgetId,
@@ -618,9 +618,9 @@ public final class KafkaCacheInitProduceIdFactory implements BindingHandler
         }
     }
 
-    private final class KafkaCacheinitProduceIdApp
+    private final class KafkaCacheInitProducerrIdApp
     {
-        private final KafkaCacheinitProduceIdNet net;
+        private final KafkaCacheInitProducerrIdNet net;
         private final MessageConsumer sender;
         private final long originId;
         private final long routedId;
@@ -644,7 +644,7 @@ public final class KafkaCacheInitProduceIdFactory implements BindingHandler
         private long replyBud;
         private int replyCap;
 
-        KafkaCacheinitProduceIdApp(
+        KafkaCacheInitProducerrIdApp(
             MessageConsumer sender,
             long originId,
             long routedId,
@@ -653,7 +653,7 @@ public final class KafkaCacheInitProduceIdFactory implements BindingHandler
             long authorization,
             long resolvedId)
         {
-            this.net =  new KafkaCacheinitProduceIdNet(this, routedId, resolvedId, authorization);
+            this.net =  new KafkaCacheInitProducerrIdNet(this, routedId, resolvedId, authorization);
             this.sender = sender;
             this.originId = originId;
             this.routedId = routedId;
@@ -663,7 +663,7 @@ public final class KafkaCacheInitProduceIdFactory implements BindingHandler
             this.authorization = authorization;
         }
 
-        private void onInitProduceIdMessage(
+        private void onInitProducerIdMessage(
             int msgTypeId,
             DirectBuffer buffer,
             int index,
@@ -673,34 +673,34 @@ public final class KafkaCacheInitProduceIdFactory implements BindingHandler
             {
             case BeginFW.TYPE_ID:
                 final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-                onInitProduceIdInitialBegin(begin);
+                onInitProducerIdInitialBegin(begin);
                 break;
             case DataFW.TYPE_ID:
                 final DataFW data = dataRO.wrap(buffer, index, index + length);
-                onInitProduceIdInitialData(data);
+                onInitProducerIdInitialData(data);
                 break;
             case EndFW.TYPE_ID:
                 final EndFW end = endRO.wrap(buffer, index, index + length);
-                onInitProduceIdInitialEnd(end);
+                onInitProducerIdInitialEnd(end);
                 break;
             case AbortFW.TYPE_ID:
                 final AbortFW abort = abortRO.wrap(buffer, index, index + length);
-                onInitProduceIdInitialAbort(abort);
+                onInitProducerIdInitialAbort(abort);
                 break;
             case WindowFW.TYPE_ID:
                 final WindowFW window = windowRO.wrap(buffer, index, index + length);
-                onInitProduceIdReplyWindow(window);
+                onInitProducerIdReplyWindow(window);
                 break;
             case ResetFW.TYPE_ID:
                 final ResetFW reset = resetRO.wrap(buffer, index, index + length);
-                onInitProduceIdReplyReset(reset);
+                onInitProducerIdReplyReset(reset);
                 break;
             default:
                 break;
             }
         }
 
-        private void onInitProduceIdInitialBegin(
+        private void onInitProducerIdInitialBegin(
             BeginFW begin)
         {
             final long sequence = begin.sequence();
@@ -718,10 +718,10 @@ public final class KafkaCacheInitProduceIdFactory implements BindingHandler
 
             assert initialAck <= initialSeq;
 
-            net.doInitProduceIdInitialBegin(traceId, extension);
+            net.doInitProducerIdInitialBegin(traceId, extension);
         }
 
-        private void onInitProduceIdInitialData(
+        private void onInitProducerIdInitialData(
             DataFW data)
         {
             final long sequence = data.sequence();
@@ -741,10 +741,10 @@ public final class KafkaCacheInitProduceIdFactory implements BindingHandler
 
             assert initialAck <= initialSeq;
 
-            net.doInitProduceIdInitialData(traceId, authorization, budgetId, reserved, flags, payload, extension);
+            net.doInitProducerIdInitialData(traceId, authorization, budgetId, reserved, flags, payload, extension);
         }
 
-        private void onInitProduceIdInitialEnd(
+        private void onInitProducerIdInitialEnd(
             EndFW end)
         {
             final long sequence = end.sequence();
@@ -759,10 +759,10 @@ public final class KafkaCacheInitProduceIdFactory implements BindingHandler
 
             assert initialAck <= initialSeq;
 
-            net.doInitProduceIdInitialEnd(traceId);
+            net.doInitProducerIdInitialEnd(traceId);
         }
 
-        private void onInitProduceIdInitialAbort(
+        private void onInitProducerIdInitialAbort(
             AbortFW abort)
         {
             final long sequence = abort.sequence();
@@ -777,10 +777,10 @@ public final class KafkaCacheInitProduceIdFactory implements BindingHandler
 
             assert initialAck <= initialSeq;
 
-            net.doInitProduceIdInitialAbort(traceId);
+            net.doInitProducerIdInitialAbort(traceId);
         }
 
-        private void doInitProduceIdInitialReset(
+        private void doInitProducerIdInitialReset(
             long traceId,
             Flyweight extension)
         {
@@ -793,7 +793,7 @@ public final class KafkaCacheInitProduceIdFactory implements BindingHandler
             }
         }
 
-        private void doInitProduceIdInitialWindow(
+        private void doInitProducerIdInitialWindow(
             long authorization,
             long traceId,
             long budgetId,
@@ -806,7 +806,7 @@ public final class KafkaCacheInitProduceIdFactory implements BindingHandler
                 traceId, authorization, budgetId, padding);
         }
 
-        private void doInitProduceIdReplyBegin(
+        private void doInitProducerIdReplyBegin(
             long traceId,
             OctetsFW extension)
         {
@@ -816,7 +816,7 @@ public final class KafkaCacheInitProduceIdFactory implements BindingHandler
                 traceId, authorization, affinity, extension);
         }
 
-        private void doInitProduceIdReplyData(
+        private void doInitProducerIdReplyData(
             long traceId,
             int flag,
             int reserved,
@@ -830,7 +830,7 @@ public final class KafkaCacheInitProduceIdFactory implements BindingHandler
             replySeq += reserved;
         }
 
-        private void doInitProduceIdReplyEnd(
+        private void doInitProducerIdReplyEnd(
             long traceId)
         {
             if (KafkaState.replyOpening(state) && !KafkaState.replyClosed(state))
@@ -842,7 +842,7 @@ public final class KafkaCacheInitProduceIdFactory implements BindingHandler
             state = KafkaState.closedReply(state);
         }
 
-        private void doInitProduceIdReplyAbort(
+        private void doInitProducerIdReplyAbort(
             long traceId)
         {
             if (KafkaState.replyOpening(state) && !KafkaState.replyClosed(state))
@@ -854,7 +854,7 @@ public final class KafkaCacheInitProduceIdFactory implements BindingHandler
             state = KafkaState.closedReply(state);
         }
 
-        private void onInitProduceIdReplyReset(
+        private void onInitProducerIdReplyReset(
             ResetFW reset)
         {
             final long sequence = reset.sequence();
@@ -876,7 +876,7 @@ public final class KafkaCacheInitProduceIdFactory implements BindingHandler
             cleanup(traceId);
         }
 
-        private void onInitProduceIdReplyWindow(
+        private void onInitProducerIdReplyWindow(
             WindowFW window)
         {
             final long sequence = window.sequence();
@@ -901,17 +901,17 @@ public final class KafkaCacheInitProduceIdFactory implements BindingHandler
 
             assert replyAck <= replySeq;
 
-            net.doInitProduceIdReplyWindow(traceId, acknowledge, budgetId, padding);
+            net.doInitProducerIdReplyWindow(traceId, acknowledge, budgetId, padding);
         }
 
         private void cleanup(
             long traceId)
         {
-            doInitProduceIdInitialReset(traceId, EMPTY_OCTETS);
-            doInitProduceIdReplyAbort(traceId);
+            doInitProducerIdInitialReset(traceId, EMPTY_OCTETS);
+            doInitProducerIdReplyAbort(traceId);
 
-            net.doInitProduceIdInitialAbort(traceId);
-            net.doInitProduceIdReplyReset(traceId, EMPTY_OCTETS);
+            net.doInitProducerIdInitialAbort(traceId);
+            net.doInitProducerIdReplyReset(traceId, EMPTY_OCTETS);
         }
     }
 }

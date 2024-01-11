@@ -21,7 +21,7 @@ connect "zilla://streams/app0"
 
 write zilla:begin.ext ${kafka:beginEx()
                             .typeId(zilla:id("kafka"))
-                            .initProduceId()
+                            .initProducerId()
                                 .producerId(-1)
                                 .producerEpoch(-1)
                                 .build()
@@ -30,7 +30,7 @@ connected
 
 read zilla:begin.ext ${kafka:beginEx()
                             .typeId(zilla:id("kafka"))
-                            .initProduceId()
+                            .initProducerId()
                                 .producerId(1)
                                 .producerEpoch(2)
                                 .build()
