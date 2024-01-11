@@ -29,11 +29,11 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
-public class ClientInitProduceIdIT
+public class ClientInitProducerIdIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/kafka/streams/network/init.produce.id.v4")
-        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/kafka/streams/application/init.produce.id");
+        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/kafka/streams/network/init.producer.id.v4")
+        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/kafka/streams/application/init.producer.id");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(15, SECONDS));
 
@@ -53,7 +53,7 @@ public class ClientInitProduceIdIT
     @Specification({
         "${app}/produce.new.id/client",
         "${net}/produce.new.id/server"})
-    public void shouldUpdateTopicPartitionOffset() throws Exception
+    public void shouldGenerateNewProducerId() throws Exception
     {
         k3po.finish();
     }

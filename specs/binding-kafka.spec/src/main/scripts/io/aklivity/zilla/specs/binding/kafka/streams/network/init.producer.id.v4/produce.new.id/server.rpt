@@ -26,18 +26,18 @@ accepted
 connected
 
 read  31                                # size
-      22s                               # init produce id
+      22s                               # init producer id
       4s                                # v4
       (int:newRequestId)
       5s "zilla"                        # client id
       -1s                               # transaction
       60000                             # transaction timeout ms
-      -1L                               # produce id
-      -1s                               # produce epoch
+      -1L                               # producer id
+      -1s                               # producer epoch
 
 write 20                                 # size
       ${newRequestId}
       0                                  # throttle time ms
       0s                                 # no error
-      1L                                 # produce id
-      2s                                 # produce epoch
+      1L                                 # producer id
+      2s                                 # producer epoch

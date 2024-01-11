@@ -4366,7 +4366,7 @@ public class KafkaFunctionsTest
     }
 
     @Test
-    public void shouldGenerateInitProduceIdBeginExtension()
+    public void shouldGenerateInitProducerIdBeginExtension()
     {
         byte[] build = KafkaFunctions.beginEx()
             .typeId(0x01)
