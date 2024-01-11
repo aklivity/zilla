@@ -2220,6 +2220,7 @@ public class ZillaDumpCommandTest
         DirectBuffer kafkaOffsetCommitDataEx1 = new UnsafeBuffer(KafkaFunctions.dataEx()
             .typeId(KAFKA_TYPE_ID)
             .offsetCommit()
+                .topic("test")
                 .progress(21, 1234, "metadata")
                 .generationId(42)
                 .leaderEpoch(77)
