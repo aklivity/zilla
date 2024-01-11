@@ -284,8 +284,9 @@ read ${mqtt:will()
            .format("TEXT")
            .lifetimeId("7ce005a0-ce9d-444d-b14b-2f302d13799d")
            .willId("d252a6bd-abb5-446a-b0f7-d0a3d8c012e2")
-           .payload("client-1 disconnected abruptly")
+           .payloadSize(30)
       .build()}
+read "client-1 disconnected abruptly"
 
 # will signal for client-1, deliver later
 read zilla:data.ext ${kafka:matchDataEx()
