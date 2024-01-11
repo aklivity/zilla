@@ -342,17 +342,18 @@ scope protocol
             struct InitProduceIdRequest
             {
                 string16 transaction = null;
-                int32 transactionTimeoutMs;
+                int32 transactionTimeoutMs = 60000;
                 int64 producerId;
                 int16 producerEpoch;
             }
 
             struct InitProduceIdResponse
             {
-                  int32 throttleTimeMillis;
-                  int16 errorCode;
-                  int64 producerId;
-                  int16 producerEpoch;
+                int32 correlationId;
+                int32 throttleTimeMillis;
+                int16 errorCode;
+                int64 producerId;
+                int16 producerEpoch;
             }
         }
 

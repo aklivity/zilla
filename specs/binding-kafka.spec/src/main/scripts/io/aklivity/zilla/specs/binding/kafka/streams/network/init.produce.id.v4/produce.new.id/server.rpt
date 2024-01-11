@@ -1,0 +1,43 @@
+#
+# Copyright 2021-2023 Aklivity Inc.
+#
+# Aklivity licenses this file to you under the Apache License,
+# version 2.0 (the "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+
+property networkAcceptWindow 8192
+
+accept "zilla://streams/net0"
+  option zilla:window ${networkAcceptWindow}
+  option zilla:transmission "duplex"
+  option zilla:byteorder "network"
+
+accepted
+
+connected
+
+read  31                                # size
+      22s                               # init produce id
+      4s                                # v4
+      (int:newRequestId)
+      5s "zilla"                        # client id
+      -1s                               # transaction
+      60000                             # transaction timeout ms
+      -1L                               # produce id
+      -1s                               # produce epoch
+
+write 20                                 # size
+      ${newRequestId}
+      0                                  # throttle time ms
+      0s                                 # no error
+      1L                                 # produce id
+      2s                                 # produce epoch

@@ -75,7 +75,7 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaFlushExF
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupMemberMetadataFW;
-import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaInitProduceIdDataExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaInitProduceIdBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedFetchDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedFlushExFW;
@@ -2753,7 +2753,6 @@ public class KafkaFunctionsTest
             .typeId(0x01)
             .produce(f -> f
                 .transaction("transaction")
-                .producerId(1L)
                 .topic("test")
                 .partition(p -> p.partitionId(0).partitionOffset(0L)))
             .build();
@@ -2777,7 +2776,6 @@ public class KafkaFunctionsTest
             .typeId(0x01)
             .produce(f -> f
                 .transaction("transaction")
-                .producerId(1L)
                 .topic("test")
                 .partition(p -> p.partitionId(0).partitionOffset(0L)))
             .build();
@@ -2801,7 +2799,6 @@ public class KafkaFunctionsTest
             .typeId(0x01)
             .produce(f -> f
                 .transaction("transaction")
-                .producerId(1L)
                 .topic("test")
                 .partition(p -> p.partitionId(0).partitionOffset(0L)))
             .build();
@@ -2825,7 +2822,6 @@ public class KafkaFunctionsTest
             .typeId(0x01)
             .produce(f -> f
                 .transaction("transaction")
-                .producerId(1L)
                 .topic("test")
                 .partition(p -> p.partitionId(0).partitionOffset(0L)))
             .build();
@@ -3552,7 +3548,6 @@ public class KafkaFunctionsTest
                                      .typeId(0x01)
                                      .produce()
                                          .transaction("transaction")
-                                         .producerId(1L)
                                          .topic("topic")
                                          .partition(1)
                                          .build()
@@ -3565,7 +3560,6 @@ public class KafkaFunctionsTest
 
         final KafkaProduceBeginExFW produceBeginEx = beginEx.produce();
         assertEquals("transaction", produceBeginEx.transaction().asString());
-        assertEquals(1L, produceBeginEx.producerId());
         assertEquals(1, produceBeginEx.partition().partitionId());
         assertEquals("topic", produceBeginEx.topic().asString());
         assertEquals(-1L, produceBeginEx.partition().partitionOffset());
@@ -3579,6 +3573,8 @@ public class KafkaFunctionsTest
                                      .produce()
                                          .deferred(10)
                                          .timestamp(12345678L)
+                                         .producerId(1L)
+                                         .producerEpoch((short) 2)
                                          .sequence(0)
                                          .ackMode("IN_SYNC_REPLICAS")
                                          .key("match")
@@ -4363,26 +4359,24 @@ public class KafkaFunctionsTest
     }
 
     @Test
-    public void shouldGenerateInitProduceIdDataExtension()
+    public void shouldGenerateInitProduceIdBeginExtension()
     {
-        byte[] build = KafkaFunctions.dataEx()
+        byte[] build = KafkaFunctions.beginEx()
             .typeId(0x01)
             .initProduceId()
-                .transactionTimeoutMs(0)
                 .producerId(1L)
                 .producerEpoch((short) 2)
                 .build()
             .build();
 
         DirectBuffer buffer = new UnsafeBuffer(build);
-        KafkaDataExFW dataEx = new KafkaDataExFW().wrap(buffer, 0, buffer.capacity());
-        assertEquals(0x01, dataEx.typeId());
-        assertEquals(KafkaApi.INIT_PRODUCE_ID.value(), dataEx.kind());
+        KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x01, beginEx.typeId());
+        assertEquals(KafkaApi.INIT_PRODUCE_ID.value(), beginEx.kind());
 
-        KafkaInitProduceIdDataExFW initProduceIdDataEx = dataEx.initProduceId();
-        assertEquals(0, initProduceIdDataEx.transactionTimeoutMs());
-        assertEquals(1L, initProduceIdDataEx.producerId());
-        assertEquals(2, initProduceIdDataEx.producerEpoch());
+        KafkaInitProduceIdBeginExFW initProduceIdBeginEx = beginEx.initProduceId();
+        assertEquals(1L, initProduceIdBeginEx.producerId());
+        assertEquals(2, initProduceIdBeginEx.producerEpoch());
     }
 
     @Test

@@ -22,25 +22,22 @@ accept ${serverAddress}
 
 accepted
 
-connected
 
-read zilla:data.ext ${kafka:dataEx()
-                           .typeId(zilla:id("kafka"))
-                           .initProduceId()
-                               .transactionTimeoutMs(0)
-                               .producerId(-1L)
-                               .producerEpoch((short) -1)
-                               .build()
-                           .build()}
-read zilla:data.empty
-
-
-write zilla:data.ext ${kafka:dataEx()
+read zilla:begin.ext ${kafka:beginEx()
                             .typeId(zilla:id("kafka"))
                             .initProduceId()
-                                .producerId(1L)
-                                .producerEpoch((short) 2)
+                                .producerId(-1)
+                                .producerEpoch(-1)
                                 .build()
                             .build()}
-write zilla:data.empty
-write flush
+
+connected
+
+
+write zilla:begin.ext ${kafka:beginEx()
+                            .typeId(zilla:id("kafka"))
+                            .initProduceId()
+                                .producerId(1)
+                                .producerEpoch(2)
+                                .build()
+                            .build()}

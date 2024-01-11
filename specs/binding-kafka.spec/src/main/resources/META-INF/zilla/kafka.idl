@@ -186,6 +186,7 @@ scope kafka
             case 253: kafka::stream::KafkaGroupBeginEx group;
             case 254: kafka::stream::KafkaBootstrapBeginEx bootstrap;
             case 255: kafka::stream::KafkaMergedBeginEx merged;
+            case 22: kafka::stream::KafkaInitProduceIdBeginEx initProduceId;
             case 3: kafka::stream::KafkaMetaBeginEx meta;
             case 8: kafka::stream::KafkaOffsetCommitBeginEx offsetCommit;
             case 9: kafka::stream::KafkaOffsetFetchBeginEx offsetFetch;
@@ -198,7 +199,6 @@ scope kafka
         {
             case 252: kafka::stream::KafkaConsumerDataEx consumer;
             case 255: kafka::stream::KafkaMergedDataEx merged;
-            case 22: kafka::stream::KafkaInitProduceIdDataEx initProduceId;
             case 3: kafka::stream::KafkaMetaDataEx meta;
             case 8: kafka::stream::KafkaOffsetCommitDataEx offsetCommit;
             case 9: kafka::stream::KafkaOffsetFetchDataEx offsetFetch;
@@ -255,6 +255,8 @@ scope kafka
         {
             int32 deferred = 0;         // INIT only (TODO: move to DATA frame)
             int64 timestamp = 0;        // INIT only
+            int64 producerId = -1;      // INIT only
+            int16 producerEpoch = -1;   // INIT only
             KafkaOffset partition;      // INIT only
             KafkaKey key;               // INIT only
             KafkaKey hashKey;           // INIT only
@@ -356,7 +358,6 @@ scope kafka
         struct KafkaProduceBeginEx
         {
             string8 transaction; // = null;
-            int64 producerId = -1;
             string16 topic;
             KafkaOffset partition;
         }
@@ -365,6 +366,8 @@ scope kafka
         {
             int32 deferred = 0;
             int64 timestamp = 0;
+            int64 producerId = -1;
+            int16 producerEpoch = -1;
             int32 sequence = -1;
             uint32 crc32c = 0;
             KafkaAckMode ackMode = IN_SYNC_REPLICAS;
@@ -483,9 +486,8 @@ scope kafka
             int32 leaderEpoch;
         }
 
-        struct KafkaInitProduceIdDataEx
+        struct KafkaInitProduceIdBeginEx
         {
-            int32 transactionTimeoutMs = 0;
             int64 producerId;
             int16 producerEpoch;
         }

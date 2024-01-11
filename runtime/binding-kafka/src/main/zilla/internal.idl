@@ -23,6 +23,8 @@ scope internal
             int64 timestamp;
             int64 ownerId;
             int64 acknowledge = 0;
+            int64 produceId = -1;
+            int16 produceEpoch = -1;
             int32 sequence = -1;
             int64 ancestor;
             int64 descendant;
