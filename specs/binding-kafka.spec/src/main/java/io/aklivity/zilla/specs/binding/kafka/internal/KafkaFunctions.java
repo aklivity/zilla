@@ -2128,17 +2128,17 @@ public final class KafkaFunctions
                     return this;
                 }
 
-                public KafkaMergedProduceDataExBuilder produceId(
-                    long produceId)
+                public KafkaMergedProduceDataExBuilder producerId(
+                    long producerId)
                 {
-                    mergedProduceDataExRW.producerId(produceId);
+                    mergedProduceDataExRW.producerId(producerId);
                     return this;
                 }
 
                 public KafkaMergedProduceDataExBuilder producerEpoch(
-                    short produceEpoch)
+                    short producerEpoch)
                 {
-                    mergedProduceDataExRW.producerEpoch(produceEpoch);
+                    mergedProduceDataExRW.producerEpoch(producerEpoch);
                     return this;
                 }
 
@@ -3477,7 +3477,7 @@ public final class KafkaFunctions
             private Integer deferred;
             private Long timestamp;
             private Long producerId;
-            private Short produceEpoch;
+            private Short producerEpoch;
             private Integer sequence;
             private KafkaAckMode ackMode;
             private KafkaKeyFW.Builder keyRW;
@@ -3508,10 +3508,10 @@ public final class KafkaFunctions
                 return this;
             }
 
-            public KafkaProduceDataExMatcherBuilder produceEpoch(
-                short produceEpoch)
+            public KafkaProduceDataExMatcherBuilder producerEpoch(
+                short producerEpoch)
             {
-                this.produceEpoch = produceEpoch;
+                this.producerEpoch = producerEpoch;
                 return this;
             }
 
@@ -3611,16 +3611,16 @@ public final class KafkaFunctions
                 return timestamp == null || timestamp == produceDataEx.timestamp();
             }
 
-            private boolean matchProduceId(
+            private boolean matchProducerId(
                 final KafkaProduceDataExFW produceDataEx)
             {
                 return producerId == null || producerId == produceDataEx.producerId();
             }
 
-            private boolean matchProduceEpoch(
+            private boolean matchProducerEpoch(
                 final KafkaProduceDataExFW produceDataEx)
             {
-                return produceEpoch == null || produceEpoch == produceDataEx.producerEpoch();
+                return producerEpoch == null || producerEpoch == produceDataEx.producerEpoch();
             }
 
             private boolean matchSequence(
@@ -3678,7 +3678,7 @@ public final class KafkaFunctions
                 private Integer deferred;
                 private Long timestamp;
                 private Long producerId;
-                private Short produceEpoch;
+                private Short producerEpoch;
                 private Long filters;
                 private KafkaOffsetFW.Builder partitionRW;
                 private Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW> progressRW;
@@ -3712,10 +3712,10 @@ public final class KafkaFunctions
                     return this;
                 }
 
-                public KafkaMergedFetchDataExMatcherBuilder produceEpoch(
-                    short produceEpoch)
+                public KafkaMergedFetchDataExMatcherBuilder producerEpoch(
+                    short producerEpoch)
                 {
-                    this.produceEpoch = produceEpoch;
+                    this.producerEpoch = producerEpoch;
                     return this;
                 }
 

@@ -581,7 +581,7 @@ public class KafkaFunctionsTest
                                         .produce()
                                          .deferred(0)
                                          .timestamp(12345678L)
-                                         .produceId(8L)
+                                         .producerId(8L)
                                          .producerEpoch((short) 2)
                                          .partition(0, 0L)
                                          .key("match")
@@ -1199,7 +1199,7 @@ public class KafkaFunctionsTest
                                                  .progress(0, 1L, 1L)
                                                  .timestamp(12345678L)
                                                  .producerId(8L)
-                                                 .produceEpoch((short) 2)
+                                                 .producerEpoch((short) 2)
                                                  .timestamp(12345678L)
                                                  .key("match")
                                                  .header("name", "value")
@@ -3651,7 +3651,7 @@ public class KafkaFunctionsTest
                                              .produce()
                                                  .timestamp(12345678L)
                                                  .producerId(8L)
-                                                 .produceEpoch((short) 1)
+                                                 .producerEpoch((short) 1)
                                                  .build()
                                              .build();
 

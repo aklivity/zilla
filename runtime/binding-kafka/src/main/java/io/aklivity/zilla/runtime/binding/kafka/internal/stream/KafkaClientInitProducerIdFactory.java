@@ -793,8 +793,8 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
         private final LongLongConsumer encodeInitProducerIdRequest = this::doEncodeInitProducerIdRequest;
 
         private final KafkaInitProducerIdStream delegate;
-        private final long produceId;
-        private final short produceEpoch;
+        private final long producerId;
+        private final short producerEpoch;
 
         private short errorCode;
 
@@ -839,8 +839,8 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
         {
             super(sasl, originId, routedId);
             this.delegate = delegate;
-            this.produceId = producerId;
-            this.produceEpoch = producerEpoch;
+            this.producerId = producerId;
+            this.producerEpoch = producerEpoch;
             this.encoder = sasl != null ? encodeSaslHandshakeRequest : encodeInitProducerIdRequest;
 
             this.decoder = decodeReject;
@@ -1183,8 +1183,8 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
 
             final InitProducerIdRequestFW initProducerIdRequest =
                 initProducerIdRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
-                    .producerId(produceId)
-                    .producerEpoch(produceEpoch)
+                    .producerId(producerId)
+                    .producerEpoch(producerEpoch)
                     .build();
 
             encodeProgress = initProducerIdRequest.limit();
