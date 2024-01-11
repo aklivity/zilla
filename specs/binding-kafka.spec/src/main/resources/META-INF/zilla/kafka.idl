@@ -468,7 +468,6 @@ scope kafka
 
         struct KafkaOffsetCommitBeginEx
         {
-            string16 topic;
             string16 groupId;
             string16 memberId;
             string16 instanceId;
@@ -476,6 +475,7 @@ scope kafka
 
         struct KafkaOffsetCommitDataEx
         {
+            string16 topic;
             KafkaOffset progress;
             int32 generationId;
             int32 leaderEpoch;

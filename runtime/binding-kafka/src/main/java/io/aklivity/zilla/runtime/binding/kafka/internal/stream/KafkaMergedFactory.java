@@ -1968,6 +1968,7 @@ public final class KafkaMergedFactory implements BindingHandler
         {
             partitions.forEach(p -> offsetsByPartitionId.put(p.partitionId(),
                 new KafkaPartitionOffset(
+                    topic,
                     p.partitionId(),
                     p.partitionOffset() == LIVE.value() ? HISTORICAL.value() : p.partitionOffset(),
                     0,

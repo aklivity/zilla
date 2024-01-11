@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
 public final class KafkaPartitionOffset
 {
+    public final String topic;
     public final int partitionId;
     public final long partitionOffset;
     public final int generationId;
@@ -25,16 +26,18 @@ public final class KafkaPartitionOffset
     public final long correlationId;
 
     public KafkaPartitionOffset(
+        String topic,
         int partitionId,
         long partitionOffset,
         int generationId,
         int leaderEpoch,
         String metadata)
     {
-        this(partitionId, partitionOffset, generationId, leaderEpoch, metadata, -1);
+        this(topic, partitionId, partitionOffset, generationId, leaderEpoch, metadata, -1);
     }
 
     public KafkaPartitionOffset(
+        String topic,
         int partitionId,
         long partitionOffset,
         int generationId,
@@ -42,6 +45,7 @@ public final class KafkaPartitionOffset
         String metadata,
         long correlationId)
     {
+        this.topic = topic;
         this.partitionId = partitionId;
         this.partitionOffset = partitionOffset;
         this.generationId = generationId;

@@ -1574,13 +1574,6 @@ public final class KafkaFunctions
                 offsetCommitBeginExRW.wrap(writeBuffer, KafkaBeginExFW.FIELD_OFFSET_OFFSET_COMMIT, writeBuffer.capacity());
             }
 
-            public KafkaOffsetCommitBeginExBuilder topic(
-                String topic)
-            {
-                offsetCommitBeginExRW.topic(topic);
-                return this;
-            }
-
             public KafkaOffsetCommitBeginExBuilder groupId(
                 String groupId)
             {
@@ -2520,6 +2513,13 @@ public final class KafkaFunctions
             private KafkaOffsetCommitDataExBuilder()
             {
                 offsetCommitDataExRW.wrap(writeBuffer, KafkaDataExFW.FIELD_OFFSET_OFFSET_COMMIT, writeBuffer.capacity());
+            }
+
+            public KafkaOffsetCommitDataExBuilder topic(
+                String topic)
+            {
+                offsetCommitDataExRW.topic(topic);
+                return this;
             }
 
             public KafkaOffsetCommitDataExBuilder progress(

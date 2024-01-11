@@ -34,9 +34,8 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ExtensionFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaBeginExFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaGroupBeginExFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaOffsetCommitBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -44,7 +43,7 @@ import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 
-public final class KafkaCacheGroupFactory implements BindingHandler
+public final class KafkaCacheOffsetCommitFactory implements BindingHandler
 {
     private static final DirectBuffer EMPTY_BUFFER = new UnsafeBuffer();
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
@@ -53,7 +52,6 @@ public final class KafkaCacheGroupFactory implements BindingHandler
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
     private final EndFW endRO = new EndFW();
-    private final FlushFW flushRO = new FlushFW();
     private final AbortFW abortRO = new AbortFW();
     private final ResetFW resetRO = new ResetFW();
     private final WindowFW windowRO = new WindowFW();
@@ -62,12 +60,10 @@ public final class KafkaCacheGroupFactory implements BindingHandler
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final DataFW.Builder dataRW = new DataFW.Builder();
-    private final FlushFW.Builder flushRW = new FlushFW.Builder();
     private final EndFW.Builder endRW = new EndFW.Builder();
     private final AbortFW.Builder abortRW = new AbortFW.Builder();
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
-    private final KafkaBeginExFW.Builder kafkaBeginExRW = new KafkaBeginExFW.Builder();
 
     private final int kafkaTypeId;
     private final MutableDirectBuffer writeBuffer;
@@ -77,7 +73,7 @@ public final class KafkaCacheGroupFactory implements BindingHandler
     private final LongUnaryOperator supplyReplyId;
     private final LongFunction<KafkaBindingConfig> supplyBinding;
 
-    public KafkaCacheGroupFactory(
+    public KafkaCacheOffsetCommitFactory(
         KafkaConfiguration config,
         EngineContext context,
         LongFunction<KafkaBindingConfig> supplyBinding)
@@ -112,11 +108,11 @@ public final class KafkaCacheGroupFactory implements BindingHandler
         final ExtensionFW beginEx = extension.get(extensionRO::tryWrap);
         assert beginEx != null && beginEx.typeId() == kafkaTypeId;
         final KafkaBeginExFW kafkaBeginEx = extension.get(kafkaBeginExRO::tryWrap);
-        assert kafkaBeginEx.kind() == KafkaBeginExFW.KIND_GROUP;
-        final KafkaGroupBeginExFW kafkaGroupBeginEx = kafkaBeginEx.group();
-        final String groupId = kafkaGroupBeginEx.groupId().asString();
-        final String protocol = kafkaGroupBeginEx.protocol().asString();
-        final int timeout = kafkaGroupBeginEx.timeout();
+        assert kafkaBeginEx.kind() == KafkaBeginExFW.KIND_OFFSET_COMMIT;
+        KafkaOffsetCommitBeginExFW offsetCommitBeginEx = kafkaBeginEx.offsetCommit();
+        final String groupId = offsetCommitBeginEx.groupId().asString();
+        final String memberId = offsetCommitBeginEx.memberId().asString();
+        final String instanceId = offsetCommitBeginEx.instanceId().asString();
 
         MessageConsumer newStream = null;
 
@@ -127,7 +123,7 @@ public final class KafkaCacheGroupFactory implements BindingHandler
         {
             final long resolvedId = resolved.id;
 
-            newStream = new KafkaCacheGroupApp(
+            newStream = new KafkaCacheOffsetCommitApp(
                     sender,
                     originId,
                     routedId,
@@ -136,8 +132,8 @@ public final class KafkaCacheGroupFactory implements BindingHandler
                     authorization,
                     resolvedId,
                     groupId,
-                    protocol,
-                    timeout)::onGroupMessage;
+                    memberId,
+                    instanceId)::onOffsetCommitMessage;
         }
 
         return newStream;
@@ -239,37 +235,6 @@ public final class KafkaCacheGroupFactory implements BindingHandler
             .build();
 
         receiver.accept(frame.typeId(), frame.buffer(), frame.offset(), frame.sizeof());
-    }
-
-    private void doFlush(
-        MessageConsumer receiver,
-        long originId,
-        long routedId,
-        long streamId,
-        long sequence,
-        long acknowledge,
-        int maximum,
-        long traceId,
-        long authorization,
-        long budgetId,
-        int reserved,
-        OctetsFW extension)
-    {
-        final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-            .originId(originId)
-            .routedId(routedId)
-            .streamId(streamId)
-            .sequence(sequence)
-            .acknowledge(acknowledge)
-            .maximum(maximum)
-            .traceId(traceId)
-            .authorization(authorization)
-            .budgetId(budgetId)
-            .reserved(reserved)
-            .extension(extension)
-            .build();
-
-        receiver.accept(flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
     }
 
     private void doEnd(
@@ -382,12 +347,12 @@ public final class KafkaCacheGroupFactory implements BindingHandler
         sender.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
     }
 
-    final class KafkaCacheGroupNet
+    final class KafkaCacheOffsetCommitNet
     {
         private final long originId;
         private final long routedId;
         private final long authorization;
-        private final KafkaCacheGroupApp delegate;
+        private final KafkaCacheOffsetCommitApp delegate;
 
         private long initialId;
         private long replyId;
@@ -405,8 +370,8 @@ public final class KafkaCacheGroupFactory implements BindingHandler
         private int replyMax;
         private int replyPad;
 
-        private KafkaCacheGroupNet(
-            KafkaCacheGroupApp delegate,
+        private KafkaCacheOffsetCommitNet(
+            KafkaCacheOffsetCommitApp delegate,
             long originId,
             long routedId,
             long authorization)
@@ -418,7 +383,7 @@ public final class KafkaCacheGroupFactory implements BindingHandler
             this.authorization = authorization;
         }
 
-        private void doGroupInitialBegin(
+        private void doOffsetCommitInitialBegin(
             long traceId,
             OctetsFW extension)
         {
@@ -431,21 +396,21 @@ public final class KafkaCacheGroupFactory implements BindingHandler
             {
                 if (KafkaConfiguration.DEBUG)
                 {
-                    System.out.format("%s GroupId connect\n", delegate.groupId);
+                    System.out.format("%s Offset Commit connect\n", delegate.groupId);
                 }
 
                 assert state == 0;
 
                 this.initialId = supplyInitialId.applyAsLong(routedId);
                 this.replyId = supplyReplyId.applyAsLong(initialId);
-                this.receiver = newStream(this::onGroupMessage,
+                this.receiver = newStream(this::onOffsetCommitMessage,
                     originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, 0L, extension);
                 state = KafkaState.openingInitial(state);
             }
         }
 
-        private void doGroupInitialData(
+        private void doOffsetCommitInitialData(
             long traceId,
             long authorization,
             long budgetId,
@@ -462,15 +427,8 @@ public final class KafkaCacheGroupFactory implements BindingHandler
             assert initialSeq <= initialAck + initialMax;
         }
 
-        private void doGroupInitialFlush(
-            long traceId,
-            OctetsFW extension)
-        {
-            doFlush(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, authorization, initialBud, 0, extension);
-        }
 
-        private void doGroupInitialEnd(
+        private void doOffsetCommitInitialEnd(
             long traceId)
         {
             if (!KafkaState.initialClosed(state))
@@ -482,7 +440,7 @@ public final class KafkaCacheGroupFactory implements BindingHandler
             }
         }
 
-        private void doGroupInitialAbort(
+        private void doOffsetCommitInitialAbort(
             long traceId)
         {
             if (!KafkaState.initialClosed(state))
@@ -494,7 +452,7 @@ public final class KafkaCacheGroupFactory implements BindingHandler
             }
         }
 
-        private void onGroupInitialReset(
+        private void onOffsetCommitInitialReset(
             ResetFW reset)
         {
             final long sequence = reset.sequence();
@@ -510,11 +468,11 @@ public final class KafkaCacheGroupFactory implements BindingHandler
 
             assert delegate.initialAck <= delegate.initialSeq;
 
-            delegate.doGroupInitialReset(traceId, extension);
+            delegate.doOffsetCommitInitialReset(traceId, extension);
         }
 
 
-        private void onGroupInitialWindow(
+        private void onOffsetCommitInitialWindow(
             WindowFW window)
         {
             final long sequence = window.sequence();
@@ -524,6 +482,7 @@ public final class KafkaCacheGroupFactory implements BindingHandler
             final long traceId = window.traceId();
             final long budgetId = window.budgetId();
             final int padding = window.padding();
+            final int capabilities = window.capabilities();
 
             assert acknowledge <= sequence;
             assert acknowledge >= delegate.initialAck;
@@ -536,10 +495,10 @@ public final class KafkaCacheGroupFactory implements BindingHandler
 
             assert initialAck <= initialSeq;
 
-            delegate.doGroupInitialWindow(authorization, traceId, budgetId, padding);
+            delegate.doOffsetCommitInitialWindow(authorization, traceId, budgetId, padding);
         }
 
-        private void onGroupMessage(
+        private void onOffsetCommitMessage(
             int msgTypeId,
             DirectBuffer buffer,
             int index,
@@ -549,48 +508,44 @@ public final class KafkaCacheGroupFactory implements BindingHandler
             {
             case BeginFW.TYPE_ID:
                 final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-                onGroupReplyBegin(begin);
+                onOffsetCommitReplyBegin(begin);
                 break;
             case DataFW.TYPE_ID:
                 final DataFW data = dataRO.wrap(buffer, index, index + length);
-                onGroupReplyData(data);
-                break;
-            case FlushFW.TYPE_ID:
-                final FlushFW flush = flushRO.wrap(buffer, index, index + length);
-                onGroupReplyFlush(flush);
+                onOffsetCommitReplyData(data);
                 break;
             case EndFW.TYPE_ID:
                 final EndFW end = endRO.wrap(buffer, index, index + length);
-                onGroupReplyEnd(end);
+                onOffsetCommitReplyEnd(end);
                 break;
             case AbortFW.TYPE_ID:
                 final AbortFW abort = abortRO.wrap(buffer, index, index + length);
-                onGroupReplyAbort(abort);
+                onOffsetCommitReplyAbort(abort);
                 break;
             case ResetFW.TYPE_ID:
                 final ResetFW reset = resetRO.wrap(buffer, index, index + length);
-                onGroupInitialReset(reset);
+                onOffsetCommitInitialReset(reset);
                 break;
             case WindowFW.TYPE_ID:
                 final WindowFW window = windowRO.wrap(buffer, index, index + length);
-                onGroupInitialWindow(window);
+                onOffsetCommitInitialWindow(window);
                 break;
             default:
                 break;
             }
         }
 
-        private void onGroupReplyBegin(
+        private void onOffsetCommitReplyBegin(
             BeginFW begin)
         {
             final long traceId = begin.traceId();
 
             state = KafkaState.openingReply(state);
 
-            delegate.doGroupReplyBegin(traceId, begin.extension());
+            delegate.doOffsetCommitReplyBegin(traceId, begin.extension());
         }
 
-        private void onGroupReplyData(
+        private void onOffsetCommitReplyData(
             DataFW data)
         {
             final long sequence = data.sequence();
@@ -609,30 +564,10 @@ public final class KafkaCacheGroupFactory implements BindingHandler
             assert replyAck <= replySeq;
             assert replySeq <= replyAck + replyMax;
 
-            delegate.doGroupReplyData(traceId, flags, reserved, payload, extension);
+            delegate.doOffsetCommitReplyData(traceId, flags, reserved, payload, extension);
         }
 
-        private void onGroupReplyFlush(
-            FlushFW flush)
-        {
-            final long sequence = flush.sequence();
-            final long acknowledge = flush.acknowledge();
-            final long traceId = flush.traceId();
-            final int reserved = flush.reserved();
-            final OctetsFW extension = flush.extension();
-
-            assert acknowledge <= sequence;
-            assert sequence >= replySeq;
-
-            replySeq = sequence + reserved;
-
-            assert replyAck <= replySeq;
-            assert replySeq <= replyAck + replyMax;
-
-            delegate.doGroupReplyFlush(traceId, extension);
-        }
-
-        private void onGroupReplyEnd(
+        private void onOffsetCommitReplyEnd(
             EndFW end)
         {
             final long sequence = end.sequence();
@@ -647,10 +582,10 @@ public final class KafkaCacheGroupFactory implements BindingHandler
 
             assert replyAck <= replySeq;
 
-            delegate.doGroupReplyEnd(traceId);
+            delegate.doOffsetCommitReplyEnd(traceId);
         }
 
-        private void onGroupReplyAbort(
+        private void onOffsetCommitReplyAbort(
             AbortFW abort)
         {
             final long sequence = abort.sequence();
@@ -665,22 +600,23 @@ public final class KafkaCacheGroupFactory implements BindingHandler
 
             assert replyAck <= replySeq;
 
-            delegate.doGroupReplyAbort(traceId);
+            delegate.doOffsetCommitReplyAbort(traceId);
         }
 
-        private void doGroupReplyReset(
-            long traceId)
+        private void doOffsetCommitReplyReset(
+            long traceId,
+            Flyweight extension)
         {
             if (!KafkaState.replyClosed(state))
             {
                 doReset(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, EMPTY_OCTETS);
+                    traceId, authorization, extension);
 
                 state = KafkaState.closedReply(state);
             }
         }
 
-        private void doGroupReplyWindow(
+        private void doOffsetCommitReplyWindow(
             long traceId,
             long authorization,
             long budgetId,
@@ -694,11 +630,13 @@ public final class KafkaCacheGroupFactory implements BindingHandler
         }
     }
 
-    private final class KafkaCacheGroupApp
+    private final class KafkaCacheOffsetCommitApp
     {
-        private final KafkaCacheGroupNet group;
+        private final KafkaCacheOffsetCommitNet net;
         private final MessageConsumer sender;
         private final String groupId;
+        private final String memberId;
+        private final String instanceId;
         private final long originId;
         private final long routedId;
         private final long initialId;
@@ -721,7 +659,7 @@ public final class KafkaCacheGroupFactory implements BindingHandler
         private long replyBud;
         private int replyCap;
 
-        KafkaCacheGroupApp(
+        KafkaCacheOffsetCommitApp(
             MessageConsumer sender,
             long originId,
             long routedId,
@@ -730,10 +668,10 @@ public final class KafkaCacheGroupFactory implements BindingHandler
             long authorization,
             long resolvedId,
             String groupId,
-            String protocol,
-            int timeout)
+            String memberId,
+            String instanceId)
         {
-            this.group =  new KafkaCacheGroupNet(this, routedId, resolvedId, authorization);
+            this.net =  new KafkaCacheOffsetCommitNet(this, routedId, resolvedId, authorization);
             this.sender = sender;
             this.originId = originId;
             this.routedId = routedId;
@@ -742,9 +680,11 @@ public final class KafkaCacheGroupFactory implements BindingHandler
             this.affinity = affinity;
             this.authorization = authorization;
             this.groupId = groupId;
+            this.memberId = memberId;
+            this.instanceId = instanceId;
         }
 
-        private void onGroupMessage(
+        private void onOffsetCommitMessage(
             int msgTypeId,
             DirectBuffer buffer,
             int index,
@@ -754,38 +694,34 @@ public final class KafkaCacheGroupFactory implements BindingHandler
             {
             case BeginFW.TYPE_ID:
                 final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-                onGroupInitialBegin(begin);
+                onOffsetCommitInitialBegin(begin);
                 break;
             case DataFW.TYPE_ID:
                 final DataFW data = dataRO.wrap(buffer, index, index + length);
-                onGroupInitialData(data);
+                onOffsetCommitInitialData(data);
                 break;
             case EndFW.TYPE_ID:
                 final EndFW end = endRO.wrap(buffer, index, index + length);
-                onGroupInitialEnd(end);
-                break;
-            case FlushFW.TYPE_ID:
-                final FlushFW flush = flushRO.wrap(buffer, index, index + length);
-                onGroupInitialFlush(flush);
+                onOffsetCommitInitialEnd(end);
                 break;
             case AbortFW.TYPE_ID:
                 final AbortFW abort = abortRO.wrap(buffer, index, index + length);
-                onGroupInitialAbort(abort);
+                onOffsetCommitInitialAbort(abort);
                 break;
             case WindowFW.TYPE_ID:
                 final WindowFW window = windowRO.wrap(buffer, index, index + length);
-                onGroupReplyWindow(window);
+                onOffsetCommitReplyWindow(window);
                 break;
             case ResetFW.TYPE_ID:
                 final ResetFW reset = resetRO.wrap(buffer, index, index + length);
-                onGroupReplyReset(reset);
+                onOffsetCommitReplyReset(reset);
                 break;
             default:
                 break;
             }
         }
 
-        private void onGroupInitialBegin(
+        private void onOffsetCommitInitialBegin(
             BeginFW begin)
         {
             final long sequence = begin.sequence();
@@ -803,10 +739,10 @@ public final class KafkaCacheGroupFactory implements BindingHandler
 
             assert initialAck <= initialSeq;
 
-            group.doGroupInitialBegin(traceId, extension);
+            net.doOffsetCommitInitialBegin(traceId, extension);
         }
 
-        private void onGroupInitialData(
+        private void onOffsetCommitInitialData(
             DataFW data)
         {
             final long sequence = data.sequence();
@@ -826,10 +762,10 @@ public final class KafkaCacheGroupFactory implements BindingHandler
 
             assert initialAck <= initialSeq;
 
-            group.doGroupInitialData(traceId, authorization, budgetId, reserved, flags, payload, extension);
+            net.doOffsetCommitInitialData(traceId, authorization, budgetId, reserved, flags, payload, extension);
         }
 
-        private void onGroupInitialEnd(
+        private void onOffsetCommitInitialEnd(
             EndFW end)
         {
             final long sequence = end.sequence();
@@ -844,28 +780,10 @@ public final class KafkaCacheGroupFactory implements BindingHandler
 
             assert initialAck <= initialSeq;
 
-            group.doGroupInitialEnd(traceId);
+            net.doOffsetCommitInitialEnd(traceId);
         }
 
-        private void onGroupInitialFlush(
-            FlushFW flush)
-        {
-            final long sequence = flush.sequence();
-            final long acknowledge = flush.acknowledge();
-            final long traceId = flush.traceId();
-            final OctetsFW extension = flush.extension();
-
-            assert acknowledge <= sequence;
-            assert sequence >= initialSeq;
-
-            initialSeq = sequence;
-
-            assert initialAck <= initialSeq;
-
-            group.doGroupInitialFlush(traceId, extension);
-        }
-
-        private void onGroupInitialAbort(
+        private void onOffsetCommitInitialAbort(
             AbortFW abort)
         {
             final long sequence = abort.sequence();
@@ -880,10 +798,10 @@ public final class KafkaCacheGroupFactory implements BindingHandler
 
             assert initialAck <= initialSeq;
 
-            group.doGroupInitialAbort(traceId);
+            net.doOffsetCommitInitialAbort(traceId);
         }
 
-        private void doGroupInitialReset(
+        private void doOffsetCommitInitialReset(
             long traceId,
             Flyweight extension)
         {
@@ -896,20 +814,20 @@ public final class KafkaCacheGroupFactory implements BindingHandler
             }
         }
 
-        private void doGroupInitialWindow(
+        private void doOffsetCommitInitialWindow(
             long authorization,
             long traceId,
             long budgetId,
             int padding)
         {
-            initialAck = group.initialAck;
-            initialMax = group.initialMax;
+            initialAck = net.initialAck;
+            initialMax = net.initialMax;
 
             doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, budgetId, padding);
         }
 
-        private void doGroupReplyBegin(
+        private void doOffsetCommitReplyBegin(
             long traceId,
             OctetsFW extension)
         {
@@ -919,7 +837,7 @@ public final class KafkaCacheGroupFactory implements BindingHandler
                 traceId, authorization, affinity, extension);
         }
 
-        private void doGroupReplyData(
+        private void doOffsetCommitReplyData(
             long traceId,
             int flag,
             int reserved,
@@ -933,15 +851,7 @@ public final class KafkaCacheGroupFactory implements BindingHandler
             replySeq += reserved;
         }
 
-        private void doGroupReplyFlush(
-            long traceId,
-            OctetsFW extension)
-        {
-            doFlush(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                traceId, authorization, replyBudgetId, 0, extension);
-        }
-
-        private void doGroupReplyEnd(
+        private void doOffsetCommitReplyEnd(
             long traceId)
         {
             if (KafkaState.replyOpening(state) && !KafkaState.replyClosed(state))
@@ -953,7 +863,7 @@ public final class KafkaCacheGroupFactory implements BindingHandler
             state = KafkaState.closedReply(state);
         }
 
-        private void doGroupReplyAbort(
+        private void doOffsetCommitReplyAbort(
             long traceId)
         {
             if (KafkaState.replyOpening(state) && !KafkaState.replyClosed(state))
@@ -965,7 +875,7 @@ public final class KafkaCacheGroupFactory implements BindingHandler
             state = KafkaState.closedReply(state);
         }
 
-        private void onGroupReplyReset(
+        private void onOffsetCommitReplyReset(
             ResetFW reset)
         {
             final long sequence = reset.sequence();
@@ -987,7 +897,7 @@ public final class KafkaCacheGroupFactory implements BindingHandler
             cleanup(traceId);
         }
 
-        private void onGroupReplyWindow(
+        private void onOffsetCommitReplyWindow(
             WindowFW window)
         {
             final long sequence = window.sequence();
@@ -1012,17 +922,17 @@ public final class KafkaCacheGroupFactory implements BindingHandler
 
             assert replyAck <= replySeq;
 
-            group.doGroupReplyWindow(traceId, acknowledge, budgetId, padding);
+            net.doOffsetCommitReplyWindow(traceId, acknowledge, budgetId, padding);
         }
 
         private void cleanup(
             long traceId)
         {
-            doGroupInitialReset(traceId, EMPTY_OCTETS);
-            doGroupReplyAbort(traceId);
+            doOffsetCommitInitialReset(traceId, EMPTY_OCTETS);
+            doOffsetCommitReplyAbort(traceId);
 
-            group.doGroupInitialAbort(traceId);
-            group.doGroupReplyReset(traceId);
+            net.doOffsetCommitInitialAbort(traceId);
+            net.doOffsetCommitReplyReset(traceId, EMPTY_OCTETS);
         }
     }
 }

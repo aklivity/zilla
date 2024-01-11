@@ -4268,7 +4268,6 @@ public class KafkaFunctionsTest
         byte[] build = KafkaFunctions.beginEx()
             .typeId(0x01)
             .offsetCommit()
-                .topic("topic")
                 .groupId("test")
                 .memberId("member-1")
                 .instanceId("zilla")
@@ -4282,7 +4281,6 @@ public class KafkaFunctionsTest
 
         final KafkaOffsetCommitBeginExFW offsetCommitBeginEx = beginEx.offsetCommit();
         assertEquals("test", offsetCommitBeginEx.groupId().asString());
-        assertEquals("topic", offsetCommitBeginEx.topic().asString());
         assertEquals("member-1", offsetCommitBeginEx.memberId().asString());
     }
 
@@ -4369,6 +4367,7 @@ public class KafkaFunctionsTest
         byte[] build = KafkaFunctions.dataEx()
             .typeId(0x01)
             .offsetCommit()
+                .topic("test")
                 .progress(0, 2L, "test-meta")
                 .generationId(0)
                 .leaderEpoch(0)
