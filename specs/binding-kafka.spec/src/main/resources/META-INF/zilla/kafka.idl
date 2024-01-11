@@ -171,7 +171,7 @@ scope kafka
             GROUP (253),
             BOOTSTRAP (254),
             MERGED (255),
-            INIT_PRODUCE_ID (22),
+            INIT_PRODUCER_ID (22),
             META (3),
             OFFSET_COMMIT (8),
             OFFSET_FETCH (9),
@@ -186,7 +186,7 @@ scope kafka
             case 253: kafka::stream::KafkaGroupBeginEx group;
             case 254: kafka::stream::KafkaBootstrapBeginEx bootstrap;
             case 255: kafka::stream::KafkaMergedBeginEx merged;
-            case 22: kafka::stream::KafkaInitProduceIdBeginEx initProduceId;
+            case 22: kafka::stream::KafkaInitProduceIdBeginEx initProducerId;
             case 3: kafka::stream::KafkaMetaBeginEx meta;
             case 8: kafka::stream::KafkaOffsetCommitBeginEx offsetCommit;
             case 9: kafka::stream::KafkaOffsetFetchBeginEx offsetFetch;

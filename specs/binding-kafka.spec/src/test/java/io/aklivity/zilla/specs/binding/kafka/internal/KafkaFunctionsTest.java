@@ -4379,7 +4379,7 @@ public class KafkaFunctionsTest
         DirectBuffer buffer = new UnsafeBuffer(build);
         KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, beginEx.typeId());
-        assertEquals(KafkaApi.INIT_PRODUCE_ID.value(), beginEx.kind());
+        assertEquals(KafkaApi.INIT_PRODUCER_ID.value(), beginEx.kind());
 
         KafkaInitProduceIdBeginExFW initProduceIdBeginEx = beginEx.initProduceId();
         assertEquals(1L, initProduceIdBeginEx.producerId());

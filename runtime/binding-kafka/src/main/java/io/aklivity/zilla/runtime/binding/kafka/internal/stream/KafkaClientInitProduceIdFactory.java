@@ -37,8 +37,8 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.RequestHeaderFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.ResponseHeaderFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.produce.InitProduceIdRequestFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.produce.InitProduceIdResponseFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.produce.InitProducerIdRequestFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.produce.InitProducerIdResponseFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.DataFW;
@@ -90,10 +90,10 @@ public final class KafkaClientInitProduceIdFactory extends KafkaClientSaslHandsh
     private final KafkaResetExFW.Builder kafkaResetExRW = new KafkaResetExFW.Builder();
 
     private final RequestHeaderFW.Builder requestHeaderRW = new RequestHeaderFW.Builder();
-    private final InitProduceIdRequestFW.Builder initProduceIdRequestRW = new InitProduceIdRequestFW.Builder();
+    private final InitProducerIdRequestFW.Builder initProduceIdRequestRW = new InitProducerIdRequestFW.Builder();
 
     private final ResponseHeaderFW responseHeaderRO = new ResponseHeaderFW();
-    private final InitProduceIdResponseFW initProduceIdResponseRO = new InitProduceIdResponseFW();
+    private final InitProducerIdResponseFW initProducerIdResponseRO = new InitProducerIdResponseFW();
 
     private final KafkaInitProduceIdClientDecoder decodeSaslHandshakeResponse = this::decodeSaslHandshakeResponse;
     private final KafkaInitProduceIdClientDecoder decodeSaslHandshake = this::decodeSaslHandshake;
@@ -158,8 +158,8 @@ public final class KafkaClientInitProduceIdFactory extends KafkaClientSaslHandsh
         final KafkaBeginExFW kafkaBeginEx = beginEx != null && beginEx.typeId() == kafkaTypeId ?
             kafkaBeginExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit()) : null;
 
-        assert kafkaBeginEx.kind() == KafkaBeginExFW.KIND_INIT_PRODUCE_ID;
-        final KafkaInitProduceIdBeginExFW initProduceIdBeginEx = kafkaBeginEx.initProduceId();
+        assert kafkaBeginEx.kind() == KafkaBeginExFW.KIND_INIT_PRODUCER_ID;
+        final KafkaInitProduceIdBeginExFW initProduceIdBeginEx = kafkaBeginEx.initProducerId();
         final long producerId = initProduceIdBeginEx.producerId();
         final short producerEpoch = initProduceIdBeginEx.producerEpoch();
 
@@ -472,7 +472,7 @@ public final class KafkaClientInitProduceIdFactory extends KafkaClientSaslHandsh
             progress = responseHeader.limit();
 
 
-            final InitProduceIdResponseFW initProduceIdResponse = initProduceIdResponseRO.tryWrap(buffer, progress, limit);
+            final InitProducerIdResponseFW initProduceIdResponse = initProducerIdResponseRO.tryWrap(buffer, progress, limit);
             if (initProduceIdResponse == null)
             {
                 break decode;
@@ -483,7 +483,7 @@ public final class KafkaClientInitProduceIdFactory extends KafkaClientSaslHandsh
             short errorCode = initProduceIdResponse.errorCode();
             if (errorCode == ERROR_NONE)
             {
-                client.onDecodeInitProduceIdResponse(
+                client.onDecodeInitProducerIdResponse(
                     traceId, initProduceIdResponse.producerId(), initProduceIdResponse.producerEpoch());
             }
             else
@@ -1181,7 +1181,7 @@ public final class KafkaClientInitProduceIdFactory extends KafkaClientSaslHandsh
 
             encodeProgress = requestHeader.limit();
 
-            final InitProduceIdRequestFW initProduceIdRequest =
+            final InitProducerIdRequestFW initProduceIdRequest =
                 initProduceIdRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
                     .producerId(produceId)
                     .producerEpoch(produceEpoch)
@@ -1411,14 +1411,14 @@ public final class KafkaClientInitProduceIdFactory extends KafkaClientSaslHandsh
             signaler.signalNow(originId, routedId, initialId, traceId, SIGNAL_NEXT_REQUEST, 0);
         }
 
-        private void onDecodeInitProduceIdResponse(
+        private void onDecodeInitProducerIdResponse(
             long traceId,
             long newProduceId,
             short newProduceEpoch)
         {
             delegate.doApplicationBegin(traceId, authorization,  ex -> ex.set((b, o, l) -> kafkaBeginExRW.wrap(b, o, l)
                 .typeId(kafkaTypeId)
-                .initProduceId(p -> p.producerId(newProduceId).producerEpoch(newProduceEpoch))
+                .initProducerId(p -> p.producerId(newProduceId).producerEpoch(newProduceEpoch))
                 .build()
                 .sizeof()));
         }

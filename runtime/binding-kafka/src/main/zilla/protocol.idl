@@ -339,7 +339,7 @@ scope protocol
                 int32 throttleTimeMillis;
             }
 
-            struct InitProduceIdRequest
+            struct InitProducerIdRequest
             {
                 string16 transaction = null;
                 int32 transactionTimeoutMs = 60000;
@@ -347,7 +347,7 @@ scope protocol
                 int16 producerEpoch;
             }
 
-            struct InitProduceIdResponse
+            struct InitProducerIdResponse
             {
                 int32 correlationId;
                 int32 throttleTimeMillis;

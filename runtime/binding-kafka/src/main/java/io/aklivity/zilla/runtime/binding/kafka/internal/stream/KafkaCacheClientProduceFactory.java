@@ -96,8 +96,8 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
                 .wrap(new UnsafeBuffer(new byte[8]), 0, 8)
                 .build();
-    private static final long PRODUCE_FLUSH_PRODUCE_ID = -1;
-    private static final short PRODUCE_FLUSH_PRODUCE_EPOCH = -1;
+    private static final long PRODUCE_FLUSH_PRODUCER_ID = -1;
+    private static final short PRODUCE_FLUSH_PRODUCER_EPOCH = -1;
     private static final int PRODUCE_FLUSH_SEQUENCE = -1;
 
     private static final int ERROR_CORRUPT_MESSAGE = 2;
@@ -681,7 +681,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 assert kafkaDataEx.kind() == KafkaDataExFW.KIND_PRODUCE;
                 KafkaProduceDataExFW kafkaProduceDataExFW = kafkaDataEx.produce();
                 final int deferred = kafkaProduceDataExFW.deferred();
-                final long produceId = kafkaProduceDataExFW.producerId();
+                final long producerId = kafkaProduceDataExFW.producerId();
                 final short producerEpoch = kafkaProduceDataExFW.producerEpoch();
                 final int sequence = kafkaProduceDataExFW.sequence();
                 final Array32FW<KafkaHeaderFW> headers = kafkaProduceDataExFW.headers();
@@ -721,7 +721,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
                     final long keyHash = partition.computeKeyHash(key);
                     partition.writeProduceEntryStart(partitionOffset, stream.segment, stream.entryMark, stream.position,
-                        timestamp, stream.initialId, produceId, producerEpoch, sequence, ackMode, key, keyHash,
+                        timestamp, stream.initialId, producerId, producerEpoch, sequence, ackMode, key, keyHash,
                         valueLength, headers, trailersSizeMax);
                     stream.partitionOffset = partitionOffset;
                     partitionOffset++;
@@ -798,7 +798,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
                 final long keyHash = partition.computeKeyHash(EMPTY_KEY);
                 partition.writeProduceEntryStart(partitionOffset, stream.segment, stream.entryMark, stream.position,
-                    now().toEpochMilli(), stream.initialId, PRODUCE_FLUSH_PRODUCE_ID, PRODUCE_FLUSH_PRODUCE_EPOCH,
+                    now().toEpochMilli(), stream.initialId, PRODUCE_FLUSH_PRODUCER_ID, PRODUCE_FLUSH_PRODUCER_EPOCH,
                     PRODUCE_FLUSH_SEQUENCE, KafkaAckMode.LEADER_ONLY, EMPTY_KEY, keyHash, 0, EMPTY_TRAILERS, trailersSizeMax);
                 stream.partitionOffset = partitionOffset;
                 partitionOffset++;

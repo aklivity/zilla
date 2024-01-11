@@ -529,7 +529,7 @@ public final class KafkaCachePartition
         MutableInteger position,
         long timestamp,
         long ownerId,
-        long produceId,
+        long producerId,
         short producerEpoch,
         int sequence,
         KafkaAckMode ackMode,

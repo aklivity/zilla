@@ -107,7 +107,7 @@ public final class KafkaCacheInitProduceIdFactory implements BindingHandler
         final ExtensionFW beginEx = extension.get(extensionRO::tryWrap);
         assert beginEx != null && beginEx.typeId() == kafkaTypeId;
         final KafkaBeginExFW kafkaBeginEx = extension.get(kafkaBeginExRO::tryWrap);
-        assert kafkaBeginEx.kind() == KafkaBeginExFW.KIND_INIT_PRODUCE_ID;
+        assert kafkaBeginEx.kind() == KafkaBeginExFW.KIND_INIT_PRODUCER_ID;
 
 
         MessageConsumer newStream = null;

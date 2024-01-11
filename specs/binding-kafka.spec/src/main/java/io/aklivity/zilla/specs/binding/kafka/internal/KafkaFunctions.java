@@ -977,7 +977,7 @@ public final class KafkaFunctions
 
         public KafkaInitProduceIdBeginExBuilder initProduceId()
         {
-            beginExRW.kind(KafkaApi.INIT_PRODUCE_ID.value());
+            beginExRW.kind(KafkaApi.INIT_PRODUCER_ID.value());
 
             return new KafkaInitProduceIdBeginExBuilder();
         }

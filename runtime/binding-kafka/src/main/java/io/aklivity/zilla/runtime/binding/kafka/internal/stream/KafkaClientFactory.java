@@ -105,7 +105,7 @@ public final class KafkaClientFactory implements KafkaStreamFactory
         factories.put(KafkaBeginExFW.KIND_PRODUCE, clientProduceFactory);
         factories.put(KafkaBeginExFW.KIND_OFFSET_COMMIT, clientOffsetCommitFactory);
         factories.put(KafkaBeginExFW.KIND_OFFSET_FETCH, clientOffsetFetchFactory);
-        factories.put(KafkaBeginExFW.KIND_INIT_PRODUCE_ID, clientInitProduceIdFactory);
+        factories.put(KafkaBeginExFW.KIND_INIT_PRODUCER_ID, clientInitProduceIdFactory);
         factories.put(KafkaBeginExFW.KIND_MERGED, clientMergedFactory);
 
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
