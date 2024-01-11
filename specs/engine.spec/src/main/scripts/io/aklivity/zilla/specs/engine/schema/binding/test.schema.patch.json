@@ -39,7 +39,7 @@
                         {
                             "value":
                             {
-                                "$ref": "#/$defs/validator"
+                                "$ref": "#/$defs/converter"
                             }
                         }
                     }

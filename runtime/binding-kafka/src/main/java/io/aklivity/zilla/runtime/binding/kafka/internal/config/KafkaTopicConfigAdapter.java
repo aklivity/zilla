@@ -23,8 +23,8 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
-import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
-import io.aklivity.zilla.runtime.engine.config.ValidatorConfigAdapter;
+import io.aklivity.zilla.runtime.engine.config.ConverterConfig;
+import io.aklivity.zilla.runtime.engine.config.ConverterConfigAdapter;
 
 public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicConfig, JsonObject>
 {
@@ -35,7 +35,7 @@ public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicCon
     private static final String EVENT_VALUE = "value";
     private static final String SUBJECT = "subject";
 
-    private final ValidatorConfigAdapter validator  = new ValidatorConfigAdapter();
+    private final ConverterConfigAdapter converter = new ConverterConfigAdapter();
 
     @Override
     public JsonObject adaptToJson(
@@ -58,16 +58,16 @@ public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicCon
 
         if (topic.key != null)
         {
-            validator.adaptType(topic.key.type);
+            converter.adaptType(topic.key.type);
 
-            object.add(EVENT_KEY, validator.adaptToJson(topic.key));
+            object.add(EVENT_KEY, converter.adaptToJson(topic.key));
         }
 
         if (topic.value != null)
         {
-            validator.adaptType(topic.value.type);
+            converter.adaptType(topic.value.type);
 
-            object.add(EVENT_VALUE, validator.adaptToJson(topic.value));
+            object.add(EVENT_VALUE, converter.adaptToJson(topic.value));
         }
 
         return object.build();
@@ -93,7 +93,7 @@ public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicCon
                 ? object.getJsonObject(EVENT_KEY)
                 : null;
 
-        ValidatorConfig keyConfig = null;
+        ConverterConfig keyConfig = null;
 
         if (key != null)
         {
@@ -102,14 +102,14 @@ public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicCon
             key.forEach(keyObject::add);
             keyObject.add(SUBJECT, name + "-key");
 
-            keyConfig = validator.adaptFromJson(keyObject.build());
+            keyConfig = converter.adaptFromJson(keyObject.build());
         }
 
         JsonObject value = object.containsKey(EVENT_VALUE)
                 ? object.getJsonObject(EVENT_VALUE)
                 : null;
 
-        ValidatorConfig valueConfig = null;
+        ConverterConfig valueConfig = null;
 
         if (value != null)
         {
@@ -118,7 +118,7 @@ public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicCon
             value.forEach(valueObject::add);
             valueObject.add(SUBJECT, name + "-value");
 
-            valueConfig = validator.adaptFromJson(valueObject.build());
+            valueConfig = converter.adaptFromJson(valueObject.build());
         }
 
         return new KafkaTopicConfig(name, defaultOffset, deltaType, keyConfig, valueConfig);

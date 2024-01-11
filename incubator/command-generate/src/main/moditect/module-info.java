@@ -23,10 +23,10 @@ module io.aklivity.zilla.runtime.command.generate
     requires io.aklivity.zilla.runtime.catalog.inline;
     requires io.aklivity.zilla.runtime.guard.jwt;
     requires io.aklivity.zilla.runtime.vault.filesystem;
-    requires io.aklivity.zilla.runtime.validator.avro;
-    requires io.aklivity.zilla.runtime.validator.core;
-    requires io.aklivity.zilla.runtime.validator.json;
-    requires io.aklivity.zilla.runtime.validator.protobuf;
+    requires io.aklivity.zilla.runtime.converter.avro;
+    requires io.aklivity.zilla.runtime.converter.core;
+    requires io.aklivity.zilla.runtime.converter.json;
+    requires io.aklivity.zilla.runtime.converter.protobuf;
 
     requires com.fasterxml.jackson.dataformat.yaml;
     requires com.fasterxml.jackson.databind;

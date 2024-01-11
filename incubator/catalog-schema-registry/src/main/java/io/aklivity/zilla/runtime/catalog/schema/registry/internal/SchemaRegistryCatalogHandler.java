@@ -31,7 +31,7 @@ import io.aklivity.zilla.runtime.catalog.schema.registry.internal.config.SchemaR
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.serializer.RegisterSchemaRequest;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.types.SchemaRegistryPrefixFW;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
+import io.aklivity.zilla.runtime.engine.converter.function.ValueConsumer;
 
 public class SchemaRegistryCatalogHandler implements CatalogHandler
 {

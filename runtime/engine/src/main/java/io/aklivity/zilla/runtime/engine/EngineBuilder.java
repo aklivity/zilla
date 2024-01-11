@@ -27,13 +27,13 @@ import io.aklivity.zilla.runtime.engine.binding.Binding;
 import io.aklivity.zilla.runtime.engine.binding.BindingFactory;
 import io.aklivity.zilla.runtime.engine.catalog.Catalog;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogFactory;
+import io.aklivity.zilla.runtime.engine.converter.ConverterFactory;
 import io.aklivity.zilla.runtime.engine.exporter.Exporter;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterFactory;
 import io.aklivity.zilla.runtime.engine.guard.Guard;
 import io.aklivity.zilla.runtime.engine.guard.GuardFactory;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroupFactory;
-import io.aklivity.zilla.runtime.engine.validator.ValidatorFactory;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 import io.aklivity.zilla.runtime.engine.vault.VaultFactory;
 
@@ -130,11 +130,11 @@ public class EngineBuilder
             catalogs.add(catalog);
         }
 
-        final ValidatorFactory validatorFactory = ValidatorFactory.instantiate();
+        final ConverterFactory converterFactory = ConverterFactory.instantiate();
 
         final ErrorHandler errorHandler = requireNonNull(this.errorHandler, "errorHandler");
 
         return new Engine(config, bindings, exporters, guards, metricGroups, vaults,
-                catalogs, validatorFactory, errorHandler, affinities, readonly);
+                catalogs, converterFactory, errorHandler, affinities, readonly);
     }
 }

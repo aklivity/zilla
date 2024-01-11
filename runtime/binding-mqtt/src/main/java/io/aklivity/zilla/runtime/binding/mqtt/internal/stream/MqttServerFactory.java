@@ -189,9 +189,9 @@ import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.converter.Converter;
+import io.aklivity.zilla.runtime.engine.converter.function.ValueConsumer;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
-import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
-import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
 
 public final class MqttServerFactory implements MqttStreamFactory
 {
@@ -562,7 +562,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 binding.guard,
                 binding.credentials(),
                 binding.authField(),
-                binding::supplyValidator)::onNetwork;
+                binding::supplyConverter)::onNetwork;
         }
         return newStream;
     }
@@ -2277,7 +2277,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private final GuardHandler guard;
         private final Function<String, String> credentials;
         private final MqttConnectProperty authField;
-        private final Function<String, ValueValidator> supplyValidator;
+        private final Function<String, Converter> supplyConverter;
 
         private MqttSessionStream session;
 
@@ -2350,7 +2350,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             GuardHandler guard,
             Function<String, String> credentials,
             MqttConnectProperty authField,
-            Function<String, ValueValidator> supplyValidator)
+            Function<String, Converter> supplyConverter)
         {
             this.network = network;
             this.originId = originId;
@@ -2371,7 +2371,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             this.qos2Subscribes = new Int2ObjectHashMap<>();
             this.credentials = credentials;
             this.authField = authField;
-            this.supplyValidator = supplyValidator;
+            this.supplyConverter = supplyConverter;
         }
 
         private void onNetwork(
@@ -4713,8 +4713,8 @@ public final class MqttServerFactory implements MqttStreamFactory
             String topic,
             OctetsFW payload)
         {
-            final ValueValidator validator = supplyValidator.apply(topic);
-            return validator.validate(payload.buffer(), payload.offset(), payload.sizeof(), ValueConsumer.NOP) != -1;
+            final Converter converter = supplyConverter.apply(topic);
+            return converter.convert(payload.buffer(), payload.offset(), payload.sizeof(), ValueConsumer.NOP) != -1;
         }
 
         private final class Subscription

@@ -18,14 +18,14 @@ package io.aklivity.zilla.runtime.binding.http.config;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
+import io.aklivity.zilla.runtime.engine.config.ConverterConfig;
 
 public class HttpParamConfigBuilder<T> extends ConfigBuilder<T, HttpParamConfigBuilder<T>>
 {
     private final Function<HttpParamConfig, T> mapper;
 
     private String name;
-    private ValidatorConfig validator;
+    private ConverterConfig converter;
 
     HttpParamConfigBuilder(
         Function<HttpParamConfig, T> mapper)
@@ -47,22 +47,22 @@ public class HttpParamConfigBuilder<T> extends ConfigBuilder<T, HttpParamConfigB
         return this;
     }
 
-    public HttpParamConfigBuilder<T> validator(
-        ValidatorConfig validator)
+    public HttpParamConfigBuilder<T> converter(
+        ConverterConfig converter)
     {
-        this.validator = validator;
+        this.converter = converter;
         return this;
     }
 
-    public <C extends ConfigBuilder<HttpParamConfigBuilder<T>, C>> C validator(
-        Function<Function<ValidatorConfig, HttpParamConfigBuilder<T>>, C> validator)
+    public <C extends ConfigBuilder<HttpParamConfigBuilder<T>, C>> C converter(
+        Function<Function<ConverterConfig, HttpParamConfigBuilder<T>>, C> converter)
     {
-        return validator.apply(this::validator);
+        return converter.apply(this::converter);
     }
 
     @Override
     public T build()
     {
-        return mapper.apply(new HttpParamConfig(name, validator));
+        return mapper.apply(new HttpParamConfig(name, converter));
     }
 }

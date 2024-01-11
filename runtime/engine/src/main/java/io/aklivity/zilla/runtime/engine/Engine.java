@@ -64,6 +64,8 @@ import io.aklivity.zilla.runtime.engine.catalog.Catalog;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
+import io.aklivity.zilla.runtime.engine.converter.ConverterFactory;
+import io.aklivity.zilla.runtime.engine.converter.ConverterFactorySpi;
 import io.aklivity.zilla.runtime.engine.exporter.Exporter;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtContext;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
@@ -80,8 +82,6 @@ import io.aklivity.zilla.runtime.engine.internal.registry.WatcherTask;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
-import io.aklivity.zilla.runtime.engine.validator.ValidatorFactory;
-import io.aklivity.zilla.runtime.engine.validator.ValidatorFactorySpi;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 
 public final class Engine implements Collector, AutoCloseable
@@ -114,7 +114,7 @@ public final class Engine implements Collector, AutoCloseable
         Collection<MetricGroup> metricGroups,
         Collection<Vault> vaults,
         Collection<Catalog> catalogs,
-        ValidatorFactory validatorFactory,
+        ConverterFactory converterFactory,
         ErrorHandler errorHandler,
         Collection<EngineAffinity> affinities,
         boolean readonly)
@@ -169,7 +169,7 @@ public final class Engine implements Collector, AutoCloseable
         {
             DispatchAgent agent =
                 new DispatchAgent(config, tasks, labels, errorHandler, tuning::affinity,
-                        bindings, exporters, guards, vaults, catalogs, metricGroups, validatorFactory,
+                        bindings, exporters, guards, vaults, catalogs, metricGroups, converterFactory,
                     this, coreIndex, readonly);
             dispatchers.add(agent);
         }
@@ -190,7 +190,7 @@ public final class Engine implements Collector, AutoCloseable
         schemaTypes.addAll(metricGroups.stream().map(MetricGroup::type).filter(Objects::nonNull).collect(toList()));
         schemaTypes.addAll(vaults.stream().map(Vault::type).filter(Objects::nonNull).collect(toList()));
         schemaTypes.addAll(catalogs.stream().map(Catalog::type).filter(Objects::nonNull).collect(toList()));
-        schemaTypes.addAll(validatorFactory.validatorSpis().stream().map(ValidatorFactorySpi::schema).collect(toList()));
+        schemaTypes.addAll(converterFactory.converterSpis().stream().map(ConverterFactorySpi::schema).collect(toList()));
 
         bindingsByType = bindings.stream().collect(Collectors.toMap(b -> b.name(), b -> b));
         final Map<String, Guard> guardsByType = guards.stream()

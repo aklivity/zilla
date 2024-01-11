@@ -30,13 +30,12 @@ import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.ConverterConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
-import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
+import io.aklivity.zilla.runtime.engine.converter.Converter;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
-import io.aklivity.zilla.runtime.engine.validator.FragmentValidator;
-import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
 public interface EngineContext
@@ -134,17 +133,11 @@ public interface EngineContext
     Metric resolveMetric(
         String name);
 
-    ValueValidator createValueReader(
-        ValidatorConfig validator);
+    Converter createReader(
+        ConverterConfig converter);
 
-    ValueValidator createValueWriter(
-        ValidatorConfig validator);
-
-    FragmentValidator createFragmentReader(
-        ValidatorConfig validator);
-
-    FragmentValidator createFragmentWriter(
-        ValidatorConfig validator);
+    Converter createWriter(
+        ConverterConfig converter);
 
     void onExporterAttached(
         long exporterId);

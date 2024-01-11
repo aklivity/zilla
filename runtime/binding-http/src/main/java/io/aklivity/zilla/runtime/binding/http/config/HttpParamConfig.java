@@ -17,19 +17,19 @@ package io.aklivity.zilla.runtime.binding.http.config;
 
 import static java.util.function.Function.identity;
 
-import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
+import io.aklivity.zilla.runtime.engine.config.ConverterConfig;
 
 public class HttpParamConfig
 {
     public String name;
-    public ValidatorConfig validator;
+    public ConverterConfig converter;
 
     public HttpParamConfig(
         String name,
-        ValidatorConfig validator)
+        ConverterConfig converter)
     {
         this.name = name;
-        this.validator = validator;
+        this.converter = converter;
     }
 
     public static HttpParamConfigBuilder<HttpParamConfig> builder()

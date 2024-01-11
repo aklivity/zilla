@@ -48,15 +48,15 @@ import io.aklivity.zilla.runtime.command.generate.internal.openapi.model.Server;
 import io.aklivity.zilla.runtime.command.generate.internal.openapi.view.PathView;
 import io.aklivity.zilla.runtime.command.generate.internal.openapi.view.SchemaView;
 import io.aklivity.zilla.runtime.command.generate.internal.openapi.view.ServerView;
+import io.aklivity.zilla.runtime.converter.json.config.JsonConverterConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ConfigWriter;
+import io.aklivity.zilla.runtime.engine.config.ConverterConfig;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 import io.aklivity.zilla.runtime.guard.jwt.config.JwtOptionsConfig;
-import io.aklivity.zilla.runtime.validator.json.config.JsonValidatorConfig;
 import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig;
 
 public class OpenApiHttpProxyConfigGenerator extends OpenApiConfigGenerator
@@ -326,7 +326,7 @@ public class OpenApiHttpProxyConfigGenerator extends OpenApiConfigGenerator
             if (schema != null)
             {
                 request.
-                    content(JsonValidatorConfig::builder)
+                    content(JsonConverterConfig::builder)
                     .catalog()
                         .name(INLINE_CATALOG_NAME)
                         .schema()
@@ -349,8 +349,8 @@ public class OpenApiHttpProxyConfigGenerator extends OpenApiConfigGenerator
             {
                 if (parameter.schema != null && parameter.schema.type != null)
                 {
-                    ValidatorConfig validator = validators.get(parameter.schema.type);
-                    if (validator != null)
+                    ConverterConfig converter = converters.get(parameter.schema.type);
+                    if (converter != null)
                     {
                         switch (parameter.in)
                         {
@@ -358,21 +358,21 @@ public class OpenApiHttpProxyConfigGenerator extends OpenApiConfigGenerator
                             request.
                                 pathParam()
                                     .name(parameter.name)
-                                    .validator(validator)
+                                    .converter(converter)
                                     .build();
                             break;
                         case "query":
                             request.
                                 queryParam()
                                     .name(parameter.name)
-                                    .validator(validator)
+                                    .converter(converter)
                                     .build();
                             break;
                         case "header":
                             request.
                                 header()
                                     .name(parameter.name)
-                                    .validator(validator)
+                                    .converter(converter)
                                     .build();
                             break;
                         }

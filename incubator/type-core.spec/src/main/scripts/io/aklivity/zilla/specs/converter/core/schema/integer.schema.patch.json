@@ -1,0 +1,7 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/converter/types/enum/-",
+        "value": "integer"
+    }
+]

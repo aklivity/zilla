@@ -359,14 +359,14 @@
             [
             ]
         },
-        "validator":
+        "converter":
         {
             "type": "object",
             "properties":
             {
                 "type":
                 {
-                    "$ref": "#/$defs/validator/types"
+                    "$ref": "#/$defs/converter/types"
                 }
             },
             "required":

@@ -73,10 +73,8 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Varint32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheDeltaFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW;
-import io.aklivity.zilla.runtime.engine.validator.FragmentValidator;
-import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
-import io.aklivity.zilla.runtime.engine.validator.function.FragmentConsumer;
-import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
+import io.aklivity.zilla.runtime.engine.converter.Converter;
+import io.aklivity.zilla.runtime.engine.converter.function.ValueConsumer;
 
 public final class KafkaCachePartition
 {
@@ -92,6 +90,7 @@ public final class KafkaCachePartition
     private static final String FORMAT_PRODUCE_PARTITION_DIRECTORY = "%s-%d-%d";
 
     private static final int FLAGS_COMPLETE = 0x03;
+    private static final int FLAGS_FIN = 0x01;
     public static final int CACHE_ENTRY_FLAGS_DIRTY = 0x01;
     public static final int CACHE_ENTRY_FLAGS_COMPLETED = 0x02;
     public static final int CACHE_ENTRY_FLAGS_ABORTED = 0x04;
@@ -340,14 +339,14 @@ public final class KafkaCachePartition
         KafkaCacheEntryFW ancestor,
         int entryFlags,
         KafkaDeltaType deltaType,
-        ValueValidator validateKey,
-        FragmentValidator validateValue)
+        Converter convertKey,
+        Converter convertValue)
     {
         final long keyHash = computeHash(key);
         final int valueLength = value != null ? value.sizeof() : -1;
         writeEntryStart(offset, entryMark, valueMark, timestamp, producerId, key,
-            keyHash, valueLength, ancestor, entryFlags, deltaType, value, validateKey, validateValue);
-        writeEntryContinue(FLAGS_COMPLETE, entryMark, valueMark, value, validateValue);
+            keyHash, valueLength, ancestor, entryFlags, deltaType, value, convertKey, convertValue);
+        writeEntryContinue(FLAGS_COMPLETE, entryMark, valueMark, value, convertValue);
         writeEntryFinish(headers, deltaType);
     }
 
@@ -364,8 +363,8 @@ public final class KafkaCachePartition
         int entryFlags,
         KafkaDeltaType deltaType,
         OctetsFW payload,
-        ValueValidator validateKey,
-        FragmentValidator validateValue)
+        Converter convertKey,
+        Converter convertValue)
     {
         assert offset > this.progress : String.format("%d > %d", offset, this.progress);
         this.progress = offset;
@@ -398,9 +397,9 @@ public final class KafkaCachePartition
         this.ancestorEntry = ancestor;
 
         int convertedPos = NO_CONVERTED_POSITION;
-        if (validateValue != FragmentValidator.NONE)
+        if (convertValue != Converter.NONE)
         {
-            int convertedPadding = validateValue.padding(payload.buffer(), payload.offset(), payload.sizeof());
+            int convertedPadding = convertValue.padding(payload.buffer(), payload.offset(), payload.sizeof());
             int convertedMaxLength = valueMaxLength + convertedPadding;
 
             convertedPos = convertedFile.capacity();
@@ -438,8 +437,8 @@ public final class KafkaCachePartition
                 logFile.appendBytes(buffer, index, length);
             };
             OctetsFW value = key.value();
-            int validated = validateKey.validate(value.buffer(), value.offset(), value.sizeof(), writeKey);
-            if (validated == -1)
+            int converted = convertKey.convert(value.buffer(), value.offset(), value.sizeof(), writeKey);
+            if (converted == -1)
             {
                 // For Fetch Validation failure, we still push the event to Cache
                 logFile.appendBytes(key);
@@ -470,7 +469,7 @@ public final class KafkaCachePartition
         MutableInteger entryMark,
         MutableInteger valueMark,
         OctetsFW payload,
-        FragmentValidator validateValue)
+        Converter convertValue)
     {
         final Node head = sentinel.previous;
         assert head != sentinel;
@@ -487,9 +486,9 @@ public final class KafkaCachePartition
 
         logFile.appendBytes(payload.buffer(), payload.offset(), payload.sizeof());
 
-        if (payload != null && validateValue != FragmentValidator.NONE)
+        if (payload != null && convertValue != Converter.NONE)
         {
-            final FragmentConsumer consumeConverted = (flag, buffer, index, length) ->
+            final ValueConsumer consumeConverted = (buffer, index, length) ->
             {
                 final int convertedLengthAt = logFile.readInt(entryMark.value + FIELD_OFFSET_CONVERTED_POSITION);
                 final int convertedLength = convertedFile.readInt(convertedLengthAt);
@@ -505,12 +504,14 @@ public final class KafkaCachePartition
 
             final int valueLength = logFile.capacity() - valueMark.value;
             // TODO: log if invalid
-            int validated = validateValue.validate(flags, logFile.buffer(), valueMark.value, valueLength, consumeConverted);
-            if (validated == -1)
+            if ((flags & FLAGS_FIN) != 0x00)
             {
-                logFile.writeInt(entryMark.value + FIELD_OFFSET_CONVERTED_POSITION, NO_CONVERTED_POSITION);
+                int converted = convertValue.convert(logFile.buffer(), valueMark.value, valueLength, consumeConverted);
+                if (converted == -1)
+                {
+                    logFile.writeInt(entryMark.value + FIELD_OFFSET_CONVERTED_POSITION, NO_CONVERTED_POSITION);
+                }
             }
-
         }
     }
 
@@ -611,8 +612,8 @@ public final class KafkaCachePartition
         ArrayFW<KafkaHeaderFW> headers,
         int trailersSizeMax,
         OctetsFW payload,
-        ValueValidator validateKey,
-        FragmentValidator validateValue)
+        Converter convertKey,
+        Converter convertValue)
     {
         assert offset > this.progress : String.format("%d > %d", offset, this.progress);
         this.progress = offset;
@@ -627,9 +628,9 @@ public final class KafkaCachePartition
         final int valueMaxLength = valueLength == -1 ? 0 : valueLength;
 
         int convertedPos = NO_CONVERTED_POSITION;
-        if (validateValue != FragmentValidator.NONE)
+        if (convertValue != Converter.NONE)
         {
-            int convertedPadding = validateValue.padding(payload.buffer(), payload.offset(), payload.sizeof());
+            int convertedPadding = convertValue.padding(payload.buffer(), payload.offset(), payload.sizeof());
             int convertedMaxLength = valueMaxLength + convertedPadding;
 
             convertedPos = convertedFile.capacity();
@@ -655,7 +656,7 @@ public final class KafkaCachePartition
 
         logFile.appendBytes(entryInfo);
 
-        int validated = 0;
+        int converted = 0;
         write:
         {
             OctetsFW value = key.value();
@@ -672,9 +673,9 @@ public final class KafkaCachePartition
                     logFile.appendBytes(buffer, index, length);
                 };
 
-                validated = validateKey.validate(value.buffer(), value.offset(), value.sizeof(), writeKey);
+                converted = convertKey.convert(value.buffer(), value.offset(), value.sizeof(), writeKey);
 
-                if (validated == -1)
+                if (converted == -1)
                 {
                     break write;
                 }
@@ -700,7 +701,7 @@ public final class KafkaCachePartition
             assert indexFile.available() >= Long.BYTES;
             indexFile.appendLong(indexEntry);
         }
-        return validated;
+        return converted;
     }
 
     public int writeProduceEntryContinue(
@@ -710,7 +711,7 @@ public final class KafkaCachePartition
         MutableInteger valueMark,
         MutableInteger valueLimit,
         OctetsFW payload,
-        FragmentValidator validateValue)
+        Converter convertValue)
     {
         final KafkaCacheSegment segment = head.segment;
         assert segment != null;
@@ -718,14 +719,14 @@ public final class KafkaCachePartition
         final KafkaCacheFile logFile = segment.logFile();
         final KafkaCacheFile convertedFile = segment.convertedFile();
 
-        int validated = 0;
+        int converted = 0;
         if (payload != null)
         {
             valueLimit.value += logFile.writeBytes(valueLimit.value, payload);
 
-            if (validateValue != FragmentValidator.NONE)
+            if (convertValue != Converter.NONE)
             {
-                final FragmentConsumer consumeConverted = (flag, buffer, index, length) ->
+                final ValueConsumer consumeConverted = (buffer, index, length) ->
                 {
                     final int convertedLengthAt = logFile.readInt(entryMark.value + FIELD_OFFSET_CONVERTED_POSITION);
                     final int convertedLength = convertedFile.readInt(convertedLengthAt);
@@ -740,11 +741,14 @@ public final class KafkaCachePartition
                 };
 
                 final int valueLength = valueLimit.value - valueMark.value;
-                validated = validateValue.validate(flags, logFile.buffer(), valueMark.value, valueLength, consumeConverted);
+                if ((flags & FLAGS_FIN) != 0x00)
+                {
+                    converted = convertValue.convert(logFile.buffer(), valueMark.value, valueLength, consumeConverted);
+                }
             }
         }
 
-        return validated;
+        return converted;
     }
 
     public void writeProduceEntryFin(

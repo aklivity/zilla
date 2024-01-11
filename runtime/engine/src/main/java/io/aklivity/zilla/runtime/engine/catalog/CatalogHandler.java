@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.engine.catalog;
 
 import org.agrona.DirectBuffer;
 
-import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
+import io.aklivity.zilla.runtime.engine.converter.function.ValueConsumer;
 
 public interface CatalogHandler
 {

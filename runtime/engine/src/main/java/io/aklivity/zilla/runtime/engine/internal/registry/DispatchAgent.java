@@ -94,8 +94,10 @@ import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.ConverterConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
-import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
+import io.aklivity.zilla.runtime.engine.converter.Converter;
+import io.aklivity.zilla.runtime.engine.converter.ConverterFactory;
 import io.aklivity.zilla.runtime.engine.exporter.Exporter;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterContext;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
@@ -131,9 +133,6 @@ import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
 import io.aklivity.zilla.runtime.engine.util.function.LongLongFunction;
-import io.aklivity.zilla.runtime.engine.validator.FragmentValidator;
-import io.aklivity.zilla.runtime.engine.validator.ValidatorFactory;
-import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
@@ -208,7 +207,7 @@ public class DispatchAgent implements EngineContext, Agent
     private final ScalarsLayout countersLayout;
     private final ScalarsLayout gaugesLayout;
     private final HistogramsLayout histogramsLayout;
-    private final ValidatorFactory validatorFactory;
+    private final ConverterFactory converterFactory;
     private long initialId;
     private long promiseId;
     private long traceId;
@@ -229,7 +228,7 @@ public class DispatchAgent implements EngineContext, Agent
         Collection<Vault> vaults,
         Collection<Catalog> catalogs,
         Collection<MetricGroup> metricGroups,
-        ValidatorFactory validatorFactory,
+        ConverterFactory converterFactory,
         Collector collector,
         int index,
         boolean readonly)
@@ -397,7 +396,7 @@ public class DispatchAgent implements EngineContext, Agent
         this.idleStrategy = idleStrategy;
         this.errorHandler = errorHandler;
         this.exportersById = new Long2ObjectHashMap<>();
-        this.validatorFactory = validatorFactory;
+        this.converterFactory = converterFactory;
     }
 
     public static int indexOfId(
@@ -863,31 +862,17 @@ public class DispatchAgent implements EngineContext, Agent
     }
 
     @Override
-    public ValueValidator createValueReader(
-        ValidatorConfig validator)
+    public Converter createReader(
+        ConverterConfig converter)
     {
-        return validatorFactory.createValueReader(validator, this::supplyCatalog);
+        return converterFactory.createReader(converter, this::supplyCatalog);
     }
 
     @Override
-    public ValueValidator createValueWriter(
-        ValidatorConfig validator)
+    public Converter createWriter(
+        ConverterConfig converter)
     {
-        return validatorFactory.createValueWriter(validator, this::supplyCatalog);
-    }
-
-    @Override
-    public FragmentValidator createFragmentReader(
-        ValidatorConfig validator)
-    {
-        return validatorFactory.createFragmentReader(validator, this::supplyCatalog);
-    }
-
-    @Override
-    public FragmentValidator createFragmentWriter(
-        ValidatorConfig validator)
-    {
-        return validatorFactory.createFragmentWriter(validator, this::supplyCatalog);
+        return converterFactory.createWriter(converter, this::supplyCatalog);
     }
 
     private void onSystemMessage(

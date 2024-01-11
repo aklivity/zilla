@@ -140,9 +140,9 @@ import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
+import io.aklivity.zilla.runtime.engine.config.ConverterConfig;
+import io.aklivity.zilla.runtime.engine.converter.Converter;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
-import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
 
 public final class HttpServerFactory implements HttpStreamFactory
 {
@@ -498,7 +498,7 @@ public final class HttpServerFactory implements HttpStreamFactory
     private final Http2ServerDecoder decodeHttp2IgnoreAll = this::decodeHttp2IgnoreAll;
 
     private final EnumMap<Http2FrameType, Http2ServerDecoder> decodersByFrameType;
-    private final Function<ValidatorConfig, ValueValidator> createValidator;
+    private final Function<ConverterConfig, Converter> createConverter;
 
     {
         final EnumMap<Http2FrameType, Http2ServerDecoder> decodersByFrameType = new EnumMap<>(Http2FrameType.class);
@@ -572,7 +572,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         this.connectionClose = CONNECTION_CLOSE_PATTERN.matcher("");
         this.maximumHeadersSize = bufferPool.slotCapacity();
         this.decodeMax = bufferPool.slotCapacity();
-        this.createValidator = context::createValueWriter;
+        this.createConverter = context::createWriter;
         this.encodeMax = bufferPool.slotCapacity();
         this.bindings = new Long2ObjectHashMap<>();
 
@@ -596,7 +596,7 @@ public final class HttpServerFactory implements HttpStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        HttpBindingConfig httpBinding = new HttpBindingConfig(binding, createValidator);
+        HttpBindingConfig httpBinding = new HttpBindingConfig(binding, createConverter);
         bindings.put(binding.id, httpBinding);
     }
 

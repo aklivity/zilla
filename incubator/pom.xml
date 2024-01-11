@@ -21,10 +21,10 @@
     <module>catalog-inline.spec</module>
     <module>catalog-schema-registry.spec</module>
     <module>exporter-otlp.spec</module>
-    <module>validator-avro.spec</module>
-    <module>validator-core.spec</module>
-    <module>validator-json.spec</module>
-    <module>validator-protobuf.spec</module>
+    <module>type-avro.spec</module>
+    <module>type-core.spec</module>
+    <module>type-json.spec</module>
+    <module>type-protobuf.spec</module>
 
     <module>binding-amqp</module>
 
@@ -38,10 +38,10 @@
 
     <module>exporter-otlp</module>
 
-    <module>validator-avro</module>
-    <module>validator-core</module>
-    <module>validator-json</module>
-    <module>validator-protobuf</module>
+    <module>type-avro</module>
+    <module>type-core</module>
+    <module>type-json</module>
+    <module>type-protobuf</module>
   </modules>
 
   <dependencyManagement>
@@ -88,22 +88,22 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>validator-avro</artifactId>
+        <artifactId>type-avro</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>validator-core</artifactId>
+        <artifactId>type-core</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>validator-json</artifactId>
+        <artifactId>type-json</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>validator-protobuf</artifactId>
+        <artifactId>type-protobuf</artifactId>
         <version>${project.version}</version>
       </dependency>
     </dependencies>
