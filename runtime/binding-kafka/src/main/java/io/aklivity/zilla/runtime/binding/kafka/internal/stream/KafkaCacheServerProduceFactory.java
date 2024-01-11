@@ -1324,7 +1324,6 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                            .produce(f -> f.deferred(deferred)
                                           .timestamp(timestamp)
                                           .sequence(sequence)
-                                          .sequence(sequence)
                                           .crc32c(checksum)
                                           .ackMode(a -> a.set(ackMode))
                                           .key(k -> k.length(key.length()).value(key.value()))
