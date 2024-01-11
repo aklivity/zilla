@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.ws.internal.streams.server;
 
+import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -29,6 +30,7 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 /**
  * RFC-6455, section 5.2 "Base Framing Protocol"
@@ -68,6 +70,17 @@ public class BaseFramingIT
         "${net}/echo.binary.payload.length.125/handshake.request.and.frame",
         "${app}/echo.binary.payload.length.125/handshake.response.and.frame" })
     public void shouldEchoBinaryFrameWithPayloadLength125() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/echo.binary.payload.length.10k/handshake.request.and.frame",
+        "${app}/echo.binary.payload.length.10k/handshake.response.and.frame" })
+    //@Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    public void shouldEchoBinaryFrameWithPayloadLength10k() throws Exception
     {
         k3po.finish();
     }
