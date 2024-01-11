@@ -155,6 +155,26 @@ public class ClientProduceIT
     @Test
     @Configuration("client.when.topic.yaml")
     @Specification({
+        "${app}/message.producer.id/client",
+        "${net}/message.producer.id/server"})
+    public void shouldSendMessageValueWithProducerId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.when.topic.yaml")
+    @Specification({
+        "${app}/message.values.producer.id/client",
+        "${net}/message.values.producer.id/server"})
+    public void shouldSendMessageValuesWithProducerId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.when.topic.yaml")
+    @Specification({
         "${app}/message.value/client",
         "${net}/message.value/server"})
     public void shouldSendMessageValue() throws Exception

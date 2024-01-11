@@ -120,6 +120,24 @@ public class ProduceIT
 
     @Test
     @Specification({
+        "${net}/message.producer.id/client",
+        "${net}/message.producer.id/server"})
+    public void shouldSendMessageValueWithProducerId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/message.values.producer.id/client",
+        "${net}/message.values.producer.id/server"})
+    public void shouldSendMessageValuesWithProducerId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/message.value.null/client",
         "${net}/message.value.null/server"})
     public void shouldSendMessageValueNull() throws Exception
