@@ -102,6 +102,15 @@ public class SessionIT
 
     @Test
     @Specification({
+        "${app}/session.will.message.10k/client",
+        "${app}/session.will.message.10k/server"})
+    public void shouldSendWillMessage10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/session.subscribe/client",
         "${app}/session.subscribe/server"})
     public void shouldSubscribeSaveSubscriptionsInSession() throws Exception
@@ -205,6 +214,24 @@ public class SessionIT
         "${app}/session.subscribe.publish.routing/client",
         "${app}/session.subscribe.publish.routing/server"})
     public void shouldSubscribeAndPublishToNonDefaultRoute() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.invalid.session.timeout.after.connack/client",
+        "${app}/session.invalid.session.timeout.after.connack/server"})
+    public void shouldPropagateMqttReasonCodeAndStringAfterConnack() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.invalid.session.timeout.before.connack/client",
+        "${app}/session.invalid.session.timeout.before.connack/server"})
+    public void shouldPropagateMqttReasonCodeAndStringBeforeConnack() throws Exception
     {
         k3po.finish();
     }

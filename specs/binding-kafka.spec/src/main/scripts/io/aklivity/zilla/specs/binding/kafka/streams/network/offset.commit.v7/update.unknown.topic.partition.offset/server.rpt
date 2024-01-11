@@ -25,11 +25,11 @@ accepted
 
 connected
 
-read 84                                # size
+read 89                                # size
       8s                                # offset fetch
       7s                                # 7
       (int:newRequestId)
-      -1s                               # no client id
+      5s "zilla"                        # client id
       8s "client-1"                     # group id
       0
       10s "memberId-1"                  # consumer member group id
@@ -51,5 +51,3 @@ write 28                                 # size
           0                                   # partition index
           3s                                  # unknown topic partition
 
-write aborted
-read aborted

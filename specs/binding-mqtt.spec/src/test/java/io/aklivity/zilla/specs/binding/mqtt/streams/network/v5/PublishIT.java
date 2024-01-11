@@ -56,6 +56,15 @@ public class PublishIT
 
     @Test
     @Specification({
+        "${net}/publish.multiple.clients/client",
+        "${net}/publish.multiple.clients/server"})
+    public void shouldSendMultipleClients() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/publish.multiple.messages.unfragmented/client",
         "${net}/publish.multiple.messages.unfragmented/server"})
     public void shouldSendMultipleMessagesUnfragmented() throws Exception
@@ -303,15 +312,6 @@ public class PublishIT
 
     @Test
     @Specification({
-        "${net}/publish.reject.packet.too.large/client",
-        "${net}/publish.reject.packet.too.large/server"})
-    public void shouldRejectPacketTooLarge() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${net}/publish.invalid.message/client",
         "${net}/publish.invalid.message/server"})
     public void shouldPublishInvalidMessage() throws Exception
@@ -351,6 +351,42 @@ public class PublishIT
         "${net}/publish.qos2.no.dupicate.before.pubrel/client",
         "${net}/publish.qos2.no.dupicate.before.pubrel/server"})
     public void shouldPublishQoS2NoDupBeforePubrel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/publish.qos2.ack.with.reasoncode/client",
+        "${net}/publish.qos2.ack.with.reasoncode/server"})
+    public void shouldPublishQoS2MessageAckWithReasoncode() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/publish.mixture.qos/client",
+        "${net}/publish.mixture.qos/server"})
+    public void shouldPublishMixtureQos() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/publish.10k/client",
+        "${net}/publish.10k/server"})
+    public void shouldPublish10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/publish.reject.large.message/client",
+        "${net}/publish.reject.large.message/server"})
+    public void shouldRejectLargeMessage() throws Exception
     {
         k3po.finish();
     }

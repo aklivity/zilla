@@ -96,8 +96,11 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
                 .wrap(new UnsafeBuffer(new byte[8]), 0, 8)
                 .build();
+    private static final long PRODUCE_FLUSH_PRODUCER_ID = -1;
+    private static final short PRODUCE_FLUSH_PRODUCER_EPOCH = -1;
     private static final int PRODUCE_FLUSH_SEQUENCE = -1;
 
+    private static final int ERROR_CORRUPT_MESSAGE = 2;
     private static final int ERROR_NOT_LEADER_FOR_PARTITION = 6;
     private static final int ERROR_RECORD_LIST_TOO_LARGE = 18;
     private static final int NO_ERROR = -1;
@@ -678,6 +681,8 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 assert kafkaDataEx.kind() == KafkaDataExFW.KIND_PRODUCE;
                 KafkaProduceDataExFW kafkaProduceDataExFW = kafkaDataEx.produce();
                 final int deferred = kafkaProduceDataExFW.deferred();
+                final long producerId = kafkaProduceDataExFW.producerId();
+                final short producerEpoch = kafkaProduceDataExFW.producerEpoch();
                 final int sequence = kafkaProduceDataExFW.sequence();
                 final Array32FW<KafkaHeaderFW> headers = kafkaProduceDataExFW.headers();
                 final int headersSizeMax = headers.sizeof() + trailersSizeMax;
@@ -686,6 +691,12 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 final KafkaKeyFW key = kafkaProduceDataExFW.key();
                 final int valueLength = valueFragment != null ? valueFragment.sizeof() + deferred : -1;
                 final int maxValueLength = valueLength + headersSizeMax;
+
+                if ((flags & FLAGS_FIN) == 0x00 && deferred == 0)
+                {
+                    error = ERROR_CORRUPT_MESSAGE;
+                    break init;
+                }
 
                 if (maxValueLength > partition.segmentBytes())
                 {
@@ -710,7 +721,8 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
                     final long keyHash = partition.computeKeyHash(key);
                     partition.writeProduceEntryStart(partitionOffset, stream.segment, stream.entryMark, stream.position,
-                        timestamp, stream.initialId, sequence, ackMode, key, keyHash, valueLength, headers, trailersSizeMax);
+                        timestamp, stream.initialId, producerId, producerEpoch, sequence, ackMode, key, keyHash,
+                        valueLength, headers, trailersSizeMax);
                     stream.partitionOffset = partitionOffset;
                     partitionOffset++;
                 }
@@ -786,8 +798,8 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
                 final long keyHash = partition.computeKeyHash(EMPTY_KEY);
                 partition.writeProduceEntryStart(partitionOffset, stream.segment, stream.entryMark, stream.position,
-                    now().toEpochMilli(), stream.initialId, PRODUCE_FLUSH_SEQUENCE,
-                    KafkaAckMode.LEADER_ONLY, EMPTY_KEY, keyHash, 0, EMPTY_TRAILERS, trailersSizeMax);
+                    now().toEpochMilli(), stream.initialId, PRODUCE_FLUSH_PRODUCER_ID, PRODUCE_FLUSH_PRODUCER_EPOCH,
+                    PRODUCE_FLUSH_SEQUENCE, KafkaAckMode.LEADER_ONLY, EMPTY_KEY, keyHash, 0, EMPTY_TRAILERS, trailersSizeMax);
                 stream.partitionOffset = partitionOffset;
                 partitionOffset++;
 
@@ -1349,7 +1361,8 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             // TODO: defer initialAck until previous DATA frames acked
             final boolean incomplete = (dataFlags & FLAGS_INCOMPLETE) != 0x00;
             final int noAck = incomplete ? 0 : (int) (initialSeq - initialAck);
-            doClientInitialWindow(traceId, noAck, noAck + initialBudgetMax);
+            final int initialMax = incomplete ? initialBudgetMax : noAck + initialBudgetMax;
+            doClientInitialWindow(traceId, noAck, initialMax);
         }
 
         private void onClientInitialFlush(
@@ -1582,7 +1595,8 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             long acknowledge)
         {
             cursor.advance(partitionOffset);
-            doClientInitialWindow(traceId, initialSeq - acknowledge, initialMax);
+            doClientInitialWindow(traceId, initialSeq - acknowledge,
+                Math.max(initialMax - (int) (acknowledge - initialAck), initialBudgetMax));
 
             if (KafkaState.initialClosed(state) && partitionOffset == this.partitionOffset)
             {

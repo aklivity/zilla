@@ -1673,6 +1673,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
             client.decoder = decodeFetchPartition;
         }
 
+        client.onIgnoreRecordSet(traceId);
+
         return progress;
     }
 
@@ -1974,6 +1976,36 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
             flushFramesSent++;
         }
 
+        private void doFlushPartitionOffsetIfNecessary(
+            long traceId,
+            long authorization)
+        {
+            if (KafkaState.replyOpening(state) &&
+                client.lastStableOffset < client.stableOffset ||
+                client.lastLatestOffset < client.latestOffset)
+            {
+                final KafkaFlushExFW kafkaFlushEx = kafkaFlushExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                    .typeId(kafkaTypeId)
+                    .fetch(f -> f
+                        .partition(p -> p
+                            .partitionId(client.partitionId)
+                            .partitionOffset(client.decodeRecordBatchLastOffset)
+                            .stableOffset(client.stableOffset)
+                            .latestOffset(client.latestOffset)))
+                    .build();
+
+                doFlush(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                    traceId, authorization, 0, kafkaFlushEx);
+
+                replySeq += 0;
+
+                assert replyAck <= replySeq;
+
+                client.lastStableOffset = client.stableOffset;
+                client.lastLatestOffset = client.latestOffset;
+            }
+        }
+
         private void doApplicationFlushIfNecessary(
             long traceId,
             long authorization)
@@ -2128,6 +2160,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
             private long latestOffset;
             private long initialLatestOffset;
             private long initialStableOffset;
+            private long lastLatestOffset;
+            private long lastStableOffset;
 
             private int state;
             private long authorization;
@@ -2436,6 +2470,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                                                                                                  .destination(broker.host)
                                                                                                  .sourcePort(0)
                                                                                                  .destinationPort(broker.port)))
+                                                                      .infos(i -> i.item(ii -> ii.authority(broker.host)))
                                                                       .build()
                                                                       .sizeof());
                 }
@@ -2606,7 +2641,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                         .apiKey(OFFSETS_API_KEY)
                         .apiVersion(OFFSETS_API_VERSION)
                         .correlationId(0)
-                        .clientId((String) null)
+                        .clientId(clientId)
                         .build();
 
                 encodeProgress = requestHeader.limit();
@@ -2645,7 +2680,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                         .apiKey(requestHeader.apiKey())
                         .apiVersion(requestHeader.apiVersion())
                         .correlationId(requestId)
-                        .clientId(requestHeader.clientId().asString())
+                        .clientId(requestHeader.clientId())
                         .build();
 
                 if (KafkaConfiguration.DEBUG)
@@ -2673,7 +2708,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                         .apiKey(FETCH_API_KEY)
                         .apiVersion(FETCH_API_VERSION)
                         .correlationId(0)
-                        .clientId((String) null)
+                        .clientId(clientId)
                         .build();
 
                 encodeProgress = requestHeader.limit();
@@ -2712,7 +2747,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                         .apiKey(requestHeader.apiKey())
                         .apiVersion(requestHeader.apiVersion())
                         .correlationId(requestId)
-                        .clientId(requestHeader.clientId().asString())
+                        .clientId(requestHeader.clientId())
                         .build();
 
                 if (KafkaConfiguration.DEBUG)
@@ -3110,6 +3145,12 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                         .build();
 
                 doApplicationData(traceId, authorization, FLAG_FIN, reserved, value, kafkaDataEx);
+            }
+
+            private void onIgnoreRecordSet(
+                long traceId)
+            {
+                doFlushPartitionOffsetIfNecessary(traceId, authorization);
             }
 
             @Override

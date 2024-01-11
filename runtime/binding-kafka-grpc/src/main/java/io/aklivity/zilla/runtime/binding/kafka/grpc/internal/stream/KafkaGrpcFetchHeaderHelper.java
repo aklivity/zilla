@@ -21,6 +21,7 @@ import java.util.function.Consumer;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.config.KafkaGrpcCorrelationConfig;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaHeaderFW;
+import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.KafkaDataExFW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.KafkaMergedFetchDataExFW;
@@ -32,6 +33,9 @@ public final class KafkaGrpcFetchHeaderHelper
     private final OctetsFW methodRO = new OctetsFW();
     private final OctetsFW replyToRO = new OctetsFW();
     private final OctetsFW correlatedIdRO = new OctetsFW();
+
+    public int partitionId;
+    public long partitionOffset;
 
     public OctetsFW service;
     public OctetsFW method;
@@ -65,6 +69,11 @@ public final class KafkaGrpcFetchHeaderHelper
         {
             final KafkaMergedFetchDataExFW kafkaMergedFetchDataEx = dataEx.merged().fetch();
             final Array32FW<KafkaHeaderFW> headers = kafkaMergedFetchDataEx.headers();
+            final KafkaOffsetFW partition = kafkaMergedFetchDataEx.partition();
+
+            partitionId = partition.partitionId();
+            partitionOffset = partition.partitionOffset();
+
             headers.forEach(this::dispatch);
         }
     }

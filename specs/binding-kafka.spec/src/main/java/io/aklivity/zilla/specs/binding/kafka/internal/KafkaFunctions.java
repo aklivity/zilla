@@ -81,6 +81,7 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupFlu
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupMemberFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupMemberMetadataFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupTopicMetadataFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaInitProducerIdBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedConsumerFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedDataExFW;
@@ -974,6 +975,13 @@ public final class KafkaFunctions
             return new KafkaOffsetCommitBeginExBuilder();
         }
 
+        public KafkaInitProducerIdBeginExBuilder initProducerId()
+        {
+            beginExRW.kind(KafkaApi.INIT_PRODUCER_ID.value());
+
+            return new KafkaInitProducerIdBeginExBuilder();
+        }
+
         public byte[] build()
         {
             final KafkaBeginExFW beginEx = beginExRO;
@@ -1328,14 +1336,6 @@ public final class KafkaFunctions
                 return this;
             }
 
-            public KafkaProduceBeginExBuilder producerId(
-                long producerId)
-            {
-                ensureTransactionSet();
-                produceBeginExRW.producerId(producerId);
-                return this;
-            }
-
             public KafkaProduceBeginExBuilder topic(
                 String topic)
             {
@@ -1414,6 +1414,20 @@ public final class KafkaFunctions
                 String instanceId)
             {
                 groupBeginExRW.instanceId(instanceId);
+                return this;
+            }
+
+            public KafkaGroupBeginExBuilder host(
+                String host)
+            {
+                groupBeginExRW.host(host);
+                return this;
+            }
+
+            public KafkaGroupBeginExBuilder port(
+                int port)
+            {
+                groupBeginExRW.port(port);
                 return this;
             }
 
@@ -1514,6 +1528,20 @@ public final class KafkaFunctions
                 return this;
             }
 
+            public KafkaOffsetFetchBeginExBuilder host(
+                String host)
+            {
+                offsetFetchBeginExRW.host(host);
+                return this;
+            }
+
+            public KafkaOffsetFetchBeginExBuilder port(
+                int port)
+            {
+                offsetFetchBeginExRW.port(port);
+                return this;
+            }
+
             public KafkaOffsetFetchBeginExBuilder topic(
                 String topic)
             {
@@ -1546,13 +1574,6 @@ public final class KafkaFunctions
                 offsetCommitBeginExRW.wrap(writeBuffer, KafkaBeginExFW.FIELD_OFFSET_OFFSET_COMMIT, writeBuffer.capacity());
             }
 
-            public KafkaOffsetCommitBeginExBuilder topic(
-                String topic)
-            {
-                offsetCommitBeginExRW.topic(topic);
-                return this;
-            }
-
             public KafkaOffsetCommitBeginExBuilder groupId(
                 String groupId)
             {
@@ -1578,6 +1599,39 @@ public final class KafkaFunctions
             {
                 final KafkaOffsetCommitBeginExFW offsetCommitBeginEx = offsetCommitBeginExRW.build();
                 beginExRO.wrap(writeBuffer, 0, offsetCommitBeginEx.limit());
+                return KafkaBeginExBuilder.this;
+            }
+        }
+
+        public final class KafkaInitProducerIdBeginExBuilder
+        {
+            private final KafkaInitProducerIdBeginExFW.Builder initProduceIdBeginExRW =
+                new KafkaInitProducerIdBeginExFW.Builder();
+
+            private KafkaInitProducerIdBeginExBuilder()
+            {
+                initProduceIdBeginExRW.wrap(writeBuffer, KafkaDataExFW.FIELD_OFFSET_OFFSET_FETCH, writeBuffer.capacity());
+            }
+
+
+            public KafkaInitProducerIdBeginExBuilder producerId(
+                long producerId)
+            {
+                initProduceIdBeginExRW.producerId(producerId);
+                return this;
+            }
+
+            public KafkaInitProducerIdBeginExBuilder producerEpoch(
+                short producerEpoch)
+            {
+                initProduceIdBeginExRW.producerEpoch(producerEpoch);
+                return this;
+            }
+
+            public KafkaBeginExBuilder build()
+            {
+                KafkaInitProducerIdBeginExFW initProduceIdBeginEx = initProduceIdBeginExRW.build();
+                beginExRO.wrap(writeBuffer, 0, initProduceIdBeginEx.limit());
                 return KafkaBeginExBuilder.this;
             }
         }
@@ -2074,6 +2128,20 @@ public final class KafkaFunctions
                     return this;
                 }
 
+                public KafkaMergedProduceDataExBuilder producerId(
+                    long producerId)
+                {
+                    mergedProduceDataExRW.producerId(producerId);
+                    return this;
+                }
+
+                public KafkaMergedProduceDataExBuilder producerEpoch(
+                    short producerEpoch)
+                {
+                    mergedProduceDataExRW.producerEpoch(producerEpoch);
+                    return this;
+                }
+
 
                 public KafkaMergedProduceDataExBuilder partition(
                     int partitionId,
@@ -2326,6 +2394,20 @@ public final class KafkaFunctions
                 return this;
             }
 
+            public KafkaProduceDataExBuilder producerId(
+                long producerId)
+            {
+                produceDataExRW.producerId(producerId);
+                return this;
+            }
+
+            public KafkaProduceDataExBuilder producerEpoch(
+                short producerEpoch)
+            {
+                produceDataExRW.producerEpoch(producerEpoch);
+                return this;
+            }
+
             public KafkaProduceDataExBuilder sequence(
                 int sequence)
             {
@@ -2418,7 +2500,7 @@ public final class KafkaFunctions
                 return KafkaDataExBuilder.this;
             }
 
-            class KafkaConsumerAssignmentBuilder
+            public final class KafkaConsumerAssignmentBuilder
             {
                 private final MutableDirectBuffer assignmentBuffer = new UnsafeBuffer(new byte[1024 * 8]);
                 private final KafkaConsumerAssignmentFW.Builder assignmentRW = new KafkaConsumerAssignmentFW.Builder();
@@ -2492,6 +2574,13 @@ public final class KafkaFunctions
             private KafkaOffsetCommitDataExBuilder()
             {
                 offsetCommitDataExRW.wrap(writeBuffer, KafkaDataExFW.FIELD_OFFSET_OFFSET_COMMIT, writeBuffer.capacity());
+            }
+
+            public KafkaOffsetCommitDataExBuilder topic(
+                String topic)
+            {
+                offsetCommitDataExRW.topic(topic);
+                return this;
             }
 
             public KafkaOffsetCommitDataExBuilder progress(
@@ -3387,6 +3476,8 @@ public final class KafkaFunctions
         {
             private Integer deferred;
             private Long timestamp;
+            private Long producerId;
+            private Short producerEpoch;
             private Integer sequence;
             private KafkaAckMode ackMode;
             private KafkaKeyFW.Builder keyRW;
@@ -3407,6 +3498,20 @@ public final class KafkaFunctions
                 long timestamp)
             {
                 this.timestamp = timestamp;
+                return this;
+            }
+
+            public KafkaProduceDataExMatcherBuilder producerId(
+                long producerId)
+            {
+                this.producerId = producerId;
+                return this;
+            }
+
+            public KafkaProduceDataExMatcherBuilder producerEpoch(
+                short producerEpoch)
+            {
+                this.producerEpoch = producerEpoch;
                 return this;
             }
 
@@ -3506,6 +3611,18 @@ public final class KafkaFunctions
                 return timestamp == null || timestamp == produceDataEx.timestamp();
             }
 
+            private boolean matchProducerId(
+                final KafkaProduceDataExFW produceDataEx)
+            {
+                return producerId == null || producerId == produceDataEx.producerId();
+            }
+
+            private boolean matchProducerEpoch(
+                final KafkaProduceDataExFW produceDataEx)
+            {
+                return producerEpoch == null || producerEpoch == produceDataEx.producerEpoch();
+            }
+
             private boolean matchSequence(
                 final KafkaProduceDataExFW produceDataEx)
             {
@@ -3560,6 +3677,8 @@ public final class KafkaFunctions
             {
                 private Integer deferred;
                 private Long timestamp;
+                private Long producerId;
+                private Short producerEpoch;
                 private Long filters;
                 private KafkaOffsetFW.Builder partitionRW;
                 private Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW> progressRW;
@@ -3583,6 +3702,20 @@ public final class KafkaFunctions
                     long timestamp)
                 {
                     this.timestamp = timestamp;
+                    return this;
+                }
+
+                public KafkaMergedFetchDataExMatcherBuilder producerId(
+                    long producerId)
+                {
+                    this.producerId = producerId;
+                    return this;
+                }
+
+                public KafkaMergedFetchDataExMatcherBuilder producerEpoch(
+                    short producerEpoch)
+                {
+                    this.producerEpoch = producerEpoch;
                     return this;
                 }
 
@@ -5321,7 +5454,6 @@ public final class KafkaFunctions
             {
                 final KafkaProduceBeginExFW produceBeginEx = beginEx.produce();
                 return matchTransaction(produceBeginEx) &&
-                    matchProducerId(produceBeginEx) &&
                     matchTopic(produceBeginEx) &&
                     matchPartition(produceBeginEx);
             }
@@ -5330,12 +5462,6 @@ public final class KafkaFunctions
                 final KafkaProduceBeginExFW produceBeginEx)
             {
                 return transaction == null || transaction.equals(produceBeginEx.transaction());
-            }
-
-            private boolean matchProducerId(
-                final KafkaProduceBeginExFW produceBeginEx)
-            {
-                return producerId == null || producerId == produceBeginEx.producerId();
             }
 
             private boolean matchTopic(
@@ -5357,6 +5483,8 @@ public final class KafkaFunctions
             private String16FW groupId;
             private String16FW protocol;
             private String16FW instanceId;
+            private String16FW host;
+            private Integer port;
             private Integer timeout;
 
             private byte[] metadata;
@@ -5393,6 +5521,20 @@ public final class KafkaFunctions
                 return this;
             }
 
+            public KafkaGroupBeginExMatcherBuilder host(
+                String host)
+            {
+                this.host = new String16FW(host);
+                return this;
+            }
+
+            public KafkaGroupBeginExMatcherBuilder port(
+                int port)
+            {
+                this.port = port;
+                return this;
+            }
+
             public KafkaGroupBeginExMatcherBuilder metadata(
                 byte[] metadata)
             {
@@ -5413,6 +5555,8 @@ public final class KafkaFunctions
                     matchProtocol(groupBeginEx) &&
                     matchTimeout(groupBeginEx) &&
                     matchInstanceId(groupBeginEx) &&
+                    matchHost(groupBeginEx) &&
+                    matchPort(groupBeginEx) &&
                     matchMetadata(groupBeginEx);
             }
 
@@ -5438,6 +5582,18 @@ public final class KafkaFunctions
                 final KafkaGroupBeginExFW groupBeginExFW)
             {
                 return instanceId == null || instanceId.equals(groupBeginExFW.instanceId());
+            }
+
+            private boolean matchHost(
+                final KafkaGroupBeginExFW groupBeginExFW)
+            {
+                return host == null || host.equals(groupBeginExFW.host());
+            }
+
+            private boolean matchPort(
+                final KafkaGroupBeginExFW groupBeginExFW)
+            {
+                return port == null || port == groupBeginExFW.port();
             }
 
             private boolean matchMetadata(

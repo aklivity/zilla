@@ -19,15 +19,18 @@ This project includes:
   Apache Ivy under The Apache Software License, Version 2.0
   Jakarta Dependency Injection under The Apache Software License, Version 2.0
   Jakarta JSON Processing API under Eclipse Public License 2.0 or GNU General Public License, version 2 with the GNU Classpath Exception
+  javax.annotation API under CDDL + GPLv2 with classpath exception
   JSON-B API under Eclipse Public License 2.0 or GNU General Public License, version 2 with the GNU Classpath Exception
   JSON-P Default Provider under Eclipse Public License 2.0 or GNU General Public License, version 2 with the GNU Classpath Exception
+  org.eclipse.sisu.inject under Eclipse Public License, Version 1.0
+  org.eclipse.sisu.plexus under Eclipse Public License, Version 1.0
   org.eclipse.yasson under Eclipse Public License v. 2.0 or Eclipse Distribution License v. 1.0
   Plexus :: Component Annotations under Apache License, Version 2.0
   Plexus Cipher: encryption/decryption Component under Apache Public License 2.0
   Plexus Classworlds under Apache License, Version 2.0
   Plexus Common Utilities under Apache License, Version 2.0
   Plexus Security Dispatcher Component under Apache Public License 2.0
-  Sisu-Inject-Plexus : Aggregate OSGi bundle under Eclipse Public License, Version 1.0
+  Sisu-Inject-Plexus : legacy wrapper under Eclipse Public License, Version 1.0
 
 
 This project also includes code under copyright of the following entities:

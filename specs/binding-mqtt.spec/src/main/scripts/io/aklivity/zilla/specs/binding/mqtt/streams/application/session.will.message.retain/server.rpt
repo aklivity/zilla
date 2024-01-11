@@ -40,8 +40,9 @@ read zilla:data.ext ${mqtt:dataEx()
 read ${mqtt:will()
                .topic("wills/one")
                .flags("RETAIN")
-               .payload("client one session expired")
+               .payloadSize(26)
                .build()}
+read "client one session expired"
 
 write zilla:begin.ext ${mqtt:beginEx()
                               .typeId(zilla:id("mqtt"))

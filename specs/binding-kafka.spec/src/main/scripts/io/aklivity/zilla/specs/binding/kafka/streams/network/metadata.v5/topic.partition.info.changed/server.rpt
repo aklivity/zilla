@@ -25,11 +25,11 @@ accepted
 
 connected
 
-read 21                                 # size
+read 26                                 # size
      3s                                 # metadata
      5s                                 # v5
      (int:requestId)
-     -1s                                # no client id
+     5s "zilla"                         # client id
      1                                  # topics
        4s "test"                        #   "test" topic
      [0x00]                             # allow_auto_topic_creation
@@ -66,11 +66,11 @@ write 150                               # size
           -1
           0
 
-read 21                                 # size
+read 26                                 # size
      3s                                 # metadata
      5s                                 # v5
      (int:requestId2)
-     -1s                                # no client id
+     5s "zilla"                         # client id
      1                                  # topics
        4s "test"                        #   "test" topic
      [0x00]                             # allow_auto_topic_creation

@@ -116,14 +116,14 @@
         struct MqttWillV4
         {
             string16 topic;
-            Binary payload; //TODO: data fragmentation
+            uint16 payloadSize;
         }
 
         struct MqttWillV5
         {
             MqttProperties properties;
             string16 topic;
-            Binary payload; //TODO: data fragmentation
+            uint16 payloadSize;
         }
 
         struct MqttConnackV4 extends MqttPacketHeader
@@ -142,21 +142,18 @@
         struct MqttPublishV4 extends MqttPacketHeader
         {
             string16 topicName;
-            octets payload;
         }
 
         struct MqttPublishQosV4 extends MqttPacketHeader
         {
             string16 topicName;
             uint16 packetId;
-            octets payload;
         }
 
         struct MqttPublishV5 extends MqttPacketHeader
         {
             string16 topicName;
             MqttProperties properties;
-            octets payload;
         }
 
         struct MqttPublishQosV5 extends MqttPacketHeader
@@ -164,7 +161,6 @@
             string16 topicName;
             uint16 packetId;
             MqttProperties properties;
-            octets payload;
         }
 
         struct MqttAckHeader extends MqttPacketHeader
@@ -179,7 +175,6 @@
         struct MqttPubackV5 extends MqttAckHeader
         {
             uint8 reasonCode;
-            MqttProperties properties;
         }
 
         struct MqttPubrecV4 extends MqttAckHeader
@@ -189,7 +184,6 @@
         struct MqttPubrecV5 extends MqttAckHeader
         {
             uint8 reasonCode = 0;
-            MqttProperties properties;
         }
 
         struct MqttPubrelV4 extends MqttAckHeader
@@ -199,7 +193,6 @@
         struct MqttPubrelV5 extends MqttAckHeader
         {
             uint8 reasonCode = 0;
-            MqttProperties properties;
         }
 
         struct MqttPubcompV4 extends MqttAckHeader
@@ -209,7 +202,6 @@
         struct MqttPubcompV5 extends MqttAckHeader
         {
             uint8 reasonCode = 0;
-            MqttProperties properties;
         }
 
         struct MqttSubscribeV4 extends MqttPacketHeader

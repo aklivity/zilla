@@ -29,7 +29,7 @@ import io.aklivity.zilla.runtime.engine.poller.PollerKey;
 
 public final class TcpBindingConfig
 {
-    private static final List<TcpRouteConfig> DEFAULT_CLIENT_ROUTES = initDefaultClientRoutes();
+    public static final List<TcpRouteConfig> DEFAULT_CLIENT_ROUTES = initDefaultClientRoutes();
 
     public final long id;
     public final String name;

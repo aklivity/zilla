@@ -26,6 +26,7 @@ import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -200,6 +201,41 @@ public class MqttKafkaSessionProxyIT
         k3po.finish();
     }
 
+    @Ignore("k3po no extension with rejection")
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/session.group.reset.not.authorized/client",
+        "${kafka}/session.group.reset.not.authorized/server"})
+    public void shouldGroupStreamReceiveResetNotAuthorized() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Ignore("k3po no extension with rejection")
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/session.group.reset.invalid.session.timeout/client",
+        "${kafka}/session.group.reset.invalid.session.timeout/server"})
+    public void shouldGroupStreamReceiveResetInvalidSessionTimeout() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Ignore("k3po no extension with rejection")
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/session.group.reset.invalid.describe.config/client",
+        "${kafka}/session.group.reset.invalid.describe.config/server"})
+    public void shouldGroupStreamReceiveResetInvalidDescribeConfig() throws Exception
+    {
+        k3po.finish();
+    }
 
     @Test
     @Configuration("proxy.yaml")
@@ -287,6 +323,16 @@ public class MqttKafkaSessionProxyIT
         "${mqtt}/session.will.message.abort.deliver.will/client",
         "${kafka}/session.will.message.abort.deliver.will/server"})
     public void shouldSendWillMessageOnAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mqtt}/session.will.message.10k.abort.deliver.will/client",
+        "${kafka}/session.will.message.10k.abort.deliver.will/server"})
+    public void shouldSendWillMessage10kOnAbort() throws Exception
     {
         k3po.finish();
     }

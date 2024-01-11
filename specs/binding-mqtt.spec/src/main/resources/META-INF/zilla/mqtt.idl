@@ -124,7 +124,7 @@ scope mqtt
         string16 willId = null;
         MqttBinary correlation;
         MqttUserProperty[] properties;
-        MqttBinary payload;
+        uint16 payloadSize;
     }
 
     scope stream
@@ -173,6 +173,7 @@ scope mqtt
             string16 clientId;
             string16 topic;
             uint8 flags = 0;
+            uint8 qos = 0;
         }
 
         union MqttDataEx switch (uint8) extends core::stream::Extension
@@ -219,6 +220,7 @@ scope mqtt
 
         struct MqttSessionDataEx
         {
+            int32 deferred = 0;
             MqttSessionDataKind kind;
         }
 
@@ -226,6 +228,7 @@ scope mqtt
         {
             string16 serverRef = null;
             uint8 reasonCode = 0;
+            string16 reason = null;
         }
 
         union MqttFlushEx switch (uint8) extends core::stream::Extension

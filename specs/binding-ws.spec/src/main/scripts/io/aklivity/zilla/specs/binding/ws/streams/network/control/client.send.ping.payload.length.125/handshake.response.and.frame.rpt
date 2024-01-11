@@ -14,27 +14,37 @@
 # under the License.
 #
 
-accept "http://localhost:8080/echo"
+accept "zilla://streams/net0"
+  option zilla:window 8192
+  option zilla:transmission "half-duplex"
 accepted
+
+read zilla:begin.ext ${http:beginEx()
+                              .typeId(zilla:id("http"))
+                              .header(":method", "GET")
+                              .header(":scheme", "http")
+                              .header(":authority", "localhost:8080")
+                              .header(":path", "/echo")
+                              .header("upgrade", "websocket")
+                              .header("connection", "upgrade")
+                              .header("sec-websocket-key", newHandshakeKey)
+                              .header("sec-websocket-version", "13")
+                              .build()}
+
 connected
 
-read http:method "GET"
-read http:version "HTTP/1.1"
-read http:header "Host" "localhost:8080"
-read http:header "Upgrade" /(?i:websocket)/
-read http:header "Connection" /(?i:Upgrade)/
-read http:header "Sec-WebSocket-Key" /(?<key>[a-zA-Z0-9+\/=]{24})/
-read http:header "Sec-WebSocket-Version" "13"
+write zilla:begin.ext ${http:beginEx()
+                             .typeId(zilla:id("http"))
+                             .header(":status", "101")
+                             .header("upgrade", "websocket")
+                             .header("connection", "upgrade")
+                             .header("sec-websocket-accept", ws:handshakeHash(newHandshakeKey))
+                             .build()}
+write flush
 
-write http:status "101" "Switching Protocols"
-write http:version "HTTP/1.1"
-write http:header "Upgrade" "websocket"
-write http:header "Connection" "Upgrade"
-write http:header "Sec-WebSocket-Accept" ${ws:handshakeHash(key)}
-
-read [0x89 0xfd] ([0..4] :readMask)
-read option mask ${readMask}
-read ([0..125] :server125)
+read [0x89 0xfd] ([0..4] :writeMask)
+read option mask ${writeMask}
+read ([0..125] :client125)
 read option mask [0x00 0x00 0x00 0x00]
 
-write [0x8a 0x7d] ${server125}
+write [0x8a 0x7d] ${client125}

@@ -99,7 +99,6 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
     private static final byte RECORD_ATTRIBUTES_NONE = 0;
 
     private static final String TRANSACTION_ID_NONE = null;
-    private static final String CLIENT_ID_NONE = null;
 
     private static final int TIMESTAMP_NONE = 0;
 
@@ -1314,6 +1313,8 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 stream.doApplicationBeginIfNecessary(traceId, authorization, topic, partitionId);
             }
 
+            private long networkBytesReceived;
+
             private void onNetworkData(
                 DataFW data)
             {
@@ -1325,6 +1326,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 assert acknowledge <= sequence;
                 assert sequence >= replySeq;
 
+                networkBytesReceived += Math.max(data.length(), 0);
                 authorization = data.authorization();
                 replySeq = sequence + data.reserved();
 
@@ -1386,7 +1388,8 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
                 if (KafkaConfiguration.DEBUG)
                 {
-                    System.out.format("[client] %s[%s] PRODUCE aborted (%d bytes)\n", topic, partitionId);
+                    System.out.format("[client] %s[%s] PRODUCE aborted (%d bytes)\n",
+                        topic, partitionId, network, networkBytesReceived);
                 }
 
                 state = KafkaState.closedReply(state);
@@ -1401,7 +1404,8 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
                 if (KafkaConfiguration.DEBUG)
                 {
-                    System.out.format("[client] %s[%d] PRODUCE reset (%d bytes)\n", topic, partitionId);
+                    System.out.format("[client] %s[%d] PRODUCE reset (%d bytes)\n",
+                        topic, partitionId, networkBytesReceived);
                 }
 
                 state = KafkaState.closedInitial(state);
@@ -1478,6 +1482,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                                                                             .destination(broker.host)
                                                                             .sourcePort(0)
                                                                             .destinationPort(broker.port)))
+                                                                    .infos(i -> i.item(ii -> ii.authority(broker.host)))
                                                                     .build()
                                                                     .sizeof());
                 }
@@ -1834,7 +1839,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                         .apiKey(PRODUCE_API_KEY)
                         .apiVersion(PRODUCE_API_VERSION)
                         .correlationId(0)
-                        .clientId(CLIENT_ID_NONE)
+                        .clientId(clientId)
                         .build();
 
                 encodeProgress = requestHeader.limit();
@@ -1902,7 +1907,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                         .apiKey(requestHeader.apiKey())
                         .apiVersion(requestHeader.apiVersion())
                         .correlationId(requestId)
-                        .clientId(requestHeader.clientId().asString())
+                        .clientId(requestHeader.clientId())
                         .build();
 
                 if (KafkaConfiguration.DEBUG)

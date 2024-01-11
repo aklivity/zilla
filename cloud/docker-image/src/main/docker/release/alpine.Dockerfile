@@ -13,7 +13,7 @@
 # specific language governing permissions and limitations under the License.
 #
 
-FROM eclipse-temurin:20-alpine AS build
+FROM eclipse-temurin:21-alpine AS build
 
 COPY maven /root/.m2/repository
 
@@ -27,7 +27,7 @@ RUN apk add --no-cache wget
 RUN ./zpmw install --debug --exclude-remote-repositories
 RUN ./zpmw clean --keep-image
 
-FROM alpine:3.18.5
+FROM alpine:3.19.0
 
 ENV ZILLA_VERSION ${project.version}
 

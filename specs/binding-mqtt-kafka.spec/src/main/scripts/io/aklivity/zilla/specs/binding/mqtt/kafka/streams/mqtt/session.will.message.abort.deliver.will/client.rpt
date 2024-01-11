@@ -43,8 +43,9 @@ write ${mqtt:will()
                .format("TEXT")
                .responseTopic("responses/client1")
                .correlation("info")
-               .payload("client-1 disconnected abruptly")
+               .payloadSize(30)
                .build()}
+"client-1 disconnected abruptly"
 write flush
 
 read zilla:data.empty

@@ -56,7 +56,7 @@ connect await SESSION1_FINISHED
 write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
                                .group()
-                                   .groupId("client-1")
+                                   .groupId("client-1-session")
                                    .protocol("highlander")
                                    .timeout(1000)
                                    .build()

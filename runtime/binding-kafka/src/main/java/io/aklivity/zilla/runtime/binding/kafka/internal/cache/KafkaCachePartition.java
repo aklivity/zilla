@@ -529,6 +529,8 @@ public final class KafkaCachePartition
         MutableInteger position,
         long timestamp,
         long ownerId,
+        long producerId,
+        short producerEpoch,
         int sequence,
         KafkaAckMode ackMode,
         KafkaKeyFW key,
@@ -558,6 +560,7 @@ public final class KafkaCachePartition
         entryInfo.putInt(6 * Long.BYTES + Integer.BYTES, 0x00);
         entryInfo.putInt(6 * Long.BYTES + 2 * Integer.BYTES, NO_DELTA_POSITION);
         entryInfo.putShort(6 * Long.BYTES + 3 * Integer.BYTES, ackMode.value());
+
 
         logFile.appendBytes(entryInfo);
         logFile.appendBytes(key);

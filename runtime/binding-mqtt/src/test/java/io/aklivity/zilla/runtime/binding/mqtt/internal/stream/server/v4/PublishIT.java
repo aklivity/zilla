@@ -19,7 +19,6 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.PUBLISH_TIMEOUT_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SUBSCRIPTION_ID_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
-import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -63,7 +62,7 @@ public class PublishIT
     @Configuration("server.validator.yaml")
     @Specification({
         "${net}/publish.invalid.message/client",
-        "${app}/publish.invalid.message/server"})
+        "${app}/session.publish/server"})
     public void shouldPublishInvalidMessage() throws Exception
     {
         k3po.finish();
@@ -210,17 +209,6 @@ public class PublishIT
     }
 
     @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/publish.reject.packet.too.large/client",
-        "${app}/publish.reject.packet.too.large/server"})
-    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
-    public void shouldRejectPacketTooLarge() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
     @Configuration("server.route.non.default.yaml")
     @Specification({
         "${net}/publish.unroutable/client",
@@ -246,6 +234,26 @@ public class PublishIT
         "${net}/publish.qos2.no.dupicate.before.pubrel/client",
         "${app}/publish.qos2.no.dupicate.before.pubrel/server"})
     public void shouldPublishQoS2Message() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.mixture.qos/client",
+        "${app}/publish.mixture.qos/server"})
+    public void shouldPublishMixtureQos() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.10k/client",
+        "${app}/publish.10k/server"})
+    public void shouldPublish10k() throws Exception
     {
         k3po.finish();
     }

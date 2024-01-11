@@ -21,4 +21,6 @@
 <suppressions>
     <suppress checks="Javadoc.*" files=".+[\\/]internal[\\/].+" />
     <suppress checks="Javadoc.*" files=".+[\\/]src[\\/]test[\\/].+" />
+    <suppress checks=".*" files=".+[\\/]target[\\/]generated-sources[\\/].+" />
+    <suppress checks=".*" files=".+[\\/]target[\\/]generated-test-sources[\\/].+" />
 </suppressions>

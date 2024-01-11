@@ -75,6 +75,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ExtensionFW
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaConsumerAssignmentFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaConsumerBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaConsumerDataExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaConsumerFlushExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaDataExFW;
@@ -1591,7 +1592,7 @@ public final class KafkaMergedFactory implements BindingHandler
             if (capabilities == FETCH_ONLY)
             {
                 doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                        traceId, authorization, affinity, httpBeginExToKafka());
+                        traceId, authorization, affinity, beginExToKafka());
             }
             else
             {
@@ -1602,7 +1603,7 @@ public final class KafkaMergedFactory implements BindingHandler
             doUnmergedFetchReplyWindowsIfNecessary(traceId);
         }
 
-        private Flyweight.Builder.Visitor httpBeginExToKafka()
+        private Flyweight.Builder.Visitor beginExToKafka()
         {
             return (buffer, offset, maxLimit) ->
                 kafkaBeginExRW.wrap(buffer, offset, maxLimit)
@@ -1732,6 +1733,12 @@ public final class KafkaMergedFactory implements BindingHandler
                 produceStreams.forEach(p -> initialNoAckRW.value = Math.max(p.initialNoAck(), initialNoAckRW.value));
                 produceStreams.forEach(p -> initialPadRW.value = Math.max(p.initialPad, initialPadRW.value));
                 produceStreams.forEach(p -> initialMaxRW.value = Math.min(p.initialMax, initialMaxRW.value));
+
+                if (producer != null)
+                {
+                    initialMaxRW.value = Math.max(producer.initialMax, initialMaxRW.value);
+                }
+
                 maxInitialNoAck = initialNoAckRW.value;
                 maxInitialPad = initialPadRW.value;
                 minInitialMax = initialMaxRW.value;
@@ -1787,11 +1794,12 @@ public final class KafkaMergedFactory implements BindingHandler
 
         private void doMergedConsumerReplyFlush(
             long traceId,
+            long correlationId,
             KafkaOffsetFW partition)
         {
             final KafkaFlushExFW kafkaFlushExFW = kafkaFlushExRW.wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(kafkaTypeId)
-                .merged(mc -> mc.consumer(c -> c.progress(partition)))
+                .merged(mc -> mc.consumer(c -> c.progress(partition).correlationId(correlationId)))
                 .build();
 
             doFlush(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
@@ -1960,8 +1968,9 @@ public final class KafkaMergedFactory implements BindingHandler
         {
             partitions.forEach(p -> offsetsByPartitionId.put(p.partitionId(),
                 new KafkaPartitionOffset(
+                    topic,
                     p.partitionId(),
-                    p.partitionOffset(),
+                    p.partitionOffset() == LIVE.value() ? HISTORICAL.value() : p.partitionOffset(),
                     0,
                     p.leaderEpoch(),
                     p.metadata().asString())));
@@ -2775,6 +2784,8 @@ public final class KafkaMergedFactory implements BindingHandler
         private long replySeq;
         private long replyAck;
         private int replyMax;
+        private String host;
+        private int port;
 
         private KafkaUnmergedConsumerStream(
             KafkaMergedStream merged)
@@ -2925,8 +2936,16 @@ public final class KafkaMergedFactory implements BindingHandler
             BeginFW begin)
         {
             final long traceId = begin.traceId();
+            final OctetsFW extension = begin.extension();
 
             state = KafkaState.openingReply(state);
+
+            final ExtensionFW beginEx = extensionRO.tryWrap(extension.buffer(), extension.offset(), extension.limit());
+            final KafkaBeginExFW kafkaBeginEx = beginEx.typeId() == kafkaTypeId ? extension.get(kafkaBeginExRO::wrap) : null;
+            final KafkaConsumerBeginExFW kafkaConsumerBeginEx = kafkaBeginEx != null ? kafkaBeginEx.consumer() : null;
+
+            host = kafkaConsumerBeginEx.host().asString();
+            port = kafkaConsumerBeginEx.port();
 
             doConsumerReplyWindow(traceId, 0, 8192);
         }
@@ -2952,8 +2971,9 @@ public final class KafkaMergedFactory implements BindingHandler
 
             KafkaConsumerFlushExFW consumerFlushEx = kafkaFlushEx.consumer();
             final KafkaOffsetFW progress = consumerFlushEx.progress();
+            final long correlationId = consumerFlushEx.correlationId();
 
-            merged.doMergedConsumerReplyFlush(traceId, progress);
+            merged.doMergedConsumerReplyFlush(traceId, correlationId, progress);
         }
 
         private void onConsumerReplyData(
@@ -3017,10 +3037,18 @@ public final class KafkaMergedFactory implements BindingHandler
             ResetFW reset)
         {
             final long traceId = reset.traceId();
+            final OctetsFW extension = reset.extension();
+
+            final KafkaResetExFW kafkaResetEx = extension.get(kafkaResetExRO::tryWrap);
+            final int error = kafkaResetEx != null ? kafkaResetEx.error() : -1;
 
             state = KafkaState.closedInitial(state);
 
-            merged.doMergedInitialResetIfNecessary(traceId, EMPTY_EXTENSION);
+            merged.doMergedInitialResetIfNecessary(traceId, ex -> ex.set((b, o, l) -> kafkaResetExRW.wrap(b, o, l)
+                .typeId(kafkaTypeId)
+                .error(error)
+                .build()
+                .sizeof()));
 
             doConsumerReplyResetIfNecessary(traceId);
         }
@@ -3138,6 +3166,8 @@ public final class KafkaMergedFactory implements BindingHandler
                     .typeId(kafkaTypeId)
                     .offsetFetch(c -> c
                         .groupId(merged.groupId)
+                        .host(merged.consumerStream.host)
+                        .port(merged.consumerStream.port)
                         .topic(merged.topic)
                         .partitions(p -> merged.leadersByAssignedId.forEach((k, v) ->
                             p.item(tp -> tp.partitionId(k))))
@@ -3841,6 +3871,8 @@ public final class KafkaMergedFactory implements BindingHandler
                 final KafkaMergedProduceDataExFW kafkaMergedProduceDataEx = kafkaDataEx.merged().produce();
                 final int deferred = kafkaMergedProduceDataEx.deferred();
                 final long timestamp = kafkaMergedProduceDataEx.timestamp();
+                final long producerId = kafkaMergedProduceDataEx.producerId();
+                final short producerEpoch = kafkaMergedProduceDataEx.producerEpoch();
                 final KafkaOffsetFW partition = kafkaMergedProduceDataEx.partition();
                 final KafkaKeyFW key = kafkaMergedProduceDataEx.key();
                 final Array32FW<KafkaHeaderFW> headers = kafkaMergedProduceDataEx.headers();
@@ -3859,6 +3891,8 @@ public final class KafkaMergedFactory implements BindingHandler
                             .produce(pr -> pr
                                 .deferred(deferred)
                                 .timestamp(timestamp)
+                                .producerId(producerId)
+                                .producerEpoch(producerEpoch)
                                 .sequence(sequence)
                                 .ackMode(a -> a.set(ackMode))
                                 .key(k -> k

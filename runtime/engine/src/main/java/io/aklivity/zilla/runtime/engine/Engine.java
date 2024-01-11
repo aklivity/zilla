@@ -34,7 +34,6 @@ import java.net.http.HttpResponse;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -55,11 +54,13 @@ import java.util.stream.Collectors;
 
 import org.agrona.CloseHelper;
 import org.agrona.ErrorHandler;
+import org.agrona.LangUtil;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.concurrent.AgentRunner;
 
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 import io.aklivity.zilla.runtime.engine.catalog.Catalog;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.exporter.Exporter;
@@ -69,8 +70,9 @@ import io.aklivity.zilla.runtime.engine.guard.Guard;
 import io.aklivity.zilla.runtime.engine.internal.Info;
 import io.aklivity.zilla.runtime.engine.internal.LabelManager;
 import io.aklivity.zilla.runtime.engine.internal.Tuning;
+import io.aklivity.zilla.runtime.engine.internal.layouts.BindingsLayout;
 import io.aklivity.zilla.runtime.engine.internal.registry.ConfigurationManager;
-import io.aklivity.zilla.runtime.engine.internal.registry.DispatchAgent;
+import io.aklivity.zilla.runtime.engine.internal.registry.EngineWorker;
 import io.aklivity.zilla.runtime.engine.internal.registry.FileWatcherTask;
 import io.aklivity.zilla.runtime.engine.internal.registry.HttpWatcherTask;
 import io.aklivity.zilla.runtime.engine.internal.registry.WatcherTask;
@@ -97,9 +99,10 @@ public final class Engine implements Collector, AutoCloseable
     private final WatcherTask watcherTask;
     private final Map<URL, NamespaceConfig> namespaces;
     private final URL rootConfigURL;
-    private final Collection<DispatchAgent> dispatchers;
+    private final List<EngineWorker> workers;
     private final boolean readonly;
     private final EngineConfiguration config;
+    private final Map<String, Binding> bindingsByType;
     private Future<Void> watcherTaskRef;
 
     Engine(
@@ -160,16 +163,16 @@ public final class Engine implements Collector, AutoCloseable
         }
         this.tuning = tuning;
 
-        Collection<DispatchAgent> dispatchers = new LinkedHashSet<>();
+        List<EngineWorker> workers = new ArrayList<>(workerCount);
         for (int coreIndex = 0; coreIndex < workerCount; coreIndex++)
         {
-            DispatchAgent agent =
-                new DispatchAgent(config, tasks, labels, errorHandler, tuning::affinity,
+            EngineWorker worker =
+                new EngineWorker(config, tasks, labels, errorHandler, tuning::affinity,
                         bindings, exporters, guards, vaults, catalogs, metricGroups, validatorFactory,
                     this, coreIndex, readonly);
-            dispatchers.add(agent);
+            workers.add(worker);
         }
-        this.dispatchers = dispatchers;
+        this.workers = workers;
 
         final Consumer<String> logger = config.verbose() ? System.out::println : m -> {};
 
@@ -188,6 +191,7 @@ public final class Engine implements Collector, AutoCloseable
         schemaTypes.addAll(catalogs.stream().map(Catalog::type).filter(Objects::nonNull).collect(toList()));
         schemaTypes.addAll(validatorFactory.validatorSpis().stream().map(ValidatorFactorySpi::schema).collect(toList()));
 
+        bindingsByType = bindings.stream().collect(Collectors.toMap(b -> b.name(), b -> b));
         final Map<String, Guard> guardsByType = guards.stream()
             .collect(Collectors.toMap(g -> g.name(), g -> g));
 
@@ -208,12 +212,12 @@ public final class Engine implements Collector, AutoCloseable
         }
 
         this.configurationManager = new ConfigurationManager(schemaTypes, guardsByType::get, labels::supplyLabelId, maxWorkers,
-            tuning, dispatchers, logger, context, config, extensions, this::readURL);
+            tuning, workers, logger, context, config, extensions, this::readURL);
 
         this.namespaces = new HashMap<>();
 
-        List<AgentRunner> runners = new ArrayList<>(dispatchers.size());
-        dispatchers.forEach(d -> runners.add(d.runner()));
+        List<AgentRunner> runners = new ArrayList<>(workers.size());
+        workers.forEach(d -> runners.add(d.runner()));
 
         this.bindings = bindings;
         this.tasks = tasks;
@@ -252,7 +256,7 @@ public final class Engine implements Collector, AutoCloseable
     {
         if (config.drainOnClose())
         {
-            dispatchers.forEach(DispatchAgent::drain);
+            workers.forEach(EngineWorker::drain);
         }
 
         final List<Throwable> errors = new ArrayList<>();
@@ -302,6 +306,7 @@ public final class Engine implements Collector, AutoCloseable
         NamespaceConfig newNamespace = configurationManager.parse(configURL, configText);
         if (newNamespace != null)
         {
+            writeBindingsLayout(newNamespace);
             NamespaceConfig oldNamespace = namespaces.get(configURL);
             configurationManager.unregister(oldNamespace);
             try
@@ -317,6 +322,29 @@ public final class Engine implements Collector, AutoCloseable
             }
         }
         return newNamespace;
+    }
+
+    private void writeBindingsLayout(
+        NamespaceConfig namespace)
+    {
+        BindingsLayout bindingsLayout = BindingsLayout.builder().directory(config.directory()).build();
+        for (BindingConfig binding : namespace.bindings)
+        {
+            long typeId = namespace.resolveId.applyAsLong(binding.type);
+            long kindId = namespace.resolveId.applyAsLong(binding.kind.name().toLowerCase());
+            Binding b = bindingsByType.get(binding.type);
+            long originTypeId = namespace.resolveId.applyAsLong(b.originType(binding.kind));
+            long routedTypeId = namespace.resolveId.applyAsLong(b.routedType(binding.kind));
+            bindingsLayout.writeBindingInfo(binding.id, typeId, kindId, originTypeId, routedTypeId);
+        }
+        try
+        {
+            bindingsLayout.close();
+        }
+        catch (Exception ex)
+        {
+            LangUtil.rethrowUnchecked(ex);
+        }
     }
 
     public static EngineBuilder builder()
@@ -393,10 +421,10 @@ public final class Engine implements Collector, AutoCloseable
         long metricId)
     {
         long result = 0;
-        for (DispatchAgent dispatchAgent : dispatchers)
+        for (EngineWorker worker : workers)
         {
-            LongSupplier counterReader = dispatchAgent.supplyCounter(bindingId, metricId);
-            result += counterReader.getAsLong();
+            LongSupplier reader = worker.supplyCounter(bindingId, metricId);
+            result += reader.getAsLong();
         }
         return result;
     }
@@ -407,8 +435,8 @@ public final class Engine implements Collector, AutoCloseable
         long metricId,
         int core)
     {
-        DispatchAgent dispatcher = dispatchers.toArray(DispatchAgent[]::new)[core];
-        return dispatcher.supplyCounterWriter(bindingId, metricId);
+        EngineWorker worker = workers.toArray(EngineWorker[]::new)[core];
+        return worker.supplyCounterWriter(bindingId, metricId);
     }
 
     @Override
@@ -424,10 +452,10 @@ public final class Engine implements Collector, AutoCloseable
         long metricId)
     {
         long result = 0;
-        for (DispatchAgent dispatchAgent : dispatchers)
+        for (EngineWorker worker : workers)
         {
-            LongSupplier counterReader = dispatchAgent.supplyGauge(bindingId, metricId);
-            result += counterReader.getAsLong();
+            LongSupplier reader = worker.supplyGauge(bindingId, metricId);
+            result += reader.getAsLong();
         }
         return result;
     }
@@ -438,8 +466,8 @@ public final class Engine implements Collector, AutoCloseable
         long metricId,
         int core)
     {
-        DispatchAgent dispatcher = dispatchers.toArray(DispatchAgent[]::new)[core];
-        return dispatcher.supplyGaugeWriter(bindingId, metricId);
+        EngineWorker worker = workers.get(core);
+        return worker.supplyGaugeWriter(bindingId, metricId);
     }
 
     @Override
@@ -469,9 +497,9 @@ public final class Engine implements Collector, AutoCloseable
         int index)
     {
         long result = 0L;
-        for (DispatchAgent dispatchAgent : dispatchers)
+        for (EngineWorker worker : workers)
         {
-            LongSupplier[] readers = dispatchAgent.supplyHistogram(bindingId, metricId);
+            LongSupplier[] readers = worker.supplyHistogram(bindingId, metricId);
             result += readers[index].getAsLong();
         }
         return result;
@@ -483,46 +511,46 @@ public final class Engine implements Collector, AutoCloseable
         long metricId,
         int core)
     {
-        DispatchAgent dispatcher = dispatchers.toArray(DispatchAgent[]::new)[core];
-        return dispatcher.supplyHistogramWriter(bindingId, metricId);
+        EngineWorker worker = workers.get(core);
+        return worker.supplyHistogramWriter(bindingId, metricId);
     }
 
     @Override
     public long[][] counterIds()
     {
         // the list of counter ids are expected to be identical in all cores
-        DispatchAgent dispatchAgent = dispatchers.iterator().next();
-        return dispatchAgent.counterIds();
+        EngineWorker worker = workers.get(0);
+        return worker.counterIds();
     }
 
     @Override
     public long[][] gaugeIds()
     {
         // the list of gauge ids are expected to be identical in all cores
-        DispatchAgent dispatchAgent = dispatchers.iterator().next();
-        return dispatchAgent.gaugeIds();
+        EngineWorker worker = workers.get(0);
+        return worker.gaugeIds();
     }
 
     @Override
     public long[][] histogramIds()
     {
         // the list of histogram ids are expected to be identical in all cores
-        DispatchAgent dispatchAgent = dispatchers.iterator().next();
-        return dispatchAgent.histogramIds();
+        EngineWorker worker = workers.get(0);
+        return worker.histogramIds();
     }
 
     public String supplyLocalName(
         long namespacedId)
     {
-        DispatchAgent dispatchAgent = dispatchers.iterator().next();
-        return dispatchAgent.supplyLocalName(namespacedId);
+        EngineWorker worker = workers.get(0);
+        return worker.supplyLocalName(namespacedId);
     }
 
     public int supplyLabelId(
         String label)
     {
-        DispatchAgent dispatchAgent = dispatchers.iterator().next();
-        return dispatchAgent.supplyTypeId(label);
+        EngineWorker worker = workers.get(0);
+        return worker.supplyTypeId(label);
     }
 
     // visible for testing

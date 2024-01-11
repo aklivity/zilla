@@ -174,7 +174,7 @@ connect await SENT_INITIAL_MIGRATE_SIGNAL
 write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
                                .group()
-                                   .groupId("client-1")
+                                   .groupId("client-1-session")
                                    .protocol("highlander")
                                    .timeout(1000)
                                    .build()
@@ -284,8 +284,9 @@ write ${mqtt:will()
            .format("TEXT")
            .lifetimeId("7ce005a0-ce9d-444d-b14b-2f302d13799d")
            .willId("d252a6bd-abb5-446a-b0f7-d0a3d8c012e2")
-           .payload("client-1 disconnected abruptly")
+           .payloadSize(30)
       .build()}
+"client-1 disconnected abruptly"
 write flush
 
 write zilla:data.ext ${kafka:dataEx()

@@ -25,6 +25,7 @@ import static org.agrona.BitUtil.SIZE_OF_BYTE;
 import static org.agrona.BitUtil.SIZE_OF_SHORT;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Random;
@@ -68,6 +69,22 @@ public final class CoreFunctions
     public static Random random()
     {
         return ThreadLocalRandom.current();
+    }
+
+    @Function
+    public static String randomString(
+        int length)
+    {
+        Random random = ThreadLocalRandom.current();
+        byte[] result = new byte[length];
+        String alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ" +
+            "1234567890!@#$%^&*()_+-=`~[]\\{}|;':\",./<>?";
+        for (int i = 0; i < length; i++)
+        {
+            result[i] = (byte) alphabet.charAt(random.nextInt(alphabet.length()));
+        }
+
+        return new String(result, StandardCharsets.UTF_8);
     }
 
     @Function

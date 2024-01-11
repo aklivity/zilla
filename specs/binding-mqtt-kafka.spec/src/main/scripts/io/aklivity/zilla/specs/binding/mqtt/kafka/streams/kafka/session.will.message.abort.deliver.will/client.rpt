@@ -188,7 +188,7 @@ connect await SENT_INITIAL_MIGRATE_SIGNAL
 write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
                                .group()
-                                   .groupId("client-1")
+                                   .groupId("client-1-session")
                                    .protocol("highlander")
                                    .timeout(1000)
                                    .build()
@@ -295,14 +295,15 @@ write zilla:data.ext ${kafka:dataEx()
 write ${mqtt:will()
             .topic("obituaries")
             .delay(1000)
-            .expiryInterval(15000)
+            .expiryInterval(15)
             .format("TEXT")
             .responseTopic("responses/client1")
             .lifetimeId("1e6a1eb5-810a-459d-a12c-a6fa08f228d1")
             .willId("d252a6bd-abb5-446a-b0f7-d0a3d8c012e2")
             .correlation("info")
-            .payload("client-1 disconnected abruptly")
+            .payloadSize(30)
       .build()}
+"client-1 disconnected abruptly"
 write flush
 
 write zilla:data.ext ${kafka:dataEx()
@@ -427,14 +428,15 @@ read zilla:data.ext ${kafka:matchDataEx()
 read ${mqtt:will()
            .topic("obituaries")
            .delay(1000)
-           .expiryInterval(15000)
+           .expiryInterval(15)
            .format("TEXT")
            .responseTopic("responses/client1")
            .lifetimeId("1e6a1eb5-810a-459d-a12c-a6fa08f228d1")
            .willId("d252a6bd-abb5-446a-b0f7-d0a3d8c012e2")
            .correlation("info")
-           .payload("client-1 disconnected abruptly")
+           .payloadSize(30)
        .build()}
+"client-1 disconnected abruptly"
 read notify RECEIVED_SESSION_WILL_MESSAGE
 
 write close
@@ -467,16 +469,16 @@ write zilla:data.ext ${kafka:dataEx()
                                .partition(-1, -1)
                                .key("obituaries")
                                .header("zilla:filter", "obituaries")
-                               .headerInt("zilla:timeout-ms", 15000)
+                               .headerInt("zilla:expiry", 15)
                                .header("zilla:format", "TEXT")
                                .header("zilla:reply-to", "mqtt-messages")
                                .header("zilla:reply-key", "responses/client1")
                                .header("zilla:reply-filter", "responses")
                                .header("zilla:reply-filter", "client1")
                                .header("zilla:correlation-id", "info")
+                               .header("zilla:qos", "0")
                                .build()
                            .build()}
-
 write "client-1 disconnected abruptly"
 write flush
 

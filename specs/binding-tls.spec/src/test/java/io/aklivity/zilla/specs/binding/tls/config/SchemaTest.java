@@ -44,6 +44,14 @@ public class SchemaTest
     }
 
     @Test
+    public void shouldValidateClientWithOptionsDefault()
+    {
+        JsonObject config = schema.validate("client.options.default.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
     public void shouldValidateClientAlpnDefault()
     {
         JsonObject config = schema.validate("client.alpn.default.yaml");
@@ -160,6 +168,22 @@ public class SchemaTest
     public void shouldValidateServerSni()
     {
         JsonObject config = schema.validate("server.sni.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateServerPorts()
+    {
+        JsonObject config = schema.validate("server.ports.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateClientPorts()
+    {
+        JsonObject config = schema.validate("client.ports.yaml");
 
         assertThat(config, not(nullValue()));
     }

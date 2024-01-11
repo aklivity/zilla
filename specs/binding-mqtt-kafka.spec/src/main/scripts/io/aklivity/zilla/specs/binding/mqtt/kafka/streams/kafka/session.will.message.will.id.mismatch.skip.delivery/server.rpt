@@ -163,7 +163,7 @@ accepted
 read zilla:begin.ext ${kafka:matchBeginEx()
                                .typeId(zilla:id("kafka"))
                                .group()
-                                   .groupId("client-1")
+                                   .groupId("client-1-session")
                                    .protocol("highlander")
                                    .timeout(1000)
                                    .build()
@@ -269,14 +269,15 @@ read zilla:data.ext ${kafka:matchDataEx()
 read ${mqtt:will()
            .topic("obituaries")
            .delay(1000)
-           .expiryInterval(15000)
+           .expiryInterval(15)
            .format("TEXT")
            .responseTopic("responses/client1")
            .lifetimeId("1e6a1eb5-810a-459d-a12c-a6fa08f228d1")
            .willId("d252a6bd-abb5-446a-b0f7-d0a3d8c012e2")
            .correlation("info")
-           .payload("client-1 disconnected abruptly")
+           .payloadSize(30)
       .build()}
+read "client-1 disconnected abruptly"
 
 # will signal for client-1, deliver later
 read zilla:data.ext ${kafka:matchDataEx()
@@ -399,14 +400,15 @@ write zilla:data.ext ${kafka:dataEx()
 write ${mqtt:will()
             .topic("obituaries")
             .delay(1000)
-            .expiryInterval(15000)
+            .expiryInterval(15)
             .format("TEXT")
             .responseTopic("responses/client1")
             .lifetimeId("1e6a1eb5-810a-459d-a12c-a6fa08f228d1")
             .willId("different willId")
             .correlation("info")
-            .payload("client-1 disconnected abruptly")
+            .payloadSize(30)
         .build()}
+"client-1 disconnected abruptly"
 write flush
 # willId != willId from the will-signal so we don't send will message
 

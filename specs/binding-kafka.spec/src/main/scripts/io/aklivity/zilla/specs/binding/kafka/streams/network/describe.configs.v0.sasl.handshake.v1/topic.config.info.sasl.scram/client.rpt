@@ -28,11 +28,11 @@ connect "zilla://streams/net0"
 
 connected
 
-write 23                                # size
+write 28                                # size
       17s                               # sasl.handshake
       1s                                # v1
       ${newRequestId}
-      -1s                               # no client id
+      5s "zilla"                        # client id
       11s "SCRAM-SHA-1"               # mechanism
 
 read 23                                 # size
@@ -41,11 +41,11 @@ read 23                                 # size
      1                                  # mechanisms
        11s "SCRAM-SHA-1"              # SCRAM
 
-write 50                                # size
+write 55                                # size
       36s                               # sasl.authenticate
       1s                                # v1
       ${newRequestId}
-      -1s                               # no client id
+      5s "zilla"                        # client id
       36                                # authentication bytes
       "n,,n=user,r=fyko+d2lbbFgONRv9qkxdawL"
 
@@ -56,11 +56,11 @@ read 92                                 # size
      70 "r=fyko+d2lbbFgONRv9qkxdawL3rfcNHYJY1ZVvWVs7j,s=QSXCR+Q6sek8bf92,i=4096"
      0L                                 # session lifetime
 
-write 96                                # size
+write 101                               # size
       36s                               # sasl.authenticate
       1s                                # v1
       ${newRequestId}
-      -1s                               # no client id
+      5s "zilla"                        # client id
       82                                # authentication bytes
       "c=biws,r=fyko+d2lbbFgONRv9qkxdawL3rfcNHYJY1ZVvWVs7j,p=v0X8v3Bz2T0CJGbJQyF0X+HI4Ts="
 
@@ -71,11 +71,11 @@ read 52                                 # size
      30 "v=rmF9pqV8S7suAoZWja4dJRkFsKQ="
      0L                                 # session lifetime
 
-write 41                                # size
+write 46                                # size
       32s                               # describe configs
       0s                                # v0
       ${newRequestId}
-      -1s                               # no client id
+      5s "zilla"                        # client id
       1                                 # resources
         [0x02]                          # topic resource
         4s "test"                       # "test" topic

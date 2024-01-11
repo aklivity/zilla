@@ -366,6 +366,13 @@ public final class MqttFunctions
                 return this;
             }
 
+            public MqttPublishBeginExBuilder qos(
+                int qos)
+            {
+                publishBeginExRW.qos(qos);
+                return this;
+            }
+
             public MqttBeginExBuilder build()
             {
                 final MqttPublishBeginExFW publishBeginEx = publishBeginExRW.build();
@@ -539,6 +546,13 @@ public final class MqttFunctions
                 publishDataExRW.wrap(writeBuffer, MqttBeginExFW.FIELD_OFFSET_PUBLISH, writeBuffer.capacity());
             }
 
+            public MqttPublishDataExBuilder deferred(
+                int deferred)
+            {
+                publishDataExRW.deferred(deferred);
+                return this;
+            }
+
             public MqttPublishDataExBuilder qos(
                 String qos)
             {
@@ -621,6 +635,13 @@ public final class MqttFunctions
             private MqttSessionDataExBuilder()
             {
                 sessionDataExRW.wrap(writeBuffer, MqttBeginExFW.FIELD_OFFSET_SESSION, writeBuffer.capacity());
+            }
+
+            public MqttSessionDataExBuilder deferred(
+                int deferred)
+            {
+                sessionDataExRW.deferred(deferred);
+                return this;
             }
 
             public MqttSessionDataExBuilder kind(
@@ -763,6 +784,13 @@ public final class MqttFunctions
             int reasonCode)
         {
             resetExRW.reasonCode(reasonCode);
+            return this;
+        }
+
+        public MqttResetExBuilder reason(
+            String reason)
+        {
+            resetExRW.reason(reason);
             return this;
         }
 
@@ -964,17 +992,10 @@ public final class MqttFunctions
             return this;
         }
 
-        public MqttWillMessageBuilder payload(
-            String payload)
+        public MqttWillMessageBuilder payloadSize(
+            int payloadSize)
         {
-            willMessageRW.payload(c -> c.bytes(b -> b.set(payload.getBytes(UTF_8))));
-            return this;
-        }
-
-        public MqttWillMessageBuilder payloadBytes(
-            byte[] payload)
-        {
-            willMessageRW.payload(c -> c.bytes(b -> b.set(payload)));
+            willMessageRW.payloadSize(payloadSize);
             return this;
         }
 
@@ -1225,6 +1246,7 @@ public final class MqttFunctions
             private String16FW clientId;
             private String16FW topic;
             private Integer flags;
+            private Integer qos;
 
             private MqttPublishBeginExMatcherBuilder()
             {
@@ -1252,6 +1274,12 @@ public final class MqttFunctions
                 return this;
             }
 
+            public MqttPublishBeginExMatcherBuilder qos(
+                int qos)
+            {
+                this.qos = qos;
+                return this;
+            }
 
             public MqttBeginExMatcherBuilder build()
             {
@@ -1264,7 +1292,8 @@ public final class MqttFunctions
                 final MqttPublishBeginExFW publishBeginEx = beginEx.publish();
                 return matchClientId(publishBeginEx) &&
                     matchTopic(publishBeginEx) &&
-                    matchFlags(publishBeginEx);
+                    matchFlags(publishBeginEx) &&
+                    matchQos(publishBeginEx);
             }
 
             private boolean matchClientId(
@@ -1272,7 +1301,6 @@ public final class MqttFunctions
             {
                 return clientId == null || clientId.equals(publishBeginEx.clientId());
             }
-
 
             private boolean matchTopic(
                 final MqttPublishBeginExFW publishBeginEx)
@@ -1284,6 +1312,12 @@ public final class MqttFunctions
                 final MqttPublishBeginExFW publishBeginEx)
             {
                 return flags == null || flags == publishBeginEx.flags();
+            }
+
+            private boolean matchQos(
+                final MqttPublishBeginExFW publishBeginEx)
+            {
+                return qos == null || qos == publishBeginEx.qos();
             }
         }
 
@@ -1822,9 +1856,17 @@ public final class MqttFunctions
             private MqttPayloadFormatFW format;
             private String16FW responseTopic;
             private Array32FW.Builder<MqttUserPropertyFW.Builder, MqttUserPropertyFW> userPropertiesRW;
+            private Integer deferred;
 
             private MqttPublishDataExMatcherBuilder()
             {
+            }
+
+            public MqttPublishDataExMatcherBuilder deferred(
+                int deferred)
+            {
+                this.deferred = deferred;
+                return this;
             }
 
             public MqttPublishDataExMatcherBuilder qos(
@@ -1920,7 +1962,8 @@ public final class MqttFunctions
                 MqttDataExFW dataEx)
             {
                 final MqttPublishDataExFW publishDataEx = dataEx.publish();
-                return matchQos(publishDataEx) &&
+                return matchDeferred(publishDataEx) &&
+                    matchQos(publishDataEx) &&
                     matchFlags(publishDataEx) &&
                     matchExpiryInterval(publishDataEx) &&
                     matchContentType(publishDataEx) &&
@@ -1928,6 +1971,12 @@ public final class MqttFunctions
                     matchResponseTopic(publishDataEx) &&
                     matchCorrelation(publishDataEx) &&
                     matchUserProperties(publishDataEx);
+            }
+
+            private boolean matchDeferred(
+                final MqttPublishDataExFW data)
+            {
+                return deferred == null || deferred == data.deferred();
             }
 
             private boolean matchQos(
