@@ -171,6 +171,7 @@ scope kafka
             GROUP (253),
             BOOTSTRAP (254),
             MERGED (255),
+            INIT_PRODUCE_ID (22),
             META (3),
             OFFSET_COMMIT (8),
             OFFSET_FETCH (9),
@@ -197,6 +198,7 @@ scope kafka
         {
             case 252: kafka::stream::KafkaConsumerDataEx consumer;
             case 255: kafka::stream::KafkaMergedDataEx merged;
+            case 22: kafka::stream::KafkaInitProduceIdDataEx initProduceId;
             case 3: kafka::stream::KafkaMetaDataEx meta;
             case 8: kafka::stream::KafkaOffsetCommitDataEx offsetCommit;
             case 9: kafka::stream::KafkaOffsetFetchDataEx offsetFetch;
@@ -479,6 +481,13 @@ scope kafka
             KafkaOffset progress;
             int32 generationId;
             int32 leaderEpoch;
+        }
+
+        struct KafkaInitProduceIdDataEx
+        {
+            int32 transactionTimeoutMs = 0;
+            int64 producerId;
+            int16 producerEpoch;
         }
     }
 

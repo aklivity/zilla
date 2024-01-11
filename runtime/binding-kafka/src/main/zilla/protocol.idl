@@ -338,6 +338,22 @@ scope protocol
             {
                 int32 throttleTimeMillis;
             }
+
+            struct InitProduceIdRequest
+            {
+                string16 transaction = null;
+                int32 transactionTimeoutMs;
+                int64 producerId;
+                int16 producerEpoch;
+            }
+
+            struct InitProduceIdResponse
+            {
+                  int32 throttleTimeMillis;
+                  int16 errorCode;
+                  int64 producerId;
+                  int16 producerEpoch;
+            }
         }
 
         scope group

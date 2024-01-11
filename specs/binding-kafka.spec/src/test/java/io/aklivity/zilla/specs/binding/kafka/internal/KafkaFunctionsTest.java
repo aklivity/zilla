@@ -75,6 +75,7 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaFlushExF
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupMemberMetadataFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaInitProduceIdDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedFetchDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedFlushExFW;
@@ -4359,6 +4360,29 @@ public class KafkaFunctionsTest
 
         final KafkaOffsetFetchDataExFW offsetFetchDataEx = dataEx.offsetFetch();
         assertEquals(1, offsetFetchDataEx.partitions().fieldCount());
+    }
+
+    @Test
+    public void shouldGenerateInitProduceIdDataExtension()
+    {
+        byte[] build = KafkaFunctions.dataEx()
+            .typeId(0x01)
+            .initProduceId()
+                .transactionTimeoutMs(0)
+                .producerId(1L)
+                .producerEpoch((short) 2)
+                .build()
+            .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        KafkaDataExFW dataEx = new KafkaDataExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x01, dataEx.typeId());
+        assertEquals(KafkaApi.INIT_PRODUCE_ID.value(), dataEx.kind());
+
+        KafkaInitProduceIdDataExFW initProduceIdDataEx = dataEx.initProduceId();
+        assertEquals(0, initProduceIdDataEx.transactionTimeoutMs());
+        assertEquals(1L, initProduceIdDataEx.producerId());
+        assertEquals(2, initProduceIdDataEx.producerEpoch());
     }
 
     @Test

@@ -81,6 +81,7 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupFlu
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupMemberFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupMemberMetadataFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupTopicMetadataFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaInitProduceIdDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedConsumerFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedDataExFW;
@@ -1680,6 +1681,13 @@ public final class KafkaFunctions
             return new KafkaOffsetCommitDataExBuilder();
         }
 
+        public KafkaInitProduceIdDataExBuilder initProduceId()
+        {
+            dataExRW.kind(KafkaApi.INIT_PRODUCE_ID.value());
+
+            return new KafkaInitProduceIdDataExBuilder();
+        }
+
         public byte[] build()
         {
             final KafkaDataExFW dataEx = dataExRO;
@@ -2552,6 +2560,45 @@ public final class KafkaFunctions
             {
                 final KafkaOffsetCommitDataExFW consumerDataEx = offsetCommitDataExRW.build();
                 dataExRO.wrap(writeBuffer, 0, consumerDataEx.limit());
+                return KafkaDataExBuilder.this;
+            }
+        }
+
+        public final class KafkaInitProduceIdDataExBuilder
+        {
+            private final KafkaInitProduceIdDataExFW.Builder initProduceIdDataExRW =
+                new KafkaInitProduceIdDataExFW.Builder();
+
+            private KafkaInitProduceIdDataExBuilder()
+            {
+                initProduceIdDataExRW.wrap(writeBuffer, KafkaDataExFW.FIELD_OFFSET_OFFSET_FETCH, writeBuffer.capacity());
+            }
+
+            public KafkaInitProduceIdDataExBuilder transactionTimeoutMs(
+                int timeout)
+            {
+                initProduceIdDataExRW.transactionTimeoutMs(timeout);
+                return this;
+            }
+
+            public KafkaInitProduceIdDataExBuilder producerId(
+                long producerId)
+            {
+                initProduceIdDataExRW.producerId(producerId);
+                return this;
+            }
+
+            public KafkaInitProduceIdDataExBuilder producerEpoch(
+                short producerEpoch)
+            {
+                initProduceIdDataExRW.producerEpoch(producerEpoch);
+                return this;
+            }
+
+            public KafkaDataExBuilder build()
+            {
+                KafkaInitProduceIdDataExFW initProduceIdDataEx = initProduceIdDataExRW.build();
+                dataExRO.wrap(writeBuffer, 0, initProduceIdDataEx.limit());
                 return KafkaDataExBuilder.this;
             }
         }
