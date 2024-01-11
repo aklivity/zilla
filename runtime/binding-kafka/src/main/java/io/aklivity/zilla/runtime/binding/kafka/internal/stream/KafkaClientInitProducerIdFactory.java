@@ -15,11 +15,9 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
-import static io.aklivity.zilla.runtime.binding.kafka.internal.types.ProxyAddressProtocol.STREAM;
 import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_BUDGET_ID;
 import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_INDEX;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
-import static java.util.Objects.requireNonNull;
 
 import java.util.function.Consumer;
 import java.util.function.LongFunction;
@@ -27,9 +25,7 @@ import java.util.function.UnaryOperator;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
-import org.agrona.collections.IntHashSet;
 import org.agrona.collections.LongLongConsumer;
-import org.agrona.collections.ObjectHashSet;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
@@ -41,23 +37,16 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.RequestHeaderFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.ResponseHeaderFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.OffsetFetchErrorResponseFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.OffsetFetchPartitionResponseFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.OffsetFetchRequestFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.OffsetFetchResponseFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.OffsetFetchTopicPartitionRequestFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.OffsetFetchTopicRequestFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.OffsetFetchTopicResponseFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.produce.InitProducerIdRequestFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.produce.InitProducerIdResponseFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ExtensionFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaBeginExFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaDataExFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaOffsetFetchBeginExFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaInitProducerIdBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaResetExFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ProxyBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.WindowFW;
@@ -68,11 +57,9 @@ import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 
-public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshaker implements BindingHandler
+public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHandshaker implements BindingHandler
 {
     private static final int ERROR_NONE = 0;
-    private static final int ERROR_UNKNOWN_PARTITION = 3;
-    private static final int ERROR_UNAUTHORIZED_PARTITION = 29;
 
     private static final int SIGNAL_NEXT_REQUEST = 1;
 
@@ -80,8 +67,8 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
 
-    private static final short OFFSET_FETCH_API_KEY = 9;
-    private static final short OFFSET_FETCH_API_VERSION = 5;
+    private static final short INIT_PRODUCE_ID_API_KEY = 22;
+    private static final short INIT_PRODUCE_ID_API_VERSION = 4;
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -99,41 +86,27 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
     private final AbortFW.Builder abortRW = new AbortFW.Builder();
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
-    private final ProxyBeginExFW.Builder proxyBeginExRW = new ProxyBeginExFW.Builder();
-    private final KafkaDataExFW.Builder kafkaDataExRW = new KafkaDataExFW.Builder();
+    private final KafkaBeginExFW.Builder kafkaBeginExRW = new KafkaBeginExFW.Builder();
     private final KafkaResetExFW.Builder kafkaResetExRW = new KafkaResetExFW.Builder();
 
     private final RequestHeaderFW.Builder requestHeaderRW = new RequestHeaderFW.Builder();
-    private final OffsetFetchRequestFW.Builder offsetFetchRequestRW = new OffsetFetchRequestFW.Builder();
-    private final OffsetFetchTopicRequestFW.Builder offsetFetchTopicRequestRW = new OffsetFetchTopicRequestFW.Builder();
-    private final OffsetFetchTopicPartitionRequestFW.Builder partitionIndexRW =
-        new OffsetFetchTopicPartitionRequestFW.Builder();
+    private final InitProducerIdRequestFW.Builder initProducerIdRequestRW = new InitProducerIdRequestFW.Builder();
 
     private final ResponseHeaderFW responseHeaderRO = new ResponseHeaderFW();
-    private final OffsetFetchResponseFW offsetFetchResponseRO = new OffsetFetchResponseFW();
-    private final OffsetFetchTopicResponseFW offsetFetchTopicResponseRO = new OffsetFetchTopicResponseFW();
-    private final OffsetFetchPartitionResponseFW offsetFetchPartitionResponseRO =
-        new OffsetFetchPartitionResponseFW();
-    private final OffsetFetchErrorResponseFW offsetFetchErrorResponseRO = new OffsetFetchErrorResponseFW();
+    private final InitProducerIdResponseFW initProducerrIdResponseRO = new InitProducerIdResponseFW();
 
-    private final KafkaOffsetFetchClientDecoder decodeSaslHandshakeResponse = this::decodeSaslHandshakeResponse;
-    private final KafkaOffsetFetchClientDecoder decodeSaslHandshake = this::decodeSaslHandshake;
-    private final KafkaOffsetFetchClientDecoder decodeSaslHandshakeMechanisms = this::decodeSaslHandshakeMechanisms;
-    private final KafkaOffsetFetchClientDecoder decodeSaslHandshakeMechanism = this::decodeSaslHandshakeMechanism;
-    private final KafkaOffsetFetchClientDecoder decodeSaslAuthenticateResponse = this::decodeSaslAuthenticateResponse;
-    private final KafkaOffsetFetchClientDecoder decodeSaslAuthenticate = this::decodeSaslAuthenticate;
-    private final KafkaOffsetFetchClientDecoder decodeOffsetFetchResponse = this::decodeOffsetFetchResponse;
-    private final KafkaOffsetFetchClientDecoder decodeOffsetFetchTopics = this::decodeOffsetFetchTopics;
-    private final KafkaOffsetFetchClientDecoder decodeOffsetFetchTopic = this::decodeOffsetFetchTopic;
-    private final KafkaOffsetFetchClientDecoder decodeOffsetFetchPartitions = this::decodeOffsetFetchPartitions;
-    private final KafkaOffsetFetchClientDecoder decodeOffsetFetchPartition = this::decodeOffsetFetchPartition;
-    private final KafkaOffsetFetchClientDecoder decodeOffsetFetchError = this::decodeOffsetFetchError;
+    private final KafkaInitProducerIdClientDecoder decodeSaslHandshakeResponse = this::decodeSaslHandshakeResponse;
+    private final KafkaInitProducerIdClientDecoder decodeSaslHandshake = this::decodeSaslHandshake;
+    private final KafkaInitProducerIdClientDecoder decodeSaslHandshakeMechanisms = this::decodeSaslHandshakeMechanisms;
+    private final KafkaInitProducerIdClientDecoder decodeSaslHandshakeMechanism = this::decodeSaslHandshakeMechanism;
+    private final KafkaInitProducerIdClientDecoder decodeSaslAuthenticateResponse = this::decodeSaslAuthenticateResponse;
+    private final KafkaInitProducerIdClientDecoder decodeSaslAuthenticate = this::decodeSaslAuthenticate;
+    private final KafkaInitProducerIdClientDecoder decodeInitProducerIdResponse = this::decodeInitProducerIdResponse;
 
-    private final KafkaOffsetFetchClientDecoder decodeIgnoreAll = this::decodeIgnoreAll;
-    private final KafkaOffsetFetchClientDecoder decodeReject = this::decodeReject;
+    private final KafkaInitProducerIdClientDecoder decodeIgnoreAll = this::decodeIgnoreAll;
+    private final KafkaInitProducerIdClientDecoder decodeReject = this::decodeReject;
 
     private final int kafkaTypeId;
-    private final int proxyTypeId;
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer extBuffer;
     private final BufferPool decodePool;
@@ -144,7 +117,7 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
     private final LongFunction<KafkaBindingConfig> supplyBinding;
     private final LongFunction<BudgetDebitor> supplyDebitor;
 
-    public KafkaClientOffsetFetchFactory(
+    public KafkaClientInitProducerIdFactory(
         KafkaConfiguration config,
         EngineContext context,
         LongFunction<KafkaBindingConfig> supplyBinding,
@@ -155,7 +128,6 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
     {
         super(config, context);
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
-        this.proxyTypeId = context.supplyTypeId("proxy");
         this.signaler = signaler;
         this.streamFactory = streamFactory;
         this.resolveSasl = resolveSasl;
@@ -184,40 +156,33 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
         final OctetsFW extension = begin.extension();
         final ExtensionFW beginEx = extensionRO.tryWrap(extension.buffer(), extension.offset(), extension.limit());
         final KafkaBeginExFW kafkaBeginEx = beginEx != null && beginEx.typeId() == kafkaTypeId ?
-                kafkaBeginExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit()) : null;
+            kafkaBeginExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit()) : null;
 
-        assert kafkaBeginEx.kind() == KafkaBeginExFW.KIND_OFFSET_FETCH;
-        final KafkaOffsetFetchBeginExFW kafkaOffsetFetchBeginEx = kafkaBeginEx.offsetFetch();
-        final String groupId = kafkaOffsetFetchBeginEx.groupId().asString();
-        final String host = kafkaOffsetFetchBeginEx.host().asString();
-        final int port = kafkaOffsetFetchBeginEx.port();
-        final String topic = kafkaOffsetFetchBeginEx.topic().asString();
-        IntHashSet partitions = new IntHashSet();
-        kafkaOffsetFetchBeginEx.partitions().forEach(p -> partitions.add(p.partitionId()));
+        assert kafkaBeginEx.kind() == KafkaBeginExFW.KIND_INIT_PRODUCER_ID;
+        final KafkaInitProducerIdBeginExFW initProducerIdBeginEx = kafkaBeginEx.initProducerId();
+        final long producerId = initProducerIdBeginEx.producerId();
+        final short producerEpoch = initProducerIdBeginEx.producerEpoch();
 
         MessageConsumer newStream = null;
 
         final KafkaBindingConfig binding = supplyBinding.apply(routedId);
         final KafkaRouteConfig resolved = binding != null ?
-            binding.resolve(authorization, null, groupId) : null;
+            binding.resolve(authorization, null, null) : null;
 
         if (resolved != null)
         {
             final long resolvedId = resolved.id;
             final KafkaSaslConfig sasl = resolveSasl.apply(binding.sasl());
 
-            newStream = new KafkaOffsetFetchStream(
+            newStream = new KafkaInitProducerIdStream(
                     application,
                     originId,
                     routedId,
                     initialId,
                     affinity,
                     resolvedId,
-                    groupId,
-                    host,
-                    port,
-                    topic,
-                    partitions,
+                    producerId,
+                    producerEpoch,
                     sasl)::onApplication;
         }
 
@@ -468,10 +433,10 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
     }
 
     @FunctionalInterface
-    private interface KafkaOffsetFetchClientDecoder
+    private interface KafkaInitProducerIdClientDecoder
     {
         int decode(
-            KafkaOffsetFetchClient client,
+            KafkaInitProducerIdClient client,
             long traceId,
             long authorization,
             long budgetId,
@@ -482,8 +447,8 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
             int limit);
     }
 
-    private int decodeOffsetFetchResponse(
-        KafkaOffsetFetchClient client,
+    private int decodeInitProducerIdResponse(
+        KafkaInitProducerIdClient client,
         long traceId,
         long authorization,
         long budgetId,
@@ -506,218 +471,34 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
 
             progress = responseHeader.limit();
 
-            client.decodeableResponseBytes = responseHeader.length();
 
-            final OffsetFetchResponseFW offsetFetchResponse = offsetFetchResponseRO.tryWrap(buffer, progress, limit);
-            if (offsetFetchResponse == null)
+            final InitProducerIdResponseFW initProducerIdResponse = initProducerrIdResponseRO.tryWrap(buffer, progress, limit);
+            if (initProducerIdResponse == null)
             {
                 break decode;
             }
 
-            progress = offsetFetchResponse.limit();
+            progress = initProducerIdResponse.limit();
 
-            client.decodeableResponseBytes -= offsetFetchResponse.sizeof();
-            assert client.decodeableResponseBytes >= 0;
-
-            client.decodeableTopics = offsetFetchResponse.topicCount();
-            client.decoder = decodeOffsetFetchTopics;
-        }
-
-        return progress;
-    }
-
-    private int decodeOffsetFetchTopics(
-        KafkaOffsetFetchClient client,
-        long traceId,
-        long authorization,
-        long budgetId,
-        int reserved,
-        DirectBuffer buffer,
-        int offset,
-        int progress,
-        int limit)
-    {
-        if (client.decodeableTopics == 0)
-        {
-            client.decoder = decodeOffsetFetchError;
-        }
-        else
-        {
-            client.decoder = decodeOffsetFetchTopic;
-        }
-
-        return progress;
-    }
-
-    private int decodeOffsetFetchTopic(
-        KafkaOffsetFetchClient client,
-        long traceId,
-        long authorization,
-        long budgetId,
-        int reserved,
-        DirectBuffer buffer,
-        int offset,
-        int progress,
-        int limit)
-    {
-        final int length = limit - progress;
-
-        decode:
-        if (length != 0)
-        {
-            final OffsetFetchTopicResponseFW topicOffsetFetch = offsetFetchTopicResponseRO.tryWrap(buffer, progress, limit);
-            if (topicOffsetFetch == null)
+            short errorCode = initProducerIdResponse.errorCode();
+            if (errorCode == ERROR_NONE)
             {
-                break decode;
-            }
-
-            final String topic = topicOffsetFetch.name().asString();
-
-            progress = topicOffsetFetch.limit();
-
-            if (topic.equals(client.topic))
-            {
-                client.onDecodeTopic(traceId);
-
-                client.decodeableResponseBytes -= topicOffsetFetch.sizeof();
-                assert client.decodeableResponseBytes >= 0;
-
-                client.decodeablePartitions = topicOffsetFetch.partitionCount();
-                client.decoder = decodeOffsetFetchPartitions;
+                client.onDecodeInitProducerrIdResponse(
+                    traceId, initProducerIdResponse.producerId(), initProducerIdResponse.producerEpoch());
             }
             else
             {
-                client.decoder = decodeReject;
-            }
-
-        }
-
-        return progress;
-    }
-
-    private int decodeOffsetFetchPartitions(
-        KafkaOffsetFetchClient client,
-        long traceId,
-        long authorization,
-        long budgetId,
-        int reserved,
-        DirectBuffer buffer,
-        int offset,
-        int progress,
-        int limit)
-    {
-        if (client.decodeablePartitions == 0)
-        {
-            client.decodeableTopics--;
-            assert client.decodeableTopics >= 0;
-
-            client.decoder = decodeOffsetFetchTopics;
-            client.onDecodeOffsetFetchResponse(traceId);
-        }
-        else
-        {
-            client.decoder = decodeOffsetFetchPartition;
-        }
-
-        return progress;
-    }
-
-    private int decodeOffsetFetchPartition(
-        KafkaOffsetFetchClient client,
-        long traceId,
-        long authorization,
-        long budgetId,
-        int reserved,
-        DirectBuffer buffer,
-        int offset,
-        int progress,
-        int limit)
-    {
-        final int length = limit - progress;
-
-        decode:
-        if (length != 0)
-        {
-            final OffsetFetchPartitionResponseFW partition = offsetFetchPartitionResponseRO.tryWrap(buffer, progress, limit);
-            if (partition == null)
-            {
-                break decode;
-            }
-
-            progress = partition.limit();
-
-            final short errorCode = partition.errorCode();
-            switch (errorCode)
-            {
-            case ERROR_NONE:
-                client.onDecodePartition(partition);
-                client.decoder = decodeOffsetFetchPartitions;
-                break;
-            case ERROR_UNAUTHORIZED_PARTITION:
-            case ERROR_UNKNOWN_PARTITION:
-                client.decoder = decodeOffsetFetchPartitions;
-                break;
-            default:
                 client.errorCode = errorCode;
                 client.decoder = decodeReject;
-                break;
-            }
-
-            client.decodeableResponseBytes -= partition.sizeof();
-            assert client.decodeableResponseBytes >= 0;
-
-            client.decodeablePartitions--;
-            assert client.decodeablePartitions >= 0;
-        }
-
-        return progress;
-    }
-
-    private int decodeOffsetFetchError(
-        KafkaOffsetFetchClient client,
-        long traceId,
-        long authorization,
-        long budgetId,
-        int reserved,
-        DirectBuffer buffer,
-        int offset,
-        int progress,
-        int limit)
-    {
-        final int length = limit - progress;
-
-        decode:
-        if (length != 0)
-        {
-            final OffsetFetchErrorResponseFW error = offsetFetchErrorResponseRO.tryWrap(buffer, progress, limit);
-
-            if (error == null)
-            {
-                break decode;
-            }
-
-            progress = error.limit();
-
-            if (error.code() == ERROR_NONE)
-            {
-                client.decodeableResponseBytes -= error.sizeof();
-                assert client.decodeableResponseBytes >= 0;
-
-                client.decoder = decodeOffsetFetchResponse;
-                client.nextResponseId++;
-            }
-            else
-            {
-                client.errorCode = error.code();
-                client.decoder = decodeReject;
             }
         }
 
         return progress;
     }
+
 
     private int decodeReject(
-        KafkaOffsetFetchClient client,
+        KafkaInitProducerIdClient client,
         long traceId,
         long authorization,
         long budgetId,
@@ -733,7 +514,7 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
     }
 
     private int decodeIgnoreAll(
-        KafkaOffsetFetchClient client,
+        KafkaInitProducerIdClient client,
         long traceId,
         long authorization,
         long budgetId,
@@ -746,7 +527,7 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
         return limit;
     }
 
-    private final class KafkaOffsetFetchStream
+    private final class KafkaInitProducerIdStream
     {
         private final MessageConsumer application;
         private final long originId;
@@ -754,7 +535,7 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
         private final long initialId;
         private final long replyId;
         private final long affinity;
-        private final KafkaOffsetFetchClient client;
+        private final KafkaInitProducerIdClient client;
 
         private int state;
 
@@ -769,18 +550,15 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
 
         private long replyBudgetId;
 
-        KafkaOffsetFetchStream(
+        KafkaInitProducerIdStream(
             MessageConsumer application,
             long originId,
             long routedId,
             long initialId,
             long affinity,
             long resolvedId,
-            String groupId,
-            String host,
-            int port,
-            String topic,
-            IntHashSet partitions,
+            long producerId,
+            short producerEpoch,
             KafkaSaslConfig sasl)
         {
             this.application = application;
@@ -789,8 +567,7 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = affinity;
-            this.client = new KafkaOffsetFetchClient(this, routedId, resolvedId, groupId, host, port,
-                topic, partitions, sasl);
+            this.client = new KafkaInitProducerIdClient(this, routedId, resolvedId, producerId, producerEpoch, sasl);
         }
 
         private void onApplication(
@@ -840,7 +617,6 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
 
             client.doNetworkBegin(traceId, authorization, affinity);
 
-            doApplicationBeginIfNecessary(traceId, authorization);
             doApplicationWindow(traceId,  0L, 0, 0, 0);
         }
 
@@ -910,40 +686,15 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
             return KafkaState.replyOpening(state);
         }
 
-        private void doApplicationBeginIfNecessary(
-            long traceId,
-            long authorization)
-        {
-            if (!KafkaState.replyOpening(state))
-            {
-                doApplicationBegin(traceId, authorization);
-            }
-        }
-
         private void doApplicationBegin(
             long traceId,
-            long authorization)
+            long authorization,
+            Consumer<OctetsFW.Builder> extension)
         {
             state = KafkaState.openingReply(state);
 
             doBegin(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, affinity, EMPTY_EXTENSION);
-        }
-
-        private void doApplicationData(
-            long traceId,
-            long authorization,
-            KafkaDataExFW extension)
-        {
-            final int reserved = replyPad;
-
-            doData(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, replyBudgetId, reserved, EMPTY_BUFFER, 0, 0,
-                extension);
-
-            replySeq += reserved;
-
-            assert replyAck <= replySeq;
+                    traceId, authorization, affinity, extension);
         }
 
         private void doApplicationEnd(
@@ -1035,26 +786,20 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
         }
     }
 
-    private final class KafkaOffsetFetchClient extends KafkaSaslClient
+    private final class KafkaInitProducerIdClient extends KafkaSaslClient
     {
         private final LongLongConsumer encodeSaslHandshakeRequest = this::doEncodeSaslHandshakeRequest;
         private final LongLongConsumer encodeSaslAuthenticateRequest = this::doEncodeSaslAuthenticateRequest;
-        private final LongLongConsumer encodeOffsetFetchRequest = this::doEncodeOffsetFetchRequest;
+        private final LongLongConsumer encodeInitProducerIdRequest = this::doEncodeInitProducerIdRequest;
 
-        private final KafkaOffsetFetchStream delegate;
-        private final String groupId;
-        private final String host;
-        private final int port;
-        private final String topic;
-        private final IntHashSet partitions;
-        private final ObjectHashSet<KafkaPartitionOffset> topicPartitions;
+        private final KafkaInitProducerIdStream delegate;
+        private final long producerId;
+        private final short producerEpoch;
+
         private short errorCode;
 
         private MessageConsumer network;
         private int state;
-        private int decodeableResponseBytes;
-        private int decodeableTopics;
-        private int decodeablePartitions;
         private long authorization;
 
         private long initialSeq;
@@ -1079,30 +824,24 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
 
         private int nextResponseId;
 
+
         private BudgetDebitor initialDeb;
-        private KafkaOffsetFetchClientDecoder decoder;
+        private KafkaInitProducerIdClientDecoder decoder;
         private LongLongConsumer encoder;
 
-        KafkaOffsetFetchClient(
-            KafkaOffsetFetchStream delegate,
+        KafkaInitProducerIdClient(
+            KafkaInitProducerIdStream delegate,
             long originId,
             long routedId,
-            String groupId,
-            String host,
-            int port,
-            String topic,
-            IntHashSet partitions,
+            long producerId,
+            short producerEpoch,
             KafkaSaslConfig sasl)
         {
             super(sasl, originId, routedId);
             this.delegate = delegate;
-            this.groupId = requireNonNull(groupId);
-            this.host = host;
-            this.port = port;
-            this.topic = topic;
-            this.partitions = partitions;
-            this.topicPartitions = new ObjectHashSet<>();
-            this.encoder = sasl != null ? encodeSaslHandshakeRequest : encodeOffsetFetchRequest;
+            this.producerId = producerId;
+            this.producerEpoch = producerEpoch;
+            this.encoder = sasl != null ? encodeSaslHandshakeRequest : encodeInitProducerIdRequest;
 
             this.decoder = decodeReject;
         }
@@ -1321,19 +1060,8 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
         {
             state = KafkaState.openingInitial(state);
 
-            Consumer<OctetsFW.Builder> extension =  e -> e.set((b, o, l) -> proxyBeginExRW.wrap(b, o, l)
-                .typeId(proxyTypeId)
-                .address(a -> a.inet(i -> i.protocol(p -> p.set(STREAM))
-                    .source("0.0.0.0")
-                    .destination(host)
-                    .sourcePort(0)
-                    .destinationPort(port)))
-                .infos(i -> i.item(ii -> ii.authority(host)))
-                .build()
-                .sizeof());
-
             network = newStream(this::onNetwork, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, authorization, affinity, extension);
+                traceId, authorization, affinity, EMPTY_EXTENSION);
         }
 
         @Override
@@ -1432,14 +1160,10 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
             }
         }
 
-        private void doEncodeOffsetFetchRequest(
+        private void doEncodeInitProducerIdRequest(
             long traceId,
             long budgetId)
         {
-            if (KafkaConfiguration.DEBUG)
-            {
-                System.out.format("[client] %s OFFSET FETCH\n", groupId);
-            }
 
             final MutableDirectBuffer encodeBuffer = writeBuffer;
             final int encodeOffset = DataFW.FIELD_OFFSET_PAYLOAD;
@@ -1449,38 +1173,21 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
 
             final RequestHeaderFW requestHeader = requestHeaderRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
                 .length(0)
-                .apiKey(OFFSET_FETCH_API_KEY)
-                .apiVersion(OFFSET_FETCH_API_VERSION)
+                .apiKey(INIT_PRODUCE_ID_API_KEY)
+                .apiVersion(INIT_PRODUCE_ID_API_VERSION)
                 .correlationId(0)
                 .clientId(clientId)
                 .build();
 
             encodeProgress = requestHeader.limit();
 
-            final OffsetFetchRequestFW offsetFetchRequest =
-                offsetFetchRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
-                    .groupId(groupId)
-                    .topicCount(1)
+            final InitProducerIdRequestFW initProducerIdRequest =
+                initProducerIdRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
+                    .producerId(producerId)
+                    .producerEpoch(producerEpoch)
                     .build();
 
-            encodeProgress = offsetFetchRequest.limit();
-
-
-            final OffsetFetchTopicRequestFW offsetFetchTopicRequest =
-                offsetFetchTopicRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
-                    .name(topic)
-                    .partitionsCount(partitions.size())
-                    .build();
-            encodeProgress = offsetFetchTopicRequest.limit();
-
-            for (int partition : partitions)
-            {
-                final OffsetFetchTopicPartitionRequestFW partitionIndex =
-                    partitionIndexRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
-                        .partitionIndex(partition)
-                        .build();
-                encodeProgress = partitionIndex.limit();
-            }
+            encodeProgress = initProducerIdRequest.limit();
 
             final int requestId = nextRequestId++;
             final int requestSize = encodeProgress - encodeOffset - RequestHeaderFW.FIELD_OFFSET_API_KEY;
@@ -1495,7 +1202,7 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
 
             doNetworkData(traceId, budgetId, encodeBuffer, encodeOffset, encodeProgress);
 
-            decoder = decodeOffsetFetchResponse;
+            decoder = decodeInitProducerIdResponse;
         }
 
         private void encodeNetwork(
@@ -1572,7 +1279,7 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
             int offset,
             int limit)
         {
-            KafkaOffsetFetchClientDecoder previous = null;
+            KafkaInitProducerIdClientDecoder previous = null;
             int progress = offset;
             while (progress <= limit && previous != decoder)
             {
@@ -1686,8 +1393,8 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
             switch (errorCode)
             {
             case ERROR_NONE:
-                encoder = encodeOffsetFetchRequest;
-                decoder = decodeOffsetFetchResponse;
+                encoder = encodeInitProducerIdRequest;
+                decoder = decodeInitProducerIdResponse;
                 break;
             default:
                 delegate.cleanupApplication(traceId, errorCode);
@@ -1704,45 +1411,16 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
             signaler.signalNow(originId, routedId, initialId, traceId, SIGNAL_NEXT_REQUEST, 0);
         }
 
-        private void onDecodeOffsetFetchResponse(
-            long traceId)
+        private void onDecodeInitProducerrIdResponse(
+            long traceId,
+            long newProducerId,
+            short newProducerEpoch)
         {
-            if (!topicPartitions.isEmpty())
-            {
-                delegate.doApplicationWindow(traceId, 0L, 0, 0, 0);
-
-                final KafkaDataExFW kafkaDataEx = kafkaDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
-                    .typeId(kafkaTypeId)
-                    .offsetFetch(m -> m
-                        .partitions(o -> topicPartitions.forEach(tp ->
-                            o.item(to -> to
-                                .partitionId(tp.partitionId)
-                                .partitionOffset(tp.partitionOffset)
-                                .leaderEpoch(tp.leaderEpoch)
-                                .metadata(tp.metadata)
-                            ))))
-                    .build();
-
-                delegate.doApplicationData(traceId, authorization, kafkaDataEx);
-            }
-        }
-
-        public void onDecodeTopic(
-            long traceId)
-        {
-            topicPartitions.clear();
-        }
-
-        public void onDecodePartition(
-            OffsetFetchPartitionResponseFW partition)
-        {
-            topicPartitions.add(new KafkaPartitionOffset(
-                topic,
-                partition.partitionIndex(),
-                partition.committedOffset(),
-                0,
-                partition.committedLeaderEpoch(),
-                partition.metadata().asString()));
+            delegate.doApplicationBegin(traceId, authorization,  ex -> ex.set((b, o, l) -> kafkaBeginExRW.wrap(b, o, l)
+                .typeId(kafkaTypeId)
+                .initProducerId(p -> p.producerId(newProducerId).producerEpoch(newProducerEpoch))
+                .build()
+                .sizeof()));
         }
 
         private void cleanupNetwork(

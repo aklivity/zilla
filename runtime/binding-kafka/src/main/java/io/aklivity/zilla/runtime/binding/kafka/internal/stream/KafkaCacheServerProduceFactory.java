@@ -1234,12 +1234,12 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                         switch (flags)
                         {
                         case FLAG_INIT | FLAG_FIN:
-                            doServerInitialDataFull(traceId, timestamp, sequence, checksum, ackMode, key, headers, trailers,
-                                fragment, reserved, flags);
+                            doServerInitialDataFull(traceId, timestamp, sequence, checksum,
+                                ackMode, key, headers, trailers, fragment, reserved, flags);
                             break;
                         case FLAG_INIT:
-                            doServerInitialDataInit(traceId, deferred, timestamp, sequence, checksum, ackMode, key,
-                                headers, trailers, fragment, reserved, flags);
+                            doServerInitialDataInit(traceId, deferred, timestamp, sequence,
+                                checksum, ackMode, key, headers, trailers, fragment, reserved, flags);
                             break;
                         case FLAG_NONE:
                             doServerInitialDataNone(traceId, fragment, reserved, length, flags);

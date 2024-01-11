@@ -91,6 +91,9 @@ public final class KafkaClientFactory implements KafkaStreamFactory
         final KafkaClientOffsetCommitFactory clientOffsetCommitFactory = new KafkaClientOffsetCommitFactory(
             config, context, bindings::get, accountant::supplyDebitor, signaler, streamFactory, resolveSasl);
 
+        final KafkaClientInitProducerIdFactory clientInitProducerIdFactory = new KafkaClientInitProducerIdFactory(
+            config, context, bindings::get, accountant::supplyDebitor, signaler, streamFactory, resolveSasl);
+
         final KafkaMergedFactory clientMergedFactory = new KafkaMergedFactory(
                 config, context, bindings::get, accountant.creditor());
 
@@ -102,6 +105,7 @@ public final class KafkaClientFactory implements KafkaStreamFactory
         factories.put(KafkaBeginExFW.KIND_PRODUCE, clientProduceFactory);
         factories.put(KafkaBeginExFW.KIND_OFFSET_COMMIT, clientOffsetCommitFactory);
         factories.put(KafkaBeginExFW.KIND_OFFSET_FETCH, clientOffsetFetchFactory);
+        factories.put(KafkaBeginExFW.KIND_INIT_PRODUCER_ID, clientInitProducerIdFactory);
         factories.put(KafkaBeginExFW.KIND_MERGED, clientMergedFactory);
 
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);

@@ -171,6 +171,7 @@ scope kafka
             GROUP (253),
             BOOTSTRAP (254),
             MERGED (255),
+            INIT_PRODUCER_ID (22),
             META (3),
             OFFSET_COMMIT (8),
             OFFSET_FETCH (9),
@@ -185,6 +186,7 @@ scope kafka
             case 253: kafka::stream::KafkaGroupBeginEx group;
             case 254: kafka::stream::KafkaBootstrapBeginEx bootstrap;
             case 255: kafka::stream::KafkaMergedBeginEx merged;
+            case 22: kafka::stream::KafkaInitProducerIdBeginEx initProducerId;
             case 3: kafka::stream::KafkaMetaBeginEx meta;
             case 8: kafka::stream::KafkaOffsetCommitBeginEx offsetCommit;
             case 9: kafka::stream::KafkaOffsetFetchBeginEx offsetFetch;
@@ -253,6 +255,8 @@ scope kafka
         {
             int32 deferred = 0;         // INIT only (TODO: move to DATA frame)
             int64 timestamp = 0;        // INIT only
+            int64 producerId = -1;      // INIT only
+            int16 producerEpoch = -1;   // INIT only
             KafkaOffset partition;      // INIT only
             KafkaKey key;               // INIT only
             KafkaKey hashKey;           // INIT only
@@ -354,7 +358,6 @@ scope kafka
         struct KafkaProduceBeginEx
         {
             string8 transaction; // = null;
-            int64 producerId = -1;
             string16 topic;
             KafkaOffset partition;
         }
@@ -363,6 +366,8 @@ scope kafka
         {
             int32 deferred = 0;
             int64 timestamp = 0;
+            int64 producerId = -1;
+            int16 producerEpoch = -1;
             int32 sequence = -1;
             uint32 crc32c = 0;
             KafkaAckMode ackMode = IN_SYNC_REPLICAS;
@@ -379,8 +384,8 @@ scope kafka
         {
             int32 partitionId = -1;
             int64 partitionOffset = -1;
-            int32 leaderEpoch;
-            string16 metadata;
+            int32 leaderEpoch = -1;
+            string16 metadata = null;
         }
 
         struct KafkaGroupTopicMetadata
@@ -452,12 +457,6 @@ scope kafka
             int64 correlationId = -1;
         }
 
-        struct KafkaOffsetFetchTopic
-        {
-            string16 topic;
-            KafkaTopicPartition[] partitions;
-        }
-
         struct KafkaOffsetFetchBeginEx
         {
             string16 groupId;
@@ -474,7 +473,6 @@ scope kafka
 
         struct KafkaOffsetCommitBeginEx
         {
-            string16 topic;
             string16 groupId;
             string16 memberId;
             string16 instanceId;
@@ -482,9 +480,16 @@ scope kafka
 
         struct KafkaOffsetCommitDataEx
         {
+            string16 topic;
             KafkaOffset progress;
             int32 generationId;
             int32 leaderEpoch;
+        }
+
+        struct KafkaInitProducerIdBeginEx
+        {
+            int64 producerId;
+            int16 producerEpoch;
         }
     }
 

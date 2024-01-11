@@ -1968,6 +1968,7 @@ public final class KafkaMergedFactory implements BindingHandler
         {
             partitions.forEach(p -> offsetsByPartitionId.put(p.partitionId(),
                 new KafkaPartitionOffset(
+                    topic,
                     p.partitionId(),
                     p.partitionOffset() == LIVE.value() ? HISTORICAL.value() : p.partitionOffset(),
                     0,
@@ -3870,6 +3871,8 @@ public final class KafkaMergedFactory implements BindingHandler
                 final KafkaMergedProduceDataExFW kafkaMergedProduceDataEx = kafkaDataEx.merged().produce();
                 final int deferred = kafkaMergedProduceDataEx.deferred();
                 final long timestamp = kafkaMergedProduceDataEx.timestamp();
+                final long producerId = kafkaMergedProduceDataEx.producerId();
+                final short producerEpoch = kafkaMergedProduceDataEx.producerEpoch();
                 final KafkaOffsetFW partition = kafkaMergedProduceDataEx.partition();
                 final KafkaKeyFW key = kafkaMergedProduceDataEx.key();
                 final Array32FW<KafkaHeaderFW> headers = kafkaMergedProduceDataEx.headers();
@@ -3888,6 +3891,8 @@ public final class KafkaMergedFactory implements BindingHandler
                             .produce(pr -> pr
                                 .deferred(deferred)
                                 .timestamp(timestamp)
+                                .producerId(producerId)
+                                .producerEpoch(producerEpoch)
                                 .sequence(sequence)
                                 .ackMode(a -> a.set(ackMode))
                                 .key(k -> k
