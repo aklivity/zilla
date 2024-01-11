@@ -2446,7 +2446,7 @@ public final class KafkaFunctions
                 return KafkaDataExBuilder.this;
             }
 
-            class KafkaConsumerAssignmentBuilder
+            public final class KafkaConsumerAssignmentBuilder
             {
                 private final MutableDirectBuffer assignmentBuffer = new UnsafeBuffer(new byte[1024 * 8]);
                 private final KafkaConsumerAssignmentFW.Builder assignmentRW = new KafkaConsumerAssignmentFW.Builder();

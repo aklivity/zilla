@@ -34,10 +34,9 @@ read  [0x10 0x3d]                                      # CONNECT
       [0x00 0x09] "wills/one"                          # will topic
       [0x00 0x1a] "client one session expired"         # will payload
 
-write [0x20 0x0c]                                      # CONNACK
+write [0x20 0x07]                                      # CONNACK
       [0x00]                                           # flags = none
       [0x00]                                           # reason code
-      [0x09]                                           # properties = none
-      [0x27] 66560                                     # maximum packet size = 66560
+      [0x04]                                           # properties = none
       [0x24 0x00]                                      # maximum qos = at most once
       [0x2a 0x00]                                      # shared subscription unavailable

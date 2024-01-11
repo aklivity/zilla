@@ -30,11 +30,10 @@ write [0x10 0x18]                    # CONNECT
       [0x27] 66560                   # maximum packet size = 66560
       [0x00 0x06] "client"           # client id
 
-read  [0x20 0x08]                    # CONNACK
+read  [0x20 0x03]                    # CONNACK
       [0x00]                         # flags = none
       [0x00]                         # reason code
-      [0x05]                         # properties
-      [0x27] 66560                   # maximum packet size = 66560
+      [0x00]                         # properties
 
 write [0x30 0x3c]                    # PUBLISH
       [0x00 0x0a] "sensor/one"       # topic name

@@ -2291,8 +2291,8 @@ Zilla Frame
 
 Frame 54: 368 bytes on wire (2944 bits), 368 bytes captured (2944 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
-Internet Protocol Version 6, Src: fe80::1b, Dst: fe80::1a
-Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1, Ack: 1, Len: 294
+Internet Protocol Version 6, Src: fe80::1a, Dst: fe80::1b
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 1, Ack: 1, Len: 294
 Zilla Frame
     Frame Type ID: 0x00000002
     Frame Type: DATA
@@ -2306,10 +2306,10 @@ Zilla Frame
     Routed ID: 0x000000090000000c
     Routed Namespace: example
     Routed Binding: north_tls_server
-    Stream ID: 0x000000000000001a
+    Stream ID: 0x000000000000001b
     Initial ID: 0x000000000000001b
     Reply ID: 0x000000000000001a
-    Direction: REP
+    Direction: INI
     Sequence: 0
     Acknowledge: 0
     Maximum: 0
@@ -2361,7 +2361,7 @@ Transport Layer Security
 Frame 55: 260 bytes on wire (2080 bits), 260 bytes captured (2080 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::1a, Dst: fe80::1b
-Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 1, Ack: 295, Len: 186
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 295, Ack: 1, Len: 186
 Zilla Frame
     Frame Type ID: 0x00000002
     Frame Type: DATA
@@ -2423,8 +2423,8 @@ MQ Telemetry Transport Protocol, Connect Command
 
 Frame 56: 328 bytes on wire (2624 bits), 328 bytes captured (2624 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
-Internet Protocol Version 6, Src: fe80::1c, Dst: fe80::1d
-Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 1, Ack: 1, Len: 254
+Internet Protocol Version 6, Src: fe80::1a, Dst: fe80::1b
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 481, Ack: 1, Len: 254
 Zilla Frame
     Frame Type ID: 0x00000002
     Frame Type: DATA
@@ -2438,22 +2438,22 @@ Zilla Frame
     Routed ID: 0x0000000900000012
     Routed Namespace: example
     Routed Binding: south_tcp_client
-    Stream ID: 0x000000000000001d
-    Initial ID: 0x000000000000001d
-    Reply ID: 0x000000000000001c
+    Stream ID: 0x000000000000001b
+    Initial ID: 0x000000000000001b
+    Reply ID: 0x000000000000001a
     Direction: INI
     Sequence: 0
     Acknowledge: 0
     Maximum: 0
     Timestamp: 0x0000000000000032
-    Trace ID: 0x000000000000001d
+    Trace ID: 0x000000000000001b
     Authorization: 0x0000000000000000
     Flags: 0x03
         .... ...1 = FIN: Set (1)
         .... ..1. = INIT: Set (1)
         .... .0.. = INCOMPLETE: Not set (0)
         .... 0... = SKIP: Not set (0)
-    Budget ID: 0x000000000000001d
+    Budget ID: 0x000000000000001b
     Reserved: 136
     Progress: 136
     Progress/Maximum: 136/0
@@ -2481,8 +2481,8 @@ Kafka (Fetch v5 Request)
 
 Frame 57: 318 bytes on wire (2544 bits), 318 bytes captured (2544 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
-Internet Protocol Version 6, Src: fe80::1d, Dst: fe80::1c
-Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1, Ack: 255, Len: 244
+Internet Protocol Version 6, Src: fe80::1b, Dst: fe80::1a
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1, Ack: 735, Len: 244
 Zilla Frame
     Frame Type ID: 0x00000002
     Frame Type: DATA
@@ -2496,22 +2496,22 @@ Zilla Frame
     Routed ID: 0x0000000900000012
     Routed Namespace: example
     Routed Binding: south_tcp_client
-    Stream ID: 0x000000000000001c
-    Initial ID: 0x000000000000001d
-    Reply ID: 0x000000000000001c
+    Stream ID: 0x000000000000001a
+    Initial ID: 0x000000000000001b
+    Reply ID: 0x000000000000001a
     Direction: REP
     Sequence: 0
     Acknowledge: 0
     Maximum: 0
     Timestamp: 0x0000000000000033
-    Trace ID: 0x000000000000001d
+    Trace ID: 0x000000000000001b
     Authorization: 0x0000000000000000
     Flags: 0x03
         .... ...1 = FIN: Set (1)
         .... ..1. = INIT: Set (1)
         .... .0.. = INCOMPLETE: Not set (0)
         .... 0... = SKIP: Not set (0)
-    Budget ID: 0x000000000000001d
+    Budget ID: 0x000000000000001b
     Reserved: 136
     Progress: 136
     Progress/Maximum: 136/0
@@ -2535,7 +2535,53 @@ Kafka (Fetch v5 Response)
             Log Start Offset: 0
             Aborted Transactions
 
-Frame 58: 266 bytes on wire (2128 bits), 266 bytes captured (2128 bits)
+Frame 58: 250 bytes on wire (2000 bits), 250 bytes captured (2000 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::1a, Dst: fe80::1b
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 735, Ack: 245, Len: 176
+Zilla Frame
+    Frame Type ID: 0x00000002
+    Frame Type: DATA
+    Protocol Type ID: 0x112dc182
+    Protocol Type: amqp
+    Worker: 0
+    Offset: 0x00001a58
+    Origin ID: 0x000000090000000b
+    Origin Namespace: example
+    Origin Binding: north_tcp_server
+    Routed ID: 0x0000000900000025
+    Routed Namespace: example
+    Routed Binding: north_amqp_server
+    Stream ID: 0x000000000000001b
+    Initial ID: 0x000000000000001b
+    Reply ID: 0x000000000000001a
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000034
+    Trace ID: 0x000000000000001b
+    Authorization: 0x0000000000000000
+    Flags: 0x03
+        .... ...1 = FIN: Set (1)
+        .... ..1. = INIT: Set (1)
+        .... .0.. = INCOMPLETE: Not set (0)
+        .... 0... = SKIP: Not set (0)
+    Budget ID: 0x000000000000001b
+    Reserved: 119
+    Progress: 119
+    Progress/Maximum: 119/0
+    Payload
+        Length: 8
+        Payload
+Advanced Message Queuing Protocol
+    Protocol: AMQP
+    Protocol-ID: 0
+    Version Major: 1
+    Version Minor: 0
+    Version-Revision: 0
+
+Frame 59: 266 bytes on wire (2128 bits), 266 bytes captured (2128 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::20, Dst: fe80::21
 Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 0, Ack: 1, Len: 192
@@ -2545,7 +2591,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00001a58
+    Offset: 0x00001ac0
     Origin ID: 0x0000000900000022
     Origin Namespace: example
     Origin Binding: north_mqtt_server
@@ -2556,48 +2602,6 @@ Zilla Frame
     Initial ID: 0x0000000000000021
     Reply ID: 0x0000000000000020
     Direction: INI
-    Sequence: 0
-    Acknowledge: 0
-    Maximum: 0
-    Timestamp: 0x0000000000000034
-    Trace ID: 0x0000000000000021
-    Authorization: 0x0000000000000000
-    Affinity: 0x0000000000000000
-    Extension: mqtt
-        Stream Type ID: 0x761ad4d0
-        Stream Type: mqtt
-        Kind: PUBLISH (0)
-        Client ID: client-id
-            Length: 9
-            Client ID: client-id
-        Topic: topic
-            Length: 5
-            Topic: topic
-        Flags: 0x00
-            .... ...0 = RETAIN: Not set (0)
-        QoS: AT_LEAST_ONCE (1)
-
-Frame 59: 266 bytes on wire (2128 bits), 266 bytes captured (2128 bits)
-Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
-Internet Protocol Version 6, Src: fe80::21, Dst: fe80::20
-Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1, Ack: 192, Len: 192
-Zilla Frame
-    Frame Type ID: 0x00000001
-    Frame Type: BEGIN
-    Protocol Type ID: 0x00000000
-    Protocol Type: 
-    Worker: 0
-    Offset: 0x00001ac8
-    Origin ID: 0x0000000900000022
-    Origin Namespace: example
-    Origin Binding: north_mqtt_server
-    Routed ID: 0x0000000900000023
-    Routed Namespace: example
-    Routed Binding: north_mqtt_kafka_mapping
-    Stream ID: 0x0000000000000020
-    Initial ID: 0x0000000000000021
-    Reply ID: 0x0000000000000020
-    Direction: REP
     Sequence: 0
     Acknowledge: 0
     Maximum: 0
@@ -2615,11 +2619,53 @@ Zilla Frame
         Topic: topic
             Length: 5
             Topic: topic
+        Flags: 0x00
+            .... ...0 = RETAIN: Not set (0)
+        QoS: AT_LEAST_ONCE (1)
+
+Frame 60: 266 bytes on wire (2128 bits), 266 bytes captured (2128 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::21, Dst: fe80::20
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1, Ack: 192, Len: 192
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00001b30
+    Origin ID: 0x0000000900000022
+    Origin Namespace: example
+    Origin Binding: north_mqtt_server
+    Routed ID: 0x0000000900000023
+    Routed Namespace: example
+    Routed Binding: north_mqtt_kafka_mapping
+    Stream ID: 0x0000000000000020
+    Initial ID: 0x0000000000000021
+    Reply ID: 0x0000000000000020
+    Direction: REP
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000036
+    Trace ID: 0x0000000000000021
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+    Extension: mqtt
+        Stream Type ID: 0x761ad4d0
+        Stream Type: mqtt
+        Kind: PUBLISH (0)
+        Client ID: client-id
+            Length: 9
+            Client ID: client-id
+        Topic: topic
+            Length: 5
+            Topic: topic
         Flags: 0x01
             .... ...1 = RETAIN: Set (1)
         QoS: EXACTLY_ONCE (2)
 
-Frame 60: 381 bytes on wire (3048 bits), 381 bytes captured (3048 bits)
+Frame 61: 381 bytes on wire (3048 bits), 381 bytes captured (3048 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::20, Dst: fe80::21
 Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 192, Ack: 193, Len: 307
@@ -2629,7 +2675,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00001b38
+    Offset: 0x00001ba0
     Origin ID: 0x0000000900000022
     Origin Namespace: example
     Origin Binding: north_mqtt_server
@@ -2643,7 +2689,7 @@ Zilla Frame
     Sequence: 0
     Acknowledge: 0
     Maximum: 0
-    Timestamp: 0x0000000000000036
+    Timestamp: 0x0000000000000037
     Trace ID: 0x0000000000000021
     Authorization: 0x0000000000000000
     Flags: 0x03
@@ -2702,7 +2748,7 @@ Zilla Frame
                 Length: 7
                 Value: value77
 
-Frame 61: 349 bytes on wire (2792 bits), 349 bytes captured (2792 bits)
+Frame 62: 349 bytes on wire (2792 bits), 349 bytes captured (2792 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::21, Dst: fe80::20
 Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 193, Ack: 499, Len: 275
@@ -2712,7 +2758,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00001c18
+    Offset: 0x00001c80
     Origin ID: 0x0000000900000022
     Origin Namespace: example
     Origin Binding: north_mqtt_server
@@ -2726,7 +2772,7 @@ Zilla Frame
     Sequence: 0
     Acknowledge: 0
     Maximum: 0
-    Timestamp: 0x0000000000000037
+    Timestamp: 0x0000000000000038
     Trace ID: 0x0000000000000021
     Authorization: 0x0000000000000000
     Flags: 0x03
@@ -2771,7 +2817,7 @@ Zilla Frame
                 Length: 6
                 Value: value1
 
-Frame 62: 338 bytes on wire (2704 bits), 338 bytes captured (2704 bits)
+Frame 63: 338 bytes on wire (2704 bits), 338 bytes captured (2704 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::22, Dst: fe80::23
 Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 0, Ack: 1, Len: 264
@@ -2781,7 +2827,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00001cd8
+    Offset: 0x00001d40
     Origin ID: 0x0000000900000022
     Origin Namespace: example
     Origin Binding: north_mqtt_server
@@ -2795,7 +2841,7 @@ Zilla Frame
     Sequence: 0
     Acknowledge: 0
     Maximum: 0
-    Timestamp: 0x0000000000000038
+    Timestamp: 0x0000000000000039
     Trace ID: 0x0000000000000023
     Authorization: 0x0000000000000000
     Affinity: 0x0000000000000000
@@ -2859,7 +2905,7 @@ Zilla Frame
                 Length: 9
                 Pattern: pattern-4
 
-Frame 63: 338 bytes on wire (2704 bits), 338 bytes captured (2704 bits)
+Frame 64: 338 bytes on wire (2704 bits), 338 bytes captured (2704 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::23, Dst: fe80::22
 Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1, Ack: 264, Len: 264
@@ -2869,7 +2915,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00001d90
+    Offset: 0x00001df8
     Origin ID: 0x0000000900000022
     Origin Namespace: example
     Origin Binding: north_mqtt_server
@@ -2883,7 +2929,7 @@ Zilla Frame
     Sequence: 0
     Acknowledge: 0
     Maximum: 0
-    Timestamp: 0x0000000000000039
+    Timestamp: 0x000000000000003a
     Trace ID: 0x0000000000000023
     Authorization: 0x0000000000000000
     Affinity: 0x0000000000000000
@@ -2947,7 +2993,7 @@ Zilla Frame
                 Length: 9
                 Pattern: pattern-4
 
-Frame 64: 396 bytes on wire (3168 bits), 396 bytes captured (3168 bits)
+Frame 65: 396 bytes on wire (3168 bits), 396 bytes captured (3168 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::22, Dst: fe80::23
 Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 264, Ack: 265, Len: 322
@@ -2957,7 +3003,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00001e48
+    Offset: 0x00001eb0
     Origin ID: 0x0000000900000022
     Origin Namespace: example
     Origin Binding: north_mqtt_server
@@ -2971,7 +3017,7 @@ Zilla Frame
     Sequence: 0
     Acknowledge: 0
     Maximum: 0
-    Timestamp: 0x000000000000003a
+    Timestamp: 0x000000000000003b
     Trace ID: 0x0000000000000023
     Authorization: 0x0000000000000000
     Flags: 0x03
@@ -3045,7 +3091,7 @@ Zilla Frame
                 Length: 7
                 Value: value42
 
-Frame 65: 387 bytes on wire (3096 bits), 387 bytes captured (3096 bits)
+Frame 66: 387 bytes on wire (3096 bits), 387 bytes captured (3096 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::23, Dst: fe80::22
 Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 265, Ack: 586, Len: 313
@@ -3055,7 +3101,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00001f38
+    Offset: 0x00001fa0
     Origin ID: 0x0000000900000022
     Origin Namespace: example
     Origin Binding: north_mqtt_server
@@ -3069,7 +3115,7 @@ Zilla Frame
     Sequence: 0
     Acknowledge: 0
     Maximum: 0
-    Timestamp: 0x000000000000003b
+    Timestamp: 0x000000000000003c
     Trace ID: 0x0000000000000023
     Authorization: 0x0000000000000000
     Flags: 0x03
@@ -3131,7 +3177,7 @@ Zilla Frame
                 Length: 7
                 Value: value42
 
-Frame 66: 279 bytes on wire (2232 bits), 279 bytes captured (2232 bits)
+Frame 67: 279 bytes on wire (2232 bits), 279 bytes captured (2232 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::22, Dst: fe80::23
 Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 586, Ack: 578, Len: 205
@@ -3141,7 +3187,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00002020
+    Offset: 0x00002088
     Origin ID: 0x0000000900000022
     Origin Namespace: example
     Origin Binding: north_mqtt_server
@@ -3155,7 +3201,7 @@ Zilla Frame
     Sequence: 401
     Acknowledge: 402
     Maximum: 7777
-    Timestamp: 0x000000000000003c
+    Timestamp: 0x000000000000003d
     Trace ID: 0x0000000000000023
     Authorization: 0x0000000000000000
     Budget ID: 0x0000000000000000
@@ -3183,7 +3229,7 @@ Zilla Frame
                 Length: 8
                 Pattern: filter-1
 
-Frame 67: 281 bytes on wire (2248 bits), 281 bytes captured (2248 bits)
+Frame 68: 281 bytes on wire (2248 bits), 281 bytes captured (2248 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::22, Dst: fe80::23
 Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 791, Ack: 578, Len: 207
@@ -3193,7 +3239,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x000020a0
+    Offset: 0x00002108
     Origin ID: 0x0000000900000022
     Origin Namespace: example
     Origin Binding: north_mqtt_server
@@ -3207,7 +3253,7 @@ Zilla Frame
     Sequence: 401
     Acknowledge: 402
     Maximum: 7777
-    Timestamp: 0x000000000000003d
+    Timestamp: 0x000000000000003e
     Trace ID: 0x0000000000000023
     Authorization: 0x0000000000000000
     Budget ID: 0x0000000000000000
@@ -3235,7 +3281,7 @@ Zilla Frame
                 Length: 10
                 Pattern: pattern-77
 
-Frame 68: 264 bytes on wire (2112 bits), 264 bytes captured (2112 bits)
+Frame 69: 264 bytes on wire (2112 bits), 264 bytes captured (2112 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::22, Dst: fe80::23
 Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 998, Ack: 578, Len: 190
@@ -3245,7 +3291,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00002120
+    Offset: 0x00002188
     Origin ID: 0x0000000900000022
     Origin Namespace: example
     Origin Binding: north_mqtt_server
@@ -3259,7 +3305,7 @@ Zilla Frame
     Sequence: 501
     Acknowledge: 502
     Maximum: 8888
-    Timestamp: 0x000000000000003e
+    Timestamp: 0x000000000000003f
     Trace ID: 0x0000000000000023
     Authorization: 0x0000000000000000
     Extension: mqtt
@@ -3273,7 +3319,7 @@ Zilla Frame
             Length: 6
             Value: Reason
 
-Frame 69: 269 bytes on wire (2152 bits), 269 bytes captured (2152 bits)
+Frame 70: 269 bytes on wire (2152 bits), 269 bytes captured (2152 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::24, Dst: fe80::25
 Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 0, Ack: 1, Len: 195
@@ -3283,7 +3329,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00002190
+    Offset: 0x000021f8
     Origin ID: 0x0000000900000022
     Origin Namespace: example
     Origin Binding: north_mqtt_server
@@ -3297,7 +3343,7 @@ Zilla Frame
     Sequence: 0
     Acknowledge: 0
     Maximum: 0
-    Timestamp: 0x000000000000003f
+    Timestamp: 0x0000000000000040
     Trace ID: 0x0000000000000025
     Authorization: 0x0000000000000000
     Affinity: 0x0000000000000000
@@ -3320,7 +3366,7 @@ Zilla Frame
             Length: 9
             Client ID: client-id
 
-Frame 70: 269 bytes on wire (2152 bits), 269 bytes captured (2152 bits)
+Frame 71: 269 bytes on wire (2152 bits), 269 bytes captured (2152 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::25, Dst: fe80::24
 Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1, Ack: 195, Len: 195
@@ -3330,7 +3376,7 @@ Zilla Frame
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00002200
+    Offset: 0x00002268
     Origin ID: 0x0000000900000022
     Origin Namespace: example
     Origin Binding: north_mqtt_server
@@ -3344,7 +3390,7 @@ Zilla Frame
     Sequence: 0
     Acknowledge: 0
     Maximum: 0
-    Timestamp: 0x0000000000000040
+    Timestamp: 0x0000000000000041
     Trace ID: 0x0000000000000025
     Authorization: 0x0000000000000000
     Affinity: 0x0000000000000000
@@ -3367,17 +3413,17 @@ Zilla Frame
             Length: 9
             Client ID: client-id
 
-Frame 71: 276 bytes on wire (2208 bits), 276 bytes captured (2208 bits)
+Frame 72: 280 bytes on wire (2240 bits), 280 bytes captured (2240 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::24, Dst: fe80::25
-Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 195, Ack: 196, Len: 202
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 195, Ack: 196, Len: 206
 Zilla Frame
     Frame Type ID: 0x00000002
     Frame Type: DATA
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00002270
+    Offset: 0x000022d8
     Origin ID: 0x0000000900000022
     Origin Namespace: example
     Origin Binding: north_mqtt_server
@@ -3388,51 +3434,6 @@ Zilla Frame
     Initial ID: 0x0000000000000025
     Reply ID: 0x0000000000000024
     Direction: INI
-    Sequence: 0
-    Acknowledge: 0
-    Maximum: 0
-    Timestamp: 0x0000000000000041
-    Trace ID: 0x0000000000000025
-    Authorization: 0x0000000000000000
-    Flags: 0x03
-        .... ...1 = FIN: Set (1)
-        .... ..1. = INIT: Set (1)
-        .... .0.. = INCOMPLETE: Not set (0)
-        .... 0... = SKIP: Not set (0)
-    Budget ID: 0x0000000000000025
-    Reserved: 0
-    Progress: 0
-    Progress/Maximum: 0/0
-    Payload
-        Length: 20
-        Payload
-    Extension: mqtt
-        Stream Type ID: 0x761ad4d0
-        Stream Type: mqtt
-        Kind: SESSION (2)
-        Data Kind: STATE (0x00)
-
-Frame 72: 276 bytes on wire (2208 bits), 276 bytes captured (2208 bits)
-Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
-Internet Protocol Version 6, Src: fe80::25, Dst: fe80::24
-Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 196, Ack: 397, Len: 202
-Zilla Frame
-    Frame Type ID: 0x00000002
-    Frame Type: DATA
-    Protocol Type ID: 0x00000000
-    Protocol Type: 
-    Worker: 0
-    Offset: 0x000022e8
-    Origin ID: 0x0000000900000022
-    Origin Namespace: example
-    Origin Binding: north_mqtt_server
-    Routed ID: 0x0000000900000023
-    Routed Namespace: example
-    Routed Binding: north_mqtt_kafka_mapping
-    Stream ID: 0x0000000000000024
-    Initial ID: 0x0000000000000025
-    Reply ID: 0x0000000000000024
-    Direction: REP
     Sequence: 0
     Acknowledge: 0
     Maximum: 0
@@ -3455,5 +3456,2931 @@ Zilla Frame
         Stream Type ID: 0x761ad4d0
         Stream Type: mqtt
         Kind: SESSION (2)
+        Deferred: 77
+        Data Kind: STATE (0x00)
+
+Frame 73: 280 bytes on wire (2240 bits), 280 bytes captured (2240 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::25, Dst: fe80::24
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 196, Ack: 401, Len: 206
+Zilla Frame
+    Frame Type ID: 0x00000002
+    Frame Type: DATA
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00002358
+    Origin ID: 0x0000000900000022
+    Origin Namespace: example
+    Origin Binding: north_mqtt_server
+    Routed ID: 0x0000000900000023
+    Routed Namespace: example
+    Routed Binding: north_mqtt_kafka_mapping
+    Stream ID: 0x0000000000000024
+    Initial ID: 0x0000000000000025
+    Reply ID: 0x0000000000000024
+    Direction: REP
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000043
+    Trace ID: 0x0000000000000025
+    Authorization: 0x0000000000000000
+    Flags: 0x03
+        .... ...1 = FIN: Set (1)
+        .... ..1. = INIT: Set (1)
+        .... .0.. = INCOMPLETE: Not set (0)
+        .... 0... = SKIP: Not set (0)
+    Budget ID: 0x0000000000000025
+    Reserved: 0
+    Progress: 0
+    Progress/Maximum: 0/0
+    Payload
+        Length: 20
+        Payload
+    Extension: mqtt
+        Stream Type ID: 0x761ad4d0
+        Stream Type: mqtt
+        Kind: SESSION (2)
+        Deferred: 88
         Data Kind: WILL (0x01)
+
+Frame 74: 317 bytes on wire (2536 bits), 317 bytes captured (2536 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::26, Dst: fe80::27
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 0, Ack: 1, Len: 243
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x000023d8
+    Origin ID: 0x000000090000000f
+    Origin Namespace: example
+    Origin Binding: north_kafka_cache_client
+    Routed ID: 0x0000000900000010
+    Routed Namespace: example
+    Routed Binding: south_kafka_cache_server
+    Stream ID: 0x0000000000000027
+    Initial ID: 0x0000000000000027
+    Reply ID: 0x0000000000000026
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000044
+    Trace ID: 0x0000000000000027
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+    Extension: kafka
+        Stream Type ID: 0xe1204b08
+        Stream Type: kafka
+        API: CONSUMER (252)
+        Group ID: group-id
+            Length: 8
+            Group ID: group-id
+        Consumer ID: consumer-id
+            Length: 11
+            Consumer ID: consumer-id
+        Host: 
+            Length: -1
+            Host: 
+        Port: 0
+        Timeout: 42
+        Topic: topic
+            Length: 5
+            Topic: topic
+        Partition IDs (4 items)
+            Length: 20
+            Size: 4
+        Partition ID: 21
+        Partition ID: 33
+        Partition ID: 77
+        Partition ID: 88
+
+Frame 75: 301 bytes on wire (2408 bits), 301 bytes captured (2408 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::27, Dst: fe80::26
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1, Ack: 243, Len: 227
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00002478
+    Origin ID: 0x000000090000000f
+    Origin Namespace: example
+    Origin Binding: north_kafka_cache_client
+    Routed ID: 0x0000000900000010
+    Routed Namespace: example
+    Routed Binding: south_kafka_cache_server
+    Stream ID: 0x0000000000000026
+    Initial ID: 0x0000000000000027
+    Reply ID: 0x0000000000000026
+    Direction: REP
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000045
+    Trace ID: 0x0000000000000027
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+    Extension: kafka
+        Stream Type ID: 0xe1204b08
+        Stream Type: kafka
+        API: CONSUMER (252)
+        Group ID: group-id
+            Length: 8
+            Group ID: group-id
+        Consumer ID: consumer-id
+            Length: 11
+            Consumer ID: consumer-id
+        Host: 
+            Length: -1
+            Host: 
+        Port: 0
+        Timeout: 99
+        Topic: topic
+            Length: 5
+            Topic: topic
+        Partition IDs (0 items)
+            Length: 4
+            Size: 0
+
+Frame 76: 379 bytes on wire (3032 bits), 379 bytes captured (3032 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::26, Dst: fe80::27
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 243, Ack: 228, Len: 305
+Zilla Frame
+    Frame Type ID: 0x00000002
+    Frame Type: DATA
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00002508
+    Origin ID: 0x000000090000000f
+    Origin Namespace: example
+    Origin Binding: north_kafka_cache_client
+    Routed ID: 0x0000000900000010
+    Routed Namespace: example
+    Routed Binding: south_kafka_cache_server
+    Stream ID: 0x0000000000000027
+    Initial ID: 0x0000000000000027
+    Reply ID: 0x0000000000000026
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000046
+    Trace ID: 0x0000000000000027
+    Authorization: 0x0000000000000000
+    Flags: 0x03
+        .... ...1 = FIN: Set (1)
+        .... ..1. = INIT: Set (1)
+        .... .0.. = INCOMPLETE: Not set (0)
+        .... 0... = SKIP: Not set (0)
+    Budget ID: 0x0000000000000000
+    Reserved: 0
+    Progress: 0
+    Progress/Maximum: 0/0
+    Payload
+        Length: 27
+        Payload
+    Extension: kafka
+        Stream Type ID: 0xe1204b08
+        Stream Type: kafka
+        API: CONSUMER (252)
+        Partition IDs (3 items)
+            Length: 16
+            Size: 3
+        Partition ID: 33
+        Partition ID: 44
+        Partition ID: 55
+        Consumer Assignments (2 items)
+            Length: 66
+            Size: 2
+        Consumer Assignment: consumer-id-1
+            Consumer ID: consumer-id-1
+                Length: 13
+                Consumer ID: consumer-id-1
+            Partition IDs (2 items)
+                Length: 12
+                Size: 2
+            Partition ID: 101
+            Partition ID: 102
+        Consumer Assignment: consumer-id-2
+            Consumer ID: consumer-id-2
+                Length: 13
+                Consumer ID: consumer-id-2
+            Partition IDs (2 items)
+                Length: 12
+                Size: 2
+            Partition ID: 201
+            Partition ID: 202
+
+Frame 77: 307 bytes on wire (2456 bits), 307 bytes captured (2456 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::26, Dst: fe80::27
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 548, Ack: 228, Len: 233
+Zilla Frame
+    Frame Type ID: 0x00000005
+    Frame Type: FLUSH
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x000025e0
+    Origin ID: 0x000000090000000f
+    Origin Namespace: example
+    Origin Binding: north_kafka_cache_client
+    Routed ID: 0x0000000900000010
+    Routed Namespace: example
+    Routed Binding: south_kafka_cache_server
+    Stream ID: 0x0000000000000027
+    Initial ID: 0x0000000000000027
+    Reply ID: 0x0000000000000026
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000047
+    Trace ID: 0x0000000000000027
+    Authorization: 0x0000000000000000
+    Budget ID: 0x0000000000000000
+    Reserved: 0
+    Extension: kafka
+        Stream Type ID: 0xe1204b08
+        Stream Type: kafka
+        API: CONSUMER (252)
+        Progress: 17 [21]
+            Partition ID: 17
+            Partition Offset: 21
+            Stable Offset: -1
+            Latest Offset: -1
+            Metadata: metadata
+                Length: 8
+                Metadata: metadata
+        Leader Epoch: 42
+        Correlation ID: 77
+
+Frame 78: 261 bytes on wire (2088 bits), 261 bytes captured (2088 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::26, Dst: fe80::27
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 781, Ack: 228, Len: 187
+Zilla Frame
+    Frame Type ID: 0x40000001
+    Frame Type: RESET
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00002670
+    Origin ID: 0x000000090000000f
+    Origin Namespace: example
+    Origin Binding: north_kafka_cache_client
+    Routed ID: 0x0000000900000010
+    Routed Namespace: example
+    Routed Binding: south_kafka_cache_server
+    Stream ID: 0x0000000000000027
+    Initial ID: 0x0000000000000027
+    Reply ID: 0x0000000000000026
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000048
+    Trace ID: 0x0000000000000027
+    Authorization: 0x0000000000000000
+    Extension: kafka
+        Stream Type ID: 0xe1204b08
+        Stream Type: kafka
+        Error: 666
+        Consumer ID: consumer-id
+            Length: 11
+            Consumer ID: consumer-id
+
+Frame 79: 306 bytes on wire (2448 bits), 306 bytes captured (2448 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::28, Dst: fe80::29
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 0, Ack: 1, Len: 232
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x000026d8
+    Origin ID: 0x000000090000000f
+    Origin Namespace: example
+    Origin Binding: north_kafka_cache_client
+    Routed ID: 0x0000000900000010
+    Routed Namespace: example
+    Routed Binding: south_kafka_cache_server
+    Stream ID: 0x0000000000000029
+    Initial ID: 0x0000000000000029
+    Reply ID: 0x0000000000000028
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000049
+    Trace ID: 0x0000000000000029
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+    Extension: kafka
+        Stream Type ID: 0xe1204b08
+        Stream Type: kafka
+        API: GROUP (253)
+        Group ID: group-id
+            Length: 8
+            Group ID: group-id
+        Protocol: protocol
+            Length: 8
+            Protocol: protocol
+        Instance ID: instance-id
+            Length: 11
+            Instance ID: instance-id
+        Host: host
+            Length: 4
+            Host: host
+        Port: 42
+        Timeout: 77
+        Metadata Length: 5
+            Length (varint32): 0a
+            Length: 5
+        Metadata: 1122334455
+
+Frame 80: 301 bytes on wire (2408 bits), 301 bytes captured (2408 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::29, Dst: fe80::28
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1, Ack: 232, Len: 227
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00002768
+    Origin ID: 0x000000090000000f
+    Origin Namespace: example
+    Origin Binding: north_kafka_cache_client
+    Routed ID: 0x0000000900000010
+    Routed Namespace: example
+    Routed Binding: south_kafka_cache_server
+    Stream ID: 0x0000000000000028
+    Initial ID: 0x0000000000000029
+    Reply ID: 0x0000000000000028
+    Direction: REP
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x000000000000004a
+    Trace ID: 0x0000000000000029
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+    Extension: kafka
+        Stream Type ID: 0xe1204b08
+        Stream Type: kafka
+        API: GROUP (253)
+        Group ID: group-id
+            Length: 8
+            Group ID: group-id
+        Protocol: protocol
+            Length: 8
+            Protocol: protocol
+        Instance ID: instance-id
+            Length: 11
+            Instance ID: instance-id
+        Host: host
+            Length: 4
+            Host: host
+        Port: 42
+        Timeout: 77
+        Metadata Length: 0
+            Length (varint32): 01
+            Length: 0
+
+Frame 81: 291 bytes on wire (2328 bits), 291 bytes captured (2328 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::28, Dst: fe80::29
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 232, Ack: 228, Len: 217
+Zilla Frame
+    Frame Type ID: 0x00000005
+    Frame Type: FLUSH
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x000027f8
+    Origin ID: 0x000000090000000f
+    Origin Namespace: example
+    Origin Binding: north_kafka_cache_client
+    Routed ID: 0x0000000900000010
+    Routed Namespace: example
+    Routed Binding: south_kafka_cache_server
+    Stream ID: 0x0000000000000029
+    Initial ID: 0x0000000000000029
+    Reply ID: 0x0000000000000028
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x000000000000004b
+    Trace ID: 0x0000000000000029
+    Authorization: 0x0000000000000000
+    Budget ID: 0x0000000000000000
+    Reserved: 0
+    Extension: kafka
+        Stream Type ID: 0xe1204b08
+        Stream Type: kafka
+        API: GROUP (253)
+        Generation ID: 77
+        Leader ID: leader-id
+            Length: 9
+            Leader ID: leader-id
+        Member ID: member-id
+            Length: 9
+            Member ID: member-id
+        Members (0 items)
+            Length: 4
+            Size: 0
+
+Frame 82: 343 bytes on wire (2744 bits), 343 bytes captured (2744 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::29, Dst: fe80::28
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 228, Ack: 449, Len: 269
+Zilla Frame
+    Frame Type ID: 0x00000005
+    Frame Type: FLUSH
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00002878
+    Origin ID: 0x000000090000000f
+    Origin Namespace: example
+    Origin Binding: north_kafka_cache_client
+    Routed ID: 0x0000000900000010
+    Routed Namespace: example
+    Routed Binding: south_kafka_cache_server
+    Stream ID: 0x0000000000000028
+    Initial ID: 0x0000000000000029
+    Reply ID: 0x0000000000000028
+    Direction: REP
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x000000000000004c
+    Trace ID: 0x0000000000000029
+    Authorization: 0x0000000000000000
+    Budget ID: 0x0000000000000000
+    Reserved: 0
+    Extension: kafka
+        Stream Type ID: 0xe1204b08
+        Stream Type: kafka
+        API: GROUP (253)
+        Generation ID: 99
+        Leader ID: leader-id
+            Length: 9
+            Leader ID: leader-id
+        Member ID: member-id
+            Length: 9
+            Member ID: member-id
+        Members (3 items)
+            Length: 56
+            Size: 3
+        Member: member-1
+            Member ID: member-1
+                Length: 8
+                Member ID: member-1
+            Metadata Length: 0
+                Length (varint32): 01
+                Length: 0
+        Member: member-2-with-metadata
+            Member ID: member-2-with-metadata
+                Length: 22
+                Member ID: member-2-with-metadata
+            Metadata Length: 5
+                Length (varint32): 0a
+                Length: 5
+            Metadata: 778899aabb
+        Member: member-3
+            Member ID: member-3
+                Length: 8
+                Member ID: member-3
+            Metadata Length: 0
+                Length (varint32): 01
+                Length: 0
+
+Frame 83: 287 bytes on wire (2296 bits), 287 bytes captured (2296 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::30, Dst: fe80::31
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 0, Ack: 1, Len: 213
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00002930
+    Origin ID: 0x000000090000000f
+    Origin Namespace: example
+    Origin Binding: north_kafka_cache_client
+    Routed ID: 0x0000000900000010
+    Routed Namespace: example
+    Routed Binding: south_kafka_cache_server
+    Stream ID: 0x0000000000000031
+    Initial ID: 0x0000000000000031
+    Reply ID: 0x0000000000000030
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x000000000000004d
+    Trace ID: 0x0000000000000031
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+    Extension: kafka
+        Stream Type ID: 0xe1204b08
+        Stream Type: kafka
+        API: BOOTSTRAP (254)
+        Topic: topic
+            Length: 5
+            Topic: topic
+        Group ID: group-id
+            Length: 8
+            Group ID: group-id
+        Consumer ID: consumer-id
+            Length: 11
+            Consumer ID: consumer-id
+        Timeout: 0
+
+Frame 84: 287 bytes on wire (2296 bits), 287 bytes captured (2296 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::31, Dst: fe80::30
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1, Ack: 213, Len: 213
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x000029b0
+    Origin ID: 0x000000090000000f
+    Origin Namespace: example
+    Origin Binding: north_kafka_cache_client
+    Routed ID: 0x0000000900000010
+    Routed Namespace: example
+    Routed Binding: south_kafka_cache_server
+    Stream ID: 0x0000000000000030
+    Initial ID: 0x0000000000000031
+    Reply ID: 0x0000000000000030
+    Direction: REP
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x000000000000004e
+    Trace ID: 0x0000000000000031
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+    Extension: kafka
+        Stream Type ID: 0xe1204b08
+        Stream Type: kafka
+        API: BOOTSTRAP (254)
+        Topic: topic
+            Length: 5
+            Topic: topic
+        Group ID: group-id
+            Length: 8
+            Group ID: group-id
+        Consumer ID: consumer-id
+            Length: 11
+            Consumer ID: consumer-id
+        Timeout: 999999
+
+Frame 85: 658 bytes on wire (5264 bits), 658 bytes captured (5264 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::32, Dst: fe80::33
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 0, Ack: 1, Len: 584
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00002a30
+    Origin ID: 0x000000090000000f
+    Origin Namespace: example
+    Origin Binding: north_kafka_cache_client
+    Routed ID: 0x0000000900000010
+    Routed Namespace: example
+    Routed Binding: south_kafka_cache_server
+    Stream ID: 0x0000000000000033
+    Initial ID: 0x0000000000000033
+    Reply ID: 0x0000000000000032
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x000000000000004f
+    Trace ID: 0x0000000000000033
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+    Extension: kafka
+        Stream Type ID: 0xe1204b08
+        Stream Type: kafka
+        API: MERGED (255)
+        Capabilities: PRODUCE_ONLY (1)
+        Topic: topic
+            Length: 5
+            Topic: topic
+        Group ID: group-id
+            Length: 8
+            Group ID: group-id
+        Consumer ID: consumer-id
+            Length: 11
+            Consumer ID: consumer-id
+        Timeout: 0
+        Partitions (1 items)
+            Length: 34
+            Size: 1
+        Partition: 42 [4242]
+            Partition ID: 42
+            Partition Offset: 4242
+            Stable Offset: -1
+            Latest Offset: -1
+            Metadata: 
+                Length: -1
+                Metadata: 
+        Filters (5 items)
+            Length: 323
+            Size: 5
+        Filter #1
+            Conditions (1 items)
+                Length: 10
+                Size: 1
+            Condition: [KEY] key1
+                Type: KEY (0)
+                Length: 4
+                    Length (varint32): 08
+                    Length: 4
+                Key: key1
+        Filter #2
+            Conditions (4 items)
+                Length: 44
+                Size: 4
+            Condition: [KEY] key1
+                Type: KEY (0)
+                Length: 4
+                    Length (varint32): 08
+                    Length: 4
+                Key: key1
+            Condition: [KEY] key2
+                Type: KEY (0)
+                Length: 4
+                    Length (varint32): 08
+                    Length: 4
+                Key: key2
+            Condition: [HEADER] name1: value1
+                Type: HEADER (1)
+                Length: 5
+                    Length (varint32): 0a
+                    Length: 5
+                Name: name1
+                Length: 6
+                    Length (varint32): 0c
+                    Length: 6
+                Value: value1
+            Condition: [HEADER] name2: value2
+                Type: HEADER (1)
+                Length: 5
+                    Length (varint32): 0a
+                    Length: 5
+                Name: name2
+                Length: 6
+                    Length (varint32): 0c
+                    Length: 6
+                Value: value2
+        Filter #3
+            Conditions (4 items)
+                Length: 60
+                Size: 4
+            Condition: [NOT] [KEY] key-n1
+                Type: NOT (2)
+                Type: KEY (0)
+                Length: 6
+                    Length (varint32): 0c
+                    Length: 6
+                Key: key-n1
+            Condition: [NOT] [KEY] key-n2
+                Type: NOT (2)
+                Type: KEY (0)
+                Length: 6
+                    Length (varint32): 0c
+                    Length: 6
+                Key: key-n2
+            Condition: [NOT] [HEADER] name-n1: value-n1
+                Type: NOT (2)
+                Type: HEADER (1)
+                Length: 7
+                    Length (varint32): 0e
+                    Length: 7
+                Name: name-n1
+                Length: 8
+                    Length (varint32): 10
+                    Length: 8
+                Value: value-n1
+            Condition: [NOT] [HEADER] name-n2: value-n2
+                Type: NOT (2)
+                Type: HEADER (1)
+                Length: 7
+                    Length (varint32): 0e
+                    Length: 7
+                Name: name-n2
+                Length: 8
+                    Length (varint32): 10
+                    Length: 8
+                Value: value-n2
+        Filter #4
+            Conditions (3 items)
+                Length: 94
+                Size: 3
+            Condition: [KEY] key
+                Type: KEY (0)
+                Length: 3
+                    Length (varint32): 06
+                    Length: 3
+                Key: key
+            Condition: [HEADERS] headers-1: value-1, value-2, value-3
+                Type: HEADERS (3)
+                Length: 9
+                    Length (varint32): 12
+                    Length: 9
+                Name: headers-1
+                Value Matches (3 items)
+                    Length: 31
+                    Size: 3
+                Value Match: value-1
+                    Type: VALUE (0)
+                    Length: 7
+                        Length (varint32): 0e
+                        Length: 7
+                    Value: value-1
+                Value Match: value-2
+                    Type: VALUE (0)
+                    Length: 7
+                        Length (varint32): 0e
+                        Length: 7
+                    Value: value-2
+                Value Match: value-3
+                    Type: VALUE (0)
+                    Length: 7
+                        Length (varint32): 0e
+                        Length: 7
+                    Value: value-3
+            Condition: [HEADERS] headers-2: value-01, value-02
+                Type: HEADERS (3)
+                Length: 9
+                    Length (varint32): 12
+                    Length: 9
+                Name: headers-2
+                Value Matches (2 items)
+                    Length: 24
+                    Size: 2
+                Value Match: value-01
+                    Type: VALUE (0)
+                    Length: 8
+                        Length (varint32): 10
+                        Length: 8
+                    Value: value-01
+                Value Match: value-02
+                    Type: VALUE (0)
+                    Length: 8
+                        Length (varint32): 10
+                        Length: 8
+                    Value: value-02
+        Filter #5
+            Conditions (2 items)
+                Length: 91
+                Size: 2
+            Condition: [HEADERS] headers-skip: value-s1, [SKIP]
+                Type: HEADERS (3)
+                Length: 12
+                    Length (varint32): 18
+                    Length: 12
+                Name: headers-skip
+                Value Matches (2 items)
+                    Length: 16
+                    Size: 2
+                Value Match: value-s1
+                    Type: VALUE (0)
+                    Length: 8
+                        Length (varint32): 10
+                        Length: 8
+                    Value: value-s1
+                Value Match: [SKIP]
+                    Type: SKIP (1)
+                    Skip Type: SKIP (0)
+            Condition: [HEADERS] headers-skip-many: value-sm01, value-sm02, [SKIP_MANY]
+                Type: HEADERS (3)
+                Length: 17
+                    Length (varint32): 22
+                    Length: 17
+                Name: headers-skip-many
+                Value Matches (3 items)
+                    Length: 30
+                    Size: 3
+                Value Match: value-sm01
+                    Type: VALUE (0)
+                    Length: 10
+                        Length (varint32): 14
+                        Length: 10
+                    Value: value-sm01
+                Value Match: value-sm02
+                    Type: VALUE (0)
+                    Length: 10
+                        Length (varint32): 14
+                        Length: 10
+                    Value: value-sm02
+                Value Match: [SKIP_MANY]
+                    Type: SKIP (1)
+                    Skip Type: SKIP_MANY (1)
+        Evaluation: LAZY (0)
+        Isolation: READ_UNCOMMITTED (0)
+        Delta Type: NONE (0)
+        Ack Mode ID: 0
+        Ack Mode: NONE
+
+Frame 86: 407 bytes on wire (3256 bits), 407 bytes captured (3256 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::33, Dst: fe80::32
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1, Ack: 584, Len: 333
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00002c20
+    Origin ID: 0x000000090000000f
+    Origin Namespace: example
+    Origin Binding: north_kafka_cache_client
+    Routed ID: 0x0000000900000010
+    Routed Namespace: example
+    Routed Binding: south_kafka_cache_server
+    Stream ID: 0x0000000000000032
+    Initial ID: 0x0000000000000033
+    Reply ID: 0x0000000000000032
+    Direction: REP
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000050
+    Trace ID: 0x0000000000000033
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+    Extension: kafka
+        Stream Type ID: 0xe1204b08
+        Stream Type: kafka
+        API: MERGED (255)
+        Capabilities: FETCH_ONLY (2)
+        Topic: topic
+            Length: 5
+            Topic: topic
+        Group ID: group-id
+            Length: 8
+            Group ID: group-id
+        Consumer ID: consumer-id
+            Length: 11
+            Consumer ID: consumer-id
+        Timeout: 42
+        Partitions (3 items)
+            Length: 102
+            Size: 3
+        Partition: 1 [42000]
+            Partition ID: 1
+            Partition Offset: 42000
+            Stable Offset: 43000
+            Latest Offset: 44000
+            Metadata: metadata
+                Length: 8
+                Metadata: metadata
+        Partition: 2 [77000]
+            Partition ID: 2
+            Partition Offset: 77000
+            Stable Offset: -1
+            Latest Offset: -1
+            Metadata: 
+                Length: -1
+                Metadata: 
+        Partition: 3 [88000]
+            Partition ID: 3
+            Partition Offset: 88000
+            Stable Offset: -1
+            Latest Offset: -1
+            Metadata: 
+                Length: -1
+                Metadata: 
+        Filters (0 items)
+            Length: 4
+            Size: 0
+        Evaluation: EAGER (1)
+        Isolation: READ_COMMITTED (1)
+        Delta Type: JSON_PATCH (1)
+        Ack Mode ID: 1
+        Ack Mode: LEADER_ONLY
+
+Frame 87: 339 bytes on wire (2712 bits), 339 bytes captured (2712 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::33, Dst: fe80::32
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 334, Ack: 584, Len: 265
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00002d18
+    Origin ID: 0x000000090000000f
+    Origin Namespace: example
+    Origin Binding: north_kafka_cache_client
+    Routed ID: 0x0000000900000010
+    Routed Namespace: example
+    Routed Binding: south_kafka_cache_server
+    Stream ID: 0x0000000000000032
+    Initial ID: 0x0000000000000033
+    Reply ID: 0x0000000000000032
+    Direction: REP
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000051
+    Trace ID: 0x0000000000000033
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+    Extension: kafka
+        Stream Type ID: 0xe1204b08
+        Stream Type: kafka
+        API: MERGED (255)
+        Capabilities: PRODUCE_AND_FETCH (3)
+        Topic: topic
+            Length: 5
+            Topic: topic
+        Group ID: group-id
+            Length: 8
+            Group ID: group-id
+        Consumer ID: consumer-id
+            Length: 11
+            Consumer ID: consumer-id
+        Timeout: 3600
+        Partitions (1 items)
+            Length: 34
+            Size: 1
+        Partition: 42 [123456]
+            Partition ID: 42
+            Partition Offset: 123456
+            Stable Offset: -1
+            Latest Offset: -1
+            Metadata: 
+                Length: -1
+                Metadata: 
+        Filters (0 items)
+            Length: 4
+            Size: 0
+        Evaluation: EAGER (1)
+        Isolation: READ_COMMITTED (1)
+        Delta Type: JSON_PATCH (1)
+        Ack Mode ID: -1
+        Ack Mode: IN_SYNC_REPLICAS
+
+Frame 88: 459 bytes on wire (3672 bits), 459 bytes captured (3672 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::32, Dst: fe80::33
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 584, Ack: 599, Len: 385
+Zilla Frame
+    Frame Type ID: 0x00000002
+    Frame Type: DATA
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00002dc8
+    Origin ID: 0x000000090000000f
+    Origin Namespace: example
+    Origin Binding: north_kafka_cache_client
+    Routed ID: 0x0000000900000010
+    Routed Namespace: example
+    Routed Binding: south_kafka_cache_server
+    Stream ID: 0x0000000000000033
+    Initial ID: 0x0000000000000033
+    Reply ID: 0x0000000000000032
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000052
+    Trace ID: 0x0000000000000033
+    Authorization: 0x0000000000000000
+    Flags: 0x03
+        .... ...1 = FIN: Set (1)
+        .... ..1. = INIT: Set (1)
+        .... .0.. = INCOMPLETE: Not set (0)
+        .... 0... = SKIP: Not set (0)
+    Budget ID: 0x0000000000000000
+    Reserved: 0
+    Progress: 0
+    Progress/Maximum: 0/0
+    Payload
+        Length: 31
+        Payload
+    Extension: kafka
+        Stream Type ID: 0xe1204b08
+        Stream Type: kafka
+        API: MERGED (255)
+        Merged API: FETCH (1)
+        Deferred: 99
+        Timestamp: 0x0000000000000052
+        Filters: 77
+        Partition: 1 [42000]
+            Partition ID: 1
+            Partition Offset: 42000
+            Stable Offset: -1
+            Latest Offset: -1
+            Metadata: 
+                Length: -1
+                Metadata: 
+        Progress (2 items)
+            Length: 64
+            Size: 2
+        Progress: 17 [42]
+            Partition ID: 17
+            Partition Offset: 42
+            Stable Offset: -1
+            Latest Offset: -1
+            Metadata: 
+                Length: -1
+                Metadata: 
+        Progress: 19 [77]
+            Partition ID: 19
+            Partition Offset: 77
+            Stable Offset: -1
+            Latest Offset: 2121
+            Metadata: 
+                Length: -1
+                Metadata: 
+        Key: [KEY] key
+            Length: 3
+                Length (varint32): 06
+                Length: 3
+            Key: key
+        Delta: [JSON_PATCH] [7777]
+            Delta Type: JSON_PATCH (1)
+            Ancestor Offset: 7777
+        Headers (2 items)
+            Length: 30
+            Size: 2
+        Header: [HEADER] name1: value1
+            Length: 5
+                Length (varint32): 0a
+                Length: 5
+            Name: name1
+            Length: 6
+                Length (varint32): 0c
+                Length: 6
+            Value: value1
+        Header: [HEADER] name2: value2
+            Length: 5
+                Length (varint32): 0a
+                Length: 5
+            Name: name2
+            Length: 6
+                Length (varint32): 0c
+                Length: 6
+            Value: value2
+
+Frame 89: 385 bytes on wire (3080 bits), 385 bytes captured (3080 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::32, Dst: fe80::33
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 969, Ack: 599, Len: 311
+Zilla Frame
+    Frame Type ID: 0x00000002
+    Frame Type: DATA
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00002ef0
+    Origin ID: 0x000000090000000f
+    Origin Namespace: example
+    Origin Binding: north_kafka_cache_client
+    Routed ID: 0x0000000900000010
+    Routed Namespace: example
+    Routed Binding: south_kafka_cache_server
+    Stream ID: 0x0000000000000033
+    Initial ID: 0x0000000000000033
+    Reply ID: 0x0000000000000032
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000053
+    Trace ID: 0x0000000000000033
+    Authorization: 0x0000000000000000
+    Flags: 0x03
+        .... ...1 = FIN: Set (1)
+        .... ..1. = INIT: Set (1)
+        .... .0.. = INCOMPLETE: Not set (0)
+        .... 0... = SKIP: Not set (0)
+    Budget ID: 0x0000000000000000
+    Reserved: 0
+    Progress: 0
+    Progress/Maximum: 0/0
+    Payload
+        Length: 33
+        Payload
+    Extension: kafka
+        Stream Type ID: 0xe1204b08
+        Stream Type: kafka
+        API: MERGED (255)
+        Merged API: PRODUCE (0)
+        Deferred: 100
+        Timestamp: 0x0000000000000053
+        Partition: 1 [77000]
+            Partition ID: 1
+            Partition Offset: 77000
+            Stable Offset: -1
+            Latest Offset: -1
+            Metadata: 
+                Length: -1
+                Metadata: 
+        Key: [KEY] key
+            Length: 3
+                Length (varint32): 06
+                Length: 3
+            Key: key
+        Hash Key: [KEY] hash-key
+            Length: 8
+                Length (varint32): 10
+                Length: 8
+            Key: hash-key
+        Headers (2 items)
+            Length: 30
+            Size: 2
+        Header: [HEADER] name1: value1
+            Length: 5
+                Length (varint32): 0a
+                Length: 5
+            Name: name1
+            Length: 6
+                Length (varint32): 0c
+                Length: 6
+            Value: value1
+        Header: [HEADER] name2: value2
+            Length: 5
+                Length (varint32): 0a
+                Length: 5
+            Name: name2
+            Length: 6
+                Length (varint32): 0c
+                Length: 6
+            Value: value2
+
+Frame 90: 304 bytes on wire (2432 bits), 304 bytes captured (2432 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::32, Dst: fe80::33
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 1280, Ack: 599, Len: 230
+Zilla Frame
+    Frame Type ID: 0x00000005
+    Frame Type: FLUSH
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00002fd0
+    Origin ID: 0x000000090000000f
+    Origin Namespace: example
+    Origin Binding: north_kafka_cache_client
+    Routed ID: 0x0000000900000010
+    Routed Namespace: example
+    Routed Binding: south_kafka_cache_server
+    Stream ID: 0x0000000000000033
+    Initial ID: 0x0000000000000033
+    Reply ID: 0x0000000000000032
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000054
+    Trace ID: 0x0000000000000033
+    Authorization: 0x0000000000000000
+    Budget ID: 0x0000000000000000
+    Reserved: 0
+    Extension: kafka
+        Stream Type ID: 0xe1204b08
+        Stream Type: kafka
+        API: MERGED (255)
+        Merged API: CONSUMER (252)
+        Progress: 17 [4242]
+            Partition ID: 17
+            Partition Offset: 4242
+            Stable Offset: -1
+            Latest Offset: -1
+            Metadata: metadata
+                Length: 8
+                Metadata: metadata
+        Correlation ID: 77
+
+Frame 91: 420 bytes on wire (3360 bits), 420 bytes captured (3360 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::32, Dst: fe80::33
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 1510, Ack: 599, Len: 346
+Zilla Frame
+    Frame Type ID: 0x00000005
+    Frame Type: FLUSH
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00003060
+    Origin ID: 0x000000090000000f
+    Origin Namespace: example
+    Origin Binding: north_kafka_cache_client
+    Routed ID: 0x0000000900000010
+    Routed Namespace: example
+    Routed Binding: south_kafka_cache_server
+    Stream ID: 0x0000000000000033
+    Initial ID: 0x0000000000000033
+    Reply ID: 0x0000000000000032
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000055
+    Trace ID: 0x0000000000000033
+    Authorization: 0x0000000000000000
+    Budget ID: 0x0000000000000000
+    Reserved: 0
+    Extension: kafka
+        Stream Type ID: 0xe1204b08
+        Stream Type: kafka
+        API: MERGED (255)
+        Merged API: FETCH (1)
+        Partition: 1 [42000]
+            Partition ID: 1
+            Partition Offset: 42000
+            Stable Offset: -1
+            Latest Offset: -1
+            Metadata: 
+                Length: -1
+                Metadata: 
+        Progress (3 items)
+            Length: 94
+            Size: 3
+        Progress: 17 [42]
+            Partition ID: 17
+            Partition Offset: 42
+            Stable Offset: -1
+            Latest Offset: -1
+            Metadata: 
+                Length: -1
+                Metadata: 
+        Progress: 19 [77]
+            Partition ID: 19
+            Partition Offset: 77
+            Stable Offset: -1
+            Latest Offset: 2121
+            Metadata: 
+                Length: -1
+                Metadata: 
+        Progress: 21 [88]
+            Partition ID: 21
+            Partition Offset: 88
+            Stable Offset: 1122
+            Latest Offset: 3344
+            Metadata: 
+                Length: -1
+                Metadata: 
+        Capabilities: PRODUCE_AND_FETCH (3)
+        Filters (1 items)
+            Length: 25
+            Size: 1
+        Filter #1
+            Conditions (1 items)
+                Length: 17
+                Size: 1
+            Condition: [KEY] filter-key1
+                Type: KEY (0)
+                Length: 11
+                    Length (varint32): 16
+                    Length: 11
+                Key: filter-key1
+        Key: [KEY] key
+            Length: 3
+                Length (varint32): 06
+                Length: 3
+            Key: key
+
+Frame 92: 260 bytes on wire (2080 bits), 260 bytes captured (2080 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::34, Dst: fe80::35
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 0, Ack: 1, Len: 186
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00003160
+    Origin ID: 0x000000090000000f
+    Origin Namespace: example
+    Origin Binding: north_kafka_cache_client
+    Routed ID: 0x0000000900000010
+    Routed Namespace: example
+    Routed Binding: south_kafka_cache_server
+    Stream ID: 0x0000000000000035
+    Initial ID: 0x0000000000000035
+    Reply ID: 0x0000000000000034
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000056
+    Trace ID: 0x0000000000000035
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+    Extension: kafka
+        Stream Type ID: 0xe1204b08
+        Stream Type: kafka
+        API: META (3)
+        Topic: topic
+            Length: 5
+            Topic: topic
+
+Frame 93: 260 bytes on wire (2080 bits), 260 bytes captured (2080 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::35, Dst: fe80::34
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1, Ack: 186, Len: 186
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x000031c0
+    Origin ID: 0x000000090000000f
+    Origin Namespace: example
+    Origin Binding: north_kafka_cache_client
+    Routed ID: 0x0000000900000010
+    Routed Namespace: example
+    Routed Binding: south_kafka_cache_server
+    Stream ID: 0x0000000000000034
+    Initial ID: 0x0000000000000035
+    Reply ID: 0x0000000000000034
+    Direction: REP
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000057
+    Trace ID: 0x0000000000000035
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+    Extension: kafka
+        Stream Type ID: 0xe1204b08
+        Stream Type: kafka
+        API: META (3)
+        Topic: topic
+            Length: 5
+            Topic: topic
+
+Frame 94: 317 bytes on wire (2536 bits), 317 bytes captured (2536 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::34, Dst: fe80::35
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 186, Ack: 187, Len: 243
+Zilla Frame
+    Frame Type ID: 0x00000002
+    Frame Type: DATA
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00003220
+    Origin ID: 0x000000090000000f
+    Origin Namespace: example
+    Origin Binding: north_kafka_cache_client
+    Routed ID: 0x0000000900000010
+    Routed Namespace: example
+    Routed Binding: south_kafka_cache_server
+    Stream ID: 0x0000000000000035
+    Initial ID: 0x0000000000000035
+    Reply ID: 0x0000000000000034
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000058
+    Trace ID: 0x0000000000000035
+    Authorization: 0x0000000000000000
+    Flags: 0x03
+        .... ...1 = FIN: Set (1)
+        .... ..1. = INIT: Set (1)
+        .... .0.. = INCOMPLETE: Not set (0)
+        .... 0... = SKIP: Not set (0)
+    Budget ID: 0x0000000000000000
+    Reserved: 0
+    Progress: 0
+    Progress/Maximum: 0/0
+    Payload
+        Length: 23
+        Payload
+    Extension: kafka
+        Stream Type ID: 0xe1204b08
+        Stream Type: kafka
+        API: META (3)
+        Partitions (3 items)
+            Length: 28
+            Size: 3
+        Partition: 1 [42]
+            Partition ID: 1
+            Leader ID: 42
+        Partition: 10 [420]
+            Partition ID: 10
+            Leader ID: 420
+        Partition: 100 [4200]
+            Partition ID: 100
+            Leader ID: 4200
+
+Frame 95: 285 bytes on wire (2280 bits), 285 bytes captured (2280 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::36, Dst: fe80::37
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 0, Ack: 1, Len: 211
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x000032c0
+    Origin ID: 0x000000090000000f
+    Origin Namespace: example
+    Origin Binding: north_kafka_cache_client
+    Routed ID: 0x0000000900000010
+    Routed Namespace: example
+    Routed Binding: south_kafka_cache_server
+    Stream ID: 0x0000000000000037
+    Initial ID: 0x0000000000000037
+    Reply ID: 0x0000000000000036
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000059
+    Trace ID: 0x0000000000000037
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+    Extension: kafka
+        Stream Type ID: 0xe1204b08
+        Stream Type: kafka
+        API: OFFSET_COMMIT (8)
+        Topic: topic
+            Length: 5
+            Topic: topic
+        Group ID: group
+            Length: 5
+            Group ID: group
+        Member ID: member
+            Length: 6
+            Member ID: member
+        Instance ID: instance
+            Length: 8
+            Instance ID: instance
+
+Frame 96: 285 bytes on wire (2280 bits), 285 bytes captured (2280 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::37, Dst: fe80::36
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1, Ack: 211, Len: 211
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00003340
+    Origin ID: 0x000000090000000f
+    Origin Namespace: example
+    Origin Binding: north_kafka_cache_client
+    Routed ID: 0x0000000900000010
+    Routed Namespace: example
+    Routed Binding: south_kafka_cache_server
+    Stream ID: 0x0000000000000036
+    Initial ID: 0x0000000000000037
+    Reply ID: 0x0000000000000036
+    Direction: REP
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x000000000000005a
+    Trace ID: 0x0000000000000037
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+    Extension: kafka
+        Stream Type ID: 0xe1204b08
+        Stream Type: kafka
+        API: OFFSET_COMMIT (8)
+        Topic: topic
+            Length: 5
+            Topic: topic
+        Group ID: group
+            Length: 5
+            Group ID: group
+        Member ID: member
+            Length: 6
+            Member ID: member
+        Instance ID: instance
+            Length: 8
+            Instance ID: instance
+
+Frame 97: 340 bytes on wire (2720 bits), 340 bytes captured (2720 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::36, Dst: fe80::37
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 211, Ack: 212, Len: 266
+Zilla Frame
+    Frame Type ID: 0x00000002
+    Frame Type: DATA
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x000033c0
+    Origin ID: 0x000000090000000f
+    Origin Namespace: example
+    Origin Binding: north_kafka_cache_client
+    Routed ID: 0x0000000900000010
+    Routed Namespace: example
+    Routed Binding: south_kafka_cache_server
+    Stream ID: 0x0000000000000037
+    Initial ID: 0x0000000000000037
+    Reply ID: 0x0000000000000036
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x000000000000005b
+    Trace ID: 0x0000000000000037
+    Authorization: 0x0000000000000000
+    Flags: 0x03
+        .... ...1 = FIN: Set (1)
+        .... ..1. = INIT: Set (1)
+        .... .0.. = INCOMPLETE: Not set (0)
+        .... 0... = SKIP: Not set (0)
+    Budget ID: 0x0000000000000000
+    Reserved: 0
+    Progress: 0
+    Progress/Maximum: 0/0
+    Payload
+        Length: 32
+        Payload
+    Extension: kafka
+        Stream Type ID: 0xe1204b08
+        Stream Type: kafka
+        API: OFFSET_COMMIT (8)
+        Progress: 21 [1234]
+            Partition ID: 21
+            Partition Offset: 1234
+            Stable Offset: -1
+            Latest Offset: -1
+            Metadata: metadata
+                Length: 8
+                Metadata: metadata
+        Generation ID: 42
+        Leader Epoch: 77
+
+Frame 98: 301 bytes on wire (2408 bits), 301 bytes captured (2408 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::38, Dst: fe80::39
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 0, Ack: 1, Len: 227
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00003470
+    Origin ID: 0x000000090000000f
+    Origin Namespace: example
+    Origin Binding: north_kafka_cache_client
+    Routed ID: 0x0000000900000010
+    Routed Namespace: example
+    Routed Binding: south_kafka_cache_server
+    Stream ID: 0x0000000000000039
+    Initial ID: 0x0000000000000039
+    Reply ID: 0x0000000000000038
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x000000000000005c
+    Trace ID: 0x0000000000000039
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+    Extension: kafka
+        Stream Type ID: 0xe1204b08
+        Stream Type: kafka
+        API: OFFSET_FETCH (9)
+        Group ID: group
+            Length: 5
+            Group ID: group
+        Host: host
+            Length: 4
+            Host: host
+        Port: 42
+        Topic: topic
+            Length: 5
+            Topic: topic
+        Partitions (4 items)
+            Length: 20
+            Size: 4
+        Partition ID: 21
+        Partition ID: 42
+        Partition ID: 77
+        Partition ID: 88
+
+Frame 99: 289 bytes on wire (2312 bits), 289 bytes captured (2312 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::39, Dst: fe80::38
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1, Ack: 227, Len: 215
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00003500
+    Origin ID: 0x000000090000000f
+    Origin Namespace: example
+    Origin Binding: north_kafka_cache_client
+    Routed ID: 0x0000000900000010
+    Routed Namespace: example
+    Routed Binding: south_kafka_cache_server
+    Stream ID: 0x0000000000000038
+    Initial ID: 0x0000000000000039
+    Reply ID: 0x0000000000000038
+    Direction: REP
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x000000000000005d
+    Trace ID: 0x0000000000000039
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+    Extension: kafka
+        Stream Type ID: 0xe1204b08
+        Stream Type: kafka
+        API: OFFSET_FETCH (9)
+        Group ID: group
+            Length: 5
+            Group ID: group
+        Host: host
+            Length: 4
+            Host: host
+        Port: 42
+        Topic: topic
+            Length: 5
+            Topic: topic
+        Partitions (1 items)
+            Length: 8
+            Size: 1
+        Partition ID: 42
+
+Frame 100: 382 bytes on wire (3056 bits), 382 bytes captured (3056 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::38, Dst: fe80::39
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 227, Ack: 216, Len: 308
+Zilla Frame
+    Frame Type ID: 0x00000002
+    Frame Type: DATA
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00003580
+    Origin ID: 0x000000090000000f
+    Origin Namespace: example
+    Origin Binding: north_kafka_cache_client
+    Routed ID: 0x0000000900000010
+    Routed Namespace: example
+    Routed Binding: south_kafka_cache_server
+    Stream ID: 0x0000000000000039
+    Initial ID: 0x0000000000000039
+    Reply ID: 0x0000000000000038
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x000000000000005e
+    Trace ID: 0x0000000000000039
+    Authorization: 0x0000000000000000
+    Flags: 0x03
+        .... ...1 = FIN: Set (1)
+        .... ..1. = INIT: Set (1)
+        .... .0.. = INCOMPLETE: Not set (0)
+        .... 0... = SKIP: Not set (0)
+    Budget ID: 0x0000000000000000
+    Reserved: 0
+    Progress: 0
+    Progress/Maximum: 0/0
+    Payload
+        Length: 31
+        Payload
+    Extension: kafka
+        Stream Type ID: 0xe1204b08
+        Stream Type: kafka
+        API: OFFSET_FETCH (9)
+        Partition Offsets (3 items)
+            Length: 85
+            Size: 3
+        Partition Offset: 17 [21]
+            Partition ID: 17
+            Partition Offset: 21
+            Leader Epoch: 42
+            Metadata: metadata1
+                Length: 9
+                Metadata: metadata1
+        Partition Offset: 18 [22]
+            Partition ID: 18
+            Partition Offset: 22
+            Leader Epoch: 43
+            Metadata: metadata2
+                Length: 9
+                Metadata: metadata2
+        Partition Offset: 19 [23]
+            Partition ID: 19
+            Partition Offset: 23
+            Leader Epoch: 44
+            Metadata: metadata3
+                Length: 9
+                Metadata: metadata3
+
+Frame 101: 295 bytes on wire (2360 bits), 295 bytes captured (2360 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::3a, Dst: fe80::3b
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 0, Ack: 1, Len: 221
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00003660
+    Origin ID: 0x000000090000000f
+    Origin Namespace: example
+    Origin Binding: north_kafka_cache_client
+    Routed ID: 0x0000000900000010
+    Routed Namespace: example
+    Routed Binding: south_kafka_cache_server
+    Stream ID: 0x000000000000003b
+    Initial ID: 0x000000000000003b
+    Reply ID: 0x000000000000003a
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x000000000000005f
+    Trace ID: 0x000000000000003b
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+    Extension: kafka
+        Stream Type ID: 0xe1204b08
+        Stream Type: kafka
+        API: DESCRIBE (32)
+        Topic: topic
+            Length: 5
+            Topic: topic
+        Configs (3 items)
+            Length: 31
+            Size: 3
+        Config: config1
+            Length: 7
+            Config: config1
+        Config: config2
+            Length: 7
+            Config: config2
+        Config: config3
+            Length: 7
+            Config: config3
+
+Frame 102: 268 bytes on wire (2144 bits), 268 bytes captured (2144 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::3b, Dst: fe80::3a
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1, Ack: 221, Len: 194
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x000036e8
+    Origin ID: 0x000000090000000f
+    Origin Namespace: example
+    Origin Binding: north_kafka_cache_client
+    Routed ID: 0x0000000900000010
+    Routed Namespace: example
+    Routed Binding: south_kafka_cache_server
+    Stream ID: 0x000000000000003a
+    Initial ID: 0x000000000000003b
+    Reply ID: 0x000000000000003a
+    Direction: REP
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000060
+    Trace ID: 0x000000000000003b
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+    Extension: kafka
+        Stream Type ID: 0xe1204b08
+        Stream Type: kafka
+        API: DESCRIBE (32)
+        Topic: topic
+            Length: 5
+            Topic: topic
+        Configs (0 items)
+            Length: 4
+            Size: 0
+
+Frame 103: 337 bytes on wire (2696 bits), 337 bytes captured (2696 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::3a, Dst: fe80::3b
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 221, Ack: 195, Len: 263
+Zilla Frame
+    Frame Type ID: 0x00000002
+    Frame Type: DATA
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00003750
+    Origin ID: 0x000000090000000f
+    Origin Namespace: example
+    Origin Binding: north_kafka_cache_client
+    Routed ID: 0x0000000900000010
+    Routed Namespace: example
+    Routed Binding: south_kafka_cache_server
+    Stream ID: 0x000000000000003b
+    Initial ID: 0x000000000000003b
+    Reply ID: 0x000000000000003a
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000061
+    Trace ID: 0x000000000000003b
+    Authorization: 0x0000000000000000
+    Flags: 0x03
+        .... ...1 = FIN: Set (1)
+        .... ..1. = INIT: Set (1)
+        .... .0.. = INCOMPLETE: Not set (0)
+        .... 0... = SKIP: Not set (0)
+    Budget ID: 0x0000000000000000
+    Reserved: 0
+    Progress: 0
+    Progress/Maximum: 0/0
+    Payload
+        Length: 22
+        Payload
+    Extension: kafka
+        Stream Type ID: 0xe1204b08
+        Stream Type: kafka
+        API: DESCRIBE (32)
+        Configs (3 items)
+            Length: 49
+            Size: 3
+        Config: name1: value1
+            Name: name1
+                Length: 5
+                Name: name1
+            Value: value1
+                Length: 6
+                Value: value1
+        Config: name2: value2
+            Name: name2
+                Length: 5
+                Name: name2
+            Value: value2
+                Length: 6
+                Value: value2
+        Config: name3: value3
+            Name: name3
+                Length: 5
+                Name: name3
+            Value: value3
+                Length: 6
+                Value: value3
+
+Frame 104: 363 bytes on wire (2904 bits), 363 bytes captured (2904 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::3c, Dst: fe80::3d
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 0, Ack: 1, Len: 289
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00003800
+    Origin ID: 0x000000090000000f
+    Origin Namespace: example
+    Origin Binding: north_kafka_cache_client
+    Routed ID: 0x0000000900000010
+    Routed Namespace: example
+    Routed Binding: south_kafka_cache_server
+    Stream ID: 0x000000000000003d
+    Initial ID: 0x000000000000003d
+    Reply ID: 0x000000000000003c
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000062
+    Trace ID: 0x000000000000003d
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+    Extension: kafka
+        Stream Type ID: 0xe1204b08
+        Stream Type: kafka
+        API: FETCH (1)
+        Topic: topic
+            Length: 5
+            Topic: topic
+        Partition: 42 [4242]
+            Partition ID: 42
+            Partition Offset: 4242
+            Stable Offset: -1
+            Latest Offset: -1
+            Metadata: 
+                Length: -1
+                Metadata: 
+        Filters (2 items)
+            Length: 66
+            Size: 2
+        Filter #1
+            Conditions (1 items)
+                Length: 10
+                Size: 1
+            Condition: [KEY] key1
+                Type: KEY (0)
+                Length: 4
+                    Length (varint32): 08
+                    Length: 4
+                Key: key1
+        Filter #2
+            Conditions (4 items)
+                Length: 44
+                Size: 4
+            Condition: [KEY] key1
+                Type: KEY (0)
+                Length: 4
+                    Length (varint32): 08
+                    Length: 4
+                Key: key1
+            Condition: [KEY] key2
+                Type: KEY (0)
+                Length: 4
+                    Length (varint32): 08
+                    Length: 4
+                Key: key2
+            Condition: [HEADER] name1: value1
+                Type: HEADER (1)
+                Length: 5
+                    Length (varint32): 0a
+                    Length: 5
+                Name: name1
+                Length: 6
+                    Length (varint32): 0c
+                    Length: 6
+                Value: value1
+            Condition: [HEADER] name2: value2
+                Type: HEADER (1)
+                Length: 5
+                    Length (varint32): 0a
+                    Length: 5
+                Name: name2
+                Length: 6
+                    Length (varint32): 0c
+                    Length: 6
+                Value: value2
+        Evaluation: LAZY (0)
+        Isolation: READ_UNCOMMITTED (0)
+        Delta Type: NONE (0)
+
+Frame 105: 315 bytes on wire (2520 bits), 315 bytes captured (2520 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::3d, Dst: fe80::3c
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1, Ack: 289, Len: 241
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x000038c8
+    Origin ID: 0x000000090000000f
+    Origin Namespace: example
+    Origin Binding: north_kafka_cache_client
+    Routed ID: 0x0000000900000010
+    Routed Namespace: example
+    Routed Binding: south_kafka_cache_server
+    Stream ID: 0x000000000000003c
+    Initial ID: 0x000000000000003d
+    Reply ID: 0x000000000000003c
+    Direction: REP
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000063
+    Trace ID: 0x000000000000003d
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+    Extension: kafka
+        Stream Type ID: 0xe1204b08
+        Stream Type: kafka
+        API: FETCH (1)
+        Topic: topic
+            Length: 5
+            Topic: topic
+        Partition: 21 [2121]
+            Partition ID: 21
+            Partition Offset: 2121
+            Stable Offset: -1
+            Latest Offset: -1
+            Metadata: 
+                Length: -1
+                Metadata: 
+        Filters (1 items)
+            Length: 18
+            Size: 1
+        Filter #1
+            Conditions (1 items)
+                Length: 10
+                Size: 1
+            Condition: [KEY] key1
+                Type: KEY (0)
+                Length: 4
+                    Length (varint32): 08
+                    Length: 4
+                Key: key1
+        Evaluation: EAGER (1)
+        Isolation: READ_COMMITTED (1)
+        Delta Type: JSON_PATCH (1)
+
+Frame 106: 390 bytes on wire (3120 bits), 390 bytes captured (3120 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::3c, Dst: fe80::3d
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 289, Ack: 242, Len: 316
+Zilla Frame
+    Frame Type ID: 0x00000002
+    Frame Type: DATA
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00003960
+    Origin ID: 0x000000090000000f
+    Origin Namespace: example
+    Origin Binding: north_kafka_cache_client
+    Routed ID: 0x0000000900000010
+    Routed Namespace: example
+    Routed Binding: south_kafka_cache_server
+    Stream ID: 0x000000000000003d
+    Initial ID: 0x000000000000003d
+    Reply ID: 0x000000000000003c
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000064
+    Trace ID: 0x000000000000003d
+    Authorization: 0x0000000000000000
+    Flags: 0x03
+        .... ...1 = FIN: Set (1)
+        .... ..1. = INIT: Set (1)
+        .... .0.. = INCOMPLETE: Not set (0)
+        .... 0... = SKIP: Not set (0)
+    Budget ID: 0x0000000000000000
+    Reserved: 0
+    Progress: 0
+    Progress/Maximum: 0/0
+    Payload
+        Length: 19
+        Payload
+    Extension: kafka
+        Stream Type ID: 0xe1204b08
+        Stream Type: kafka
+        API: FETCH (1)
+        Deferred: 7777
+        Timestamp: 0x0000000000000064
+        Header Size Maximum: 4
+        Producer ID: 0x0000000012345678
+        Filters: 77
+        Partition: 1 [42000]
+            Partition ID: 1
+            Partition Offset: 42000
+            Stable Offset: -1
+            Latest Offset: -1
+            Metadata: 
+                Length: -1
+                Metadata: 
+        Key: [KEY] key
+            Length: 3
+                Length (varint32): 06
+                Length: 3
+            Key: key
+        Delta: [JSON_PATCH] [7777]
+            Delta Type: JSON_PATCH (1)
+            Ancestor Offset: 7777
+        Headers (2 items)
+            Length: 30
+            Size: 2
+        Header: [HEADER] name1: value1
+            Length: 5
+                Length (varint32): 0a
+                Length: 5
+            Name: name1
+            Length: 6
+                Length (varint32): 0c
+                Length: 6
+            Value: value1
+        Header: [HEADER] name2: value2
+            Length: 5
+                Length (varint32): 0a
+                Length: 5
+            Name: name2
+            Length: 6
+                Length (varint32): 0c
+                Length: 6
+            Value: value2
+
+Frame 107: 336 bytes on wire (2688 bits), 336 bytes captured (2688 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::3c, Dst: fe80::3d
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 605, Ack: 242, Len: 262
+Zilla Frame
+    Frame Type ID: 0x00000005
+    Frame Type: FLUSH
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00003a48
+    Origin ID: 0x000000090000000f
+    Origin Namespace: example
+    Origin Binding: north_kafka_cache_client
+    Routed ID: 0x0000000900000010
+    Routed Namespace: example
+    Routed Binding: south_kafka_cache_server
+    Stream ID: 0x000000000000003d
+    Initial ID: 0x000000000000003d
+    Reply ID: 0x000000000000003c
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000065
+    Trace ID: 0x000000000000003d
+    Authorization: 0x0000000000000000
+    Budget ID: 0x0000000000000000
+    Reserved: 0
+    Extension: kafka
+        Stream Type ID: 0xe1204b08
+        Stream Type: kafka
+        API: FETCH (1)
+        Partition: 21 [2121]
+            Partition ID: 21
+            Partition Offset: 2121
+            Stable Offset: -1
+            Latest Offset: -1
+            Metadata: 
+                Length: -1
+                Metadata: 
+        Transactions (2 items)
+            Length: 22
+            Size: 2
+        Transaction: [ABORT] 0x0000000000006666
+            Result: ABORT (0)
+            Producer ID: 0x0000000000006666
+        Transaction: [COMMIT] 0x0000000000004277
+            Result: COMMIT (1)
+            Producer ID: 0x0000000000004277
+        Filters (1 items)
+            Length: 18
+            Size: 1
+        Filter #1
+            Conditions (1 items)
+                Length: 10
+                Size: 1
+            Condition: [KEY] key1
+                Type: KEY (0)
+                Length: 4
+                    Length (varint32): 08
+                    Length: 4
+                Key: key1
+        Evaluation: LAZY (0)
+
+Frame 108: 310 bytes on wire (2480 bits), 310 bytes captured (2480 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::3e, Dst: fe80::3f
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 0, Ack: 1, Len: 236
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00003af8
+    Origin ID: 0x000000090000000f
+    Origin Namespace: example
+    Origin Binding: north_kafka_cache_client
+    Routed ID: 0x0000000900000010
+    Routed Namespace: example
+    Routed Binding: south_kafka_cache_server
+    Stream ID: 0x000000000000003f
+    Initial ID: 0x000000000000003f
+    Reply ID: 0x000000000000003e
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000066
+    Trace ID: 0x000000000000003f
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+    Extension: kafka
+        Stream Type ID: 0xe1204b08
+        Stream Type: kafka
+        API: PRODUCE (0)
+        Transaction: transaction
+            Length: 11
+            Transaction: transaction
+        Producer ID: 0x0000000000770042
+        Topic: topic
+            Length: 5
+            Topic: topic
+        Partition: 2 [42000]
+            Partition ID: 2
+            Partition Offset: 42000
+            Stable Offset: -1
+            Latest Offset: 77000
+            Metadata: 
+                Length: -1
+                Metadata: 
+
+Frame 109: 310 bytes on wire (2480 bits), 310 bytes captured (2480 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::3f, Dst: fe80::3e
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1, Ack: 236, Len: 236
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00003b90
+    Origin ID: 0x000000090000000f
+    Origin Namespace: example
+    Origin Binding: north_kafka_cache_client
+    Routed ID: 0x0000000900000010
+    Routed Namespace: example
+    Routed Binding: south_kafka_cache_server
+    Stream ID: 0x000000000000003e
+    Initial ID: 0x000000000000003f
+    Reply ID: 0x000000000000003e
+    Direction: REP
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000067
+    Trace ID: 0x000000000000003f
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+    Extension: kafka
+        Stream Type ID: 0xe1204b08
+        Stream Type: kafka
+        API: PRODUCE (0)
+        Transaction: transaction
+            Length: 11
+            Transaction: transaction
+        Producer ID: 0x0000000000210088
+        Topic: topic
+            Length: 5
+            Topic: topic
+        Partition: 1 [21000]
+            Partition ID: 1
+            Partition Offset: 21000
+            Stable Offset: -1
+            Latest Offset: -1
+            Metadata: 
+                Length: -1
+                Metadata: 
+
+Frame 110: 343 bytes on wire (2744 bits), 343 bytes captured (2744 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::3e, Dst: fe80::3f
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 236, Ack: 237, Len: 269
+Zilla Frame
+    Frame Type ID: 0x00000002
+    Frame Type: DATA
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00003c28
+    Origin ID: 0x000000090000000f
+    Origin Namespace: example
+    Origin Binding: north_kafka_cache_client
+    Routed ID: 0x0000000900000010
+    Routed Namespace: example
+    Routed Binding: south_kafka_cache_server
+    Stream ID: 0x000000000000003f
+    Initial ID: 0x000000000000003f
+    Reply ID: 0x000000000000003e
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000068
+    Trace ID: 0x000000000000003f
+    Authorization: 0x0000000000000000
+    Flags: 0x03
+        .... ...1 = FIN: Set (1)
+        .... ..1. = INIT: Set (1)
+        .... .0.. = INCOMPLETE: Not set (0)
+        .... 0... = SKIP: Not set (0)
+    Budget ID: 0x0000000000000000
+    Reserved: 0
+    Progress: 0
+    Progress/Maximum: 0/0
+    Payload
+        Length: 21
+        Payload
+    Extension: kafka
+        Stream Type ID: 0xe1204b08
+        Stream Type: kafka
+        API: PRODUCE (0)
+        Deferred: 999
+        Timestamp: 0x0000000000000068
+        Sequence: 777
+        CRC32C: 0x00000000
+        Ack Mode ID: 1
+        Ack Mode: LEADER_ONLY
+        Key: [KEY] key
+            Length: 3
+                Length (varint32): 06
+                Length: 3
+            Key: key
+        Headers (2 items)
+            Length: 30
+            Size: 2
+        Header: [HEADER] name1: value1
+            Length: 5
+                Length (varint32): 0a
+                Length: 5
+            Name: name1
+            Length: 6
+                Length (varint32): 0c
+                Length: 6
+            Value: value1
+        Header: [HEADER] name2: value2
+            Length: 5
+                Length (varint32): 0a
+                Length: 5
+            Name: name2
+            Length: 6
+                Length (varint32): 0c
+                Length: 6
+            Value: value2
+
+Frame 111: 295 bytes on wire (2360 bits), 295 bytes captured (2360 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::3e, Dst: fe80::3f
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 505, Ack: 237, Len: 221
+Zilla Frame
+    Frame Type ID: 0x00000005
+    Frame Type: FLUSH
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00003ce0
+    Origin ID: 0x000000090000000f
+    Origin Namespace: example
+    Origin Binding: north_kafka_cache_client
+    Routed ID: 0x0000000900000010
+    Routed Namespace: example
+    Routed Binding: south_kafka_cache_server
+    Stream ID: 0x000000000000003f
+    Initial ID: 0x000000000000003f
+    Reply ID: 0x000000000000003e
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000069
+    Trace ID: 0x000000000000003f
+    Authorization: 0x0000000000000000
+    Budget ID: 0x0000000000000000
+    Reserved: 0
+    Extension: kafka
+        Stream Type ID: 0xe1204b08
+        Stream Type: kafka
+        API: PRODUCE (0)
+        Partition: 2 [42000]
+            Partition ID: 2
+            Partition Offset: 42000
+            Stable Offset: -1
+            Latest Offset: 77000
+            Metadata: 
+                Length: -1
+                Metadata: 
+        Key: [KEY] key
+            Length: 3
+                Length (varint32): 06
+                Length: 3
+            Key: key
+        Error: 0
+
+Frame 112: 248 bytes on wire (1984 bits), 248 bytes captured (1984 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::40, Dst: fe80::41
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 0, Ack: 1, Len: 174
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00003d68
+    Origin ID: 0x0000000900000025
+    Origin Namespace: example
+    Origin Binding: north_amqp_server
+    Routed ID: 0x0000000900000026
+    Routed Namespace: example
+    Routed Binding: north_fan_server
+    Stream ID: 0x0000000000000041
+    Initial ID: 0x0000000000000041
+    Reply ID: 0x0000000000000040
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x000000000000006a
+    Trace ID: 0x0000000000000041
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+    Extension: amqp
+        Stream Type ID: 0x82c12d11
+        Stream Type: amqp
+        Address: address
+            Length: 7
+            Name: address
+        Capabilities: SEND_AND_RECEIVE (3)
+        Sender Settle Mode: SETTLED (1)
+        Receiver Settle Mode: FIRST (0)
+
+Frame 113: 248 bytes on wire (1984 bits), 248 bytes captured (1984 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::41, Dst: fe80::40
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1, Ack: 174, Len: 174
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00003dd0
+    Origin ID: 0x0000000900000025
+    Origin Namespace: example
+    Origin Binding: north_amqp_server
+    Routed ID: 0x0000000900000026
+    Routed Namespace: example
+    Routed Binding: north_fan_server
+    Stream ID: 0x0000000000000040
+    Initial ID: 0x0000000000000041
+    Reply ID: 0x0000000000000040
+    Direction: REP
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x000000000000006b
+    Trace ID: 0x0000000000000041
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+    Extension: amqp
+        Stream Type ID: 0x82c12d11
+        Stream Type: amqp
+        Address: address
+            Length: 7
+            Name: address
+        Capabilities: SEND_ONLY (1)
+        Sender Settle Mode: MIXED (2)
+        Receiver Settle Mode: SECOND (1)
+
+Frame 114: 433 bytes on wire (3464 bits), 433 bytes captured (3464 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::40, Dst: fe80::41
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 174, Ack: 175, Len: 359
+Zilla Frame
+    Frame Type ID: 0x00000002
+    Frame Type: DATA
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00003e38
+    Origin ID: 0x0000000900000025
+    Origin Namespace: example
+    Origin Binding: north_amqp_server
+    Routed ID: 0x0000000900000026
+    Routed Namespace: example
+    Routed Binding: north_fan_server
+    Stream ID: 0x0000000000000041
+    Initial ID: 0x0000000000000041
+    Reply ID: 0x0000000000000040
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x000000000000006c
+    Trace ID: 0x0000000000000041
+    Authorization: 0x0000000000000000
+    Flags: 0x03
+        .... ...1 = FIN: Set (1)
+        .... ..1. = INIT: Set (1)
+        .... .0.. = INCOMPLETE: Not set (0)
+        .... 0... = SKIP: Not set (0)
+    Budget ID: 0x0000000000000000
+    Reserved: 0
+    Progress: 0
+    Progress/Maximum: 0/0
+    Payload
+        Length: 12
+        Payload
+    Extension: amqp
+        Stream Type ID: 0x82c12d11
+        Stream Type: amqp
+        Delivery Tag: delivery-tag
+            Length: 12
+            Delivery Tag: delivery-tag
+        Message Format: 7777
+        Flags: 0x08
+            .... ...0 = SETTLED: Not set (0)
+            .... ..0. = RESUME: Not set (0)
+            .... .0.. = ABORTED: Not set (0)
+            .... 1... = BATCHABLE: Set (1)
+        Annotations (2 items)
+            Length: 42
+            Size: 2
+        Annotation: annotation1: value1
+            Key Type: NAME (2)
+            Key [NAME]: annotation1
+                Length: 11
+                Key Name: annotation1
+            Value: value1
+                Length: 6
+                Value: value1
+        Annotation: 0x0000000000008888: value2
+            Key Type: ID (1)
+            Key [ID]: 0x0000000000008888
+            Value: value2
+                Length: 6
+                Value: value2
+        Properties (3 items)
+            Length: 47
+            Size: 3
+            Fields: 0x0000000000000025
+        Property: Message ID
+            ID Type: STRINGTYPE (4)
+            Message ID: message-id
+                Length: 10
+                Message ID: message-id
+        Property: To: to
+            Length: 2
+            To: to
+        Property: Correlation ID
+            ID Type: STRINGTYPE (4)
+            Correlation ID: correlation-id
+                Length: 14
+                Correlation ID: correlation-id
+        Application Properties (2 items)
+            Length: 54
+            Size: 2
+        Application Property: app-property1: value1
+            Key: app-property1
+                Length: 13
+                Key: app-property1
+            Value: value1
+                Length: 6
+                Value: value1
+        Application Property: app-property2: value2
+            Key: app-property2
+                Length: 13
+                Key: app-property2
+            Value: value2
+                Length: 6
+                Value: value2
+        Body Kind: VALUE (9)
+        Deferred: 9999
+
+Frame 115: 526 bytes on wire (4208 bits), 526 bytes captured (4208 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::41, Dst: fe80::40
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 175, Ack: 533, Len: 452
+Zilla Frame
+    Frame Type ID: 0x00000002
+    Frame Type: DATA
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00003f58
+    Origin ID: 0x0000000900000025
+    Origin Namespace: example
+    Origin Binding: north_amqp_server
+    Routed ID: 0x0000000900000026
+    Routed Namespace: example
+    Routed Binding: north_fan_server
+    Stream ID: 0x0000000000000040
+    Initial ID: 0x0000000000000041
+    Reply ID: 0x0000000000000040
+    Direction: REP
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x000000000000006d
+    Trace ID: 0x0000000000000042
+    Authorization: 0x0000000000000000
+    Flags: 0x03
+        .... ...1 = FIN: Set (1)
+        .... ..1. = INIT: Set (1)
+        .... .0.. = INCOMPLETE: Not set (0)
+        .... 0... = SKIP: Not set (0)
+    Budget ID: 0x0000000000000000
+    Reserved: 0
+    Progress: 0
+    Progress/Maximum: 0/0
+    Payload
+        Length: 12
+        Payload
+    Extension: amqp
+        Stream Type ID: 0x82c12d11
+        Stream Type: amqp
+        Delivery Tag: delivery-tag
+            Length: 12
+            Delivery Tag: delivery-tag
+        Message Format: 1111
+        Flags: 0x0f
+            .... ...1 = SETTLED: Set (1)
+            .... ..1. = RESUME: Set (1)
+            .... .1.. = ABORTED: Set (1)
+            .... 1... = BATCHABLE: Set (1)
+        Annotations (2 items)
+            Length: 42
+            Size: 2
+        Annotation: annotation1: value1
+            Key Type: NAME (2)
+            Key [NAME]: annotation1
+                Length: 11
+                Key Name: annotation1
+            Value: value1
+                Length: 6
+                Value: value1
+        Annotation: 0x0000000000002222: value2
+            Key Type: ID (1)
+            Key [ID]: 0x0000000000002222
+            Value: value2
+                Length: 6
+                Value: value2
+        Properties (13 items)
+            Length: 140
+            Size: 13
+            Fields: 0x0000000000001fff
+        Property: Message ID
+            ID Type: ULONG (1)
+            Message ID: 0x0000000000000077
+        Property: User ID: user-id
+            Length: 7
+            User ID: user-id
+        Property: To: to
+            Length: 2
+            To: to
+        Property: Subject: subject
+            Length: 7
+            Subject: subject
+        Property: Reply To: reply-to
+            Length: 8
+            Reply To: reply-to
+        Property: Correlation ID
+            ID Type: ULONG (1)
+            Correlation ID: 0x0000000000000088
+        Property: Content Type: content-type
+            Length: 12
+            Content Type: content-type
+        Property: Content Encoding: content-encoding
+            Length: 16
+            Content Encoding: content-encoding
+        Property: Absolute Expiry Time: 123456
+        Property: Creation Time: 654321
+        Property: Group ID: group-id
+            Length: 8
+            Group ID: group-id
+        Property: Group Sequence: 456789
+        Property: Reply To Group ID: reply-to-group-id
+            Length: 17
+            Reply To Group ID: reply-to-group-id
+        Application Properties (2 items)
+            Length: 54
+            Size: 2
+        Application Property: app-property1: value1
+            Key: app-property1
+                Length: 13
+                Key: app-property1
+            Value: value1
+                Length: 6
+                Value: value1
+        Application Property: app-property2: value2
+            Key: app-property2
+                Length: 13
+                Key: app-property2
+            Value: value2
+                Length: 6
+                Value: value2
+        Body Kind: VALUE_STRING32 (2)
+        Deferred: 3333
+
+Frame 116: 498 bytes on wire (3984 bits), 498 bytes captured (3984 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::40, Dst: fe80::41
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 533, Ack: 627, Len: 424
+Zilla Frame
+    Frame Type ID: 0x00000002
+    Frame Type: DATA
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x000040d8
+    Origin ID: 0x0000000900000025
+    Origin Namespace: example
+    Origin Binding: north_amqp_server
+    Routed ID: 0x0000000900000026
+    Routed Namespace: example
+    Routed Binding: north_fan_server
+    Stream ID: 0x0000000000000041
+    Initial ID: 0x0000000000000041
+    Reply ID: 0x0000000000000040
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x000000000000006e
+    Trace ID: 0x0000000000000042
+    Authorization: 0x0000000000000000
+    Flags: 0x03
+        .... ...1 = FIN: Set (1)
+        .... ..1. = INIT: Set (1)
+        .... .0.. = INCOMPLETE: Not set (0)
+        .... 0... = SKIP: Not set (0)
+    Budget ID: 0x0000000000000000
+    Reserved: 0
+    Progress: 0
+    Progress/Maximum: 0/0
+    Payload
+        Length: 12
+        Payload
+    Extension: amqp
+        Stream Type ID: 0x82c12d11
+        Stream Type: amqp
+        Delivery Tag: delivery-tag
+            Length: 12
+            Delivery Tag: delivery-tag
+        Message Format: 2222
+        Flags: 0x0f
+            .... ...1 = SETTLED: Set (1)
+            .... ..1. = RESUME: Set (1)
+            .... .1.. = ABORTED: Set (1)
+            .... 1... = BATCHABLE: Set (1)
+        Annotations (2 items)
+            Length: 42
+            Size: 2
+        Annotation: annotation1: value1
+            Key Type: NAME (2)
+            Key [NAME]: annotation1
+                Length: 11
+                Key Name: annotation1
+            Value: value1
+                Length: 6
+                Value: value1
+        Annotation: 0x0000000000003333: value2
+            Key Type: ID (1)
+            Key [ID]: 0x0000000000003333
+            Value: value2
+                Length: 6
+                Value: value2
+        Properties (7 items)
+            Length: 112
+            Size: 7
+            Fields: 0x00000000000014f1
+        Property: Message ID
+            ID Type: BINARY (3)
+            Message ID: message-id
+                Length: 10
+                Message ID: message-id
+        Property: Reply To: reply-to
+            Length: 8
+            Reply To: reply-to
+        Property: Correlation ID
+            ID Type: BINARY (3)
+            Correlation ID: correlation-id
+                Length: 14
+                Correlation ID: correlation-id
+        Property: Content Type: content-type
+            Length: 12
+            Content Type: content-type
+        Property: Content Encoding: content-encoding
+            Length: 16
+            Content Encoding: content-encoding
+        Property: Group ID: group-id
+            Length: 8
+            Group ID: group-id
+        Property: Reply To Group ID: reply-to-group-id
+            Length: 17
+            Reply To Group ID: reply-to-group-id
+        Application Properties (2 items)
+            Length: 54
+            Size: 2
+        Application Property: app-property1: value1
+            Key: app-property1
+                Length: 13
+                Key: app-property1
+            Value: value1
+                Length: 6
+                Value: value1
+        Application Property: app-property2: value2
+            Key: app-property2
+                Length: 13
+                Key: app-property2
+            Value: value2
+                Length: 6
+                Value: value2
+        Body Kind: VALUE_STRING32 (2)
+        Deferred: 4444
+
+Frame 117: 242 bytes on wire (1936 bits), 242 bytes captured (1936 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::40, Dst: fe80::41
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 957, Ack: 627, Len: 168
+Zilla Frame
+    Frame Type ID: 0x00000005
+    Frame Type: FLUSH
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00004238
+    Origin ID: 0x0000000900000025
+    Origin Namespace: example
+    Origin Binding: north_amqp_server
+    Routed ID: 0x0000000900000026
+    Routed Namespace: example
+    Routed Binding: north_fan_server
+    Stream ID: 0x0000000000000041
+    Initial ID: 0x0000000000000041
+    Reply ID: 0x0000000000000040
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x000000000000006f
+    Trace ID: 0x0000000000000041
+    Authorization: 0x0000000000000000
+    Budget ID: 0x0000000000000000
+    Reserved: 0
+    Extension: amqp
+        Stream Type ID: 0x82c12d11
+        Stream Type: amqp
+        Capabilities: SEND_AND_RECEIVE (3)
+
+Frame 118: 239 bytes on wire (1912 bits), 239 bytes captured (1912 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::40, Dst: fe80::41
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 1125, Ack: 627, Len: 165
+Zilla Frame
+    Frame Type ID: 0x00000004
+    Frame Type: ABORT
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00004298
+    Origin ID: 0x0000000900000025
+    Origin Namespace: example
+    Origin Binding: north_amqp_server
+    Routed ID: 0x0000000900000026
+    Routed Namespace: example
+    Routed Binding: north_fan_server
+    Stream ID: 0x0000000000000041
+    Initial ID: 0x0000000000000041
+    Reply ID: 0x0000000000000040
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000070
+    Trace ID: 0x0000000000000041
+    Authorization: 0x0000000000000000
+    Extension: amqp
+        Stream Type ID: 0x82c12d11
+        Stream Type: amqp
+        Condition: condition
+            Length: 9
+            Condition: condition
 

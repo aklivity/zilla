@@ -711,10 +711,8 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             {
                 retained.doKafkaWindow(traceId, authorization, budgetId, padding, capabilities);
             }
-            else
-            {
-                messages.values().forEach(m -> m.flushDataIfNecessary(traceId, authorization, budgetId));
-            }
+
+            messages.values().forEach(m -> m.flushDataIfNecessary(traceId, authorization, budgetId));
             messages.values().forEach(m -> m.doKafkaWindow(traceId, authorization, budgetId, padding, capabilities));
         }
 
@@ -1106,6 +1104,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         private int replyMax;
         private int replyPad;
         private boolean expiredMessage;
+        private int bufferedDataFlags;
 
         private KafkaMessagesProxy(
             long originId,
@@ -1451,6 +1450,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                 final long filters = kafkaMergedDataEx != null ? kafkaMergedDataEx.fetch().filters() : 0;
                 final KafkaOffsetFW partition = kafkaMergedDataEx != null ? kafkaMergedDataEx.fetch().partition() : null;
                 final long timestamp = kafkaMergedDataEx != null ? kafkaMergedDataEx.fetch().timestamp() : 0;
+                final int deferred = kafkaMergedDataEx != null ? kafkaMergedDataEx.fetch().deferred() : 0;
 
 
                 Flyweight mqttSubscribeDataEx = EMPTY_OCTETS;
@@ -1490,6 +1490,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                         .typeId(mqttTypeId)
                         .subscribe(b ->
                         {
+                            b.deferred(deferred);
                             b.topic(topicName);
                             if (helper.qos != null)
                             {
@@ -1584,6 +1585,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                             .payload(payload)
                             .build();
 
+                        bufferedDataFlags = flags;
                         messageSlotLimit = message.limit();
                         messageSlotReserved += reserved;
                     }
@@ -1606,16 +1608,12 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             if (length > 0)
             {
                 final MutableDirectBuffer dataBuffer = bufferPool.buffer(dataSlot);
-                // TODO: data fragmentation
-                while (messageSlotOffset != length)
-                {
-                    final MqttSubscribeMessageFW message = mqttSubscribeMessageRO.wrap(dataBuffer, messageSlotOffset,
-                        dataBuffer.capacity());
-                    mqtt.doMqttData(traceId, authorization, budgetId, reserved, DATA_FLAG_FIN, message.payload(),
-                        message.extension());
+                final MqttSubscribeMessageFW message = mqttSubscribeMessageRO.wrap(dataBuffer, messageSlotOffset,
+                    dataBuffer.capacity());
+                mqtt.doMqttData(traceId, authorization, budgetId, reserved, bufferedDataFlags, message.payload(),
+                    message.extension());
 
-                    messageSlotOffset += message.sizeof();
-                }
+                messageSlotOffset += message.sizeof();
                 if (messageSlotOffset == messageSlotLimit)
                 {
                     bufferPool.release(dataSlot);
@@ -2186,6 +2184,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                 final long filters = kafkaMergedDataEx != null ? kafkaMergedDataEx.fetch().filters() : 0;
                 final KafkaOffsetFW partition = kafkaMergedDataEx != null ? kafkaMergedDataEx.fetch().partition() : null;
                 final long timestamp = kafkaMergedDataEx != null ? kafkaMergedDataEx.fetch().timestamp() : 0;
+                final int deferred = kafkaMergedDataEx != null ? kafkaMergedDataEx.fetch().deferred() : 0;
 
                 Flyweight mqttSubscribeDataEx = EMPTY_OCTETS;
                 if ((flags & DATA_FLAG_INIT) != 0x00 && key != null)
@@ -2213,6 +2212,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                         .typeId(mqttTypeId)
                         .subscribe(b ->
                         {
+                            b.deferred(deferred);
                             b.topic(topicName);
 
                             if (helper.qos != null)

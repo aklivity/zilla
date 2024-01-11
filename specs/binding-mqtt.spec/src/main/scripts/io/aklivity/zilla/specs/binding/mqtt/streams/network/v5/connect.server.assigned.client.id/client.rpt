@@ -29,9 +29,8 @@ write [0x10 0x0d]               # CONNECT
       [0x00]                    # properties = none
       [0x00 0x00]               # client id
 
-read  [0x20 0x11]               # CONNACK
+read  [0x20 0x0c]               # CONNACK
       [0x00]                    # flags = none
       [0x00]                    # reason code
-      [0x0e]                    # properties
-      [0x27] 66560              # maximum packet size = 66560
+      [0x09]                    # properties
       [0x12 0x00 0x06] "client" # assigned clientId
