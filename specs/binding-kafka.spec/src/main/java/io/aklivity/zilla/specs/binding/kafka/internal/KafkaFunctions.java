@@ -2128,6 +2128,20 @@ public final class KafkaFunctions
                     return this;
                 }
 
+                public KafkaMergedProduceDataExBuilder produceId(
+                    long produceId)
+                {
+                    mergedProduceDataExRW.producerId(produceId);
+                    return this;
+                }
+
+                public KafkaMergedProduceDataExBuilder produceEpoch(
+                    short produceEpoch)
+                {
+                    mergedProduceDataExRW.producerEpoch(produceEpoch);
+                    return this;
+                }
+
 
                 public KafkaMergedProduceDataExBuilder partition(
                     int partitionId,
@@ -3487,14 +3501,14 @@ public final class KafkaFunctions
                 return this;
             }
 
-            private KafkaProduceDataExMatcherBuilder producerId(
+            public KafkaProduceDataExMatcherBuilder producerId(
                 long producerId)
             {
                 this.producerId = producerId;
                 return this;
             }
 
-            private KafkaProduceDataExMatcherBuilder produceEpoch(
+            public KafkaProduceDataExMatcherBuilder produceEpoch(
                 short produceEpoch)
             {
                 this.produceEpoch = produceEpoch;
@@ -3663,6 +3677,8 @@ public final class KafkaFunctions
             {
                 private Integer deferred;
                 private Long timestamp;
+                private Long producerId;
+                private Short produceEpoch;
                 private Long filters;
                 private KafkaOffsetFW.Builder partitionRW;
                 private Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW> progressRW;
@@ -3686,6 +3702,20 @@ public final class KafkaFunctions
                     long timestamp)
                 {
                     this.timestamp = timestamp;
+                    return this;
+                }
+
+                public KafkaMergedFetchDataExMatcherBuilder producerId(
+                    long producerId)
+                {
+                    this.producerId = producerId;
+                    return this;
+                }
+
+                public KafkaMergedFetchDataExMatcherBuilder produceEpoch(
+                    short produceEpoch)
+                {
+                    this.produceEpoch = produceEpoch;
                     return this;
                 }
 
