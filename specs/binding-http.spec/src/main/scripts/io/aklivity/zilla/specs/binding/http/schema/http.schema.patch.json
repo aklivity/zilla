@@ -317,6 +317,49 @@
                                         "content":
                                         {
                                             "$ref": "#/$defs/validator/type"
+                                        },
+                                        "responses":
+                                        {
+                                            "type": "array",
+                                            "items":
+                                            {
+                                                "type": "object",
+                                                "properties":
+                                                {
+                                                    "status":
+                                                    {
+                                                        "oneOf":
+                                                        [
+                                                            {
+                                                                "type": "integer"
+                                                            },
+                                                            {
+                                                                "type": "array",
+                                                                "items":
+                                                                {
+                                                                    "type": "integer"
+                                                                }
+                                                            }
+                                                        ]
+                                                    },
+                                                    "content-type":
+                                                    {
+                                                        "type": "array",
+                                                        "items":
+                                                        {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "content":
+                                                    {
+                                                        "$ref": "#/$defs/validator/type"
+                                                    }
+                                                },
+                                                "required":
+                                                [
+                                                    "content"
+                                                ]
+                                            }
                                         }
                                     },
                                     "anyOf":
@@ -340,6 +383,13 @@
                                             [
                                                 "path",
                                                 "content"
+                                            ]
+                                        },
+                                        {
+                                            "required":
+                                            [
+                                                "path",
+                                                "responses"
                                             ]
                                         }
                                     ],
