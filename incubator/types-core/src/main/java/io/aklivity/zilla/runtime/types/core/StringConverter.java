@@ -37,15 +37,6 @@ public class StringConverter implements Converter
         int length,
         ValueConsumer next)
     {
-        return validateComplete(data, index, length, next);
-    }
-
-    private int validateComplete(
-        DirectBuffer data,
-        int index,
-        int length,
-        ValueConsumer next)
-    {
         int valLength = -1;
 
         if (encoding.validate(data, index, length))

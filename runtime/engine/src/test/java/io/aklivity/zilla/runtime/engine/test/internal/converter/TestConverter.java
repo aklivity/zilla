@@ -64,15 +64,6 @@ public class TestConverter implements Converter
         int length,
         ValueConsumer next)
     {
-        return validateComplete(data, index, length, next);
-    }
-
-    private int validateComplete(
-        DirectBuffer data,
-        int index,
-        int length,
-        ValueConsumer next)
-    {
         boolean valid = length == this.length;
         if (valid)
         {

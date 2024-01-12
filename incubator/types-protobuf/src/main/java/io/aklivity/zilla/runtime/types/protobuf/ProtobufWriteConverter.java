@@ -69,15 +69,6 @@ public class ProtobufWriteConverter extends ProtobufConverter implements Convert
         int length,
         ValueConsumer next)
     {
-        return validateComplete(data, index, length, next);
-    }
-
-    private int validateComplete(
-        DirectBuffer data,
-        int index,
-        int length,
-        ValueConsumer next)
-    {
         int valLength = -1;
 
         int schemaId = catalog != null && catalog.id > 0

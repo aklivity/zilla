@@ -75,15 +75,6 @@ public class AvroReadConverter extends AvroConverter implements Converter
         int length,
         ValueConsumer next)
     {
-        return validateComplete(data, index, length, next);
-    }
-
-    private int validateComplete(
-        DirectBuffer data,
-        int index,
-        int length,
-        ValueConsumer next)
-    {
         return handler.decode(data, index, length, next, this::decodePayload);
     }
 

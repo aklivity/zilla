@@ -34,15 +34,6 @@ public class IntegerConverter implements Converter
         int length,
         ValueConsumer next)
     {
-        return validateComplete(data, index, length, next);
-    }
-
-    private int validateComplete(
-        DirectBuffer data,
-        int index,
-        int length,
-        ValueConsumer next)
-    {
         boolean valid = length == 4;
 
         if (valid)
