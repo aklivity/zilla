@@ -44,10 +44,12 @@ import java.util.Map;
 import java.util.SortedSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
+import java.util.function.ToLongFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -82,6 +84,7 @@ import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2Setting;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2SettingsFW;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2WindowUpdateFW;
 import io.aklivity.zilla.runtime.binding.http.internal.config.HttpBindingConfig;
+import io.aklivity.zilla.runtime.binding.http.internal.config.HttpRequestType;
 import io.aklivity.zilla.runtime.binding.http.internal.config.HttpRouteConfig;
 import io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext;
 import io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackHeaderBlockFW;
@@ -115,6 +118,8 @@ import io.aklivity.zilla.runtime.engine.budget.BudgetCreditor;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
+import io.aklivity.zilla.runtime.engine.validator.Validator;
 
 
 public final class HttpClientFactory implements HttpStreamFactory
@@ -285,6 +290,8 @@ public final class HttpClientFactory implements HttpStreamFactory
     private final HpackHeaderBlockFW headerBlockRO = new HpackHeaderBlockFW();
     private final MutableInteger payloadRemaining = new MutableInteger(0);
 
+    private final BiFunction<ValidatorConfig, ToLongFunction<String>, Validator> createValidator;
+
     private final EnumMap<Http2FrameType, HttpClientDecoder> decodersByFrameType;
     {
         final EnumMap<Http2FrameType, HttpClientDecoder> decodersByFrameType = new EnumMap<>(Http2FrameType.class);
@@ -370,6 +377,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         this.maximumPushPromiseListSize = config.maxPushPromiseListSize();
         this.decodeMax = bufferPool.slotCapacity();
         this.encodeMax = bufferPool.slotCapacity();
+        this.createValidator = context::createValidator;
 
         final byte[] settingsPayload = new byte[12];
         http2SettingsRW.wrap(frameBuffer, 0, frameBuffer.capacity())
@@ -390,7 +398,7 @@ public final class HttpClientFactory implements HttpStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        HttpBindingConfig httpBinding = new HttpBindingConfig(binding);
+        HttpBindingConfig httpBinding = new HttpBindingConfig(binding, createValidator);
         bindings.put(binding.id, httpBinding);
     }
 
@@ -4450,6 +4458,9 @@ public final class HttpClientFactory implements HttpStreamFactory
         private boolean requestChunked;
         private int requestRemaining;
 
+        private final HttpBindingConfig binding;
+        private final Long2ObjectHashMap<HttpRequestType> requestTypes;
+
         private HttpExchange(
             HttpClient client,
             MessageConsumer application,
@@ -4469,7 +4480,9 @@ public final class HttpClientFactory implements HttpStreamFactory
             this.responseId = supplyReplyId.applyAsLong(requestId);
             this.overrides = overrides;
             this.streamId = streamId;
-            localBudget = client.localSettings.initialWindowSize;
+            this.localBudget = client.localSettings.initialWindowSize;
+            this.binding = bindings.get(client.pool.bindingId);
+            this.requestTypes = new Long2ObjectHashMap<>();
         }
 
         private int initialWindow()
@@ -4596,6 +4609,14 @@ public final class HttpClientFactory implements HttpStreamFactory
         {
             final HttpBeginExFW beginEx = extension.get(beginExRO::tryWrap);
             final Array32FW<HttpHeaderFW> headers = beginEx != null ? beginEx.headers() : DEFAULT_HEADERS;
+
+            HttpRequestType httpRequestType = binding.resolveRequestType(beginEx);
+            if (httpRequestType != null)
+            {
+                requestTypes.put(client.initialId, httpRequestType);
+                System.out.println(client.initialId);
+                System.out.println(httpRequestType.path);
+            }
 
             if (client.encoder != HttpEncoder.HTTP_2)
             {

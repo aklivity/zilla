@@ -73,12 +73,6 @@ public final class HttpBindingConfig
     public final List<HttpRequestType> requests;
 
     public HttpBindingConfig(
-        BindingConfig binding)
-    {
-        this(binding, null);
-    }
-
-    public HttpBindingConfig(
         BindingConfig binding,
         BiFunction<ValidatorConfig, ToLongFunction<String>, Validator> createValidator)
     {
@@ -227,6 +221,7 @@ public final class HttpBindingConfig
                     }
                 }
                 Validator content = request.content == null ? null : createValidator.apply(request.content, this.resolveId);
+                // TODO: Ati - responses
                 HttpRequestType requestType = HttpRequestType.builder()
                     .path(request.path)
                     .method(request.method)
