@@ -28,9 +28,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
-import io.aklivity.zilla.runtime.converter.core.config.IntegerConverterConfig;
-import io.aklivity.zilla.runtime.converter.core.config.StringConverterConfig;
 import io.aklivity.zilla.runtime.engine.config.ConverterConfig;
+import io.aklivity.zilla.runtime.types.core.config.IntegerConverterConfig;
+import io.aklivity.zilla.runtime.types.core.config.StringConverterConfig;
 
 public abstract class ConfigGenerator
 {
