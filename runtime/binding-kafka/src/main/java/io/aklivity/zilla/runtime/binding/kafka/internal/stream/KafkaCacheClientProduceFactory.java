@@ -83,8 +83,7 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.budget.BudgetCreditor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
-import io.aklivity.zilla.runtime.engine.validator.FragmentValidator;
-import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
+import io.aklivity.zilla.runtime.engine.converter.Converter;
 
 public final class KafkaCacheClientProduceFactory implements BindingHandler
 {
@@ -258,11 +257,11 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 final KafkaCache cache = supplyCache.apply(cacheName);
                 final KafkaCacheTopic topic = cache.supplyTopic(topicName);
                 final KafkaCachePartition partition = topic.supplyProducePartition(partitionId, localIndex);
-                final ValueValidator validateKey = binding.resolveValueWriter(topicName);
-                final FragmentValidator validateValue = binding.resolveFragmentWriter(topicName);
+                final Converter convertKey = binding.resolveKeyWriter(topicName);
+                final Converter convertValue = binding.resolveValueWriter(topicName);
                 final KafkaCacheClientProduceFan newFan =
                         new KafkaCacheClientProduceFan(routedId, resolvedId, authorization, budget,
-                            partition, cacheRoute, topicName, validateKey, validateValue);
+                            partition, cacheRoute, topicName, convertKey, convertValue);
 
                 cacheRoute.clientProduceFansByTopicPartition.put(partitionKey, newFan);
                 fan = newFan;
@@ -497,8 +496,8 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         private final long routedId;
         private final long authorization;
         private final int partitionId;
-        private final ValueValidator validateKey;
-        private final FragmentValidator validateValue;
+        private final Converter convertKey;
+        private final Converter convertValue;
 
         private long initialId;
         private long replyId;
@@ -535,8 +534,8 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             KafkaCachePartition partition,
             KafkaCacheRoute cacheRoute,
             String topicName,
-            ValueValidator validateKey,
-            FragmentValidator validateValue)
+            Converter convertKey,
+            Converter convertValue)
         {
             this.originId = originId;
             this.routedId = routedId;
@@ -546,8 +545,8 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             this.budget = budget;
             this.cacheRoute = cacheRoute;
             this.topicName = topicName;
-            this.validateKey = validateKey;
-            this.validateValue = validateValue;
+            this.convertKey = convertKey;
+            this.convertValue = convertValue;
             this.members = new Long2ObjectHashMap<>();
             this.defaultOffset = KafkaOffsetType.LIVE;
             this.cursor = cursorFactory.newCursor(
@@ -709,7 +708,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                     final long keyHash = partition.computeKeyHash(key);
                     if (partition.writeProduceEntryStart(partitionOffset, stream.segment, stream.entryMark, stream.valueMark,
                         stream.valueLimit, timestamp, stream.initialId, sequence, ackMode, key, keyHash, valueLength,
-                        headers, trailersSizeMax, valueFragment, validateKey, validateValue) == -1)
+                        headers, trailersSizeMax, valueFragment, convertKey, convertValue) == -1)
                     {
                         error = ERROR_INVALID_RECORD;
                         break init;
@@ -727,7 +726,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             {
                 if (partition.writeProduceEntryContinue(flags, stream.segment,
                         stream.entryMark, stream.valueMark, stream.valueLimit,
-                        valueFragment, validateValue) == -1)
+                        valueFragment, convertValue) == -1)
                 {
                     error = ERROR_INVALID_RECORD;
                 }
@@ -789,7 +788,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 partition.writeProduceEntryStart(partitionOffset, stream.segment, stream.entryMark, stream.valueMark,
                     stream.valueLimit, now().toEpochMilli(), stream.initialId, PRODUCE_FLUSH_SEQUENCE,
                     KafkaAckMode.LEADER_ONLY, EMPTY_KEY, keyHash, 0, EMPTY_TRAILERS,
-                    trailersSizeMax, EMPTY_OCTETS, validateKey, validateValue);
+                    trailersSizeMax, EMPTY_OCTETS, convertKey, convertValue);
                 stream.partitionOffset = partitionOffset;
                 partitionOffset++;
 

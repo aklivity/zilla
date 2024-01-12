@@ -87,25 +87,25 @@
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
-      <artifactId>validator-avro</artifactId>
+      <artifactId>types-avro</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
-      <artifactId>validator-core</artifactId>
+      <artifactId>types-core</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
-      <artifactId>validator-json</artifactId>
+      <artifactId>types-json</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
-      <artifactId>validator-protobuf</artifactId>
+      <artifactId>types-protobuf</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>

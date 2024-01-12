@@ -53,13 +53,13 @@ import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.view.ServerV
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ConfigWriter;
+import io.aklivity.zilla.runtime.engine.config.ConverterConfig;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 import io.aklivity.zilla.runtime.guard.jwt.config.JwtOptionsConfig;
-import io.aklivity.zilla.runtime.validator.json.config.JsonValidatorConfig;
+import io.aklivity.zilla.runtime.types.json.config.JsonConverterConfig;
 import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig;
 
 public class AsyncApiHttpProxyConfigGenerator extends AsyncApiConfigGenerator
@@ -355,7 +355,7 @@ public class AsyncApiHttpProxyConfigGenerator extends AsyncApiConfigGenerator
             if (hasJsonContentType())
             {
                 request.
-                    content(JsonValidatorConfig::builder)
+                    content(JsonConverterConfig::builder)
                         .catalog()
                             .name(INLINE_CATALOG_NAME)
                             .inject(catalog -> injectSchemas(catalog, messages))
@@ -394,13 +394,13 @@ public class AsyncApiHttpProxyConfigGenerator extends AsyncApiConfigGenerator
                 Parameter parameter = parameters.get(name);
                 if (parameter.schema != null && parameter.schema.type != null)
                 {
-                    ValidatorConfig validator = validators.get(parameter.schema.type);
-                    if (validator != null)
+                    ConverterConfig converter = converters.get(parameter.schema.type);
+                    if (converter != null)
                     {
                         request
                             .pathParam()
                                 .name(name)
-                                .validator(validator)
+                                .converter(converter)
                                 .build();
                     }
                 }

@@ -38,7 +38,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.config.MqttCredentialsConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttPatternConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttTopicConfig;
-import io.aklivity.zilla.runtime.engine.test.internal.validator.config.TestValidatorConfig;
+import io.aklivity.zilla.runtime.engine.test.internal.converter.config.TestConverterConfig;
 
 public class MqttOptionsConfigAdapterTest
 {
@@ -95,7 +95,7 @@ public class MqttOptionsConfigAdapterTest
 
         MqttTopicConfig topic = options.topics.get(0);
         assertThat(topic.name, equalTo("sensor/one"));
-        assertThat(topic.content, instanceOf(TestValidatorConfig.class));
+        assertThat(topic.content, instanceOf(TestConverterConfig.class));
         assertThat(topic.content.type, equalTo("test"));
     }
 
@@ -104,7 +104,7 @@ public class MqttOptionsConfigAdapterTest
     {
         List<MqttTopicConfig> topics = new ArrayList<>();
         topics.add(new MqttTopicConfig("sensor/one",
-            TestValidatorConfig.builder()
+            TestConverterConfig.builder()
                 .length(0)
                 .build()));
 

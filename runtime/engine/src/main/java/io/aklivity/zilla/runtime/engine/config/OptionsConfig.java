@@ -20,7 +20,7 @@ import java.util.List;
 
 public class OptionsConfig
 {
-    public final List<ValidatorConfig> validators;
+    public final List<ConverterConfig> converters;
 
     public OptionsConfig()
     {
@@ -28,8 +28,8 @@ public class OptionsConfig
     }
 
     public OptionsConfig(
-        List<ValidatorConfig> validators)
+        List<ConverterConfig> converters)
     {
-        this.validators = validators;
+        this.converters = converters;
     }
 }

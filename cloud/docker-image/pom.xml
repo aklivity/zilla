@@ -344,25 +344,25 @@
         </dependency>
         <dependency>
           <groupId>${project.groupId}</groupId>
-          <artifactId>validator-avro</artifactId>
+          <artifactId>types-avro</artifactId>
           <version>${project.version}</version>
           <scope>runtime</scope>
         </dependency>
         <dependency>
           <groupId>${project.groupId}</groupId>
-          <artifactId>validator-core</artifactId>
+          <artifactId>types-core</artifactId>
           <version>${project.version}</version>
           <scope>runtime</scope>
         </dependency>
         <dependency>
           <groupId>${project.groupId}</groupId>
-          <artifactId>validator-json</artifactId>
+          <artifactId>types-json</artifactId>
           <version>${project.version}</version>
           <scope>runtime</scope>
         </dependency>
         <dependency>
           <groupId>${project.groupId}</groupId>
-          <artifactId>validator-protobuf</artifactId>
+          <artifactId>types-protobuf</artifactId>
           <version>${project.version}</version>
           <scope>runtime</scope>
         </dependency>

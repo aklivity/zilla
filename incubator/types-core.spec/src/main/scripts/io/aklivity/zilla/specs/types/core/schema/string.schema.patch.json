@@ -1,0 +1,44 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/converter/types/enum/-",
+        "value": "string"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/converter/allOf/-",
+        "value":
+        {
+            "if":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "string"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "string"
+                    },
+                    "encoding":
+                    {
+                        "type": "string",
+                        "enum":
+                        [
+                            "utf_8",
+                            "utf_16"
+                        ]
+                    }
+                },
+                "additionalProperties": false
+            }
+        }
+    }
+]

@@ -88,8 +88,7 @@ import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
-import io.aklivity.zilla.runtime.engine.validator.FragmentValidator;
-import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
+import io.aklivity.zilla.runtime.engine.converter.Converter;
 
 public final class KafkaCacheServerFetchFactory implements BindingHandler
 {
@@ -234,11 +233,11 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 final KafkaCache cache = supplyCache.apply(cacheName);
                 final KafkaCacheTopic cacheTopic = cache.supplyTopic(topicName);
                 final KafkaCachePartition partition = cacheTopic.supplyFetchPartition(partitionId);
-                final ValueValidator validateKey = binding.resolveValueReader(topicName);
-                final FragmentValidator validateValue = binding.resolveFragmentReader(topicName);
+                final Converter convertKey = binding.resolveKeyReader(topicName);
+                final Converter convertValue = binding.resolveValueReader(topicName);
                 final KafkaCacheServerFetchFanout newFanout =
                     new KafkaCacheServerFetchFanout(routedId, resolvedId, authorization,
-                        affinity, partition, routeDeltaType, defaultOffset, validateKey, validateValue);
+                        affinity, partition, routeDeltaType, defaultOffset, convertKey, convertValue);
 
                 cacheRoute.serverFetchFanoutsByTopicPartition.put(partitionKey, newFanout);
                 fanout = newFanout;
@@ -475,8 +474,8 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
         private final KafkaOffsetType defaultOffset;
         private final long retentionMillisMax;
         private final List<KafkaCacheServerFetchStream> members;
-        private final ValueValidator validateKey;
-        private final FragmentValidator validateValue;
+        private final Converter convertKey;
+        private final Converter convertValue;
         private final MutableInteger entryMark;
         private final MutableInteger valueMark;
 
@@ -513,8 +512,8 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
             KafkaCachePartition partition,
             KafkaDeltaType deltaType,
             KafkaOffsetType defaultOffset,
-            ValueValidator validateKey,
-            FragmentValidator validateValue)
+            Converter convertKey,
+            Converter convertValue)
         {
             this.originId = originId;
             this.routedId = routedId;
@@ -525,8 +524,8 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
             this.retentionMillisMax = defaultOffset == LIVE ? SECONDS.toMillis(30) : Long.MAX_VALUE;
             this.members = new ArrayList<>();
             this.leaderId = leaderId;
-            this.validateKey = validateKey;
-            this.validateValue = validateValue;
+            this.convertKey = convertKey;
+            this.convertValue = convertValue;
             this.entryMark = new MutableInteger(0);
             this.valueMark = new MutableInteger(0);
         }
@@ -774,7 +773,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
 
                 partition.writeEntry(partitionOffset, entryMark, valueMark, 0L, producerId,
                         EMPTY_KEY, EMPTY_HEADERS, EMPTY_OCTETS, null,
-                        entryFlags, KafkaDeltaType.NONE, validateKey, validateValue);
+                        entryFlags, KafkaDeltaType.NONE, convertKey, convertValue);
 
                 if (result == KafkaTransactionResult.ABORT)
                 {
@@ -878,12 +877,12 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 final long keyHash = partition.computeKeyHash(key);
                 final KafkaCacheEntryFW ancestor = findAndMarkAncestor(key, nextHead, (int) keyHash, partitionOffset);
                 partition.writeEntryStart(partitionOffset, entryMark, valueMark, timestamp, producerId,
-                        key, keyHash, valueLength, ancestor, entryFlags, deltaType, valueFragment, validateKey, validateValue);
+                        key, keyHash, valueLength, ancestor, entryFlags, deltaType, valueFragment, convertKey, convertValue);
             }
 
             if (valueFragment != null)
             {
-                partition.writeEntryContinue(flags, entryMark, valueMark, valueFragment, validateValue);
+                partition.writeEntryContinue(flags, entryMark, valueMark, valueFragment, convertValue);
             }
 
             if ((flags & FLAGS_FIN) != 0x00)

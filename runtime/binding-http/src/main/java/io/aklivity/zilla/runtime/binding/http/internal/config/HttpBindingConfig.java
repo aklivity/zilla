@@ -47,10 +47,10 @@ import io.aklivity.zilla.runtime.binding.http.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.ConverterConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
-import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
-import io.aklivity.zilla.runtime.engine.validator.ValueValidator;
-import io.aklivity.zilla.runtime.engine.validator.function.ValueConsumer;
+import io.aklivity.zilla.runtime.engine.converter.Converter;
+import io.aklivity.zilla.runtime.engine.converter.function.ValueConsumer;
 
 public final class HttpBindingConfig
 {
@@ -80,7 +80,7 @@ public final class HttpBindingConfig
 
     public HttpBindingConfig(
         BindingConfig binding,
-        Function<ValidatorConfig, ValueValidator> createValidator)
+        Function<ConverterConfig, Converter> createConverter)
     {
         this.id = binding.id;
         this.name = binding.name;
@@ -90,7 +90,7 @@ public final class HttpBindingConfig
         this.resolveId = binding.resolveId;
         this.credentials = options != null && options.authorization != null ?
                 asAccessor(options.authorization.credentials) : DEFAULT_CREDENTIALS;
-        this.requests = createValidator == null ? null : createRequestTypes(createValidator);
+        this.requests = createConverter == null ? null : createRequestTypes(createConverter);
     }
 
     public HttpRouteConfig resolve(
@@ -195,38 +195,38 @@ public final class HttpBindingConfig
     }
 
     private List<HttpRequestType> createRequestTypes(
-        Function<ValidatorConfig, ValueValidator> createValidator)
+        Function<ConverterConfig, Converter> createConverter)
     {
         List<HttpRequestType> requestTypes = new LinkedList<>();
         if (this.options != null && this.options.requests != null)
         {
             for (HttpRequestConfig request : this.options.requests)
             {
-                Map<String8FW, ValueValidator> headers = new HashMap<>();
+                Map<String8FW, Converter> headers = new HashMap<>();
                 if (request.headers != null)
                 {
                     for (HttpParamConfig header : request.headers)
                     {
-                        headers.put(new String8FW(header.name), createValidator.apply(header.validator));
+                        headers.put(new String8FW(header.name), createConverter.apply(header.converter));
                     }
                 }
-                Map<String, ValueValidator> pathParams = new Object2ObjectHashMap<>();
+                Map<String, Converter> pathParams = new Object2ObjectHashMap<>();
                 if (request.pathParams != null)
                 {
                     for (HttpParamConfig pathParam : request.pathParams)
                     {
-                        pathParams.put(pathParam.name, createValidator.apply(pathParam.validator));
+                        pathParams.put(pathParam.name, createConverter.apply(pathParam.converter));
                     }
                 }
-                Map<String, ValueValidator> queryParams = new TreeMap<>(QUERY_STRING_COMPARATOR);
+                Map<String, Converter> queryParams = new TreeMap<>(QUERY_STRING_COMPARATOR);
                 if (request.queryParams != null)
                 {
                     for (HttpParamConfig queryParam : request.queryParams)
                     {
-                        queryParams.put(queryParam.name, createValidator.apply(queryParam.validator));
+                        queryParams.put(queryParam.name, createConverter.apply(queryParam.converter));
                     }
                 }
-                ValueValidator content = request.content == null ? null : createValidator.apply(request.content);
+                Converter content = request.content == null ? null : createConverter.apply(request.content);
                 HttpRequestType requestType = HttpRequestType.builder()
                     .path(request.path)
                     .method(request.method)
@@ -308,11 +308,11 @@ public final class HttpBindingConfig
             {
                 if (valid.value)
                 {
-                    ValueValidator validator = requestType.headers.get(header.name());
-                    if (validator != null)
+                    Converter converter = requestType.headers.get(header.name());
+                    if (converter != null)
                     {
                         String16FW value = header.value();
-                        valid.value &= validator.validate(value.value(), value.offset(), value.length(), ValueConsumer.NOP) != -1;
+                        valid.value &= converter.convert(value.value(), value.offset(), value.length(), ValueConsumer.NOP) != -1;
                     }
                 }
             });
@@ -335,8 +335,8 @@ public final class HttpBindingConfig
             if (value != null)
             {
                 String8FW value0 = new String8FW(value);
-                ValueValidator validator = requestType.pathParams.get(name);
-                if (validator.validate(value0.value(), value0.offset(), value0.length(), ValueConsumer.NOP) == -1)
+                Converter converter = requestType.pathParams.get(name);
+                if (converter.convert(value0.value(), value0.offset(), value0.length(), ValueConsumer.NOP) == -1)
                 {
                     valid = false;
                     break;
@@ -355,11 +355,11 @@ public final class HttpBindingConfig
         while (valid && matcher.find())
         {
             String name = matcher.group(1);
-            ValueValidator validator = requestType.queryParams.get(name);
-            if (validator != null)
+            Converter converter = requestType.queryParams.get(name);
+            if (converter != null)
             {
                 String8FW value = new String8FW(matcher.group(2));
-                valid &= validator.validate(value.value(), value.offset(), value.length(), ValueConsumer.NOP) != -1;
+                valid &= converter.convert(value.value(), value.offset(), value.length(), ValueConsumer.NOP) != -1;
             }
         }
         return valid;
@@ -373,7 +373,7 @@ public final class HttpBindingConfig
     {
         return requestType == null ||
             requestType.content == null ||
-            requestType.content.validate(buffer, index, length, ValueConsumer.NOP) != -1;
+            requestType.content.convert(buffer, index, length, ValueConsumer.NOP) != -1;
     }
 
     private static Function<Function<String, String>, String> orElseIfNull(

@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
+import io.aklivity.zilla.runtime.engine.config.ConverterConfig;
 
 public class HttpRequestConfigBuilder<T> extends ConfigBuilder<T, HttpRequestConfigBuilder<T>>
 {
@@ -32,7 +32,7 @@ public class HttpRequestConfigBuilder<T> extends ConfigBuilder<T, HttpRequestCon
     private List<HttpParamConfig> headers;
     private List<HttpParamConfig> pathParams;
     private List<HttpParamConfig> queryParams;
-    private ValidatorConfig content;
+    private ConverterConfig content;
 
     HttpRequestConfigBuilder(
         Function<HttpRequestConfig, T> mapper)
@@ -149,14 +149,14 @@ public class HttpRequestConfigBuilder<T> extends ConfigBuilder<T, HttpRequestCon
     }
 
     public HttpRequestConfigBuilder<T> content(
-        ValidatorConfig content)
+        ConverterConfig content)
     {
         this.content = content;
         return this;
     }
 
     public <C extends ConfigBuilder<HttpRequestConfigBuilder<T>, C>> C content(
-        Function<Function<ValidatorConfig, HttpRequestConfigBuilder<T>>, C> content)
+        Function<Function<ConverterConfig, HttpRequestConfigBuilder<T>>, C> content)
     {
         return content.apply(this::content);
     }
