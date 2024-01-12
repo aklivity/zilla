@@ -30,6 +30,7 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpParamConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfig;
+import io.aklivity.zilla.runtime.binding.http.config.HttpResponseConfig;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfigAdapter;
 
@@ -43,8 +44,10 @@ public class HttpRequestConfigAdapter implements JsonbAdapter<HttpRequestConfig,
     private static final String PATH_PARAMS_NAME = "path";
     private static final String QUERY_PARAMS_NAME = "query";
     private static final String CONTENT_NAME = "content";
+    private static final String RESPONSES_NAME = "responses";
 
     private final ValidatorConfigAdapter validator  = new ValidatorConfigAdapter();
+    private final HttpResponseConfigAdapter response = new HttpResponseConfigAdapter();
 
     @Override
     public JsonObject adaptToJson(
@@ -105,6 +108,14 @@ public class HttpRequestConfigAdapter implements JsonbAdapter<HttpRequestConfig,
             validator.adaptType(request.content.type);
             JsonValue content = validator.adaptToJson(request.content);
             object.add(CONTENT_NAME, content);
+        }
+        if (request.responses != null)
+        {
+            JsonArrayBuilder responses = Json.createArrayBuilder();
+            request.responses.stream()
+                .map(response::adaptToJson)
+                .forEach(responses::add);
+            object.add(RESPONSES_NAME, responses);
         }
         return object.build();
     }
@@ -182,6 +193,15 @@ public class HttpRequestConfigAdapter implements JsonbAdapter<HttpRequestConfig,
                 }
             }
         }
-        return new HttpRequestConfig(path, method, contentType, headers, pathParams, queryParams, content);
+        List<HttpResponseConfig> responses = null;
+        if (object.containsKey(RESPONSES_NAME))
+        {
+            responses = object.getJsonArray(RESPONSES_NAME).stream()
+                .map(JsonObject.class::cast)
+                .map(response::adaptFromJson)
+                .collect(Collectors.toList());
+        }
+        return new HttpRequestConfig(path, method, contentType, headers, pathParams, queryParams, content,
+            responses);
     }
 }

@@ -70,7 +70,26 @@ public class HttpRequestConfigAdapterTest
                         "\"index\": \"test\"" +
                     "}," +
                 "}," +
-                "\"content\": \"test\"" +
+                "\"content\": \"test\"," +
+                "\"responses\":" +
+                "[" +
+                    "{" +
+                        "\"status\": 200," +
+                        "\"content-type\":" +
+                        "[" +
+                            "\"application/json\"" +
+                        "]," +
+                        "\"content\": \"test\"" +
+                    "}," +
+                    "{" +
+                        "\"status\":" +
+                        "[" +
+                            "401, " +
+                            "404 " +
+                        "]," +
+                        "\"content\": \"test\"" +
+                    "}" +
+                "]" +
              "}";
 
         // WHEN
@@ -91,6 +110,12 @@ public class HttpRequestConfigAdapterTest
         assertThat(request.queryParams.get(0).validator.type, equalTo("test"));
         assertThat(request.content, instanceOf(TestValidatorConfig.class));
         assertThat(request.content.type, equalTo("test"));
+        assertThat(request.responses.get(0).status.get(0), equalTo(200));
+        assertThat(request.responses.get(0).contentType.get(0), equalTo("application/json"));
+        assertThat(request.responses.get(0).content.type, equalTo("test"));
+        assertThat(request.responses.get(1).status.get(0), equalTo(401));
+        assertThat(request.responses.get(1).status.get(1), equalTo(404));
+        assertThat(request.responses.get(1).content.type, equalTo("test"));
     }
 
     @Test
@@ -120,7 +145,26 @@ public class HttpRequestConfigAdapterTest
                         "\"index\":\"test\"" +
                     "}" +
                 "}," +
-                "\"content\":\"test\"" +
+                "\"content\":\"test\"," +
+                "\"responses\":" +
+                "[" +
+                    "{" +
+                        "\"status\":200," +
+                        "\"content-type\":" +
+                        "[" +
+                            "\"application/json\"" +
+                        "]," +
+                        "\"content\":\"test\"" +
+                    "}," +
+                    "{" +
+                        "\"status\":" +
+                        "[" +
+                            "401," +
+                            "404" +
+                        "]," +
+                        "\"content\":\"test\"" +
+                    "}" +
+                "]" +
             "}";
         HttpRequestConfig request = HttpRequestConfig.builder()
             .path("/hello")
@@ -142,6 +186,18 @@ public class HttpRequestConfigAdapterTest
                     .build()
                 .build()
             .content(TestValidatorConfig::builder)
+                .build()
+            .response()
+                .status(200)
+                .contentType("application/json")
+                .content(TestValidatorConfig::builder)
+                    .build()
+                .build()
+            .response()
+                .status(401)
+                .status(404)
+                .content(TestValidatorConfig::builder)
+                    .build()
                 .build()
             .build();
 

@@ -33,20 +33,23 @@ public final class HttpRequestType
     private static final Pattern QUERY_PATTERN = Pattern.compile(QUERY_REGEX);
     private static final String EMPTY_INPUT = "";
 
-    // selectors
+    // request selectors
     public final String path;
     public final HttpRequestConfig.Method method;
     public final List<String> contentType;
 
-    // matchers
+    // request matchers
     public final Matcher pathMatcher;
     public final Matcher queryMatcher;
 
-    // validators
+    // request validators
     public final Map<String8FW, Validator> headers;
     public final Map<String, Validator> pathParams;
     public final Map<String, Validator> queryParams;
     public final Validator content;
+
+    // responses
+    //public final List<HttpResponseConfig> responses;
 
     private HttpRequestType(
         String path,
