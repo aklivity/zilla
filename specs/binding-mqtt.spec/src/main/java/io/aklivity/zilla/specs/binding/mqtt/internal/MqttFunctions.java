@@ -57,6 +57,7 @@ import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttOffsetMeta
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttOffsetStateFlags;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttPublishBeginExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttPublishDataExFW;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttPublishFlushExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttResetExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttServerCapabilities;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttSessionBeginExFW;
@@ -680,11 +681,49 @@ public final class MqttFunctions
             return this;
         }
 
+        public MqttPublishFlushExBuilder publish()
+        {
+            flushExRW.kind(MqttExtensionKind.PUBLISH.value());
+
+            return new MqttPublishFlushExBuilder();
+        }
+
         public MqttSubscribeFlushExBuilder subscribe()
         {
             flushExRW.kind(MqttExtensionKind.SUBSCRIBE.value());
 
             return new MqttSubscribeFlushExBuilder();
+        }
+
+        public final class MqttPublishFlushExBuilder
+        {
+            private final MqttPublishFlushExFW.Builder publishFlushExRW = new MqttPublishFlushExFW.Builder();
+
+            private MqttPublishFlushExBuilder()
+            {
+                publishFlushExRW.wrap(writeBuffer, MqttFlushExFW.FIELD_OFFSET_PUBLISH, writeBuffer.capacity());
+            }
+
+            public MqttPublishFlushExBuilder packetId(
+                int packetId)
+            {
+                publishFlushExRW.packetId(packetId);
+                return this;
+            }
+
+            public MqttPublishFlushExBuilder state(
+                String state)
+            {
+                publishFlushExRW.state(MqttOffsetStateFlags.valueOf(state).ordinal());
+                return this;
+            }
+
+            public MqttFlushExBuilder build()
+            {
+                final MqttPublishFlushExFW publishFlushEx = publishFlushExRW.build();
+                flushExRO.wrap(writeBuffer, 0, publishFlushEx.limit());
+                return MqttFlushExBuilder.this;
+            }
         }
 
         public final class MqttSubscribeFlushExBuilder
@@ -693,7 +732,7 @@ public final class MqttFunctions
 
             private MqttSubscribeFlushExBuilder()
             {
-                subscribeFlushExRW.wrap(writeBuffer, MqttBeginExFW.FIELD_OFFSET_PUBLISH, writeBuffer.capacity());
+                subscribeFlushExRW.wrap(writeBuffer, MqttFlushExFW.FIELD_OFFSET_SUBSCRIBE, writeBuffer.capacity());
             }
 
             public MqttSubscribeFlushExBuilder packetId(
@@ -874,6 +913,23 @@ public final class MqttFunctions
             int packetId)
         {
             offsetMetadataRW.metadataItem(f -> f.packetId(packetId));
+            return this;
+        }
+
+        public MqttOffsetMetadataBuilder metadata(
+            long producerId,
+            short producerEpoch)
+        {
+            offsetMetadataRW.metadataItem(f -> f.producerId(producerId).producerEpoch(producerEpoch));
+            return this;
+        }
+
+        public MqttOffsetMetadataBuilder metadata(
+            long producerId,
+            short producerEpoch,
+            int packetId)
+        {
+            offsetMetadataRW.metadataItem(f -> f.producerId(producerId).producerEpoch(producerEpoch).packetId(packetId));
             return this;
         }
 

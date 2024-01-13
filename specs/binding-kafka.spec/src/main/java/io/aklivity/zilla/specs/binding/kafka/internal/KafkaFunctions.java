@@ -2548,6 +2548,18 @@ public final class KafkaFunctions
             public KafkaOffsetFetchDataExBuilder partition(
                 int partitionId,
                 long partitionOffset,
+                int leaderEpoch)
+            {
+                offsetFetchDataExRW.partitionsItem(o -> o
+                    .partitionId(partitionId)
+                    .partitionOffset(partitionOffset)
+                    .leaderEpoch(leaderEpoch));
+                return this;
+            }
+
+            public KafkaOffsetFetchDataExBuilder partition(
+                int partitionId,
+                long partitionOffset,
                 int leaderEpoch,
                 String metadata)
             {
@@ -4026,6 +4038,8 @@ public final class KafkaFunctions
                 private Integer deferred;
                 private Long timestamp;
                 private Long filters;
+                private Long producerId;
+                private Short producerEpoch;
                 private KafkaOffsetFW.Builder partitionRW;
                 private Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW> progressRW;
                 private KafkaDeltaFW.Builder deltaRW;
@@ -4140,6 +4154,24 @@ public final class KafkaFunctions
                         hashKeyRW.length(hashKeyRO.capacity())
                             .value(hashKeyRO, 0, hashKeyRO.capacity());
                     }
+
+                    return this;
+                }
+
+                public KafkaMergedProduceDataExMatcherBuilder producerId(
+                    long producerId)
+                {
+                    assert this.producerId == null;
+                    this.producerId = producerId;
+
+                    return this;
+                }
+
+                public KafkaMergedProduceDataExMatcherBuilder producerEpoch(
+                    short producerEpoch)
+                {
+                    assert this.producerEpoch == null;
+                    this.producerEpoch = producerEpoch;
 
                     return this;
                 }
@@ -4319,6 +4351,8 @@ public final class KafkaFunctions
                         matchDeferred(produce) &&
                         matchTimestamp(produce) &&
                         matchKey(produce) &&
+                        matchProducerId(produce) &&
+                        matchProducerEpoch(produce) &&
                         matchHashKey(produce) &&
                         matchHeaders(produce);
                 }
@@ -4351,6 +4385,18 @@ public final class KafkaFunctions
                     final KafkaMergedProduceDataExFW mergedProduceDataEx)
                 {
                     return hashKeyRW == null || hashKeyRW.build().equals(mergedProduceDataEx.hashKey());
+                }
+
+                private boolean matchProducerId(
+                    final KafkaMergedProduceDataExFW mergedProduceDataEx)
+                {
+                    return producerId == null || producerId.equals(mergedProduceDataEx.producerId());
+                }
+
+                private boolean matchProducerEpoch(
+                    final KafkaMergedProduceDataExFW mergedProduceDataEx)
+                {
+                    return producerEpoch == null || producerEpoch.equals(mergedProduceDataEx.producerEpoch());
                 }
 
                 private boolean matchHeaders(

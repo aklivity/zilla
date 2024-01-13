@@ -1196,6 +1196,25 @@ public class MqttFunctionsTest
     }
 
     @Test
+    public void shouldEncodeMqttPublishFlushExOffsetCommit()
+    {
+        final byte[] array = MqttFunctions.flushEx()
+            .typeId(0)
+            .publish()
+                .packetId(1)
+                .state("INCOMPLETE")
+                .build()
+            .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(array);
+        MqttFlushExFW mqttFlushEx = new MqttFlushExFW().wrap(buffer, 0, buffer.capacity());
+
+        assertEquals(0, mqttFlushEx.typeId());
+        assertEquals(1, mqttFlushEx.publish().packetId());
+        assertEquals(1, mqttFlushEx.publish().state());
+    }
+
+    @Test
     public void shouldEncodeMqttSubscribeFlushExChangeFilter()
     {
         final byte[] array = MqttFunctions.flushEx()
@@ -1288,6 +1307,29 @@ public class MqttFunctionsTest
         assertNotNull(offsetMetadata.metadata()
             .matchFirst(m ->
                 2 == m.packetId()));
+    }
+
+    @Test
+    public void shouldEncodeMqttOffsetMetadataWithProducerId()
+    {
+        final String state = MqttFunctions.metadata()
+            .metadata(1L, (short) 1, 2)
+            .metadata(2L, (short) 1)
+            .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(BitUtil.fromHex(state));
+        MqttOffsetMetadataFW offsetMetadata = new MqttOffsetMetadataFW().wrap(buffer, 0, buffer.capacity());
+
+        assertNotNull(offsetMetadata.metadata()
+            .matchFirst(m ->
+                    1 == m.producerId() &&
+                    1 == m.producerEpoch() &&
+                    2 == m.packetId()));
+
+        assertNotNull(offsetMetadata.metadata()
+            .matchFirst(m ->
+                2 == m.producerId() &&
+                    1 == m.producerEpoch()));
     }
 
     @Test

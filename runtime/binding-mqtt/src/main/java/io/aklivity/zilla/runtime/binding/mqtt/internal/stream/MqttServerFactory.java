@@ -476,6 +476,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final Supplier<String16FW> supplyClientId;
     private final MqttValidator validator;
     private final CharsetDecoder utf8Decoder;
+    //TODO: remove
     private final ConcurrentMap<String, IntArrayList> unreleasedPacketIdsByClientId;
 
     private Map<String, Validator> validators;
@@ -2466,9 +2467,11 @@ public final class MqttServerFactory implements MqttStreamFactory
         private int decodableRemainingBytes;
         private final Int2ObjectHashMap<MqttSubscribeStream> qos1Subscribes;
         private final Int2ObjectHashMap<MqttSubscribeStream> qos2Subscribes;
+        //TODO Long2LongHashMap
         private final LinkedHashMap<Long, Integer> unAckedReceivedQos1PacketIds;
         private final LinkedHashMap<Long, Integer> unAckedReceivedQos2PacketIds;
 
+        //TODO this will come from session reply begin
         private IntArrayList unreleasedPacketIds;
 
         private int version = MQTT_PROTOCOL_VERSION_5;

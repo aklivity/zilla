@@ -12,13 +12,40 @@
 # WARRANTIES OF ANY KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations under the License.
 #
-
 connect "zilla://streams/mqtt0"
          option zilla:window 8192
          option zilla:transmission "duplex"
 
-# qos = 0 -> ackMode = NONE, qos = 1 -> ackMode = IN_SYNC_REPLICAS, qos = 2 -> IN_SYNC_REPLICAS
-# separate streams for all qos levels
+write zilla:begin.ext ${mqtt:beginEx()
+                            .typeId(zilla:id("mqtt"))
+                            .session()
+                              .flags("CLEAN_START")
+                              .clientId("client")
+                              .build()
+                            .build()}
+
+read zilla:begin.ext ${mqtt:matchBeginEx()
+                              .typeId(zilla:id("mqtt"))
+                              .session()
+                                .flags("CLEAN_START")
+                                .qosMax(2)
+                                .packetSizeMax(66560)
+                                .capabilities("RETAIN", "WILDCARD", "SUBSCRIPTION_IDS", "SHARED_SUBSCRIPTIONS")
+                                .clientId("client")
+                                .build()
+                              .build()}
+
+connected
+
+read zilla:data.empty
+read notify RECEIVED_SESSION_STATE
+
+
+connect await RECEIVED_SESSION_STATE
+        "zilla://streams/mqtt0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"
+
 write zilla:begin.ext ${mqtt:beginEx()
                               .typeId(zilla:id("mqtt"))
                               .publish()
@@ -45,6 +72,7 @@ read advised zilla:flush ${mqtt:flushEx()
                                  .typeId(zilla:id("mqtt"))
                                  .publish()
                                      .packetId(1)
+                                     .state("INCOMPLETE")
                                      .build()
                                  .build()}
 

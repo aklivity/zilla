@@ -19,83 +19,279 @@ accept "zilla://streams/kafka0"
 
 accepted
 
-read zilla:begin.ext ${kafka:beginEx()
+read zilla:begin.ext ${kafka:matchBeginEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
-                                .capabilities("PRODUCE_ONLY")
-                                .topic("mqtt-messages")
-                                .groupId("client-publish")
-                                .partition(-1, -2)
-                                .ackMode("IN_SYNC_REPLICAS")
-                                .producerId(0)
-                                .build()
-                            .build()}
-
-write zilla:begin.ext ${kafka:beginEx()
-                            .typeId(zilla:id("kafka"))
-                            .merged()
-                                .capabilities("PRODUCE_ONLY")
-                                .topic("mqtt-messages")
-                                .partition(0, 0, 1, 1) # offset = next sequence number, no metadata -> trigger init producer in kafka
+                                .capabilities("PRODUCE_AND_FETCH")
+                                .topic("mqtt-sessions")
+                                .groupId("mqtt-clients")
+                                .filter()
+                                    .key("client#migrate")
+                                    .headerNot("sender-id", "sender-1")
+                                    .build()
                                 .build()
                             .build()}
 
 connected
 
-# This should trigger the init producer call to Kafka
-read advised zilla:flush ${kafka:matchFlushEx()
-                              .typeId(zilla:id("kafka"))
-                              .merged()
-                                .produce()
-                                  .build()
-                              .build()}
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                             .produce()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client#migrate")
+                               .hashKey("client")
+                               .header("sender-id", "sender-1")
+                               .build()
+                           .build()}
+read zilla:data.empty
+
+
+accepted
+
+read zilla:begin.ext ${kafka:matchBeginEx()
+                               .typeId(zilla:id("kafka"))
+                               .group()
+                                   .groupId("client-session")
+                                   .protocol("highlander")
+                                   .timeout(1000)
+                                   .build()
+                               .build()}
+
+write zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .group()
+                                   .groupId("client-session")
+                                   .protocol("highlander")
+                                   .instanceId("zilla")
+                                   .host("localhost")
+                                   .port(9092)
+                                   .timeout(1000)
+                                   .build()
+                               .build()}
+
+connected
 
 write advise zilla:flush ${kafka:flushEx()
-                              .typeId(zilla:id("kafka"))
-                              .merged()
-                                .produce()
-                                  .producerId(12345)
-                                  .epoch(0)
-                                  .sequence(0)
-                                  .build()
-                              .build()}
+                             .typeId(zilla:id("kafka"))
+                             .group()
+                                 .generationId(1)
+                                 .leaderId("consumer-1")
+                                 .memberId("consumer-1")
+                                 .members("consumer-1")
+                                 .build()
+                             .build()}
+write flush
 
-# We need to save the producerId, epoch immediately so if connection drops,
-# we don't create another producer for this client. We can use "dummy" offset commit for this
-read advised zilla:flush ${kafka:matchFlushEx()
-                              .typeId(zilla:id("kafka"))
-                              .merged()
-                                .consumer()
-                                  .progress(0, 1,
-                                        mqtt:metadata()
-                                            .metadata(12345, 0) # producerId, producerEpoch
-                                            .build())
-                                  .build()
-                              .build()}
+read zilla:data.empty
 
-write advise zilla:flush ${kafka:flushEx()
+
+accepted
+
+read zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .offsetFetch()
+                                   .groupId("client")
+                                   .host("localhost")
+                                   .port(9092)
+                                   .topic("mqtt-messages")
+                                   .partition(0)
+                                   .build()
+                               .build()}
+
+connected
+
+write zilla:data.ext ${kafka:dataEx()
+                                   .typeId(zilla:id("kafka"))
+                                   .offsetFetch()
+                                       .partition(0, 1, 0)
+                                     .build()
+                                   .build()}
+write zilla:data.empty
+write flush
+
+read closed
+write close
+
+
+accepted
+
+read zilla:begin.ext ${kafka:beginEx()
+                            .typeId(zilla:id("kafka"))
+                            .initProducerId()
+                                .producerId(0)
+                                .producerEpoch(0)
+                                .build()
+                            .build()}
+
+write zilla:begin.ext ${kafka:beginEx()
+                            .typeId(zilla:id("kafka"))
+                            .initProducerId()
+                                .producerId(1)
+                                .producerEpoch(1)
+                                .build()
+                            .build()}
+
+connected
+
+
+accepted
+
+read zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .offsetCommit()
+                                   .groupId("client")
+                                   .memberId("consumer-1")
+                                   .instanceId("zilla")
+                                   .build()
+                               .build()}
+
+connected
+
+read zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
-                              .merged()
-                                .consumer()
-                                  .progress(0, 1,
-                                        mqtt:metadata()
-                                            .metadata(12345, 0) # producerId, producerEpoch
-                                            .build())
+                              .offsetCommit()
+                                  .topic("mqtt-messages")
+                                  .progress(0, 1, mqtt:metadata()
+                                                      .metadata(1, 1)
+                                                      .build())
+                                  .generationId(1)
+                                  .leaderEpoch(0)
                                   .build()
                               .build()}
-# Only after this we can send window to the mqtt stream
-# (if first produce succeeds but offset commit does not, we can still recover the same producer from now on)
+read zilla:data.empty
+
+read zilla:data.ext ${kafka:dataEx()
+                              .typeId(zilla:id("kafka"))
+                              .offsetCommit()
+                                  .topic("mqtt-messages")
+                                  .progress(0, 2, mqtt:metadata()
+                                                      .metadata(1, 1, 1)
+                                                      .build())
+                                  .generationId(1)
+                                  .leaderEpoch(0)
+                                  .build()
+                              .build()}
+read zilla:data.empty
+
+# Window that comes back triggers mqtt flush with packetId = 1, INCOMPLETE -> PUBREC
+# we can store packetId in queue, as ordering of the acks for the offsetCommit are guaranteed
+
+
+read zilla:data.ext ${kafka:dataEx()
+                              .typeId(zilla:id("kafka"))
+                              .offsetCommit()
+                                  .topic("mqtt-messages")
+                                  .progress(0, 2, mqtt:metadata()
+                                                      .metadata(1, 1)
+                                                      .build())
+                                  .generationId(1)
+                                  .leaderEpoch(0)
+                                  .build()
+                              .build()}
+read zilla:data.empty
+# Window that comes back triggers mqtt flush with packetId = 1 -> PUBCOMP
+# we can store packetId in queue, as ordering of the acks for the offsetCommit are guaranteed
+
+
+accepted
+
+read zilla:begin.ext ${kafka:matchBeginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("PRODUCE_AND_FETCH")
+                                .topic("mqtt-sessions")
+                                .groupId("mqtt-clients")
+                                .filter()
+                                    .key("client")
+                                    .build()
+                                .filter()
+                                    .key("client#migrate")
+                                    .headerNot("sender-id", "sender-1")
+                                    .build()
+                                .build()
+                            .build()}
+
+connected
+
+# will delivery cancellation signal for client
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                             .produce()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client#will-signal")
+                               .hashKey("client")
+                               .header("type", "will-signal")
+                               .build()
+                           .build()}
+read zilla:data.null
+
+# session expiry cancellation signal for client
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                             .produce()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client#expiry-signal")
+                               .hashKey("client")
+                               .header("type", "expiry-signal")
+                               .build()
+                           .build()}
+read zilla:data.null
+
+# session expire later signal for client
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                             .produce()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client#expiry-signal")
+                               .hashKey("client")
+                               .header("type", "expiry-signal")
+                               .build()
+                           .build()}
+read ${mqtt:sessionSignal()
+           .expiry()
+               .instanceId("zilla-1")
+               .clientId("client")
+               .delay(1000)
+               .expireAt(-1)
+               .build()
+           .build()}
+
+write advise zilla:flush
+
+
+accepted
+
+read zilla:begin.ext ${kafka:beginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("PRODUCE_ONLY")
+                                .topic("mqtt-messages")
+                                .partition(-1, -2)
+                                .ackMode("IN_SYNC_REPLICAS")
+                                .build()
+                            .build()}
+
+
+connected
 
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
                             .produce()
                                .deferred(0)
-                               .partition(-1, -1)
+                               .partition(-1, 1)
                                .key("sensor/one")
-                               .producerId(12345)
-                               .epoch(0)
-                               .sequence(1)
+                               .producerId(1)
+                               .producerEpoch(1)
+                               .sequence(1) #???
                                .header("zilla:filter", "sensor")
                                .header("zilla:filter", "one")
                                .header("zilla:local", "client")
@@ -103,113 +299,8 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .build()
                            .build()}
 read "message"
+# Commit offset in the OffsetCommit stream with packetId
 
-# After kafka binding acked the data frame we also send an offset commit with metadata
-# (store <sequence, packetId> in a map, and do this for every entry in the map where sequence <= ack
+# When we get back the offset commit -> send flush to mqtt which triggers PUBREC
 
-read advised zilla:flush ${kafka:matchFlushEx()
-                              .typeId(zilla:id("kafka"))
-                              .merged()
-                                .consumer()
-                                  .progress(0, 2,
-                                        mqtt:metadata()
-                                            .metadata(12345, 0, 1) # producerId, producerEpoch, packetId
-                                            .build())
-                                  .correlationId(1)
-                                  .build()
-                              .build()}
-
-write advise zilla:flush ${kafka:flushEx()
-                              .typeId(zilla:id("kafka"))
-                              .merged()
-                                .consumer()
-                                  .progress(0, 2)
-                                  .correlationId(1)
-                                  .build()
-                              .build()}
-# This is what triggers PUBREC delivery to the client
-
-# receiving PUBREL in the MqttServerFactory triggers this:
-read advised zilla:flush ${kafka:matchFlushEx()
-                              .typeId(zilla:id("kafka"))
-                              .merged()
-                                .consumer()
-                                  .progress(0, 2, "")
-                                  .correlationId(1)
-                                  .build()
-                              .build()}
-
-# This is what triggers PUBCOMP delivery to the client, also we have to increase the sequence number
-write advise zilla:flush ${kafka:flushEx()
-                              .typeId(zilla:id("kafka"))
-                              .merged()
-                                .consumer()
-                                  .progress(0, 2)
-                                  .correlationId(1)
-                                  .build()
-                              .build()}
-
-
-
-read zilla:data.ext ${kafka:matchDataEx()
-                           .typeId(zilla:id("kafka"))
-                           .merged()
-                            .produce()
-                               .deferred(0)
-                               .partition(-1, -1)
-                               .key("sensor/one")
-                               .producerId(12345)
-                               .epoch(0)
-                               .sequence(2)
-                               .header("zilla:filter", "sensor")
-                               .header("zilla:filter", "one")
-                               .header("zilla:local", "client")
-                               .header("zilla:qos", "2")
-                               .build()
-                           .build()}
-read "message2"
-
-# After kafka binding acked the data frame we also send an offset commit with metadata
-# (store <sequence, packetId> in a map, and do this for every entry in the map where sequence <= ack
-
-read advised zilla:flush ${kafka:matchFlushEx()
-                              .typeId(zilla:id("kafka"))
-                              .merged()
-                                .consumer()
-                                  .progress(0, 3,
-                                        mqtt:metadata()
-                                            .metadata(12345, 0, 1) # producerId, producerEpoch, packetId
-                                            .build())
-                                  .correlationId(1)
-                                  .build()
-                              .build()}
-
-write advise zilla:flush ${kafka:flushEx()
-                              .typeId(zilla:id("kafka"))
-                              .merged()
-                                .consumer()
-                                  .progress(0, 3)
-                                  .correlationId(1)
-                                  .build()
-                              .build()}
-# This is what triggers PUBREC delivery to the client
-
-# receiving PUBREL in the MqttServerFactory triggers this
-read advised zilla:flush ${kafka:matchFlushEx()
-                              .typeId(zilla:id("kafka"))
-                              .merged()
-                                .consumer()
-                                  .progress(0, 3, "")
-                                  .correlationId(1)
-                                  .build()
-                              .build()}
-
-# This is what triggers PUBCOMP delivery to the client, also we have to increase the sequence number
-write advise zilla:flush ${kafka:flushEx()
-                              .typeId(zilla:id("kafka"))
-                              .merged()
-                                .consumer()
-                                  .progress(0, 3)
-                                  .correlationId(1)
-                                  .build()
-                              .build()}
+# TODO: add one more data to the test
