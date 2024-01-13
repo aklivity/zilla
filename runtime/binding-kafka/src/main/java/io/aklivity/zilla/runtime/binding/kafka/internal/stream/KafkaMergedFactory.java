@@ -1592,28 +1592,34 @@ public final class KafkaMergedFactory implements BindingHandler
             if (capabilities == FETCH_ONLY)
             {
                 doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                        traceId, authorization, affinity, beginExToKafka());
+                        traceId, authorization, affinity, beginExToKafka(beginExToKafkaMergedFetchOnly()));
+            }
+            else if (capabilities == PRODUCE_ONLY)
+            {
+                doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                    traceId, authorization, affinity, beginExToKafka(beginExToKafkaMergedProduceOnly()));
             }
             else
             {
                 doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                        traceId, authorization, affinity, EMPTY_EXTENSION);
+                    traceId, authorization, affinity, EMPTY_EXTENSION);
             }
 
             doUnmergedFetchReplyWindowsIfNecessary(traceId);
         }
 
-        private Flyweight.Builder.Visitor beginExToKafka()
+        private Flyweight.Builder.Visitor beginExToKafka(
+            Consumer<KafkaMergedBeginExFW.Builder>  beginExToKafkaMerged)
         {
             return (buffer, offset, maxLimit) ->
                 kafkaBeginExRW.wrap(buffer, offset, maxLimit)
                               .typeId(kafkaTypeId)
-                              .merged(beginExToKafkaMerged())
+                              .merged(beginExToKafkaMerged)
                               .build()
                               .limit() - offset;
         }
 
-        private Consumer<KafkaMergedBeginExFW.Builder> beginExToKafkaMerged()
+        private Consumer<KafkaMergedBeginExFW.Builder> beginExToKafkaMergedFetchOnly()
         {
             return builder ->
             {
@@ -1637,6 +1643,15 @@ public final class KafkaMergedFactory implements BindingHandler
                             .latestOffset(v)
                             .metadata(metadataRW.length() > 0 ? metadataRW.toString() : null));
                 });
+            };
+        }
+
+        private Consumer<KafkaMergedBeginExFW.Builder> beginExToKafkaMergedProduceOnly()
+        {
+            return builder ->
+            {
+                builder.capabilities(c -> c.set(PRODUCE_ONLY)).topic(topic);
+                leadersByPartitionId.intForEach((k, v) -> builder.partitionsItem(i -> i.partitionId(k)));
             };
         }
 
