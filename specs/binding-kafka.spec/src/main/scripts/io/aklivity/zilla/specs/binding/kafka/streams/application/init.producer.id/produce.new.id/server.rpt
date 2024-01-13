@@ -41,3 +41,4 @@ write zilla:begin.ext ${kafka:beginEx()
                                 .producerEpoch(2)
                                 .build()
                             .build()}
+write flush
