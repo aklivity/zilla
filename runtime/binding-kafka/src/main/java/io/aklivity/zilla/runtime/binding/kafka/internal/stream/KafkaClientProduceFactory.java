@@ -551,9 +551,14 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
             client.doEncodeRequestIfNecessary(traceId, budgetId);
         }
 
+        if (client.producerId == RECORD_BATCH_PRODUCER_ID_NONE ||
+            client.producerId  != producerId)
+        {
+            client.sequence = sequence;
+        }
+
         client.producerId = producerId;
         client.producerEpoch = producerEpoch;
-        client.sequence = sequence;
 
         client.doEncodeRecordInit(traceId, timestamp, ackMode, key, payload, headers);
         if (client.encodeSlot != NO_SLOT)
