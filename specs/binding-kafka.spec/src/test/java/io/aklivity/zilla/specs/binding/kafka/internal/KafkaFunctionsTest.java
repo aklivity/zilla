@@ -1182,6 +1182,8 @@ public class KafkaFunctionsTest
                                                  .partition(0, 0L)
                                                  .progress(0, 1L)
                                                  .timestamp(12345678L)
+                                                 .producerId(1L)
+                                                 .producerEpoch((short) 1)
                                                  .key("match")
                                                  .header("name", "value")
                                                  .headerNull("name-n")
@@ -1196,6 +1198,8 @@ public class KafkaFunctionsTest
                 .merged(m -> m.produce(mp -> mp
                     .deferred(100)
                     .timestamp(12345678L)
+                    .producerId(1L)
+                    .producerEpoch((short) 1)
                     .partition(p -> p.partitionId(0).partitionOffset(0L))
                     .key(k -> k.length(5)
                         .value(v -> v.set("match".getBytes(UTF_8))))
