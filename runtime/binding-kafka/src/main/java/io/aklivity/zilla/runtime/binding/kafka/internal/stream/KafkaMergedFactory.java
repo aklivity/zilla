@@ -87,6 +87,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaMerged
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaMergedConsumerFlushExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaMergedFlushExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaMergedProduceDataExFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaMergedProduceFlushExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaMetaDataExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaOffsetFetchDataExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaResetExFW;
@@ -1362,7 +1363,6 @@ public final class KafkaMergedFactory implements BindingHandler
         {
             final long traceId = flush.traceId();
             final long sequence = flush.sequence();
-            final long acknowledge = flush.acknowledge();
             final OctetsFW extension = flush.extension();
             final int reserved = flush.reserved();
             final ExtensionFW flushEx = extension.get(extensionRO::tryWrap);
@@ -1377,6 +1377,9 @@ public final class KafkaMergedFactory implements BindingHandler
 
             switch (kafkaMergedFlushEx.kind())
             {
+            case KafkaMergedFlushExFW.KIND_PRODUCE:
+                onMergedProduceFlush(kafkaMergedFlushEx, traceId);
+                break;
             case KafkaMergedFlushExFW.KIND_FETCH:
                 onMergedFetchFlush(kafkaMergedFlushEx, traceId, sequence, reserved);
                 break;
@@ -1384,6 +1387,19 @@ public final class KafkaMergedFactory implements BindingHandler
                 onMergedConsumerFlush(kafkaMergedFlushEx, traceId);
                 break;
             }
+        }
+
+        private void onMergedProduceFlush(
+            KafkaMergedFlushExFW kafkaMergedFlushEx,
+            long traceId)
+        {
+            final KafkaMergedProduceFlushExFW produce = kafkaMergedFlushEx.produce();
+            final KafkaKeyFW key = produce.key();
+            final KafkaKeyFW hashKey = produce.hashKey();
+
+            final int partitionId = nextPartitionData(hashKey, key);
+
+            doMergedProduceReplyFlush(traceId, partitionId);
         }
 
         private void onMergedFetchFlush(
@@ -1815,6 +1831,19 @@ public final class KafkaMergedFactory implements BindingHandler
             final KafkaFlushExFW kafkaFlushExFW = kafkaFlushExRW.wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(kafkaTypeId)
                 .merged(mc -> mc.consumer(c -> c.progress(partition).correlationId(correlationId)))
+                .build();
+
+            doFlush(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                traceId, authorization, 0, kafkaFlushExFW);
+        }
+
+        private void doMergedProduceReplyFlush(
+            long traceId,
+            int partitionId)
+        {
+            final KafkaFlushExFW kafkaFlushExFW = kafkaFlushExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(kafkaTypeId)
+                .merged(mc -> mc.produce(c -> c.partitionId(partitionId)))
                 .build();
 
             doFlush(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,

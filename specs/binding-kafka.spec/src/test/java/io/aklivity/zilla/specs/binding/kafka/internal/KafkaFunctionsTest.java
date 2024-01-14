@@ -1125,6 +1125,32 @@ public class KafkaFunctionsTest
     }
 
     @Test
+    public void shouldGenerateMergedProduceFlushExtension()
+    {
+        byte[] build = KafkaFunctions.flushEx()
+            .typeId(0x01)
+            .merged()
+                .produce()
+                    .key("topic")
+                    .hashKey("hashTopic")
+                    .partitionId(0)
+                    .build()
+            .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        KafkaFlushExFW flushEx = new KafkaFlushExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x01, flushEx.typeId());
+
+        assertEquals("topic", flushEx.merged().produce().key()
+            .value()
+            .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)));
+
+        assertEquals("hashTopic", flushEx.merged().produce().hashKey()
+            .value()
+            .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)));
+    }
+
+    @Test
     public void shouldGenerateMergedConsumerFlushExtension()
     {
         byte[] build = KafkaFunctions.flushEx()
