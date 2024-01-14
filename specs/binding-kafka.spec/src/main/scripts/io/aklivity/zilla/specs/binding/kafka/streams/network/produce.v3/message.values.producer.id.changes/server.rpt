@@ -77,7 +77,7 @@ read zilla:begin.ext ${proxy:matchBeginEx()
 
 connected
 
-read 144
+read 125
      0s
      3s
      (int:requestId)
@@ -89,20 +89,20 @@ read 144
      4s "test"
      1
      0
-     99                                 # record set size
+     80                                 # record set size
      0L                                 # first offset
-     87                                 # length
+     68                                 # length
      -1
      [0x02]
      [0..4]
      0s
-     1                                  # last offset delta
+     0                                  # last offset delta
      (long:timestamp)                   # first timestamp
      ${timestamp}                       # last timestamp
      1L
      1s
      0
-     2                                  # records
+     1                                  # records
      ${kafka:varint(18)}
      [0x00]
      ${kafka:varint(0)}
@@ -111,15 +111,52 @@ read 144
      ${kafka:varint(12)}                # value
      "Hello, world"
      ${kafka:varint(0)}                 # headers
+
+write 44
+      ${requestId}
+      1                                 # topics
+      4s "test"
+      1                                 # partitions
+      0                                 # partition 0
+      0s                                # no error
+      20L                               # base offset
+      0L                                # log append time
+      0                                 # throttle
+
+read 125
+     0s
+     3s
+     (int:requestId)
+     5s "zilla"                         # client id
+     -1s
+     [0..2]
+     [0..4]
+     1
+     4s "test"
+     1
+     0
+     80                                 # record set size
+     0L                                 # first offset
+     68                                 # length
+     -1
+     [0x02]
+     [0..4]
+     0s
+     0                                  # last offset delta
+     (long:timestamp)                   # first timestamp
+     ${timestamp}                       # last timestamp
+     2L
+     2s
+     0
+     1                                  # records
      ${kafka:varint(18)}
      [0x00]
      ${kafka:varint(0)}
-     ${kafka:varint(1)}
+     ${kafka:varint(0)}
      ${kafka:varint(-1)}                # key
      ${kafka:varint(12)}                # value
      "Hello, again"
      ${kafka:varint(0)}                 # headers
-
 
 write 44
       ${requestId}

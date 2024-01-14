@@ -82,9 +82,9 @@ read "Hello, world"
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
                              .produce()
-                                  .producerId(1)
-                                  .producerEpoch(1)
-                                  .sequence(1)
+                                  .producerId(2)
+                                  .producerEpoch(2)
+                                  .sequence(0)
                                  .build()
                              .build()}
 
