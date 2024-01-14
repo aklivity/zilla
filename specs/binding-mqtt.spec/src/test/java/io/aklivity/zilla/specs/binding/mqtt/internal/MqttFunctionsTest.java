@@ -23,6 +23,7 @@ import static org.junit.Assert.assertNull;
 
 import java.nio.ByteBuffer;
 import java.util.Objects;
+import java.util.function.IntConsumer;
 
 import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
@@ -36,10 +37,10 @@ import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSessionSignalFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSessionSignalType;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSessionStateFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttWillMessageFW;
-import io.aklivity.zilla.specs.binding.mqtt.internal.types.String16FW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttBeginExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttDataExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttFlushExFW;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttOffsetMetadataFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttResetExFW;
 
 public class MqttFunctionsTest
@@ -1274,15 +1275,11 @@ public class MqttFunctionsTest
             .build();
 
         final IntArrayList metadataList = new IntArrayList();
-        int offset = 0;
-        final DirectBuffer buffer = new String16FW(state).value();
-        byte version = buffer.getByte(offset++);
-        for (; offset < buffer.capacity(); offset += BitUtil.SIZE_OF_SHORT)
-        {
-            metadataList.add((int) buffer.getShort(offset));
-        }
+        UnsafeBuffer buffer = new UnsafeBuffer(BitUtil.fromHex(state));
+        MqttOffsetMetadataFW offsetMetadata = new MqttOffsetMetadataFW().wrap(buffer, 0, buffer.capacity());
+        offsetMetadata.packetIds().forEachRemaining((IntConsumer) metadataList::add);
 
-        assertEquals(1, version);
+        assertEquals(1, offsetMetadata.version());
         assertEquals(1, (int) metadataList.get(0));
         assertEquals(2, (int) metadataList.get(1));
     }

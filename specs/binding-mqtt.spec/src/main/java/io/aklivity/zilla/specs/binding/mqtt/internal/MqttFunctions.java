@@ -26,7 +26,6 @@ import java.util.function.Predicate;
 import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
-import org.agrona.collections.IntArrayList;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.kaazing.k3po.lang.el.BytesMatcher;
 import org.kaazing.k3po.lang.el.Function;
@@ -54,6 +53,7 @@ import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttBeginExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttDataExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttExtensionKind;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttFlushExFW;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttOffsetMetadataFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttOffsetStateFlags;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttPublishBeginExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttPublishDataExFW;
@@ -848,42 +848,29 @@ public final class MqttFunctions
 
     public static final class MqttOffsetMetadataBuilder
     {
-        final MutableDirectBuffer writeBuffer;
-        final IntArrayList packetIds;
+        private final MqttOffsetMetadataFW.Builder offsetMetadataRW = new MqttOffsetMetadataFW.Builder();
 
         byte version = 1;
 
 
         private MqttOffsetMetadataBuilder()
         {
-            writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
-            packetIds = new IntArrayList();
+            MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+            offsetMetadataRW.wrap(writeBuffer, 0, writeBuffer.capacity());
+            offsetMetadataRW.version(version);
         }
 
         public MqttOffsetMetadataBuilder metadata(
             int packetId)
         {
-            packetIds.add(packetId);
+            offsetMetadataRW.appendPacketIds((short) packetId);
             return this;
         }
 
         public String build()
         {
-            final int length = packetIds.size() * BitUtil.SIZE_OF_SHORT + 1;
-            final int capacity = BitUtil.SIZE_OF_SHORT + length;
-            int offset = 0;
-
-            writeBuffer.putShort(offset, (short) length);
-            offset += BitUtil.SIZE_OF_SHORT;
-            writeBuffer.putByte(offset++, (byte) 1);
-
-            for (int value : packetIds)
-            {
-                writeBuffer.putShort(offset, (short) value);
-                offset += BitUtil.SIZE_OF_SHORT;
-            }
-
-            return new String16FW().wrap(writeBuffer, 0, capacity).asString();
+            final MqttOffsetMetadataFW offsetMetadata = offsetMetadataRW.build();
+            return BitUtil.toHex(offsetMetadata.buffer().byteArray(), offsetMetadata.offset(), offsetMetadata.limit());
         }
     }
 

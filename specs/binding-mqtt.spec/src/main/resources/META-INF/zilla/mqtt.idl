@@ -248,5 +248,12 @@ scope mqtt
             COMPLETE(0),
             INCOMPLETE(1)
         }
+
+        struct MqttOffsetMetadata
+        {
+            uint8 version = 1;
+            uint8 length;
+            int16[length] packetIds;
+        }
     }
 }
