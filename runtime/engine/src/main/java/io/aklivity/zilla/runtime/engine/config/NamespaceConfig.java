@@ -29,7 +29,6 @@ public class NamespaceConfig
     public transient Function<String, String> readURL;
 
     public final String name;
-    public final List<NamespaceRefConfig> references;
     public final TelemetryConfig telemetry;
     public final List<BindingConfig> bindings;
     public final List<GuardConfig> guards;
@@ -43,7 +42,6 @@ public class NamespaceConfig
 
     NamespaceConfig(
         String name,
-        List<NamespaceRefConfig> references,
         TelemetryConfig telemetry,
         List<BindingConfig> bindings,
         List<GuardConfig> guards,
@@ -51,7 +49,6 @@ public class NamespaceConfig
         List<CatalogConfig> catalogs)
     {
         this.name = requireNonNull(name);
-        this.references = requireNonNull(references);
         this.telemetry = telemetry;
         this.bindings = requireNonNull(bindings);
         this.guards = requireNonNull(guards);

@@ -39,6 +39,7 @@ import jakarta.json.bind.JsonbConfig;
 import jakarta.json.spi.JsonProvider;
 import jakarta.json.stream.JsonParser;
 
+import org.agrona.collections.IntArrayList;
 import org.leadpony.justify.api.JsonSchema;
 import org.leadpony.justify.api.JsonSchemaReader;
 import org.leadpony.justify.api.JsonValidationService;
@@ -48,13 +49,13 @@ import io.aklivity.zilla.runtime.engine.Engine;
 import io.aklivity.zilla.runtime.engine.internal.config.NamespaceAdapter;
 import io.aklivity.zilla.runtime.engine.internal.config.schema.UniquePropertyKeysSchema;
 
-public final class ConfigReader
+public final class EngineConfigReader
 {
     private final ConfigAdapterContext context;
     private final Collection<URL> schemaTypes;
     private final Consumer<String> logger;
 
-    public ConfigReader(
+    public EngineConfigReader(
         ConfigAdapterContext context,
         Collection<URL> schemaTypes,
         Consumer<String> logger)
@@ -64,10 +65,10 @@ public final class ConfigReader
         this.logger = logger;
     }
 
-    public NamespaceConfig read(
-        Reader reader)
+    public EngineConfig read(
+        String configText)
     {
-        NamespaceConfig namespace = null;
+        EngineConfig engine = null;
 
         List<Exception> errors = new LinkedList<>();
 
@@ -111,27 +112,60 @@ public final class ConfigReader
             JsonSchema schema = new UniquePropertyKeysSchema(validator.read());
 
             JsonProvider provider = service.createJsonProvider(schema, parser -> handler);
-            provider.createReader(reader).read();
+            String readable = configText.stripTrailing();
 
-            if (!errors.isEmpty())
+            IntArrayList configsAt = new IntArrayList();
+            for (int configAt = 0; configAt < readable.length(); )
             {
-                break read;
+                configsAt.addInt(configAt);
+
+                Reader reader = new StringReader(readable);
+                reader.skip(configAt);
+
+                try (JsonParser parser = service.createParser(reader, schema, handler))
+                {
+                    while (parser.hasNext())
+                    {
+                        parser.next();
+                    }
+
+                    configAt += (int) parser.getLocation().getStreamOffset();
+                }
+            }
+
+            Reader reader = new StringReader(readable);
+            for (int configAt : configsAt)
+            {
+                reader.reset();
+                reader.skip(configAt);
+                provider.createReader(reader).read();
+
+                if (!errors.isEmpty())
+                {
+                    break read;
+                }
             }
 
             JsonbConfig config = new JsonbConfig()
-                .withAdapters(new NamespaceAdapter(context));
+                    .withAdapters(new NamespaceAdapter(context));
             Jsonb jsonb = JsonbBuilder.newBuilder()
-                .withProvider(provider)
-                .withConfig(config)
-                .build();
+                    .withProvider(provider)
+                    .withConfig(config)
+                    .build();
 
-            reader.reset();
-            namespace = jsonb.fromJson(reader, NamespaceConfig.class);
-
-            if (!errors.isEmpty())
+            EngineConfigBuilder<EngineConfig> builder = EngineConfig.builder();
+            for (int configAt : configsAt)
             {
-                break read;
+                reader.reset();
+                reader.skip(configAt);
+                builder.namespace(jsonb.fromJson(reader, NamespaceConfig.class));
+
+                if (!errors.isEmpty())
+                {
+                    break read;
+                }
             }
+            engine = builder.build();
         }
         catch (Exception ex)
         {
@@ -145,6 +179,6 @@ public final class ConfigReader
             rethrowUnchecked(ex);
         }
 
-        return namespace;
+        return engine;
     }
 }

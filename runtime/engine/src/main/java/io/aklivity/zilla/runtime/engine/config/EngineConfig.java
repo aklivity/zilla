@@ -15,25 +15,23 @@
  */
 package io.aklivity.zilla.runtime.engine.config;
 
+import static java.util.Objects.requireNonNull;
 import static java.util.function.Function.identity;
 
-import java.util.Map;
+import java.util.List;
 
-public class NamespaceRefConfig
+public class EngineConfig
 {
-    public final String name;
-    public final Map<String, String> links;
+    public final List<NamespaceConfig> namespaces;
 
-    public static NamespaceRefConfigBuilder<NamespaceRefConfig> builder()
+    public static EngineConfigBuilder<EngineConfig> builder()
     {
-        return new NamespaceRefConfigBuilder<>(identity());
+        return new EngineConfigBuilder<>(identity());
     }
 
-    NamespaceRefConfig(
-        String name,
-        Map<String, String> links)
+    EngineConfig(
+        List<NamespaceConfig> namespaces)
     {
-        this.name = name;
-        this.links = links;
+        this.namespaces = requireNonNull(namespaces);
     }
 }

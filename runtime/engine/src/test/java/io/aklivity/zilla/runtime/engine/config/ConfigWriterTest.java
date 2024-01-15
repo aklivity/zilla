@@ -44,19 +44,20 @@ public class ConfigWriterTest
     @Mock
     private ConfigAdapterContext context;
 
-    private ConfigWriter yaml;
+    private EngineConfigWriter yaml;
 
     @Before
     public void initYaml()
     {
-        yaml = new ConfigWriter(context);
+        yaml = new EngineConfigWriter(context);
     }
 
     @Test
     public void shouldWriteNamespace()
     {
         // GIVEN
-        NamespaceConfig config = NamespaceConfig.builder()
+        EngineConfig config = EngineConfig.builder()
+            .namespace()
                 .name("test")
                 .binding()
                     .inject(identity())
@@ -76,7 +77,8 @@ public class ConfigWriterTest
                         .exit("exit0")
                         .build()
                     .build()
-                .build();
+                .build()
+            .build();
 
         // WHEN
         String text = yaml.write(config);
@@ -104,7 +106,8 @@ public class ConfigWriterTest
     public void shouldPatchAndWriteNamespace()
     {
         // GIVEN
-        NamespaceConfig config = NamespaceConfig.builder()
+        EngineConfig config = EngineConfig.builder()
+            .namespace()
                 .name("test")
                 .binding()
                     .name("test0")
@@ -120,7 +123,8 @@ public class ConfigWriterTest
                         .exit("exit0")
                         .build()
                     .build()
-                .build();
+                .build()
+            .build();
         JsonPatch patch = Json.createPatchBuilder()
             .replace("/bindings/test0/type", "newType")
             .build();

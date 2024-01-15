@@ -199,7 +199,7 @@ public class EngineWorker implements EngineContext, Agent
     private final Long2ObjectHashMap<MessageConsumer> correlations;
     private final Long2ObjectHashMap<AgentRunner> exportersById;
 
-    private final ConfigurationRegistry configuration;
+    private final EngineRegistry registry;
     private final Deque<Runnable> taskQueue;
     private final LongUnaryOperator affinityMask;
     private final AgentRunner runner;
@@ -388,7 +388,7 @@ public class EngineWorker implements EngineContext, Agent
             metricGroupsByName.put(metricGroup.name(), metricGroup);
         }
 
-        this.configuration = new ConfigurationRegistry(
+        this.registry = new EngineRegistry(
                 bindingsByType::get, guardsByType::get, vaultsByType::get, catalogsByType::get, metricsByName::get,
                 exportersByType::get, labels::supplyLabelId, this::onExporterAttached, this::onExporterDetached,
                 this::supplyMetricWriter, this::detachStreams, collector);
@@ -634,7 +634,7 @@ public class EngineWorker implements EngineContext, Agent
     public GuardHandler supplyGuard(
         long guardId)
     {
-        GuardRegistry guard = configuration.resolveGuard(guardId);
+        GuardRegistry guard = registry.resolveGuard(guardId);
         return guard != null ? guard.handler() : null;
     }
 
@@ -642,7 +642,7 @@ public class EngineWorker implements EngineContext, Agent
     public VaultHandler supplyVault(
         long vaultId)
     {
-        VaultRegistry vault = configuration.resolveVault(vaultId);
+        VaultRegistry vault = registry.resolveVault(vaultId);
         return vault != null ? vault.handler() : null;
     }
 
@@ -650,7 +650,7 @@ public class EngineWorker implements EngineContext, Agent
     public CatalogHandler supplyCatalog(
         long catalogId)
     {
-        CatalogRegistry catalog = configuration.resolveCatalog(catalogId);
+        CatalogRegistry catalog = registry.resolveCatalog(catalogId);
         return catalog != null ? catalog.handler() : null;
     }
 
@@ -713,7 +713,7 @@ public class EngineWorker implements EngineContext, Agent
     @Override
     public void onClose()
     {
-        configuration.detachAll();
+        registry.detachAll();
 
         poller.onClose();
 
@@ -781,7 +781,7 @@ public class EngineWorker implements EngineContext, Agent
     public CompletableFuture<Void> attach(
         NamespaceConfig namespace)
     {
-        NamespaceTask attachTask = configuration.attach(namespace);
+        NamespaceTask attachTask = registry.attach(namespace);
         taskQueue.offer(attachTask);
         signaler.signalNow(0L, 0L, 0L, supplyTraceId(), SIGNAL_TASK_QUEUED, 0);
         return attachTask.future();
@@ -790,7 +790,7 @@ public class EngineWorker implements EngineContext, Agent
     public CompletableFuture<Void> detach(
         NamespaceConfig namespace)
     {
-        NamespaceTask detachTask = configuration.detach(namespace);
+        NamespaceTask detachTask = registry.detach(namespace);
         taskQueue.offer(detachTask);
         signaler.signalNow(0L, 0L, 0L, supplyTraceId(), SIGNAL_TASK_QUEUED, 0);
         return detachTask.future();
@@ -807,8 +807,8 @@ public class EngineWorker implements EngineContext, Agent
     {
         if (localIndex == 0)
         {
-            ExporterRegistry registry = configuration.resolveExporter(exporterId);
-            ExporterHandler handler = registry.handler();
+            ExporterRegistry exporter = registry.resolveExporter(exporterId);
+            ExporterHandler handler = exporter.handler();
             ExporterAgent agent = new ExporterAgent(exporterId, handler);
             AgentRunner runner = new AgentRunner(idleStrategy, errorHandler, null, agent);
             AgentRunner.startOnThread(runner);
@@ -1376,7 +1376,7 @@ public class EngineWorker implements EngineContext, Agent
 
         MessageConsumer newStream = null;
 
-        BindingRegistry binding = configuration.resolveBinding(routedId);
+        BindingRegistry binding = registry.resolveBinding(routedId);
         final BindingHandler streamFactory = binding != null ? binding.streamFactory() : null;
         if (streamFactory != null)
         {
@@ -1558,7 +1558,7 @@ public class EngineWorker implements EngineContext, Agent
         MetricContext.Direction direction)
     {
         MessageConsumer recorder = MessageConsumer.NOOP;
-        BindingRegistry binding = configuration.resolveBinding(bindingId);
+        BindingRegistry binding = registry.resolveBinding(bindingId);
         if (binding != null)
         {
             if (kind == ROUTED)

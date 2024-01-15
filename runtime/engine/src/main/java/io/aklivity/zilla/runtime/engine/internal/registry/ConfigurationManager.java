@@ -15,9 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.registry;
 
-import java.io.StringReader;
 import java.net.URL;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -32,11 +30,14 @@ import java.util.function.LongPredicate;
 import java.util.function.ToIntFunction;
 import java.util.regex.Pattern;
 
+import org.agrona.LangUtil;
+
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
-import io.aklivity.zilla.runtime.engine.config.ConfigReader;
+import io.aklivity.zilla.runtime.engine.config.EngineConfig;
+import io.aklivity.zilla.runtime.engine.config.EngineConfigReader;
 import io.aklivity.zilla.runtime.engine.config.GuardConfig;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
@@ -96,11 +97,12 @@ public class ConfigurationManager
         this.expressions = ExpressionResolver.instantiate();
     }
 
-    public NamespaceConfig parse(
+    public EngineConfig parse(
         URL configURL,
         String configText)
     {
-        NamespaceConfig namespace = null;
+        EngineConfig engine = null;
+
         if (configText == null || configText.isEmpty())
         {
             configText = CONFIG_TEXT_DEFAULT;
@@ -117,105 +119,106 @@ public class ConfigurationManager
         {
             final Function<String, String> namespaceReadURL = l -> readURL.apply(configURL, l);
 
-            ConfigReader reader = new ConfigReader(
+            EngineConfigReader reader = new EngineConfigReader(
                 new NamespaceConfigAdapterContext(namespaceReadURL),
                 schemaTypes,
                 config.verboseSchema() ? logger : null);
 
-            namespace = reader.read(new StringReader(configText));
-            namespace.id = supplyId.applyAsInt(namespace.name);
-            namespace.readURL = namespaceReadURL;
+            engine = reader.read(configText);
 
-            // TODO: consider qualified name "namespace::name"
-            final NamespaceConfig namespace0 = namespace;
-            namespace.resolveId = name -> name != null ? NamespacedId.id(namespace0.id, supplyId.applyAsInt(name)) : 0L;
-
-            for (GuardConfig guard : namespace.guards)
+            for (NamespaceConfig namespace : engine.namespaces)
             {
-                guard.id = namespace.resolveId.applyAsLong(guard.name);
-                guard.readURL = namespace.readURL;
-            }
+                namespace.id = supplyId.applyAsInt(namespace.name);
+                namespace.readURL = namespaceReadURL;
 
-            for (VaultConfig vault : namespace.vaults)
-            {
-                vault.id = namespace.resolveId.applyAsLong(vault.name);
-            }
+                // TODO: consider qualified name "namespace::name"
+                final NamespaceConfig namespace0 = namespace;
+                namespace.resolveId = name -> name != null ? NamespacedId.id(namespace0.id, supplyId.applyAsInt(name)) : 0L;
 
-            for (CatalogConfig catalog : namespace.catalogs)
-            {
-                catalog.id = namespace.resolveId.applyAsLong(catalog.name);
-            }
-
-            for (MetricConfig metric : namespace.telemetry.metrics)
-            {
-                metric.id = namespace.resolveId.applyAsLong(metric.name);
-            }
-
-            for (BindingConfig binding : namespace.bindings)
-            {
-                binding.id = namespace.resolveId.applyAsLong(binding.name);
-                binding.entryId = namespace.resolveId.applyAsLong(binding.entry);
-                binding.resolveId = namespace.resolveId;
-
-                if (binding.vault != null)
+                for (GuardConfig guard : namespace.guards)
                 {
-                    binding.vaultId = namespace.resolveId.applyAsLong(binding.vault);
+                    guard.id = namespace.resolveId.applyAsLong(guard.name);
+                    guard.readURL = namespace.readURL;
                 }
 
-                for (RouteConfig route : binding.routes)
+                for (VaultConfig vault : namespace.vaults)
                 {
-                    route.id = namespace.resolveId.applyAsLong(route.exit);
-                    route.authorized = session -> true;
+                    vault.id = namespace.resolveId.applyAsLong(vault.name);
+                }
 
-                    if (route.guarded != null)
+                for (CatalogConfig catalog : namespace.catalogs)
+                {
+                    catalog.id = namespace.resolveId.applyAsLong(catalog.name);
+                }
+
+                for (MetricConfig metric : namespace.telemetry.metrics)
+                {
+                    metric.id = namespace.resolveId.applyAsLong(metric.name);
+                }
+
+                for (BindingConfig binding : namespace.bindings)
+                {
+                    binding.id = namespace.resolveId.applyAsLong(binding.name);
+                    binding.entryId = namespace.resolveId.applyAsLong(binding.entry);
+                    binding.resolveId = namespace.resolveId;
+
+                    if (binding.vault != null)
                     {
-                        for (GuardedConfig guarded : route.guarded)
+                        binding.vaultId = namespace.resolveId.applyAsLong(binding.vault);
+                    }
+
+                    for (RouteConfig route : binding.routes)
+                    {
+                        route.id = namespace.resolveId.applyAsLong(route.exit);
+                        route.authorized = session -> true;
+
+                        if (route.guarded != null)
                         {
-                            guarded.id = namespace.resolveId.applyAsLong(guarded.name);
+                            for (GuardedConfig guarded : route.guarded)
+                            {
+                                guarded.id = namespace.resolveId.applyAsLong(guarded.name);
 
-                            LongPredicate authorizer = namespace.guards.stream()
-                                .filter(g -> g.id == guarded.id)
-                                .findFirst()
-                                .map(g -> guardByType.apply(g.type))
-                                .map(g -> g.verifier(EngineWorker::indexOfId, guarded))
-                                .orElse(session -> false);
+                                LongPredicate authorizer = namespace.guards.stream()
+                                    .filter(g -> g.id == guarded.id)
+                                    .findFirst()
+                                    .map(g -> guardByType.apply(g.type))
+                                    .map(g -> g.verifier(EngineWorker::indexOfId, guarded))
+                                    .orElse(session -> false);
 
-                            LongFunction<String> identifier = namespace.guards.stream()
-                                .filter(g -> g.id == guarded.id)
-                                .findFirst()
-                                .map(g -> guardByType.apply(g.type))
-                                .map(g -> g.identifier(EngineWorker::indexOfId, guarded))
-                                .orElse(session -> null);
+                                LongFunction<String> identifier = namespace.guards.stream()
+                                    .filter(g -> g.id == guarded.id)
+                                    .findFirst()
+                                    .map(g -> guardByType.apply(g.type))
+                                    .map(g -> g.identifier(EngineWorker::indexOfId, guarded))
+                                    .orElse(session -> null);
 
-                            guarded.identity = identifier;
+                                guarded.identity = identifier;
 
-                            route.authorized = route.authorized.and(authorizer);
+                                route.authorized = route.authorized.and(authorizer);
+                            }
                         }
                     }
+
+                    binding.metricIds = resolveMetricIds(namespace, binding);
+
+                    long affinity = tuning.affinity(binding.id);
+
+                    final long maxbits = maxWorkers.apply(binding.type.intern().hashCode()).applyAsInt(binding.kind);
+                    for (int bitindex = 0; Long.bitCount(affinity) > maxbits; bitindex++)
+                    {
+                        affinity &= ~(1 << bitindex);
+                    }
+
+                    tuning.affinity(binding.id, affinity);
                 }
-
-                binding.metricIds = resolveMetricIds(namespace, binding);
-
-                long affinity = tuning.affinity(binding.id);
-
-                final long maxbits = maxWorkers.apply(binding.type.intern().hashCode()).applyAsInt(binding.kind);
-                for (int bitindex = 0; Long.bitCount(affinity) > maxbits; bitindex++)
-                {
-                    affinity &= ~(1 << bitindex);
-                }
-
-                tuning.affinity(binding.id, affinity);
             }
         }
         catch (Throwable ex)
         {
-            logError(ex.getMessage());
-            Arrays.stream(ex.getSuppressed())
-                .map(Throwable::getMessage)
-                .forEach(logger);
+            LangUtil.rethrowUnchecked(ex);
         }
 
-        return namespace;
+        return engine;
     }
 
     private long[] resolveMetricIds(
@@ -243,6 +246,30 @@ public class ConfigurationManager
     }
 
     public void register(
+        EngineConfig config)
+    {
+        if (config != null)
+        {
+            for (NamespaceConfig namespace : config.namespaces)
+            {
+                register(namespace);
+            }
+        }
+    }
+
+    public void unregister(
+        EngineConfig config)
+    {
+        if (config != null)
+        {
+            for (NamespaceConfig namespace : config.namespaces)
+            {
+                unregister(namespace);
+            }
+        }
+    }
+
+    private void register(
         NamespaceConfig namespace)
     {
         dispatchers.stream()
@@ -252,7 +279,7 @@ public class ConfigurationManager
         extensions.forEach(e -> e.onRegistered(context));
     }
 
-    public void unregister(
+    private void unregister(
         NamespaceConfig namespace)
     {
         if (namespace != null)
@@ -263,12 +290,6 @@ public class ConfigurationManager
                 .ifPresent(CompletableFuture::join);
             extensions.forEach(e -> e.onUnregistered(context));
         }
-    }
-
-    private void logError(
-        String message)
-    {
-        logger.accept("Configuration parsing error: " + message);
     }
 
     private static final class NamespaceConfigAdapterContext implements ConfigAdapterContext

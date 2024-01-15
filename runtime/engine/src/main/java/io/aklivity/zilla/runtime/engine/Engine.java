@@ -33,7 +33,6 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -61,6 +60,7 @@ import org.agrona.concurrent.AgentRunner;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 import io.aklivity.zilla.runtime.engine.catalog.Catalog;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.EngineConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.exporter.Exporter;
@@ -95,15 +95,16 @@ public final class Engine implements Collector, AutoCloseable
     private final AtomicInteger nextTaskId;
     private final ThreadFactory factory;
 
-    private final ConfigurationManager configurationManager;
+    private final ConfigurationManager manager;
     private final WatcherTask watcherTask;
-    private final Map<URL, NamespaceConfig> namespaces;
     private final URL rootConfigURL;
     private final List<EngineWorker> workers;
     private final boolean readonly;
     private final EngineConfiguration config;
     private final Map<String, Binding> bindingsByType;
     private Future<Void> watcherTaskRef;
+
+    private EngineConfig current;
 
     Engine(
         EngineConfiguration config,
@@ -211,10 +212,8 @@ public final class Engine implements Collector, AutoCloseable
             throw new UnsupportedOperationException();
         }
 
-        this.configurationManager = new ConfigurationManager(schemaTypes, guardsByType::get, labels::supplyLabelId, maxWorkers,
+        this.manager = new ConfigurationManager(schemaTypes, guardsByType::get, labels::supplyLabelId, maxWorkers,
             tuning, workers, logger, context, config, extensions, this::readURL);
-
-        this.namespaces = new HashMap<>();
 
         List<AgentRunner> runners = new ArrayList<>(workers.size());
         workers.forEach(d -> runners.add(d.runner()));
@@ -299,47 +298,68 @@ public final class Engine implements Collector, AutoCloseable
         return context;
     }
 
-    private NamespaceConfig reconfigure(
+    private EngineConfig reconfigure(
         URL configURL,
         String configText)
     {
-        NamespaceConfig newNamespace = configurationManager.parse(configURL, configText);
-        if (newNamespace != null)
+        EngineConfig newConfig = null;
+
+        try
         {
-            writeBindingsLayout(newNamespace);
-            NamespaceConfig oldNamespace = namespaces.get(configURL);
-            configurationManager.unregister(oldNamespace);
-            try
+            newConfig = manager.parse(configURL, configText);
+            if (newConfig != null)
             {
-                configurationManager.register(newNamespace);
-                namespaces.put(configURL, newNamespace);
-            }
-            catch (Exception ex)
-            {
-                context.onError(ex);
-                configurationManager.register(oldNamespace);
-                namespaces.put(configURL, oldNamespace);
+                final EngineConfig oldConfig = current;
+                manager.unregister(oldConfig);
+
+                try
+                {
+                    // TODO: move bindings layout to manager?
+                    writeBindingsLayout(newConfig);
+                    manager.register(newConfig);
+                    current = newConfig;
+                }
+                catch (Exception ex)
+                {
+                    context.onError(ex);
+                    writeBindingsLayout(newConfig);
+                    manager.register(oldConfig);
+
+                    LangUtil.rethrowUnchecked(ex);
+                }
             }
         }
-        return newNamespace;
+        catch (Exception ex)
+        {
+            if (current == null)
+            {
+                LangUtil.rethrowUnchecked(ex);
+            }
+
+            System.out.println(ex.getMessage());
+        }
+        return newConfig;
     }
 
     private void writeBindingsLayout(
-        NamespaceConfig namespace)
+        EngineConfig engine)
     {
-        BindingsLayout bindingsLayout = BindingsLayout.builder().directory(config.directory()).build();
-        for (BindingConfig binding : namespace.bindings)
+        try (BindingsLayout layout = BindingsLayout.builder()
+                .directory(config.directory())
+                .build())
         {
-            long typeId = namespace.resolveId.applyAsLong(binding.type);
-            long kindId = namespace.resolveId.applyAsLong(binding.kind.name().toLowerCase());
-            Binding b = bindingsByType.get(binding.type);
-            long originTypeId = namespace.resolveId.applyAsLong(b.originType(binding.kind));
-            long routedTypeId = namespace.resolveId.applyAsLong(b.routedType(binding.kind));
-            bindingsLayout.writeBindingInfo(binding.id, typeId, kindId, originTypeId, routedTypeId);
-        }
-        try
-        {
-            bindingsLayout.close();
+            for (NamespaceConfig namespace : engine.namespaces)
+            {
+                for (BindingConfig binding : namespace.bindings)
+                {
+                    long typeId = namespace.resolveId.applyAsLong(binding.type);
+                    long kindId = namespace.resolveId.applyAsLong(binding.kind.name().toLowerCase());
+                    Binding typed = bindingsByType.get(binding.type);
+                    long originTypeId = namespace.resolveId.applyAsLong(typed.originType(binding.kind));
+                    long routedTypeId = namespace.resolveId.applyAsLong(typed.routedType(binding.kind));
+                    layout.writeBindingInfo(binding.id, typeId, kindId, originTypeId, routedTypeId);
+                }
+            }
         }
         catch (Exception ex)
         {

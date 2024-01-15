@@ -24,7 +24,6 @@ import java.util.function.Function;
 
 public final class NamespaceConfigBuilder<T> extends ConfigBuilder<T, NamespaceConfigBuilder<T>>
 {
-    public static final List<NamespaceRefConfig> NAMESPACES_DEFAULT = emptyList();
     public static final List<BindingConfig> BINDINGS_DEFAULT = emptyList();
     public static final List<CatalogConfig> CATALOGS_DEFAULT = emptyList();
     public static final List<GuardConfig> GUARDS_DEFAULT = emptyList();
@@ -34,7 +33,6 @@ public final class NamespaceConfigBuilder<T> extends ConfigBuilder<T, NamespaceC
     private final Function<NamespaceConfig, T> mapper;
 
     private String name;
-    private List<NamespaceRefConfig> namespaces;
     private TelemetryConfig telemetry;
     private List<BindingConfig> bindings;
     private List<CatalogConfig> catalogs;
@@ -58,22 +56,6 @@ public final class NamespaceConfigBuilder<T> extends ConfigBuilder<T, NamespaceC
         String name)
     {
         this.name = name;
-        return this;
-    }
-
-    public NamespaceRefConfigBuilder<NamespaceConfigBuilder<T>> namespace()
-    {
-        return new NamespaceRefConfigBuilder<>(this::namespace);
-    }
-
-    public NamespaceConfigBuilder<T> namespace(
-        NamespaceRefConfig namespace)
-    {
-        if (namespaces == null)
-        {
-            namespaces = new LinkedList<>();
-        }
-        namespaces.add(namespace);
         return this;
     }
 
@@ -185,7 +167,6 @@ public final class NamespaceConfigBuilder<T> extends ConfigBuilder<T, NamespaceC
     {
         return mapper.apply(new NamespaceConfig(
             name,
-            Optional.ofNullable(namespaces).orElse(NAMESPACES_DEFAULT),
             Optional.ofNullable(telemetry).orElse(TELEMETRY_DEFAULT),
             Optional.ofNullable(bindings).orElse(BINDINGS_DEFAULT),
             Optional.ofNullable(guards).orElse(GUARDS_DEFAULT),

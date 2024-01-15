@@ -33,7 +33,7 @@ import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 import io.aklivity.zilla.runtime.engine.util.function.ObjectLongLongFunction;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 
-public class ConfigurationRegistry
+public class EngineRegistry
 {
     private final Function<String, BindingContext> bindingsByType;
     private final Function<String, GuardContext> guardsByType;
@@ -49,19 +49,19 @@ public class ConfigurationRegistry
     private final LongConsumer detachBinding;
     private final Collector collector;
 
-    public ConfigurationRegistry(
-            Function<String, BindingContext> bindingsByType,
-            Function<String, GuardContext> guardsByType,
-            Function<String, VaultContext> vaultsByType,
-            Function<String, CatalogContext> catalogsByType,
-            Function<String, MetricContext> metricsByName,
-            Function<String, ExporterContext> exportersByType,
-            ToIntFunction<String> supplyLabelId,
-            LongConsumer exporterAttached,
-            LongConsumer exporterDetached,
-            ObjectLongLongFunction<Metric.Kind, LongConsumer> supplyMetricRecorder,
-            LongConsumer detachBinding,
-            Collector collector)
+    public EngineRegistry(
+        Function<String, BindingContext> bindingsByType,
+        Function<String, GuardContext> guardsByType,
+        Function<String, VaultContext> vaultsByType,
+        Function<String, CatalogContext> catalogsByType,
+        Function<String, MetricContext> metricsByName,
+        Function<String, ExporterContext> exportersByType,
+        ToIntFunction<String> supplyLabelId,
+        LongConsumer exporterAttached,
+        LongConsumer exporterDetached,
+        ObjectLongLongFunction<Metric.Kind, LongConsumer> supplyMetricRecorder,
+        LongConsumer detachBinding,
+        Collector collector)
     {
         this.bindingsByType = bindingsByType;
         this.guardsByType = guardsByType;

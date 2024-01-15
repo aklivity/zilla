@@ -29,18 +29,17 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.BiFunction;
 
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
-
+import io.aklivity.zilla.runtime.engine.config.EngineConfig;
 
 public abstract class WatcherTask implements Callable<Void>, Closeable
 {
     private final MessageDigest md5;
 
     protected final ScheduledExecutorService executor;
-    protected final BiFunction<URL, String, NamespaceConfig> changeListener;
+    protected final BiFunction<URL, String, EngineConfig> changeListener;
 
     protected WatcherTask(
-        BiFunction<URL, String, NamespaceConfig> changeListener)
+        BiFunction<URL, String, EngineConfig> changeListener)
     {
         this.changeListener = changeListener;
         this.md5 = initMessageDigest("MD5");
@@ -49,7 +48,7 @@ public abstract class WatcherTask implements Callable<Void>, Closeable
 
     public abstract Future<Void> submit();
 
-    public abstract CompletableFuture<NamespaceConfig> watch(
+    public abstract CompletableFuture<EngineConfig> watch(
         URL configURL);
 
     protected byte[] computeHash(
