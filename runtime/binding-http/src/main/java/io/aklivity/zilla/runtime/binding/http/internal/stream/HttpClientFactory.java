@@ -2910,8 +2910,13 @@ public final class HttpClientFactory implements HttpStreamFactory
             int limit,
             Flyweight extension)
         {
-            //exchange.responseValidator
-            //System.out.println(exchange.responseValidator);
+            boolean valid = true;
+            if (exchange.responseValidator != null)
+            {
+                valid = exchange.responseValidator.read(buffer, offset, limit);
+                System.out.printf("%s %s", valid, exchange.responseValidator); // TODO: Ati
+            }
+            // TODO: Ati - implement invalid case
             return exchange.doResponseData(traceId, authorization, buffer, offset, limit, extension);
         }
 
@@ -5029,7 +5034,6 @@ public final class HttpClientFactory implements HttpStreamFactory
             doRequestReset(traceId, authorization);
             doResponseAbort(traceId, authorization, EMPTY_OCTETS);
         }
-
 
         public void resolveResponseValidator(
             HttpBeginExFW beginEx)
