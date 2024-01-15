@@ -58,6 +58,7 @@ import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttOffsetStat
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttPublishBeginExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttPublishDataExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttPublishFlushExFW;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttPublishOffsetMetadataFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttResetExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttServerCapabilities;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttSessionBeginExFW;
@@ -127,6 +128,12 @@ public final class MqttFunctions
     public static MqttOffsetMetadataBuilder metadata()
     {
         return new MqttOffsetMetadataBuilder();
+    }
+
+    @Function
+    public static MqttPublishOffsetMetadataBuilder publishMetadata()
+    {
+        return new MqttPublishOffsetMetadataBuilder();
     }
 
     @Function
@@ -920,26 +927,45 @@ public final class MqttFunctions
             return this;
         }
 
-        public MqttOffsetMetadataBuilder metadata(
-            long producerId,
-            short producerEpoch)
+        public String build()
         {
-            offsetMetadataRW.metadataItem(f -> f.producerId(producerId).producerEpoch(producerEpoch));
+            final MqttOffsetMetadataFW offsetMetadata = offsetMetadataRW.build();
+            return BitUtil.toHex(offsetMetadata.buffer().byteArray(), offsetMetadata.offset(), offsetMetadata.limit());
+        }
+    }
+
+    public static final class MqttPublishOffsetMetadataBuilder
+    {
+        private final MqttPublishOffsetMetadataFW.Builder offsetMetadataRW = new MqttPublishOffsetMetadataFW.Builder();
+
+        byte version = 1;
+
+
+        private MqttPublishOffsetMetadataBuilder()
+        {
+            MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+            offsetMetadataRW.wrap(writeBuffer, 0, writeBuffer.capacity());
+            offsetMetadataRW.version(version);
+        }
+
+        public MqttPublishOffsetMetadataBuilder packetId(
+            int packetId)
+        {
+            offsetMetadataRW.appendPacketIds((short) packetId);
             return this;
         }
 
-        public MqttOffsetMetadataBuilder metadata(
+        public MqttPublishOffsetMetadataBuilder producer(
             long producerId,
-            short producerEpoch,
-            int packetId)
+            short producerEpoch)
         {
-            offsetMetadataRW.metadataItem(f -> f.producerId(producerId).producerEpoch(producerEpoch).packetId(packetId));
+            offsetMetadataRW.producerId(producerId).producerEpoch(producerEpoch);
             return this;
         }
 
         public String build()
         {
-            final MqttOffsetMetadataFW offsetMetadata = offsetMetadataRW.build();
+            final MqttPublishOffsetMetadataFW offsetMetadata = offsetMetadataRW.build();
             return BitUtil.toHex(offsetMetadata.buffer().byteArray(), offsetMetadata.offset(), offsetMetadata.limit());
         }
     }

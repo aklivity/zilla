@@ -41,6 +41,7 @@ import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttBeginExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttDataExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttFlushExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttOffsetMetadataFW;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttPublishOffsetMetadataFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttResetExFW;
 
 public class MqttFunctionsTest
@@ -1310,26 +1311,20 @@ public class MqttFunctionsTest
     }
 
     @Test
-    public void shouldEncodeMqttOffsetMetadataWithProducerId()
+    public void shouldEncodeMqttPublishOffsetMetadata()
     {
-        final String state = MqttFunctions.metadata()
-            .metadata(1L, (short) 1, 2)
-            .metadata(2L, (short) 1)
+        final String state = MqttFunctions.publishMetadata()
+            .producer(1L, (short) 1)
+            .packetId(1)
             .build();
 
         DirectBuffer buffer = new UnsafeBuffer(BitUtil.fromHex(state));
-        MqttOffsetMetadataFW offsetMetadata = new MqttOffsetMetadataFW().wrap(buffer, 0, buffer.capacity());
+        MqttPublishOffsetMetadataFW offsetMetadata = new MqttPublishOffsetMetadataFW().wrap(buffer, 0, buffer.capacity());
 
-        assertNotNull(offsetMetadata.metadata()
-            .matchFirst(m ->
-                    1 == m.producerId() &&
-                    1 == m.producerEpoch() &&
-                    2 == m.packetId()));
-
-        assertNotNull(offsetMetadata.metadata()
-            .matchFirst(m ->
-                2 == m.producerId() &&
-                    1 == m.producerEpoch()));
+        assertEquals(1, offsetMetadata.version());
+        assertEquals(1, offsetMetadata.packetIds().nextInt());
+        assertEquals(1, offsetMetadata.producerId());
+        assertEquals(1, offsetMetadata.producerEpoch());
     }
 
     @Test

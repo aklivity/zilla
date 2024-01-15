@@ -265,7 +265,7 @@ scope mqtt
             int16[length] packetIds;
         }
 
-        struct MqttPublishOffsetState
+        struct MqttPublishOffsetMetadata
         {
             uint8 version = 1;
             int64 producerId = 0;
