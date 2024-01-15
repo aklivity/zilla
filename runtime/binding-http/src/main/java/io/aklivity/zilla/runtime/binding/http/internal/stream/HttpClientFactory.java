@@ -2910,6 +2910,8 @@ public final class HttpClientFactory implements HttpStreamFactory
             int limit,
             Flyweight extension)
         {
+            //exchange.responseValidator
+            System.out.println(exchange.responseValidator);
             return exchange.doResponseData(traceId, authorization, buffer, offset, limit, extension);
         }
 
@@ -4463,7 +4465,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         private final HttpBindingConfig binding;
         //private final Long2ObjectHashMap<HttpRequestType> requestTypes;
         private HttpRequestType requestType;
-        private ValidatorConfig responseValidator;
+        private Validator responseValidator;
 
         private HttpExchange(
             HttpClient client,

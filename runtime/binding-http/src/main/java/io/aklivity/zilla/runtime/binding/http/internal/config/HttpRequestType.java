@@ -21,7 +21,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfig;
-import io.aklivity.zilla.runtime.binding.http.config.HttpResponseConfig;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
 import io.aklivity.zilla.runtime.engine.validator.Validator;
 
@@ -50,7 +49,7 @@ public final class HttpRequestType
     public final Validator content;
 
     // responses
-    public final List<HttpResponseConfig> responses;
+    public final List<Response> responses;
 
     private HttpRequestType(
         String path,
@@ -62,7 +61,7 @@ public final class HttpRequestType
         Map<String, Validator> pathParams,
         Map<String, Validator> queryParams,
         Validator content,
-        List<HttpResponseConfig> responses)
+        List<Response> responses)
     {
         this.path = path;
         this.method = method;
@@ -74,6 +73,20 @@ public final class HttpRequestType
         this.queryParams = queryParams;
         this.content = content;
         this.responses = responses;
+    }
+
+    public static final class Response
+    {
+        public final List<String> status;
+        public final List<String> contentType;
+        public final Validator content;
+
+        public Response(List<String> status, List<String> contentType, Validator content)
+        {
+            this.status = status;
+            this.contentType = contentType;
+            this.content = content;
+        }
     }
 
     public static Builder builder()
@@ -90,7 +103,7 @@ public final class HttpRequestType
         private Map<String, Validator> pathParams;
         private Map<String, Validator> queryParams;
         private Validator content;
-        private List<HttpResponseConfig> responses;
+        private List<Response> responses;
 
         public Builder path(
             String path)
@@ -142,7 +155,7 @@ public final class HttpRequestType
         }
 
         public Builder responses(
-            List<HttpResponseConfig> responses)
+            List<Response> responses)
         {
             this.responses = responses;
             return this;

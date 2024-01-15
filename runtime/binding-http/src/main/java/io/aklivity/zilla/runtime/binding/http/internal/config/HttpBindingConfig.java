@@ -222,6 +222,16 @@ public final class HttpBindingConfig
                         queryParams.put(queryParam.name, createValidator.apply(queryParam.validator, this.resolveId));
                     }
                 }
+                List<HttpRequestType.Response> responses = new LinkedList<>();
+                if (request.responses != null)
+                {
+                    for (HttpResponseConfig config : request.responses)
+                    {
+                        HttpRequestType.Response response = new HttpRequestType.Response(config.status, config.contentType,
+                            createValidator.apply(config.content, this.resolveId));
+                        responses.add(response);
+                    }
+                }
                 Validator content = request.content == null ? null : createValidator.apply(request.content, this.resolveId);
                 HttpRequestType requestType = HttpRequestType.builder()
                     .path(request.path)
@@ -231,7 +241,7 @@ public final class HttpBindingConfig
                     .pathParams(pathParams)
                     .queryParams(queryParams)
                     .content(content)
-                    .responses(request.responses)
+                    .responses(responses)
                     .build();
                 requestTypes.add(requestType);
             }
@@ -262,16 +272,16 @@ public final class HttpBindingConfig
         return result;
     }
 
-    public ValidatorConfig resolveResponseValidator(
+    public Validator resolveResponseValidator(
         HttpRequestType requestType,
         HttpBeginExFW beginEx)
     {
-        ValidatorConfig result = null;
+        Validator result = null;
         if (requestType != null && requestType.responses != null)
         {
             String status = resolveHeaderValue(beginEx, HEADER_STATUS);
             String contentType = resolveHeaderValue(beginEx, HEADER_CONTENT_TYPE);
-            for (HttpResponseConfig response : requestType.responses)
+            for (HttpRequestType.Response response : requestType.responses)
             {
                 if (matchResponseStatus(response, status) &&
                     matchResponseContentType(response, contentType))
@@ -306,14 +316,14 @@ public final class HttpBindingConfig
     }
 
     private boolean matchResponseStatus(
-        HttpResponseConfig response,
+        HttpRequestType.Response response,
         String status)
     {
         return status == null || response.status == null || response.status.contains(status);
     }
 
     private boolean matchResponseContentType(
-        HttpResponseConfig response,
+        HttpRequestType.Response response,
         String contentType)
     {
         return contentType == null || response.contentType == null || response.contentType.contains(contentType);
