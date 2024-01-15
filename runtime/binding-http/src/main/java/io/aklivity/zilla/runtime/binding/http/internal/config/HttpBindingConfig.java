@@ -289,7 +289,6 @@ public final class HttpBindingConfig
                     result = response.content;
                 }
             }
-            //System.out.printf("binding resolveResponse %s %s %s %n", status, contentType, result); // TODO: Ati
         }
         return result;
     }

@@ -3351,7 +3351,6 @@ public final class HttpClientFactory implements HttpStreamFactory
                             if (exchange.responseValidator != null)
                             {
                                 valid = exchange.responseValidator.read(payload, 0, payloadLength);
-                                System.out.printf("%s %s%n", valid, exchange.responseValidator); // TODO: Ati
                             }
                             if (valid)
                             {
@@ -4491,7 +4490,6 @@ public final class HttpClientFactory implements HttpStreamFactory
         private int requestRemaining;
 
         private final HttpBindingConfig binding;
-        //private final Long2ObjectHashMap<HttpRequestType> requestTypes;
         private HttpRequestType requestType;
         private Validator responseValidator;
 
@@ -4516,7 +4514,6 @@ public final class HttpClientFactory implements HttpStreamFactory
             this.streamId = streamId;
             this.localBudget = client.localSettings.initialWindowSize;
             this.binding = bindings.get(client.pool.bindingId);
-            //this.requestTypes = new Long2ObjectHashMap<>();
         }
 
         private int initialWindow()
@@ -4647,9 +4644,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             HttpRequestType requestType = binding.resolveRequestType(beginEx);
             if (requestType != null)
             {
-                //requestTypes.put(client.initialId, httpRequestType);
                 this.requestType = requestType;
-                //System.out.println(client.initialId);
                 System.out.println(requestType.path);
             }
 
