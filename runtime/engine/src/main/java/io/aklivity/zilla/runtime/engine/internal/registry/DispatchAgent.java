@@ -96,6 +96,7 @@ import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.ConverterConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
+import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 import io.aklivity.zilla.runtime.engine.converter.Converter;
 import io.aklivity.zilla.runtime.engine.converter.ConverterFactory;
 import io.aklivity.zilla.runtime.engine.exporter.Exporter;
@@ -133,6 +134,8 @@ import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
 import io.aklivity.zilla.runtime.engine.util.function.LongLongFunction;
+import io.aklivity.zilla.runtime.engine.validator.Validator;
+import io.aklivity.zilla.runtime.engine.validator.ValidatorFactory;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
@@ -208,6 +211,7 @@ public class DispatchAgent implements EngineContext, Agent
     private final ScalarsLayout gaugesLayout;
     private final HistogramsLayout histogramsLayout;
     private final ConverterFactory converterFactory;
+    private final ValidatorFactory validatorFactory;
     private long initialId;
     private long promiseId;
     private long traceId;
@@ -229,6 +233,7 @@ public class DispatchAgent implements EngineContext, Agent
         Collection<Catalog> catalogs,
         Collection<MetricGroup> metricGroups,
         ConverterFactory converterFactory,
+        ValidatorFactory validatorFactory,
         Collector collector,
         int index,
         boolean readonly)
@@ -397,6 +402,7 @@ public class DispatchAgent implements EngineContext, Agent
         this.errorHandler = errorHandler;
         this.exportersById = new Long2ObjectHashMap<>();
         this.converterFactory = converterFactory;
+        this.validatorFactory = validatorFactory;
     }
 
     public static int indexOfId(
@@ -873,6 +879,13 @@ public class DispatchAgent implements EngineContext, Agent
         ConverterConfig converter)
     {
         return converterFactory.createWriter(converter, this::supplyCatalog);
+    }
+
+    @Override
+    public Validator supplyValidator(
+        ValidatorConfig converter)
+    {
+        return null;
     }
 
     private void onSystemMessage(

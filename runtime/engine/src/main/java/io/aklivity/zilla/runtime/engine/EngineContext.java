@@ -32,10 +32,12 @@ import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.ConverterConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
+import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 import io.aklivity.zilla.runtime.engine.converter.Converter;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
+import io.aklivity.zilla.runtime.engine.validator.Validator;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
 public interface EngineContext
@@ -138,6 +140,9 @@ public interface EngineContext
 
     Converter createWriter(
         ConverterConfig converter);
+
+    Validator supplyValidator(
+        ValidatorConfig converter);
 
     void onExporterAttached(
         long exporterId);

@@ -34,6 +34,7 @@ import io.aklivity.zilla.runtime.engine.guard.Guard;
 import io.aklivity.zilla.runtime.engine.guard.GuardFactory;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroupFactory;
+import io.aklivity.zilla.runtime.engine.validator.ValidatorFactory;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 import io.aklivity.zilla.runtime.engine.vault.VaultFactory;
 
@@ -131,10 +132,11 @@ public class EngineBuilder
         }
 
         final ConverterFactory converterFactory = ConverterFactory.instantiate();
+        final ValidatorFactory validatorFactory = ValidatorFactory.instantiate();
 
         final ErrorHandler errorHandler = requireNonNull(this.errorHandler, "errorHandler");
 
         return new Engine(config, bindings, exporters, guards, metricGroups, vaults,
-                catalogs, converterFactory, errorHandler, affinities, readonly);
+                catalogs, converterFactory, validatorFactory, errorHandler, affinities, readonly);
     }
 }
