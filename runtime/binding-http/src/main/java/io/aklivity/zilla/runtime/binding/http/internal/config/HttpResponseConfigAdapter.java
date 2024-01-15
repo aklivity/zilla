@@ -48,12 +48,12 @@ public class HttpResponseConfigAdapter implements JsonbAdapter<HttpResponseConfi
         {
             if (response.status.size() == 1)
             {
-                object.add(STATUS_NAME, response.status.get(0));
+                object.add(STATUS_NAME, Integer.parseInt(response.status.get(0)));
             }
             else
             {
                 JsonArrayBuilder status = Json.createArrayBuilder();
-                response.status.forEach(status::add);
+                response.status.forEach(i -> status.add(Integer.parseInt(i)));
                 object.add(STATUS_NAME, status);
             }
         }
@@ -76,19 +76,20 @@ public class HttpResponseConfigAdapter implements JsonbAdapter<HttpResponseConfi
     public HttpResponseConfig adaptFromJson(
         JsonObject object)
     {
-        List<Integer> status = null;
+        List<String> status = null;
         if (object.containsKey(STATUS_NAME))
         {
             JsonValue status0 = object.get(STATUS_NAME);
             if (status0.getValueType() == JsonValue.ValueType.NUMBER)
             {
-                status = List.of(((JsonNumber) status0).intValue());
+                status = List.of(String.valueOf(((JsonNumber) status0).intValue()));
             }
             else if (status0.getValueType() == JsonValue.ValueType.ARRAY)
             {
                 status = object.getJsonArray(STATUS_NAME).stream()
                     .map(JsonNumber.class::cast)
                     .map(JsonNumber::intValue)
+                    .map(String::valueOf)
                     .collect(Collectors.toList());
             }
         }

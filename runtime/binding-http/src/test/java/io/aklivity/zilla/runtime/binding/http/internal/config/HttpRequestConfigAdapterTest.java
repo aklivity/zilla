@@ -110,11 +110,11 @@ public class HttpRequestConfigAdapterTest
         assertThat(request.queryParams.get(0).validator.type, equalTo("test"));
         assertThat(request.content, instanceOf(TestValidatorConfig.class));
         assertThat(request.content.type, equalTo("test"));
-        assertThat(request.responses.get(0).status.get(0), equalTo(200));
+        assertThat(request.responses.get(0).status.get(0), equalTo("200"));
         assertThat(request.responses.get(0).contentType.get(0), equalTo("application/json"));
         assertThat(request.responses.get(0).content.type, equalTo("test"));
-        assertThat(request.responses.get(1).status.get(0), equalTo(401));
-        assertThat(request.responses.get(1).status.get(1), equalTo(404));
+        assertThat(request.responses.get(1).status.get(0), equalTo("401"));
+        assertThat(request.responses.get(1).status.get(1), equalTo("404"));
         assertThat(request.responses.get(1).content.type, equalTo("test"));
     }
 

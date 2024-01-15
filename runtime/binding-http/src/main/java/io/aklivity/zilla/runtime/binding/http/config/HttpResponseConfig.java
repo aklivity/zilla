@@ -23,12 +23,12 @@ import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 
 public class HttpResponseConfig
 {
-    public final List<Integer> status;
+    public final List<String> status;
     public final List<String> contentType;
     public final ValidatorConfig content;
 
     public HttpResponseConfig(
-        List<Integer> status,
+        List<String> status,
         List<String> contentType,
         ValidatorConfig content)
     {

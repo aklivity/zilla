@@ -26,7 +26,7 @@ public class HttpResponseConfigBuilder<T> extends ConfigBuilder<T, HttpResponseC
 {
     private final Function<HttpResponseConfig, T> mapper;
 
-    private List<Integer> status;
+    private List<String> status;
     private List<String> contentType;
     private ValidatorConfig content;
 
@@ -50,7 +50,7 @@ public class HttpResponseConfigBuilder<T> extends ConfigBuilder<T, HttpResponseC
         {
             this.status = new LinkedList<>();
         }
-        this.status.add(status);
+        this.status.add(String.valueOf(status));
         return this;
     }
 

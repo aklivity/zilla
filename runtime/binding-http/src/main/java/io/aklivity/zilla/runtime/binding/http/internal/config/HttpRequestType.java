@@ -21,6 +21,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfig;
+import io.aklivity.zilla.runtime.binding.http.config.HttpResponseConfig;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
 import io.aklivity.zilla.runtime.engine.validator.Validator;
 
@@ -49,7 +50,7 @@ public final class HttpRequestType
     public final Validator content;
 
     // responses
-    //public final List<HttpResponseConfig> responses;
+    public final List<HttpResponseConfig> responses;
 
     private HttpRequestType(
         String path,
@@ -60,7 +61,8 @@ public final class HttpRequestType
         Map<String8FW, Validator> headers,
         Map<String, Validator> pathParams,
         Map<String, Validator> queryParams,
-        Validator content)
+        Validator content,
+        List<HttpResponseConfig> responses)
     {
         this.path = path;
         this.method = method;
@@ -71,6 +73,7 @@ public final class HttpRequestType
         this.pathParams = pathParams;
         this.queryParams = queryParams;
         this.content = content;
+        this.responses = responses;
     }
 
     public static Builder builder()
@@ -87,6 +90,7 @@ public final class HttpRequestType
         private Map<String, Validator> pathParams;
         private Map<String, Validator> queryParams;
         private Validator content;
+        private List<HttpResponseConfig> responses;
 
         public Builder path(
             String path)
@@ -137,13 +141,20 @@ public final class HttpRequestType
             return this;
         }
 
+        public Builder responses(
+            List<HttpResponseConfig> responses)
+        {
+            this.responses = responses;
+            return this;
+        }
+
         public HttpRequestType build()
         {
             String pathPattern = String.format(PATH_FORMAT, path.replaceAll(PATH_REGEX, PATH_REPLACEMENT));
             Matcher pathMatcher = Pattern.compile(pathPattern).matcher(EMPTY_INPUT);
             Matcher queryMatcher = QUERY_PATTERN.matcher(EMPTY_INPUT);
             return new HttpRequestType(path, method, contentType, pathMatcher, queryMatcher, headers, pathParams, queryParams,
-                content);
+                content, responses);
         }
     }
 }

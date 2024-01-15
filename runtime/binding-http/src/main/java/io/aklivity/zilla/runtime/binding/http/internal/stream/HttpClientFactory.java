@@ -2889,6 +2889,8 @@ public final class HttpClientFactory implements HttpStreamFactory
             {
                 pool.onUpgradedOrClosed(this);
             }
+
+            exchange.resolveResponseValidator(beginEx);
         }
 
         private void onDecodeHttp11HeadersOnly(
@@ -4459,7 +4461,9 @@ public final class HttpClientFactory implements HttpStreamFactory
         private int requestRemaining;
 
         private final HttpBindingConfig binding;
-        private final Long2ObjectHashMap<HttpRequestType> requestTypes;
+        //private final Long2ObjectHashMap<HttpRequestType> requestTypes;
+        private HttpRequestType requestType;
+        private ValidatorConfig responseValidator;
 
         private HttpExchange(
             HttpClient client,
@@ -4482,7 +4486,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             this.streamId = streamId;
             this.localBudget = client.localSettings.initialWindowSize;
             this.binding = bindings.get(client.pool.bindingId);
-            this.requestTypes = new Long2ObjectHashMap<>();
+            //this.requestTypes = new Long2ObjectHashMap<>();
         }
 
         private int initialWindow()
@@ -4610,12 +4614,13 @@ public final class HttpClientFactory implements HttpStreamFactory
             final HttpBeginExFW beginEx = extension.get(beginExRO::tryWrap);
             final Array32FW<HttpHeaderFW> headers = beginEx != null ? beginEx.headers() : DEFAULT_HEADERS;
 
-            HttpRequestType httpRequestType = binding.resolveRequestType(beginEx);
-            if (httpRequestType != null)
+            HttpRequestType requestType = binding.resolveRequestType(beginEx);
+            if (requestType != null)
             {
-                requestTypes.put(client.initialId, httpRequestType);
-                System.out.println(client.initialId);
-                System.out.println(httpRequestType.path);
+                //requestTypes.put(client.initialId, httpRequestType);
+                this.requestType = requestType;
+                //System.out.println(client.initialId);
+                System.out.println(requestType.path);
             }
 
             if (client.encoder != HttpEncoder.HTTP_2)
@@ -5021,6 +5026,13 @@ public final class HttpClientFactory implements HttpStreamFactory
         {
             doRequestReset(traceId, authorization);
             doResponseAbort(traceId, authorization, EMPTY_OCTETS);
+        }
+
+
+        public void resolveResponseValidator(
+            HttpBeginExFW beginEx)
+        {
+            this.responseValidator = binding.resolveResponseValidator(requestType, beginEx);
         }
     }
 
