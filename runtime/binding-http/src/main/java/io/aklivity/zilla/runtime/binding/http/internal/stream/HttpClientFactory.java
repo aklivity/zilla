@@ -2910,14 +2910,22 @@ public final class HttpClientFactory implements HttpStreamFactory
             int limit,
             Flyweight extension)
         {
+            int result;
             boolean valid = true;
             if (exchange.responseValidator != null)
             {
                 valid = exchange.responseValidator.read(buffer, offset, limit);
-                System.out.printf("%s %s", valid, exchange.responseValidator); // TODO: Ati
             }
-            // TODO: Ati - implement invalid case
-            return exchange.doResponseData(traceId, authorization, buffer, offset, limit, extension);
+            if (valid)
+            {
+                result = exchange.doResponseData(traceId, authorization, buffer, offset, limit, extension);
+            }
+            else
+            {
+                exchange.doResponseAbort(traceId, authorization, EMPTY_OCTETS);
+                result =  offset + limit;
+            }
+            return result;
         }
 
         private void onDecodeHttp2Trailers(
@@ -3339,12 +3347,26 @@ public final class HttpClientFactory implements HttpStreamFactory
                         }
                         else
                         {
-                            final int remainingProgress = exchange.doResponseData(traceId, authorization, payload,
+                            boolean valid = true;
+                            if (exchange.responseValidator != null)
+                            {
+                                valid = exchange.responseValidator.read(payload, 0, payloadLength);
+                                System.out.printf("%s %s%n", valid, exchange.responseValidator); // TODO: Ati
+                            }
+                            if (valid)
+                            {
+                                final int remainingProgress = exchange.doResponseData(traceId, authorization, payload,
                                     0, payloadLength, EMPTY_OCTETS);
-                            payloadRemaining.value -= remainingProgress;
-                            exchange.responseContentObserved += remainingProgress;
-                            progress += payloadLength - payloadRemaining.value;
-                            deferred += payloadRemaining.value;
+                                payloadRemaining.value -= remainingProgress;
+                                exchange.responseContentObserved += remainingProgress;
+                                progress += payloadLength - payloadRemaining.value;
+                                deferred += payloadRemaining.value;
+                            }
+                            else
+                            {
+                                exchange.doResponseAbort(traceId, authorization, EMPTY_OCTETS);
+                                progress += payloadLength;
+                            }
                         }
                     }
 
@@ -3440,6 +3462,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                         .headers(hs -> headers.forEach((n, v) -> hs.item(h -> h.name(n).value(v))))
                         .build();
 
+                exchange.resolveResponseValidator(beginEx);
                 exchange.doResponseBegin(traceId, authorization, beginEx);
 
                 if (endResponse)
