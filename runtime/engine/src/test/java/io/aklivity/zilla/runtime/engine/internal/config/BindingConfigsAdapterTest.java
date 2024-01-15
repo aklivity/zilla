@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.config;
 
+import static io.aklivity.zilla.runtime.engine.config.KindConfig.PROXY;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.REMOTE_SERVER;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 import static java.util.function.Function.identity;
@@ -41,6 +42,7 @@ import org.mockito.quality.Strictness;
 
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
+import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig;
 
@@ -68,7 +70,7 @@ public class BindingConfigsAdapterTest
                     "\"test\":" +
                     "{" +
                         "\"type\": \"test\"," +
-                        "\"kind\": \"server\"," +
+                        "\"kind\": \"proxy\"," +
                         "\"routes\":" +
                         "[" +
                         "]" +
@@ -78,8 +80,9 @@ public class BindingConfigsAdapterTest
         BindingConfig[] bindings = jsonb.fromJson(text, BindingConfig[].class);
 
         assertThat(bindings[0], not(nullValue()));
-        assertThat(bindings[0].kind, equalTo(SERVER));
+        assertThat(bindings[0].kind, equalTo(PROXY));
         assertThat(bindings[0].routes, emptyCollectionOf(RouteConfig.class));
+        assertThat(bindings[0].namespaces, not(emptyCollectionOf(NamespaceConfig.class)));
     }
 
     @Test

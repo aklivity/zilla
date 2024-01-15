@@ -25,6 +25,7 @@ import java.util.function.Function;
 public final class BindingConfigBuilder<T> extends ConfigBuilder<T, BindingConfigBuilder<T>>
 {
     public static final List<RouteConfig> ROUTES_DEFAULT = emptyList();
+    public static final List<NamespaceConfig> NAMESPACES_DEFAULT = emptyList();
 
     private final Function<BindingConfig, T> mapper;
 
@@ -36,7 +37,8 @@ public final class BindingConfigBuilder<T> extends ConfigBuilder<T, BindingConfi
     private String exit;
     private OptionsConfig options;
     private List<RouteConfig> routes;
-    private TelemetryRefConfig telemetry;
+    private TelemetryRefConfig telemetryRef;
+    private List<NamespaceConfig> namespaces;
 
     BindingConfigBuilder(
         Function<BindingConfig, T> mapper)
@@ -126,15 +128,45 @@ public final class BindingConfigBuilder<T> extends ConfigBuilder<T, BindingConfi
         return this;
     }
 
+    public BindingConfigBuilder<T> routes(
+        List<RouteConfig> routes)
+    {
+        routes.forEach(this::route);
+        return this;
+    }
+
     public TelemetryRefConfigBuilder<BindingConfigBuilder<T>> telemetry()
     {
         return new TelemetryRefConfigBuilder<>(this::telemetry);
     }
 
     public BindingConfigBuilder<T> telemetry(
-        TelemetryRefConfig telemetry)
+        TelemetryRefConfig telemetryRef)
     {
-        this.telemetry = telemetry;
+        this.telemetryRef = telemetryRef;
+        return this;
+    }
+
+    public NamespaceConfigBuilder<BindingConfigBuilder<T>> namespace()
+    {
+        return new NamespaceConfigBuilder<>(this::namespace);
+    }
+
+    public BindingConfigBuilder<T> namespace(
+        NamespaceConfig namespace)
+    {
+        if (namespaces == null)
+        {
+            namespaces = new LinkedList<>();
+        }
+        namespaces.add(namespace);
+        return this;
+    }
+
+    public BindingConfigBuilder<T> namespaces(
+        List<NamespaceConfig> namespaces)
+    {
+        namespaces.forEach(this::namespace);
         return this;
     }
 
@@ -156,6 +188,17 @@ public final class BindingConfigBuilder<T> extends ConfigBuilder<T, BindingConfi
             entry,
             options,
             Optional.ofNullable(routes).orElse(ROUTES_DEFAULT),
-            telemetry));
+            telemetryRef,
+            Optional.ofNullable(namespaces).orElse(NAMESPACES_DEFAULT)));
+    }
+
+    public String type()
+    {
+        return type;
+    }
+
+    public KindConfig kind()
+    {
+        return kind;
     }
 }

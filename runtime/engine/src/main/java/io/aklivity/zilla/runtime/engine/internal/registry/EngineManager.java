@@ -127,7 +127,6 @@ public class EngineManager
 
                 try
                 {
-                    // TODO: move bindings layout to manager?
                     writeBindingsLayout(newConfig);
                     register(newConfig);
                     current = newConfig;
@@ -156,32 +155,6 @@ public class EngineManager
         }
 
         return newConfig;
-    }
-
-    private void writeBindingsLayout(
-        EngineConfig engine)
-    {
-        try (BindingsLayout layout = BindingsLayout.builder()
-                .directory(config.directory())
-                .build())
-        {
-            for (NamespaceConfig namespace : engine.namespaces)
-            {
-                for (BindingConfig binding : namespace.bindings)
-                {
-                    long typeId = namespace.resolveId.applyAsLong(binding.type);
-                    long kindId = namespace.resolveId.applyAsLong(binding.kind.name().toLowerCase());
-                    Binding typed = bindingByType.apply(binding.type);
-                    long originTypeId = namespace.resolveId.applyAsLong(typed.originType(binding.kind));
-                    long routedTypeId = namespace.resolveId.applyAsLong(typed.routedType(binding.kind));
-                    layout.writeBindingInfo(binding.id, typeId, kindId, originTypeId, routedTypeId);
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            LangUtil.rethrowUnchecked(ex);
-        }
     }
 
     private EngineConfig parse(
@@ -215,104 +188,7 @@ public class EngineManager
 
             for (NamespaceConfig namespace : engine.namespaces)
             {
-                namespace.id = supplyId.applyAsInt(namespace.name);
-                namespace.readURL = namespaceReadURL;
-
-                final NamespaceConfig namespace0 = namespace;
-                namespace.resolveId = name ->
-                {
-                    long id = 0L;
-
-                    if (name != null && matchName.reset(name).matches())
-                    {
-                        String ns = matchName.group("namespace");
-                        String n = matchName.group("name");
-
-                        int nsid = ns != null ? supplyId.applyAsInt(ns) : namespace0.id;
-                        int nid = supplyId.applyAsInt(n);
-
-                        id = NamespacedId.id(nsid, nid);
-                    }
-
-                    return id;
-                };
-
-                for (GuardConfig guard : namespace.guards)
-                {
-                    guard.id = namespace.resolveId.applyAsLong(guard.name);
-                    guard.readURL = namespace.readURL;
-                }
-
-                for (VaultConfig vault : namespace.vaults)
-                {
-                    vault.id = namespace.resolveId.applyAsLong(vault.name);
-                }
-
-                for (CatalogConfig catalog : namespace.catalogs)
-                {
-                    catalog.id = namespace.resolveId.applyAsLong(catalog.name);
-                }
-
-                for (MetricConfig metric : namespace.telemetry.metrics)
-                {
-                    metric.id = namespace.resolveId.applyAsLong(metric.name);
-                }
-
-                for (BindingConfig binding : namespace.bindings)
-                {
-                    binding.id = namespace.resolveId.applyAsLong(binding.name);
-                    binding.entryId = namespace.resolveId.applyAsLong(binding.entry);
-                    binding.resolveId = namespace.resolveId;
-
-                    if (binding.vault != null)
-                    {
-                        binding.vaultId = namespace.resolveId.applyAsLong(binding.vault);
-                    }
-
-                    for (RouteConfig route : binding.routes)
-                    {
-                        route.id = namespace.resolveId.applyAsLong(route.exit);
-                        route.authorized = session -> true;
-
-                        if (route.guarded != null)
-                        {
-                            for (GuardedConfig guarded : route.guarded)
-                            {
-                                guarded.id = namespace.resolveId.applyAsLong(guarded.name);
-
-                                LongPredicate authorizer = namespace.guards.stream()
-                                    .filter(g -> g.id == guarded.id)
-                                    .findFirst()
-                                    .map(g -> guardByType.apply(g.type))
-                                    .map(g -> g.verifier(EngineWorker::indexOfId, guarded))
-                                    .orElse(session -> false);
-
-                                LongFunction<String> identifier = namespace.guards.stream()
-                                    .filter(g -> g.id == guarded.id)
-                                    .findFirst()
-                                    .map(g -> guardByType.apply(g.type))
-                                    .map(g -> g.identifier(EngineWorker::indexOfId, guarded))
-                                    .orElse(session -> null);
-
-                                guarded.identity = identifier;
-
-                                route.authorized = route.authorized.and(authorizer);
-                            }
-                        }
-                    }
-
-                    binding.metricIds = resolveMetricIds(namespace, binding);
-
-                    long affinity = tuning.affinity(binding.id);
-
-                    final long maxbits = maxWorkers.apply(binding.type.intern().hashCode()).applyAsInt(binding.kind);
-                    for (int bitindex = 0; Long.bitCount(affinity) > maxbits; bitindex++)
-                    {
-                        affinity &= ~(1 << bitindex);
-                    }
-
-                    tuning.affinity(binding.id, affinity);
-                }
+                process(namespace, namespaceReadURL);
             }
         }
         catch (Throwable ex)
@@ -321,6 +197,97 @@ public class EngineManager
         }
 
         return engine;
+    }
+
+    private void process(
+        NamespaceConfig namespace,
+        Function<String, String> readURL)
+    {
+        namespace.id = supplyId.applyAsInt(namespace.name);
+        namespace.readURL = readURL;
+        namespace.resolveId = new NameResolver(namespace.id)::resolve;
+
+        for (GuardConfig guard : namespace.guards)
+        {
+            guard.id = namespace.resolveId.applyAsLong(guard.name);
+            guard.readURL = namespace.readURL;
+        }
+
+        for (VaultConfig vault : namespace.vaults)
+        {
+            vault.id = namespace.resolveId.applyAsLong(vault.name);
+        }
+
+        for (CatalogConfig catalog : namespace.catalogs)
+        {
+            catalog.id = namespace.resolveId.applyAsLong(catalog.name);
+        }
+
+        for (MetricConfig metric : namespace.telemetry.metrics)
+        {
+            metric.id = namespace.resolveId.applyAsLong(metric.name);
+        }
+
+        for (BindingConfig binding : namespace.bindings)
+        {
+            binding.id = namespace.resolveId.applyAsLong(binding.name);
+            binding.entryId = namespace.resolveId.applyAsLong(binding.entry);
+            binding.resolveId = namespace.resolveId;
+
+            if (binding.vault != null)
+            {
+                binding.vaultId = namespace.resolveId.applyAsLong(binding.vault);
+            }
+
+            for (RouteConfig route : binding.routes)
+            {
+                route.id = namespace.resolveId.applyAsLong(route.exit);
+                route.authorized = session -> true;
+
+                if (route.guarded != null)
+                {
+                    for (GuardedConfig guarded : route.guarded)
+                    {
+                        guarded.id = namespace.resolveId.applyAsLong(guarded.name);
+
+                        LongPredicate authorizer = namespace.guards.stream()
+                            .filter(g -> g.id == guarded.id)
+                            .findFirst()
+                            .map(g -> guardByType.apply(g.type))
+                            .map(g -> g.verifier(EngineWorker::indexOfId, guarded))
+                            .orElse(session -> false);
+
+                        LongFunction<String> identifier = namespace.guards.stream()
+                            .filter(g -> g.id == guarded.id)
+                            .findFirst()
+                            .map(g -> guardByType.apply(g.type))
+                            .map(g -> g.identifier(EngineWorker::indexOfId, guarded))
+                            .orElse(session -> null);
+
+                        guarded.identity = identifier;
+
+                        route.authorized = route.authorized.and(authorizer);
+                    }
+                }
+            }
+
+            binding.metricIds = resolveMetricIds(namespace, binding);
+
+            for (NamespaceConfig composite : binding.namespaces)
+            {
+                process(composite, readURL);
+            }
+
+            long affinity = tuning.affinity(binding.id);
+
+            final long maxbits = maxWorkers.apply(binding.type.intern().hashCode()).applyAsInt(binding.kind);
+            for (int bitindex = 0; Long.bitCount(affinity) > maxbits; bitindex++)
+            {
+                affinity &= ~(1 << bitindex);
+            }
+
+            tuning.affinity(binding.id, affinity);
+        }
     }
 
     private long[] resolveMetricIds(
@@ -391,6 +358,62 @@ public class EngineManager
                 .reduce(CompletableFuture::allOf)
                 .ifPresent(CompletableFuture::join);
             extensions.forEach(e -> e.onUnregistered(context));
+        }
+    }
+
+    private void writeBindingsLayout(
+        EngineConfig engine)
+    {
+        try (BindingsLayout layout = BindingsLayout.builder()
+                .directory(config.directory())
+                .build())
+        {
+            for (NamespaceConfig namespace : engine.namespaces)
+            {
+                for (BindingConfig binding : namespace.bindings)
+                {
+                    long typeId = namespace.resolveId.applyAsLong(binding.type);
+                    long kindId = namespace.resolveId.applyAsLong(binding.kind.name().toLowerCase());
+                    Binding typed = bindingByType.apply(binding.type);
+                    long originTypeId = namespace.resolveId.applyAsLong(typed.originType(binding.kind));
+                    long routedTypeId = namespace.resolveId.applyAsLong(typed.routedType(binding.kind));
+                    layout.writeBindingInfo(binding.id, typeId, kindId, originTypeId, routedTypeId);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            LangUtil.rethrowUnchecked(ex);
+        }
+    }
+
+    private final class NameResolver
+    {
+        private final int namespaceId;
+
+        private NameResolver(
+            int namespaceId)
+        {
+            this.namespaceId = namespaceId;
+        }
+
+        private long resolve(
+            String name)
+        {
+            long id = 0L;
+
+            if (name != null && matchName.reset(name).matches())
+            {
+                String ns = matchName.group("namespace");
+                String n = matchName.group("name");
+
+                int nsid = ns != null ? supplyId.applyAsInt(ns) : namespaceId;
+                int nid = supplyId.applyAsInt(n);
+
+                id = NamespacedId.id(nsid, nid);
+            }
+
+            return id;
         }
     }
 

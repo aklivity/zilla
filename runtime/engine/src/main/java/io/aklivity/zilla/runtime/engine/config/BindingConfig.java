@@ -19,6 +19,7 @@ import static java.util.Objects.requireNonNull;
 import static java.util.function.Function.identity;
 
 import java.util.List;
+import java.util.function.Function;
 import java.util.function.ToLongFunction;
 
 public class BindingConfig
@@ -39,10 +40,32 @@ public class BindingConfig
     public final OptionsConfig options;
     public final List<RouteConfig> routes;
     public final TelemetryRefConfig telemetryRef;
+    public final List<NamespaceConfig> namespaces;
 
     public static BindingConfigBuilder<BindingConfig> builder()
     {
         return new BindingConfigBuilder<>(identity());
+    }
+
+    public static <T> BindingConfigBuilder<T> builder(
+        Function<BindingConfig, T> mapper)
+    {
+        return new BindingConfigBuilder<>(mapper);
+    }
+
+    public static BindingConfigBuilder<BindingConfig> builder(
+        BindingConfig binding)
+    {
+        return builder()
+            .vault(binding.vault)
+            .name(binding.name)
+            .type(binding.type)
+            .kind(binding.kind)
+            .entry(binding.entry)
+            .options(binding.options)
+            .routes(binding.routes)
+            .telemetry(binding.telemetryRef)
+            .namespaces(binding.namespaces);
     }
 
     BindingConfig(
@@ -53,7 +76,8 @@ public class BindingConfig
         String entry,
         OptionsConfig options,
         List<RouteConfig> routes,
-        TelemetryRefConfig telemetryRef)
+        TelemetryRefConfig telemetryRef,
+        List<NamespaceConfig> namespaces)
     {
         this.vault = vault;
         this.name = name;
@@ -63,5 +87,6 @@ public class BindingConfig
         this.options = options;
         this.routes = routes;
         this.telemetryRef = telemetryRef;
+        this.namespaces = namespaces;
     }
 }

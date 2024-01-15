@@ -1,0 +1,26 @@
+{
+    "name": "default",
+    "vaults":
+    {
+        "secure":
+        {
+            "type" : "test"
+        }
+    },
+
+    "bindings":
+    {
+        "test0":
+        {
+            "type" : "test",
+            "kind": "proxy",
+            "routes":
+            [
+                {
+                    "exit": "test1"
+                }
+            ],
+            "exit": "test2"
+        }
+    }
+}
