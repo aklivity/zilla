@@ -2911,7 +2911,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             Flyweight extension)
         {
             //exchange.responseValidator
-            System.out.println(exchange.responseValidator);
+            //System.out.println(exchange.responseValidator);
             return exchange.doResponseData(traceId, authorization, buffer, offset, limit, extension);
         }
 
