@@ -23,9 +23,11 @@ import static org.junit.Assert.assertNull;
 
 import java.nio.ByteBuffer;
 import java.util.Objects;
+import java.util.function.IntConsumer;
 
 import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
+import org.agrona.collections.IntArrayList;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 import org.kaazing.k3po.lang.el.BytesMatcher;
@@ -1297,16 +1299,14 @@ public class MqttFunctionsTest
             .metadata(2)
             .build();
 
-        DirectBuffer buffer = new UnsafeBuffer(BitUtil.fromHex(state));
+        final IntArrayList metadataList = new IntArrayList();
+        UnsafeBuffer buffer = new UnsafeBuffer(BitUtil.fromHex(state));
         MqttOffsetMetadataFW offsetMetadata = new MqttOffsetMetadataFW().wrap(buffer, 0, buffer.capacity());
+        offsetMetadata.packetIds().forEachRemaining((IntConsumer) metadataList::add);
 
-        assertNotNull(offsetMetadata.metadata()
-            .matchFirst(m ->
-                    1 == m.packetId()));
-
-        assertNotNull(offsetMetadata.metadata()
-            .matchFirst(m ->
-                2 == m.packetId()));
+        assertEquals(1, offsetMetadata.version());
+        assertEquals(1, (int) metadataList.get(0));
+        assertEquals(2, (int) metadataList.get(1));
     }
 
     @Test

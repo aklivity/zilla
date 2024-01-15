@@ -258,17 +258,20 @@ scope mqtt
             INCOMPLETE(1)
         }
 
-        struct MqttOffsetState
-        {
-            int64 producerId = 0;
-            int16 producerEpoch = 0;
-            uint16 packetId = 0;
-        }
-
         struct MqttOffsetMetadata
         {
             uint8 version = 1;
-            MqttOffsetState[] metadata;
+            uint8 length;
+            int16[length] packetIds;
+        }
+
+        struct MqttPublishOffsetState
+        {
+            uint8 version = 1;
+            int64 producerId = 0;
+            int16 producerEpoch = 0;
+            uint8 length;
+            int16[length] packetIds;
         }
     }
 }

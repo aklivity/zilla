@@ -903,16 +903,20 @@ public final class MqttFunctions
     {
         private final MqttOffsetMetadataFW.Builder offsetMetadataRW = new MqttOffsetMetadataFW.Builder();
 
+        byte version = 1;
+
+
         private MqttOffsetMetadataBuilder()
         {
             MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
             offsetMetadataRW.wrap(writeBuffer, 0, writeBuffer.capacity());
+            offsetMetadataRW.version(version);
         }
 
         public MqttOffsetMetadataBuilder metadata(
             int packetId)
         {
-            offsetMetadataRW.metadataItem(f -> f.packetId(packetId));
+            offsetMetadataRW.appendPacketIds((short) packetId);
             return this;
         }
 
@@ -936,9 +940,7 @@ public final class MqttFunctions
         public String build()
         {
             final MqttOffsetMetadataFW offsetMetadata = offsetMetadataRW.build();
-            final byte[] array = new byte[offsetMetadata.sizeof()];
-            offsetMetadata.buffer().getBytes(offsetMetadata.offset(), array);
-            return BitUtil.toHex(array);
+            return BitUtil.toHex(offsetMetadata.buffer().byteArray(), offsetMetadata.offset(), offsetMetadata.limit());
         }
     }
 
