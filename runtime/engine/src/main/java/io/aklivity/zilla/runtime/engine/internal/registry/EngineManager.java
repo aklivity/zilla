@@ -29,6 +29,7 @@ import java.util.function.IntFunction;
 import java.util.function.LongFunction;
 import java.util.function.LongPredicate;
 import java.util.function.ToIntFunction;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.agrona.LangUtil;
@@ -61,6 +62,8 @@ public class EngineManager
 {
     private static final String CONFIG_TEXT_DEFAULT = "name: default\n";
 
+    private static final Pattern PATTERN_NSNAME = Pattern.compile("(?:(?<namespace>[^\\:]+)\\:)?(?<name>[^\\:]+)");
+
     private final Collection<URL> schemaTypes;
     private final Function<String, Binding> bindingByType;
     private final Function<String, Guard> guardByType;
@@ -74,6 +77,7 @@ public class EngineManager
     private final List<EngineExtSpi> extensions;
     private final BiFunction<URL, String, String> readURL;
     private final ExpressionResolver expressions;
+    private final Matcher matchName;
 
     private EngineConfig current;
 
@@ -104,6 +108,7 @@ public class EngineManager
         this.extensions = extensions;
         this.readURL = readURL;
         this.expressions = ExpressionResolver.instantiate();
+        this.matchName = PATTERN_NSNAME.matcher("");
     }
 
     public EngineConfig reconfigure(
@@ -213,9 +218,24 @@ public class EngineManager
                 namespace.id = supplyId.applyAsInt(namespace.name);
                 namespace.readURL = namespaceReadURL;
 
-                // TODO: consider qualified name "namespace::name"
                 final NamespaceConfig namespace0 = namespace;
-                namespace.resolveId = name -> name != null ? NamespacedId.id(namespace0.id, supplyId.applyAsInt(name)) : 0L;
+                namespace.resolveId = name ->
+                {
+                    long id = 0L;
+
+                    if (name != null && matchName.reset(name).matches())
+                    {
+                        String ns = matchName.group("namespace");
+                        String n = matchName.group("name");
+
+                        int nsid = ns != null ? supplyId.applyAsInt(ns) : namespace0.id;
+                        int nid = supplyId.applyAsInt(n);
+
+                        id = NamespacedId.id(nsid, nid);
+                    }
+
+                    return id;
+                };
 
                 for (GuardConfig guard : namespace.guards)
                 {

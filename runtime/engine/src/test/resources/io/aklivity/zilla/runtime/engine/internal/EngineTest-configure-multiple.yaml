@@ -35,7 +35,7 @@
             "routes":
             [
                 {
-                    "exit": "test1"
+                    "exit": "second:test0"
                 }
             ],
             "exit": "test2"
