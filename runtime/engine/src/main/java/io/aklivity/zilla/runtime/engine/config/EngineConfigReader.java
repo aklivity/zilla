@@ -131,14 +131,6 @@ public final class EngineConfigReader
 
                     configAt += (int) parser.getLocation().getStreamOffset();
                 }
-            }
-
-            Reader reader = new StringReader(readable);
-            for (int configAt : configsAt)
-            {
-                reader.reset();
-                reader.skip(configAt);
-                provider.createReader(reader).read();
 
                 if (!errors.isEmpty())
                 {
@@ -153,6 +145,7 @@ public final class EngineConfigReader
                     .withConfig(config)
                     .build();
 
+            Reader reader = new StringReader(readable);
             EngineConfigBuilder<EngineConfig> builder = EngineConfig.builder();
             for (int configAt : configsAt)
             {

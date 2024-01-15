@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.engine.internal.registry;
 
 import java.net.URL;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -33,9 +34,11 @@ import java.util.regex.Pattern;
 import org.agrona.LangUtil;
 
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
+import io.aklivity.zilla.runtime.engine.binding.Binding;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
+import io.aklivity.zilla.runtime.engine.config.ConfigException;
 import io.aklivity.zilla.runtime.engine.config.EngineConfig;
 import io.aklivity.zilla.runtime.engine.config.EngineConfigReader;
 import io.aklivity.zilla.runtime.engine.config.GuardConfig;
@@ -51,13 +54,15 @@ import io.aklivity.zilla.runtime.engine.ext.EngineExtContext;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
 import io.aklivity.zilla.runtime.engine.guard.Guard;
 import io.aklivity.zilla.runtime.engine.internal.Tuning;
+import io.aklivity.zilla.runtime.engine.internal.layouts.BindingsLayout;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 
-public class ConfigurationManager
+public class EngineManager
 {
     private static final String CONFIG_TEXT_DEFAULT = "name: default\n";
 
     private final Collection<URL> schemaTypes;
+    private final Function<String, Binding> bindingByType;
     private final Function<String, Guard> guardByType;
     private final ToIntFunction<String> supplyId;
     private final IntFunction<ToIntFunction<KindConfig>> maxWorkers;
@@ -70,8 +75,11 @@ public class ConfigurationManager
     private final BiFunction<URL, String, String> readURL;
     private final ExpressionResolver expressions;
 
-    public ConfigurationManager(
+    private EngineConfig current;
+
+    public EngineManager(
         Collection<URL> schemaTypes,
+        Function<String, Binding> bindingByType,
         Function<String, Guard> guardByType,
         ToIntFunction<String> supplyId,
         IntFunction<ToIntFunction<KindConfig>> maxWorkers,
@@ -84,6 +92,7 @@ public class ConfigurationManager
         BiFunction<URL, String, String> readURL)
     {
         this.schemaTypes = schemaTypes;
+        this.bindingByType = bindingByType;
         this.guardByType = guardByType;
         this.supplyId = supplyId;
         this.maxWorkers = maxWorkers;
@@ -97,7 +106,80 @@ public class ConfigurationManager
         this.expressions = ExpressionResolver.instantiate();
     }
 
-    public EngineConfig parse(
+    public EngineConfig reconfigure(
+        URL configURL,
+        String configText)
+    {
+        EngineConfig newConfig = null;
+
+        try
+        {
+            newConfig = parse(configURL, configText);
+            if (newConfig != null)
+            {
+                final EngineConfig oldConfig = current;
+                unregister(oldConfig);
+
+                try
+                {
+                    // TODO: move bindings layout to manager?
+                    writeBindingsLayout(newConfig);
+                    register(newConfig);
+                    current = newConfig;
+                }
+                catch (Exception ex)
+                {
+                    context.onError(ex);
+                    writeBindingsLayout(newConfig);
+                    register(oldConfig);
+
+                    LangUtil.rethrowUnchecked(ex);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.accept(ex.getMessage());
+            Arrays.stream(ex.getSuppressed())
+                .map(Throwable::getMessage)
+                .forEach(logger);
+
+            if (current == null)
+            {
+                throw new ConfigException("Engine configuration failed");
+            }
+        }
+
+        return newConfig;
+    }
+
+    private void writeBindingsLayout(
+        EngineConfig engine)
+    {
+        try (BindingsLayout layout = BindingsLayout.builder()
+                .directory(config.directory())
+                .build())
+        {
+            for (NamespaceConfig namespace : engine.namespaces)
+            {
+                for (BindingConfig binding : namespace.bindings)
+                {
+                    long typeId = namespace.resolveId.applyAsLong(binding.type);
+                    long kindId = namespace.resolveId.applyAsLong(binding.kind.name().toLowerCase());
+                    Binding typed = bindingByType.apply(binding.type);
+                    long originTypeId = namespace.resolveId.applyAsLong(typed.originType(binding.kind));
+                    long routedTypeId = namespace.resolveId.applyAsLong(typed.routedType(binding.kind));
+                    layout.writeBindingInfo(binding.id, typeId, kindId, originTypeId, routedTypeId);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            LangUtil.rethrowUnchecked(ex);
+        }
+    }
+
+    private EngineConfig parse(
         URL configURL,
         String configText)
     {
@@ -245,7 +327,7 @@ public class ConfigurationManager
         return metricIds.stream().mapToLong(Long::longValue).toArray();
     }
 
-    public void register(
+    private void register(
         EngineConfig config)
     {
         if (config != null)
@@ -257,7 +339,7 @@ public class ConfigurationManager
         }
     }
 
-    public void unregister(
+    private void unregister(
         EngineConfig config)
     {
         if (config != null)

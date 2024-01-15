@@ -39,8 +39,8 @@ public class FileWatcherTask extends WatcherTask
     private final Function<String, String> readURL;
 
     public FileWatcherTask(
-        Function<String, String> readURL,
-        BiFunction<URL, String, EngineConfig> changeListener)
+        BiFunction<URL, String, EngineConfig> changeListener,
+        Function<String, String> readURL)
     {
         super(changeListener);
         this.readURL = readURL;
