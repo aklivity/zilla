@@ -48,6 +48,6 @@ public class IntegerValidator implements Validator
         int index,
         int length)
     {
-        return length == 4;
+        return length - index == 4;
     }
 }

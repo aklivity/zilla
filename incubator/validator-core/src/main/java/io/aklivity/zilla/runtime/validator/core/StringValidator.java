@@ -56,8 +56,8 @@ public final class StringValidator implements Validator
         int index,
         int length)
     {
-        byte[] payloadBytes = new byte[length];
-        data.getBytes(0, payloadBytes);
+        byte[] payloadBytes = new byte[length - index];
+        data.getBytes(index, payloadBytes);
         return predicate.test(payloadBytes);
     }
 
