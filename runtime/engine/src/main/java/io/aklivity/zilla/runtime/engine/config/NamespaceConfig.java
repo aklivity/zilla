@@ -25,7 +25,6 @@ import java.util.function.ToLongFunction;
 public class NamespaceConfig
 {
     public transient int id;
-    public transient ToLongFunction<String> resolveId;
     public transient Function<String, String> readURL;
 
     public final String name;
