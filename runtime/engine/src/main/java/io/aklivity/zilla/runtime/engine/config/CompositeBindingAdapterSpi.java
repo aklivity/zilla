@@ -15,25 +15,10 @@
  */
 package io.aklivity.zilla.runtime.engine.config;
 
-import static java.util.function.Function.identity;
-
-import java.util.Map;
-
-public class NamespaceRefConfig
+public interface CompositeBindingAdapterSpi
 {
-    public final String name;
-    public final Map<String, String> links;
+    String type();
 
-    public static NamespaceRefConfigBuilder<NamespaceRefConfig> builder()
-    {
-        return new NamespaceRefConfigBuilder<>(identity());
-    }
-
-    NamespaceRefConfig(
-        String name,
-        Map<String, String> links)
-    {
-        this.name = name;
-        this.links = links;
-    }
+    BindingConfig adapt(
+        BindingConfig binding);
 }

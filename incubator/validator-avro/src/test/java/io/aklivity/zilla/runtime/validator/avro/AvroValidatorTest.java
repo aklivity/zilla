@@ -28,7 +28,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.Catalog;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
@@ -66,7 +66,7 @@ public class AvroValidatorTest
     {
         Properties properties = new Properties();
         properties.setProperty(ENGINE_DIRECTORY.name(), "target/zilla-itests");
-        Configuration config = new Configuration(properties);
+        EngineConfiguration config = new EngineConfiguration(properties);
         labels = new LabelManager(config.directory());
         resolveId = name -> name != null ? NamespacedId.id(1, labels.supplyLabelId(name)) : 0L;
         Catalog catalog = new TestCatalog(config);
@@ -76,7 +76,7 @@ public class AvroValidatorTest
     @Test
     public void shouldVerifyValidAvroEvent()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
+        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test", new TestCatalogOptionsConfig(SCHEMA));
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
         AvroValidator validator = new AvroValidator(avroConfig, resolveId, handler);
 
@@ -91,7 +91,7 @@ public class AvroValidatorTest
     @Test
     public void shouldVerifyInvalidAvroEvent()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
+        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test", new TestCatalogOptionsConfig(SCHEMA));
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
         AvroValidator validator = new AvroValidator(avroConfig, resolveId, handler);
 
@@ -105,7 +105,7 @@ public class AvroValidatorTest
     @Test
     public void shouldVerifyMagicBytes()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
+        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test", new TestCatalogOptionsConfig(SCHEMA));
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
         AvroValidator validator = new AvroValidator(avroConfig, resolveId, handler);
 
@@ -119,7 +119,7 @@ public class AvroValidatorTest
     @Test
     public void shouldVerifyInvalidSchemaId()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(SCHEMA));
+        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test", new TestCatalogOptionsConfig(SCHEMA));
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
         AvroValidator validator = new AvroValidator(avroConfig, resolveId, handler);
 

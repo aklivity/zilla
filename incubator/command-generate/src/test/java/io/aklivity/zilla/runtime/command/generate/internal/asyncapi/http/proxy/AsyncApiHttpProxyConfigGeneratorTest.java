@@ -14,8 +14,7 @@
  */
 package io.aklivity.zilla.runtime.command.generate.internal.asyncapi.http.proxy;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
 
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -23,90 +22,92 @@ import java.nio.file.Path;
 
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.command.generate.internal.airline.ConfigGenerator;
+
 public class AsyncApiHttpProxyConfigGeneratorTest
 {
     @Test
     public void shouldGeneratePlainConfig() throws Exception
     {
-        try (InputStream inputStream = getClass().getResourceAsStream("plain/asyncapi.yaml"))
+        try (InputStream input = getClass().getResourceAsStream("plain/asyncapi.yaml"))
         {
             // GIVEN
-            String expectedResult = Files.readString(Path.of(getClass().getResource("plain/zilla.yaml").getFile()));
-            AsyncApiHttpProxyConfigGenerator generator = new AsyncApiHttpProxyConfigGenerator(inputStream);
+            String expected = Files.readString(Path.of(getClass().getResource("plain/zilla.yaml").getFile()));
+            ConfigGenerator generator = new AsyncApiHttpProxyConfigGenerator(input);
 
             // WHEN
-            String result = generator.generate();
+            String actual = generator.generate();
 
             // THEN
-            assertThat(result, equalTo(expectedResult));
+            assertEquals(expected, actual);
         }
     }
 
     @Test
     public void shouldGenerateValidatorConfig() throws Exception
     {
-        try (InputStream inputStream = getClass().getResourceAsStream("validator/asyncapi.yaml"))
+        try (InputStream input = getClass().getResourceAsStream("validator/asyncapi.yaml"))
         {
             // GIVEN
-            String expectedResult = Files.readString(Path.of(getClass().getResource("validator/zilla.yaml").getFile()));
-            AsyncApiHttpProxyConfigGenerator generator = new AsyncApiHttpProxyConfigGenerator(inputStream);
+            String expected = Files.readString(Path.of(getClass().getResource("validator/zilla.yaml").getFile()));
+            ConfigGenerator generator = new AsyncApiHttpProxyConfigGenerator(input);
 
             // WHEN
-            String result = generator.generate();
+            String actual = generator.generate();
 
             // THEN
-            assertThat(result, equalTo(expectedResult));
+            assertEquals(expected, actual);
         }
     }
 
     @Test
     public void shouldGenerateJwtConfig() throws Exception
     {
-        try (InputStream inputStream = getClass().getResourceAsStream("jwt/asyncapi.yaml"))
+        try (InputStream input = getClass().getResourceAsStream("jwt/asyncapi.yaml"))
         {
             // GIVEN
-            String expectedResult = Files.readString(Path.of(getClass().getResource("jwt/zilla.yaml").getFile()));
-            AsyncApiHttpProxyConfigGenerator generator = new AsyncApiHttpProxyConfigGenerator(inputStream);
+            String expected = Files.readString(Path.of(getClass().getResource("jwt/zilla.yaml").getFile()));
+            ConfigGenerator generator = new AsyncApiHttpProxyConfigGenerator(input);
 
             // WHEN
-            String result = generator.generate();
+            String actual = generator.generate();
 
             // THEN
-            assertThat(result, equalTo(expectedResult));
+            assertEquals(expected, actual);
         }
     }
 
     @Test
     public void shouldGenerateTlsConfig() throws Exception
     {
-        try (InputStream inputStream = getClass().getResourceAsStream("tls/asyncapi.yaml"))
+        try (InputStream input = getClass().getResourceAsStream("tls/asyncapi.yaml"))
         {
             // GIVEN
-            String expectedResult = Files.readString(Path.of(getClass().getResource("tls/zilla.yaml").getFile()));
-            AsyncApiHttpProxyConfigGenerator generator = new AsyncApiHttpProxyConfigGenerator(inputStream);
+            String expected = Files.readString(Path.of(getClass().getResource("tls/zilla.yaml").getFile()));
+            ConfigGenerator generator = new AsyncApiHttpProxyConfigGenerator(input);
 
             // WHEN
-            String result = generator.generate();
+            String actual = generator.generate();
 
             // THEN
-            assertThat(result, equalTo(expectedResult));
+            assertEquals(expected, actual);
         }
     }
 
     @Test
     public void shouldGenerateCompleteConfig() throws Exception
     {
-        try (InputStream inputStream = getClass().getResourceAsStream("complete/asyncapi.yaml"))
+        try (InputStream input = getClass().getResourceAsStream("complete/asyncapi.yaml"))
         {
             // GIVEN
-            String expectedResult = Files.readString(Path.of(getClass().getResource("complete/zilla.yaml").getFile()));
-            AsyncApiHttpProxyConfigGenerator generator = new AsyncApiHttpProxyConfigGenerator(inputStream);
+            String expected = Files.readString(Path.of(getClass().getResource("complete/zilla.yaml").getFile()));
+            ConfigGenerator generator = new AsyncApiHttpProxyConfigGenerator(input);
 
             // WHEN
-            String result = generator.generate();
+            String actual = generator.generate();
 
             // THEN
-            assertThat(result, equalTo(expectedResult));
+            assertEquals(expected, actual);
         }
     }
 }

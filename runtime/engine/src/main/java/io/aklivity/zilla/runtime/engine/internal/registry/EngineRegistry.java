@@ -23,6 +23,7 @@ import org.agrona.collections.Int2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterContext;
 import io.aklivity.zilla.runtime.engine.guard.GuardContext;
@@ -33,7 +34,7 @@ import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 import io.aklivity.zilla.runtime.engine.util.function.ObjectLongLongFunction;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 
-public class ConfigurationRegistry
+public class EngineRegistry
 {
     private final Function<String, BindingContext> bindingsByType;
     private final Function<String, GuardContext> guardsByType;
@@ -49,19 +50,19 @@ public class ConfigurationRegistry
     private final LongConsumer detachBinding;
     private final Collector collector;
 
-    public ConfigurationRegistry(
-            Function<String, BindingContext> bindingsByType,
-            Function<String, GuardContext> guardsByType,
-            Function<String, VaultContext> vaultsByType,
-            Function<String, CatalogContext> catalogsByType,
-            Function<String, MetricContext> metricsByName,
-            Function<String, ExporterContext> exportersByType,
-            ToIntFunction<String> supplyLabelId,
-            LongConsumer exporterAttached,
-            LongConsumer exporterDetached,
-            ObjectLongLongFunction<Metric.Kind, LongConsumer> supplyMetricRecorder,
-            LongConsumer detachBinding,
-            Collector collector)
+    public EngineRegistry(
+        Function<String, BindingContext> bindingsByType,
+        Function<String, GuardContext> guardsByType,
+        Function<String, VaultContext> vaultsByType,
+        Function<String, CatalogContext> catalogsByType,
+        Function<String, MetricContext> metricsByName,
+        Function<String, ExporterContext> exportersByType,
+        ToIntFunction<String> supplyLabelId,
+        LongConsumer exporterAttached,
+        LongConsumer exporterDetached,
+        ObjectLongLongFunction<Metric.Kind, LongConsumer> supplyMetricRecorder,
+        LongConsumer detachBinding,
+        Collector collector)
     {
         this.bindingsByType = bindingsByType;
         this.guardsByType = guardsByType;
@@ -171,6 +172,14 @@ public class ConfigurationRegistry
                     supplyMetricRecorder, detachBinding, collector);
         namespacesById.put(registry.namespaceId(), registry);
         registry.attach();
+
+        for (BindingConfig binding : namespace.bindings)
+        {
+            for (NamespaceConfig composite : binding.composites)
+            {
+                attachNamespace(composite);
+            }
+        }
     }
 
     protected void detachNamespace(
@@ -179,5 +188,13 @@ public class ConfigurationRegistry
         int namespaceId = supplyLabelId.applyAsInt(namespace.name);
         NamespaceRegistry registry = namespacesById.remove(namespaceId);
         registry.detach();
+
+        for (BindingConfig binding : namespace.bindings)
+        {
+            for (NamespaceConfig composite : binding.composites)
+            {
+                detachNamespace(composite);
+            }
+        }
     }
 }
