@@ -36,7 +36,7 @@ import org.mockito.quality.Strictness;
 import io.aklivity.zilla.runtime.engine.internal.config.ConditionConfigAdapterTest.TestConditionConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig;
 
-public class ConfigWriterTest
+public class EngineConfigWriterTest
 {
     @Rule
     public MockitoRule rule = MockitoJUnit.rule().strictness(Strictness.STRICT_STUBS);

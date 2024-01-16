@@ -29,6 +29,7 @@ public final class RouteConfigBuilder<T> extends ConfigBuilder<T, RouteConfigBui
 
     private final Function<RouteConfig, T> mapper;
 
+    private String namespace;
     private int order;
     private String exit;
     private List<ConditionConfig> when;
@@ -46,6 +47,13 @@ public final class RouteConfigBuilder<T> extends ConfigBuilder<T, RouteConfigBui
     protected Class<RouteConfigBuilder<T>> thisType()
     {
         return (Class<RouteConfigBuilder<T>>) getClass();
+    }
+
+    public RouteConfigBuilder<T>  namespace(
+        String namespace)
+    {
+        this.namespace = namespace;
+        return this;
     }
 
     public RouteConfigBuilder<T> order(
@@ -94,7 +102,7 @@ public final class RouteConfigBuilder<T> extends ConfigBuilder<T, RouteConfigBui
 
     public GuardedConfigBuilder<RouteConfigBuilder<T>> guarded()
     {
-        return new GuardedConfigBuilder<>(this::guarded);
+        return new GuardedConfigBuilder<>(this::guarded).namespace(namespace);
     }
 
     public RouteConfigBuilder<T> guarded(

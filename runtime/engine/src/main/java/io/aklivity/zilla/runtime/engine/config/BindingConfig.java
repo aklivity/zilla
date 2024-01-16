@@ -32,15 +32,17 @@ public class BindingConfig
 
     public transient long[] metricIds;
 
-    public final String vault;
+    public final String namespace;
     public final String name;
+    public final String qname;
     public final String type;
     public final KindConfig kind;
     public final String entry;
+    public final String vault;
     public final OptionsConfig options;
     public final List<RouteConfig> routes;
     public final TelemetryRefConfig telemetryRef;
-    public final List<NamespaceConfig> namespaces;
+    public final List<NamespaceConfig> composites;
 
     public static BindingConfigBuilder<BindingConfig> builder()
     {
@@ -58,6 +60,7 @@ public class BindingConfig
     {
         return builder()
             .vault(binding.vault)
+            .namespace(binding.namespace)
             .name(binding.name)
             .type(binding.type)
             .kind(binding.kind)
@@ -65,28 +68,31 @@ public class BindingConfig
             .options(binding.options)
             .routes(binding.routes)
             .telemetry(binding.telemetryRef)
-            .namespaces(binding.namespaces);
+            .composites(binding.composites);
     }
 
     BindingConfig(
-        String vault,
+        String namespace,
         String name,
         String type,
         KindConfig kind,
         String entry,
+        String vault,
         OptionsConfig options,
         List<RouteConfig> routes,
         TelemetryRefConfig telemetryRef,
         List<NamespaceConfig> namespaces)
     {
-        this.vault = vault;
-        this.name = name;
+        this.namespace = requireNonNull(namespace);
+        this.name = requireNonNull(name);
+        this.qname = String.format("%s:%s", namespace, name);
         this.type = requireNonNull(type);
         this.kind = requireNonNull(kind);
         this.entry = entry;
+        this.vault = vault;
         this.options = options;
         this.routes = routes;
         this.telemetryRef = telemetryRef;
-        this.namespaces = namespaces;
+        this.composites = namespaces;
     }
 }

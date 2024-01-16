@@ -18,6 +18,9 @@ package io.aklivity.zilla.runtime.engine.internal.config;
 import static io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder.GUARDED_DEFAULT;
 import static io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder.WHEN_DEFAULT;
 
+import java.util.Optional;
+import java.util.regex.Matcher;
+
 import jakarta.json.Json;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
@@ -42,6 +45,7 @@ public class RouteAdapter implements JsonbAdapter<RouteConfig, JsonObject>
     private final ConditionAdapter condition;
     private final WithAdapter with;
 
+    private String namespace;
     private int index;
 
     public RouteAdapter(
@@ -56,6 +60,13 @@ public class RouteAdapter implements JsonbAdapter<RouteConfig, JsonObject>
     {
         condition.adaptType(type);
         with.adaptType(type);
+        return this;
+    }
+
+    public RouteAdapter adaptNamespace(
+        String namespace)
+    {
+        this.namespace = namespace;
         return this;
     }
 
@@ -96,7 +107,9 @@ public class RouteAdapter implements JsonbAdapter<RouteConfig, JsonObject>
             {
                 JsonArrayBuilder newRoles = Json.createArrayBuilder();
                 guarded.roles.forEach(newRoles::add);
-                newGuarded.add(guarded.name, newRoles);
+
+                String name = namespace.equals(guarded.namespace) ? guarded.name : guarded.qname;
+                newGuarded.add(name, newRoles);
             }
 
             object.add(GUARDED_NAME, newGuarded);
@@ -136,8 +149,12 @@ public class RouteAdapter implements JsonbAdapter<RouteConfig, JsonObject>
             JsonObject guarded = object.getJsonObject(GUARDED_NAME);
             for (String name : guarded.keySet())
             {
+                Matcher matcher = NamespaceAdapter.PATTERN_NAME.matcher(name);
+                assert matcher.matches();
+
                 GuardedConfigBuilder<?> guardedBy = route.guarded()
-                    .name(name);
+                    .namespace(Optional.ofNullable(matcher.group("namespace")).orElse(namespace))
+                    .name(matcher.group("name"));
 
                 guarded.getJsonArray(name)
                     .stream()

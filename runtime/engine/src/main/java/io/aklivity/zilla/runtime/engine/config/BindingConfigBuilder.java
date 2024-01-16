@@ -25,11 +25,12 @@ import java.util.function.Function;
 public final class BindingConfigBuilder<T> extends ConfigBuilder<T, BindingConfigBuilder<T>>
 {
     public static final List<RouteConfig> ROUTES_DEFAULT = emptyList();
-    public static final List<NamespaceConfig> NAMESPACES_DEFAULT = emptyList();
+    public static final List<NamespaceConfig> COMPOSITES_DEFAULT = emptyList();
 
     private final Function<BindingConfig, T> mapper;
 
     private String vault;
+    private String namespace;
     private String name;
     private String type;
     private KindConfig kind;
@@ -38,7 +39,7 @@ public final class BindingConfigBuilder<T> extends ConfigBuilder<T, BindingConfi
     private OptionsConfig options;
     private List<RouteConfig> routes;
     private TelemetryRefConfig telemetryRef;
-    private List<NamespaceConfig> namespaces;
+    private List<NamespaceConfig> composites;
 
     BindingConfigBuilder(
         Function<BindingConfig, T> mapper)
@@ -57,6 +58,13 @@ public final class BindingConfigBuilder<T> extends ConfigBuilder<T, BindingConfi
         String vault)
     {
         this.vault = vault;
+        return this;
+    }
+
+    public BindingConfigBuilder<T> namespace(
+        String namespace)
+    {
+        this.namespace = namespace;
         return this;
     }
 
@@ -111,6 +119,7 @@ public final class BindingConfigBuilder<T> extends ConfigBuilder<T, BindingConfi
     public RouteConfigBuilder<BindingConfigBuilder<T>> route()
     {
         return new RouteConfigBuilder<>(this::route)
+            .namespace(namespace)
             .order(routes != null ? routes.size() : 0);
     }
 
@@ -147,26 +156,26 @@ public final class BindingConfigBuilder<T> extends ConfigBuilder<T, BindingConfi
         return this;
     }
 
-    public NamespaceConfigBuilder<BindingConfigBuilder<T>> namespace()
+    public NamespaceConfigBuilder<BindingConfigBuilder<T>> composite()
     {
-        return new NamespaceConfigBuilder<>(this::namespace);
+        return new NamespaceConfigBuilder<>(this::composite);
     }
 
-    public BindingConfigBuilder<T> namespace(
-        NamespaceConfig namespace)
+    public BindingConfigBuilder<T> composite(
+        NamespaceConfig composite)
     {
-        if (namespaces == null)
+        if (composites == null)
         {
-            namespaces = new LinkedList<>();
+            composites = new LinkedList<>();
         }
-        namespaces.add(namespace);
+        composites.add(composite);
         return this;
     }
 
-    public BindingConfigBuilder<T> namespaces(
-        List<NamespaceConfig> namespaces)
+    public BindingConfigBuilder<T> composites(
+        List<NamespaceConfig> composites)
     {
-        namespaces.forEach(this::namespace);
+        composites.forEach(this::composite);
         return this;
     }
 
@@ -181,24 +190,15 @@ public final class BindingConfigBuilder<T> extends ConfigBuilder<T, BindingConfi
         }
 
         return mapper.apply(new BindingConfig(
-            vault,
+            namespace,
             name,
             type,
             kind,
             entry,
+            vault,
             options,
             Optional.ofNullable(routes).orElse(ROUTES_DEFAULT),
             telemetryRef,
-            Optional.ofNullable(namespaces).orElse(NAMESPACES_DEFAULT)));
-    }
-
-    public String type()
-    {
-        return type;
-    }
-
-    public KindConfig kind()
-    {
-        return kind;
+            Optional.ofNullable(composites).orElse(COMPOSITES_DEFAULT)));
     }
 }

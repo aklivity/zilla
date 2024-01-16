@@ -35,8 +35,8 @@ public class TestCompositeBindingAdapterSpi implements CompositeBindingAdapterSp
         {
         case PROXY:
             return BindingConfig.builder(binding)
-                    .namespace()
-                        .name(String.format(binding.name, "$composite"))
+                    .composite()
+                        .name(String.format(binding.qname, "$composite"))
                         .binding()
                             .name("test0")
                             .type("test")

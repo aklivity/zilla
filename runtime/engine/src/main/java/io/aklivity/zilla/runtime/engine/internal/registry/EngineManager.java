@@ -42,6 +42,7 @@ import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.ConfigException;
 import io.aklivity.zilla.runtime.engine.config.EngineConfig;
 import io.aklivity.zilla.runtime.engine.config.EngineConfigReader;
+import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
 import io.aklivity.zilla.runtime.engine.config.GuardConfig;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
@@ -49,20 +50,20 @@ import io.aklivity.zilla.runtime.engine.config.MetricConfig;
 import io.aklivity.zilla.runtime.engine.config.MetricRefConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
+import io.aklivity.zilla.runtime.engine.config.TelemetryRefConfig;
 import io.aklivity.zilla.runtime.engine.config.VaultConfig;
 import io.aklivity.zilla.runtime.engine.expression.ExpressionResolver;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtContext;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
 import io.aklivity.zilla.runtime.engine.guard.Guard;
 import io.aklivity.zilla.runtime.engine.internal.Tuning;
+import io.aklivity.zilla.runtime.engine.internal.config.NamespaceAdapter;
 import io.aklivity.zilla.runtime.engine.internal.layouts.BindingsLayout;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 
 public class EngineManager
 {
     private static final String CONFIG_TEXT_DEFAULT = "name: default\n";
-
-    private static final Pattern PATTERN_NSNAME = Pattern.compile("(?:(?<namespace>[^\\:]+)\\:)?(?<name>[^\\:]+)");
 
     private final Collection<URL> schemaTypes;
     private final Function<String, Binding> bindingByType;
@@ -108,7 +109,7 @@ public class EngineManager
         this.extensions = extensions;
         this.readURL = readURL;
         this.expressions = ExpressionResolver.instantiate();
-        this.matchName = PATTERN_NSNAME.matcher("");
+        this.matchName = NamespaceAdapter.PATTERN_NAME.matcher("");
     }
 
     public EngineConfig reconfigure(
@@ -205,17 +206,19 @@ public class EngineManager
     {
         namespace.id = supplyId.applyAsInt(namespace.name);
         namespace.readURL = readURL;
-        namespace.resolveId = new NameResolver(namespace.id)::resolve;
+
+        NameResolver resolver = new NameResolver(namespace.id);
+        namespace.resolveId = resolver::resolve;
 
         for (GuardConfig guard : namespace.guards)
         {
-            guard.id = namespace.resolveId.applyAsLong(guard.name);
+            guard.id = resolver.resolve(guard.name);
             guard.readURL = namespace.readURL;
         }
 
         for (VaultConfig vault : namespace.vaults)
         {
-            vault.id = namespace.resolveId.applyAsLong(vault.name);
+            vault.id = resolver.resolve(vault.name);
         }
 
         for (CatalogConfig catalog : namespace.catalogs)
@@ -226,6 +229,11 @@ public class EngineManager
         for (MetricConfig metric : namespace.telemetry.metrics)
         {
             metric.id = namespace.resolveId.applyAsLong(metric.name);
+        }
+
+        for (ExporterConfig exporter : namespace.telemetry.exporters)
+        {
+            exporter.id = namespace.resolveId.applyAsLong(exporter.name);
         }
 
         for (BindingConfig binding : namespace.bindings)
@@ -271,9 +279,28 @@ public class EngineManager
                 }
             }
 
-            binding.metricIds = resolveMetricIds(namespace, binding);
+            Set<Long> metricIds = new HashSet<>();
+            TelemetryRefConfig telemetryRef = binding.telemetryRef;
+            if (telemetryRef != null)
+            {
+                if (telemetryRef.metricRefs != null)
+                {
+                    for (MetricRefConfig metricRef : telemetryRef.metricRefs)
+                    {
+                        Pattern pattern = Pattern.compile(metricRef.name);
+                        for (MetricConfig metric : namespace.telemetry.metrics)
+                        {
+                            if (pattern.matcher(metric.name).matches())
+                            {
+                                metricIds.add(namespace.resolveId.applyAsLong(metric.name));
+                            }
+                        }
+                    }
+                }
+            }
+            binding.metricIds = metricIds.stream().mapToLong(Long::longValue).toArray();
 
-            for (NamespaceConfig composite : binding.namespaces)
+            for (NamespaceConfig composite : binding.composites)
             {
                 process(composite, readURL);
             }
@@ -288,30 +315,6 @@ public class EngineManager
 
             tuning.affinity(binding.id, affinity);
         }
-    }
-
-    private long[] resolveMetricIds(
-        NamespaceConfig namespace,
-        BindingConfig binding)
-    {
-        if (binding.telemetryRef == null || binding.telemetryRef.metricRefs == null)
-        {
-            return new long[0];
-        }
-
-        Set<Long> metricIds = new HashSet<>();
-        for (MetricRefConfig metricRef : binding.telemetryRef.metricRefs)
-        {
-            Pattern pattern = Pattern.compile(metricRef.name);
-            for (MetricConfig metric : namespace.telemetry.metrics)
-            {
-                if (pattern.matcher(metric.name).matches())
-                {
-                    metricIds.add(namespace.resolveId.applyAsLong(metric.name));
-                }
-            }
-        }
-        return metricIds.stream().mapToLong(Long::longValue).toArray();
     }
 
     private void register(

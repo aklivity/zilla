@@ -61,7 +61,7 @@ public final class NamespaceConfigBuilder<T> extends ConfigBuilder<T, NamespaceC
 
     public TelemetryConfigBuilder<NamespaceConfigBuilder<T>> telemetry()
     {
-        return new TelemetryConfigBuilder<>(this::telemetry);
+        return new TelemetryConfigBuilder<>(this::telemetry).namespace(name);
     }
 
     public NamespaceConfigBuilder<T> telemetry(
@@ -73,7 +73,7 @@ public final class NamespaceConfigBuilder<T> extends ConfigBuilder<T, NamespaceC
 
     public BindingConfigBuilder<NamespaceConfigBuilder<T>> binding()
     {
-        return new BindingConfigBuilder<>(this::binding);
+        return new BindingConfigBuilder<>(this::binding).namespace(name);
     }
 
     public NamespaceConfigBuilder<T> binding(
@@ -96,7 +96,7 @@ public final class NamespaceConfigBuilder<T> extends ConfigBuilder<T, NamespaceC
 
     public CatalogConfigBuilder<NamespaceConfigBuilder<T>> catalog()
     {
-        return new CatalogConfigBuilder<>(this::catalog);
+        return new CatalogConfigBuilder<>(this::catalog).namespace(name);
     }
 
     public NamespaceConfigBuilder<T> catalog(
@@ -119,7 +119,7 @@ public final class NamespaceConfigBuilder<T> extends ConfigBuilder<T, NamespaceC
 
     public GuardConfigBuilder<NamespaceConfigBuilder<T>> guard()
     {
-        return new GuardConfigBuilder<>(this::guard);
+        return new GuardConfigBuilder<>(this::guard).namespace(name);
     }
 
     public NamespaceConfigBuilder<T> guard(
@@ -142,7 +142,7 @@ public final class NamespaceConfigBuilder<T> extends ConfigBuilder<T, NamespaceC
 
     public VaultConfigBuilder<NamespaceConfigBuilder<T>> vault()
     {
-        return new VaultConfigBuilder<>(this::vault);
+        return new VaultConfigBuilder<>(this::vault).namespace(name);
     }
 
     public NamespaceConfigBuilder<T> vault(

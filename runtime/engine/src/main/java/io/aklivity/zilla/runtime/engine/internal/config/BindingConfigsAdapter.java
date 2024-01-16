@@ -22,8 +22,10 @@ import static java.util.stream.Collectors.toMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.ServiceLoader;
 import java.util.function.Supplier;
+import java.util.regex.Matcher;
 
 import jakarta.json.Json;
 import jakarta.json.JsonArrayBuilder;
@@ -59,6 +61,8 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
 
     private final Map<String, CompositeBindingAdapterSpi> composites;
 
+    private String namespace;
+
     public BindingConfigsAdapter(
         ConfigAdapterContext context)
     {
@@ -74,6 +78,14 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
                 .collect(toMap(CompositeBindingAdapterSpi::type, identity()));
     }
 
+    public BindingConfigsAdapter adaptNamespace(
+        String namespace)
+    {
+        this.namespace = namespace;
+        route.adaptNamespace(namespace);
+        return this;
+    }
+
     @Override
     public JsonObject adaptToJson(
         BindingConfig[] bindings)
@@ -87,11 +99,6 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
 
             JsonObjectBuilder item = Json.createObjectBuilder();
 
-            if (binding.vault != null)
-            {
-                item.add(VAULT_NAME, binding.vault);
-            }
-
             item.add(TYPE_NAME, binding.type);
 
             item.add(KIND_NAME, kind.adaptToJson(binding.kind));
@@ -99,6 +106,11 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
             if (binding.entry != null)
             {
                 item.add(ENTRY_NAME, binding.entry);
+            }
+
+            if (binding.vault != null)
+            {
+                item.add(VAULT_NAME, binding.vault);
             }
 
             if (binding.options != null)
@@ -130,6 +142,7 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
                 item.add(TELEMETRY_NAME, telemetryRef0);
             }
 
+            assert namespace.equals(binding.namespace);
             object.add(binding.name, item);
         }
 
@@ -156,9 +169,18 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
                 ? BindingConfig.builder(composite::adapt)
                 : BindingConfig.builder();
 
-            binding.name(name)
+            Matcher matcher = NamespaceAdapter.PATTERN_NAME.matcher(name);
+            assert matcher.matches();
+
+            binding.namespace(Optional.ofNullable(matcher.group("namespace")).orElse(namespace))
+                   .name(matcher.group("name"))
                    .type(type)
                    .kind(kind.adaptFromJson(item.getJsonString(KIND_NAME)));
+
+            if (item.containsKey(ENTRY_NAME))
+            {
+                binding.entry(item.getString(ENTRY_NAME));
+            }
 
             if (item.containsKey(VAULT_NAME))
             {
@@ -190,11 +212,6 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
             if (item.containsKey(TELEMETRY_NAME))
             {
                 binding.telemetry(telemetryRef.adaptFromJson(item.getJsonObject(TELEMETRY_NAME)));
-            }
-
-            if (item.containsKey(ENTRY_NAME))
-            {
-                binding.entry(item.getString(ENTRY_NAME));
             }
 
             bindings.add(binding.build());

@@ -49,11 +49,12 @@ public class JwtGuardTest
     public void shouldNotVerifyMissingContext() throws Exception
     {
         GuardedConfig guarded = GuardedConfig.builder()
-                .inject(identity())
-                .name("test0")
-                .role("read:stream")
-                .role("write:stream")
-                .build();
+            .inject(identity())
+            .namespace("test")
+            .name("test0")
+            .role("read:stream")
+            .role("write:stream")
+            .build();
 
         Configuration config = new Configuration();
         GuardFactory factory = GuardFactory.instantiate();
@@ -72,11 +73,12 @@ public class JwtGuardTest
         when(engine.index()).thenReturn(0);
 
         GuardedConfig guarded = GuardedConfig.builder()
-                .inject(identity())
-                .name("test0")
-                .role("read:stream")
-                .role("write:stream")
-                .build();
+            .inject(identity())
+            .namespace("test")
+            .name("test0")
+            .role("read:stream")
+            .role("write:stream")
+            .build();
 
         Configuration config = new Configuration();
         GuardFactory factory = GuardFactory.instantiate();
@@ -97,11 +99,12 @@ public class JwtGuardTest
         when(engine.index()).thenReturn(0);
 
         GuardedConfig guarded = GuardedConfig.builder()
-                .inject(identity())
-                .name("test0")
-                .role("read:stream")
-                .role("write:stream")
-                .build();
+            .inject(identity())
+            .namespace("test")
+            .name("test0")
+            .role("read:stream")
+            .role("write:stream")
+            .build();
 
         Configuration config = new Configuration();
         GuardFactory factory = GuardFactory.instantiate();
@@ -109,11 +112,12 @@ public class JwtGuardTest
 
         GuardContext context = guard.supply(engine);
         context.attach(GuardConfig.builder()
-                .inject(identity())
-                .name("test0")
-                .type("jwt")
-                .options(JwtOptionsConfig.builder().build())
-                .build());
+            .inject(identity())
+            .namespace("test")
+            .name("test0")
+            .type("jwt")
+            .options(JwtOptionsConfig.builder().build())
+            .build());
 
         LongPredicate verifier = guard.verifier(s -> 0, guarded);
 
@@ -128,10 +132,11 @@ public class JwtGuardTest
         when(engine.index()).thenReturn(0);
 
         GuardedConfig guarded = GuardedConfig.builder()
-                .name("test0")
-                .role("read:stream")
-                .role("write:stream")
-                .build();
+            .namespace("test")
+            .name("test0")
+            .role("read:stream")
+            .role("write:stream")
+            .build();
 
         Configuration config = new Configuration();
         GuardFactory factory = GuardFactory.instantiate();
@@ -141,6 +146,7 @@ public class JwtGuardTest
 
         GuardHandler handler = context.attach(GuardConfig.builder()
             .inject(identity())
+            .namespace("test")
             .name("test0")
             .type("jwt")
             .options(JwtOptionsConfig::builder)
@@ -179,11 +185,12 @@ public class JwtGuardTest
         when(engine.supplyAuthorizedId()).thenReturn(1L);
 
         GuardedConfig guarded = GuardedConfig.builder()
-                .inject(identity())
-                .name("test0")
-                .role("read:stream")
-                .role("write:stream")
-                .build();
+            .inject(identity())
+            .namespace("test")
+            .name("test0")
+            .role("read:stream")
+            .role("write:stream")
+            .build();
 
         Configuration config = new Configuration();
         GuardFactory factory = GuardFactory.instantiate();
@@ -193,6 +200,7 @@ public class JwtGuardTest
 
         GuardHandler handler = context.attach(GuardConfig.builder()
             .inject(identity())
+            .namespace("test")
             .name("test0")
             .type("jwt")
             .options(JwtOptionsConfig::builder)
@@ -231,10 +239,11 @@ public class JwtGuardTest
         when(engine.supplyAuthorizedId()).thenReturn(1L);
 
         GuardedConfig guarded = GuardedConfig.builder()
-                .inject(identity())
-                .name("test0")
-                .role("read:stream")
-                .build();
+            .inject(identity())
+            .namespace("test")
+            .name("test0")
+            .role("read:stream")
+            .build();
 
         Configuration config = new Configuration();
         GuardFactory factory = GuardFactory.instantiate();
@@ -244,6 +253,7 @@ public class JwtGuardTest
 
         GuardHandler handler = context.attach(GuardConfig.builder()
             .inject(identity())
+            .namespace("test")
             .name("test0")
             .type("jwt")
             .options(JwtOptionsConfig::builder)
@@ -282,9 +292,10 @@ public class JwtGuardTest
         when(engine.supplyAuthorizedId()).thenReturn(1L);
 
         GuardedConfig guarded = GuardedConfig.builder()
-                .inject(identity())
-                .name("test0")
-                .build();
+            .inject(identity())
+            .namespace("test")
+            .name("test0")
+            .build();
 
         Configuration config = new Configuration();
         GuardFactory factory = GuardFactory.instantiate();
@@ -294,6 +305,7 @@ public class JwtGuardTest
 
         GuardHandler handler = context.attach(GuardConfig.builder()
             .inject(identity())
+            .namespace("test")
             .name("test0")
             .type("jwt")
             .options(JwtOptionsConfig::builder)
@@ -338,6 +350,7 @@ public class JwtGuardTest
 
         GuardConfig config = GuardConfig.builder()
             .inject(identity())
+            .namespace("test")
             .name("test0")
             .type("jwt")
             .options(JwtOptionsConfig::builder)
@@ -352,8 +365,9 @@ public class JwtGuardTest
         GuardHandler handler = context.attach(config);
 
         GuardedConfig guarded = GuardedConfig.builder()
-                .name("test0")
-                .build();
+            .namespace("test")
+            .name("test0")
+            .build();
         guarded.id = config.id;
         LongPredicate verifier = guard.verifier(id -> (int)(id >> 4), guarded);
 
@@ -383,6 +397,7 @@ public class JwtGuardTest
 
         GuardedConfig guarded = GuardedConfig.builder()
                 .inject(identity())
+                .namespace("test")
                 .name("test0")
                 .build();
 
@@ -394,6 +409,7 @@ public class JwtGuardTest
 
         GuardHandler handler = context.attach(GuardConfig.builder()
                 .inject(identity())
+                .namespace("test")
                 .name("test0")
                 .type("jwt")
                 .options(JwtOptionsConfig::builder)
@@ -439,6 +455,7 @@ public class JwtGuardTest
         Duration challenge = ofSeconds(3L);
         GuardConfig config = GuardConfig.builder()
             .inject(identity())
+            .namespace("test")
             .name("test0")
             .type("jwt")
             .options(JwtOptionsConfig::builder)
@@ -452,6 +469,7 @@ public class JwtGuardTest
         config.id = 0x11L;
 
         GuardedConfig guarded = GuardedConfig.builder()
+            .namespace("test")
             .name("test0")
             .build();
         guarded.id = config.id;

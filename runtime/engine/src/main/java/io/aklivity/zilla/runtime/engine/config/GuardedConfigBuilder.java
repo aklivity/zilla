@@ -28,6 +28,7 @@ public final class GuardedConfigBuilder<T> extends ConfigBuilder<T, GuardedConfi
 
     private final Function<GuardedConfig, T> mapper;
 
+    private String namespace;
     private String name;
     private List<String> roles;
 
@@ -42,6 +43,13 @@ public final class GuardedConfigBuilder<T> extends ConfigBuilder<T, GuardedConfi
     protected Class<GuardedConfigBuilder<T>> thisType()
     {
         return (Class<GuardedConfigBuilder<T>>) getClass();
+    }
+
+    public GuardedConfigBuilder<T> namespace(
+        String namespace)
+    {
+        this.namespace = namespace;
+        return this;
     }
 
     public GuardedConfigBuilder<T> name(
@@ -66,6 +74,7 @@ public final class GuardedConfigBuilder<T> extends ConfigBuilder<T, GuardedConfi
     public T build()
     {
         return mapper.apply(new GuardedConfig(
+            namespace,
             name,
             Optional.ofNullable(roles).orElse(ROLES_DEFAULT)));
     }

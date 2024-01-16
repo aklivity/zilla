@@ -175,7 +175,7 @@ public class EngineRegistry
 
         for (BindingConfig binding : namespace.bindings)
         {
-            for (NamespaceConfig composite : binding.namespaces)
+            for (NamespaceConfig composite : binding.composites)
             {
                 attachNamespace(composite);
             }
@@ -191,7 +191,7 @@ public class EngineRegistry
 
         for (BindingConfig binding : namespace.bindings)
         {
-            for (NamespaceConfig composite : binding.namespaces)
+            for (NamespaceConfig composite : binding.composites)
             {
                 detachNamespace(composite);
             }
