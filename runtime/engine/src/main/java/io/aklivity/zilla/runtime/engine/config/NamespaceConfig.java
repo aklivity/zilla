@@ -20,7 +20,6 @@ import static java.util.function.Function.identity;
 
 import java.util.List;
 import java.util.function.Function;
-import java.util.function.ToLongFunction;
 
 public class NamespaceConfig
 {
