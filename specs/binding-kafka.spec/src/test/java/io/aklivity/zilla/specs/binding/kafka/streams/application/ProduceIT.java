@@ -174,6 +174,15 @@ public class ProduceIT
 
     @Test
     @Specification({
+        "${app}/message.values.producer.id.replay/client",
+        "${app}/message.values.producer.id.replay/server"})
+    public void shouldReplyMessageValuesWithProducerId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/message.value.null/client",
         "${app}/message.value.null/server"})
     public void shouldSendMessageValueNull() throws Exception
