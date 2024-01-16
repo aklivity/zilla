@@ -2846,23 +2846,6 @@ public final class KafkaFunctions
                         writeBuffer.capacity());
                 }
 
-                public KafkaMergedProduceFlushExBuilder key(
-                    String key)
-                {
-                    if (key == null)
-                    {
-                        mergedProduceFlushExRW.key(m -> m.length(-1)
-                            .value((OctetsFW) null));
-                    }
-                    else
-                    {
-                        keyRO.wrap(key.getBytes(UTF_8));
-                        mergedProduceFlushExRW.key(k -> k.length(keyRO.capacity())
-                            .value(keyRO, 0, keyRO.capacity()));
-                    }
-                    return this;
-                }
-
                 public KafkaMergedProduceFlushExBuilder hashKey(
                     String hashKey)
                 {

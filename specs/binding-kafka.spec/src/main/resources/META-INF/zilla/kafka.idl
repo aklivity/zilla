@@ -299,7 +299,6 @@ scope kafka
 
         struct KafkaMergedProduceFlushEx
         {
-            KafkaKey key;
             KafkaKey hashKey;
             int32 partitionId = -1;
         }

@@ -42,7 +42,6 @@ write advise zilla:flush ${kafka:flushEx()
                               .typeId(zilla:id("kafka"))
                               .merged()
                                 .produce()
-                                  .key("a")
                                   .hashKey("key7")
                                   .build()
                               .build()}

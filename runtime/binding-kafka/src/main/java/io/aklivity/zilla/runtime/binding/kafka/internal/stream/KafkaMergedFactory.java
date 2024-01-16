@@ -127,6 +127,7 @@ public final class KafkaMergedFactory implements BindingHandler
 
     private static final DirectBuffer EMPTY_BUFFER = new UnsafeBuffer();
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
+    private static final KafkaKeyFW EMPTY_KEY = new KafkaKeyFW();
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
     private static final MessageConsumer NO_RECEIVER = (m, b, i, l) -> {};
 
@@ -1394,10 +1395,9 @@ public final class KafkaMergedFactory implements BindingHandler
             long traceId)
         {
             final KafkaMergedProduceFlushExFW produce = kafkaMergedFlushEx.produce();
-            final KafkaKeyFW key = produce.key();
             final KafkaKeyFW hashKey = produce.hashKey();
 
-            final int partitionId = nextPartitionData(hashKey, key);
+            final int partitionId = nextPartitionData(hashKey, EMPTY_KEY);
 
             doMergedProduceReplyFlush(traceId, partitionId);
         }

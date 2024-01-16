@@ -1131,7 +1131,6 @@ public class KafkaFunctionsTest
             .typeId(0x01)
             .merged()
                 .produce()
-                    .key("topic")
                     .hashKey("hashTopic")
                     .partitionId(0)
                     .build()
@@ -1140,10 +1139,6 @@ public class KafkaFunctionsTest
         DirectBuffer buffer = new UnsafeBuffer(build);
         KafkaFlushExFW flushEx = new KafkaFlushExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, flushEx.typeId());
-
-        assertEquals("topic", flushEx.merged().produce().key()
-            .value()
-            .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)));
 
         assertEquals("hashTopic", flushEx.merged().produce().hashKey()
             .value()
