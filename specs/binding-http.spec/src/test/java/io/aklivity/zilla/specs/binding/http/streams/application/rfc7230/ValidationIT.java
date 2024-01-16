@@ -38,8 +38,8 @@ public class ValidationIT
 
     @Test
     @Specification({
-        "${app}/invalid/client",
-        "${app}/invalid/server" })
+        "${app}/invalid.request/client",
+        "${app}/invalid.request/server" })
     public void shouldRejectInvalidRequests() throws Exception
     {
         k3po.finish();
@@ -47,8 +47,8 @@ public class ValidationIT
 
     @Test
     @Specification({
-        "${app}/valid/client",
-        "${app}/valid/server" })
+        "${app}/valid.request/client",
+        "${app}/valid.request/server" })
     public void shouldProcessValidRequests() throws Exception
     {
         k3po.finish();
