@@ -976,6 +976,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         if (length > 0)
         {
             progress = client.onDecodeHttp11Body(traceId, authorization, budgetId, buffer, offset, offset + length, EMPTY_OCTETS);
+            assert progress <= limit;
             client.decodableContentLength -= progress - offset;
         }
 
@@ -2853,6 +2854,11 @@ public final class HttpClientFactory implements HttpStreamFactory
             }
 
             doNetworkWindow(traceId, budgetId, replyPad, decodeSlotReserved);
+
+            if (encoder != HttpEncoder.HTTP_2 && exchange != null && HttpState.closed(exchange.state))
+            {
+                exchange.onExchangeClosed();
+            }
         }
 
         private void onDecodeHttp11HeadersError(
@@ -2914,7 +2920,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             boolean valid = true;
             if (exchange.responseValidator != null)
             {
-                valid = exchange.responseValidator.read(buffer, offset, limit);
+                valid = exchange.responseValidator.read(buffer, offset, limit - offset);
             }
             if (valid)
             {
@@ -2923,7 +2929,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             else
             {
                 exchange.doResponseAbort(traceId, authorization, EMPTY_OCTETS);
-                result =  offset + limit;
+                result = limit;
             }
             return result;
         }
@@ -4645,7 +4651,6 @@ public final class HttpClientFactory implements HttpStreamFactory
             if (requestType != null)
             {
                 this.requestType = requestType;
-                System.out.println(requestType.path);
             }
 
             if (client.encoder != HttpEncoder.HTTP_2)
@@ -4897,11 +4902,6 @@ public final class HttpClientFactory implements HttpStreamFactory
                     state = HttpState.closeReply(state);
                     doAbort(application, originId, routedId, responseId, responseSeq, responseAck, requestMax,
                             traceId, authorization, extension);
-
-                    if (HttpState.closed(state))
-                    {
-                        onExchangeClosed();
-                    }
                 }
                 else
                 {
