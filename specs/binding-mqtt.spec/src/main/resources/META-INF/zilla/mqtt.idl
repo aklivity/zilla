@@ -250,15 +250,11 @@ scope mqtt
             INCOMPLETE(1)
         }
 
-        struct MqttOffsetState
-        {
-            uint16 packetId;
-        }
-
         struct MqttOffsetMetadata
         {
             uint8 version = 1;
-            MqttOffsetState[] metadata;
+            uint8 length;
+            int16[length] packetIds;
         }
     }
 }

@@ -38,6 +38,7 @@ public class OtlpExporterConfigTest
         OtlpEndpointConfig endpoint = new OtlpEndpointConfig("http", URI.create("http://example.com"), overrides);
         OtlpOptionsConfig options = new OtlpOptionsConfig(30L, Set.of(METRICS), endpoint);
         ExporterConfig exporter = ExporterConfig.builder()
+                .namespace("test")
                 .name("oltp0")
                 .type("oltp")
                 .options(options)
@@ -59,6 +60,7 @@ public class OtlpExporterConfigTest
         OtlpEndpointConfig endpoint = new OtlpEndpointConfig("http", URI.create("http://example.com"), overrides);
         OtlpOptionsConfig options = new OtlpOptionsConfig(30L, Set.of(METRICS), endpoint);
         ExporterConfig exporter = ExporterConfig.builder()
+                .namespace("test")
                 .name("oltp0")
                 .type("oltp")
                 .options(options)
@@ -80,6 +82,7 @@ public class OtlpExporterConfigTest
         OtlpEndpointConfig endpoint = new OtlpEndpointConfig("http", URI.create("http://example.com"), overrides);
         OtlpOptionsConfig options = new OtlpOptionsConfig(30L, Set.of(METRICS), endpoint);
         ExporterConfig exporter = ExporterConfig.builder()
+                .namespace("test")
                 .name("oltp0")
                 .type("oltp")
                 .options(options)

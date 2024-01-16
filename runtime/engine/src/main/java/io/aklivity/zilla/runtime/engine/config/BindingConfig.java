@@ -19,6 +19,7 @@ import static java.util.Objects.requireNonNull;
 import static java.util.function.Function.identity;
 
 import java.util.List;
+import java.util.function.Function;
 import java.util.function.ToLongFunction;
 
 public class BindingConfig
@@ -31,37 +32,67 @@ public class BindingConfig
 
     public transient long[] metricIds;
 
-    public final String vault;
+    public final String namespace;
     public final String name;
+    public final String qname;
     public final String type;
     public final KindConfig kind;
     public final String entry;
+    public final String vault;
     public final OptionsConfig options;
     public final List<RouteConfig> routes;
     public final TelemetryRefConfig telemetryRef;
+    public final List<NamespaceConfig> composites;
 
     public static BindingConfigBuilder<BindingConfig> builder()
     {
         return new BindingConfigBuilder<>(identity());
     }
 
+    public static <T> BindingConfigBuilder<T> builder(
+        Function<BindingConfig, T> mapper)
+    {
+        return new BindingConfigBuilder<>(mapper);
+    }
+
+    public static BindingConfigBuilder<BindingConfig> builder(
+        BindingConfig binding)
+    {
+        return builder()
+            .vault(binding.vault)
+            .namespace(binding.namespace)
+            .name(binding.name)
+            .type(binding.type)
+            .kind(binding.kind)
+            .entry(binding.entry)
+            .options(binding.options)
+            .routes(binding.routes)
+            .telemetry(binding.telemetryRef)
+            .composites(binding.composites);
+    }
+
     BindingConfig(
-        String vault,
+        String namespace,
         String name,
         String type,
         KindConfig kind,
         String entry,
+        String vault,
         OptionsConfig options,
         List<RouteConfig> routes,
-        TelemetryRefConfig telemetryRef)
+        TelemetryRefConfig telemetryRef,
+        List<NamespaceConfig> namespaces)
     {
-        this.vault = vault;
-        this.name = name;
+        this.namespace = requireNonNull(namespace);
+        this.name = requireNonNull(name);
+        this.qname = String.format("%s:%s", namespace, name);
         this.type = requireNonNull(type);
         this.kind = requireNonNull(kind);
         this.entry = entry;
+        this.vault = vault;
         this.options = options;
         this.routes = routes;
         this.telemetryRef = telemetryRef;
+        this.composites = namespaces;
     }
 }

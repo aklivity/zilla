@@ -48,6 +48,7 @@ module io.aklivity.zilla.runtime.engine
     requires org.slf4j;
 
     uses io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
+    uses io.aklivity.zilla.runtime.engine.config.CompositeBindingAdapterSpi;
     uses io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
     uses io.aklivity.zilla.runtime.engine.config.ValidatorConfigAdapterSpi;
     uses io.aklivity.zilla.runtime.engine.config.WithConfigAdapterSpi;
