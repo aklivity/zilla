@@ -82,7 +82,6 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
         String namespace)
     {
         this.namespace = namespace;
-        route.adaptNamespace(namespace);
         return this;
     }
 

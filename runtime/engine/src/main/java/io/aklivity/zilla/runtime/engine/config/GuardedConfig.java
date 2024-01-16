@@ -26,9 +26,7 @@ public class GuardedConfig
     public transient long id;
     public transient LongFunction<String> identity;
 
-    public final String namespace;
     public final String name;
-    public final String qname;
     public final List<String> roles;
 
     public static GuardedConfigBuilder<GuardedConfig> builder()
@@ -37,13 +35,10 @@ public class GuardedConfig
     }
 
     GuardedConfig(
-        String namespace,
         String name,
         List<String> roles)
     {
-        this.namespace = requireNonNull(namespace);
         this.name = requireNonNull(name);
-        this.qname = String.format("%s:%s", namespace, name);
         this.roles = requireNonNull(roles);
     }
 }

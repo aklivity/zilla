@@ -50,7 +50,6 @@ public class JwtGuardTest
     {
         GuardedConfig guarded = GuardedConfig.builder()
             .inject(identity())
-            .namespace("test")
             .name("test0")
             .role("read:stream")
             .role("write:stream")
@@ -74,7 +73,6 @@ public class JwtGuardTest
 
         GuardedConfig guarded = GuardedConfig.builder()
             .inject(identity())
-            .namespace("test")
             .name("test0")
             .role("read:stream")
             .role("write:stream")
@@ -100,7 +98,6 @@ public class JwtGuardTest
 
         GuardedConfig guarded = GuardedConfig.builder()
             .inject(identity())
-            .namespace("test")
             .name("test0")
             .role("read:stream")
             .role("write:stream")
@@ -132,7 +129,6 @@ public class JwtGuardTest
         when(engine.index()).thenReturn(0);
 
         GuardedConfig guarded = GuardedConfig.builder()
-            .namespace("test")
             .name("test0")
             .role("read:stream")
             .role("write:stream")
@@ -186,7 +182,6 @@ public class JwtGuardTest
 
         GuardedConfig guarded = GuardedConfig.builder()
             .inject(identity())
-            .namespace("test")
             .name("test0")
             .role("read:stream")
             .role("write:stream")
@@ -240,7 +235,6 @@ public class JwtGuardTest
 
         GuardedConfig guarded = GuardedConfig.builder()
             .inject(identity())
-            .namespace("test")
             .name("test0")
             .role("read:stream")
             .build();
@@ -293,7 +287,6 @@ public class JwtGuardTest
 
         GuardedConfig guarded = GuardedConfig.builder()
             .inject(identity())
-            .namespace("test")
             .name("test0")
             .build();
 
@@ -365,7 +358,6 @@ public class JwtGuardTest
         GuardHandler handler = context.attach(config);
 
         GuardedConfig guarded = GuardedConfig.builder()
-            .namespace("test")
             .name("test0")
             .build();
         guarded.id = config.id;
@@ -397,7 +389,6 @@ public class JwtGuardTest
 
         GuardedConfig guarded = GuardedConfig.builder()
                 .inject(identity())
-                .namespace("test")
                 .name("test0")
                 .build();
 
@@ -469,7 +460,6 @@ public class JwtGuardTest
         config.id = 0x11L;
 
         GuardedConfig guarded = GuardedConfig.builder()
-            .namespace("test")
             .name("test0")
             .build();
         guarded.id = config.id;

@@ -55,7 +55,7 @@ public class RouteConfigAdapterTest
     public void initJson()
     {
         JsonbConfig config = new JsonbConfig()
-                .withAdapters(new RouteAdapter(context).adaptNamespace("test").adaptType("test"));
+                .withAdapters(new RouteAdapter(context).adaptType("test"));
         jsonb = JsonbBuilder.create(config);
     }
 
@@ -115,7 +115,6 @@ public class RouteConfigAdapterTest
                 .exit("test")
                 .guarded()
                     .inject(identity())
-                    .namespace("test")
                     .name("test")
                     .role("role")
                     .build()

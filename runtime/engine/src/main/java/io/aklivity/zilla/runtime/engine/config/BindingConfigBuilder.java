@@ -119,7 +119,6 @@ public final class BindingConfigBuilder<T> extends ConfigBuilder<T, BindingConfi
     public RouteConfigBuilder<BindingConfigBuilder<T>> route()
     {
         return new RouteConfigBuilder<>(this::route)
-            .namespace(namespace)
             .order(routes != null ? routes.size() : 0);
     }
 
