@@ -70,7 +70,6 @@ write zilla:begin.ext ${kafka:beginEx()
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
                              .produce()
-                                 .sequence(0)
                                  .build()
                              .build()}
 read "Hello, world"
@@ -78,7 +77,6 @@ read "Hello, world"
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
                              .produce()
-                                 .sequence(1)
                                  .build()
                              .build()}
 read "Hello, world"
