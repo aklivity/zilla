@@ -34,10 +34,18 @@ public class ExporterAdapter implements JsonbAdapter<ExporterConfig[], JsonObjec
 
     private final OptionsAdapter options;
 
+    private String namespace;
+
     public ExporterAdapter(
         ConfigAdapterContext context)
     {
         this.options = new OptionsAdapter(OptionsConfigAdapterSpi.Kind.EXPORTER, context);
+    }
+
+    public void adaptNamespace(
+        String namespace)
+    {
+        this.namespace = namespace;
     }
 
     @Override
@@ -48,12 +56,15 @@ public class ExporterAdapter implements JsonbAdapter<ExporterConfig[], JsonObjec
         for (ExporterConfig exporter: exporters)
         {
             options.adaptType(exporter.type);
+
             JsonObjectBuilder item = Json.createObjectBuilder();
             item.add(TYPE_NAME, exporter.type);
             if (exporter.options != null)
             {
                 item.add(OPTIONS_NAME, options.adaptToJson(exporter.options));
             }
+
+            assert namespace.equals(exporter.namespace);
             object.add(exporter.name, item);
         }
         return object.build();
@@ -72,6 +83,7 @@ public class ExporterAdapter implements JsonbAdapter<ExporterConfig[], JsonObjec
             options.adaptType(type);
 
             exporters.add(ExporterConfig.builder()
+                .namespace(namespace)
                 .name(name)
                 .type(type)
                 .options(options.adaptFromJson(item.getJsonObject(OPTIONS_NAME)))

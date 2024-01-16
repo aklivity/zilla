@@ -33,7 +33,6 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -54,15 +53,12 @@ import java.util.stream.Collectors;
 
 import org.agrona.CloseHelper;
 import org.agrona.ErrorHandler;
-import org.agrona.LangUtil;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.concurrent.AgentRunner;
 
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 import io.aklivity.zilla.runtime.engine.catalog.Catalog;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.exporter.Exporter;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtContext;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
@@ -70,8 +66,7 @@ import io.aklivity.zilla.runtime.engine.guard.Guard;
 import io.aklivity.zilla.runtime.engine.internal.Info;
 import io.aklivity.zilla.runtime.engine.internal.LabelManager;
 import io.aklivity.zilla.runtime.engine.internal.Tuning;
-import io.aklivity.zilla.runtime.engine.internal.layouts.BindingsLayout;
-import io.aklivity.zilla.runtime.engine.internal.registry.ConfigurationManager;
+import io.aklivity.zilla.runtime.engine.internal.registry.EngineManager;
 import io.aklivity.zilla.runtime.engine.internal.registry.EngineWorker;
 import io.aklivity.zilla.runtime.engine.internal.registry.FileWatcherTask;
 import io.aklivity.zilla.runtime.engine.internal.registry.HttpWatcherTask;
@@ -95,14 +90,11 @@ public final class Engine implements Collector, AutoCloseable
     private final AtomicInteger nextTaskId;
     private final ThreadFactory factory;
 
-    private final ConfigurationManager configurationManager;
     private final WatcherTask watcherTask;
-    private final Map<URL, NamespaceConfig> namespaces;
-    private final URL rootConfigURL;
+    private final URL configURL;
     private final List<EngineWorker> workers;
     private final boolean readonly;
     private final EngineConfiguration config;
-    private final Map<String, Binding> bindingsByType;
     private Future<Void> watcherTaskRef;
 
     Engine(
@@ -191,30 +183,29 @@ public final class Engine implements Collector, AutoCloseable
         schemaTypes.addAll(catalogs.stream().map(Catalog::type).filter(Objects::nonNull).collect(toList()));
         schemaTypes.addAll(validatorFactory.validatorSpis().stream().map(ValidatorFactorySpi::schema).collect(toList()));
 
-        bindingsByType = bindings.stream().collect(Collectors.toMap(b -> b.name(), b -> b));
+        final Map<String, Binding> bindingsByType = bindings.stream()
+            .collect(Collectors.toMap(b -> b.name(), b -> b));
         final Map<String, Guard> guardsByType = guards.stream()
             .collect(Collectors.toMap(g -> g.name(), g -> g));
 
-        this.rootConfigURL = config.configURL();
-        String protocol = rootConfigURL.getProtocol();
+        EngineManager manager = new EngineManager(schemaTypes, bindingsByType::get, guardsByType::get,
+            labels::supplyLabelId, maxWorkers, tuning, workers, logger, context, config, extensions, this::readURL);
+
+        this.configURL = config.configURL();
+        String protocol = configURL.getProtocol();
         if ("file".equals(protocol) || "jar".equals(protocol))
         {
-            Function<String, String> watcherReadURL = l -> readURL(rootConfigURL, l);
-            this.watcherTask = new FileWatcherTask(watcherReadURL, this::reconfigure);
+            Function<String, String> watcherReadURL = l -> readURL(configURL, l);
+            this.watcherTask = new FileWatcherTask(manager::reconfigure, watcherReadURL);
         }
         else if ("http".equals(protocol) || "https".equals(protocol))
         {
-            this.watcherTask = new HttpWatcherTask(this::reconfigure, config.configPollIntervalSeconds());
+            this.watcherTask = new HttpWatcherTask(manager::reconfigure, config.configPollIntervalSeconds());
         }
         else
         {
             throw new UnsupportedOperationException();
         }
-
-        this.configurationManager = new ConfigurationManager(schemaTypes, guardsByType::get, labels::supplyLabelId, maxWorkers,
-            tuning, workers, logger, context, config, extensions, this::readURL);
-
-        this.namespaces = new HashMap<>();
 
         List<AgentRunner> runners = new ArrayList<>(workers.size());
         workers.forEach(d -> runners.add(d.runner()));
@@ -247,7 +238,7 @@ public final class Engine implements Collector, AutoCloseable
         if (!readonly)
         {
             // ignore the config file in read-only mode; no config will be read so no namespaces, bindings, etc will be attached
-            watcherTask.watch(rootConfigURL).get();
+            watcherTask.watch(configURL).get();
         }
     }
 
@@ -297,54 +288,6 @@ public final class Engine implements Collector, AutoCloseable
     public ContextImpl context()
     {
         return context;
-    }
-
-    private NamespaceConfig reconfigure(
-        URL configURL,
-        String configText)
-    {
-        NamespaceConfig newNamespace = configurationManager.parse(configURL, configText);
-        if (newNamespace != null)
-        {
-            writeBindingsLayout(newNamespace);
-            NamespaceConfig oldNamespace = namespaces.get(configURL);
-            configurationManager.unregister(oldNamespace);
-            try
-            {
-                configurationManager.register(newNamespace);
-                namespaces.put(configURL, newNamespace);
-            }
-            catch (Exception ex)
-            {
-                context.onError(ex);
-                configurationManager.register(oldNamespace);
-                namespaces.put(configURL, oldNamespace);
-            }
-        }
-        return newNamespace;
-    }
-
-    private void writeBindingsLayout(
-        NamespaceConfig namespace)
-    {
-        BindingsLayout bindingsLayout = BindingsLayout.builder().directory(config.directory()).build();
-        for (BindingConfig binding : namespace.bindings)
-        {
-            long typeId = namespace.resolveId.applyAsLong(binding.type);
-            long kindId = namespace.resolveId.applyAsLong(binding.kind.name().toLowerCase());
-            Binding b = bindingsByType.get(binding.type);
-            long originTypeId = namespace.resolveId.applyAsLong(b.originType(binding.kind));
-            long routedTypeId = namespace.resolveId.applyAsLong(b.routedType(binding.kind));
-            bindingsLayout.writeBindingInfo(binding.id, typeId, kindId, originTypeId, routedTypeId);
-        }
-        try
-        {
-            bindingsLayout.close();
-        }
-        catch (Exception ex)
-        {
-            LangUtil.rethrowUnchecked(ex);
-        }
     }
 
     public static EngineBuilder builder()

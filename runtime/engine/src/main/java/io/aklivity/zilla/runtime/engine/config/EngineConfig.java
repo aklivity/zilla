@@ -16,27 +16,22 @@
 package io.aklivity.zilla.runtime.engine.config;
 
 import static java.util.Objects.requireNonNull;
+import static java.util.function.Function.identity;
 
-public class CatalogConfig
+import java.util.List;
+
+public class EngineConfig
 {
-    public transient long id;
+    public final List<NamespaceConfig> namespaces;
 
-    public final String namespace;
-    public final String name;
-    public final String qname;
-    public final String type;
-    public final OptionsConfig options;
-
-    public CatalogConfig(
-        String namespace,
-        String name,
-        String type,
-        OptionsConfig options)
+    public static EngineConfigBuilder<EngineConfig> builder()
     {
-        this.namespace = requireNonNull(namespace);
-        this.name = requireNonNull(name);
-        this.qname = String.format("%s:%s", namespace, name);
-        this.type = requireNonNull(type);
-        this.options = options;
+        return new EngineConfigBuilder<>(identity());
+    }
+
+    EngineConfig(
+        List<NamespaceConfig> namespaces)
+    {
+        this.namespaces = requireNonNull(namespaces);
     }
 }

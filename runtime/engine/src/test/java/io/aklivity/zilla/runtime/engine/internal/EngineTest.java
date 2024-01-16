@@ -97,6 +97,58 @@ public class EngineTest
     }
 
     @Test
+    public void shouldConfigureComposite()
+    {
+        String resource = String.format("%s-%s.json", getClass().getSimpleName(), "configure-composite");
+        URL configURL = getClass().getResource(resource);
+        assert configURL != null;
+        properties.put(ENGINE_CONFIG_URL.name(), configURL.toString());
+        EngineConfiguration config = new EngineConfiguration(properties);
+        List<Throwable> errors = new LinkedList<>();
+        try (Engine engine = Engine.builder()
+                .config(config)
+                .errorHandler(errors::add)
+                .build())
+        {
+            engine.start();
+        }
+        catch (Throwable ex)
+        {
+            errors.add(ex);
+        }
+        finally
+        {
+            assertThat(errors, empty());
+        }
+    }
+
+    @Test
+    public void shouldConfigureMultiple()
+    {
+        String resource = String.format("%s-%s.yaml", getClass().getSimpleName(), "configure-multiple");
+        URL configURL = getClass().getResource(resource);
+        assert configURL != null;
+        properties.put(ENGINE_CONFIG_URL.name(), configURL.toString());
+        EngineConfiguration config = new EngineConfiguration(properties);
+        List<Throwable> errors = new LinkedList<>();
+        try (Engine engine = Engine.builder()
+                .config(config)
+                .errorHandler(errors::add)
+                .build())
+        {
+            engine.start();
+        }
+        catch (Throwable ex)
+        {
+            errors.add(ex);
+        }
+        finally
+        {
+            assertThat(errors, empty());
+        }
+    }
+
+    @Test
     public void shouldNotConfigureDuplicateKey()
     {
         String resource = String.format("%s-%s.broken.json", getClass().getSimpleName(), "duplicate-key");
