@@ -14,13 +14,7 @@
  */
 package io.aklivity.zilla.runtime.command.generate.internal.openapi.model;
 
-import java.util.List;
-import java.util.Map;
-
-public class Operation
+public class Response
 {
-    public List<Map<String, List<String>>> security;
-    public RequestBody requestBody;
-    public List<Parameter> parameters;
-    public Map<String, ResponseByContentType> responses; // responses by status code
+    public Schema schema;
 }

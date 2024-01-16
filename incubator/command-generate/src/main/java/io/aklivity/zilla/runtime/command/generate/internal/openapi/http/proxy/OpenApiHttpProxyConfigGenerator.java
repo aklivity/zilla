@@ -44,6 +44,8 @@ import io.aklivity.zilla.runtime.command.generate.internal.openapi.OpenApiConfig
 import io.aklivity.zilla.runtime.command.generate.internal.openapi.model.OpenApi;
 import io.aklivity.zilla.runtime.command.generate.internal.openapi.model.Operation;
 import io.aklivity.zilla.runtime.command.generate.internal.openapi.model.Parameter;
+import io.aklivity.zilla.runtime.command.generate.internal.openapi.model.Response;
+import io.aklivity.zilla.runtime.command.generate.internal.openapi.model.ResponseByContentType;
 import io.aklivity.zilla.runtime.command.generate.internal.openapi.model.Server;
 import io.aklivity.zilla.runtime.command.generate.internal.openapi.view.PathView;
 import io.aklivity.zilla.runtime.command.generate.internal.openapi.view.SchemaView;
@@ -202,6 +204,7 @@ public class OpenApiHttpProxyConfigGenerator extends OpenApiConfigGenerator
                     .name("http_client0")
                     .type("http")
                     .kind(CLIENT)
+                    .inject(this::injectHttpClientOptions)
                     .exit(isTlsEnabled ? "tls_client0" : "tcp_client0")
                     .build()
                 .inject(this::injectTlsClient)
@@ -378,6 +381,117 @@ public class OpenApiHttpProxyConfigGenerator extends OpenApiConfigGenerator
                                     .build();
                             break;
                         }
+                    }
+                }
+            }
+        }
+        return request;
+    }
+
+    private <C> BindingConfigBuilder<C> injectHttpClientOptions(
+        BindingConfigBuilder<C> binding)
+    {
+        if (hasResponses())
+        {
+            binding.
+                options(HttpOptionsConfig::builder)
+                    .inject(this::injectHttpClientRequests)
+                    .build();
+        }
+        return binding;
+    }
+
+    private boolean hasResponses()
+    {
+        boolean result = false;
+        for (String pathName : openApi.paths.keySet())
+        {
+            PathView path = PathView.of(openApi.paths.get(pathName));
+            for (String methodName : path.methods().keySet())
+            {
+                Operation operation = path.methods().get(methodName);
+                if (hasResponses(operation))
+                {
+                    result = true;
+                    break;
+                }
+            }
+        }
+        return result;
+    }
+
+    private <C> HttpOptionsConfigBuilder<C> injectHttpClientRequests(
+        HttpOptionsConfigBuilder<C> options)
+    {
+        for (String pathName : openApi.paths.keySet())
+        {
+            PathView path = PathView.of(openApi.paths.get(pathName));
+            for (String methodName : path.methods().keySet())
+            {
+                Operation operation = path.methods().get(methodName);
+                if (hasResponses(operation))
+                {
+                    options
+                        .request()
+                            .path(pathName)
+                            .method(HttpRequestConfig.Method.valueOf(methodName))
+                            .inject(request -> injectResponses(request, operation))
+                            .build()
+                        .build();
+                }
+            }
+        }
+        return options;
+    }
+
+    private boolean hasResponses(
+        Operation operation)
+    {
+        boolean result = false;
+        if (operation != null && operation.responses != null)
+        {
+            for (Map.Entry<String, ResponseByContentType> response0 : operation.responses.entrySet())
+            {
+                String status = response0.getKey();
+                ResponseByContentType response1 = response0.getValue();
+                if (!(DEFAULT.equals(status)) && response1.content != null)
+                {
+                    result = true;
+                    break;
+                }
+            }
+        }
+        return result;
+    }
+
+    private <C> HttpRequestConfigBuilder<C> injectResponses(
+        HttpRequestConfigBuilder<C> request,
+        Operation operation)
+    {
+        if (operation != null && operation.responses != null)
+        {
+            for (Map.Entry<String, ResponseByContentType> response0 : operation.responses.entrySet())
+            {
+                String status = response0.getKey();
+                ResponseByContentType response1 = response0.getValue();
+                if (!(DEFAULT.equals(status)) && response1.content != null)
+                {
+                    for (Map.Entry<String, Response> response2 : response1.content.entrySet())
+                    {
+                        SchemaView schema = SchemaView.of(openApi.components.schemas, response2.getValue().schema);
+                        request
+                            .response()
+                                .status(Integer.parseInt(status))
+                                .contentType(response2.getKey())
+                                .content(JsonValidatorConfig::builder)
+                                    .catalog()
+                                    .name(INLINE_CATALOG_NAME)
+                                    .schema()
+                                        .subject(schema.refKey())
+                                        .build()
+                                    .build()
+                                .build()
+                            .build();
                     }
                 }
             }

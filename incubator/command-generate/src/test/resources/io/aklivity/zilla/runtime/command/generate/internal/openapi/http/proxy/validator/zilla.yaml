@@ -78,6 +78,30 @@ bindings:
   http_client0:
     type: http
     kind: client
+    options:
+      requests:
+      - path: /items
+        method: GET
+        responses:
+        - status: 200
+          content-type:
+          - application/json
+          content:
+            type: json
+            catalog:
+              catalog0:
+              - subject: Items
+      - path: "/items/{id}"
+        method: GET
+        responses:
+        - status: 200
+          content-type:
+          - application/json
+          content:
+            type: json
+            catalog:
+              catalog0:
+              - subject: Item
     exit: tcp_client0
   tcp_client0:
     type: tcp
