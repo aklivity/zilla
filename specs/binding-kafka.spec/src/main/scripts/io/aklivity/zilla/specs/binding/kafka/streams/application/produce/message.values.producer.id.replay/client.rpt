@@ -74,7 +74,9 @@ write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .produce()
                                   .timestamp(newTimestamp)
-                                  .sequence(0)
+                                  .producerId(1)
+                                  .producerEpoch(1)
+                                  .sequence(2)
                                   .build()
                               .build()}
 write "Hello, world"
@@ -84,8 +86,10 @@ write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .produce()
                                   .timestamp(newTimestamp)
+                                  .producerId(1)
+                                  .producerEpoch(1)
                                   .sequence(1)
                                   .build()
                               .build()}
-write "Hello, world"
+write "Hello, again"
 write flush

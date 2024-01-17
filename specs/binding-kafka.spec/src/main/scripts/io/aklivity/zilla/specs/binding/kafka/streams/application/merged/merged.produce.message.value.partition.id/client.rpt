@@ -14,46 +14,59 @@
 # under the License.
 #
 
-property deltaMillis 0L
-property newTimestamp ${kafka:timestamp() + deltaMillis}
-
-accept "zilla://streams/app0"
+connect "zilla://streams/app0"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
-
-accepted
-
-read zilla:begin.ext ${kafka:beginEx()
-                              .typeId(zilla:id("kafka"))
-                              .merged()
-                                   .capabilities("PRODUCE_ONLY")
-                                   .topic("test")
-                                   .groupId("client-1")
-                                   .consumerId("consumer-1")
-                                   .ackMode("LEADER_ONLY")
-                                   .build()
-                               .build()}
-
-connected
 
 write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
                                .merged()
                                    .capabilities("PRODUCE_ONLY")
                                    .topic("test")
+                                   .ackMode("LEADER_ONLY")
+                                   .build()
+                               .build()}
+
+connected
+
+read zilla:begin.ext ${kafka:matchBeginEx()
+                               .typeId(zilla:id("kafka"))
+                               .merged()
+                                   .capabilities("PRODUCE_ONLY")
+                                   .topic("test")
                                    .partition(0, -1)
-                                   .partition(1, -1)
                                    .build()
                               .build()}
-write flush
 
-read zilla:data.ext ${kafka:dataEx()
+write advise zilla:flush ${kafka:flushEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                .produce()
+                                  .hashKey("key7")
+                                  .build()
+                              .build()}
+
+read advised zilla:flush ${kafka:flushEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                .produce()
+                                  .partitionId(0)
+                                  .build()
+                              .build()}
+
+
+write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .merged()
                                 .produce()
                                   .timestamp(newTimestamp)
-                                  .key("message-key")
+                                  .producerId(1)
+                                  .producerEpoch(1)
+                                  .partition(0, 0)
+                                  .key("a")
+                                  .hashKey("key7")
                                   .build()
                               .build()}
-read "Hello, world #A1"
+write "Hello, world #A1"
+write flush
 
