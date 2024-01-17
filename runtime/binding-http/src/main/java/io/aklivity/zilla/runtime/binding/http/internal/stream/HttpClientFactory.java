@@ -3369,12 +3369,8 @@ public final class HttpClientFactory implements HttpStreamFactory
                             }
                             else
                             {
-                                //exchange.doResponseAbort(traceId, authorization, EMPTY_OCTETS);
                                 exchange.cleanup(traceId, authorization);
                                 progress += payloadLength;
-                                //progress += payloadRemaining.value;
-                                //payloadRemaining.value = 0;
-                                //progress += payloadLength - payloadRemaining.value;
                             }
                         }
                     }
@@ -4651,11 +4647,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             final HttpBeginExFW beginEx = extension.get(beginExRO::tryWrap);
             final Array32FW<HttpHeaderFW> headers = beginEx != null ? beginEx.headers() : DEFAULT_HEADERS;
 
-            HttpRequestType requestType = binding.resolveRequestType(beginEx);
-            if (requestType != null)
-            {
-                this.requestType = requestType;
-            }
+            this.requestType = binding.resolveRequestType(beginEx);
 
             if (client.encoder != HttpEncoder.HTTP_2)
             {
