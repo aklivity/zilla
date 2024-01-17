@@ -53,4 +53,22 @@ public class ValidationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/invalid.response/client",
+        "${app}/invalid.response/server" })
+    public void shouldAbortForInvalidResponse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/valid.response/client",
+        "${app}/valid.response/server" })
+    public void shouldProcessValidResponse() throws Exception
+    {
+        k3po.finish();
+    }
 }

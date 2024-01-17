@@ -3369,8 +3369,12 @@ public final class HttpClientFactory implements HttpStreamFactory
                             }
                             else
                             {
-                                exchange.doResponseAbort(traceId, authorization, EMPTY_OCTETS);
+                                //exchange.doResponseAbort(traceId, authorization, EMPTY_OCTETS);
+                                exchange.cleanup(traceId, authorization);
                                 progress += payloadLength;
+                                //progress += payloadRemaining.value;
+                                //payloadRemaining.value = 0;
+                                //progress += payloadLength - payloadRemaining.value;
                             }
                         }
                     }

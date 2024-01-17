@@ -15,25 +15,25 @@
 #
 
 connect "zilla://streams/app0"
-    option zilla:window 8192
-    option zilla:transmission "half-duplex"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
 
 write zilla:begin.ext ${http:beginEx()
                               .typeId(zilla:id("http"))
-                              .header(":scheme", "http")
                               .header(":method", "GET")
+                              .header(":scheme", "http")
                               .header(":path", "/hello")
                               .header(":authority", "localhost:8080")
                               .build()}
 connected
 
-write close
-
-read zilla:begin.ext ${http:matchBeginEx()
+read zilla:begin.ext ${http:beginEx()
                              .typeId(zilla:id("http"))
                              .header(":status", "200")
-                             .header("content-length", "7")
                              .header("content-type", "text/plain")
+                             .header("content-length", "7")
                              .build()}
 
+write aborted
 read aborted
