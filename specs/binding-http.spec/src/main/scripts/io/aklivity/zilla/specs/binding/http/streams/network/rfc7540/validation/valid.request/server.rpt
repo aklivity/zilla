@@ -54,7 +54,7 @@ read [0x00 0x00 0x36]                    # length = 54
      [0x86]                              # :scheme: http
      [0x04] [0x22]                       # :path: /valid/1234567890123/1234567890123
      "/valid/1234567890123/1234567890123"
-     [0x01] [0x0E] "localhost:8080"      # :authority: localhost:8080
+     [0x01] [0x0e] "localhost:8080"      # :authority: localhost:8080
 
 read [0x00 0x00 0x00]                    # length = 0
      [0x04]                              # HTTP2 SETTINGS frame
