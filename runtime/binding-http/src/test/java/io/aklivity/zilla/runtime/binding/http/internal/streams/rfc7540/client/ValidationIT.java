@@ -54,7 +54,7 @@ public class ValidationIT
     @Specification({
         "${app}/invalid.response/client",
         "${net}/invalid.response/server" })
-    public void shouldRejectInvalidRequests() throws Exception
+    public void shouldAbortForInvalidResponse() throws Exception
     {
         k3po.finish();
     }
@@ -64,7 +64,7 @@ public class ValidationIT
     @Specification({
         "${app}/valid.response/client",
         "${net}/valid.response/server" })
-    public void shouldProcessValidRequests() throws Exception
+    public void shouldProcessValidResponse() throws Exception
     {
         k3po.finish();
     }
