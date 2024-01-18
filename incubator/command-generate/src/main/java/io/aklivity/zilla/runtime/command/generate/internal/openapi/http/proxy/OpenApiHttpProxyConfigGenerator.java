@@ -448,9 +448,9 @@ public class OpenApiHttpProxyConfigGenerator extends OpenApiConfigGenerator
         Operation operation)
     {
         boolean result = false;
-        if (operation != null && operation.responses != null)
+        if (operation != null && operation.responsesByStatus != null)
         {
-            for (Map.Entry<String, ResponseByContentType> response0 : operation.responses.entrySet())
+            for (Map.Entry<String, ResponseByContentType> response0 : operation.responsesByStatus.entrySet())
             {
                 String status = response0.getKey();
                 ResponseByContentType response1 = response0.getValue();
@@ -468,9 +468,9 @@ public class OpenApiHttpProxyConfigGenerator extends OpenApiConfigGenerator
         HttpRequestConfigBuilder<C> request,
         Operation operation)
     {
-        if (operation != null && operation.responses != null)
+        if (operation != null && operation.responsesByStatus != null)
         {
-            for (Map.Entry<String, ResponseByContentType> response0 : operation.responses.entrySet())
+            for (Map.Entry<String, ResponseByContentType> response0 : operation.responsesByStatus.entrySet())
             {
                 String status = response0.getKey();
                 ResponseByContentType response1 = response0.getValue();
