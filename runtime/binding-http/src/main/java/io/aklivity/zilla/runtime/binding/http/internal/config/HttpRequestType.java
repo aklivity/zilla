@@ -79,12 +79,18 @@ public final class HttpRequestType
     {
         public final List<String> status;
         public final List<String> contentType;
+        public final Map<String8FW, Validator> headers;
         public final Validator content;
 
-        public Response(List<String> status, List<String> contentType, Validator content)
+        public Response(
+            List<String> status,
+            List<String> contentType,
+            Map<String8FW, Validator> headers,
+            Validator content)
         {
             this.status = status;
             this.contentType = contentType;
+            this.headers = headers;
             this.content = content;
         }
     }

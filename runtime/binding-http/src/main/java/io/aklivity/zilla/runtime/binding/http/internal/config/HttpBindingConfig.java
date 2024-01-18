@@ -225,10 +225,28 @@ public final class HttpBindingConfig
                 List<HttpRequestType.Response> responses = new LinkedList<>();
                 if (request.responses != null)
                 {
-                    for (HttpResponseConfig config : request.responses)
+                    for (HttpResponseConfig response0 : request.responses)
                     {
-                        HttpRequestType.Response response = new HttpRequestType.Response(config.status, config.contentType,
-                            createValidator.apply(config.content, this.resolveId));
+                        Map<String8FW, Validator> responseHeaderValidators = new HashMap<>();
+                        if (response0.headers != null)
+                        {
+                            for (HttpParamConfig header : response0.headers)
+                            {
+                                String8FW name = new String8FW(header.name);
+                                Validator validator = createValidator.apply(header.validator, this.resolveId);
+                                if (validator != null)
+                                {
+                                    responseHeaderValidators.put(name, validator);
+                                }
+                            }
+                        }
+                        Validator contentValidator = null;
+                        if (response0.content != null)
+                        {
+                            contentValidator = createValidator.apply(response0.content, this.resolveId);
+                        }
+                        HttpRequestType.Response response = new HttpRequestType.Response(response0.status, response0.contentType,
+                            responseHeaderValidators, contentValidator);
                         responses.add(response);
                     }
                 }
@@ -272,11 +290,11 @@ public final class HttpBindingConfig
         return result;
     }
 
-    public Validator resolveResponseValidator(
+    public HttpRequestType.Response resolveResponse(
         HttpRequestType requestType,
         HttpBeginExFW beginEx)
     {
-        Validator result = null;
+        HttpRequestType.Response result = null;
         if (requestType != null && requestType.responses != null)
         {
             String status = resolveHeaderValue(beginEx, HEADER_STATUS);
@@ -286,7 +304,7 @@ public final class HttpBindingConfig
                 if (matchResponseStatus(response, status) &&
                     matchResponseContentType(response, contentType))
                 {
-                    result = response.content;
+                    result = response;
                 }
             }
         }

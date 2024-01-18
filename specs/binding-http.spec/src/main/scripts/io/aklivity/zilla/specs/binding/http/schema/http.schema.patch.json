@@ -366,9 +366,20 @@
                                                         "$ref": "#/$defs/validator/type"
                                                     }
                                                 },
-                                                "required":
+                                                "anyOf":
                                                 [
-                                                    "content"
+                                                    {
+                                                        "required":
+                                                        [
+                                                            "content"
+                                                        ]
+                                                    },
+                                                    {
+                                                        "required":
+                                                        [
+                                                            "headers"
+                                                        ]
+                                                    }
                                                 ],
                                                 "additionalProperties": false
                                             }

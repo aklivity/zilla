@@ -2896,7 +2896,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 pool.onUpgradedOrClosed(this);
             }
 
-            exchange.resolveResponseValidator(beginEx);
+            exchange.resolveResponse(beginEx);
         }
 
         private void onDecodeHttp11HeadersOnly(
@@ -2918,9 +2918,9 @@ public final class HttpClientFactory implements HttpStreamFactory
         {
             int result;
             boolean valid = true;
-            if (exchange.responseValidator != null)
+            if (exchange.response != null && exchange.response.content != null)
             {
-                valid = exchange.responseValidator.read(buffer, offset, limit - offset);
+                valid = exchange.response.content.read(buffer, offset, limit - offset);
             }
             if (valid)
             {
@@ -3354,9 +3354,9 @@ public final class HttpClientFactory implements HttpStreamFactory
                         else
                         {
                             boolean valid = true;
-                            if (exchange.responseValidator != null)
+                            if (exchange.response != null && exchange.response.content != null)
                             {
-                                valid = exchange.responseValidator.read(payload, 0, payloadLength);
+                                valid = exchange.response.content.read(payload, 0, payloadLength);
                             }
                             if (valid)
                             {
@@ -3467,7 +3467,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                         .headers(hs -> headers.forEach((n, v) -> hs.item(h -> h.name(n).value(v))))
                         .build();
 
-                exchange.resolveResponseValidator(beginEx);
+                exchange.resolveResponse(beginEx);
                 exchange.doResponseBegin(traceId, authorization, beginEx);
 
                 if (endResponse)
@@ -4497,7 +4497,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
         private final HttpBindingConfig binding;
         private HttpRequestType requestType;
-        private Validator responseValidator;
+        private HttpRequestType.Response response;
 
         private HttpExchange(
             HttpClient client,
@@ -5049,10 +5049,10 @@ public final class HttpClientFactory implements HttpStreamFactory
             doResponseAbort(traceId, authorization, EMPTY_OCTETS);
         }
 
-        public void resolveResponseValidator(
+        public void resolveResponse(
             HttpBeginExFW beginEx)
         {
-            this.responseValidator = binding.resolveResponseValidator(requestType, beginEx);
+            this.response = binding.resolveResponse(requestType, beginEx);
         }
     }
 
