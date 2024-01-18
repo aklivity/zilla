@@ -47,6 +47,8 @@ import io.aklivity.zilla.runtime.command.generate.internal.openapi.model.Paramet
 import io.aklivity.zilla.runtime.command.generate.internal.openapi.model.Response;
 import io.aklivity.zilla.runtime.command.generate.internal.openapi.model.ResponseByContentType;
 import io.aklivity.zilla.runtime.command.generate.internal.openapi.model.Server;
+import io.aklivity.zilla.runtime.command.generate.internal.openapi.view.OperationView;
+import io.aklivity.zilla.runtime.command.generate.internal.openapi.view.OperationsView;
 import io.aklivity.zilla.runtime.command.generate.internal.openapi.view.PathView;
 import io.aklivity.zilla.runtime.command.generate.internal.openapi.view.SchemaView;
 import io.aklivity.zilla.runtime.command.generate.internal.openapi.view.ServerView;
@@ -391,36 +393,19 @@ public class OpenApiHttpProxyConfigGenerator extends OpenApiConfigGenerator
     private <C> BindingConfigBuilder<C> injectHttpClientOptions(
         BindingConfigBuilder<C> binding)
     {
-        if (hasResponses())
+        OperationsView operations = OperationsView.of(openApi.paths);
+        if (operations.hasResponses())
         {
             binding.
                 options(HttpOptionsConfig::builder)
-                    .inject(this::injectHttpClientRequests)
+                    .inject(options -> injectHttpClientRequests(operations, options))
                     .build();
         }
         return binding;
     }
 
-    private boolean hasResponses()
-    {
-        boolean result = false;
-        for (String pathName : openApi.paths.keySet())
-        {
-            PathView path = PathView.of(openApi.paths.get(pathName));
-            for (String methodName : path.methods().keySet())
-            {
-                Operation operation = path.methods().get(methodName);
-                if (hasResponses(operation))
-                {
-                    result = true;
-                    break;
-                }
-            }
-        }
-        return result;
-    }
-
     private <C> HttpOptionsConfigBuilder<C> injectHttpClientRequests(
+        OperationsView operations,
         HttpOptionsConfigBuilder<C> options)
     {
         for (String pathName : openApi.paths.keySet())
@@ -428,8 +413,8 @@ public class OpenApiHttpProxyConfigGenerator extends OpenApiConfigGenerator
             PathView path = PathView.of(openApi.paths.get(pathName));
             for (String methodName : path.methods().keySet())
             {
-                Operation operation = path.methods().get(methodName);
-                if (hasResponses(operation))
+                OperationView operation = operations.operation(pathName, methodName);
+                if (operation.hasResponses())
                 {
                     options
                         .request()
@@ -444,37 +429,17 @@ public class OpenApiHttpProxyConfigGenerator extends OpenApiConfigGenerator
         return options;
     }
 
-    private boolean hasResponses(
-        Operation operation)
-    {
-        boolean result = false;
-        if (operation != null && operation.responsesByStatus != null)
-        {
-            for (Map.Entry<String, ResponseByContentType> response0 : operation.responsesByStatus.entrySet())
-            {
-                String status = response0.getKey();
-                ResponseByContentType response1 = response0.getValue();
-                if (!(DEFAULT.equals(status)) && response1.content != null)
-                {
-                    result = true;
-                    break;
-                }
-            }
-        }
-        return result;
-    }
-
     private <C> HttpRequestConfigBuilder<C> injectResponses(
         HttpRequestConfigBuilder<C> request,
-        Operation operation)
+        OperationView operation)
     {
-        if (operation != null && operation.responsesByStatus != null)
+        if (operation != null && operation.responsesByStatus() != null)
         {
-            for (Map.Entry<String, ResponseByContentType> response0 : operation.responsesByStatus.entrySet())
+            for (Map.Entry<String, ResponseByContentType> response0 : operation.responsesByStatus().entrySet())
             {
                 String status = response0.getKey();
                 ResponseByContentType response1 = response0.getValue();
-                if (!(DEFAULT.equals(status)) && response1.content != null)
+                if (!(OperationView.DEFAULT.equals(status)) && response1.content != null)
                 {
                     for (Map.Entry<String, Response> response2 : response1.content.entrySet())
                     {

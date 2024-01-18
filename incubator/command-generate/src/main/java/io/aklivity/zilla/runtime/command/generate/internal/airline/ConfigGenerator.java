@@ -39,7 +39,6 @@ public abstract class ConfigGenerator
     protected static final String APPLICATION_JSON = "application/json";
     protected static final String VERSION_LATEST = "latest";
     protected static final Pattern JSON_CONTENT_TYPE = Pattern.compile("^application/(?:.+\\+)?json$");
-    protected static final String DEFAULT = "default";
 
     protected final Map<String, ValidatorConfig> validators = Map.of(
         "string", StringValidatorConfig.builder().build(),
