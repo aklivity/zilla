@@ -1,5 +1,90 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.64...HEAD)
+
+**Implemented enhancements:**
+
+- MQTT publish QoS 2 as Kafka produce with acks in\_sync\_replicas and idempotent `producerId` [\#605](https://github.com/aklivity/zilla/issues/605)
+- Add the option to route by `port` in the `tls` binding [\#564](https://github.com/aklivity/zilla/issues/564)
+- Support outbound message transformation from `protobuf` to `json` [\#458](https://github.com/aklivity/zilla/issues/458)
+- Support inbound message transformation from `json` to `protobuf` [\#457](https://github.com/aklivity/zilla/issues/457)
+- Support outbound message transformation from `avro` to `json` [\#315](https://github.com/aklivity/zilla/issues/315)
+- Support inbound message transformation from `json` to `avro` [\#313](https://github.com/aklivity/zilla/issues/313)
+- Handle data fragmentation for MQTT binding [\#282](https://github.com/aklivity/zilla/issues/282)
+- separating publish streams based on qos [\#726](https://github.com/aklivity/zilla/pull/726) ([bmaidics](https://github.com/bmaidics))
+- Add `sse`, `ws`, `fs` extension parsing to `dump` command [\#660](https://github.com/aklivity/zilla/pull/660) ([attilakreiner](https://github.com/attilakreiner))
+- Support MQTT fragmented messages [\#651](https://github.com/aklivity/zilla/pull/651) ([bmaidics](https://github.com/bmaidics))
+
+**Fixed bugs:**
+
+- Unable to Run MQTT Example Successfully [\#724](https://github.com/aklivity/zilla/issues/724)
+- Http1 server not progressing after reaching full buffer slot size [\#715](https://github.com/aklivity/zilla/issues/715)
+- `mqtt-kafka` binding uses 2 different consumer groups per `mqtt` client [\#698](https://github.com/aklivity/zilla/issues/698)
+- Optimize memory allocation for `mqtt-kafka` offset tracking [\#675](https://github.com/aklivity/zilla/issues/675)
+- connection pool stops handling signals after while causing mqtt client to hang [\#667](https://github.com/aklivity/zilla/issues/667)
+- Kafka Merge is getting stall because of intermediate partition offset state [\#666](https://github.com/aklivity/zilla/issues/666)
+- Handle large message in grpc binding [\#648](https://github.com/aklivity/zilla/issues/648)
+- update zilla jsonschemas [\#637](https://github.com/aklivity/zilla/issues/637)
+- Mqtt session takeover is not working when the second client connects to the same Zilla instance [\#620](https://github.com/aklivity/zilla/issues/620)
+- http2.network.ConnectionManagementIT.serverSent100kMessage test fails sporadically due to race [\#134](https://github.com/aklivity/zilla/issues/134)
+- Fix tcp flow control issue [\#704](https://github.com/aklivity/zilla/pull/704) ([bmaidics](https://github.com/bmaidics))
+- Optimize memory allocation for mqtt-kafka offset tracking [\#694](https://github.com/aklivity/zilla/pull/694) ([bmaidics](https://github.com/bmaidics))
+- Send disconnect even without mqtt reset extension [\#689](https://github.com/aklivity/zilla/pull/689) ([bmaidics](https://github.com/bmaidics))
+
+**Closed issues:**
+
+- Prototype composite binding support with nested namespaces [\#685](https://github.com/aklivity/zilla/issues/685)
+- Support `avro` conversion to and from `json` for `kafka` messages [\#681](https://github.com/aklivity/zilla/issues/681)
+- Support observability of zilla engine internal streams [\#678](https://github.com/aklivity/zilla/issues/678)
+- Simplify configuration of multiple protocols on different tcp ports [\#669](https://github.com/aklivity/zilla/issues/669)
+- Simplify kafka client bootstrap server names and ports config [\#619](https://github.com/aklivity/zilla/issues/619)
+- Build has been failed in local [\#229](https://github.com/aklivity/zilla/issues/229)
+
+**Merged pull requests:**
+
+- Bump ubuntu from jammy-20231128 to jammy-20240111 in /cloud/docker-image/src/main/docker/incubator [\#747](https://github.com/aklivity/zilla/pull/747) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump ubuntu from jammy-20231128 to jammy-20240111 in /cloud/docker-image/src/main/docker/release [\#746](https://github.com/aklivity/zilla/pull/746) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Support composite binding config [\#737](https://github.com/aklivity/zilla/pull/737) ([jfallows](https://github.com/jfallows))
+- Add amqp extension parsing to dump command [\#723](https://github.com/aklivity/zilla/pull/723) ([attilakreiner](https://github.com/attilakreiner))
+- Suppress checkstyle for generated sources [\#721](https://github.com/aklivity/zilla/pull/721) ([jfallows](https://github.com/jfallows))
+- Ignore line length check for import and package statements [\#720](https://github.com/aklivity/zilla/pull/720) ([jfallows](https://github.com/jfallows))
+- Bump com.fasterxml.jackson.dataformat:jackson-dataformat-yaml from 2.15.2 to 2.16.1 [\#718](https://github.com/aklivity/zilla/pull/718) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump byteman.version from 4.0.21 to 4.0.22 [\#717](https://github.com/aklivity/zilla/pull/717) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Http1 server not progressing after reaching full buffer slot size [\#714](https://github.com/aklivity/zilla/pull/714) ([akrambek](https://github.com/akrambek))
+- Bump org.apache.maven:maven from 3.9.4 to 3.9.6 [\#712](https://github.com/aklivity/zilla/pull/712) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump org.apache.maven.plugins:maven-compiler-plugin from 3.11.0 to 3.12.1 [\#711](https://github.com/aklivity/zilla/pull/711) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Simplify kafka client bootstrap server names and ports config [\#710](https://github.com/aklivity/zilla/pull/710) ([akrambek](https://github.com/akrambek))
+- Align tcp net read window [\#709](https://github.com/aklivity/zilla/pull/709) ([jfallows](https://github.com/jfallows))
+- Add kafka extension parsing to dump command [\#706](https://github.com/aklivity/zilla/pull/706) ([attilakreiner](https://github.com/attilakreiner))
+- Bump org.codehaus.mojo:exec-maven-plugin from 3.1.0 to 3.1.1 [\#703](https://github.com/aklivity/zilla/pull/703) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump org.jacoco:jacoco-maven-plugin from 0.8.10 to 0.8.11 [\#701](https://github.com/aklivity/zilla/pull/701) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Unnecessary deferred value causes the connection to stall [\#700](https://github.com/aklivity/zilla/pull/700) ([akrambek](https://github.com/akrambek))
+- Refactor dispatch agent [\#699](https://github.com/aklivity/zilla/pull/699) ([jfallows](https://github.com/jfallows))
+- Reset back initial max once ack is fully caught up with seq [\#696](https://github.com/aklivity/zilla/pull/696) ([akrambek](https://github.com/akrambek))
+- Add mqtt extension parsing to dump command [\#695](https://github.com/aklivity/zilla/pull/695) ([attilakreiner](https://github.com/attilakreiner))
+- Reject stream if deferred is not set for the fragmented message [\#693](https://github.com/aklivity/zilla/pull/693) ([akrambek](https://github.com/akrambek))
+- Remove wrong state assignment in the group cache [\#692](https://github.com/aklivity/zilla/pull/692) ([akrambek](https://github.com/akrambek))
+- Bump org.moditect:moditect-maven-plugin from 1.0.0.Final to 1.1.0 [\#688](https://github.com/aklivity/zilla/pull/688) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump commons-cli:commons-cli from 1.3.1 to 1.6.0 [\#687](https://github.com/aklivity/zilla/pull/687) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump junit.version from 5.8.2 to 5.10.1 [\#686](https://github.com/aklivity/zilla/pull/686) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump jakarta.json:jakarta.json-api from 2.0.1 to 2.1.3 [\#674](https://github.com/aklivity/zilla/pull/674) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump jmh.version from 1.12 to 1.37 [\#673](https://github.com/aklivity/zilla/pull/673) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump com.guicedee.services:commons-collections4 from 1.1.0.7 to 1.2.2.1 [\#672](https://github.com/aklivity/zilla/pull/672) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump org.mockito:mockito-core from 5.3.1 to 5.8.0 [\#665](https://github.com/aklivity/zilla/pull/665) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump org.slf4j:slf4j-api from 1.7.36 to 2.0.10 [\#664](https://github.com/aklivity/zilla/pull/664) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump org.hamcrest:hamcrest-library from 1.3 to 2.2 [\#663](https://github.com/aklivity/zilla/pull/663) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Update latest and stable offset if it was in stabilizing state [\#661](https://github.com/aklivity/zilla/pull/661) ([akrambek](https://github.com/akrambek))
+- Release kafka connection pool budget [\#659](https://github.com/aklivity/zilla/pull/659) ([akrambek](https://github.com/akrambek))
+- Handle large message in grpc [\#649](https://github.com/aklivity/zilla/pull/649) ([akrambek](https://github.com/akrambek))
+- Feature/tls ports [\#591](https://github.com/aklivity/zilla/pull/591) ([lukefallows](https://github.com/lukefallows))
+- Bump eclipse-temurin from 20-alpine to 21-alpine in /cloud/docker-image/src/main/docker/release [\#506](https://github.com/aklivity/zilla/pull/506) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump eclipse-temurin from 20-jdk to 21-jdk in /cloud/docker-image/src/main/docker/incubator [\#505](https://github.com/aklivity/zilla/pull/505) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump org.slf4j:slf4j-simple from 1.7.21 to 2.0.9 [\#392](https://github.com/aklivity/zilla/pull/392) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump com.github.biboudis:jmh-profilers from 0.1.3 to 0.1.4 [\#385](https://github.com/aklivity/zilla/pull/385) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump org.eclipse:yasson from 2.0.3 to 3.0.3 [\#346](https://github.com/aklivity/zilla/pull/346) ([dependabot[bot]](https://github.com/apps/dependabot))
+
 ## [0.9.64](https://github.com/aklivity/zilla/tree/0.9.64) (2023-12-25)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.63...0.9.64)
@@ -16,6 +101,8 @@
 **Implemented enhancements:**
 
 - Support MQTT message expiry in `mqtt-kafka` mapping [\#631](https://github.com/aklivity/zilla/issues/631)
+- Add grpc extension parsing to the dump command [\#652](https://github.com/aklivity/zilla/pull/652) ([attilakreiner](https://github.com/attilakreiner))
+- Add end-to-end testing for the `dump` command [\#646](https://github.com/aklivity/zilla/pull/646) ([attilakreiner](https://github.com/attilakreiner))
 - Implement mqtt message expiry [\#640](https://github.com/aklivity/zilla/pull/640) ([bmaidics](https://github.com/bmaidics))
 - Improve server sent DISCONNECT reasonCodes [\#634](https://github.com/aklivity/zilla/pull/634) ([bmaidics](https://github.com/bmaidics))
 
@@ -33,8 +120,6 @@
 
 - Fix static field [\#655](https://github.com/aklivity/zilla/pull/655) ([akrambek](https://github.com/akrambek))
 - OffsetFetch Request should connect to the coordinator instead of a random member of cluster  [\#654](https://github.com/aklivity/zilla/pull/654) ([akrambek](https://github.com/akrambek))
-- Add grpc extension parsing to the dump command [\#652](https://github.com/aklivity/zilla/pull/652) ([attilakreiner](https://github.com/attilakreiner))
-- Add end-to-end testing for the `dump` command [\#646](https://github.com/aklivity/zilla/pull/646) ([attilakreiner](https://github.com/attilakreiner))
 - Bump actions/upload-artifact from 3 to 4 [\#645](https://github.com/aklivity/zilla/pull/645) ([dependabot[bot]](https://github.com/apps/dependabot))
 - Bump github/codeql-action from 2 to 3 [\#643](https://github.com/aklivity/zilla/pull/643) ([dependabot[bot]](https://github.com/apps/dependabot))
 - Fix `java.util.MissingFormatArgumentException` when using Kafka debugging. [\#639](https://github.com/aklivity/zilla/pull/639) ([voutilad](https://github.com/voutilad))
