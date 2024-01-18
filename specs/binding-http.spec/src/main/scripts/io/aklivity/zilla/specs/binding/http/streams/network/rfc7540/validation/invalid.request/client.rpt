@@ -78,7 +78,7 @@ write [0x00 0x00 0x3f]                   # length = 63
       [0x86]                             # :scheme: http
       [0x04] [0x2B]                      # :path: /valid/1234567890123/1234567890123?page=123
       "/valid/1234567890123/1234567890123?page=123"
-      [0x01] [0x0E] "localhost:8080"     # :authority: localhost:8080
+      [0x01] [0x0e] "localhost:8080"     # :authority: localhost:8080
 write flush
 
 read [0x00 0x00 0x05]                    # length = 5
