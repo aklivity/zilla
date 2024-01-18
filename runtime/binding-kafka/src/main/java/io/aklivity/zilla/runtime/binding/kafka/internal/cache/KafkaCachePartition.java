@@ -72,6 +72,8 @@ public final class KafkaCachePartition
     private static final long NO_ANCESTOR_OFFSET = -1L;
     private static final long NO_DESCENDANT_OFFSET = -1L;
     private static final int NO_SEQUENCE = -1;
+    private static final short NO_PRODUCER_ID = -1;
+    private static final short NO_PRODUCER_EPOCH = -1;
     private static final int NO_ACKNOWLEDGE = 0;
     private static final int NO_DELTA_POSITION = -1;
 
@@ -98,7 +100,8 @@ public final class KafkaCachePartition
     private final KafkaCacheEntryFW logEntryRO = new KafkaCacheEntryFW();
     private final KafkaCacheDeltaFW deltaEntryRO = new KafkaCacheDeltaFW();
 
-    private final MutableDirectBuffer entryInfo = new UnsafeBuffer(new byte[6 * Long.BYTES + 3 * Integer.BYTES + Short.BYTES]);
+    private final MutableDirectBuffer entryInfo =
+        new UnsafeBuffer(new byte[7 * Long.BYTES + 3 * Integer.BYTES + 2 * Short.BYTES]);
     private final MutableDirectBuffer valueInfo = new UnsafeBuffer(new byte[Integer.BYTES]);
 
     private final Array32FW<KafkaHeaderFW> headersRO = new Array32FW<KafkaHeaderFW>(new KafkaHeaderFW());
@@ -374,12 +377,14 @@ public final class KafkaCachePartition
         entryInfo.putLong(Long.BYTES, timestamp);
         entryInfo.putLong(2 * Long.BYTES, producerId);
         entryInfo.putLong(3 * Long.BYTES, NO_ACKNOWLEDGE);
-        entryInfo.putInt(4 * Long.BYTES, NO_SEQUENCE);
-        entryInfo.putLong(4 * Long.BYTES + Integer.BYTES, ancestorOffset);
-        entryInfo.putLong(5 * Long.BYTES + Integer.BYTES, NO_DESCENDANT_OFFSET);
-        entryInfo.putInt(6 * Long.BYTES + Integer.BYTES, entryFlags);
-        entryInfo.putInt(6 * Long.BYTES + 2 * Integer.BYTES, deltaPosition);
-        entryInfo.putShort(6 * Long.BYTES + 3 * Integer.BYTES, KafkaAckMode.NONE.value());
+        entryInfo.putLong(4 * Long.BYTES, NO_PRODUCER_ID);
+        entryInfo.putShort(5 * Long.BYTES, NO_PRODUCER_EPOCH);
+        entryInfo.putInt(5 * Long.BYTES + Short.BYTES, NO_SEQUENCE);
+        entryInfo.putLong(5 * Long.BYTES + Integer.BYTES + Short.BYTES, ancestorOffset);
+        entryInfo.putLong(6 * Long.BYTES + Integer.BYTES + Short.BYTES, NO_DESCENDANT_OFFSET);
+        entryInfo.putInt(7 * Long.BYTES + Integer.BYTES + Short.BYTES, entryFlags);
+        entryInfo.putInt(7 * Long.BYTES + 2 * Integer.BYTES + Short.BYTES, deltaPosition);
+        entryInfo.putShort(7 * Long.BYTES + 3 * Integer.BYTES + Short.BYTES, KafkaAckMode.NONE.value());
 
         logFile.appendBytes(entryInfo);
         logFile.appendBytes(key);
@@ -554,13 +559,14 @@ public final class KafkaCachePartition
         entryInfo.putLong(Long.BYTES, timestamp);
         entryInfo.putLong(2 * Long.BYTES, ownerId);
         entryInfo.putLong(3 * Long.BYTES, NO_ACKNOWLEDGE);
-        entryInfo.putInt(4 * Long.BYTES, sequence);
-        entryInfo.putLong(4 * Long.BYTES + Integer.BYTES, NO_ANCESTOR_OFFSET);
-        entryInfo.putLong(5 * Long.BYTES + Integer.BYTES, NO_DESCENDANT_OFFSET);
-        entryInfo.putInt(6 * Long.BYTES + Integer.BYTES, 0x00);
-        entryInfo.putInt(6 * Long.BYTES + 2 * Integer.BYTES, NO_DELTA_POSITION);
-        entryInfo.putShort(6 * Long.BYTES + 3 * Integer.BYTES, ackMode.value());
-
+        entryInfo.putLong(4 * Long.BYTES, producerId);
+        entryInfo.putShort(5 * Long.BYTES, producerEpoch);
+        entryInfo.putInt(5 * Long.BYTES + Short.BYTES, sequence);
+        entryInfo.putLong(5 * Long.BYTES + Integer.BYTES + Short.BYTES, NO_ANCESTOR_OFFSET);
+        entryInfo.putLong(6 * Long.BYTES + Integer.BYTES + Short.BYTES, NO_DESCENDANT_OFFSET);
+        entryInfo.putInt(7 * Long.BYTES + Integer.BYTES + Short.BYTES, 0x00);
+        entryInfo.putInt(7 * Long.BYTES + 2 * Integer.BYTES + Short.BYTES, NO_DELTA_POSITION);
+        entryInfo.putShort(7 * Long.BYTES + 3 * Integer.BYTES + Short.BYTES, ackMode.value());
 
         logFile.appendBytes(entryInfo);
         logFile.appendBytes(key);

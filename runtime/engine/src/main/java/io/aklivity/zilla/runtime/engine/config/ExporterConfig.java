@@ -20,7 +20,9 @@ import static java.util.function.Function.identity;
 
 public class ExporterConfig
 {
+    public final String namespace;
     public final String name;
+    public final String qname;
     public final String type;
     public final OptionsConfig options;
 
@@ -32,11 +34,14 @@ public class ExporterConfig
     }
 
     ExporterConfig(
+        String namespace,
         String name,
         String type,
         OptionsConfig options)
     {
+        this.namespace = requireNonNull(namespace);
         this.name = requireNonNull(name);
+        this.qname = String.format("%s:%s", namespace, name);
         this.type = requireNonNull(type);
         this.options = options;
     }

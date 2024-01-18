@@ -53,7 +53,7 @@ public class InlineCatalogFactoryTest
         InlineOptionsConfig catalogConfig =
                 new InlineOptionsConfig(singletonList(
                         new InlineSchemaConfig("subject1", "latest", "{\"type\": \"string\"}")));
-        CatalogConfig options = new CatalogConfig("catalog0", "inline", catalogConfig);
+        CatalogConfig options = new CatalogConfig("test", "catalog0", "inline", catalogConfig);
         CatalogHandler handler = context.attach(options);
         assertThat(handler, instanceOf(InlineCatalogHandler.class));
     }

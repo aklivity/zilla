@@ -49,9 +49,9 @@ import io.aklivity.zilla.runtime.command.generate.internal.openapi.view.PathView
 import io.aklivity.zilla.runtime.command.generate.internal.openapi.view.SchemaView;
 import io.aklivity.zilla.runtime.command.generate.internal.openapi.view.ServerView;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.ConfigWriter;
+import io.aklivity.zilla.runtime.engine.config.EngineConfig;
+import io.aklivity.zilla.runtime.engine.config.EngineConfigWriter;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
@@ -88,8 +88,8 @@ public class OpenApiHttpProxyConfigGenerator extends OpenApiConfigGenerator
         this.isTlsEnabled = httpsPorts != null;
         this.securitySchemes = resolveSecuritySchemes();
         this.isJwtEnabled = !securitySchemes.isEmpty();
-        ConfigWriter configWriter = new ConfigWriter(null);
-        String yaml = configWriter.write(createNamespace(), createEnvVarsPatch());
+        EngineConfigWriter configWriter = new EngineConfigWriter(null);
+        String yaml = configWriter.write(createConfig(), createEnvVarsPatch());
         return unquoteEnvVars(yaml, unquotedEnvVars());
     }
 
@@ -168,59 +168,61 @@ public class OpenApiHttpProxyConfigGenerator extends OpenApiConfigGenerator
         return result;
     }
 
-    private NamespaceConfig createNamespace()
+    private EngineConfig createConfig()
     {
-        return NamespaceConfig.builder()
-            .name("example")
-            .binding()
-                .name("tcp_server0")
-                .type("tcp")
-                .kind(SERVER)
-                .options(TcpOptionsConfig::builder)
-                    .host("0.0.0.0")
-                    .ports(allPorts)
-                    .build()
-                .inject(this::injectPlainTcpRoute)
-                .inject(this::injectTlsTcpRoute)
-                .build()
-            .inject(this::injectTlsServer)
-            .binding()
-                .name("http_server0")
-                .type("http")
-                .kind(SERVER)
-                .options(HttpOptionsConfig::builder)
-                    .access()
-                        .policy(CROSS_ORIGIN)
+        return EngineConfig.builder()
+            .namespace()
+                .name("example")
+                .binding()
+                    .name("tcp_server0")
+                    .type("tcp")
+                    .kind(SERVER)
+                    .options(TcpOptionsConfig::builder)
+                        .host("0.0.0.0")
+                        .ports(allPorts)
                         .build()
-                    .inject(this::injectHttpServerOptions)
-                    .inject(this::injectHttpServerRequests)
+                    .inject(this::injectPlainTcpRoute)
+                    .inject(this::injectTlsTcpRoute)
                     .build()
-                .inject(this::injectHttpServerRoutes)
-                .build()
-            .binding()
-                .name("http_client0")
-                .type("http")
-                .kind(CLIENT)
-                .exit(isTlsEnabled ? "tls_client0" : "tcp_client0")
-                .build()
-            .inject(this::injectTlsClient)
-            .binding()
-                .name("tcp_client0")
-                .type("tcp")
-                .kind(CLIENT)
-                .options(TcpOptionsConfig::builder)
-                    .host("") // env
-                    .ports(new int[]{0}) // env
+                .inject(this::injectTlsServer)
+                .binding()
+                    .name("http_server0")
+                    .type("http")
+                    .kind(SERVER)
+                    .options(HttpOptionsConfig::builder)
+                        .access()
+                            .policy(CROSS_ORIGIN)
+                            .build()
+                        .inject(this::injectHttpServerOptions)
+                        .inject(this::injectHttpServerRequests)
+                        .build()
+                    .inject(this::injectHttpServerRoutes)
                     .build()
+                .binding()
+                    .name("http_client0")
+                    .type("http")
+                    .kind(CLIENT)
+                    .exit(isTlsEnabled ? "tls_client0" : "tcp_client0")
+                    .build()
+                .inject(this::injectTlsClient)
+                .binding()
+                    .name("tcp_client0")
+                    .type("tcp")
+                    .kind(CLIENT)
+                    .options(TcpOptionsConfig::builder)
+                        .host("") // env
+                        .ports(new int[]{0}) // env
+                        .build()
+                    .build()
+                .inject(this::injectGuard)
+                .inject(this::injectVaults)
+                .inject(this::injectCatalog)
                 .build()
-            .inject(this::injectGuard)
-            .inject(this::injectVaults)
-            .inject(this::injectCatalog)
             .build();
     }
 
-    private BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> injectPlainTcpRoute(
-        BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> binding)
+    private <C> BindingConfigBuilder<C> injectPlainTcpRoute(
+        BindingConfigBuilder<C> binding)
     {
         if (isPlainEnabled)
         {
@@ -235,8 +237,8 @@ public class OpenApiHttpProxyConfigGenerator extends OpenApiConfigGenerator
         return binding;
     }
 
-    private BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> injectTlsTcpRoute(
-        BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> binding)
+    private <C> BindingConfigBuilder<C> injectTlsTcpRoute(
+        BindingConfigBuilder<C> binding)
     {
         if (isTlsEnabled)
         {
@@ -251,8 +253,8 @@ public class OpenApiHttpProxyConfigGenerator extends OpenApiConfigGenerator
         return binding;
     }
 
-    private NamespaceConfigBuilder<NamespaceConfig> injectTlsServer(
-        NamespaceConfigBuilder<NamespaceConfig> namespace)
+    private <C> NamespaceConfigBuilder<C> injectTlsServer(
+        NamespaceConfigBuilder<C> namespace)
     {
         if (isTlsEnabled)
         {
@@ -383,8 +385,8 @@ public class OpenApiHttpProxyConfigGenerator extends OpenApiConfigGenerator
         return request;
     }
 
-    private BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> injectHttpServerRoutes(
-        BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> binding)
+    private <C> BindingConfigBuilder<C> injectHttpServerRoutes(
+        BindingConfigBuilder<C> binding)
     {
         for (String item : openApi.paths.keySet())
         {
@@ -405,8 +407,8 @@ public class OpenApiHttpProxyConfigGenerator extends OpenApiConfigGenerator
         return binding;
     }
 
-    private RouteConfigBuilder<BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>>> injectHttpServerRouteGuarded(
-        RouteConfigBuilder<BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>>> route,
+    private <C> RouteConfigBuilder<C> injectHttpServerRouteGuarded(
+        RouteConfigBuilder<C> route,
         PathView path,
         String method)
     {
@@ -442,8 +444,8 @@ public class OpenApiHttpProxyConfigGenerator extends OpenApiConfigGenerator
         return guarded;
     }
 
-    private NamespaceConfigBuilder<NamespaceConfig> injectTlsClient(
-        NamespaceConfigBuilder<NamespaceConfig> namespace)
+    private <C> NamespaceConfigBuilder<C> injectTlsClient(
+        NamespaceConfigBuilder<C> namespace)
     {
         if (isTlsEnabled)
         {
@@ -465,8 +467,8 @@ public class OpenApiHttpProxyConfigGenerator extends OpenApiConfigGenerator
         return namespace;
     }
 
-    private NamespaceConfigBuilder<NamespaceConfig> injectGuard(
-        NamespaceConfigBuilder<NamespaceConfig> namespace)
+    private <C> NamespaceConfigBuilder<C> injectGuard(
+        NamespaceConfigBuilder<C> namespace)
     {
         if (isJwtEnabled)
         {
@@ -486,8 +488,8 @@ public class OpenApiHttpProxyConfigGenerator extends OpenApiConfigGenerator
         return namespace;
     }
 
-    private NamespaceConfigBuilder<NamespaceConfig> injectVaults(
-        NamespaceConfigBuilder<NamespaceConfig> namespace)
+    private <C> NamespaceConfigBuilder<C> injectVaults(
+        NamespaceConfigBuilder<C> namespace)
     {
         if (isTlsEnabled)
         {

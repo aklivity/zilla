@@ -93,9 +93,10 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
     private static final byte RECORD_BATCH_MAGIC = 2;
     private static final short RECORD_BATCH_ATTRIBUTES_NONE = 0;
     private static final short RECORD_BATCH_ATTRIBUTES_NO_TIMESTAMP = 0x08;
-    private static final int RECORD_BATCH_PRODUCER_ID_NONE = -1;
+    private static final long RECORD_BATCH_PRODUCER_ID_NONE = -1;
     private static final short RECORD_BATCH_PRODUCER_EPOCH_NONE = -1;
-    private static final short RECORD_BATCH_SEQUENCE_NONE = -1;
+    private static final int RECORD_BATCH_BASE_SEQUENCE_NONE = -1;
+    private static final int RECORD_SEQUENCE_NONE = -1;
     private static final byte RECORD_ATTRIBUTES_NONE = 0;
 
     private static final String TRANSACTION_ID_NONE = null;
@@ -531,6 +532,9 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
         assert kafkaDataEx.kind() == KafkaDataExFW.KIND_PRODUCE;
         final KafkaProduceDataExFW kafkaProduceDataEx = kafkaDataEx.produce();
         final long timestamp = kafkaProduceDataEx.timestamp();
+        final long producerId = kafkaProduceDataEx.producerId();
+        final short producerEpoch = kafkaProduceDataEx.producerEpoch();
+        final int sequence = kafkaProduceDataEx.sequence();
         final KafkaAckMode ackMode = kafkaProduceDataEx.ackMode().get();
         final KafkaKeyFW key = kafkaProduceDataEx.key();
         final Array32FW<KafkaHeaderFW> headers = kafkaProduceDataEx.headers();
@@ -542,10 +546,22 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
         final int maxEncodeableBytes = client.encodeSlotLimit + client.valueCompleteSize + produceRecordFramingSize;
 
         if (client.encodeSlot != NO_SLOT &&
-            maxEncodeableBytes > encodePool.slotCapacity())
+            (maxEncodeableBytes > encodePool.slotCapacity() ||
+                client.producerId != producerId ||
+                client.producerEpoch != producerEpoch ||
+                sequence <= client.sequence))
         {
             client.doEncodeRequestIfNecessary(traceId, budgetId);
         }
+
+        if (client.producerId == RECORD_BATCH_PRODUCER_ID_NONE)
+        {
+            client.baseSequence = sequence;
+        }
+
+        client.producerId = producerId;
+        client.producerEpoch = producerEpoch;
+        client.sequence = sequence;
 
         client.doEncodeRecordInit(traceId, timestamp, ackMode, key, payload, headers);
         if (client.encodeSlot != NO_SLOT)
@@ -1237,6 +1253,11 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
             private LongLongConsumer encoder;
             private boolean flushable;
 
+            private long producerId = RECORD_BATCH_PRODUCER_ID_NONE;
+            private short producerEpoch = RECORD_BATCH_PRODUCER_EPOCH_NONE;
+            private int baseSequence = RECORD_BATCH_BASE_SEQUENCE_NONE;
+            private int sequence = RECORD_SEQUENCE_NONE;
+
             KafkaProduceClient(
                 KafkaProduceStream stream,
                 long resolvedId,
@@ -1878,6 +1899,9 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                         ? RECORD_BATCH_ATTRIBUTES_NO_TIMESTAMP
                         : RECORD_BATCH_ATTRIBUTES_NONE;
 
+                final int baseSequence = client.producerId == RECORD_BATCH_PRODUCER_ID_NONE ? RECORD_BATCH_BASE_SEQUENCE_NONE :
+                        client.baseSequence;
+
                 final RecordBatchFW recordBatch = recordBatchRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
                         .baseOffset(0)
                         .length(recordBatchLength)
@@ -1888,9 +1912,9 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                         .lastOffsetDelta(encodeableRecordCount - 1)
                         .firstTimestamp(encodeableRecordBatchTimestamp)
                         .maxTimestamp(encodeableRecordBatchTimestampMax)
-                        .producerId(RECORD_BATCH_PRODUCER_ID_NONE)
-                        .producerEpoch(RECORD_BATCH_PRODUCER_EPOCH_NONE)
-                        .baseSequence(RECORD_BATCH_SEQUENCE_NONE)
+                        .producerId(client.producerId)
+                        .producerEpoch(client.producerEpoch)
+                        .baseSequence(baseSequence)
                         .recordCount(encodeableRecordCount)
                         .build();
 
@@ -1922,6 +1946,10 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 encodeableRecordBatchTimestamp = TIMESTAMP_NONE;
                 encodedAckMode = encodeableAckMode;
                 encodeableAckMode = KafkaAckMode.NONE;
+                client.producerId = RECORD_BATCH_PRODUCER_ID_NONE;
+                client.producerEpoch = RECORD_BATCH_PRODUCER_EPOCH_NONE;
+                client.baseSequence = RECORD_BATCH_BASE_SEQUENCE_NONE;
+                client.sequence = RECORD_SEQUENCE_NONE;
 
                 assert encodeSlot != NO_SLOT;
                 final MutableDirectBuffer encodeSlotBuffer = encodePool.buffer(encodeSlot);

@@ -40,52 +40,52 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
 import io.aklivity.zilla.runtime.engine.internal.config.NamespaceAdapter;
 
-public final class ConfigWriter
+public final class EngineConfigWriter
 {
     private static final JsonPatch NOOP_PATCH = JsonProvider.provider().createPatch(JsonValue.EMPTY_JSON_ARRAY);
 
     private final ConfigAdapterContext context;
 
-    public ConfigWriter(
+    public EngineConfigWriter(
         ConfigAdapterContext context)
     {
         this.context = context;
     }
 
     public void write(
-        NamespaceConfig namespace,
+        EngineConfig config,
         Writer writer)
     {
-        write0(namespace, writer, NOOP_PATCH);
+        write0(config, writer, NOOP_PATCH);
     }
 
     public void write(
-        NamespaceConfig namespace,
+        EngineConfig config,
         Writer writer,
         JsonPatch patch)
     {
-        write0(namespace, writer, patch);
+        write0(config, writer, patch);
     }
 
     public String write(
-        NamespaceConfig namespace)
+        EngineConfig config)
     {
         StringWriter writer = new StringWriter();
-        write0(namespace, writer, NOOP_PATCH);
+        write0(config, writer, NOOP_PATCH);
         return writer.toString();
     }
 
     public String write(
-        NamespaceConfig namespace,
+        EngineConfig config,
         JsonPatch patch)
     {
         StringWriter writer = new StringWriter();
-        write0(namespace, writer, patch);
+        write0(config, writer, patch);
         return writer.toString();
     }
 
     private void write0(
-        NamespaceConfig namespace,
+        EngineConfig engine,
         Writer writer,
         JsonPatch patch)
     {
@@ -104,25 +104,29 @@ public final class ConfigWriter
                 .withProvider(provider)
                 .withConfig(config)
                 .build();
-            String jsonText = jsonb.toJson(namespace, NamespaceConfig.class);
 
-            JsonObject jsonObject = provider.createReader(new StringReader(jsonText)).readObject();
-            JsonObject patched = patch.apply(jsonObject);
-            StringWriter patchedText = new StringWriter();
-            JsonWriter jsonWriter = provider.createWriter(patchedText);
-            jsonWriter.write(patched);
-            String patchedJson = patchedText.toString();
-
-            JsonNode json = new ObjectMapper().readTree(patchedJson);
-            YAMLMapper mapper = YAMLMapper.builder()
-                .disable(WRITE_DOC_START_MARKER)
-                .enable(MINIMIZE_QUOTES)
-                .build();
-            mapper.writeValue(writer, json);
-
-            if (!errors.isEmpty())
+            for (NamespaceConfig namespace : engine.namespaces)
             {
-                break write;
+                String jsonText = jsonb.toJson(namespace, NamespaceConfig.class);
+
+                JsonObject jsonObject = provider.createReader(new StringReader(jsonText)).readObject();
+                JsonObject patched = patch.apply(jsonObject);
+                StringWriter patchedText = new StringWriter();
+                JsonWriter jsonWriter = provider.createWriter(patchedText);
+                jsonWriter.write(patched);
+                String patchedJson = patchedText.toString();
+
+                JsonNode json = new ObjectMapper().readTree(patchedJson);
+                YAMLMapper mapper = YAMLMapper.builder()
+                    .disable(WRITE_DOC_START_MARKER)
+                    .enable(MINIMIZE_QUOTES)
+                    .build();
+                mapper.writeValue(writer, json);
+
+                if (!errors.isEmpty())
+                {
+                    break write;
+                }
             }
         }
         catch (Exception ex)

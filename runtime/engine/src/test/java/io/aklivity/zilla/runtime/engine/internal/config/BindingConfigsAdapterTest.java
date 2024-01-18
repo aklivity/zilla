@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.config;
 
+import static io.aklivity.zilla.runtime.engine.config.KindConfig.PROXY;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.REMOTE_SERVER;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 import static java.util.function.Function.identity;
@@ -41,6 +42,7 @@ import org.mockito.quality.Strictness;
 
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
+import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig;
 
@@ -56,7 +58,7 @@ public class BindingConfigsAdapterTest
     public void initJson()
     {
         JsonbConfig config = new JsonbConfig()
-                .withAdapters(new BindingConfigsAdapter(context));
+                .withAdapters(new BindingConfigsAdapter(context).adaptNamespace("test"));
         jsonb = JsonbBuilder.create(config);
     }
 
@@ -68,7 +70,7 @@ public class BindingConfigsAdapterTest
                     "\"test\":" +
                     "{" +
                         "\"type\": \"test\"," +
-                        "\"kind\": \"server\"," +
+                        "\"kind\": \"proxy\"," +
                         "\"routes\":" +
                         "[" +
                         "]" +
@@ -78,8 +80,9 @@ public class BindingConfigsAdapterTest
         BindingConfig[] bindings = jsonb.fromJson(text, BindingConfig[].class);
 
         assertThat(bindings[0], not(nullValue()));
-        assertThat(bindings[0].kind, equalTo(SERVER));
+        assertThat(bindings[0].kind, equalTo(PROXY));
         assertThat(bindings[0].routes, emptyCollectionOf(RouteConfig.class));
+        assertThat(bindings[0].composites, not(emptyCollectionOf(NamespaceConfig.class)));
     }
 
     @Test
@@ -89,6 +92,7 @@ public class BindingConfigsAdapterTest
         {
             BindingConfig.builder()
                 .inject(identity())
+                .namespace("test")
                 .name("test")
                 .type("test")
                 .kind(SERVER)
@@ -133,17 +137,18 @@ public class BindingConfigsAdapterTest
         {
             BindingConfig.builder()
                 .inject(identity())
-                .vault("test")
+                .namespace("test")
                 .name("test")
                 .type("test")
                 .kind(SERVER)
+                .vault("test")
                 .build()
         };
 
         String text = jsonb.toJson(bindings);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"test\":{\"vault\":\"test\",\"type\":\"test\",\"kind\":\"server\"}}"));
+        assertThat(text, equalTo("{\"test\":{\"type\":\"test\",\"kind\":\"server\",\"vault\":\"test\"}}"));
     }
 
     @Test
@@ -177,6 +182,7 @@ public class BindingConfigsAdapterTest
         BindingConfig[] bindings =
         {
             BindingConfig.builder()
+                .namespace("test")
                 .name("test")
                 .type("test")
                 .kind(SERVER)
@@ -228,6 +234,7 @@ public class BindingConfigsAdapterTest
         {
             BindingConfig.builder()
                 .inject(identity())
+                .namespace("test")
                 .name("test")
                 .type("test")
                 .kind(SERVER)
@@ -246,6 +253,7 @@ public class BindingConfigsAdapterTest
         BindingConfig[] bindings =
         {
             BindingConfig.builder()
+                .namespace("test")
                 .name("test")
                 .type("test")
                 .kind(SERVER)
@@ -302,17 +310,17 @@ public class BindingConfigsAdapterTest
             "{" +
                 "\"test\":" +
                 "{" +
-                "\"type\": \"test\"," +
-                "\"kind\": \"remote_server\"," +
-                "\"entry\": \"test_entry\"," +
-                "\"routes\":" +
-                "[" +
-                "{" +
-                "\"exit\": \"test\"" +
+                    "\"type\": \"test\"," +
+                    "\"kind\": \"remote_server\"," +
+                    "\"entry\": \"test_entry\"," +
+                    "\"routes\":" +
+                    "[" +
+                        "{" +
+                            "\"exit\": \"test\"" +
+                        "}" +
+                    "]" +
                 "}" +
-                "]" +
-                "}" +
-                "}";
+            "}";
 
         BindingConfig[] bindings = jsonb.fromJson(text, BindingConfig[].class);
 
@@ -331,6 +339,7 @@ public class BindingConfigsAdapterTest
         BindingConfig[] bindings =
         {
             BindingConfig.builder()
+                .namespace("test")
                 .name("test")
                 .type("test")
                 .kind(SERVER)
@@ -355,6 +364,7 @@ public class BindingConfigsAdapterTest
         BindingConfig[] bindings =
         {
             BindingConfig.builder()
+                .namespace("test")
                 .name("test")
                 .type("test")
                 .kind(REMOTE_SERVER)

@@ -279,6 +279,7 @@ scope kafka
         {
             case 252: kafka::stream::KafkaMergedConsumerFlushEx consumer;
             case 1: kafka::stream::KafkaMergedFetchFlushEx fetch;
+            case 0: kafka::stream::KafkaMergedProduceFlushEx produce;
         }
 
         struct KafkaMergedConsumerFlushEx
@@ -294,6 +295,12 @@ scope kafka
             KafkaCapabilities capabilities = PRODUCE_AND_FETCH;
             KafkaFilter[] filters;
             KafkaKey key;
+        }
+
+        struct KafkaMergedProduceFlushEx
+        {
+            KafkaKey hashKey;
+            int32 partitionId = -1;
         }
 
         struct KafkaMetaBeginEx

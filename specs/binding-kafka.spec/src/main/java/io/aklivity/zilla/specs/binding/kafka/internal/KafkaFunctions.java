@@ -89,6 +89,7 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedFe
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedFetchFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedProduceDataExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedProduceFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMetaBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMetaDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaOffsetCommitBeginExFW;
@@ -2703,6 +2704,13 @@ public final class KafkaFunctions
                 mergedFlushExRW.wrap(writeBuffer, KafkaFlushExFW.FIELD_OFFSET_MERGED, writeBuffer.capacity());
             }
 
+            public KafkaMergedProduceFlushExBuilder produce()
+            {
+                mergedFlushExRW.kind(KafkaApi.PRODUCE.value());
+
+                return new KafkaMergedProduceFlushExBuilder();
+            }
+
             public KafkaMergedFetchFlushExBuilder fetch()
             {
                 mergedFlushExRW.kind(KafkaApi.FETCH.value());
@@ -2834,6 +2842,50 @@ public final class KafkaFunctions
                 {
                     final KafkaMergedFetchFlushExFW mergedFetchFlushEx = mergedFetchFlushExRW.build();
                     flushExRO.wrap(writeBuffer, 0, mergedFetchFlushEx.limit());
+                    return KafkaFlushExBuilder.this;
+                }
+            }
+
+            public final class KafkaMergedProduceFlushExBuilder
+            {
+                private final KafkaMergedProduceFlushExFW.Builder mergedProduceFlushExRW =
+                    new KafkaMergedProduceFlushExFW.Builder();
+
+                private KafkaMergedProduceFlushExBuilder()
+                {
+                    mergedProduceFlushExRW.wrap(writeBuffer,
+                        KafkaFlushExFW.FIELD_OFFSET_MERGED + KafkaMergedFlushExFW.FIELD_OFFSET_PRODUCE,
+                        writeBuffer.capacity());
+                }
+
+                public KafkaMergedProduceFlushExBuilder hashKey(
+                    String hashKey)
+                {
+                    if (hashKey == null)
+                    {
+                        mergedProduceFlushExRW.hashKey(m -> m.length(-1)
+                            .value((OctetsFW) null));
+                    }
+                    else
+                    {
+                        keyRO.wrap(hashKey.getBytes(UTF_8));
+                        mergedProduceFlushExRW.hashKey(k -> k.length(keyRO.capacity())
+                            .value(keyRO, 0, keyRO.capacity()));
+                    }
+                    return this;
+                }
+
+                public KafkaMergedProduceFlushExBuilder partitionId(
+                    int partitionId)
+                {
+                    mergedProduceFlushExRW.partitionId(partitionId);
+                    return this;
+                }
+
+                public KafkaFlushExBuilder build()
+                {
+                    final KafkaMergedProduceFlushExFW mergedProduceFlushEx = mergedProduceFlushExRW.build();
+                    flushExRO.wrap(writeBuffer, 0, mergedProduceFlushEx.limit());
                     return KafkaFlushExBuilder.this;
                 }
             }
@@ -4037,6 +4089,8 @@ public final class KafkaFunctions
             {
                 private Integer deferred;
                 private Long timestamp;
+                private Long producerId;
+                private Short producerEpoch;
                 private Long filters;
                 private Long producerId;
                 private Short producerEpoch;
@@ -4062,6 +4116,20 @@ public final class KafkaFunctions
                     long timestamp)
                 {
                     this.timestamp = timestamp;
+                    return this;
+                }
+
+                public KafkaMergedProduceDataExMatcherBuilder producerId(
+                    long producerId)
+                {
+                    this.producerId = producerId;
+                    return this;
+                }
+
+                public KafkaMergedProduceDataExMatcherBuilder producerEpoch(
+                    short producerEpoch)
+                {
+                    this.producerEpoch = producerEpoch;
                     return this;
                 }
 
@@ -4350,6 +4418,8 @@ public final class KafkaFunctions
                     return matchPartition(produce) &&
                         matchDeferred(produce) &&
                         matchTimestamp(produce) &&
+                        matchProducerId(produce) &&
+                        matchProducerEpoch(produce) &&
                         matchKey(produce) &&
                         matchProducerId(produce) &&
                         matchProducerEpoch(produce) &&
@@ -4373,6 +4443,18 @@ public final class KafkaFunctions
                     final KafkaMergedProduceDataExFW mergedProduceDataEx)
                 {
                     return timestamp == null || timestamp == mergedProduceDataEx.timestamp();
+                }
+
+                private boolean matchProducerId(
+                    final KafkaMergedProduceDataExFW mergedProduceDataEx)
+                {
+                    return producerId == null || producerId == mergedProduceDataEx.producerId();
+                }
+
+                private boolean matchProducerEpoch(
+                    final KafkaMergedProduceDataExFW mergedProduceDataEx)
+                {
+                    return producerEpoch == null || producerEpoch == mergedProduceDataEx.producerEpoch();
                 }
 
                 private boolean matchKey(
