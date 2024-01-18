@@ -56,7 +56,7 @@ public class MqttKafkaProxyFactory implements MqttKafkaStreamFactory
             config, context, bindings::get);
 
         final MqttKafkaSessionFactory sessionFactory = new MqttKafkaSessionFactory(
-            config, context, instanceId, bindings::get);
+            config, context, instanceId, bindings::get, publishFactory);
 
         factories.put(MqttBeginExFW.KIND_PUBLISH, publishFactory);
         factories.put(MqttBeginExFW.KIND_SUBSCRIBE, subscribeFactory);

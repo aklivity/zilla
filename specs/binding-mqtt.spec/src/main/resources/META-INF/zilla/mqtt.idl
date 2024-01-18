@@ -159,7 +159,8 @@ scope mqtt
             uint32 packetSizeMax = 0;
             uint8 capabilities = 0;
             string16 clientId;
-            varuint32[] packetIds; //TODO: this is coming from the offset metadata -> this will be the unreleasedPacketIds
+            uint8 length;
+            int16[length] packetIds;
         }
 
         struct MqttSubscribeBeginEx

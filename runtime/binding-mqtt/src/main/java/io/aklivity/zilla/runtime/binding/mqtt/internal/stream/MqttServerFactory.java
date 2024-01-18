@@ -1487,7 +1487,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             boolean canPublish = MqttState.initialOpened(publisher.state);
 
             final int maximum = publishablePayloadSize;
-            final int minimum = Math.min(maximum, 1024);
+            final int minimum = Math.min(maximum, Math.max(publisher.initialMin, 1024));
 
             int valueClaimed = maximum;
 
@@ -5574,6 +5574,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             private long initialSeq;
             private long initialAck;
             private int initialMax;
+            private int initialMin;
             private int initialPad;
             private int decodablePayloadSize;
 
@@ -5776,6 +5777,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 final long sequence = window.sequence();
                 final long acknowledge = window.acknowledge();
                 final int maximum = window.maximum();
+                final int minimum = window.minimum();
                 final long traceId = window.traceId();
                 final long authorization = window.authorization();
                 final long budgetId = window.budgetId();
@@ -5791,6 +5793,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 initialAck = acknowledge;
                 initialMax = maximum;
+                initialMin = minimum;
                 initialPad = padding;
 
                 assert initialAck <= initialSeq;
