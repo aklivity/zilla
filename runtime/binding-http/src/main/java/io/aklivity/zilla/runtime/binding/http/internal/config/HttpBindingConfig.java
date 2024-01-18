@@ -346,6 +346,30 @@ public final class HttpBindingConfig
         return contentType == null || response.contentType == null || response.contentType.contains(contentType);
     }
 
+    public boolean validateResponseHeaders(
+        HttpRequestType.Response response,
+        HttpBeginExFW beginEx)
+    {
+        MutableBoolean valid = new MutableBoolean(true);
+        if (response != null && response.headers != null)
+        {
+            beginEx.headers().forEach(header ->
+            {
+                if (valid.value)
+                {
+                    Validator validator = response.headers.get(header.name());
+                    if (validator != null)
+                    {
+                        String16FW value = header.value();
+                        valid.value &= validator.read(value.value(), value.offset(), value.length());
+                    }
+                }
+            });
+        }
+        return valid.value;
+    }
+
+
     public boolean validateHeaders(
         HttpRequestType requestType,
         HttpBeginExFW beginEx)
