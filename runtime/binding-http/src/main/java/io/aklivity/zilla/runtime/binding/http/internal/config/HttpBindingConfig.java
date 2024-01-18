@@ -31,8 +31,6 @@ import java.util.function.ToLongFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.agrona.DirectBuffer;
-import org.agrona.collections.MutableBoolean;
 import org.agrona.collections.Object2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpAccessControlConfig;
@@ -43,14 +41,12 @@ import io.aklivity.zilla.runtime.binding.http.config.HttpPatternConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpVersion;
 import io.aklivity.zilla.runtime.binding.http.internal.types.HttpHeaderFW;
-import io.aklivity.zilla.runtime.binding.http.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.ConverterConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
-import io.aklivity.zilla.runtime.engine.converter.Converter;
-import io.aklivity.zilla.runtime.engine.converter.function.ValueConsumer;
+import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
+import io.aklivity.zilla.runtime.engine.validator.ValidatorHandler;
 
 public final class HttpBindingConfig
 {
@@ -80,7 +76,7 @@ public final class HttpBindingConfig
 
     public HttpBindingConfig(
         BindingConfig binding,
-        Function<ConverterConfig, Converter> createConverter)
+        Function<ValidatorConfig, ValidatorHandler> supplyValidator)
     {
         this.id = binding.id;
         this.name = binding.name;
@@ -90,7 +86,7 @@ public final class HttpBindingConfig
         this.resolveId = binding.resolveId;
         this.credentials = options != null && options.authorization != null ?
                 asAccessor(options.authorization.credentials) : DEFAULT_CREDENTIALS;
-        this.requests = createConverter == null ? null : createRequestTypes(createConverter);
+        this.requests = supplyValidator == null ? null : createRequestTypes(supplyValidator);
     }
 
     public HttpRouteConfig resolve(
@@ -195,38 +191,40 @@ public final class HttpBindingConfig
     }
 
     private List<HttpRequestType> createRequestTypes(
-        Function<ConverterConfig, Converter> createConverter)
+        Function<ValidatorConfig, ValidatorHandler> supplyValidator)
     {
         List<HttpRequestType> requestTypes = new LinkedList<>();
         if (this.options != null && this.options.requests != null)
         {
             for (HttpRequestConfig request : this.options.requests)
             {
-                Map<String8FW, Converter> headers = new HashMap<>();
+                Map<String8FW, ValidatorHandler> headers = new HashMap<>();
                 if (request.headers != null)
                 {
                     for (HttpParamConfig header : request.headers)
                     {
-                        headers.put(new String8FW(header.name), createConverter.apply(header.converter));
+                        headers.put(new String8FW(header.name), supplyValidator.apply(header.validator));
                     }
                 }
-                Map<String, Converter> pathParams = new Object2ObjectHashMap<>();
+
+                Map<String, ValidatorHandler> pathParams = new Object2ObjectHashMap<>();
                 if (request.pathParams != null)
                 {
                     for (HttpParamConfig pathParam : request.pathParams)
                     {
-                        pathParams.put(pathParam.name, createConverter.apply(pathParam.converter));
+                        pathParams.put(pathParam.name, supplyValidator.apply(pathParam.validator));
                     }
                 }
-                Map<String, Converter> queryParams = new TreeMap<>(QUERY_STRING_COMPARATOR);
+
+                Map<String, ValidatorHandler> queryParams = new TreeMap<>(QUERY_STRING_COMPARATOR);
                 if (request.queryParams != null)
                 {
                     for (HttpParamConfig queryParam : request.queryParams)
                     {
-                        queryParams.put(queryParam.name, createConverter.apply(queryParam.converter));
+                        queryParams.put(queryParam.name, supplyValidator.apply(queryParam.validator));
                     }
                 }
-                Converter content = request.content == null ? null : createConverter.apply(request.content);
+
                 HttpRequestType requestType = HttpRequestType.builder()
                     .path(request.path)
                     .method(request.method)
@@ -234,7 +232,7 @@ public final class HttpBindingConfig
                     .headers(headers)
                     .pathParams(pathParams)
                     .queryParams(queryParams)
-                    .content(content)
+                    .content(request.content)
                     .build();
                 requestTypes.add(requestType);
             }
@@ -284,96 +282,6 @@ public final class HttpBindingConfig
         String path)
     {
         return requestType.pathMatcher.reset(path).matches();
-    }
-
-    public boolean validateHeaders(
-        HttpRequestType requestType,
-        HttpBeginExFW beginEx)
-    {
-        String path = beginEx.headers().matchFirst(h -> h.name().equals(HEADER_PATH)).value().asString();
-        return requestType == null ||
-            validateHeaderValues(requestType, beginEx) &&
-            validatePathParams(requestType, path) &&
-            validateQueryParams(requestType, path);
-    }
-
-    private boolean validateHeaderValues(
-        HttpRequestType requestType,
-        HttpBeginExFW beginEx)
-    {
-        MutableBoolean valid = new MutableBoolean(true);
-        if (requestType != null && requestType.headers != null)
-        {
-            beginEx.headers().forEach(header ->
-            {
-                if (valid.value)
-                {
-                    Converter converter = requestType.headers.get(header.name());
-                    if (converter != null)
-                    {
-                        String16FW value = header.value();
-                        valid.value &= converter.convert(value.value(), value.offset(), value.length(), ValueConsumer.NOP) != -1;
-                    }
-                }
-            });
-        }
-        return valid.value;
-    }
-
-    private boolean validatePathParams(
-        HttpRequestType requestType,
-        String path)
-    {
-        Matcher matcher = requestType.pathMatcher.reset(path);
-        boolean matches = matcher.matches();
-        assert matches;
-
-        boolean valid = true;
-        for (String name : requestType.pathParams.keySet())
-        {
-            String value = matcher.group(name);
-            if (value != null)
-            {
-                String8FW value0 = new String8FW(value);
-                Converter converter = requestType.pathParams.get(name);
-                if (converter.convert(value0.value(), value0.offset(), value0.length(), ValueConsumer.NOP) == -1)
-                {
-                    valid = false;
-                    break;
-                }
-            }
-        }
-        return valid;
-    }
-
-    private boolean validateQueryParams(
-        HttpRequestType requestType,
-        String path)
-    {
-        Matcher matcher = requestType.queryMatcher.reset(path);
-        boolean valid = true;
-        while (valid && matcher.find())
-        {
-            String name = matcher.group(1);
-            Converter converter = requestType.queryParams.get(name);
-            if (converter != null)
-            {
-                String8FW value = new String8FW(matcher.group(2));
-                valid &= converter.convert(value.value(), value.offset(), value.length(), ValueConsumer.NOP) != -1;
-            }
-        }
-        return valid;
-    }
-
-    public boolean validateContent(
-        HttpRequestType requestType,
-        DirectBuffer buffer,
-        int index,
-        int length)
-    {
-        return requestType == null ||
-            requestType.content == null ||
-            requestType.content.convert(buffer, index, length, ValueConsumer.NOP) != -1;
     }
 
     private static Function<Function<String, String>, String> orElseIfNull(

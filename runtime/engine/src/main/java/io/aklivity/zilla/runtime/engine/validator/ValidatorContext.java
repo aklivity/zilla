@@ -19,14 +19,9 @@ import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 
 public interface ValidatorContext
 {
-    default ValidatorHandler attach(
+    default ValidatorHandler supplyHandler(
         ValidatorConfig validator)
     {
         return null;
-    }
-
-    default void detach(
-        ValidatorConfig validator)
-    {
     }
 }

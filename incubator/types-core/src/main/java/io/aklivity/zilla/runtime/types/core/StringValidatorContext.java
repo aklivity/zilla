@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.types.core;
 
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 import io.aklivity.zilla.runtime.engine.validator.ValidatorContext;
 import io.aklivity.zilla.runtime.engine.validator.ValidatorHandler;
@@ -21,8 +22,13 @@ import io.aklivity.zilla.runtime.types.core.config.StringValidatorConfig;
 
 public class StringValidatorContext implements ValidatorContext
 {
+    public StringValidatorContext(
+        EngineContext context)
+    {
+    }
+
     @Override
-    public ValidatorHandler attach(
+    public ValidatorHandler supplyHandler(
         ValidatorConfig config)
     {
         return new StringValidatorHandler(StringValidatorConfig.class.cast(config));

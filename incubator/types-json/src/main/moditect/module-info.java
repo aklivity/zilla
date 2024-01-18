@@ -25,4 +25,7 @@ module io.aklivity.zilla.runtime.types.json
 
     provides io.aklivity.zilla.runtime.engine.converter.ConverterFactorySpi
         with io.aklivity.zilla.runtime.types.json.JsonConverterFactory;
+
+    provides io.aklivity.zilla.runtime.engine.config.ValidatorConfigAdapterSpi
+        with io.aklivity.zilla.runtime.types.json.config.JsonValidatorConfigAdapter;
 }

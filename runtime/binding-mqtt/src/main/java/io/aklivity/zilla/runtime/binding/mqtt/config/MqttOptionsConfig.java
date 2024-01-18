@@ -15,11 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.config;
 
-import static java.util.Collections.emptyList;
-import static java.util.stream.Collectors.toList;
-
 import java.util.List;
-import java.util.Objects;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
@@ -44,12 +40,6 @@ public class MqttOptionsConfig extends OptionsConfig
         MqttAuthorizationConfig authorization,
         List<MqttTopicConfig> topics)
     {
-        super(topics != null && !topics.isEmpty()
-            ? topics.stream()
-                .map(t -> t.content)
-                .filter(Objects::nonNull)
-                .collect(toList())
-            : emptyList());
         this.authorization = authorization;
         this.topics = topics;
     }

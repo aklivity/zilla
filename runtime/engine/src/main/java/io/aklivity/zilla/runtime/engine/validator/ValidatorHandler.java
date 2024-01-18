@@ -21,6 +21,7 @@ import io.aklivity.zilla.runtime.engine.converter.function.ValueConsumer;
 
 public interface ValidatorHandler
 {
+    int FLAGS_COMPLETE = 0x03;
     int FLAGS_INIT = 0x02;
     int FLAGS_FIN = 0x01;
 
@@ -30,4 +31,13 @@ public interface ValidatorHandler
         int index,
         int length,
         ValueConsumer next);
+
+    default boolean validate(
+        DirectBuffer data,
+        int index,
+        int length,
+        ValueConsumer next)
+    {
+        return validate(FLAGS_COMPLETE, data, index, length, next);
+    }
 }

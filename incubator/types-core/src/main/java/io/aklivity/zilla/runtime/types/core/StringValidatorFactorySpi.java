@@ -14,13 +14,9 @@
  */
 package io.aklivity.zilla.runtime.types.core;
 
-import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
+import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.validator.Validator;
 import io.aklivity.zilla.runtime.engine.validator.ValidatorFactorySpi;
-import io.aklivity.zilla.runtime.types.core.config.StringValidatorConfig;
-
-import java.util.function.LongFunction;
 
 public class StringValidatorFactorySpi implements ValidatorFactorySpi
 {
@@ -32,9 +28,8 @@ public class StringValidatorFactorySpi implements ValidatorFactorySpi
 
     @Override
     public Validator create(
-        ValidatorConfig config,
-        LongFunction<CatalogHandler> supplyCatalog)
+        Configuration config)
     {
-        return new StringValidator(StringValidatorConfig.class.cast(config), supplyCatalog);
+        return new StringValidator();
     }
 }

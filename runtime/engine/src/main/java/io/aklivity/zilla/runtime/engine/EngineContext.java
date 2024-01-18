@@ -37,7 +37,7 @@ import io.aklivity.zilla.runtime.engine.converter.Converter;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
-import io.aklivity.zilla.runtime.engine.validator.Validator;
+import io.aklivity.zilla.runtime.engine.validator.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
 public interface EngineContext
@@ -129,6 +129,9 @@ public interface EngineContext
     CatalogHandler supplyCatalog(
         long catalogId);
 
+    ValidatorHandler supplyValidator(
+        ValidatorConfig config);
+
     URL resolvePath(
         String path);
 
@@ -140,9 +143,6 @@ public interface EngineContext
 
     Converter createWriter(
         ConverterConfig converter);
-
-    Validator supplyValidator(
-        ValidatorConfig converter);
 
     void onExporterAttached(
         long exporterId);

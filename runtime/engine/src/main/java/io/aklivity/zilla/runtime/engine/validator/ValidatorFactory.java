@@ -23,10 +23,8 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.TreeMap;
-import java.util.function.LongFunction;
 
-import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
+import io.aklivity.zilla.runtime.engine.Configuration;
 
 public final class ValidatorFactory
 {
@@ -43,15 +41,14 @@ public final class ValidatorFactory
     }
 
     public Validator create(
-        ValidatorConfig config,
-        LongFunction<CatalogHandler> supplyCatalog)
+        String name,
+        Configuration config)
     {
-        String type = config.type;
-        requireNonNull(type, "name");
+        requireNonNull(name, "name");
 
-        ValidatorFactorySpi factorySpi = requireNonNull(factorySpis.get(type), () -> "Unrecognized validator name: " + type);
+        ValidatorFactorySpi factorySpi = requireNonNull(factorySpis.get(name), () -> "Unrecognized validator name: " + name);
 
-        return factorySpi.create(config, supplyCatalog);
+        return factorySpi.create(config);
     }
 
     public Collection<ValidatorFactorySpi> validatorSpis()

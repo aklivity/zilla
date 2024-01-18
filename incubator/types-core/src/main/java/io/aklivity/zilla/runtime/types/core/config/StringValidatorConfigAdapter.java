@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.types.core.config;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
@@ -30,6 +29,12 @@ public final class StringValidatorConfigAdapter implements ValidatorConfigAdapte
     private static final String ENCODING_NAME = "encoding";
 
     @Override
+    public String type()
+    {
+        return "string";
+    }
+
+    @Override
     public JsonValue adaptToJson(
         ValidatorConfig config)
     {
@@ -37,10 +42,10 @@ public final class StringValidatorConfigAdapter implements ValidatorConfigAdapte
         String encoding = ((StringValidatorConfig) config).encoding;
         if (encoding != null && !encoding.isEmpty() && !encoding.equals(StringValidatorConfig.DEFAULT_ENCODING))
         {
-            JsonObjectBuilder converter = Json.createObjectBuilder();
-            converter.add(TYPE_NAME, type());
-            converter.add(ENCODING_NAME, encoding);
-            result = converter.build();
+            JsonObjectBuilder builder = Json.createObjectBuilder();
+            builder.add(TYPE_NAME, type());
+            builder.add(ENCODING_NAME, encoding);
+            result = builder.build();
         }
         else
         {
@@ -53,29 +58,23 @@ public final class StringValidatorConfigAdapter implements ValidatorConfigAdapte
     public StringValidatorConfig adaptFromJson(
         JsonValue value)
     {
+        JsonValue.ValueType type = value.getValueType();
         StringValidatorConfig result = null;
-        if (value instanceof JsonString)
+        switch (type)
         {
+        case STRING:
             result = StringValidatorConfig.builder().build();
-        }
-        else if (value instanceof JsonObject)
-        {
+            break;
+        case OBJECT:
             JsonObject object = (JsonObject) value;
             String encoding = object.containsKey(ENCODING_NAME)
-                ? object.getString(ENCODING_NAME)
-                : null;
-            result = new StringValidatorConfig(encoding);
-        }
-        else
-        {
-            assert false;
+                    ? object.getString(ENCODING_NAME)
+                    : null;
+            result = StringValidatorConfig.builder()
+                    .encoding(encoding)
+                    .build();
+            break;
         }
         return result;
-    }
-
-    @Override
-    public String type()
-    {
-        return "string";
     }
 }

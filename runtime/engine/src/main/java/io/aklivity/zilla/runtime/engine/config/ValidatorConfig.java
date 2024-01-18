@@ -19,6 +19,8 @@ import java.util.List;
 
 public abstract class ValidatorConfig
 {
+    public transient long id;
+
     public final String type;
     public final List<CatalogedConfig> cataloged;
 

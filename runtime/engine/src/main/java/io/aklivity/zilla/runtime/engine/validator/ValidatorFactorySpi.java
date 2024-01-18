@@ -15,16 +15,12 @@
  */
 package io.aklivity.zilla.runtime.engine.validator;
 
-import java.util.function.LongFunction;
-
-import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
+import io.aklivity.zilla.runtime.engine.Configuration;
 
 public interface ValidatorFactorySpi
 {
     String type();
 
     Validator create(
-        ValidatorConfig config,
-        LongFunction<CatalogHandler> supplyCatalog);
+        Configuration config);
 }

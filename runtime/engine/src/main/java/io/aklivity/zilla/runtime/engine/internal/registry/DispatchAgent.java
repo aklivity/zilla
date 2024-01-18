@@ -135,7 +135,8 @@ import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
 import io.aklivity.zilla.runtime.engine.util.function.LongLongFunction;
 import io.aklivity.zilla.runtime.engine.validator.Validator;
-import io.aklivity.zilla.runtime.engine.validator.ValidatorFactory;
+import io.aklivity.zilla.runtime.engine.validator.ValidatorContext;
+import io.aklivity.zilla.runtime.engine.validator.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
@@ -200,6 +201,7 @@ public class DispatchAgent implements EngineContext, Agent
     private final ElektronSignaler signaler;
     private final Long2ObjectHashMap<MessageConsumer> correlations;
     private final Long2ObjectHashMap<AgentRunner> exportersById;
+    private final Map<String, ValidatorContext> validatorsByType;
 
     private final ConfigurationRegistry configuration;
     private final Deque<Runnable> taskQueue;
@@ -211,7 +213,6 @@ public class DispatchAgent implements EngineContext, Agent
     private final ScalarsLayout gaugesLayout;
     private final HistogramsLayout histogramsLayout;
     private final ConverterFactory converterFactory;
-    private final ValidatorFactory validatorFactory;
     private long initialId;
     private long promiseId;
     private long traceId;
@@ -231,9 +232,9 @@ public class DispatchAgent implements EngineContext, Agent
         Collection<Guard> guards,
         Collection<Vault> vaults,
         Collection<Catalog> catalogs,
+        Collection<Validator> validators,
         Collection<MetricGroup> metricGroups,
         ConverterFactory converterFactory,
-        ValidatorFactory validatorFactory,
         Collector collector,
         int index,
         boolean readonly)
@@ -376,6 +377,14 @@ public class DispatchAgent implements EngineContext, Agent
             catalogsByType.put(type, catalog.supply(this));
         }
 
+        Map<String, ValidatorContext> validatorsByType = new LinkedHashMap<>();
+        for (Validator validator : validators)
+        {
+            String type = validator.name();
+            validatorsByType.put(type, validator.supply(this));
+        }
+        this.validatorsByType = validatorsByType;
+
         Map<String, MetricContext> metricsByName = new LinkedHashMap<>();
         for (MetricGroup metricGroup : metricGroups)
         {
@@ -393,16 +402,15 @@ public class DispatchAgent implements EngineContext, Agent
         }
 
         this.configuration = new ConfigurationRegistry(
-                bindingsByType::get, guardsByType::get, vaultsByType::get, catalogsByType::get, metricsByName::get,
-                exportersByType::get, labels::supplyLabelId, this::onExporterAttached, this::onExporterDetached,
-                this::supplyMetricWriter, this::detachStreams, collector);
+                bindingsByType::get, guardsByType::get, vaultsByType::get, catalogsByType::get, validatorsByType::get,
+                metricsByName::get, exportersByType::get, labels::supplyLabelId, this::onExporterAttached,
+                this::onExporterDetached, this::supplyMetricWriter, this::detachStreams, collector);
         this.taskQueue = new ConcurrentLinkedDeque<>();
         this.correlations = new Long2ObjectHashMap<>();
         this.idleStrategy = idleStrategy;
         this.errorHandler = errorHandler;
         this.exportersById = new Long2ObjectHashMap<>();
         this.converterFactory = converterFactory;
-        this.validatorFactory = validatorFactory;
     }
 
     public static int indexOfId(
@@ -660,6 +668,14 @@ public class DispatchAgent implements EngineContext, Agent
     }
 
     @Override
+    public ValidatorHandler supplyValidator(
+        ValidatorConfig config)
+    {
+        ValidatorContext validator = validatorsByType.get(config.type);
+        return validator != null ? validator.supplyHandler(config) : null;
+    }
+
+    @Override
     public URL resolvePath(
         String path)
     {
@@ -879,13 +895,6 @@ public class DispatchAgent implements EngineContext, Agent
         ConverterConfig converter)
     {
         return converterFactory.createWriter(converter, this::supplyCatalog);
-    }
-
-    @Override
-    public Validator supplyValidator(
-        ValidatorConfig converter)
-    {
-        return null;
     }
 
     private void onSystemMessage(

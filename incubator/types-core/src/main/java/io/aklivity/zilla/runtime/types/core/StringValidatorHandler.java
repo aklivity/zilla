@@ -22,12 +22,12 @@ import io.aklivity.zilla.runtime.types.core.config.StringValidatorConfig;
 
 public class StringValidatorHandler implements ValidatorHandler
 {
-    private boolean initialize;
-    private int incompleteCharCount;
-    private int incompleteChar;
+    private final String encoding;
+    private int pendingCharBytes;
 
     public StringValidatorHandler(StringValidatorConfig config)
     {
+        this.encoding = config.encoding;
     }
 
     @Override
@@ -38,32 +38,28 @@ public class StringValidatorHandler implements ValidatorHandler
         int length,
         ValueConsumer next)
     {
-        boolean valid = false;
-
+        boolean valid;
         if ((flags & FLAGS_INIT) != 0x00)
         {
-            initialize = true;
-            incompleteCharCount = 0;
-            incompleteChar = 0;
+            pendingCharBytes = 0;
         }
 
         final int limit = index + length;
         validate:
-        while (index < limit && initialize)
+        while (index < limit)
         {
             final int charByte0 = data.getByte(index);
             final int charByteCount = (charByte0 & 0b1000_0000) != 0
                     ? Integer.numberOfLeadingZeros((~charByte0 & 0xff) << 24)
                     : 1;
 
-            if (incompleteCharCount > 0)
+            if (pendingCharBytes > 0)
             {
                 if ((charByte0 & 0b11000000) != 0b10000000)
                 {
                     break;
                 }
-                incompleteChar = (incompleteChar << 6) | (charByte0 & 0b00111111);
-                incompleteCharCount--;
+                pendingCharBytes--;
                 index++;
             }
             else
@@ -77,31 +73,19 @@ public class StringValidatorHandler implements ValidatorHandler
                     }
                 }
                 index += charByteCount;
-
-                if (index < limit && (charByte0 & 0b11000000) != 0b10000000)
-                {
-                    incompleteCharCount = charByteCount - 1;
-                    incompleteChar = charByte0 & (0b111111 >> charByteCount);
-                    break;
-                }
             }
         }
 
+        pendingCharBytes = limit - index;
+
         if ((flags & FLAGS_FIN) != 0x00)
         {
-            valid = initialize && incompleteCharCount == 0 && index == limit;
-            initialize = false;
+            valid = pendingCharBytes == 0 && index == limit;
         }
         else
         {
-            valid = initialize && index == limit;
+            valid = index + pendingCharBytes == limit;
         }
-
-        if (!valid)
-        {
-            initialize = false;
-        }
-
         return valid;
     }
 }

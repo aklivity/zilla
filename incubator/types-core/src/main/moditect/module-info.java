@@ -25,4 +25,12 @@ module io.aklivity.zilla.runtime.types.core
     provides io.aklivity.zilla.runtime.engine.converter.ConverterFactorySpi
         with io.aklivity.zilla.runtime.types.core.StringConverterFactory,
             io.aklivity.zilla.runtime.types.core.IntegerConverterFactory;
+
+    provides io.aklivity.zilla.runtime.engine.config.ValidatorConfigAdapterSpi
+        with io.aklivity.zilla.runtime.types.core.config.IntegerValidatorConfigAdapter,
+            io.aklivity.zilla.runtime.types.core.config.StringValidatorConfigAdapter;
+
+    provides io.aklivity.zilla.runtime.engine.validator.ValidatorFactorySpi
+        with io.aklivity.zilla.runtime.types.core.IntegerValidatorFactorySpi,
+            io.aklivity.zilla.runtime.types.core.StringValidatorFactorySpi;
 }

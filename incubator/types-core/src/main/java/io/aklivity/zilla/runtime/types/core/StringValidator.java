@@ -15,21 +15,16 @@
 package io.aklivity.zilla.runtime.types.core;
 
 import java.net.URL;
-import java.util.function.LongFunction;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.validator.Validator;
 import io.aklivity.zilla.runtime.engine.validator.ValidatorContext;
-import io.aklivity.zilla.runtime.types.core.config.StringValidatorConfig;
 
 public class StringValidator implements Validator
 {
     public static final String NAME = "string";
 
-    public StringValidator(
-        StringValidatorConfig config,
-        LongFunction<CatalogHandler> supplyCatalog)
+    public StringValidator()
     {
     }
 
@@ -43,7 +38,7 @@ public class StringValidator implements Validator
     public ValidatorContext supply(
         EngineContext context)
     {
-        return new StringValidatorContext();
+        return new StringValidatorContext(context);
     }
 
     @Override
