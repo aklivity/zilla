@@ -56,9 +56,18 @@ public class ValidationIT
 
     @Test
     @Specification({
-        "${app}/invalid.response/client",
-        "${app}/invalid.response/server" })
-    public void shouldAbortForInvalidResponse() throws Exception
+        "${app}/invalid.response.header/client",
+        "${app}/invalid.response.header/server" })
+    public void shouldSendErrorForInvalidHeaderResponse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/invalid.response.content/client",
+        "${app}/invalid.response.content/server" })
+    public void shouldAbortForInvalidContentResponse() throws Exception
     {
         k3po.finish();
     }

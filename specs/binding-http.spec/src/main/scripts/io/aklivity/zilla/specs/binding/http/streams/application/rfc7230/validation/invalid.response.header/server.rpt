@@ -14,11 +14,12 @@
 # under the License.
 #
 
-connect "zilla://streams/app0"
-    option zilla:window 8192
-    option zilla:transmission "half-duplex"
+accept "zilla://streams/app0"
+       option zilla:window 8192
+       option zilla:transmission "half-duplex"
+accepted
 
-write zilla:begin.ext ${http:beginEx()
+read zilla:begin.ext ${http:beginEx()
                               .typeId(zilla:id("http"))
                               .header(":scheme", "http")
                               .header(":method", "GET")
@@ -27,15 +28,12 @@ write zilla:begin.ext ${http:beginEx()
                               .build()}
 connected
 
-write close
+read closed
 
-read zilla:begin.ext ${http:matchBeginEx()
+write zilla:begin.ext ${http:beginEx()
                              .typeId(zilla:id("http"))
-                             .header(":status", "200")
-                             .header("content-length", "13")
-                             .header("content-type", "text/plain")
-                             .header("x-hello", "1234567890123")
+                             .header(":status", "503")
+                             .header("retry-after", "0")
                              .build()}
 
-read "1234567890123"
-read closed
+write close

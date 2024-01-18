@@ -52,9 +52,19 @@ public class ValidationIT
     @Test
     @Configuration("client.validation.yaml")
     @Specification({
-        "${app}/invalid.response/client",
-        "${net}/invalid.response/server" })
-    public void shouldRejectInvalidRequests() throws Exception
+        "${app}/invalid.response.header/client",
+        "${net}/invalid.response.header/server" })
+    public void shouldSendErrorForInvalidHeaderResponse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.validation.yaml")
+    @Specification({
+        "${app}/invalid.response.content/client",
+        "${net}/invalid.response.content/server" })
+    public void shouldAbortForInvalidContentResponse() throws Exception
     {
         k3po.finish();
     }

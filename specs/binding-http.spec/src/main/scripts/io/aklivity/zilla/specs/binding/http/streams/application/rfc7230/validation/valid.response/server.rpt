@@ -35,6 +35,7 @@ write zilla:begin.ext ${http:beginEx()
                              .header(":status", "200")
                              .header("content-length", "13")
                              .header("content-type", "text/plain")
+                             .header("x-hello", "1234567890123")
                              .build()}
 
 write "1234567890123"

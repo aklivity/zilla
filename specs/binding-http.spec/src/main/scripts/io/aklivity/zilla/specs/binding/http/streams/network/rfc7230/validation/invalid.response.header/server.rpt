@@ -14,23 +14,20 @@
 # under the License.
 #
 
----
-name: test
-bindings:
-  app0:
-    type: http
-    kind: client
-    options:
-      requests:
-        - path: /hello
-          method: GET
-          responses:
-            - status: 200
-              content-type:
-                - text/plain
-              headers:
-                x-hello: test
-              content: test
-      versions:
-        - http/1.1
-    exit: net0
+accept "zilla://streams/net0"
+  option zilla:window 8192
+  option zilla:transmission "duplex"
+accepted
+connected
+
+read "GET /hello HTTP/1.1" "\r\n"
+read "Host: localhost:8080" "\r\n"
+read "\r\n"
+
+write "HTTP/1.1 200 OK" "\r\n"
+write "Content-Length: 7" "\r\n"
+write "Content-Type: text/plain" "\r\n"
+write "x-hello: invalid" "\r\n"
+write "\r\n"
+write "invalid"
+write close
