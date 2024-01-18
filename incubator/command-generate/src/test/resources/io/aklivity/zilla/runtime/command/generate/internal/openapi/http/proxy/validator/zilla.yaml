@@ -86,6 +86,9 @@ bindings:
         - status: 200
           content-type:
           - application/json
+          headers:
+            x-pages: integer
+            x-next: string
           content:
             type: json
             catalog:

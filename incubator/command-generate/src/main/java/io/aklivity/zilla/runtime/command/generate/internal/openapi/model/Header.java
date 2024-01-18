@@ -14,10 +14,7 @@
  */
 package io.aklivity.zilla.runtime.command.generate.internal.openapi.model;
 
-import java.util.LinkedHashMap;
-
-public class ResponseByContentType
+public class Header
 {
-    public LinkedHashMap<String, Header> headers;
-    public LinkedHashMap<String, Response> content;
+    public Schema schema;
 }

@@ -50,6 +50,10 @@ paths:
         '200':
           description: A paged array of items
           headers:
+            x-pages:
+              description: Total number of pages
+              schema:
+                type: integer
             x-next:
               description: A link to the next page of responses
               schema:
