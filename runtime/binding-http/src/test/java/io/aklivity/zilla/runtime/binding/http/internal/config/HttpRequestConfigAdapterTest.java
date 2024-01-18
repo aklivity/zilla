@@ -79,6 +79,10 @@ public class HttpRequestConfigAdapterTest
                         "[" +
                             "\"application/json\"" +
                         "]," +
+                        "\"headers\": " +
+                        "{" +
+                            "\"content-type\": \"test\"" +
+                        "}," +
                         "\"content\": \"test\"" +
                     "}," +
                     "{" +
@@ -112,6 +116,8 @@ public class HttpRequestConfigAdapterTest
         assertThat(request.content.type, equalTo("test"));
         assertThat(request.responses.get(0).status.get(0), equalTo("200"));
         assertThat(request.responses.get(0).contentType.get(0), equalTo("application/json"));
+        assertThat(request.responses.get(0).headers.get(0).name, equalTo("content-type"));
+        assertThat(request.responses.get(0).headers.get(0).validator.type, equalTo("test"));
         assertThat(request.responses.get(0).content.type, equalTo("test"));
         assertThat(request.responses.get(1).status.get(0), equalTo("401"));
         assertThat(request.responses.get(1).status.get(1), equalTo("404"));
@@ -154,6 +160,10 @@ public class HttpRequestConfigAdapterTest
                         "[" +
                             "\"application/json\"" +
                         "]," +
+                        "\"headers\":" +
+                        "{" +
+                            "\"content-type\":\"test\"" +
+                        "}," +
                         "\"content\":\"test\"" +
                     "}," +
                     "{" +
@@ -190,6 +200,11 @@ public class HttpRequestConfigAdapterTest
             .response()
                 .status(200)
                 .contentType("application/json")
+                .header()
+                    .name("content-type")
+                    .validator(TestValidatorConfig::builder)
+                        .build()
+                    .build()
                 .content(TestValidatorConfig::builder)
                     .build()
                 .build()

@@ -15,7 +15,9 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal.config;
 
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import jakarta.json.Json;
@@ -27,6 +29,7 @@ import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.runtime.binding.http.config.HttpParamConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpResponseConfig;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfigAdapter;
@@ -35,6 +38,7 @@ public class HttpResponseConfigAdapter implements JsonbAdapter<HttpResponseConfi
 {
     private static final String STATUS_NAME = "status";
     private static final String CONTENT_TYPE_NAME = "content-type";
+    private static final String HEADERS_NAME = "headers";
     private static final String CONTENT_NAME = "content";
 
     private final ValidatorConfigAdapter validator  = new ValidatorConfigAdapter();
@@ -62,6 +66,16 @@ public class HttpResponseConfigAdapter implements JsonbAdapter<HttpResponseConfi
             JsonArrayBuilder contentType = Json.createArrayBuilder();
             response.contentType.forEach(contentType::add);
             object.add(CONTENT_TYPE_NAME, contentType);
+        }
+        if (response.headers != null)
+        {
+            JsonObjectBuilder headers = Json.createObjectBuilder();
+            for (HttpParamConfig header : response.headers)
+            {
+                validator.adaptType(header.validator.type);
+                headers.add(header.name, validator.adaptToJson(header.validator));
+            }
+            object.add(HEADERS_NAME, headers);
         }
         if (response.content != null)
         {
@@ -101,12 +115,26 @@ public class HttpResponseConfigAdapter implements JsonbAdapter<HttpResponseConfi
                 .map(JsonString::getString)
                 .collect(Collectors.toList());
         }
+        List<HttpParamConfig> headers = null;
+        if (object.containsKey(HEADERS_NAME))
+        {
+            JsonObject headersJson = object.getJsonObject(HEADERS_NAME);
+            headers = new LinkedList<>();
+            for (Map.Entry<String, JsonValue> entry : headersJson.entrySet())
+            {
+                HttpParamConfig header = HttpParamConfig.builder()
+                    .name(entry.getKey())
+                    .validator(validator.adaptFromJson(entry.getValue()))
+                    .build();
+                headers.add(header);
+            }
+        }
         ValidatorConfig content = null;
         if (object.containsKey(CONTENT_NAME))
         {
             JsonValue contentJson = object.get(CONTENT_NAME);
             content = validator.adaptFromJson(contentJson);
         }
-        return new HttpResponseConfig(status, contentType, content);
+        return new HttpResponseConfig(status, contentType, headers, content);
     }
 }

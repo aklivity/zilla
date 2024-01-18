@@ -28,6 +28,7 @@ public class HttpResponseConfigBuilder<T> extends ConfigBuilder<T, HttpResponseC
 
     private List<String> status;
     private List<String> contentType;
+    private List<HttpParamConfig> headers;
     private ValidatorConfig content;
 
     HttpResponseConfigBuilder(
@@ -65,6 +66,30 @@ public class HttpResponseConfigBuilder<T> extends ConfigBuilder<T, HttpResponseC
         return this;
     }
 
+    public HttpResponseConfigBuilder<T> headers(
+        List<HttpParamConfig> headers)
+    {
+        this.headers = headers;
+        return this;
+    }
+
+    public HttpResponseConfigBuilder<T> header(
+        HttpParamConfig header)
+    {
+        if (this.headers == null)
+        {
+            this.headers = new LinkedList<>();
+        }
+        this.headers.add(header);
+        return this;
+    }
+
+    public HttpParamConfigBuilder<HttpResponseConfigBuilder<T>> header()
+    {
+        return new HttpParamConfigBuilder<>(this::header);
+    }
+
+
     public HttpResponseConfigBuilder<T> content(
         ValidatorConfig content)
     {
@@ -81,6 +106,6 @@ public class HttpResponseConfigBuilder<T> extends ConfigBuilder<T, HttpResponseC
     @Override
     public T build()
     {
-        return mapper.apply(new HttpResponseConfig(status, contentType, content));
+        return mapper.apply(new HttpResponseConfig(status, contentType, headers, content));
     }
 }

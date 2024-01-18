@@ -25,15 +25,18 @@ public class HttpResponseConfig
 {
     public final List<String> status;
     public final List<String> contentType;
+    public final List<HttpParamConfig> headers;
     public final ValidatorConfig content;
 
     public HttpResponseConfig(
         List<String> status,
         List<String> contentType,
+        List<HttpParamConfig> headers,
         ValidatorConfig content)
     {
         this.status = status;
         this.contentType = contentType;
+        this.headers = headers;
         this.content = content;
     }
 
