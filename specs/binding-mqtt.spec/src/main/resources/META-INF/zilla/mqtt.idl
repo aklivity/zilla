@@ -159,8 +159,8 @@ scope mqtt
             uint32 packetSizeMax = 0;
             uint8 capabilities = 0;
             string16 clientId;
-            uint8 length;
-            int16[length] packetIds;
+            int8 length;
+            int16[length] packetIds = null;
         }
 
         struct MqttSubscribeBeginEx
@@ -206,6 +206,7 @@ scope mqtt
             int32 deferred = 0;             // INIT only (TODO: move to DATA frame)
             uint8 qos = 0;
             uint8 flags = 0;
+            uint16 packetId = 0;
             int32 expiryInterval = -1;
             string16 contentType = null;
             MqttPayloadFormat format = NONE;
@@ -242,7 +243,6 @@ scope mqtt
         struct MqttPublishFlushEx
         {
             uint16 packetId = 0;
-            uint8 state = 0;
         }
 
         struct MqttSubscribeFlushEx
@@ -262,8 +262,8 @@ scope mqtt
         struct MqttOffsetMetadata
         {
             uint8 version = 1;
-            uint8 length;
-            int16[length] packetIds;
+            int8 length;
+            int16[length] packetIds = null;
         }
 
         struct MqttPublishOffsetMetadata
@@ -271,8 +271,8 @@ scope mqtt
             uint8 version = 1;
             int64 producerId = 0;
             int16 producerEpoch = 0;
-            uint8 length;
-            int16[length] packetIds;
+            int8 length;
+            int16[length] packetIds = null;
         }
     }
 }

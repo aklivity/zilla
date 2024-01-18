@@ -4092,8 +4092,6 @@ public final class KafkaFunctions
                 private Long producerId;
                 private Short producerEpoch;
                 private Long filters;
-                private Long producerId;
-                private Short producerEpoch;
                 private KafkaOffsetFW.Builder partitionRW;
                 private Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW> progressRW;
                 private KafkaDeltaFW.Builder deltaRW;
@@ -4222,24 +4220,6 @@ public final class KafkaFunctions
                         hashKeyRW.length(hashKeyRO.capacity())
                             .value(hashKeyRO, 0, hashKeyRO.capacity());
                     }
-
-                    return this;
-                }
-
-                public KafkaMergedProduceDataExMatcherBuilder producerId(
-                    long producerId)
-                {
-                    assert this.producerId == null;
-                    this.producerId = producerId;
-
-                    return this;
-                }
-
-                public KafkaMergedProduceDataExMatcherBuilder producerEpoch(
-                    short producerEpoch)
-                {
-                    assert this.producerEpoch == null;
-                    this.producerEpoch = producerEpoch;
 
                     return this;
                 }
@@ -4421,8 +4401,6 @@ public final class KafkaFunctions
                         matchProducerId(produce) &&
                         matchProducerEpoch(produce) &&
                         matchKey(produce) &&
-                        matchProducerId(produce) &&
-                        matchProducerEpoch(produce) &&
                         matchHashKey(produce) &&
                         matchHeaders(produce);
                 }
@@ -4467,18 +4445,6 @@ public final class KafkaFunctions
                     final KafkaMergedProduceDataExFW mergedProduceDataEx)
                 {
                     return hashKeyRW == null || hashKeyRW.build().equals(mergedProduceDataEx.hashKey());
-                }
-
-                private boolean matchProducerId(
-                    final KafkaMergedProduceDataExFW mergedProduceDataEx)
-                {
-                    return producerId == null || producerId.equals(mergedProduceDataEx.producerId());
-                }
-
-                private boolean matchProducerEpoch(
-                    final KafkaMergedProduceDataExFW mergedProduceDataEx)
-                {
-                    return producerEpoch == null || producerEpoch.equals(mergedProduceDataEx.producerEpoch());
                 }
 
                 private boolean matchHeaders(

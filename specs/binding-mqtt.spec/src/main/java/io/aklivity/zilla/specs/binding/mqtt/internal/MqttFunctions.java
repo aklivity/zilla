@@ -578,6 +578,13 @@ public final class MqttFunctions
                 return this;
             }
 
+            public MqttPublishDataExBuilder packetId(
+                int packetId)
+            {
+                publishDataExRW.packetId(packetId);
+                return this;
+            }
+
             public MqttPublishDataExBuilder expiryInterval(
                 int expiryInterval)
             {
@@ -715,13 +722,6 @@ public final class MqttFunctions
                 int packetId)
             {
                 publishFlushExRW.packetId(packetId);
-                return this;
-            }
-
-            public MqttPublishFlushExBuilder state(
-                String state)
-            {
-                publishFlushExRW.state(MqttOffsetStateFlags.valueOf(state).ordinal());
                 return this;
             }
 
@@ -1935,6 +1935,7 @@ public final class MqttFunctions
             private final DirectBuffer correlationRO = new UnsafeBuffer(0, 0);
             private Integer qos;
             private Integer flags;
+            private Integer packetId;
             private Integer expiryInterval = -1;
             private String16FW contentType;
             private MqttPayloadFormatFW format;
@@ -1966,6 +1967,13 @@ public final class MqttFunctions
                 this.flags = Arrays.stream(flags)
                     .mapToInt(flag -> 1 << MqttPublishFlags.valueOf(flag).ordinal())
                     .reduce(0, (a, b) -> a | b);
+                return this;
+            }
+
+            public MqttPublishDataExMatcherBuilder packetId(
+                int packetId)
+            {
+                this.packetId = packetId;
                 return this;
             }
 
@@ -2049,6 +2057,7 @@ public final class MqttFunctions
                 return matchDeferred(publishDataEx) &&
                     matchQos(publishDataEx) &&
                     matchFlags(publishDataEx) &&
+                    matchPacketId(publishDataEx) &&
                     matchExpiryInterval(publishDataEx) &&
                     matchContentType(publishDataEx) &&
                     matchFormat(publishDataEx) &&
@@ -2073,6 +2082,12 @@ public final class MqttFunctions
                 final MqttPublishDataExFW data)
             {
                 return flags == null || flags == data.flags();
+            }
+
+            private boolean matchPacketId(
+                final MqttPublishDataExFW data)
+            {
+                return packetId == null || packetId == data.packetId();
             }
 
             private boolean matchExpiryInterval(

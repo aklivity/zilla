@@ -800,6 +800,7 @@ public class MqttFunctionsTest
                 .deferred(100)
                 .qos("AT_MOST_ONCE")
                 .flags("RETAIN")
+                .packetId(1)
                 .expiryInterval(20)
                 .contentType("message")
                 .format("TEXT")
@@ -819,6 +820,7 @@ public class MqttFunctionsTest
                 p.deferred(100);
                 p.qos(0);
                 p.flags(1);
+                p.packetId(1);
                 p.expiryInterval(20);
                 p.contentType("message");
                 p.format(f -> f.set(MqttPayloadFormat.TEXT));
@@ -896,6 +898,7 @@ public class MqttFunctionsTest
             .typeId(0)
             .publish()
             .deferred(100)
+            .packetId(1)
             .expiryInterval(15)
             .contentType("message")
             .format("TEXT")
@@ -910,6 +913,7 @@ public class MqttFunctionsTest
 
         assertEquals(0, mqttPublishDataEx.typeId());
         assertEquals(100, mqttPublishDataEx.publish().deferred());
+        assertEquals(1, mqttPublishDataEx.publish().packetId());
         assertEquals(15, mqttPublishDataEx.publish().expiryInterval());
         assertEquals("message", mqttPublishDataEx.publish().contentType().asString());
         assertEquals("TEXT", mqttPublishDataEx.publish().format().toString());
@@ -1205,7 +1209,6 @@ public class MqttFunctionsTest
             .typeId(0)
             .publish()
                 .packetId(1)
-                .state("INCOMPLETE")
                 .build()
             .build();
 
@@ -1214,7 +1217,6 @@ public class MqttFunctionsTest
 
         assertEquals(0, mqttFlushEx.typeId());
         assertEquals(1, mqttFlushEx.publish().packetId());
-        assertEquals(1, mqttFlushEx.publish().state());
     }
 
     @Test

@@ -90,12 +90,110 @@ read zilla:data.empty
 accepted
 
 read zilla:begin.ext ${kafka:beginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("PRODUCE_ONLY")
+                                .topic("mqtt-messages")
+                                .partition(-1, -2)
+                                .ackMode("IN_SYNC_REPLICAS")
+                                .build()
+                            .build()}
+
+write zilla:begin.ext ${kafka:beginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("PRODUCE_ONLY")
+                                .topic("mqtt-messages")
+                                .partition(0, -2)
+                                .partition(1, -2)
+                                .ackMode("IN_SYNC_REPLICAS")
+                                .build()
+                            .build()}
+
+connected
+
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                            .produce()
+                               .deferred(0)
+                               .partition(-1, 1)
+                               .key("sensor/one")
+                               .producerId(1)
+                               .producerEpoch(1)
+                               .header("zilla:filter", "sensor")
+                               .header("zilla:filter", "one")
+                               .header("zilla:local", "client")
+                               .header("zilla:qos", "2")
+                               .build()
+                           .build()}
+read "message"
+
+
+accepted
+
+read zilla:begin.ext ${kafka:beginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("PRODUCE_ONLY")
+                                .topic("mqtt-retained")
+                                .partition(-1, -2)
+                                .ackMode("IN_SYNC_REPLICAS")
+                                .build()
+                            .build()}
+
+write zilla:begin.ext ${kafka:beginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("PRODUCE_ONLY")
+                                .topic("mqtt-retained")
+                                .partition(0, -2)
+                                .ackMode("IN_SYNC_REPLICAS")
+                                .build()
+                            .build()}
+
+connected
+
+
+accepted
+
+read zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
                                .offsetFetch()
                                    .groupId("client")
                                    .host("localhost")
                                    .port(9092)
                                    .topic("mqtt-messages")
+                                   .partition(0)
+                                   .partition(1)
+                                   .build()
+                               .build()}
+
+connected
+
+write zilla:data.ext ${kafka:dataEx()
+                                   .typeId(zilla:id("kafka"))
+                                   .offsetFetch()
+                                       .partition(0, 1, 0)
+                                       .partition(1, 1, 0)
+                                     .build()
+                                   .build()}
+write zilla:data.empty
+write flush
+
+read closed
+write close
+
+
+accepted
+
+read zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .offsetFetch()
+                                   .groupId("client")
+                                   .host("localhost")
+                                   .port(9092)
+                                   .topic("mqtt-retained")
                                    .partition(0)
                                    .build()
                                .build()}
@@ -266,41 +364,3 @@ read ${mqtt:sessionSignal()
 
 write advise zilla:flush
 
-
-accepted
-
-read zilla:begin.ext ${kafka:beginEx()
-                            .typeId(zilla:id("kafka"))
-                            .merged()
-                                .capabilities("PRODUCE_ONLY")
-                                .topic("mqtt-messages")
-                                .partition(-1, -2)
-                                .ackMode("IN_SYNC_REPLICAS")
-                                .build()
-                            .build()}
-
-
-connected
-
-read zilla:data.ext ${kafka:matchDataEx()
-                           .typeId(zilla:id("kafka"))
-                           .merged()
-                            .produce()
-                               .deferred(0)
-                               .partition(-1, 1)
-                               .key("sensor/one")
-                               .producerId(1)
-                               .producerEpoch(1)
-                               .sequence(1) #???
-                               .header("zilla:filter", "sensor")
-                               .header("zilla:filter", "one")
-                               .header("zilla:local", "client")
-                               .header("zilla:qos", "2")
-                               .build()
-                           .build()}
-read "message"
-# Commit offset in the OffsetCommit stream with packetId
-
-# When we get back the offset commit -> send flush to mqtt which triggers PUBREC
-
-# TODO: add one more data to the test
