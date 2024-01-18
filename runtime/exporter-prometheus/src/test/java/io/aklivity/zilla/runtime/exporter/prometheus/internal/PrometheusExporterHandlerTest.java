@@ -52,6 +52,7 @@ public class PrometheusExporterHandlerTest
         PrometheusEndpointConfig endpoint = new PrometheusEndpointConfig("http", 4242, "/metrics");
         PrometheusOptionsConfig options = new PrometheusOptionsConfig(new PrometheusEndpointConfig[]{endpoint});
         ExporterConfig exporter = ExporterConfig.builder()
+                .namespace("test")
                 .name("test0")
                 .type("prometheus")
                 .options(options)

@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>zilla</artifactId>
-    <version>0.9.64</version>
+    <version>0.9.65</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -45,7 +45,7 @@
     <dependency>
       <groupId>org.sonatype.sisu</groupId>
       <artifactId>sisu-inject-plexus</artifactId>
-      <version>2.3.0</version>
+      <version>2.6.0</version>
       <exclusions>
         <exclusion>
           <groupId>org.sonatype.sisu</groupId>

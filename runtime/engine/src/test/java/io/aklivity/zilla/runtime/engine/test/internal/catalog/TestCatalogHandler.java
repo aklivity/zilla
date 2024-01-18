@@ -25,7 +25,7 @@ public class TestCatalogHandler implements CatalogHandler
     public TestCatalogHandler(
         TestCatalogOptionsConfig options)
     {
-        this.schema = options.schema;
+        this.schema = options != null ? options.schema : null;
     }
 
     @Override

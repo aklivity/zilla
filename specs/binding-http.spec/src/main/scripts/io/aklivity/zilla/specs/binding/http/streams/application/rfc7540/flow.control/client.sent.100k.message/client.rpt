@@ -30,6 +30,8 @@ write zilla:begin.ext ${http:beginEx()
                               .build()}
 connected
 
+write await HTTP2_SETTINGS_ACK_RECEIVED
+
 write ${http:randomBytes(100000)}
 write close
 

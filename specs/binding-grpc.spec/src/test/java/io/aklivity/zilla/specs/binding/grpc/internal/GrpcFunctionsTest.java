@@ -15,6 +15,7 @@
 package io.aklivity.zilla.specs.binding.grpc.internal;
 
 import static io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcType.TEXT;
+import static io.aklivity.zilla.specs.binding.http.internal.HttpFunctions.randomBytes;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -36,6 +37,7 @@ import org.kaazing.k3po.lang.internal.el.ExpressionContext;
 import io.aklivity.zilla.specs.binding.grpc.internal.types.OctetsFW;
 import io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcAbortExFW;
 import io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcBeginExFW;
+import io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcDataExFW;
 import io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcResetExFW;
 
 public class GrpcFunctionsTest
@@ -54,6 +56,15 @@ public class GrpcFunctionsTest
 
         assertNotNull(function);
         assertSame(GrpcFunctions.class, function.getDeclaringClass());
+    }
+
+    @Test
+    public void shouldRandomizeBytes() throws Exception
+    {
+        final byte[] bytes = randomBytes(42);
+
+        assertNotNull(bytes);
+        assertEquals(42, bytes.length);
     }
 
     @Test
@@ -137,6 +148,20 @@ public class GrpcFunctionsTest
         assertEquals(0x01, abortEx.typeId());
 
         assertEquals("10", abortEx.status().asString());
+    }
+
+    @Test
+    public void shouldGenerateDataExtension()
+    {
+        byte[] build = GrpcFunctions.dataEx()
+            .typeId(0x01)
+            .deferred(10)
+            .build();
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        GrpcDataExFW dataEx = new GrpcDataExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x01, dataEx.typeId());
+
+        assertEquals(10, dataEx.deferred());
     }
 
     @Test

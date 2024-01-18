@@ -47,6 +47,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/unary.rpc.message.value.100k/client",
+        "${kafka}/unary.rpc.message.value.100k/server"})
+    public void shouldExchangeMessageValue100kInUnary() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/client.stream.rpc/client",
         "${kafka}/client.stream.rpc/server"})
     public void shouldExchangeMessageInClientStream() throws Exception

@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.kafka.internal.types.ProxyAddressProtocol.STREAM;
 import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_BUDGET_ID;
 import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_INDEX;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
@@ -23,6 +24,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
 import java.nio.ByteOrder;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -39,6 +41,7 @@ import org.agrona.collections.LongLongConsumer;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
@@ -62,6 +65,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaBeginE
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaDataExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaDescribeBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaResetExFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ProxyBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.WindowFW;
@@ -105,6 +109,7 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
     private final KafkaBeginExFW.Builder kafkaBeginExRW = new KafkaBeginExFW.Builder();
     private final KafkaDataExFW.Builder kafkaDataExRW = new KafkaDataExFW.Builder();
     private final KafkaResetExFW.Builder kafkaResetExRW = new KafkaResetExFW.Builder();
+    private final ProxyBeginExFW.Builder proxyBeginExRW = new ProxyBeginExFW.Builder();
 
     private final RequestHeaderFW.Builder requestHeaderRW = new RequestHeaderFW.Builder();
     private final DescribeConfigsRequestFW.Builder describeConfigsRequestRW = new DescribeConfigsRequestFW.Builder();
@@ -129,8 +134,11 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
     private final KafkaDescribeClientDecoder decodeIgnoreAll = this::decodeIgnoreAll;
     private final KafkaDescribeClientDecoder decodeReject = this::decodeReject;
 
+    private final SecureRandom randomServerIdGenerator = new SecureRandom();
+
     private final long maxAgeMillis;
     private final int kafkaTypeId;
+    private final int proxyTypeId;
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer extBuffer;
     private final BufferPool decodePool;
@@ -153,6 +161,7 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
         super(config, context);
         this.maxAgeMillis = Math.min(config.clientDescribeMaxAgeMillis(), config.clientMaxIdleMillis() >> 1);
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
+        this.proxyTypeId = context.supplyTypeId("proxy");
         this.signaler = signaler;
         this.streamFactory = streamFactory;
         this.resolveSasl = resolveSasl;
@@ -210,6 +219,7 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
                     resolvedId,
                     topicName,
                     configs,
+                    binding.servers(),
                     sasl)::onApplication;
         }
 
@@ -627,6 +637,7 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
             long resolvedId,
             String topic,
             List<String> configs,
+            List<KafkaServerConfig> servers,
             KafkaSaslConfig sasl)
         {
             this.application = application;
@@ -635,7 +646,7 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = affinity;
-            this.client = new KafkaDescribeClient(routedId, resolvedId, topic, configs, sasl);
+            this.client = new KafkaDescribeClient(routedId, resolvedId, topic, configs, servers, sasl);
         }
 
         private void onApplication(
@@ -898,6 +909,7 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
             private MessageConsumer network;
             private final String topic;
             private final Map<String, String> configs;
+            private final List<KafkaServerConfig> servers;
 
             private int state;
             private long authorization;
@@ -933,11 +945,13 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
                 long routedId,
                 String topic,
                 List<String> configs,
+                List<KafkaServerConfig> servers,
                 KafkaSaslConfig sasl)
             {
                 super(sasl, originId, routedId);
                 this.topic = requireNonNull(topic);
                 this.configs = new LinkedHashMap<>(configs.size());
+                this.servers = servers;
                 configs.forEach(c -> this.configs.put(c, null));
 
                 this.encoder = sasl != null ? encodeSaslHandshakeRequest : encodeDescribeRequest;
@@ -1180,8 +1194,27 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
             {
                 state = KafkaState.openingInitial(state);
 
+                Consumer<OctetsFW.Builder> extension = EMPTY_EXTENSION;
+
+                final KafkaServerConfig kafkaServerConfig =
+                    servers != null ? servers.get(randomServerIdGenerator.nextInt(servers.size())) : null;
+
+                if (kafkaServerConfig != null)
+                {
+                    extension =  e -> e.set((b, o, l) -> proxyBeginExRW.wrap(b, o, l)
+                        .typeId(proxyTypeId)
+                        .address(a -> a.inet(i -> i.protocol(p -> p.set(STREAM))
+                            .source("0.0.0.0")
+                            .destination(kafkaServerConfig.host)
+                            .sourcePort(0)
+                            .destinationPort(kafkaServerConfig.port)))
+                        .infos(i -> i.item(ii -> ii.authority(kafkaServerConfig.host)))
+                        .build()
+                        .sizeof());
+                }
+
                 network = newStream(this::onNetwork, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                        traceId, authorization, affinity, EMPTY_EXTENSION);
+                        traceId, authorization, affinity, extension);
             }
 
             @Override
@@ -1214,6 +1247,7 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
                 state = KafkaState.closedInitial(state);
 
                 cleanupEncodeSlotIfNecessary();
+                cleanupBudgetIfNecessary();
 
                 doEnd(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization, EMPTY_EXTENSION);
@@ -1230,6 +1264,7 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
                 }
 
                 cleanupEncodeSlotIfNecessary();
+                cleanupBudgetIfNecessary();
             }
 
             private void doNetworkResetIfNecessary(
@@ -1352,10 +1387,8 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
                 int limit)
             {
                 final int length = limit - offset;
-                final int lengthMin = Math.min(length, 1024);
                 final int initialBudget = Math.max(initialMax - (int)(initialSeq - initialAck), 0);
                 final int reservedMax = Math.max(Math.min(length + initialPad, initialBudget), initialMin);
-                final int reservedMin = Math.max(Math.min(lengthMin + initialPad, reservedMax), initialMin);
 
                 int reserved = reservedMax;
 
@@ -1367,9 +1400,7 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
 
                     if (initialDebIndex != NO_DEBITOR_INDEX)
                     {
-                        final int lengthMax = Math.min(reserved - initialPad, length);
-                        final int deferredMax = length - lengthMax;
-                        reserved = initialDeb.claim(traceId, initialDebIndex, initialId, reservedMin, reserved, deferredMax);
+                        reserved = initialDeb.claim(traceId, initialDebIndex, initialId, reserved, reserved, 0);
                         claimed = reserved > 0;
                     }
 
@@ -1616,6 +1647,15 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
                     encodeSlot = NO_SLOT;
                     encodeSlotOffset = 0;
                     encodeSlotTraceId = 0;
+                }
+            }
+
+            private void cleanupBudgetIfNecessary()
+            {
+                if (initialDebIndex != NO_DEBITOR_INDEX)
+                {
+                    initialDeb.release(initialDebIndex, initialId);
+                    initialDebIndex = NO_DEBITOR_INDEX;
                 }
             }
         }

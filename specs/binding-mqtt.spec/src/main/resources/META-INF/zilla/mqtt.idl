@@ -124,7 +124,7 @@ scope mqtt
         string16 willId = null;
         MqttBinary correlation;
         MqttUserProperty[] properties;
-        MqttBinary payload;
+        uint16 payloadSize;
     }
 
     scope stream
@@ -220,6 +220,7 @@ scope mqtt
 
         struct MqttSessionDataEx
         {
+            int32 deferred = 0;
             MqttSessionDataKind kind;
         }
 
@@ -249,15 +250,11 @@ scope mqtt
             INCOMPLETE(1)
         }
 
-        struct MqttOffsetState
-        {
-            uint16 packetId;
-        }
-
         struct MqttOffsetMetadata
         {
             uint8 version = 1;
-            MqttOffsetState[] metadata;
+            uint8 length;
+            int16[length] packetIds;
         }
     }
 }

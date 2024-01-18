@@ -47,7 +47,7 @@ public class SchemaRegistryCatalogFactoryTest
 
         SchemaRegistryOptionsConfig catalogConfig =
             new SchemaRegistryOptionsConfig("http://localhost:8081", "default");
-        CatalogConfig options = new CatalogConfig("catalog0", "schema-registry", catalogConfig);
+        CatalogConfig options = new CatalogConfig("test", "catalog0", "schema-registry", catalogConfig);
         CatalogHandler handler = context.attach(options);
         assertThat(handler, instanceOf(SchemaRegistryCatalogHandler.class));
     }

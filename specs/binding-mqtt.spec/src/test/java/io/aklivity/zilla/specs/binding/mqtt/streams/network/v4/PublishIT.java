@@ -161,15 +161,6 @@ public class PublishIT
 
     @Test
     @Specification({
-        "${net}/publish.reject.packet.too.large/client",
-        "${net}/publish.reject.packet.too.large/server"})
-    public void shouldRejectPacketTooLarge() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${net}/publish.unroutable/client",
         "${net}/publish.unroutable/server"})
     public void shouldRejectUnroutable() throws Exception
@@ -200,6 +191,15 @@ public class PublishIT
         "${net}/publish.mixture.qos/client",
         "${net}/publish.mixture.qos/server"})
     public void shouldPublishMixtureQos() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/publish.10k/client",
+        "${net}/publish.10k/server"})
+    public void shouldPublish10k() throws Exception
     {
         k3po.finish();
     }

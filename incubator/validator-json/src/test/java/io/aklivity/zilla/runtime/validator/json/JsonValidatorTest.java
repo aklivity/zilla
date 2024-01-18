@@ -28,7 +28,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.Catalog;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
@@ -85,7 +85,7 @@ public class JsonValidatorTest
     {
         Properties properties = new Properties();
         properties.setProperty(ENGINE_DIRECTORY.name(), "target/zilla-itests");
-        Configuration config = new Configuration(properties);
+        EngineConfiguration config = new EngineConfiguration(properties);
         labels = new LabelManager(config.directory());
         resolveId = name -> name != null ? NamespacedId.id(1, labels.supplyLabelId(name)) : 0L;
         Catalog catalog = new TestCatalog(config);
@@ -95,7 +95,7 @@ public class JsonValidatorTest
     @Test
     public void shouldVerifyValidJsonObject()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(OBJECT_SCHEMA));
+        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test", new TestCatalogOptionsConfig(OBJECT_SCHEMA));
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
         JsonValidator validator = new JsonValidator(config, resolveId, handler);
 
@@ -113,7 +113,7 @@ public class JsonValidatorTest
     @Test
     public void shouldVerifyValidJsonArray()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(ARRAY_SCHEMA));
+        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test", new TestCatalogOptionsConfig(ARRAY_SCHEMA));
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
         JsonValidator validator = new JsonValidator(config, resolveId, handler);
 
@@ -134,7 +134,7 @@ public class JsonValidatorTest
     @Test
     public void shouldVerifyInvalidJsonObject()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(OBJECT_SCHEMA));
+        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test", new TestCatalogOptionsConfig(OBJECT_SCHEMA));
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
         JsonValidator validator = new JsonValidator(config, resolveId, handler);
 
@@ -152,7 +152,7 @@ public class JsonValidatorTest
     @Test
     public void shouldVerifyInvalidJsonArray()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test", new TestCatalogOptionsConfig(ARRAY_SCHEMA));
+        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test", new TestCatalogOptionsConfig(ARRAY_SCHEMA));
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
         JsonValidator validator = new JsonValidator(config, resolveId, handler);
 

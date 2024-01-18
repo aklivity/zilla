@@ -31,10 +31,18 @@ public class CatalogAdapter
 
     private final OptionsAdapter options;
 
+    private String namespace;
+
     public CatalogAdapter(
         ConfigAdapterContext context)
     {
         this.options = new OptionsAdapter(OptionsConfigAdapterSpi.Kind.CATALOG, context);
+    }
+
+    public void adaptNamespace(
+        String namespace)
+    {
+        this.namespace = namespace;
     }
 
     public JsonObject adaptToJson(
@@ -66,6 +74,6 @@ public class CatalogAdapter
                 options.adaptFromJson(object.getJsonObject(OPTIONS_NAME)) :
                 null;
 
-        return new CatalogConfig(name, type, opts);
+        return new CatalogConfig(namespace, name, type, opts);
     }
 }

@@ -60,6 +60,7 @@ public class ReconfigureFileIT
         .external("app0")
         .external("app1")
         .external("app2")
+        .exceptions(m -> m.endsWith("ParseFailed"))
         .clean();
 
     @Rule
@@ -85,6 +86,11 @@ public class ReconfigureFileIT
         Path target2 = Paths.get("symlink");
         Path link3 =  CONFIG_DIR.resolve("symlink/configs");
         Path target3 = Paths.get("realconfigs");
+
+        Files.deleteIfExists(simpleLink);
+        Files.deleteIfExists(link1);
+        Files.deleteIfExists(link2);
+        Files.deleteIfExists(link3);
 
         Files.createSymbolicLink(simpleLink, simpleTarget);
         Files.createSymbolicLink(link1, target1);

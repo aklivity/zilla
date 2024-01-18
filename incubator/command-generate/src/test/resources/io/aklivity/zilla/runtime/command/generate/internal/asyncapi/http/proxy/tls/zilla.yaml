@@ -11,9 +11,9 @@ bindings:
       when:
       - port: 9090
   tls_server0:
-    vault: server
     type: tls
     kind: server
+    vault: server
     options:
       keys:
       - "${{env.TLS_SERVER_KEY}}"
@@ -48,9 +48,9 @@ bindings:
     kind: client
     exit: tls_client0
   tls_client0:
-    vault: client
     type: tls
     kind: client
+    vault: client
     options:
       trust:
       - "${{env.TLS_CLIENT_TRUST}}"

@@ -1241,6 +1241,7 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
             state = KafkaState.closedInitial(state);
 
             cleanupEncodeSlotIfNecessary();
+            cleanupBudgetIfNecessary();
 
             doEnd(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, EMPTY_EXTENSION);
@@ -1257,6 +1258,7 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
             }
 
             cleanupEncodeSlotIfNecessary();
+            cleanupBudgetIfNecessary();
         }
 
         private void doNetworkResetIfNecessary(
@@ -1410,10 +1412,8 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
             int limit)
         {
             final int length = limit - offset;
-            final int lengthMin = Math.min(length, 1024);
             final int initialBudget = Math.max(initialMax - (int)(initialSeq - initialAck), 0);
             final int reservedMax = Math.max(Math.min(length + initialPad, initialBudget), initialMin);
-            final int reservedMin = Math.max(Math.min(lengthMin + initialPad, reservedMax), initialMin);
 
             int reserved = reservedMax;
 
@@ -1425,9 +1425,7 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
 
                 if (initialDebIndex != NO_DEBITOR_INDEX)
                 {
-                    final int lengthMax = Math.min(reserved - initialPad, length);
-                    final int deferredMax = length - lengthMax;
-                    reserved = initialDeb.claim(traceId, initialDebIndex, initialId, reservedMin, reserved, deferredMax);
+                    reserved = initialDeb.claim(traceId, initialDebIndex, initialId, reserved, reserved, 0);
                     claimed = reserved > 0;
                 }
 
@@ -1650,6 +1648,15 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
                 encodeSlot = NO_SLOT;
                 encodeSlotOffset = 0;
                 encodeSlotTraceId = 0;
+            }
+        }
+
+        private void cleanupBudgetIfNecessary()
+        {
+            if (initialDebIndex != NO_DEBITOR_INDEX)
+            {
+                initialDeb.release(initialDebIndex, initialId);
+                initialDebIndex = NO_DEBITOR_INDEX;
             }
         }
     }

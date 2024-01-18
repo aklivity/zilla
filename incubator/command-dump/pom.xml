@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>incubator</artifactId>
-    <version>0.9.64</version>
+    <version>0.9.65</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -68,6 +68,42 @@
       <scope>test</scope>
     </dependency>
     <dependency>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>binding-sse.spec</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>binding-ws.spec</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>binding-filesystem.spec</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>binding-mqtt.spec</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>binding-kafka.spec</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>binding-amqp.spec</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-engine</artifactId>
       <scope>test</scope>
@@ -87,13 +123,13 @@
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
-      <version>1.7.36</version>
+      <version>2.0.10</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-simple</artifactId>
-      <version>1.7.36</version>
+      <version>2.0.9</version>
       <scope>test</scope>
     </dependency>
   </dependencies>

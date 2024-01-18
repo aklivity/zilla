@@ -7,7 +7,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>io.aklivity.zilla</groupId>
   <artifactId>zilla</artifactId>
-  <version>0.9.64</version>
+  <version>0.9.65</version>
   <packaging>pom</packaging>
   <name>zilla</name>
   <url>https://github.com/aklivity/zilla</url>
@@ -46,12 +46,12 @@
     <checkstyle.suppressions.location>io/aklivity/zilla/conf/checkstyle/suppressions.xml</checkstyle.suppressions.location>
     <antlr4.version>4.13.0</antlr4.version>
     <agrona.version>1.6.0</agrona.version>
-    <junit.version>5.8.2</junit.version>
-    <byteman.version>4.0.21</byteman.version>
+    <junit.version>5.10.1</junit.version>
+    <byteman.version>4.0.22</byteman.version>
     <jmock.version>2.6.0</jmock.version>
-    <mockito.version>5.3.1</mockito.version>
+    <mockito.version>5.8.0</mockito.version>
     <k3po.version>3.1.0</k3po.version>
-    <jmh.version>1.12</jmh.version>
+    <jmh.version>1.37</jmh.version>
   </properties>
 
   <modules>
@@ -68,14 +68,14 @@
       <dependency>
         <groupId>org.apache.maven</groupId>
         <artifactId>maven</artifactId>
-        <version>3.9.4</version>
+        <version>3.9.6</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
       <dependency>
         <groupId>jakarta.json</groupId>
         <artifactId>jakarta.json-api</artifactId>
-        <version>2.0.1</version>
+        <version>2.1.3</version>
       </dependency>
       <dependency>
         <groupId>jakarta.json.bind</groupId>
@@ -105,7 +105,7 @@
       <dependency>
         <groupId>org.hamcrest</groupId>
         <artifactId>hamcrest-library</artifactId>
-        <version>1.3</version>
+        <version>2.2</version>
       </dependency>
       <dependency>
         <groupId>org.hamcrest</groupId>
@@ -180,7 +180,7 @@
       <dependency>
         <groupId>com.github.biboudis</groupId>
         <artifactId>jmh-profilers</artifactId>
-        <version>0.1.3</version>
+        <version>0.1.4</version>
       </dependency>
       <dependency>
         <groupId>org.kaazing</groupId>
@@ -333,7 +333,7 @@
         <plugin>
           <groupId>org.jacoco</groupId>
           <artifactId>jacoco-maven-plugin</artifactId>
-          <version>0.8.10</version>
+          <version>0.8.11</version>
           <configuration>
             <propertyName>jacoco.java.option</propertyName>
           </configuration>
@@ -354,7 +354,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-compiler-plugin</artifactId>
-          <version>3.11.0</version>
+          <version>3.12.1</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
@@ -364,7 +364,7 @@
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>exec-maven-plugin</artifactId>
-          <version>3.1.0</version>
+          <version>3.1.1</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
@@ -382,7 +382,7 @@
         <plugin>
           <groupId>org.moditect</groupId>
           <artifactId>moditect-maven-plugin</artifactId>
-          <version>1.0.0.Final</version>
+          <version>1.1.0</version>
           <configuration>
             <module>
               <moduleInfoFile>src/main/moditect/module-info.java</moduleInfoFile>

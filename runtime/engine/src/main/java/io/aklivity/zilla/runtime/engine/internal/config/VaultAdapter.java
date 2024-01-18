@@ -31,10 +31,18 @@ public class VaultAdapter
 
     private final OptionsAdapter options;
 
+    private String namespace;
+
     public VaultAdapter(
         ConfigAdapterContext context)
     {
         this.options = new OptionsAdapter(OptionsConfigAdapterSpi.Kind.VAULT, context);
+    }
+
+    public void adaptNamespace(
+        String namespace)
+    {
+        this.namespace = namespace;
     }
 
     public JsonObject adaptToJson(
@@ -62,6 +70,7 @@ public class VaultAdapter
         options.adaptType(type);
 
         VaultConfigBuilder<VaultConfig> vault = VaultConfig.builder()
+            .namespace(namespace)
             .name(name)
             .type(type);
 

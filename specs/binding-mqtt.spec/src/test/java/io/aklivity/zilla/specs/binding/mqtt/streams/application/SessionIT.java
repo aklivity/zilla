@@ -102,6 +102,15 @@ public class SessionIT
 
     @Test
     @Specification({
+        "${app}/session.will.message.10k/client",
+        "${app}/session.will.message.10k/server"})
+    public void shouldSendWillMessage10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/session.subscribe/client",
         "${app}/session.subscribe/server"})
     public void shouldSubscribeSaveSubscriptionsInSession() throws Exception

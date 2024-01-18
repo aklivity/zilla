@@ -62,4 +62,13 @@ public class ProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${proxy}/client/reject.port.not.routed/client",
+        "${proxy}/client/reject.port.not.routed/server"})
+    public void shouldRejectClientPortNotRouted() throws Exception
+    {
+        k3po.finish();
+    }
 }

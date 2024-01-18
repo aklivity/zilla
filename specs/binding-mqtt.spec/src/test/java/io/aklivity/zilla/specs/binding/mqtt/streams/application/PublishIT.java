@@ -65,6 +65,15 @@ public class PublishIT
 
     @Test
     @Specification({
+        "${app}/publish.multiple.clients/client",
+        "${app}/publish.multiple.clients/server"})
+    public void shouldSendMultipleClients() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/publish.multiple.messages.timeout/client",
         "${app}/publish.multiple.messages.timeout/server"})
     public void shouldPublishMultipleMessagesTimeout() throws Exception
@@ -174,15 +183,6 @@ public class PublishIT
 
     @Test
     @Specification({
-        "${app}/publish.invalid.message/client",
-        "${app}/publish.invalid.message/server"})
-    public void shouldPublishInvalidMessage() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/publish.valid.message/client",
         "${app}/publish.valid.message/server"})
     public void shouldPublishValidMessage() throws Exception
@@ -231,6 +231,24 @@ public class PublishIT
         "${app}/publish.mixture.qos/client",
         "${app}/publish.mixture.qos/server"})
     public void shouldPublishMixtureQos() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/publish.10k/client",
+        "${app}/publish.10k/server"})
+    public void shouldPublish10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/publish.reject.large.message/client",
+        "${app}/publish.reject.large.message/server"})
+    public void shouldRejectLargeMessage() throws Exception
     {
         k3po.finish();
     }

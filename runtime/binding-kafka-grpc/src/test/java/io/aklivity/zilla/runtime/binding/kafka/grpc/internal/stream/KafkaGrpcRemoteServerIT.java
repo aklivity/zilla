@@ -64,6 +64,16 @@ public class KafkaGrpcRemoteServerIT
     @Test
     @Configuration("remote.server.rpc.yaml")
     @Specification({
+        "${kafka}/unary.rpc.message.value.100k/server",
+        "${grpc}/unary.rpc.message.value.100k/server"})
+    public void shouldExchangeMessageValue100kWithUnaryRpc() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("remote.server.rpc.yaml")
+    @Specification({
         "${kafka}/client.stream.rpc/server",
         "${grpc}/client.stream.rpc/server"})
     public void shouldExchangeMessageWithClientStreamRpc() throws Exception
