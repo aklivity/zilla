@@ -46,6 +46,7 @@
     <checkstyle.suppressions.location>io/aklivity/zilla/conf/checkstyle/suppressions.xml</checkstyle.suppressions.location>
     <antlr4.version>4.13.0</antlr4.version>
     <agrona.version>1.6.0</agrona.version>
+    <slf4j.version>1.7.36</slf4j.version>
     <junit.version>5.10.1</junit.version>
     <byteman.version>4.0.22</byteman.version>
     <jmock.version>2.6.0</jmock.version>
@@ -166,6 +167,16 @@
         <groupId>org.agrona</groupId>
         <artifactId>agrona</artifactId>
         <version>${agrona.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-api</artifactId>
+        <version>${slf4j.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-simple</artifactId>
+        <version>${slf4j.version}</version>
       </dependency>
       <dependency>
         <groupId>org.openjdk.jmh</groupId>
