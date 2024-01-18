@@ -35,6 +35,7 @@ write "PRI * HTTP/2.0\r\n"
       "\r\n"
 write flush
 
+# server connection preface - SETTINGS frame
 write [0x00 0x00 0x0c]                   # length = 12
       [0x04]                             # HTTP2 SETTINGS frame
       [0x00]                             # flags = 0x00
@@ -61,18 +62,18 @@ write [0x00 0x00 0x00]                   # length = 0
       [0x01]                             # ACK
       [0x00 0x00 0x00 0x00]              # stream_id = 0
 
-read [0x00 0x00 0x2a]                    # length = 42
+read [0x00 0x00 0x23]                    # length = 35
      [0x01]                              # HTTP2 HEADERS frame
      [0x04]                              # END_HEADERS
      [0x00 0x00 0x00 0x01]               # stream_id=1
      [0x88]                              # :status: 200
      [0x0f 0x10] [0x0a] "text/plain"     # content-type
-     [0x0f 0x0d] [0x02] "13"             # content-length
-     [0x00 0x07] "x-hello"               # x-hello: 1234567890123
-     [0x0d] "1234567890123"
+     [0x0f 0x0d] [0x01] "7"              # content-length
+     [0x00 0x07] "x-hello"               # x-hello: invalid
+     [0x07] "invalid"
 
-read [0x00 0x00 0x0d]                    # length = 13
+read [0x00 0x00 0x07]                    # length = 7
      [0x00]                              # HTTP2 DATA frame
      [0x01]                              # END_STREAM
      [0x00 0x00 0x00 0x01]               # stream_id=1
-     "1234567890123"
+     "invalid"

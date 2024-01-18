@@ -26,6 +26,7 @@ write "\r\n"
 read "HTTP/1.1 200 OK" "\r\n"
 read "Content-Length: 13" "\r\n"
 read "Content-Type: text/plain" "\r\n"
+read "x-hello: 1234567890123" "\r\n"
 read "\r\n"
 read "1234567890123"
 read closed

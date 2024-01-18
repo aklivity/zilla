@@ -26,6 +26,7 @@ write "\r\n"
 read "HTTP/1.1 200 OK" "\r\n"
 read "Content-Length: 7" "\r\n"
 read "Content-Type: text/plain" "\r\n"
+read "x-hello: invalid" "\r\n"
 read "\r\n"
 read "invalid"
 read closed

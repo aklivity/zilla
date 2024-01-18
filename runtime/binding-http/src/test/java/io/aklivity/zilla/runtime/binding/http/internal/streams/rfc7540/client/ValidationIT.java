@@ -54,8 +54,19 @@ public class ValidationIT
     @Test
     @Configuration("client.validation.yaml")
     @Specification({
-        "${app}/invalid.response/client",
-        "${net}/invalid.response/server" })
+        "${app}/invalid.response.header/client",
+        "${net}/invalid.response.header/server" })
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    public void shouldSendErrorForInvalidHeaderResponse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.validation.yaml")
+    @Specification({
+        "${app}/invalid.response.content/client",
+        "${net}/invalid.response.content/server" })
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void shouldAbortForInvalidResponse() throws Exception
     {

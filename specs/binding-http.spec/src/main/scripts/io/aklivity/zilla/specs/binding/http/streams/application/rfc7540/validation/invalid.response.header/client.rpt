@@ -27,13 +27,10 @@ write zilla:begin.ext ${http:beginEx()
                               .build()}
 connected
 
-read zilla:begin.ext ${http:beginEx()
+read zilla:begin.ext ${http:matchBeginEx()
                              .typeId(zilla:id("http"))
-                             .header(":status", "200")
-                             .header("content-type", "text/plain")
-                             .header("content-length", "13")
-                             .header("x-hello", "1234567890123")
+                             .header(":status", "503")
+                             .header("retry-after", "0")
                              .build()}
 
-read "1234567890123"
 read closed

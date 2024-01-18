@@ -28,6 +28,8 @@ bindings:
             - status: 200
               content-type:
                 - text/plain
+              headers:
+                x-hello: test
               content: test
       versions:
         - h2
