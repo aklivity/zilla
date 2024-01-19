@@ -36,6 +36,17 @@
                     {
                         "properties":
                         {
+                            "versions":
+                            {
+                                "title": "Versions",
+                                "type": "array",
+                                "items":
+                                {
+                                    "type": "integer",
+                                    "minimum": 4,
+                                    "maximum": 5
+                                }
+                            },
                             "authorization":
                             {
                                 "title": "Authorizations",

@@ -18,7 +18,8 @@ scope mqtt
     enum MqttSessionFlags (uint8)
     {
         CLEAN_START(1),
-        WILL(2)
+        WILL(2),
+        SHARDING(3)
     }
 
     enum MqttSubscribeFlags (uint8)

@@ -22,7 +22,7 @@ accepted
 read zilla:begin.ext ${mqtt:matchBeginEx()
                             .typeId(zilla:id("mqtt"))
                             .session()
-                               .flags("WILL", "CLEAN_START")
+                               .flags("WILL", "CLEAN_START", "SHARDING")
                                .expiry(1)
                                .clientId("client-1")
                                .build()

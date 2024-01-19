@@ -377,6 +377,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         private int sessionPadding;
         private String willId;
         private int delay;
+        private boolean sharding;
 
         private MqttSessionProxy(
             MessageConsumer mqtt,
@@ -463,6 +464,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             sessionExpiryMillis = (int) SECONDS.toMillis(mqttSessionBeginEx.expiry());
             sessionFlags = mqttSessionBeginEx.flags();
+            sharding = isSetShardingFlag(sessionFlags);
 
             if (!isSetWillFlag(sessionFlags) || isSetCleanStart(sessionFlags))
             {
@@ -2307,16 +2309,22 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         return byteAt;
     }
 
+    private static boolean isSetShardingFlag(
+        int flags)
+    {
+        return (flags & 1 << MqttSessionFlags.SHARDING.value()) != 0;
+    }
+
     private static boolean isSetWillFlag(
         int flags)
     {
-        return (flags & MqttSessionFlags.WILL.value() << 1) != 0;
+        return (flags & 1 << MqttSessionFlags.WILL.value()) != 0;
     }
 
     private static boolean isSetCleanStart(
         int flags)
     {
-        return (flags & MqttSessionFlags.CLEAN_START.value() << 1) != 0;
+        return (flags & 1 << MqttSessionFlags.CLEAN_START.value()) != 0;
     }
 
     private abstract class KafkaSessionStream
@@ -2823,9 +2831,10 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             state = MqttKafkaState.openingInitial(state);
 
+            final String server = delegate.sharding ? serverRef : null;
             kafka = newKafkaStream(super::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, affinity, delegate.sessionsTopic, null, delegate.clientIdMigrate,
-                delegate.sessionId, serverRef, KafkaCapabilities.PRODUCE_AND_FETCH);
+                delegate.sessionId, server, KafkaCapabilities.PRODUCE_AND_FETCH);
         }
 
         @Override
@@ -2908,9 +2917,10 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             KafkaCapabilities capabilities = isSetWillFlag(delegate.sessionFlags) ?
                 KafkaCapabilities.PRODUCE_ONLY : KafkaCapabilities.PRODUCE_AND_FETCH;
+            final String server = delegate.sharding ? serverRef : null;
             kafka = newKafkaStream(super::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, affinity, delegate.sessionsTopic, delegate.clientId, delegate.clientIdMigrate,
-                delegate.sessionId, serverRef, capabilities);
+                delegate.sessionId, server, capabilities);
         }
 
         @Override
@@ -3093,8 +3103,9 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             {
                 state = MqttKafkaState.openingInitial(state);
 
+                final String server = delegate.sharding ? serverRef : null;
                 kafka = newKafkaStream(super::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, authorization, affinity, delegate.sessionsTopic, delegate.clientId, serverRef);
+                    traceId, authorization, affinity, delegate.sessionsTopic, delegate.clientId, server);
             }
         }
 

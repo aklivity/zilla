@@ -24,6 +24,7 @@ public class MqttOptionsConfig extends OptionsConfig
 {
     public final MqttAuthorizationConfig authorization;
     public final List<MqttTopicConfig> topics;
+    public final List<Integer> versions;
 
     public static MqttOptionsConfigBuilder<MqttOptionsConfig> builder()
     {
@@ -38,9 +39,11 @@ public class MqttOptionsConfig extends OptionsConfig
 
     public MqttOptionsConfig(
         MqttAuthorizationConfig authorization,
-        List<MqttTopicConfig> topics)
+        List<MqttTopicConfig> topics,
+        List<Integer> versions)
     {
         this.authorization = authorization;
         this.topics = topics;
+        this.versions = versions;
     }
 }

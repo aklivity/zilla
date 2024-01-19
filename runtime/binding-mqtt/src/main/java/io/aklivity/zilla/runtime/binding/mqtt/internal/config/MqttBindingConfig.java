@@ -15,8 +15,11 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.internal.config;
 
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.stream.MqttServerFactory.MQTT_PROTOCOL_VERSION_4;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.stream.MqttServerFactory.MQTT_PROTOCOL_VERSION_5;
 import static java.util.stream.Collectors.toList;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -37,6 +40,7 @@ import io.aklivity.zilla.runtime.engine.validator.Validator;
 public final class MqttBindingConfig
 {
     private static final Function<String, String> DEFAULT_CREDENTIALS = x -> null;
+    private static final List<Integer> DEFAULT_VERSIONS = Arrays.asList(MQTT_PROTOCOL_VERSION_4, MQTT_PROTOCOL_VERSION_5);
 
     public final long id;
     public final String name;
@@ -45,6 +49,7 @@ public final class MqttBindingConfig
     public final List<MqttRouteConfig> routes;
     public final Function<String, String> credentials;
     public final Map<String, Validator> topics;
+    public final List<Integer> versions;
     public final ToLongFunction<String> resolveId;
 
     public MqttBindingConfig(
@@ -64,6 +69,8 @@ public final class MqttBindingConfig
             ? options.topics.stream()
             .collect(Collectors.toMap(t -> t.name,
                 t -> context.createValidator(t.content, resolveId))) : null;
+        this.versions = options != null &&
+            options.versions != null ? options.versions : DEFAULT_VERSIONS;
     }
 
     public MqttRouteConfig resolve(

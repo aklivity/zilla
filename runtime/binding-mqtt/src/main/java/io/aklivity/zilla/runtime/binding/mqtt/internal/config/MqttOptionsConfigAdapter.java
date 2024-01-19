@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
 
 import jakarta.json.Json;
 import jakarta.json.JsonArrayBuilder;
+import jakarta.json.JsonNumber;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
@@ -43,6 +44,7 @@ public class MqttOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbA
     private static final String AUTHORIZATION_CREDENTIALS_NAME = "credentials";
     private static final String AUTHORIZATION_CREDENTIALS_CONNECT_NAME = "connect";
     private static final String TOPICS_NAME = "topics";
+    private static final String VERSIONS_NAME = "versions";
 
     private final MqttTopicConfigAdapter mqttTopic = new MqttTopicConfigAdapter();
 
@@ -104,6 +106,14 @@ public class MqttOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbA
             object.add(TOPICS_NAME, topics);
         }
 
+        if (mqttOptions.versions != null)
+        {
+            JsonArrayBuilder versions = Json.createArrayBuilder();
+            mqttOptions.versions
+                .forEach(versions::add);
+            object.add(VERSIONS_NAME, versions);
+        }
+
         return object.build();
     }
 
@@ -151,6 +161,14 @@ public class MqttOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbA
                 .map(item -> mqttTopic.adaptFromJson((JsonObject) item))
                 .collect(Collectors.toList());
             mqttOptions.topics(topics);
+        }
+
+        if (object.containsKey(VERSIONS_NAME))
+        {
+            List<Integer> versions = object.getJsonArray(VERSIONS_NAME).stream()
+                .map(item -> ((JsonNumber) item).intValue())
+                .collect(Collectors.toList());
+            mqttOptions.versions(versions);
         }
 
         return mqttOptions.build();
