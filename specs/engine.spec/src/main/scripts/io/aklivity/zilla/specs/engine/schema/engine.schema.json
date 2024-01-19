@@ -105,6 +105,10 @@
 
     "$defs":
     {
+        "expression":{
+            "type": "string",
+            "pattern": "\\$\\{\\{\\s*([^\\s\\}]*)\\.([^\\s\\}]*)\\s*\\}\\}"
+        },
         "vault":
         {
             "type": "object",
