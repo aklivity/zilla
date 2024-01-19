@@ -273,7 +273,7 @@ public final class EngineConfigReader
             {
                 JsonValue pattern = jsonObject.get("pattern");
                 builder.add(key, value);
-                builder.add("oneOf", createOneOfTypes(value.toString().replaceAll("\"", ""), pattern));
+                builder.add("anyOf", createOneOfTypes(value.toString().replaceAll("\"", ""), pattern));
             }
             else if (!"pattern".equals(key))
             {
