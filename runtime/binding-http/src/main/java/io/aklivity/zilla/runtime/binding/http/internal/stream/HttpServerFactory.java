@@ -574,8 +574,8 @@ public final class HttpServerFactory implements HttpStreamFactory
         this.connectionClose = CONNECTION_CLOSE_PATTERN.matcher("");
         this.maximumHeadersSize = bufferPool.slotCapacity();
         this.decodeMax = bufferPool.slotCapacity();
-        this.createValidator = context::createValidator;
         this.encodeMax = bufferPool.slotCapacity();
+        this.createValidator = context::createValidator;
         this.bindings = new Long2ObjectHashMap<>();
 
         this.headers200 = initHeaders(config, STATUS_200);

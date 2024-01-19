@@ -42,6 +42,7 @@ public class HttpRequestConfig
     public final List<HttpParamConfig> pathParams;
     public final List<HttpParamConfig> queryParams;
     public final ValidatorConfig content;
+    public final List<HttpResponseConfig> responses;
 
     public HttpRequestConfig(
         String path,
@@ -50,7 +51,8 @@ public class HttpRequestConfig
         List<HttpParamConfig> headers,
         List<HttpParamConfig> pathParams,
         List<HttpParamConfig> queryParams,
-        ValidatorConfig content)
+        ValidatorConfig content,
+        List<HttpResponseConfig> responses)
     {
         this.path = path;
         this.method = method;
@@ -59,6 +61,7 @@ public class HttpRequestConfig
         this.pathParams = pathParams;
         this.queryParams = queryParams;
         this.content = content;
+        this.responses = responses;
     }
 
     public static HttpRequestConfigBuilder<HttpRequestConfig> builder()

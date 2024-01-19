@@ -317,6 +317,72 @@
                                         "content":
                                         {
                                             "$ref": "#/$defs/validator/type"
+                                        },
+                                        "responses":
+                                        {
+                                            "type": "array",
+                                            "items":
+                                            {
+                                                "type": "object",
+                                                "properties":
+                                                {
+                                                    "status":
+                                                    {
+                                                        "oneOf":
+                                                        [
+                                                            {
+                                                                "type": "integer"
+                                                            },
+                                                            {
+                                                                "type": "array",
+                                                                "items":
+                                                                {
+                                                                    "type": "integer"
+                                                                }
+                                                            }
+                                                        ]
+                                                    },
+                                                    "content-type":
+                                                    {
+                                                        "type": "array",
+                                                        "items":
+                                                        {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "headers":
+                                                    {
+                                                        "type": "object",
+                                                        "patternProperties":
+                                                        {
+                                                            "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                                                            {
+                                                                "$ref": "#/$defs/validator/type"
+                                                            }
+                                                        }
+                                                    },
+                                                    "content":
+                                                    {
+                                                        "$ref": "#/$defs/validator/type"
+                                                    }
+                                                },
+                                                "anyOf":
+                                                [
+                                                    {
+                                                        "required":
+                                                        [
+                                                            "content"
+                                                        ]
+                                                    },
+                                                    {
+                                                        "required":
+                                                        [
+                                                            "headers"
+                                                        ]
+                                                    }
+                                                ],
+                                                "additionalProperties": false
+                                            }
                                         }
                                     },
                                     "anyOf":
@@ -340,6 +406,13 @@
                                             [
                                                 "path",
                                                 "content"
+                                            ]
+                                        },
+                                        {
+                                            "required":
+                                            [
+                                                "path",
+                                                "responses"
                                             ]
                                         }
                                     ],

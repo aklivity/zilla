@@ -62,6 +62,23 @@ write zilla:data.ext ${mqtt:dataEx()
 write "message2"
 write flush
 
+
+connect "zilla://streams/mqtt0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"
+
+write zilla:begin.ext ${mqtt:beginEx()
+                              .typeId(zilla:id("mqtt"))
+                              .publish()
+                                .clientId("client")
+                                .topic("sensor/one")
+                                .qos(1)
+                                .build()
+                              .build()}
+
+connected
+
+
 write zilla:data.ext ${mqtt:dataEx()
                             .typeId(zilla:id("mqtt"))
                             .publish()
