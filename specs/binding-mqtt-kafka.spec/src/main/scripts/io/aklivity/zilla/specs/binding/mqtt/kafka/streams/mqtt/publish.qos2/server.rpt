@@ -24,6 +24,7 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
                              .publish()
                                 .clientId("client")
                                 .topic("sensor/one")
+                                .qos(2)
                                 .build()
                              .build()}
 

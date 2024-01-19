@@ -37,14 +37,20 @@ import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfigBuilder;
+import io.aklivity.zilla.runtime.binding.http.config.HttpResponseConfigBuilder;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.command.generate.internal.openapi.OpenApiConfigGenerator;
+import io.aklivity.zilla.runtime.command.generate.internal.openapi.model.Header;
 import io.aklivity.zilla.runtime.command.generate.internal.openapi.model.OpenApi;
 import io.aklivity.zilla.runtime.command.generate.internal.openapi.model.Operation;
 import io.aklivity.zilla.runtime.command.generate.internal.openapi.model.Parameter;
+import io.aklivity.zilla.runtime.command.generate.internal.openapi.model.Response;
+import io.aklivity.zilla.runtime.command.generate.internal.openapi.model.ResponseByContentType;
 import io.aklivity.zilla.runtime.command.generate.internal.openapi.model.Server;
+import io.aklivity.zilla.runtime.command.generate.internal.openapi.view.OperationView;
+import io.aklivity.zilla.runtime.command.generate.internal.openapi.view.OperationsView;
 import io.aklivity.zilla.runtime.command.generate.internal.openapi.view.PathView;
 import io.aklivity.zilla.runtime.command.generate.internal.openapi.view.SchemaView;
 import io.aklivity.zilla.runtime.command.generate.internal.openapi.view.ServerView;
@@ -202,6 +208,7 @@ public class OpenApiHttpProxyConfigGenerator extends OpenApiConfigGenerator
                     .name("http_client0")
                     .type("http")
                     .kind(CLIENT)
+                    .inject(this::injectHttpClientOptions)
                     .exit(isTlsEnabled ? "tls_client0" : "tcp_client0")
                     .build()
                 .inject(this::injectTlsClient)
@@ -383,6 +390,104 @@ public class OpenApiHttpProxyConfigGenerator extends OpenApiConfigGenerator
             }
         }
         return request;
+    }
+
+    private <C> BindingConfigBuilder<C> injectHttpClientOptions(
+        BindingConfigBuilder<C> binding)
+    {
+        OperationsView operations = OperationsView.of(openApi.paths);
+        if (operations.hasResponses())
+        {
+            binding.
+                options(HttpOptionsConfig::builder)
+                    .inject(options -> injectHttpClientRequests(operations, options))
+                    .build();
+        }
+        return binding;
+    }
+
+    private <C> HttpOptionsConfigBuilder<C> injectHttpClientRequests(
+        OperationsView operations,
+        HttpOptionsConfigBuilder<C> options)
+    {
+        for (String pathName : openApi.paths.keySet())
+        {
+            PathView path = PathView.of(openApi.paths.get(pathName));
+            for (String methodName : path.methods().keySet())
+            {
+                OperationView operation = operations.operation(pathName, methodName);
+                if (operation.hasResponses())
+                {
+                    options
+                        .request()
+                            .path(pathName)
+                            .method(HttpRequestConfig.Method.valueOf(methodName))
+                            .inject(request -> injectResponses(request, operation))
+                            .build()
+                        .build();
+                }
+            }
+        }
+        return options;
+    }
+
+    private <C> HttpRequestConfigBuilder<C> injectResponses(
+        HttpRequestConfigBuilder<C> request,
+        OperationView operation)
+    {
+        if (operation != null && operation.responsesByStatus() != null)
+        {
+            for (Map.Entry<String, ResponseByContentType> responses0 : operation.responsesByStatus().entrySet())
+            {
+                String status = responses0.getKey();
+                ResponseByContentType responses1 = responses0.getValue();
+                if (!(OperationView.DEFAULT.equals(status)) && responses1.content != null)
+                {
+                    for (Map.Entry<String, Response> response2 : responses1.content.entrySet())
+                    {
+                        SchemaView schema = SchemaView.of(openApi.components.schemas, response2.getValue().schema);
+                        request
+                            .response()
+                                .status(Integer.parseInt(status))
+                                .contentType(response2.getKey())
+                                .inject(response -> injectResponseHeaders(responses1, response))
+                                .content(JsonValidatorConfig::builder)
+                                    .catalog()
+                                    .name(INLINE_CATALOG_NAME)
+                                    .schema()
+                                        .subject(schema.refKey())
+                                        .build()
+                                    .build()
+                                .build()
+                            .build();
+                    }
+                }
+            }
+        }
+        return request;
+    }
+
+    private <C> HttpResponseConfigBuilder<C> injectResponseHeaders(
+        ResponseByContentType responses,
+        HttpResponseConfigBuilder<C> response)
+    {
+        if (responses.headers != null && !responses.headers.isEmpty())
+        {
+            for (Map.Entry<String, Header> header : responses.headers.entrySet())
+            {
+                String name = header.getKey();
+                ValidatorConfig validator = validators.get(header.getValue().schema.type);
+                if (validator != null)
+                {
+                    response
+                        .header()
+                            .name(name)
+                            .validator(validator)
+                            .build();
+                }
+            }
+        }
+        return response;
     }
 
     private <C> BindingConfigBuilder<C> injectHttpServerRoutes(

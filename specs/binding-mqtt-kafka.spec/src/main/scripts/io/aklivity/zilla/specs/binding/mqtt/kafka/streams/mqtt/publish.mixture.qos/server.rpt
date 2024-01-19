@@ -60,6 +60,20 @@ read zilla:data.ext ${mqtt:matchDataEx()
                             .build()}
 read "message2"
 
+
+accepted
+
+read zilla:begin.ext ${mqtt:matchBeginEx()
+                             .typeId(zilla:id("mqtt"))
+                             .publish()
+                                .clientId("client")
+                                .topic("sensor/one")
+                                .qos(1)
+                                .build()
+                             .build()}
+
+connected
+
 read zilla:data.ext ${mqtt:matchDataEx()
                             .typeId(zilla:id("mqtt"))
                             .publish()

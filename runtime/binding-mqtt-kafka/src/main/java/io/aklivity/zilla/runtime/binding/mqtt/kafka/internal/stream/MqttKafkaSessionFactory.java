@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaAckMode.IN_SYNC_REPLICAS;
+import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaAckMode.NONE;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static java.lang.System.currentTimeMillis;
@@ -1721,14 +1723,16 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                         willPayloadSize = willMessage.payloadSize();
 
                         willProducer =
-                            new KafkaProduceWillStream(originId, routedId, this, delegate.messagesTopic, deliverAt, flags);
+                            new KafkaProduceWillStream(originId, routedId, this, delegate.messagesTopic,
+                                willMessage.qos(), deliverAt, flags);
                         willProducer.doKafkaBegin(traceId, authorization, 0);
                         willMessageAckCount++;
                         if ((willMessage.flags() & 1 << MqttPublishFlags.RETAIN.value()) != 0)
                         {
                             willRetain = true;
                             willRetainProducer =
-                                new KafkaProduceWillStream(originId, routedId, this, delegate.retainedTopic, deliverAt, flags);
+                                new KafkaProduceWillStream(originId, routedId, this, delegate.retainedTopic,
+                                    willMessage.qos(), deliverAt, flags);
                             willRetainProducer.doKafkaBegin(traceId, authorization, 0);
                             willMessageAckCount++;
                         }
@@ -1878,6 +1882,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         private final long replyId;
         private final KafkaFetchWillStream delegate;
         private final int flags;
+        private final int qos;
 
         private int state;
 
@@ -1895,6 +1900,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             long routedId,
             KafkaFetchWillStream delegate,
             String16FW kafkaTopic,
+            int qos,
             long deliverAt,
             int flags)
         {
@@ -1903,6 +1909,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             this.delegate = delegate;
             this.initialId = supplyInitialId.applyAsLong(routedId);
             this.kafkaTopic = kafkaTopic;
+            this.qos = qos;
             this.deliverAt = deliverAt;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.flags = flags;
@@ -1919,7 +1926,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             state = MqttKafkaState.openingInitial(state);
 
             kafka = newKafkaStream(this::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, authorization, affinity, kafkaTopic);
+                traceId, authorization, affinity, kafkaTopic, qos);
         }
 
         private void doKafkaData(
@@ -3763,15 +3770,17 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         long traceId,
         long authorization,
         long affinity,
-        String16FW topic)
+        String16FW topic,
+        int qos)
     {
+        final KafkaAckMode ackMode = qos > 0 ? IN_SYNC_REPLICAS : NONE;
         final KafkaBeginExFW kafkaBeginEx =
             kafkaBeginExRW.wrap(writeBuffer, BeginFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
                 .typeId(kafkaTypeId)
                 .merged(m -> m.capabilities(c -> c.set(KafkaCapabilities.PRODUCE_ONLY))
                     .topic(topic)
                     .partitionsItem(p -> p.partitionId(-1).partitionOffset(-2L))
-                    .ackMode(b -> b.set(KAFKA_DEFAULT_ACK_MODE)))
+                    .ackMode(b -> b.set(ackMode)))
                 .build();
 
 

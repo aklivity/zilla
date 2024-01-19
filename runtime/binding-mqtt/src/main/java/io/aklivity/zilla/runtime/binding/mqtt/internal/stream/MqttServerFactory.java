@@ -589,8 +589,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         int qos)
     {
         final int topicHashCode = System.identityHashCode(topic.intern());
-        final int qosKey = qos > 0 ? MqttQoS.EXACTLY_ONCE.value() : qos;
-        return ((long) topicHashCode << 32) | (qosKey & 0xFFFFFFFFL);
+        return ((long) topicHashCode << 32) | (qos & 0xFFFFFFFFL);
     }
 
     private MessageConsumer newStream(

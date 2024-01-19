@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaAckMode.IN_SYNC_REPLICAS;
+import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaAckMode.NONE;
 import static java.time.Instant.now;
 
 import java.nio.ByteOrder;
@@ -1628,7 +1629,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         String16FW topic,
         int qos)
     {
-        final KafkaAckMode ackMode = qos > 0 ? IN_SYNC_REPLICAS : KAFKA_DEFAULT_ACK_MODE;
+        final KafkaAckMode ackMode = qos > 0 ? IN_SYNC_REPLICAS : NONE;
         final KafkaBeginExFW kafkaBeginEx =
             kafkaBeginExRW.wrap(writeBuffer, BeginFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
                 .typeId(kafkaTypeId)
