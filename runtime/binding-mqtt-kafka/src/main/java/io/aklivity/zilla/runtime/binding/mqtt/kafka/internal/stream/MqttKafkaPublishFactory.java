@@ -626,7 +626,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
 
                     if ((flags & DATA_FLAG_FIN) != 0x00)
                     {
-                        session.commitOffsetRetainedIncomplete(traceId, authorization, retained.topicString,
+                        session.commitOffsetIncomplete(traceId, authorization, retained.topicString,
                             retained.qos2PartitionId, packetId, this);
                     }
                 }
@@ -1325,11 +1325,12 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             final long traceId = reset.traceId();
 
             assert acknowledge <= sequence;
-            assert acknowledge >= delegate.initialAck;
+            assert acknowledge >= initialAck;
 
-            delegate.initialAck = acknowledge;
+            //TODO: no delegate. ????
+            initialAck = acknowledge;
 
-            assert delegate.initialAck <= delegate.initialSeq;
+            assert initialAck <= initialSeq;
 
             final OctetsFW extension = reset.extension();
             final ExtensionFW resetEx = extension.get(extensionRO::tryWrap);

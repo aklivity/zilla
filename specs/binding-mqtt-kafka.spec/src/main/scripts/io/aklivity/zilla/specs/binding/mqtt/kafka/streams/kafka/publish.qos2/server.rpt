@@ -233,6 +233,9 @@ write zilla:begin.ext ${kafka:beginEx()
 
 connected
 
+read closed
+write close
+
 
 accepted
 
@@ -251,8 +254,8 @@ read zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .offsetCommit()
                                   .topic("mqtt-messages")
-                                  .progress(0, 1, mqtt:metadata()
-                                                      .metadata(1, 1)
+                                  .progress(0, 1, mqtt:publishMetadata()
+                                                      .producer(1, 1)
                                                       .build())
                                   .generationId(1)
                                   .leaderEpoch(0)
@@ -264,8 +267,9 @@ read zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .offsetCommit()
                                   .topic("mqtt-messages")
-                                  .progress(0, 2, mqtt:metadata()
-                                                      .metadata(1, 1, 1)
+                                  .progress(0, 2, mqtt:publishMetadata()
+                                                      .producer(1, 1)
+                                                      .packetId(1)
                                                       .build())
                                   .generationId(1)
                                   .leaderEpoch(0)
@@ -281,8 +285,8 @@ read zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .offsetCommit()
                                   .topic("mqtt-messages")
-                                  .progress(0, 2, mqtt:metadata()
-                                                      .metadata(1, 1)
+                                  .progress(0, 2, mqtt:publishMetadata()
+                                                      .producer(1, 1)
                                                       .build())
                                   .generationId(1)
                                   .leaderEpoch(0)
