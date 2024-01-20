@@ -212,14 +212,14 @@
         <artifactId>license-maven-plugin</artifactId>
         <configuration>
           <excludes>
-            <exclude>src/main/docker/*/zpmw</exclude>
-            <exclude>src/main/docker/*/zilla</exclude>
-            <exclude>src/main/docker/*/zilla.properties</exclude>
-            <exclude>src/main/docker/*/zilla.yaml</exclude>
-            <exclude>src/main/docker/*/.zilla/**</exclude>
-            <exclude>src/main/docker/*/zpm.json.template</exclude>
-            <exclude>src/main/docker/*/zpm.json</exclude>
-            <exclude>src/main/docker/*/.zpm/**</exclude>
+            <exclude>src/main/docker/zpmw</exclude>
+            <exclude>src/main/docker/zilla</exclude>
+            <exclude>src/main/docker/zilla.properties</exclude>
+            <exclude>src/main/docker/zilla.yaml</exclude>
+            <exclude>src/main/docker/.zilla/**</exclude>
+            <exclude>src/main/docker/zpm.json.template</exclude>
+            <exclude>src/main/docker/zpm.json</exclude>
+            <exclude>src/main/docker/.zpm/**</exclude>
           </excludes>
         </configuration>
       </plugin>
@@ -235,7 +235,7 @@
           <arguments>
             <argument>wrap</argument>
             <argument>--launcher-directory</argument>
-            <argument>${project.basedir}/src/main/docker/${docker.context}</argument>
+            <argument>${project.basedir}/src/main/docker</argument>
           </arguments>
         </configuration>
         <executions>
@@ -258,7 +258,6 @@
               <alias>zilla</alias>
               <name>ghcr.io/aklivity/zilla:%v</name>
               <build>
-                <contextDir>${docker.context}</contextDir>
                 <tags>
                   <tag>latest</tag>
                 </tags>
@@ -383,7 +382,7 @@
                   <alias>zilla-alpine</alias>
                   <name>ghcr.io/aklivity/zilla:%v-alpine</name>
                   <build>
-                    <dockerFile>${docker.context}/alpine.Dockerfile</dockerFile>
+                    <dockerFile>alpine.Dockerfile</dockerFile>
                     <tags>
                       <tag>alpine</tag>
                     </tags>

@@ -13,13 +13,9 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.vault;
+package io.aklivity.zilla.runtime.engine.factory;
 
-import io.aklivity.zilla.runtime.engine.Configuration;
-import io.aklivity.zilla.runtime.engine.factory.FactorySpi;
-
-public interface VaultFactorySpi extends FactorySpi
+public interface FactorySpi
 {
-    Vault create(
-        Configuration config);
+    String name();
 }

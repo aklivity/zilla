@@ -108,7 +108,7 @@ public class EngineManager
         this.config = config;
         this.extensions = extensions;
         this.readURL = readURL;
-        this.expressions = ExpressionResolver.instantiate();
+        this.expressions = ExpressionResolver.instantiate(config);
         this.matchName = NamespaceAdapter.PATTERN_NAME.matcher("");
     }
 

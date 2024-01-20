@@ -15,23 +15,22 @@
  */
 package io.aklivity.zilla.runtime.engine.exporter;
 
-import static java.util.Collections.unmodifiableMap;
 import static java.util.Objects.requireNonNull;
 import static java.util.ServiceLoader.load;
 
 import java.util.Map;
-import java.util.ServiceLoader;
-import java.util.TreeMap;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.factory.Factory;
 
-public final class ExporterFactory
+public final class ExporterFactory extends Factory
 {
     private final Map<String, ExporterFactorySpi> factorySpis;
 
-    public static ExporterFactory instantiate()
+    public static ExporterFactory instantiate(
+        Configuration config)
     {
-        return instantiate(load(ExporterFactorySpi.class));
+        return instantiate(config, load(ExporterFactorySpi.class), ExporterFactory::new);
     }
 
     public Iterable<String> names()
@@ -48,15 +47,6 @@ public final class ExporterFactory
         ExporterFactorySpi factorySpi = requireNonNull(factorySpis.get(type), () -> "Unrecognized exporter type: " + type);
 
         return factorySpi.create(config);
-    }
-
-    private static ExporterFactory instantiate(
-        ServiceLoader<ExporterFactorySpi> factories)
-    {
-        Map<String, ExporterFactorySpi> factorySpisByName = new TreeMap<>();
-        factories.forEach(factorySpi -> factorySpisByName.put(factorySpi.type(), factorySpi));
-
-        return new ExporterFactory(unmodifiableMap(factorySpisByName));
     }
 
     private ExporterFactory(

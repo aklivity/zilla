@@ -24,14 +24,16 @@ import java.util.Map;
 import java.util.ServiceLoader;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.factory.Factory;
 
-public final class MetricGroupFactory
+public final class MetricGroupFactory extends Factory
 {
     private final Map<String, MetricGroupFactorySpi> factorySpis;
 
-    public static MetricGroupFactory instantiate()
+    public static MetricGroupFactory instantiate(
+        Configuration config)
     {
-        return instantiate(load(MetricGroupFactorySpi.class));
+        return instantiate(config, load(MetricGroupFactorySpi.class), MetricGroupFactory::new);
     }
 
     public Iterable<String> names()

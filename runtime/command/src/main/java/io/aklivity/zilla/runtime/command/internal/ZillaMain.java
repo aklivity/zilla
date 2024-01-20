@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.command.internal;
 
+import java.lang.module.ModuleDescriptor;
 import java.util.ServiceLoader;
 
 import com.github.rvesse.airline.Cli;
@@ -53,9 +54,15 @@ public final class ZillaMain
                     .withCommand(Help.class);
 
             ClassLoader loader = Thread.currentThread().getContextClassLoader();
+            boolean incubatorEnabled = incubatorEnabled();
+
             for (ZillaCommandSpi service : ServiceLoader.load(ZillaCommandSpi.class, loader))
             {
-                service.mixin(builder);
+                if (!service.getClass().getPackageName().contains("incubator") ||
+                    incubatorEnabled)
+                {
+                    service.mixin(builder);
+                }
             }
 
             final Cli<Runnable> parser = builder.build();
@@ -74,6 +81,21 @@ public final class ZillaMain
 
             return status;
         }
+    }
+
+    private static boolean incubatorEnabled()
+    {
+        final Module module = ZillaMain.class.getModule();
+        final String override = System.getProperty("zilla.incubator.enabled");
+
+        return override != null
+            ? Boolean.parseBoolean(override)
+            : module == null ||
+                "develop-SNAPSHOT".equals(module
+                    .getDescriptor()
+                    .version()
+                    .map(ModuleDescriptor.Version::toString)
+                    .orElse("develop-SNAPSHOT"));
     }
 }
 

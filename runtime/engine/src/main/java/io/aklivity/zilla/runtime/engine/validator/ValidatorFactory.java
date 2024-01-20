@@ -15,27 +15,27 @@
  */
 package io.aklivity.zilla.runtime.engine.validator;
 
-import static java.util.Collections.unmodifiableMap;
 import static java.util.Objects.requireNonNull;
 import static java.util.ServiceLoader.load;
 
 import java.util.Collection;
 import java.util.Map;
-import java.util.ServiceLoader;
-import java.util.TreeMap;
 import java.util.function.LongFunction;
 import java.util.function.ToLongFunction;
 
+import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
+import io.aklivity.zilla.runtime.engine.factory.Factory;
 
-public final class ValidatorFactory
+public final class ValidatorFactory extends Factory
 {
     private final Map<String, ValidatorFactorySpi> validatorSpis;
 
-    public static ValidatorFactory instantiate()
+    public static ValidatorFactory instantiate(
+        Configuration config)
     {
-        return instantiate(load(ValidatorFactorySpi.class));
+        return instantiate(config, load(ValidatorFactorySpi.class), ValidatorFactory::new);
     }
 
     public Validator create(
@@ -54,15 +54,6 @@ public final class ValidatorFactory
     public Collection<ValidatorFactorySpi> validatorSpis()
     {
         return validatorSpis.values();
-    }
-
-    private static ValidatorFactory instantiate(
-        ServiceLoader<ValidatorFactorySpi> validators)
-    {
-        Map<String, ValidatorFactorySpi> validatorSpisByName = new TreeMap<>();
-        validators.forEach(validatorSpi -> validatorSpisByName.put(validatorSpi.type(), validatorSpi));
-
-        return new ValidatorFactory(unmodifiableMap(validatorSpisByName));
     }
 
     private ValidatorFactory(
