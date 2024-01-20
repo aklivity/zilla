@@ -205,7 +205,7 @@ public final class EngineConfigReader
             }
 
             final JsonParser schemaParser = schemaProvider.createParserFactory(null)
-                .createParser(new StringReader(schemaObject.toString()));
+                .createParser(new StringReader(annotatedSchemaObject.toString()));
 
             final JsonValidationService service = JsonValidationService.newInstance();
             ProblemHandler handler = service.createProblemPrinter(msg -> errors.add(new ConfigException(msg)));
