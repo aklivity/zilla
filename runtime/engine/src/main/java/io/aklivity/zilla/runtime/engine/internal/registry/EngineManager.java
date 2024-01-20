@@ -171,17 +171,13 @@ public class EngineManager
 
         logger.accept(configText);
 
-        if (config.configResolveExpressions())
-        {
-            configText = expressions.resolve(configText);
-        }
-
         try
         {
             final Function<String, String> namespaceReadURL = l -> readURL.apply(configURL, l);
 
             EngineConfigReader reader = new EngineConfigReader(
                 new NamespaceConfigAdapterContext(namespaceReadURL),
+                expressions,
                 schemaTypes,
                 config.verboseSchema() ? logger : null);
 

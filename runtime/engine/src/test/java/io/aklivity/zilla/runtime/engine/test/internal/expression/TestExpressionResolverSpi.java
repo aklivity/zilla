@@ -29,6 +29,21 @@ public class TestExpressionResolverSpi implements ExpressionResolverSpi
     public String resolve(
         String var)
     {
-        return "PASSWORD".equals(var) ? "ACTUALPASSWORD" : null;
+        String result = null;
+
+        if ("PASSWORD".equals(var))
+        {
+            result = "ACTUALPASSWORD";
+        }
+        else if ("PORT".equals(var))
+        {
+            result = "1234";
+        }
+        else if ("EXPRESSION".equals(var))
+        {
+            result = "${{test.EXPRESSION}}";
+        }
+
+        return result;
     }
 }
