@@ -14,10 +14,12 @@
  */
 package io.aklivity.zilla.runtime.catalog.inline.internal;
 
+import io.aklivity.zilla.runtime.common.annotation.Incubating;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.catalog.Catalog;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogFactorySpi;
 
+@Incubating
 public class InlineCatalogFactorySpi implements CatalogFactorySpi
 {
     @Override

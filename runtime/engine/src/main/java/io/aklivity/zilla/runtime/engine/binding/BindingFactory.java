@@ -20,17 +20,16 @@ import static java.util.ServiceLoader.load;
 
 import java.util.Map;
 
+import io.aklivity.zilla.runtime.common.Feature;
 import io.aklivity.zilla.runtime.engine.Configuration;
-import io.aklivity.zilla.runtime.engine.factory.Factory;
 
-public final class BindingFactory extends Factory
+public final class BindingFactory extends Feature
 {
     private final Map<String, BindingFactorySpi> factorySpis;
 
-    public static BindingFactory instantiate(
-        Configuration config)
+    public static BindingFactory instantiate()
     {
-        return instantiate(config, load(BindingFactorySpi.class), BindingFactory::new);
+        return instantiate(load(BindingFactorySpi.class), BindingFactory::new);
     }
 
     public Iterable<String> names()

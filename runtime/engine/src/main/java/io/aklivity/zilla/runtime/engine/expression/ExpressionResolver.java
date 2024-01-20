@@ -22,10 +22,9 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import io.aklivity.zilla.runtime.engine.Configuration;
-import io.aklivity.zilla.runtime.engine.factory.Factory;
+import io.aklivity.zilla.runtime.common.Feature;
 
-public final class ExpressionResolver extends Factory
+public final class ExpressionResolver extends Feature
 {
     private static final Pattern EXPRESSION_PATTERN =
             Pattern.compile("\\$\\{\\{\\s*([^\\s\\}]*)\\.([^\\s\\}]*)\\s*\\}\\}");
@@ -33,10 +32,9 @@ public final class ExpressionResolver extends Factory
     private final Map<String, ExpressionResolverSpi> resolverSpis;
     private Matcher matcher;
 
-    public static ExpressionResolver instantiate(
-        Configuration config)
+    public static ExpressionResolver instantiate()
     {
-        return instantiate(config, load(ExpressionResolverSpi.class), ExpressionResolver::new);
+        return instantiate(load(ExpressionResolverSpi.class), ExpressionResolver::new);
     }
 
     public String resolve(

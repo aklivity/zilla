@@ -20,17 +20,16 @@ import static java.util.ServiceLoader.load;
 
 import java.util.Map;
 
+import io.aklivity.zilla.runtime.common.Feature;
 import io.aklivity.zilla.runtime.engine.Configuration;
-import io.aklivity.zilla.runtime.engine.factory.Factory;
 
-public final class ExporterFactory extends Factory
+public final class ExporterFactory extends Feature
 {
     private final Map<String, ExporterFactorySpi> factorySpis;
 
-    public static ExporterFactory instantiate(
-        Configuration config)
+    public static ExporterFactory instantiate()
     {
-        return instantiate(config, load(ExporterFactorySpi.class), ExporterFactory::new);
+        return instantiate(load(ExporterFactorySpi.class), ExporterFactory::new);
     }
 
     public Iterable<String> names()

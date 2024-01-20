@@ -22,7 +22,6 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
-import java.lang.module.ModuleDescriptor;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -67,7 +66,6 @@ public class EngineConfiguration extends Configuration
     public static final LongPropertyDef ENGINE_CREDITOR_CHILD_CLEANUP_LINGER_MILLIS;
     public static final BooleanPropertyDef ENGINE_VERBOSE;
     public static final BooleanPropertyDef ENGINE_VERBOSE_SCHEMA;
-    public static final BooleanPropertyDef ENGINE_INCUBATOR_ENABLED;
     public static final IntPropertyDef ENGINE_WORKERS;
 
     private static final ConfigurationDef ENGINE_CONFIG;
@@ -105,7 +103,6 @@ public class EngineConfiguration extends Configuration
         ENGINE_CREDITOR_CHILD_CLEANUP_LINGER_MILLIS = config.property("child.cleanup.linger", SECONDS.toMillis(5L));
         ENGINE_VERBOSE = config.property("verbose", false);
         ENGINE_VERBOSE_SCHEMA = config.property("verbose.schema", false);
-        ENGINE_INCUBATOR_ENABLED = config.property("incubator.enabled", EngineConfiguration::defaultIncubatorEnabled);
         ENGINE_WORKERS = config.property("workers", Runtime.getRuntime().availableProcessors());
         ENGINE_CONFIG = config;
     }
@@ -255,11 +252,6 @@ public class EngineConfiguration extends Configuration
         return ENGINE_VERBOSE_SCHEMA.getAsBoolean(this);
     }
 
-    public boolean incubatorEnabled()
-    {
-        return ENGINE_INCUBATOR_ENABLED.getAsBoolean(this);
-    }
-
     public int workers()
     {
         return ENGINE_WORKERS.getAsInt(this);
@@ -375,21 +367,5 @@ public class EngineConfiguration extends Configuration
 
             return addresses;
         };
-    }
-
-    private static boolean defaultIncubatorEnabled(
-        Configuration config)
-    {
-        final Module module = EngineConfiguration.class.getModule();
-        final String override = System.getProperty("zilla.incubator.enabled");
-
-        return override != null
-            ? Boolean.parseBoolean(override)
-            : module == null ||
-                "develop-SNAPSHOT".equals(module
-                    .getDescriptor()
-                    .version()
-                    .map(ModuleDescriptor.Version::toString)
-                    .orElse("develop-SNAPSHOT"));
     }
 }

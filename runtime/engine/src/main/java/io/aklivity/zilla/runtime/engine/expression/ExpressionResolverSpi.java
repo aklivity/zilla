@@ -15,9 +15,9 @@
  */
 package io.aklivity.zilla.runtime.engine.expression;
 
-import io.aklivity.zilla.runtime.engine.factory.FactorySpi;
+import io.aklivity.zilla.runtime.common.FeatureSpi;
 
-public interface ExpressionResolverSpi extends FactorySpi
+public interface ExpressionResolverSpi extends FeatureSpi
 {
     String resolve(
         String var);

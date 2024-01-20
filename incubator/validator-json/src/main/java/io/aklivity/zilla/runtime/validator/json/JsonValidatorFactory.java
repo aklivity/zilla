@@ -18,12 +18,14 @@ import java.net.URL;
 import java.util.function.LongFunction;
 import java.util.function.ToLongFunction;
 
+import io.aklivity.zilla.runtime.common.annotation.Incubating;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 import io.aklivity.zilla.runtime.engine.validator.Validator;
 import io.aklivity.zilla.runtime.engine.validator.ValidatorFactorySpi;
 import io.aklivity.zilla.runtime.validator.json.config.JsonValidatorConfig;
 
+@Incubating
 public final class JsonValidatorFactory implements ValidatorFactorySpi
 {
     @Override

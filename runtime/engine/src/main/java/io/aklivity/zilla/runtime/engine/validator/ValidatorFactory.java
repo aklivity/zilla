@@ -23,19 +23,17 @@ import java.util.Map;
 import java.util.function.LongFunction;
 import java.util.function.ToLongFunction;
 
-import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.common.Feature;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
-import io.aklivity.zilla.runtime.engine.factory.Factory;
 
-public final class ValidatorFactory extends Factory
+public final class ValidatorFactory extends Feature
 {
     private final Map<String, ValidatorFactorySpi> validatorSpis;
 
-    public static ValidatorFactory instantiate(
-        Configuration config)
+    public static ValidatorFactory instantiate()
     {
-        return instantiate(config, load(ValidatorFactorySpi.class), ValidatorFactory::new);
+        return instantiate(load(ValidatorFactorySpi.class), ValidatorFactory::new);
     }
 
     public Validator create(

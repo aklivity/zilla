@@ -13,36 +13,49 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.factory;
+package io.aklivity.zilla.runtime.common;
 
 import static java.util.Collections.unmodifiableMap;
 
+import java.lang.module.ModuleDescriptor;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.engine.Configuration;
-import io.aklivity.zilla.runtime.engine.EngineConfiguration;
+import io.aklivity.zilla.runtime.common.annotation.Incubating;
 
-public abstract class Factory
+public abstract class Feature
 {
-    protected static <S extends FactorySpi, F> F instantiate(
-        Configuration config,
+    protected static <S extends FeatureSpi, F> F instantiate(
         Iterable<S> factories,
         Function<Map<String, S>, F> construct)
     {
-        EngineConfiguration engineConfig = new EngineConfiguration(config);
         Map<String, S> factoriesByName = new TreeMap<>();
         for (S factory : factories)
         {
-            if (!factory.getClass().getPackageName().contains("incubator") ||
-                engineConfig.incubatorEnabled())
+            if (!factories.getClass().isAnnotationPresent(Incubating.class) ||
+                incubatorEnabled())
             {
                 factoriesByName.put(factory.name(), factory);
             }
         }
 
         return construct.apply(unmodifiableMap(factoriesByName));
+    }
+
+    private static boolean incubatorEnabled()
+    {
+        final Module module = Feature.class.getModule();
+        final String override = System.getProperty("zilla.incubator.enabled");
+
+        return override != null
+            ? Boolean.parseBoolean(override)
+            : module == null ||
+            "develop-SNAPSHOT".equals(module
+                .getDescriptor()
+                .version()
+                .map(ModuleDescriptor.Version::toString)
+                .orElse("develop-SNAPSHOT"));
     }
 
 }

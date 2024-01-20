@@ -15,10 +15,10 @@
  */
 package io.aklivity.zilla.runtime.engine.guard;
 
+import io.aklivity.zilla.runtime.common.FeatureSpi;
 import io.aklivity.zilla.runtime.engine.Configuration;
-import io.aklivity.zilla.runtime.engine.factory.FactorySpi;
 
-public interface GuardFactorySpi extends FactorySpi
+public interface GuardFactorySpi extends FeatureSpi
 {
     Guard create(
         Configuration config);

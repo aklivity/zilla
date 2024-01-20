@@ -83,7 +83,7 @@ public class EngineBuilder
         final EngineConfiguration config = new EngineConfiguration(this.config != null ? this.config : new Configuration());
 
         final Set<Binding> bindings = new LinkedHashSet<>();
-        final BindingFactory bindingFactory = BindingFactory.instantiate(config);
+        final BindingFactory bindingFactory = BindingFactory.instantiate();
         for (String name : bindingFactory.names())
         {
             Binding binding = bindingFactory.create(name, config);
@@ -91,7 +91,7 @@ public class EngineBuilder
         }
 
         final Set<Exporter> exporters = new LinkedHashSet<>();
-        final ExporterFactory exporterFactory = ExporterFactory.instantiate(config);
+        final ExporterFactory exporterFactory = ExporterFactory.instantiate();
         for (String name : exporterFactory.names())
         {
             Exporter exporter = exporterFactory.create(name, config);
@@ -99,7 +99,7 @@ public class EngineBuilder
         }
 
         final Set<Guard> guards = new LinkedHashSet<>();
-        final GuardFactory guardFactory = GuardFactory.instantiate(config);
+        final GuardFactory guardFactory = GuardFactory.instantiate();
         for (String name : guardFactory.names())
         {
             Guard guard = guardFactory.create(name, config);
@@ -107,7 +107,7 @@ public class EngineBuilder
         }
 
         final Set<MetricGroup> metricGroups = new LinkedHashSet<>();
-        final MetricGroupFactory metricGroupFactory = MetricGroupFactory.instantiate(config);
+        final MetricGroupFactory metricGroupFactory = MetricGroupFactory.instantiate();
         for (String name : metricGroupFactory.names())
         {
             MetricGroup metricGroup = metricGroupFactory.create(name, config);
@@ -115,7 +115,7 @@ public class EngineBuilder
         }
 
         final Set<Vault> vaults = new LinkedHashSet<>();
-        final VaultFactory vaultFactory = VaultFactory.instantiate(config);
+        final VaultFactory vaultFactory = VaultFactory.instantiate();
         for (String name : vaultFactory.names())
         {
             Vault vault = vaultFactory.create(name, config);
@@ -123,14 +123,14 @@ public class EngineBuilder
         }
 
         final Set<Catalog> catalogs = new LinkedHashSet<>();
-        final CatalogFactory catalogFactory = CatalogFactory.instantiate(config);
+        final CatalogFactory catalogFactory = CatalogFactory.instantiate();
         for (String name : catalogFactory.names())
         {
             Catalog catalog = catalogFactory.create(name, config);
             catalogs.add(catalog);
         }
 
-        final ValidatorFactory validatorFactory = ValidatorFactory.instantiate(config);
+        final ValidatorFactory validatorFactory = ValidatorFactory.instantiate();
 
         final ErrorHandler errorHandler = requireNonNull(this.errorHandler, "errorHandler");
 

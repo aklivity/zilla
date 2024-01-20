@@ -27,4 +27,10 @@ public final class ZillaMetricsCommandSpi implements ZillaCommandSpi
     {
         builder.withCommand(ZillaMetricsCommand.class);
     }
+
+    @Override
+    public String name()
+    {
+        return null;
+    }
 }

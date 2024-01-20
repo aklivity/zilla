@@ -13,9 +13,15 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.factory;
+package io.aklivity.zilla.runtime.common.annotation;
 
-public interface FactorySpi
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ElementType.TYPE })
+public @interface Incubating
 {
-    String name();
 }
