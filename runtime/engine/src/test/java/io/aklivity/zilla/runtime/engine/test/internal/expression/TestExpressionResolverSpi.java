@@ -39,6 +39,11 @@ public class TestExpressionResolverSpi implements ExpressionResolverSpi
         {
             result = "1234";
         }
+        else if ("EXPRESSION".equals(var))
+        {
+            result = "${{test.EXPRESSION}}";
+        }
+
         return result;
     }
 }
