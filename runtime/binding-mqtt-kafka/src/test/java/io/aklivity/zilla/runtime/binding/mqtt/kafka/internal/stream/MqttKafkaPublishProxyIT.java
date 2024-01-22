@@ -316,6 +316,17 @@ public class MqttKafkaPublishProxyIT
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
+        "${mqtt}/publish.qos2.retained/client",
+        "${kafka}/publish.qos2.retained/server"})
+    public void shouldSendMessageQos2Retained() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
         "${mqtt}/publish.mixture.qos/client",
         "${kafka}/publish.mixture.qos/server"})
     public void shouldSendMessageMixtureQos() throws Exception

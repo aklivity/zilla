@@ -548,6 +548,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             willPadding += expirySignalSize;
 
             session.doKafkaBeginIfNecessary(traceId, authorization, affinity);
+            doMqttWindow(authorization, traceId, 0, 0, 0);
         }
 
         private void onMqttData(
@@ -764,7 +765,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         {
             final long offsetKey = offsetKey(topic, partitionId);
             final PublishOffsetMetadata metadata = offsets.get(offsetKey);
-            metadata.sequence++;
             metadata.packetIds.add(packetId);
             Flyweight offsetCommitEx = kafkaDataExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())
@@ -772,7 +772,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 .offsetCommit(o -> o
                     .topic(topic)
                     .progress(p -> p
-                        .partitionId(-1)
+                        .partitionId(partitionId)
                         .partitionOffset(metadata.sequence)
                         .metadata(offsetMetadataToString(metadata)))
                     .generationId(generationId)
@@ -782,6 +782,36 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             offsetCommit.unackedPublishes.add(publish);
             offsetCommit.unackedPacketIds.add(INCOMPLETE_PACKET_ID);
             offsetCommit.doKafkaData(traceId, authorization, 0, DATA_FLAG_COMPLETE, offsetCommitEx);
+        }
+
+        public void commitOffsetComplete(
+            long traceId,
+            long authorization,
+            String topic,
+            int partitionId,
+            int packetId,
+            MqttKafkaPublishFactory.MqttPublishProxy publish)
+        {
+            final long offsetKey = offsetKey(topic, partitionId);
+            final PublishOffsetMetadata metadata = offsets.get(offsetKey);
+            metadata.packetIds.remove((Integer) packetId);
+            Flyweight offsetCommitEx = kafkaDataExRW
+                .wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(kafkaTypeId)
+                .offsetCommit(o -> o
+                    .topic(topic)
+                    .progress(p -> p
+                        .partitionId(partitionId)
+                        .partitionOffset(metadata.sequence)
+                        .metadata(offsetMetadataToString(metadata)))
+                    .generationId(generationId)
+                    .leaderEpoch((int) leaderEpochs.get(offsetKey)))
+                .build();
+
+            offsetCommit.unackedPublishes.add(publish);
+            offsetCommit.unackedPacketIds.add(packetId);
+            offsetCommit.doKafkaData(traceId, authorization, 0, DATA_FLAG_COMPLETE, offsetCommitEx);
+            metadata.sequence++;
         }
 
         public PublishOffsetMetadata getOffsetMetadata(
@@ -3982,6 +4012,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                         }).build();
 
                     delegate.doMqttBegin(traceId, authorization, 0, mqttBeginEx);
+                    delegate.session = new KafkaSessionStateProxy(originId, routedId, delegate);
+                    delegate.session.doKafkaBeginIfNecessary(traceId, authorization, 0);
                 }
             }
 
@@ -4458,9 +4490,9 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                         .wrap(extBuffer, 0, extBuffer.capacity())
                         .typeId(kafkaTypeId)
                         .offsetCommit(o -> o
-                            .topic(messagesTopic)
+                            .topic(kp.topic)
                             .progress(p -> p
-                                .partitionId(-1)
+                                .partitionId(kp.partitionId)
                                 .partitionOffset(metadata.sequence)
                                 .metadata(offsetMetadataToString(metadata)))
                             .generationId(delegate.generationId)
@@ -4478,7 +4510,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                     final int packetId = unackedPacketIds.remove();
                     if (packetId == INCOMPLETE_PACKET_ID)
                     {
-                        publish.doMqttWindow(authorization, traceId, 0, 0, 0);
+                        publish.doMqttWindow(traceId, authorization, 0, 0, 0);
                     }
                     else
                     {
@@ -4512,6 +4544,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                             }).build();
 
                         delegate.doMqttBegin(traceId, authorization, 0, mqttBeginEx);
+                        delegate.session = new KafkaSessionStateProxy(originId, routedId, delegate);
+                        delegate.session.doKafkaBeginIfNecessary(traceId, authorization, 0);
                     }
                 }
             }
@@ -4571,7 +4605,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             Flyweight extension)
         {
             doData(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, authorization, budgetId, flags, 0, null, extension);
+                traceId, authorization, budgetId, flags, 0, EMPTY_OCTETS, extension);
 
             assert initialSeq <= initialAck + initialMax;
         }
@@ -4657,7 +4691,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             long producerId,
             short producerEpoch)
         {
-            this.sequence = 0;
+            this.sequence = 1;
             this.producerId = producerId;
             this.producerEpoch = producerEpoch;
             this.packetIds = new IntArrayList();
@@ -4668,16 +4702,10 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             short producerEpoch,
             IntArrayList packetIds)
         {
-            this.sequence = 0;
+            this.sequence = 1;
             this.producerId = producerId;
             this.producerEpoch = producerEpoch;
             this.packetIds = packetIds;
-        }
-
-        private void addPacketId(
-            int packetId)
-        {
-            packetIds.add(packetId);
         }
     }
 

@@ -147,23 +147,6 @@ read zilla:data.ext ${kafka:matchDataEx()
                            .build()}
 read "message"
 
-read zilla:data.ext ${kafka:matchDataEx()
-                           .typeId(zilla:id("kafka"))
-                           .merged()
-                            .produce()
-                               .deferred(0)
-                               .producerId(1)
-                               .producerEpoch(1)
-                               .partition(-1, 2)
-                               .key("sensor/one")
-                               .header("zilla:filter", "sensor")
-                               .header("zilla:filter", "one")
-                               .header("zilla:local", "client")
-                               .header("zilla:qos", "2")
-                               .build()
-                           .build()}
-read "message2"
-
 
 accepted
 
@@ -187,6 +170,42 @@ write zilla:begin.ext ${kafka:beginEx()
                                 .build()
                             .build()}
 
+connected
+
+read advised zilla:flush ${kafka:flushEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                .produce()
+                                  .hashKey("sensor/one")
+                                  .build()
+                              .build()}
+
+write advise zilla:flush ${kafka:flushEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                .produce()
+                                  .hashKey("sensor/one")
+                                  .partitionId(0)
+                                  .build()
+                              .build()}
+
+
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                            .produce()
+                               .deferred(0)
+                               .producerId(1)
+                               .producerEpoch(1)
+                               .partition(-1, 1)
+                               .key("sensor/one")
+                               .header("zilla:filter", "sensor")
+                               .header("zilla:filter", "one")
+                               .header("zilla:local", "client")
+                               .header("zilla:qos", "2")
+                               .build()
+                           .build()}
+read "message"
 
 accepted
 
@@ -339,21 +358,8 @@ read zilla:data.empty
 read zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .offsetCommit()
-                                  .topic("mqtt-messages")
+                                  .topic("mqtt-retained")
                                   .progress(0, 1, mqtt:publishMetadata()
-                                                      .producer(1, 1)
-                                                      .build())
-                                  .generationId(1)
-                                  .leaderEpoch(0)
-                                  .build()
-                              .build()}
-read zilla:data.empty
-
-read zilla:data.ext ${kafka:dataEx()
-                              .typeId(zilla:id("kafka"))
-                              .offsetCommit()
-                                  .topic("mqtt-messages")
-                                  .progress(0, 2, mqtt:publishMetadata()
                                                       .producer(1, 1)
                                                       .packetId(1)
                                                       .build())
@@ -367,7 +373,20 @@ read zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .offsetCommit()
                                   .topic("mqtt-messages")
-                                  .progress(0, 2, mqtt:publishMetadata()
+                                  .progress(0, 1, mqtt:publishMetadata()
+                                                      .producer(1, 1)
+                                                      .build())
+                                  .generationId(1)
+                                  .leaderEpoch(0)
+                                  .build()
+                              .build()}
+read zilla:data.empty
+
+read zilla:data.ext ${kafka:dataEx()
+                              .typeId(zilla:id("kafka"))
+                              .offsetCommit()
+                                  .topic("mqtt-retained")
+                                  .progress(0, 1, mqtt:publishMetadata()
                                                       .producer(1, 1)
                                                       .build())
                                   .generationId(1)

@@ -52,6 +52,7 @@ write zilla:begin.ext ${mqtt:beginEx()
                               .publish()
                                 .clientId("client")
                                 .topic("sensor/one")
+                                .flags("RETAIN")
                                 .qos(2)
                                 .build()
                               .build()}
@@ -62,6 +63,7 @@ write zilla:data.ext ${mqtt:dataEx()
                             .typeId(zilla:id("mqtt"))
                             .publish()
                                 .qos("EXACTLY_ONCE")
+                                .flags("RETAIN")
                                 .packetId(1)
                                 .build()
                             .build()}
@@ -83,27 +85,3 @@ read advised zilla:flush ${mqtt:flushEx()
                                      .build()
                                  .build()}
 
-write zilla:data.ext ${mqtt:dataEx()
-                            .typeId(zilla:id("mqtt"))
-                            .publish()
-                                .qos("EXACTLY_ONCE")
-                                .packetId(1)
-                                .build()
-                            .build()}
-write "message2"
-write flush
-
-# Triggered by PUBREL
-write advise zilla:flush ${mqtt:flushEx()
-                                 .typeId(zilla:id("mqtt"))
-                                 .publish()
-                                     .packetId(1)
-                                     .build()
-                                 .build()}
-
-read advised zilla:flush ${mqtt:flushEx()
-                                 .typeId(zilla:id("mqtt"))
-                                 .publish()
-                                     .packetId(1)
-                                     .build()
-                                 .build()}
