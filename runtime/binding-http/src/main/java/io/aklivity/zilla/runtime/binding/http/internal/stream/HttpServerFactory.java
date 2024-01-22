@@ -44,6 +44,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
 
 import java.net.URI;
+import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -117,6 +118,7 @@ import io.aklivity.zilla.runtime.binding.http.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.ProxyInfoFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
+import io.aklivity.zilla.runtime.binding.http.internal.types.event.HttpEventFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.Capability;
@@ -1024,11 +1026,39 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                 if (isCorsPreflightRequest(headers))
                 {
+                    HttpEventFW event = server.httpEventRW
+                        .wrap(server.eventBuffer, 0, server.eventBuffer.capacity())
+                        .corsPreflightRequestNotAllowed(e -> e
+                            .originId(server.originId)
+                            .routedId(server.routedId)
+                            .initialId(server.initialId)
+                            .replyId(server.replyId)
+                            .affinity(server.affinity)
+                            .authorization(authorization)
+                            .budgetId(budgetId)
+                            .traceId(traceId)
+                        )
+                        .build();
+                    System.out.println(event); // TODO: Ati
                     server.onDecodeCorsPreflight(traceId, authorization, headers);
                     server.decoder = decodeEmptyLines;
                 }
                 else if (!isCorsRequestAllowed(server.binding, headers))
                 {
+                    HttpEventFW event = server.httpEventRW
+                        .wrap(server.eventBuffer, 0, server.eventBuffer.capacity())
+                        .corsRequestNotAllowed(e -> e
+                            .originId(server.originId)
+                            .routedId(server.routedId)
+                            .initialId(server.initialId)
+                            .replyId(server.replyId)
+                            .affinity(server.affinity)
+                            .authorization(authorization)
+                            .budgetId(budgetId)
+                            .traceId(traceId)
+                        )
+                        .build();
+                    System.out.println(event); // TODO: Ati
                     server.onDecodeHeadersError(traceId, authorization, response403);
                     server.decoder = decodeIgnore;
                 }
@@ -1057,12 +1087,63 @@ public final class HttpServerFactory implements HttpStreamFactory
                             if (credentialsMatch != null)
                             {
                                 exchangeAuth = guard.reauthorize(server.initialId, credentialsMatch);
+                                if (exchangeAuth == 0)
+                                {
+                                    HttpEventFW event = server.httpEventRW
+                                        .wrap(server.eventBuffer, 0, server.eventBuffer.capacity())
+                                        .guardAuthorizationFailure(e -> e
+                                            .originId(server.originId)
+                                            .routedId(server.routedId)
+                                            .initialId(server.initialId)
+                                            .replyId(server.replyId)
+                                            .affinity(server.affinity)
+                                            .authorization(authorization)
+                                            .budgetId(budgetId)
+                                            .traceId(traceId)
+                                        )
+                                        .build();
+                                    System.out.println(event); // TODO: Ati
+                                }
+                                else
+                                {
+                                    HttpEventFW event = server.httpEventRW
+                                        .wrap(server.eventBuffer, 0, server.eventBuffer.capacity())
+                                        .guardAuthorizationSuccess(e -> e
+                                            .originId(server.originId)
+                                            .routedId(server.routedId)
+                                            .initialId(server.initialId)
+                                            .replyId(server.replyId)
+                                            .affinity(server.affinity)
+                                            .authorization(authorization)
+                                            .budgetId(budgetId)
+                                            .traceId(traceId)
+                                        )
+                                        .build();
+                                    System.out.println(event); // TODO: Ati
+                                }
                             }
                         }
 
                         HttpRouteConfig route = binding.resolve(exchangeAuth, headers::get);
                         if (route != null)
                         {
+                            if (guard != null)
+                            {
+                                HttpEventFW event = server.httpEventRW
+                                    .wrap(server.eventBuffer, 0, server.eventBuffer.capacity())
+                                    .routeFound(e -> e
+                                        .originId(server.originId)
+                                        .routedId(server.routedId)
+                                        .initialId(server.initialId)
+                                        .replyId(server.replyId)
+                                        .affinity(server.affinity)
+                                        .authorization(authorization)
+                                        .budgetId(budgetId)
+                                        .traceId(traceId)
+                                    )
+                                    .build();
+                                System.out.println(event);  // TODO: Ati
+                            }
                             if (binding.options != null && binding.options.overrides != null)
                             {
                                 binding.options.overrides.forEach((k, v) -> headers.put(k.asString(), v.asString()));
@@ -1086,6 +1167,23 @@ public final class HttpServerFactory implements HttpStreamFactory
                         }
                         else
                         {
+                            if (guard != null)
+                            {
+                                HttpEventFW event = server.httpEventRW
+                                    .wrap(server.eventBuffer, 0, server.eventBuffer.capacity())
+                                    .routeNotFound(e -> e
+                                        .originId(server.originId)
+                                        .routedId(server.routedId)
+                                        .initialId(server.initialId)
+                                        .replyId(server.replyId)
+                                        .affinity(server.affinity)
+                                        .authorization(authorization)
+                                        .budgetId(budgetId)
+                                        .traceId(traceId)
+                                    )
+                                    .build();
+                                System.out.println(event);  // TODO: Ati
+                            }
                             error = response404;
                         }
                     }
@@ -1584,6 +1682,8 @@ public final class HttpServerFactory implements HttpStreamFactory
         private long replyBudgetId;
         private int replyMax;
         private HttpRequestType requestType;
+        private final HttpEventFW.Builder httpEventRW;
+        private final MutableDirectBuffer eventBuffer;
 
         private HttpServer(
             HttpBindingConfig binding,
@@ -1610,6 +1710,8 @@ public final class HttpServerFactory implements HttpStreamFactory
             this.delegateNetwork = this::onNetwork;
             this.guard = resolveGuard(binding);
             this.credentials = binding.credentials();
+            this.httpEventRW = new HttpEventFW.Builder();
+            this.eventBuffer = new UnsafeBuffer(ByteBuffer.allocate(1024)); // TODO: Ati
         }
 
         private int replyPendingAck()
