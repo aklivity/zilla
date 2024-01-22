@@ -90,6 +90,10 @@
           </rules>
         </configuration>
       </plugin>
+      <plugin>
+        <groupId>io.gatling</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+      </plugin>
     </plugins>
   </build>
 </project>

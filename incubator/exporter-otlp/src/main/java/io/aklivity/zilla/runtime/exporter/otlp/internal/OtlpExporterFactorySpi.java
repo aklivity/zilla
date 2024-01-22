@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.exporter.otlp.internal;
 
-import io.aklivity.zilla.runtime.common.annotation.Incubating;
+import io.aklivity.zilla.runtime.common.feature.Incubating;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.exporter.Exporter;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterFactorySpi;

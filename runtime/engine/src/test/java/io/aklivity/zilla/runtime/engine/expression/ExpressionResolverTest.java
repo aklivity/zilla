@@ -19,15 +19,12 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.engine.Configuration;
-
 public class ExpressionResolverTest
 {
     @Test
     public void shouldLoadAndResolve()
     {
-        Configuration config = new Configuration();
-        ExpressionResolver expressions = ExpressionResolver.instantiate(config);
+        ExpressionResolver expressions = ExpressionResolver.instantiate();
         String actual = expressions.resolve("${{test.PASSWORD}}");
 
         assertEquals("ACTUALPASSWORD", actual);

@@ -15,9 +15,5 @@
  */
 module io.aklivity.zilla.runtime.common
 {
-    requires transitive com.github.rvesse.airline;
-
-    exports io.aklivity.zilla.runtime.common;
-
-    uses io.aklivity.zilla.runtime.common.CommonSpi;
+    exports io.aklivity.zilla.runtime.common.feature;
 }

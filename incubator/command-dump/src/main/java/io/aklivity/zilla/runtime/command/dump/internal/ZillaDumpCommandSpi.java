@@ -18,7 +18,7 @@ import com.github.rvesse.airline.builder.CliBuilder;
 
 import io.aklivity.zilla.runtime.command.ZillaCommandSpi;
 import io.aklivity.zilla.runtime.command.dump.internal.airline.ZillaDumpCommand;
-import io.aklivity.zilla.runtime.common.annotation.Incubating;
+import io.aklivity.zilla.runtime.common.feature.Incubating;
 
 @Incubating
 public class ZillaDumpCommandSpi implements ZillaCommandSpi

@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.validator;
 
+import static io.aklivity.zilla.runtime.common.feature.FeatureLoader.filter;
 import static java.util.Objects.requireNonNull;
 import static java.util.ServiceLoader.load;
 
@@ -23,17 +24,17 @@ import java.util.Map;
 import java.util.function.LongFunction;
 import java.util.function.ToLongFunction;
 
-import io.aklivity.zilla.runtime.common.Feature;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
+import io.aklivity.zilla.runtime.engine.factory.Factory;
 
-public final class ValidatorFactory extends Feature
+public final class ValidatorFactory extends Factory
 {
     private final Map<String, ValidatorFactorySpi> validatorSpis;
 
     public static ValidatorFactory instantiate()
     {
-        return instantiate(load(ValidatorFactorySpi.class), ValidatorFactory::new);
+        return instantiate(filter(load(ValidatorFactorySpi.class)), ValidatorFactory::new);
     }
 
     public Validator create(

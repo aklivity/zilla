@@ -17,16 +17,8 @@ package io.aklivity.zilla.runtime.command;
 
 import com.github.rvesse.airline.builder.CliBuilder;
 
-import io.aklivity.zilla.runtime.common.FeatureSpi;
-
-public interface ZillaCommandSpi extends FeatureSpi
+public interface ZillaCommandSpi
 {
-    @Override
-    default String name()
-    {
-        return null;
-    }
-
     void mixin(CliBuilder<Runnable> builder);
 }
 

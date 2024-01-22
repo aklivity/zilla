@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.amqp.internal;
 
-import io.aklivity.zilla.runtime.common.annotation.Incubating;
+import io.aklivity.zilla.runtime.common.feature.Incubating;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi;
 
@@ -23,7 +23,7 @@ import io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi;
 public final class AmqpBindingFactorySpi implements BindingFactorySpi
 {
     @Override
-    public String name()
+    public String type()
     {
         return AmqpBinding.NAME;
     }

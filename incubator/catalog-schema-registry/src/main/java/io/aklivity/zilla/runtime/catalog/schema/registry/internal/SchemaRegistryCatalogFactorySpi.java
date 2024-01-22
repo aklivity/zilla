@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.catalog.schema.registry.internal;
 
-import io.aklivity.zilla.runtime.common.annotation.Incubating;
+import io.aklivity.zilla.runtime.common.feature.Incubating;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.catalog.Catalog;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogFactorySpi;
@@ -23,7 +23,7 @@ import io.aklivity.zilla.runtime.engine.catalog.CatalogFactorySpi;
 public class SchemaRegistryCatalogFactorySpi implements CatalogFactorySpi
 {
     @Override
-    public String name()
+    public String type()
     {
         return SchemaRegistryCatalog.NAME;
     }

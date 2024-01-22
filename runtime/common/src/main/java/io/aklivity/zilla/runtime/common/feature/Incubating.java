@@ -13,20 +13,15 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.common.internal;
+package io.aklivity.zilla.runtime.common.feature;
 
-import com.github.rvesse.airline.annotations.Command;
-import com.github.rvesse.airline.builder.CliBuilder;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-@Command(name = "test")
-public final class ZillaTestCommandSpi implements ZillaCommandSpi
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ElementType.TYPE })
+public @interface Incubating
 {
-    public static final ThreadLocal<String> TEST_ARGUMENT = new ThreadLocal<>();
-
-    @Override
-    public void mixin(
-        CliBuilder<Runnable> builder)
-    {
-        builder.withCommand(ZillaTestCommand.class);
-    }
 }

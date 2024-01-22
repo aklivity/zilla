@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.expression;
 
+import static io.aklivity.zilla.runtime.common.feature.FeatureLoader.filter;
 import static java.util.Objects.requireNonNull;
 import static java.util.ServiceLoader.load;
 
@@ -22,9 +23,9 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import io.aklivity.zilla.runtime.common.Feature;
+import io.aklivity.zilla.runtime.engine.factory.Factory;
 
-public final class ExpressionResolver extends Feature
+public final class ExpressionResolver extends Factory
 {
     private static final Pattern EXPRESSION_PATTERN =
             Pattern.compile("\\$\\{\\{\\s*([^\\s\\}]*)\\.([^\\s\\}]*)\\s*\\}\\}");
@@ -34,7 +35,7 @@ public final class ExpressionResolver extends Feature
 
     public static ExpressionResolver instantiate()
     {
-        return instantiate(load(ExpressionResolverSpi.class), ExpressionResolver::new);
+        return instantiate(filter(load(ExpressionResolverSpi.class)), ExpressionResolver::new);
     }
 
     public String resolve(

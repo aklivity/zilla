@@ -29,7 +29,7 @@ public final class MetricGroupFactoryTest
     public void shouldLoadAndCreate()
     {
         Configuration config = new Configuration();
-        MetricGroupFactory factory = MetricGroupFactory.instantiate(config);
+        MetricGroupFactory factory = MetricGroupFactory.instantiate();
         MetricGroup metricGroup = factory.create("test", config);
 
         assertThat(metricGroup, instanceOf(TestMetricGroup.class));

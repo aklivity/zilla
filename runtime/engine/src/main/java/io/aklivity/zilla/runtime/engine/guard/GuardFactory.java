@@ -15,21 +15,22 @@
  */
 package io.aklivity.zilla.runtime.engine.guard;
 
+import static io.aklivity.zilla.runtime.common.feature.FeatureLoader.filter;
 import static java.util.Objects.requireNonNull;
 import static java.util.ServiceLoader.load;
 
 import java.util.Map;
 
-import io.aklivity.zilla.runtime.common.Feature;
 import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.factory.Factory;
 
-public final class GuardFactory extends Feature
+public final class GuardFactory extends Factory
 {
     private final Map<String, GuardFactorySpi> factorySpis;
 
     public static GuardFactory instantiate()
     {
-        return instantiate(load(GuardFactorySpi.class), GuardFactory::new);
+        return instantiate(filter(load(GuardFactorySpi.class)), GuardFactory::new);
     }
 
     public Iterable<String> names()

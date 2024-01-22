@@ -47,6 +47,7 @@ module io.aklivity.zilla.runtime.engine
     requires jdk.unsupported;
     requires java.net.http;
     requires org.slf4j;
+    requires io.aklivity.zilla.runtime.common;
 
     uses io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
     uses io.aklivity.zilla.runtime.engine.config.CompositeBindingAdapterSpi;

@@ -30,7 +30,7 @@ public class ExporterFactoryTest
     {
         // GIVEN
         Configuration config = new Configuration();
-        ExporterFactory factory = ExporterFactory.instantiate(config);
+        ExporterFactory factory = ExporterFactory.instantiate();
 
         // WHEN
         Exporter exporter = factory.create("test", config);

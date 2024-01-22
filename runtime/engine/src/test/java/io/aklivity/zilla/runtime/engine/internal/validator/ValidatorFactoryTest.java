@@ -43,7 +43,7 @@ public class ValidatorFactoryTest
         ValidatorConfig testValidator = new TestValidatorConfig();
         ToLongFunction<String> resolveId = mock(ToLongFunction.class);
         LongFunction<CatalogHandler> supplyCatalog = mock(LongFunction.class);
-        ValidatorFactory factory = ValidatorFactory.instantiate(config);
+        ValidatorFactory factory = ValidatorFactory.instantiate();
 
         // WHEN
         Validator validator = factory.create(testValidator, resolveId, supplyCatalog);

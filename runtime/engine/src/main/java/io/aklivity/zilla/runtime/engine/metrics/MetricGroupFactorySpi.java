@@ -15,16 +15,11 @@
  */
 package io.aklivity.zilla.runtime.engine.metrics;
 
-import io.aklivity.zilla.runtime.common.FeatureSpi;
 import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.factory.FactorySpi;
 
-public interface MetricGroupFactorySpi extends FeatureSpi
+public interface MetricGroupFactorySpi extends FactorySpi
 {
-    default String name()
-    {
-        return type();
-    }
-
     String type();
 
     MetricGroup create(

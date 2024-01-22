@@ -29,7 +29,7 @@ public final class GuardFactoryTest
     public void shouldLoadAndCreate()
     {
         Configuration config = new Configuration();
-        GuardFactory factory = GuardFactory.instantiate(config);
+        GuardFactory factory = GuardFactory.instantiate();
         Guard guard = factory.create("test", config);
 
         assertThat(guard, instanceOf(TestGuard.class));

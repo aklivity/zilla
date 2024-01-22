@@ -29,7 +29,7 @@ public final class BindingFactoryTest
     public void shouldLoadAndCreate()
     {
         Configuration config = new Configuration();
-        BindingFactory factory = BindingFactory.instantiate(config);
+        BindingFactory factory = BindingFactory.instantiate();
         Binding binding = factory.create("test", config);
 
         assertThat(binding, instanceOf(TestBinding.class));

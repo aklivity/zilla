@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.metrics;
 
+import static io.aklivity.zilla.runtime.common.feature.FeatureLoader.filter;
 import static java.util.Collections.unmodifiableMap;
 import static java.util.Objects.requireNonNull;
 import static java.util.ServiceLoader.load;
@@ -23,16 +24,16 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.ServiceLoader;
 
-import io.aklivity.zilla.runtime.common.Feature;
 import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.factory.Factory;
 
-public final class MetricGroupFactory extends Feature
+public final class MetricGroupFactory extends Factory
 {
     private final Map<String, MetricGroupFactorySpi> factorySpis;
 
     public static MetricGroupFactory instantiate()
     {
-        return instantiate(load(MetricGroupFactorySpi.class), MetricGroupFactory::new);
+        return instantiate(filter(load(MetricGroupFactorySpi.class)), MetricGroupFactory::new);
     }
 
     public Iterable<String> names()

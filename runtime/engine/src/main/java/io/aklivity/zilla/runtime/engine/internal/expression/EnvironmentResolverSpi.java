@@ -21,7 +21,7 @@ public class EnvironmentResolverSpi implements ExpressionResolverSpi
 {
 
     @Override
-    public String name()
+    public String type()
     {
         return "env";
     }

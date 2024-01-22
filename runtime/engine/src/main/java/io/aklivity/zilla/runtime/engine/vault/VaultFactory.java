@@ -20,10 +20,10 @@ import static java.util.ServiceLoader.load;
 
 import java.util.Map;
 
-import io.aklivity.zilla.runtime.common.Feature;
 import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.factory.Factory;
 
-public final class VaultFactory extends Feature
+public final class VaultFactory extends Factory
 {
     private final Map<String, VaultFactorySpi> factorySpis;
 

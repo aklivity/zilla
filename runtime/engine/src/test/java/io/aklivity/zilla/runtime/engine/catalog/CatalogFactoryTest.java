@@ -29,7 +29,7 @@ public class CatalogFactoryTest
     public void shouldLoadAndCreate()
     {
         Configuration config = new Configuration();
-        CatalogFactory factory = CatalogFactory.instantiate(config);
+        CatalogFactory factory = CatalogFactory.instantiate();
         Catalog catalog = factory.create("test", config);
 
         assertThat(catalog, instanceOf(TestCatalog.class));

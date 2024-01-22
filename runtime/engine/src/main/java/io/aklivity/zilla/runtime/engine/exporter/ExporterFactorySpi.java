@@ -15,16 +15,11 @@
  */
 package io.aklivity.zilla.runtime.engine.exporter;
 
-import io.aklivity.zilla.runtime.common.FeatureSpi;
 import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.factory.FactorySpi;
 
-public interface ExporterFactorySpi extends FeatureSpi
+public interface ExporterFactorySpi extends FactorySpi
 {
-    default String name()
-    {
-        return type();
-    }
-
     String type();
 
     Exporter create(

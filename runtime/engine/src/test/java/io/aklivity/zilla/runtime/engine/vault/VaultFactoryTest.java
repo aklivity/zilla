@@ -29,7 +29,7 @@ public final class VaultFactoryTest
     public void shouldLoadAndCreate()
     {
         Configuration config = new Configuration();
-        VaultFactory factory = VaultFactory.instantiate(config);
+        VaultFactory factory = VaultFactory.instantiate();
         Vault vault = factory.create("test", config);
 
         assertThat(vault, instanceOf(TestVault.class));

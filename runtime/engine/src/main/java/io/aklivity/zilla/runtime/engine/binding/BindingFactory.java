@@ -15,21 +15,22 @@
  */
 package io.aklivity.zilla.runtime.engine.binding;
 
+import static io.aklivity.zilla.runtime.common.feature.FeatureLoader.filter;
 import static java.util.Objects.requireNonNull;
 import static java.util.ServiceLoader.load;
 
 import java.util.Map;
 
-import io.aklivity.zilla.runtime.common.Feature;
 import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.factory.Factory;
 
-public final class BindingFactory extends Feature
+public final class BindingFactory extends Factory
 {
     private final Map<String, BindingFactorySpi> factorySpis;
 
     public static BindingFactory instantiate()
     {
-        return instantiate(load(BindingFactorySpi.class), BindingFactory::new);
+        return instantiate(filter(load(BindingFactorySpi.class)), BindingFactory::new);
     }
 
     public Iterable<String> names()

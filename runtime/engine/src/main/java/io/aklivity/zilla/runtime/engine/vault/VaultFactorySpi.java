@@ -15,10 +15,10 @@
  */
 package io.aklivity.zilla.runtime.engine.vault;
 
-import io.aklivity.zilla.runtime.common.FeatureSpi;
 import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.factory.FactorySpi;
 
-public interface VaultFactorySpi extends FeatureSpi
+public interface VaultFactorySpi extends FactorySpi
 {
     Vault create(
         Configuration config);
