@@ -13,13 +13,10 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.expression;
+package io.aklivity.zilla.runtime.engine.resolver;
 
-import io.aklivity.zilla.runtime.engine.factory.FactorySpi;
-
-public interface ExpressionResolverSpi extends FactorySpi
+public interface ResolverSpi
 {
     String resolve(
         String var);
-
 }
