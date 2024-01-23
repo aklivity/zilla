@@ -44,7 +44,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
 
 import java.net.URI;
-import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -87,6 +86,7 @@ import io.aklivity.zilla.runtime.binding.http.config.HttpPolicyConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpVersion;
 import io.aklivity.zilla.runtime.binding.http.internal.HttpBinding;
 import io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration;
+import io.aklivity.zilla.runtime.binding.http.internal.HttpEventContext;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2ContinuationFW;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2DataFW;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2ErrorCode;
@@ -118,7 +118,6 @@ import io.aklivity.zilla.runtime.binding.http.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.ProxyInfoFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
-import io.aklivity.zilla.runtime.binding.http.internal.types.event.HttpEventFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.event.Level;
 import io.aklivity.zilla.runtime.binding.http.internal.types.event.Result;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.AbortFW;
@@ -549,6 +548,7 @@ public final class HttpServerFactory implements HttpStreamFactory
     private final Matcher connectionClose;
     private final int maximumHeadersSize;
     private final Long2ObjectHashMap<HttpBindingConfig> bindings;
+    private final HttpEventContext event;
 
     public HttpServerFactory(
         HttpConfiguration config,
@@ -581,6 +581,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         this.encodeMax = bufferPool.slotCapacity();
         this.createValidator = context::createValidator;
         this.bindings = new Long2ObjectHashMap<>();
+        this.event = new HttpEventContext(context);
 
         this.headers200 = initHeaders(config, STATUS_200);
         this.headers204 = initHeaders(config, STATUS_204);
@@ -945,7 +946,6 @@ public final class HttpServerFactory implements HttpStreamFactory
         receiver.accept(challenge.typeId(), challenge.buffer(), challenge.offset(), challenge.sizeof());
     }
 
-    @SuppressWarnings("checkstyle:methodlength") // TODO: Ati
     private int decodeHeaders(
         HttpServer server,
         long traceId,
@@ -1034,19 +1034,8 @@ public final class HttpServerFactory implements HttpStreamFactory
                 }
                 else if (!isCorsRequestAllowed(server.binding, headers))
                 {
-                    HttpEventFW event = server.httpEventRW
-                        .wrap(server.eventBuffer, 0, server.eventBuffer.capacity())
-                        .accessControl(e -> e
-                            .result(r -> r.set(Result.FAILURE))
-                            .level(l -> l.set(Level.WARNING))
-                            .originId(server.originId)
-                            .routedId(server.routedId)
-                            .initialId(server.initialId)
-                            .replyId(server.replyId)
-                            .traceId(traceId)
-                        )
-                        .build();
-                    System.out.println(event); // TODO: Ati
+                    event.accessControl(Result.FAILURE, Level.WARNING, server.originId, server.routedId, server.initialId,
+                        server.replyId, traceId);
                     server.onDecodeHeadersError(traceId, authorization, response403);
                     server.decoder = decodeIgnore;
                 }
@@ -1075,20 +1064,10 @@ public final class HttpServerFactory implements HttpStreamFactory
                             if (credentialsMatch != null)
                             {
                                 exchangeAuth = guard.reauthorize(server.initialId, credentialsMatch);
-                                long exchangeAuth0 = exchangeAuth;
-                                HttpEventFW event = server.httpEventRW
-                                    .wrap(server.eventBuffer, 0, server.eventBuffer.capacity())
-                                    .authorization(e -> e
-                                        .result(r -> r.set(exchangeAuth0 == 0 ? Result.FAILURE : Result.SUCCESS))
-                                        .level(l -> l.set(exchangeAuth0 == 0 ? Level.WARNING : Level.INFO))
-                                        .originId(server.originId)
-                                        .routedId(server.routedId)
-                                        .initialId(server.initialId)
-                                        .replyId(server.replyId)
-                                        .traceId(traceId)
-                                    )
-                                    .build();
-                                System.out.println(event); // TODO: Ati
+                                event.authorization(
+                                    exchangeAuth == 0 ? Result.FAILURE : Result.SUCCESS,
+                                    exchangeAuth == 0 ? Level.WARNING : Level.INFO,
+                                    server.originId, server.routedId, server.initialId, server.replyId, traceId);
                             }
                         }
 
@@ -1616,8 +1595,6 @@ public final class HttpServerFactory implements HttpStreamFactory
         private long replyBudgetId;
         private int replyMax;
         private HttpRequestType requestType;
-        private final HttpEventFW.Builder httpEventRW;
-        private final MutableDirectBuffer eventBuffer;
 
         private HttpServer(
             HttpBindingConfig binding,
@@ -1644,8 +1621,6 @@ public final class HttpServerFactory implements HttpStreamFactory
             this.delegateNetwork = this::onNetwork;
             this.guard = resolveGuard(binding);
             this.credentials = binding.credentials();
-            this.httpEventRW = new HttpEventFW.Builder();
-            this.eventBuffer = new UnsafeBuffer(ByteBuffer.allocate(1024)); // TODO: Ati
         }
 
         private int replyPendingAck()
