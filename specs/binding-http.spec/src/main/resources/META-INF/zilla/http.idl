@@ -58,35 +58,14 @@ scope http
             AUTHORIZATION (2)
         }
 
-        enum Result
+        struct HttpAuthorizationEvent extends core::event::Event
         {
-            SUCCESS,
-            FAILURE
-        }
-
-        enum Level
-        {
-            INFO,
-            WARNING,
-            ERROR
-        }
-
-        struct HttpEventCommon
-        {
-            Result result;
-            Level level;
-            int64 timestamp = 0;
-            int64 originId;
-            int64 routedId;
-            int64 initialId;
-            int64 replyId;
-            int64 traceId;
         }
 
         union HttpEvent switch (HttpEventType)
         {
-            case ACCESS_CONTROL: HttpEventCommon accessControl;
-            case AUTHORIZATION: HttpEventCommon authorization;
+            case ACCESS_CONTROL: core::event::Event accessControl;
+            case AUTHORIZATION: HttpAuthorizationEvent authorization;
         }
     }
 }

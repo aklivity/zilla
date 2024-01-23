@@ -100,4 +100,32 @@ scope core
             octets extension;
         }
     }
+
+    scope event
+    {
+        enum Level
+        {
+            INFO,
+            WARNING,
+            ERROR
+        }
+
+        enum Result
+        {
+            SUCCESS,
+            FAILURE
+        }
+
+        struct Event
+        {
+            Result result;
+            Level level;
+            int64 timestamp = 0;
+            int64 originId;
+            int64 routedId;
+            int64 initialId;
+            int64 replyId;
+            int64 traceId;
+        }
+    }
 }
