@@ -4856,6 +4856,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 }
                 else if (!isCorsRequestAllowed(binding, headers))
                 {
+                    event.accessControl(Result.FAILURE, Level.WARNING, originId, routedId, initialId, replyId, traceId);
                     doEncodeHeaders(traceId, authorization, streamId, headers403, true);
                 }
                 else
@@ -4888,6 +4889,10 @@ public final class HttpServerFactory implements HttpStreamFactory
                             if (credentialsMatch != null)
                             {
                                 exchangeAuth = guard.reauthorize(initialId, credentialsMatch);
+                                event.authorization(
+                                    exchangeAuth == 0 ? Result.FAILURE : Result.SUCCESS,
+                                    exchangeAuth == 0 ? Level.WARNING : Level.INFO,
+                                    originId, routedId, initialId, replyId, traceId);
                             }
                         }
 
