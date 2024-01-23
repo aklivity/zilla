@@ -24,6 +24,7 @@ import java.util.function.ToLongFunction;
 
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.validator.TestValidator;
@@ -38,6 +39,7 @@ public class ValidatorFactoryTest
     public void shouldCreate()
     {
         // GIVEN
+        Configuration config = new Configuration();
         ValidatorConfig testValidator = new TestValidatorConfig();
         ToLongFunction<String> resolveId = mock(ToLongFunction.class);
         LongFunction<CatalogHandler> supplyCatalog = mock(LongFunction.class);

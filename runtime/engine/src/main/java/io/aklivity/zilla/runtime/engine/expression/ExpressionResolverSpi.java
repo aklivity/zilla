@@ -15,10 +15,10 @@
  */
 package io.aklivity.zilla.runtime.engine.expression;
 
-public interface ExpressionResolverSpi
-{
-    String name();
+import io.aklivity.zilla.runtime.engine.factory.FactorySpi;
 
+public interface ExpressionResolverSpi extends FactorySpi
+{
     String resolve(
         String var);
 
