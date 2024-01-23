@@ -121,6 +121,10 @@ scope core
             Result result;
             Level level;
             int64 timestamp = 0;
+        }
+
+        struct BindingEvent extends Event
+        {
             int64 originId;
             int64 routedId;
             int64 initialId;

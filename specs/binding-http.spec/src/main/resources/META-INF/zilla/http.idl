@@ -58,13 +58,13 @@ scope http
             AUTHORIZATION (2)
         }
 
-        struct HttpAuthorizationEvent extends core::event::Event
+        struct HttpAuthorizationEvent extends core::event::BindingEvent
         {
         }
 
         union HttpEvent switch (HttpEventType)
         {
-            case ACCESS_CONTROL: core::event::Event accessControl;
+            case ACCESS_CONTROL: core::event::BindingEvent accessControl;
             case AUTHORIZATION: HttpAuthorizationEvent authorization;
         }
     }
