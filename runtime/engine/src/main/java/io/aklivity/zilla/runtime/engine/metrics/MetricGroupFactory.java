@@ -15,7 +15,6 @@
  */
 package io.aklivity.zilla.runtime.engine.metrics;
 
-import static io.aklivity.zilla.runtime.common.feature.FeatureLoader.filter;
 import static java.util.Collections.unmodifiableMap;
 import static java.util.Objects.requireNonNull;
 import static java.util.ServiceLoader.load;
@@ -33,7 +32,7 @@ public final class MetricGroupFactory extends Factory
 
     public static MetricGroupFactory instantiate()
     {
-        return instantiate(filter(load(MetricGroupFactorySpi.class)), MetricGroupFactory::new);
+        return instantiate(load(MetricGroupFactorySpi.class), MetricGroupFactory::new);
     }
 
     public Iterable<String> names()

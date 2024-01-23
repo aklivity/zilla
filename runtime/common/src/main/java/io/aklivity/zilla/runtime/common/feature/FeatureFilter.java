@@ -19,14 +19,14 @@ import java.lang.module.ModuleDescriptor;
 import java.util.function.Predicate;
 import java.util.stream.StreamSupport;
 
-public final class FeatureLoader
+public final class FeatureFilter
 {
-    private FeatureLoader()
+    private FeatureFilter()
     {
     }
 
-    public static final boolean INCUBATOR_ENABLED = incubatorEnabled();
-    public static final Predicate<Object> FEATURE_ENABLED = FeatureLoader::featureEnabled;
+    private static final boolean INCUBATOR_ENABLED = incubatorEnabled();
+    private static final Predicate<Object> FEATURE_ENABLED = FeatureFilter::featureEnabled;
 
     public static <S> Iterable<S> filter(
         Iterable<S> providers)
@@ -43,7 +43,7 @@ public final class FeatureLoader
 
     private static boolean incubatorEnabled()
     {
-        final Module module = FeatureLoader.class.getModule();
+        final Module module = FeatureFilter.class.getModule();
         final String override = System.getProperty("zilla.incubator.enabled");
 
         return override != null ? Boolean.parseBoolean(override) : module == null ||

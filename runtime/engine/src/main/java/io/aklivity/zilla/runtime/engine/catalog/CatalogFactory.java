@@ -15,7 +15,6 @@
  */
 package io.aklivity.zilla.runtime.engine.catalog;
 
-import static io.aklivity.zilla.runtime.common.feature.FeatureLoader.filter;
 import static java.util.Objects.requireNonNull;
 import static java.util.ServiceLoader.load;
 
@@ -30,7 +29,7 @@ public final class CatalogFactory extends Factory
 
     public static CatalogFactory instantiate()
     {
-        return instantiate(filter(load(CatalogFactorySpi.class)), CatalogFactory::new);
+        return instantiate(load(CatalogFactorySpi.class), CatalogFactory::new);
     }
 
     public Iterable<String> names()

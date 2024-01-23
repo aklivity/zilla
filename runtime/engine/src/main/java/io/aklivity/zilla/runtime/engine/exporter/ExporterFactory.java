@@ -15,7 +15,6 @@
  */
 package io.aklivity.zilla.runtime.engine.exporter;
 
-import static io.aklivity.zilla.runtime.common.feature.FeatureLoader.filter;
 import static java.util.Objects.requireNonNull;
 import static java.util.ServiceLoader.load;
 
@@ -30,7 +29,7 @@ public final class ExporterFactory extends Factory
 
     public static ExporterFactory instantiate()
     {
-        return instantiate(filter(load(ExporterFactorySpi.class)), ExporterFactory::new);
+        return instantiate(load(ExporterFactorySpi.class), ExporterFactory::new);
     }
 
     public Iterable<String> names()

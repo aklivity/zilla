@@ -15,7 +15,6 @@
  */
 package io.aklivity.zilla.runtime.engine.expression;
 
-import static io.aklivity.zilla.runtime.common.feature.FeatureLoader.filter;
 import static java.util.Objects.requireNonNull;
 import static java.util.ServiceLoader.load;
 
@@ -35,7 +34,7 @@ public final class ExpressionResolver extends Factory
 
     public static ExpressionResolver instantiate()
     {
-        return instantiate(filter(load(ExpressionResolverSpi.class)), ExpressionResolver::new);
+        return instantiate(load(ExpressionResolverSpi.class), ExpressionResolver::new);
     }
 
     public String resolve(

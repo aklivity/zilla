@@ -15,7 +15,6 @@
  */
 package io.aklivity.zilla.runtime.engine.guard;
 
-import static io.aklivity.zilla.runtime.common.feature.FeatureLoader.filter;
 import static java.util.Objects.requireNonNull;
 import static java.util.ServiceLoader.load;
 
@@ -30,7 +29,7 @@ public final class GuardFactory extends Factory
 
     public static GuardFactory instantiate()
     {
-        return instantiate(filter(load(GuardFactorySpi.class)), GuardFactory::new);
+        return instantiate(load(GuardFactorySpi.class), GuardFactory::new);
     }
 
     public Iterable<String> names()

@@ -15,7 +15,6 @@
  */
 package io.aklivity.zilla.runtime.engine.binding;
 
-import static io.aklivity.zilla.runtime.common.feature.FeatureLoader.filter;
 import static java.util.Objects.requireNonNull;
 import static java.util.ServiceLoader.load;
 
@@ -30,7 +29,7 @@ public final class BindingFactory extends Factory
 
     public static BindingFactory instantiate()
     {
-        return instantiate(filter(load(BindingFactorySpi.class)), BindingFactory::new);
+        return instantiate(load(BindingFactorySpi.class), BindingFactory::new);
     }
 
     public Iterable<String> names()

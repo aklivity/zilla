@@ -15,7 +15,6 @@
  */
 package io.aklivity.zilla.runtime.engine.validator;
 
-import static io.aklivity.zilla.runtime.common.feature.FeatureLoader.filter;
 import static java.util.Objects.requireNonNull;
 import static java.util.ServiceLoader.load;
 
@@ -34,7 +33,7 @@ public final class ValidatorFactory extends Factory
 
     public static ValidatorFactory instantiate()
     {
-        return instantiate(filter(load(ValidatorFactorySpi.class)), ValidatorFactory::new);
+        return instantiate(load(ValidatorFactorySpi.class), ValidatorFactory::new);
     }
 
     public Validator create(

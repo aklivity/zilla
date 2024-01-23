@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.command.internal;
 
-import static io.aklivity.zilla.runtime.common.feature.FeatureLoader.filter;
+import static io.aklivity.zilla.runtime.common.feature.FeatureFilter.filter;
 import static java.util.ServiceLoader.load;
 
 import com.github.rvesse.airline.Cli;
