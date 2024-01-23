@@ -22,7 +22,7 @@ import io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi;
 public final class TestBindingFactorySpi implements BindingFactorySpi
 {
     @Override
-    public String name()
+    public String type()
     {
         return "test";
     }

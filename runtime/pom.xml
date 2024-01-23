@@ -36,6 +36,7 @@
     <module>binding-tcp</module>
     <module>binding-tls</module>
     <module>binding-ws</module>
+    <module>common</module>
     <module>command</module>
     <module>command-metrics</module>
     <module>command-start</module>
@@ -143,6 +144,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>binding-ws</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>common</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

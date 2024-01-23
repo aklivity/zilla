@@ -38,6 +38,11 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>common</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
       <groupId>jakarta.json</groupId>
       <artifactId>jakarta.json-api</artifactId>
     </dependency>
@@ -317,6 +322,7 @@
             <includes>
               <include>org.agrona:agrona</include>
               <include>io.aklivity.zilla:engine</include>
+              <include>io.aklivity.zilla:common</include>
               <include>org.openjdk.jmh:jmh-core</include>
               <include>net.sf.jopt-simple:jopt-simple</include>
               <include>org.apache.commons:commons-math3</include>

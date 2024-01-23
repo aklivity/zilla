@@ -21,7 +21,7 @@ import io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi;
 public final class FanBindingFactorySpi implements BindingFactorySpi
 {
     @Override
-    public String name()
+    public String type()
     {
         return FanBinding.NAME;
     }
