@@ -42,9 +42,6 @@ public enum StringValidatorEncoding
             while (index < limit)
             {
                 final int charByte0 = data.getByte(index);
-                final int charByteCount = (charByte0 & 0b1000_0000) != 0
-                    ? Integer.numberOfLeadingZeros((~charByte0 & 0xff) << 24)
-                    : 1;
 
                 if (pendingCharBytes > 0)
                 {
@@ -57,6 +54,9 @@ public enum StringValidatorEncoding
                 }
                 else
                 {
+                    final int charByteCount = (charByte0 & 0b1000_0000) != 0
+                        ? Integer.numberOfLeadingZeros((~charByte0 & 0xff) << 24)
+                        : 1;
                     final int charByteLimit = index + charByteCount;
                     for (int charByteIndex = index + 1; charByteIndex < charByteLimit; charByteIndex++)
                     {
