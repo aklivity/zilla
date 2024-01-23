@@ -18,6 +18,36 @@ connect "zilla://streams/mqtt0"
          option zilla:transmission "duplex"
 
 write zilla:begin.ext ${mqtt:beginEx()
+                            .typeId(zilla:id("mqtt"))
+                            .session()
+                              .flags("CLEAN_START")
+                              .expiry(1)
+                              .clientId("client")
+                              .build()
+                            .build()}
+
+read zilla:begin.ext ${mqtt:matchBeginEx()
+                              .typeId(zilla:id("mqtt"))
+                              .session()
+                                .expiry(1)
+                                .qosMax(2)
+                                .capabilities("RETAIN", "SUBSCRIPTION_IDS", "WILDCARD")
+                                .clientId("client")
+                                .build()
+                              .build()}
+
+connected
+
+read zilla:data.empty
+read notify RECEIVED_SESSION_STATE
+
+
+connect await RECEIVED_SESSION_STATE
+        "zilla://streams/mqtt0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"
+
+write zilla:begin.ext ${mqtt:beginEx()
                               .typeId(zilla:id("mqtt"))
                               .publish()
                                 .clientId("client")
@@ -38,7 +68,8 @@ write "message1"
 write flush
 
 
-connect "zilla://streams/mqtt0"
+connect await RECEIVED_SESSION_STATE
+        "zilla://streams/mqtt0"
          option zilla:window 8192
          option zilla:transmission "duplex"
 
@@ -57,13 +88,30 @@ write zilla:data.ext ${mqtt:dataEx()
                             .typeId(zilla:id("mqtt"))
                             .publish()
                                 .qos("EXACTLY_ONCE")
+                                .packetId(1)
                                 .build()
                             .build()}
 write "message2"
 write flush
 
+# Triggered by PUBREL
+write advise zilla:flush ${mqtt:flushEx()
+                                 .typeId(zilla:id("mqtt"))
+                                 .publish()
+                                     .packetId(1)
+                                     .build()
+                                 .build()}
 
-connect "zilla://streams/mqtt0"
+read advised zilla:flush ${mqtt:matchFlushEx()
+                                 .typeId(zilla:id("mqtt"))
+                                 .publish()
+                                     .packetId(1)
+                                     .build()
+                                 .build()}
+
+
+connect await RECEIVED_SESSION_STATE
+        "zilla://streams/mqtt0"
          option zilla:window 8192
          option zilla:transmission "duplex"
 

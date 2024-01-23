@@ -110,8 +110,8 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                             .merged()
                                 .capabilities("PRODUCE_ONLY")
                                 .topic("mqtt-messages")
-                                .partition(0, -2)
-                                .partition(1, -2)
+                                .partition(0, 100)
+                                .partition(1, 70)
                                 .ackMode("IN_SYNC_REPLICAS")
                                 .build()
                             .build()}
@@ -131,7 +131,7 @@ read advised zilla:flush ${kafka:flushEx()
                               .merged()
                                 .produce()
                                   .hashKey("sensor/one")
-                                  .partitionId(0)
+                                  .partitionId(1)
                                   .build()
                               .build()}
 
@@ -140,9 +140,9 @@ write zilla:data.ext ${kafka:dataEx()
                            .merged()
                             .produce()
                                .deferred(0)
-                               .producerId(1)
-                               .producerEpoch(1)
-                               .partition(-1, 1)
+                               .producerId(12345)
+                               .producerEpoch(3)
+                               .partition(-1, 70)
                                .key("sensor/one")
                                .header("zilla:filter", "sensor")
                                .header("zilla:filter", "one")
@@ -151,24 +151,6 @@ write zilla:data.ext ${kafka:dataEx()
                                .build()
                            .build()}
 write "message"
-write flush
-
-write zilla:data.ext ${kafka:dataEx()
-                           .typeId(zilla:id("kafka"))
-                           .merged()
-                            .produce()
-                               .deferred(0)
-                               .producerId(1)
-                               .producerEpoch(1)
-                               .partition(-1, 2)
-                               .key("sensor/one")
-                               .header("zilla:filter", "sensor")
-                               .header("zilla:filter", "one")
-                               .header("zilla:local", "client")
-                               .header("zilla:qos", "2")
-                               .build()
-                           .build()}
-write "message2"
 write flush
 
 
@@ -192,7 +174,7 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                             .merged()
                                 .capabilities("PRODUCE_ONLY")
                                 .topic("mqtt-retained")
-                                .partition(0, -2)
+                                .partition(0, 10)
                                 .ackMode("IN_SYNC_REPLICAS")
                                 .build()
                             .build()}
@@ -220,14 +202,21 @@ connected
 read zilla:data.ext ${kafka:dataEx()
                                    .typeId(zilla:id("kafka"))
                                    .offsetFetch()
-                                       .partition(0, 1, 0)
-                                       .partition(1, 1, 0)
+                                       .partition(0, 100, 0, mqtt:publishMetadata()
+                                                                   .producer(12345, 3)
+                                                                   .packetId(1)
+                                                                   .build())
+                                       .partition(1, 70, 0, mqtt:publishMetadata()
+                                                                   .producer(12345, 3)
+                                                                   .packetId(2)
+                                                                   .build())
                                      .build()
                                    .build()}
 read zilla:data.empty
 
 write close
 read closed
+
 
 
 connect await RECEIVED_PARTITION_METADATA
@@ -250,7 +239,10 @@ connected
 read zilla:data.ext ${kafka:dataEx()
                                    .typeId(zilla:id("kafka"))
                                    .offsetFetch()
-                                       .partition(0, 1, 0)
+                                       .partition(0, 10, 0, mqtt:publishMetadata()
+                                                                  .producer(12345, 3)
+                                                                  .packetId(3)
+                                                                  .build())
                                      .build()
                                    .build()}
 read zilla:data.empty
@@ -261,34 +253,6 @@ read closed
 
 
 connect await RECEIVED_INITIAL_OFFSETS
-        "zilla://streams/kafka0"
-         option zilla:window 8192
-         option zilla:transmission "duplex"
-
-write zilla:begin.ext ${kafka:beginEx()
-                            .typeId(zilla:id("kafka"))
-                            .initProducerId()
-                                .producerId(0)
-                                .producerEpoch(0)
-                                .build()
-                            .build()}
-
-read zilla:begin.ext ${kafka:beginEx()
-                            .typeId(zilla:id("kafka"))
-                            .initProducerId()
-                                .producerId(1)
-                                .producerEpoch(1)
-                                .build()
-                            .build()}
-read notify RECEIVED_PRODUCER
-
-connected
-
-write close
-read closed
-
-
-connect await RECEIVED_PRODUCER
         "zilla://streams/kafka0"
          option zilla:window 8192
          option zilla:transmission "duplex"
@@ -308,49 +272,9 @@ write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .offsetCommit()
                                   .topic("mqtt-messages")
-                                  .progress(0, 1, mqtt:publishMetadata()
-                                                      .producer(1, 1)
-                                                      .build())
-                                  .generationId(1)
-                                  .leaderEpoch(0)
-                                  .build()
-                              .build()}
-write zilla:data.empty
-write flush
-
-write zilla:data.ext ${kafka:dataEx()
-                              .typeId(zilla:id("kafka"))
-                              .offsetCommit()
-                                  .topic("mqtt-messages")
-                                  .progress(1, 1, mqtt:publishMetadata()
-                                                      .producer(1, 1)
-                                                      .build())
-                                  .generationId(1)
-                                  .leaderEpoch(0)
-                                  .build()
-                              .build()}
-write zilla:data.empty
-
-write zilla:data.ext ${kafka:dataEx()
-                              .typeId(zilla:id("kafka"))
-                              .offsetCommit()
-                                  .topic("mqtt-retained")
-                                  .progress(0, 1, mqtt:publishMetadata()
-                                                      .producer(1, 1)
-                                                      .build())
-                                  .generationId(1)
-                                  .leaderEpoch(0)
-                                  .build()
-                              .build()}
-write zilla:data.empty
-write notify SENT_INITIAL_OFFSET_COMMIT
-
-write zilla:data.ext ${kafka:dataEx()
-                              .typeId(zilla:id("kafka"))
-                              .offsetCommit()
-                                  .topic("mqtt-messages")
-                                  .progress(0, 1, mqtt:publishMetadata()
-                                                      .producer(1, 1)
+                                  .progress(1, 70, mqtt:publishMetadata()
+                                                      .producer(12345, 3)
+                                                      .packetId(2)
                                                       .packetId(1)
                                                       .build())
                                   .generationId(1)
@@ -364,47 +288,18 @@ write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .offsetCommit()
                                   .topic("mqtt-messages")
-                                  .progress(0, 1, mqtt:publishMetadata()
-                                                      .producer(1, 1)
+                                  .progress(1, 70, mqtt:publishMetadata()
+                                                      .producer(12345, 3)
+                                                      .packetId(2)
                                                       .build())
                                   .generationId(1)
                                   .leaderEpoch(0)
                                   .build()
                               .build()}
 write zilla:data.empty
-write flush
-
-write zilla:data.ext ${kafka:dataEx()
-                              .typeId(zilla:id("kafka"))
-                              .offsetCommit()
-                                  .topic("mqtt-messages")
-                                  .progress(0, 2, mqtt:publishMetadata()
-                                                      .producer(1, 1)
-                                                      .packetId(1)
-                                                      .build())
-                                  .generationId(1)
-                                  .leaderEpoch(0)
-                                  .build()
-                              .build()}
-write zilla:data.empty
-write flush
-
-write zilla:data.ext ${kafka:dataEx()
-                              .typeId(zilla:id("kafka"))
-                              .offsetCommit()
-                                  .topic("mqtt-messages")
-                                  .progress(0, 2, mqtt:publishMetadata()
-                                                      .producer(1, 1)
-                                                      .build())
-                                  .generationId(1)
-                                  .leaderEpoch(0)
-                                  .build()
-                              .build()}
-write zilla:data.empty
-write flush
 
 
-connect await SENT_INITIAL_OFFSET_COMMIT
+connect await RECEIVED_INITIAL_OFFSETS
         "zilla://streams/kafka0"
          option zilla:window 8192
          option zilla:transmission "duplex"

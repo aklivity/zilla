@@ -19,7 +19,10 @@ import static java.lang.System.currentTimeMillis;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
+import java.util.PrimitiveIterator;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Predicate;
 
@@ -110,6 +113,12 @@ public final class MqttFunctions
     public static MqttFlushExBuilder flushEx()
     {
         return new MqttFlushExBuilder();
+    }
+
+    @Function
+    public static MqttFlushExMatcherBuilder matchFlushEx()
+    {
+        return new MqttFlushExMatcherBuilder();
     }
 
     @Function
@@ -229,6 +238,13 @@ public final class MqttFunctions
                 String clientId)
             {
                 sessionBeginExRW.clientId(clientId);
+                return this;
+            }
+
+            public MqttSessionBeginExBuilder packetId(
+                int packetId)
+            {
+                sessionBeginExRW.appendPacketIds((short) packetId);
                 return this;
             }
 
@@ -1516,6 +1532,7 @@ public final class MqttFunctions
         public final class MqttSessionBeginExMatcherBuilder
         {
             private String16FW clientId;
+            private List<Integer> packetIds;
             private Integer expiry;
             private Integer flags;
             private Integer capabilities;
@@ -1524,6 +1541,7 @@ public final class MqttFunctions
 
             private MqttSessionBeginExMatcherBuilder()
             {
+                packetIds = new ArrayList<>();
             }
 
             public MqttSessionBeginExMatcherBuilder clientId(
@@ -1537,6 +1555,13 @@ public final class MqttFunctions
                 int expiry)
             {
                 this.expiry = expiry;
+                return this;
+            }
+
+            public MqttSessionBeginExMatcherBuilder packetId(
+                int packetId)
+            {
+                this.packetIds.add(packetId);
                 return this;
             }
 
@@ -1583,6 +1608,7 @@ public final class MqttFunctions
                 final MqttSessionBeginExFW sessionBeginEx = beginEx.session();
                 return matchFlags(sessionBeginEx) &&
                     matchClientId(sessionBeginEx) &&
+                    matchPacketIds(sessionBeginEx) &&
                     matchExpiry(sessionBeginEx) &&
                     matchQosMax(sessionBeginEx) &&
                     matchPacketSizeMax(sessionBeginEx) &&
@@ -1593,6 +1619,19 @@ public final class MqttFunctions
                 final MqttSessionBeginExFW sessionBeginEx)
             {
                 return clientId == null || clientId.equals(sessionBeginEx.clientId());
+            }
+
+            private boolean matchPacketIds(
+                final MqttSessionBeginExFW sessionBeginEx)
+            {
+                final PrimitiveIterator.OfInt ids = sessionBeginEx.packetIds();
+
+                boolean match = packetIds == null || packetIds.isEmpty();
+                while (!match && ids.hasNext())
+                {
+                    match = packetIds.contains(ids.nextInt());
+                }
+                return match;
             }
 
             private boolean matchQosMax(
@@ -2124,6 +2163,113 @@ public final class MqttFunctions
                 final MqttPublishDataExFW data)
             {
                 return userPropertiesRW == null || userPropertiesRW.build().equals(data.properties());
+            }
+        }
+    }
+
+    public static final class MqttFlushExMatcherBuilder
+    {
+        private final DirectBuffer bufferRO = new UnsafeBuffer();
+
+        private final MqttFlushExFW flushExRo = new MqttFlushExFW();
+
+        private Integer typeId;
+        private Integer kind;
+        private Predicate<MqttFlushExFW> caseMatcher;
+
+        public MqttPublishFlushExMatcherBuilder publish()
+        {
+            final MqttPublishFlushExMatcherBuilder matcherBuilder = new MqttPublishFlushExMatcherBuilder();
+
+            this.kind = MqttExtensionKind.PUBLISH.value();
+            this.caseMatcher = matcherBuilder::match;
+            return matcherBuilder;
+        }
+
+        public MqttFlushExMatcherBuilder typeId(
+            int typeId)
+        {
+            this.typeId = typeId;
+            return this;
+        }
+
+        public BytesMatcher build()
+        {
+            return typeId != null || kind != null ? this::match : buf -> null;
+        }
+
+        private MqttFlushExFW match(
+            ByteBuffer byteBuf) throws Exception
+        {
+            if (!byteBuf.hasRemaining())
+            {
+                return null;
+            }
+
+            bufferRO.wrap(byteBuf);
+            final MqttFlushExFW flushEx = flushExRo.tryWrap(bufferRO, byteBuf.position(), byteBuf.capacity());
+
+            if (flushEx != null &&
+                matchTypeId(flushEx) &&
+                matchKind(flushEx) &&
+                matchCase(flushEx))
+            {
+                byteBuf.position(byteBuf.position() + flushEx.sizeof());
+                return flushEx;
+            }
+
+            throw new Exception(flushEx.toString());
+        }
+
+        private boolean matchTypeId(
+            final MqttFlushExFW flushEx)
+        {
+            return typeId == null || typeId == flushEx.typeId();
+        }
+
+        private boolean matchKind(
+            final MqttFlushExFW flushEx)
+        {
+            return kind == null || kind == flushEx.kind();
+        }
+
+        private boolean matchCase(
+            final MqttFlushExFW flushEx) throws Exception
+        {
+            return caseMatcher == null || caseMatcher.test(flushEx);
+        }
+
+        public final class MqttPublishFlushExMatcherBuilder
+        {
+            private Integer packetId;
+
+            private MqttPublishFlushExMatcherBuilder()
+            {
+            }
+
+            public MqttPublishFlushExMatcherBuilder packetId(
+                int packetId)
+            {
+                this.packetId = packetId;
+                return this;
+            }
+
+            public MqttFlushExMatcherBuilder build()
+            {
+                return MqttFlushExMatcherBuilder.this;
+            }
+
+            private boolean match(
+                MqttFlushExFW flushEx)
+            {
+                final MqttPublishFlushExFW publishDataEx = flushEx.publish();
+                return matchPacketId(publishDataEx);
+            }
+
+            private boolean matchPacketId(
+                final MqttPublishFlushExFW flush)
+            {
+                return packetId == null || packetId == flush.packetId();
             }
         }
     }

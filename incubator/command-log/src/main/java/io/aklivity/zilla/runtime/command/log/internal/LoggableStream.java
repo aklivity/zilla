@@ -109,9 +109,11 @@ import io.aklivity.zilla.runtime.command.log.internal.types.stream.MqttDataExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.MqttFlushExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.MqttPublishBeginExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.MqttPublishDataExFW;
+import io.aklivity.zilla.runtime.command.log.internal.types.stream.MqttPublishFlushExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.MqttSessionBeginExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.MqttSubscribeBeginExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.MqttSubscribeDataExFW;
+import io.aklivity.zilla.runtime.command.log.internal.types.stream.MqttSubscribeFlushExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.ProxyBeginExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.SignalFW;
@@ -1513,7 +1515,33 @@ public final class LoggableStream implements AutoCloseable
         final OctetsFW extension = flush.extension();
 
         final MqttFlushExFW mqttFlushEx = mqttFlushExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
-        final Array32FW<MqttTopicFilterFW> filters = mqttFlushEx.subscribe().filters();
+
+
+        switch (mqttFlushEx.kind())
+        {
+        case MqttFlushExFW.KIND_PUBLISH:
+            onMqttPublishFlushEx(offset, timestamp, mqttFlushEx.publish());
+            break;
+        case MqttFlushExFW.KIND_SUBSCRIBE:
+            onMqttSubscribeFlushEx(offset, timestamp, mqttFlushEx.subscribe());
+            break;
+        }
+    }
+
+    private void onMqttPublishFlushEx(
+        int offset,
+        long timestamp,
+        MqttPublishFlushExFW publish)
+    {
+        out.printf(verboseFormat, index, offset, timestamp, format("%d", publish.packetId()));
+    }
+
+    private void onMqttSubscribeFlushEx(
+        int offset,
+        long timestamp,
+        MqttSubscribeFlushExFW subscribe)
+    {
+        final Array32FW<MqttTopicFilterFW> filters = subscribe.filters();
 
         filters.forEach(f -> out.printf(verboseFormat, index, offset, timestamp,
             format("%s %d %d", f.pattern(), f.subscriptionId(), f.flags())));

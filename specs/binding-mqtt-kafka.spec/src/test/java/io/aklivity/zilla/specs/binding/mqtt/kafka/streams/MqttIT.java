@@ -64,15 +64,6 @@ public class MqttIT
 
     @Test
     @Specification({
-        "${mqtt}/publish.server.sent.flush/client",
-        "${mqtt}/publish.server.sent.flush/server"})
-    public void shouldPublishReceiveServerSentFlush() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${mqtt}/publish.server.sent.reset/client",
         "${mqtt}/publish.server.sent.reset/server"})
     public void shouldPublishReceiveServerSentReset() throws Exception
@@ -229,15 +220,6 @@ public class MqttIT
         "${mqtt}/subscribe.server.sent.abort/client",
         "${mqtt}/subscribe.server.sent.abort/server"})
     public void shouldSubscribeReceiveServerSentAbort() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${mqtt}/subscribe.server.sent.flush/client",
-        "${mqtt}/subscribe.server.sent.flush/server"})
-    public void shouldSubscribeReceiveServerSentFlush() throws Exception
     {
         k3po.finish();
     }
@@ -682,6 +664,26 @@ public class MqttIT
         "${mqtt}/publish.qos2/client",
         "${mqtt}/publish.qos2/server"})
     public void shouldPublishQoS2Message() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/publish.qos2.retained/client",
+        "${mqtt}/publish.qos2.retained/server"})
+    public void shouldPublishQoS2MessageRetained() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/publish.qos2.recover/client",
+        "${mqtt}/publish.qos2.recover/server"})
+    public void shouldPublishQoS2MessageRecover() throws Exception
     {
         k3po.start();
         k3po.finish();

@@ -129,7 +129,6 @@ write advise zilla:flush ${kafka:flushEx()
                                   .build()
                               .build()}
 
-
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()

@@ -73,6 +73,7 @@ public class MqttFunctionsTest
                 .packetSizeMax(100)
                 .capabilities("RETAIN", "WILDCARD", "SUBSCRIPTION_IDS")
                 .clientId("client")
+                .packetId(1)
                 .build()
             .build();
 
@@ -86,6 +87,7 @@ public class MqttFunctionsTest
         assertEquals(100, mqttBeginEx.session().packetSizeMax());
         assertEquals(7, mqttBeginEx.session().capabilities());
         assertEquals(6, mqttBeginEx.session().flags());
+        assertEquals(1, mqttBeginEx.session().packetIds().nextInt());
     }
 
     @Test
@@ -303,6 +305,7 @@ public class MqttFunctionsTest
                 .packetSizeMax(100)
                 .capabilities("RETAIN", "WILDCARD", "SUBSCRIPTION_IDS")
                 .clientId("client")
+                .packetId(1)
                 .build()
             .build();
 
@@ -317,7 +320,8 @@ public class MqttFunctionsTest
                 .qosMax(1)
                 .packetSizeMax(100)
                 .capabilities(7)
-                .clientId("client"))
+                .clientId("client")
+                .appendPacketIds((short) 1))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -1203,7 +1207,7 @@ public class MqttFunctionsTest
     }
 
     @Test
-    public void shouldEncodeMqttPublishFlushExOffsetCommit()
+    public void shouldEncodeMqttPublishFlushEx()
     {
         final byte[] array = MqttFunctions.flushEx()
             .typeId(0)
@@ -1217,6 +1221,26 @@ public class MqttFunctionsTest
 
         assertEquals(0, mqttFlushEx.typeId());
         assertEquals(1, mqttFlushEx.publish().packetId());
+    }
+
+    @Test
+    public void shouldMatchMqttPublishFlushEx() throws Exception
+    {
+        BytesMatcher matcher = MqttFunctions.matchFlushEx()
+            .publish()
+                .packetId(1)
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new MqttFlushExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x00)
+            .publish(p -> p.packetId(1))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
     }
 
     @Test
@@ -1266,6 +1290,8 @@ public class MqttFunctionsTest
             .subscription("sensor/one", 1, "AT_LEAST_ONCE", "SEND_RETAINED")
             .subscriptionWithReasonCode("sensor/two", 1, 0)
             .subscription("sensor/three", 1, "EXACTLY_ONCE", "SEND_RETAINED")
+            .subscription("sensor/four", 1)
+            .subscription("sensor/five")
             .build();
 
         DirectBuffer buffer = new UnsafeBuffer(array);
@@ -1292,6 +1318,15 @@ public class MqttFunctionsTest
                     1 == f.subscriptionId() &&
                     2 == f.qos() &&
                     0b0001 == f.flags()));
+
+        assertNotNull(sessionState.subscriptions()
+            .matchFirst(f ->
+                "sensor/four".equals(f.pattern().asString()) &&
+                    1 == f.subscriptionId()));
+
+        assertNotNull(sessionState.subscriptions()
+            .matchFirst(f ->
+                "sensor/five".equals(f.pattern().asString())));
     }
 
     @Test

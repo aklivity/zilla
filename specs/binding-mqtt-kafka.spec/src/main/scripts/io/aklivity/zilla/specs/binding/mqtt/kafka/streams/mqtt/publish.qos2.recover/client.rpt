@@ -13,68 +13,65 @@
 # specific language governing permissions and limitations under the License.
 #
 
-accept "zilla://streams/mqtt0"
-        option zilla:window 8192
-        option zilla:transmission "duplex"
-
-accepted
-
-read zilla:begin.ext ${mqtt:matchBeginEx()
-                             .typeId(zilla:id("mqtt"))
-                             .session()
-                                .flags("CLEAN_START")
-                                .expiry(1)
-                                .clientId("client")
-                                .build()
-                             .build()}
+connect "zilla://streams/mqtt0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"
 
 write zilla:begin.ext ${mqtt:beginEx()
+                            .typeId(zilla:id("mqtt"))
+                            .session()
+                              .flags("CLEAN_START")
+                              .expiry(1)
+                              .clientId("client")
+                              .build()
+                            .build()}
+
+read zilla:begin.ext ${mqtt:matchBeginEx()
                               .typeId(zilla:id("mqtt"))
                               .session()
-                              .expiry(1)
+                                .expiry(1)
                                 .qosMax(2)
-                                .capabilities("RETAIN", "WILDCARD", "SUBSCRIPTION_IDS")
+                                .capabilities("RETAIN", "SUBSCRIPTION_IDS", "WILDCARD")
                                 .clientId("client")
+                                .packetId(1)
+                                .packetId(2)
+                                .packetId(3)
                                 .build()
                               .build()}
 
 connected
 
-write zilla:data.empty
-write flush
+read zilla:data.empty
+read notify RECEIVED_SESSION_STATE
 
 
-accepted
+connect await RECEIVED_SESSION_STATE
+        "zilla://streams/mqtt0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"
 
-read zilla:begin.ext ${mqtt:matchBeginEx()
-                             .typeId(zilla:id("mqtt"))
-                             .publish()
+write zilla:begin.ext ${mqtt:beginEx()
+                              .typeId(zilla:id("mqtt"))
+                              .publish()
                                 .clientId("client")
                                 .topic("sensor/one")
-                                .flags("RETAIN")
                                 .qos(2)
                                 .build()
-                             .build()}
+                              .build()}
 
 connected
 
-read zilla:data.ext ${mqtt:matchDataEx()
+write zilla:data.ext ${mqtt:dataEx()
                             .typeId(zilla:id("mqtt"))
                             .publish()
                                 .qos("EXACTLY_ONCE")
-                                .flags("RETAIN")
                                 .packetId(1)
                                 .build()
                             .build()}
-read "message"
+write "message"
+write flush
 
-read advised zilla:flush ${mqtt:flushEx()
-                                 .typeId(zilla:id("mqtt"))
-                                 .publish()
-                                     .packetId(1)
-                                     .build()
-                                 .build()}
-
+# Triggered by PUBREL
 write advise zilla:flush ${mqtt:flushEx()
                                  .typeId(zilla:id("mqtt"))
                                  .publish()
@@ -82,3 +79,9 @@ write advise zilla:flush ${mqtt:flushEx()
                                      .build()
                                  .build()}
 
+read advised zilla:flush ${mqtt:matchFlushEx()
+                                 .typeId(zilla:id("mqtt"))
+                                 .publish()
+                                     .packetId(1)
+                                     .build()
+                                 .build()}

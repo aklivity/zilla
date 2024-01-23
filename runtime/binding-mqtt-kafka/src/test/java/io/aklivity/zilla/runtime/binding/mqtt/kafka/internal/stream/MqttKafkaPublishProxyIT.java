@@ -95,17 +95,6 @@ public class MqttKafkaPublishProxyIT
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
-        "${mqtt}/publish.server.sent.flush/client",
-        "${kafka}/publish.server.sent.flush/server"})
-    public void shouldReceiveServerSentFlush() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("proxy.yaml")
-    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
-    @Specification({
         "${mqtt}/publish.server.sent.reset/client",
         "${kafka}/publish.server.sent.reset/server"})
     public void shouldReceiveServerSentReset() throws Exception
@@ -131,17 +120,6 @@ public class MqttKafkaPublishProxyIT
         "${mqtt}/publish.retained.server.sent.abort/client",
         "${kafka}/publish.retained.server.sent.abort/server"})
     public void shouldPublishRetainedThenReceiveServerSentAbort() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("proxy.yaml")
-    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
-    @Specification({
-        "${mqtt}/publish.retained.server.sent.flush/client",
-        "${kafka}/publish.retained.server.sent.flush/server"})
-    public void shouldPublishRetainedThenReceiveServerSentFlush() throws Exception
     {
         k3po.finish();
     }
@@ -319,6 +297,17 @@ public class MqttKafkaPublishProxyIT
         "${mqtt}/publish.qos2.retained/client",
         "${kafka}/publish.qos2.retained/server"})
     public void shouldSendMessageQos2Retained() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/publish.qos2.recover/client",
+        "${kafka}/publish.qos2.recover/server"})
+    public void shouldSendMessageQos2Recover() throws Exception
     {
         k3po.finish();
     }
