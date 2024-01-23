@@ -143,4 +143,7 @@ public interface EngineContext
 
     void onExporterDetached(
         long exporterId);
+
+    <T> void logEvent(
+        T event);
 }

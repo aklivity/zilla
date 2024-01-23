@@ -870,6 +870,14 @@ public class EngineWorker implements EngineContext, Agent
         return validatorFactory.create(validator, resolveId, this::supplyCatalog);
     }
 
+    @Override
+    public <T> void logEvent(
+        T event)
+    {
+        // TODO: Ati
+        System.out.println(event);
+    }
+
     private void onSystemMessage(
         int msgTypeId,
         DirectBuffer buffer,

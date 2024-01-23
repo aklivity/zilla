@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.binding.http.internal;
 
 import java.nio.ByteBuffer;
+import java.util.function.Consumer;
 
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -31,11 +32,12 @@ public class HttpEventContext
 
     private final HttpEventFW.Builder httpEventRW = new HttpEventFW.Builder();
     private final MutableDirectBuffer eventBuffer = new UnsafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
+    private final Consumer<HttpEventFW> logEvent;
 
     public HttpEventContext(
         EngineContext context)
     {
-        // TODO: Ati - context
+        this.logEvent = context::logEvent;
     }
 
     public void accessControl(
@@ -59,7 +61,7 @@ public class HttpEventContext
                 .traceId(traceId)
             )
             .build();
-        System.out.println(event);
+        logEvent.accept(event);
     }
 
     public void authorization(
@@ -83,6 +85,6 @@ public class HttpEventContext
                 .traceId(traceId)
             )
             .build();
-        System.out.println(event);
+        logEvent.accept(event);
     }
 }
