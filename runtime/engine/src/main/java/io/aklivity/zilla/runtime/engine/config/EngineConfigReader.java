@@ -51,20 +51,20 @@ import org.leadpony.justify.api.JsonValidationService;
 import org.leadpony.justify.api.ProblemHandler;
 
 import io.aklivity.zilla.runtime.engine.Engine;
-import io.aklivity.zilla.runtime.engine.expression.ExpressionResolver;
 import io.aklivity.zilla.runtime.engine.internal.config.NamespaceAdapter;
 import io.aklivity.zilla.runtime.engine.internal.config.schema.UniquePropertyKeysSchema;
+import io.aklivity.zilla.runtime.engine.resolver.Resolver;
 
 public final class EngineConfigReader
 {
     private final ConfigAdapterContext context;
-    private final ExpressionResolver expressions;
+    private final Resolver expressions;
     private final Collection<URL> schemaTypes;
     private final Consumer<String> logger;
 
     public EngineConfigReader(
         ConfigAdapterContext context,
-        ExpressionResolver expressions,
+        Resolver expressions,
         Collection<URL> schemaTypes,
         Consumer<String> logger)
     {

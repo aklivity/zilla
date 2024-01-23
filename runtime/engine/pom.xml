@@ -249,10 +249,9 @@
                 <include>io/aklivity/zilla/runtime/engine/test/internal/binding/**/*.class</include>
                 <include>io/aklivity/zilla/runtime/engine/test/internal/catalog/**/*.class</include>
                 <include>io/aklivity/zilla/runtime/engine/test/internal/exporter/**/*.class</include>
-                <include>io/aklivity/zilla/runtime/engine/test/internal/expression/**/*.class</include>
                 <include>io/aklivity/zilla/runtime/engine/test/internal/guard/**/*.class</include>
-                <include>io/aklivity/zilla/runtime/engine/test/internal/catalog/**/*.class</include>
                 <include>io/aklivity/zilla/runtime/engine/test/internal/metrics/**/*.class</include>
+                <include>io/aklivity/zilla/runtime/engine/test/internal/resolver/**/*.class</include>
                 <include>io/aklivity/zilla/runtime/engine/test/internal/validator/**/*.class</include>
                 <include>io/aklivity/zilla/runtime/engine/test/internal/vault/**/*.class</include>
                 <include>io/aklivity/zilla/runtime/engine/internal/concurrent/bench/**/*.class</include>

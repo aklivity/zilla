@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.expression;
+package io.aklivity.zilla.runtime.engine.resolver;
 
 import static java.util.Collections.unmodifiableMap;
 import static java.util.Objects.requireNonNull;
@@ -25,17 +25,20 @@ import java.util.ServiceLoader;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public final class ExpressionResolver
+import io.aklivity.zilla.runtime.engine.Configuration;
+
+public final class Resolver
 {
     private static final Pattern EXPRESSION_PATTERN =
             Pattern.compile("\\$\\{\\{\\s*([^\\s\\}]*)\\.([^\\s\\}]*)\\s*\\}\\}");
 
-    private final Map<String, ExpressionResolverSpi> resolverSpis;
+    private final Map<String, ResolverSpi> resolverSpis;
     private Matcher matcher;
 
-    public static ExpressionResolver instantiate()
+    public static Resolver instantiate(
+        Configuration config)
     {
-        return instantiate(load(ExpressionResolverSpi.class));
+        return instantiate(config, load(ResolverFactorySpi.class));
     }
 
     public String resolve(
@@ -49,26 +52,22 @@ public final class ExpressionResolver
         String context,
         String var)
     {
-        ExpressionResolverSpi resolver = requireNonNull(resolverSpis.get(context), "Unrecognized resolver name: " + context);
+        ResolverSpi resolver = requireNonNull(resolverSpis.get(context), "Unrecognized resolver name: " + context);
         String value = resolver.resolve(var);
         return value != null ? value : "";
     }
 
-    private static ExpressionResolver instantiate(
-        ServiceLoader<ExpressionResolverSpi> resolvers)
+    private static Resolver instantiate(
+        Configuration config,
+        ServiceLoader<ResolverFactorySpi> factories)
     {
-        Map<String, ExpressionResolverSpi> resolverSpisByName = new HashMap<>();
-        resolvers.forEach(resolverSpi -> resolverSpisByName.put(resolverSpi.name(), resolverSpi));
-        return new ExpressionResolver(unmodifiableMap(resolverSpisByName));
+        Map<String, ResolverSpi> resolversByName = new HashMap<>();
+        factories.forEach(f -> resolversByName.put(f.name(), f.create(config)));
+        return new Resolver(unmodifiableMap(resolversByName));
     }
 
-    private Iterable<String> names()
-    {
-        return resolverSpis.keySet();
-    }
-
-    private ExpressionResolver(
-        Map<String, ExpressionResolverSpi> resolverSpis)
+    private Resolver(
+        Map<String, ResolverSpi> resolverSpis)
     {
         this.resolverSpis = resolverSpis;
         this.matcher = EXPRESSION_PATTERN.matcher("");

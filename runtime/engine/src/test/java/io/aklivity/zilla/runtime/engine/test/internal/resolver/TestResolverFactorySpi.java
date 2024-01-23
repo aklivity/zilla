@@ -13,11 +13,12 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.test.internal.expression;
+package io.aklivity.zilla.runtime.engine.test.internal.resolver;
 
-import io.aklivity.zilla.runtime.engine.expression.ExpressionResolverSpi;
+import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.resolver.ResolverFactorySpi;
 
-public class TestExpressionResolverSpi implements ExpressionResolverSpi
+public class TestResolverFactorySpi implements ResolverFactorySpi
 {
     @Override
     public String name()
@@ -26,24 +27,9 @@ public class TestExpressionResolverSpi implements ExpressionResolverSpi
     }
 
     @Override
-    public String resolve(
-        String var)
+    public TestResolverSpi create(
+        Configuration config)
     {
-        String result = null;
-
-        if ("PASSWORD".equals(var))
-        {
-            result = "ACTUALPASSWORD";
-        }
-        else if ("PORT".equals(var))
-        {
-            result = "1234";
-        }
-        else if ("EXPRESSION".equals(var))
-        {
-            result = "${{test.EXPRESSION}}";
-        }
-
-        return result;
+        return new TestResolverSpi();
     }
 }
