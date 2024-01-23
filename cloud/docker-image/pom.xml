@@ -264,6 +264,7 @@
               <alias>zilla</alias>
               <name>ghcr.io/aklivity/zilla:%v</name>
               <build>
+                <contextDir>${project.basedir}/src/main/docker</contextDir>
                 <tags>
                   <tag>latest</tag>
                 </tags>
