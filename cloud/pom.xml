@@ -29,10 +29,21 @@
           <value>true</value>
         </property>
       </activation>
+      <properties>
+        <docker.image.tags>latest</docker.image.tags>
+      </properties>
 
       <modules>
         <module>helm-chart</module>
       </modules>
+    </profile>
+    <profile>
+      <id>develop</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+      <properties>
+      </properties>
     </profile>
   </profiles>
 </project>
