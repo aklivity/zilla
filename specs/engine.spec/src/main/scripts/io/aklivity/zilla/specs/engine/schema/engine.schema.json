@@ -381,6 +381,29 @@
                 "type": "string",
                 "enum": []
             }
+        },
+        "validator":
+        {
+            "type": "object",
+            "properties":
+            {
+                "type":
+                {
+                    "$ref": "#/$defs/validator/types"
+                }
+            },
+            "required":
+            [
+                "type"
+            ],
+            "allOf":
+            [
+            ],
+            "types":
+            {
+                "type": "string",
+                "enum": []
+            }
         }
     }
 }

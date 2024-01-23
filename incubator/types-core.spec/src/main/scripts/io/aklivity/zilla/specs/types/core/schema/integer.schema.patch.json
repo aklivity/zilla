@@ -3,5 +3,10 @@
         "op": "add",
         "path": "/$defs/converter/types/enum/-",
         "value": "integer"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/validator/types/enum/-",
+        "value": "integer"
     }
 ]

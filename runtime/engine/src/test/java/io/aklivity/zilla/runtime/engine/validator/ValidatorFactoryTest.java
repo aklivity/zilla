@@ -17,12 +17,15 @@ package io.aklivity.zilla.runtime.engine.validator;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertNull;
+import static org.mockito.Mockito.mock;
 
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.test.internal.validator.TestValidator;
+import io.aklivity.zilla.runtime.engine.test.internal.validator.TestValidatorContext;
+import io.aklivity.zilla.runtime.engine.test.internal.validator.TestValidatorHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.validator.config.TestValidatorConfig;
 
 public class ValidatorFactoryTest
@@ -34,12 +37,10 @@ public class ValidatorFactoryTest
         ValidatorFactory factory = ValidatorFactory.instantiate();
         Validator validator = factory.create("test", config);
 
-        ValidatorContext context = new ValidatorContext()
-        { };
-
         TestValidatorConfig validatorConfig = TestValidatorConfig.builder().length(4).build();
+        ValidatorContext context = new TestValidatorContext(mock(EngineContext.class));
 
         assertThat(validator, instanceOf(TestValidator.class));
-        assertNull(context.supplyHandler(validatorConfig));
+        assertThat(context.supplyHandler(validatorConfig), instanceOf(TestValidatorHandler.class));
     }
 }

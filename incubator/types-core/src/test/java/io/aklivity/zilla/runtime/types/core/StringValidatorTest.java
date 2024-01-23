@@ -81,7 +81,7 @@ public class StringValidatorTest
         assertTrue(handler.validate(ValidatorHandler.FLAGS_INIT, data, 0, data.capacity(), ValueConsumer.NOP));
 
         data.wrap(bytes, 6, 5);
-        assertTrue(handler.validate(0x00, data, 0, data.capacity(), ValueConsumer.NOP));
+        assertFalse(handler.validate(0x00, data, 0, data.capacity(), ValueConsumer.NOP));
 
         data.wrap(bytes, 11, 1);
         assertFalse(handler.validate(ValidatorHandler.FLAGS_FIN, data, 0, data.capacity(), ValueConsumer.NOP));
@@ -90,7 +90,7 @@ public class StringValidatorTest
     @Test
     public void shouldVerifyWithPendingCharBytes()
     {
-        StringValidatorHandler handler = new StringValidatorHandler(new StringValidatorConfig("UTF-8"));
+        StringValidatorHandler handler = new StringValidatorHandler(new StringValidatorConfig("utf_8"));
         UnsafeBuffer data = new UnsafeBuffer();
 
         byte[] bytes = {(byte) 0xc3, (byte) 0xa4};

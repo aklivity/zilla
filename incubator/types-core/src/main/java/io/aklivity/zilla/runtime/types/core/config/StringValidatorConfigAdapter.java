@@ -58,23 +58,22 @@ public final class StringValidatorConfigAdapter implements ValidatorConfigAdapte
     public StringValidatorConfig adaptFromJson(
         JsonValue value)
     {
-        JsonValue.ValueType type = value.getValueType();
-        StringValidatorConfig result = null;
-        switch (type)
+        StringValidatorConfig config = null;
+        switch (value.getValueType())
         {
         case STRING:
-            result = StringValidatorConfig.builder().build();
+            config = StringValidatorConfig.builder().build();
             break;
         case OBJECT:
             JsonObject object = (JsonObject) value;
             String encoding = object.containsKey(ENCODING_NAME)
                     ? object.getString(ENCODING_NAME)
                     : null;
-            result = StringValidatorConfig.builder()
+            config = StringValidatorConfig.builder()
                     .encoding(encoding)
                     .build();
             break;
         }
-        return result;
+        return config;
     }
 }

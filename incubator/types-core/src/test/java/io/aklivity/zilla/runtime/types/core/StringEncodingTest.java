@@ -14,7 +14,9 @@
  */
 package io.aklivity.zilla.runtime.types.core;
 
+import static io.aklivity.zilla.runtime.engine.validator.ValidatorHandler.FLAGS_COMPLETE;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.nio.charset.StandardCharsets;
@@ -34,6 +36,8 @@ public class StringEncodingTest
         data.wrap(bytes, 0, bytes.length);
 
         assertTrue(StringEncoding.UTF_8.validate(data, 0, bytes.length));
+
+        assertTrue(StringValidatorEncoding.UTF_8.validate(FLAGS_COMPLETE, data, 0, bytes.length));
     }
 
     @Test
@@ -41,10 +45,21 @@ public class StringEncodingTest
     {
         DirectBuffer data = new UnsafeBuffer();
 
-        byte[] bytes = "Valid String".getBytes(StandardCharsets.UTF_8);
+        byte[] bytes = "Valid String".getBytes(StandardCharsets.UTF_16);
         data.wrap(bytes, 0, bytes.length);
 
-        assertTrue(StringEncoding.UTF_8.validate(data, 0, bytes.length));
+        assertTrue(StringEncoding.UTF_16.validate(data, 0, bytes.length));
+    }
+
+    @Test
+    public void shouldVerifyInvalidUTF16()
+    {
+        DirectBuffer data = new UnsafeBuffer();
+
+        byte[] bytes = {(byte) 0xD8, (byte) 0x00};
+        data.wrap(bytes, 0, bytes.length);
+
+        assertFalse(StringEncoding.UTF_16.validate(data, 0, bytes.length));
     }
 
     @Test
@@ -53,5 +68,8 @@ public class StringEncodingTest
         assertEquals(StringEncoding.UTF_8, StringEncoding.of("utf_8"));
         assertEquals(StringEncoding.UTF_16, StringEncoding.of("utf_16"));
         assertEquals(StringEncoding.INVALID, StringEncoding.of("invalid_encoding"));
+
+        assertEquals(StringValidatorEncoding.UTF_8, StringValidatorEncoding.of("utf_8"));
+        assertEquals(StringValidatorEncoding.INVALID, StringValidatorEncoding.of("invalid_encoding"));
     }
 }
