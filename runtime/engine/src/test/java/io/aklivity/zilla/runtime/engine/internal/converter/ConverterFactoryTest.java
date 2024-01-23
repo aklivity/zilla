@@ -19,66 +19,32 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.mock;
 
-import java.util.function.LongFunction;
-
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.config.ConverterConfig;
+import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.converter.Converter;
+import io.aklivity.zilla.runtime.engine.converter.ConverterContext;
 import io.aklivity.zilla.runtime.engine.converter.ConverterFactory;
 import io.aklivity.zilla.runtime.engine.test.internal.converter.TestConverter;
+import io.aklivity.zilla.runtime.engine.test.internal.converter.TestConverterContext;
+import io.aklivity.zilla.runtime.engine.test.internal.converter.TestConverterHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.converter.config.TestConverterConfig;
 
 public class ConverterFactoryTest
 {
     @Test
-    @SuppressWarnings("unchecked")
-    public void shouldCreateReader()
+    public void shouldLoadAndCreate()
     {
-        // GIVEN
-        ConverterConfig config = TestConverterConfig.builder()
-                .length(0)
-                .catalog()
-                    .name("test0")
-                        .schema()
-                        .id(1)
-                        .build()
-                    .build()
-                .read(true)
-                .build();
-        LongFunction<CatalogHandler> supplyCatalog = mock(LongFunction.class);
+        Configuration config = new Configuration();
         ConverterFactory factory = ConverterFactory.instantiate();
+        Converter converter = factory.create("test", config);
 
-        // WHEN
-        Converter reader = factory.createReader(config, supplyCatalog);
+        TestConverterConfig converterConfig = TestConverterConfig.builder().length(4).build();
+        ConverterContext context = new TestConverterContext(mock(EngineContext.class));
 
-        // THEN
-        assertThat(reader, instanceOf(TestConverter.class));
-    }
-
-    @Test
-    @SuppressWarnings("unchecked")
-    public void shouldCreateWriter()
-    {
-        // GIVEN
-        ConverterConfig config = TestConverterConfig.builder()
-                .length(0)
-                .catalog()
-                    .name("test0")
-                        .schema()
-                        .id(1)
-                        .build()
-                    .build()
-                .read(false)
-                .build();
-        LongFunction<CatalogHandler> supplyCatalog = mock(LongFunction.class);
-        ConverterFactory factory = ConverterFactory.instantiate();
-
-        // WHEN
-        Converter writer = factory.createWriter(config, supplyCatalog);
-
-        // THEN
-        assertThat(writer, instanceOf(TestConverter.class));
+        assertThat(converter, instanceOf(TestConverter.class));
+        assertThat(context.supplyReadHandler(converterConfig), instanceOf(TestConverterHandler.class));
+        assertThat(context.supplyWriteHandler(converterConfig), instanceOf(TestConverterHandler.class));
     }
 }

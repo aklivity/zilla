@@ -88,7 +88,7 @@ import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
-import io.aklivity.zilla.runtime.engine.converter.Converter;
+import io.aklivity.zilla.runtime.engine.converter.ConverterHandler;
 
 public final class KafkaCacheServerFetchFactory implements BindingHandler
 {
@@ -233,8 +233,8 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 final KafkaCache cache = supplyCache.apply(cacheName);
                 final KafkaCacheTopic cacheTopic = cache.supplyTopic(topicName);
                 final KafkaCachePartition partition = cacheTopic.supplyFetchPartition(partitionId);
-                final Converter convertKey = binding.resolveKeyReader(topicName);
-                final Converter convertValue = binding.resolveValueReader(topicName);
+                final ConverterHandler convertKey = binding.resolveKeyReader(topicName);
+                final ConverterHandler convertValue = binding.resolveValueReader(topicName);
                 final KafkaCacheServerFetchFanout newFanout =
                     new KafkaCacheServerFetchFanout(routedId, resolvedId, authorization,
                         affinity, partition, routeDeltaType, defaultOffset, convertKey, convertValue);
@@ -474,8 +474,8 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
         private final KafkaOffsetType defaultOffset;
         private final long retentionMillisMax;
         private final List<KafkaCacheServerFetchStream> members;
-        private final Converter convertKey;
-        private final Converter convertValue;
+        private final ConverterHandler convertKey;
+        private final ConverterHandler convertValue;
         private final MutableInteger entryMark;
         private final MutableInteger valueMark;
 
@@ -512,8 +512,8 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
             KafkaCachePartition partition,
             KafkaDeltaType deltaType,
             KafkaOffsetType defaultOffset,
-            Converter convertKey,
-            Converter convertValue)
+            ConverterHandler convertKey,
+            ConverterHandler convertValue)
         {
             this.originId = originId;
             this.routedId = routedId;

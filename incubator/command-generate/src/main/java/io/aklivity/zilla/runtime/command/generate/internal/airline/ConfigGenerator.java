@@ -28,9 +28,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
-import io.aklivity.zilla.runtime.engine.config.ConverterConfig;
-import io.aklivity.zilla.runtime.types.core.config.IntegerConverterConfig;
-import io.aklivity.zilla.runtime.types.core.config.StringConverterConfig;
+import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
+import io.aklivity.zilla.runtime.types.core.config.IntegerValidatorConfig;
+import io.aklivity.zilla.runtime.types.core.config.StringValidatorConfig;
 
 public abstract class ConfigGenerator
 {
@@ -40,9 +40,9 @@ public abstract class ConfigGenerator
     protected static final String VERSION_LATEST = "latest";
     protected static final Pattern JSON_CONTENT_TYPE = Pattern.compile("^application/(?:.+\\+)?json$");
 
-    protected final Map<String, ConverterConfig> converters = Map.of(
-        "string", StringConverterConfig.builder().build(),
-        "integer", IntegerConverterConfig.builder().build()
+    protected final Map<String, ValidatorConfig> validators = Map.of(
+        "string", StringValidatorConfig.builder().build(),
+        "integer", IntegerValidatorConfig.builder().build()
     );
     protected final Matcher jsonContentType = JSON_CONTENT_TYPE.matcher("");
 

@@ -44,7 +44,7 @@ public class MqttOptionsConfig extends OptionsConfig
         MqttAuthorizationConfig authorization,
         List<MqttTopicConfig> topics)
     {
-        super(topics != null && !topics.isEmpty()
+        super(emptyList(), topics != null && !topics.isEmpty()
             ? topics.stream()
                 .map(t -> t.content)
                 .filter(Objects::nonNull)

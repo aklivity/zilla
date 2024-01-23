@@ -280,7 +280,7 @@
                                             {
                                                 "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
                                                 {
-                                                    "$ref": "#/$defs/converter"
+                                                    "$ref": "#/$defs/validator"
                                                 }
                                             }
                                         },
@@ -296,7 +296,7 @@
                                                     {
                                                         "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
                                                         {
-                                                            "$ref": "#/$defs/converter"
+                                                            "$ref": "#/$defs/validator"
                                                         }
                                                     }
                                                 },
@@ -307,7 +307,7 @@
                                                     {
                                                         "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
                                                         {
-                                                            "$ref": "#/$defs/converter"
+                                                            "$ref": "#/$defs/validator"
                                                         }
                                                     }
                                                 }
@@ -316,7 +316,7 @@
                                         },
                                         "content":
                                         {
-                                            "$ref": "#/$defs/converter"
+                                            "$ref": "#/$defs/validator"
                                         }
                                     },
                                     "anyOf":

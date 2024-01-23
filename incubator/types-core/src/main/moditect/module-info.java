@@ -19,10 +19,18 @@ module io.aklivity.zilla.runtime.types.core
     exports io.aklivity.zilla.runtime.types.core.config;
 
     provides io.aklivity.zilla.runtime.engine.config.ConverterConfigAdapterSpi
-        with io.aklivity.zilla.runtime.types.core.config.StringConverterConfigAdapter,
-            io.aklivity.zilla.runtime.types.core.config.IntegerConverterConfigAdapter;
+        with io.aklivity.zilla.runtime.types.core.internal.config.StringConverterConfigAdapter,
+            io.aklivity.zilla.runtime.types.core.internal.config.IntegerConverterConfigAdapter;
 
     provides io.aklivity.zilla.runtime.engine.converter.ConverterFactorySpi
-        with io.aklivity.zilla.runtime.types.core.StringConverterFactory,
-            io.aklivity.zilla.runtime.types.core.IntegerConverterFactory;
+        with io.aklivity.zilla.runtime.types.core.internal.StringConverterFactorySpi,
+            io.aklivity.zilla.runtime.types.core.internal.IntegerConverterFactorySpi;
+
+    provides io.aklivity.zilla.runtime.engine.config.ValidatorConfigAdapterSpi
+        with io.aklivity.zilla.runtime.types.core.internal.config.IntegerValidatorConfigAdapter,
+            io.aklivity.zilla.runtime.types.core.internal.config.StringValidatorConfigAdapter;
+
+    provides io.aklivity.zilla.runtime.engine.validator.ValidatorFactorySpi
+        with io.aklivity.zilla.runtime.types.core.internal.IntegerValidatorFactorySpi,
+            io.aklivity.zilla.runtime.types.core.internal.StringValidatorFactorySpi;
 }

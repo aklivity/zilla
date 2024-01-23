@@ -15,10 +15,15 @@
  */
 package io.aklivity.zilla.runtime.binding.http.config;
 
+import static java.util.Collections.emptyList;
+
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.SortedSet;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import io.aklivity.zilla.runtime.binding.http.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
@@ -50,6 +55,24 @@ public final class HttpOptionsConfig extends OptionsConfig
         HttpAuthorizationConfig authorization,
         List<HttpRequestConfig> requests)
     {
+        super(emptyList(), requests != null && !requests.isEmpty()
+            ? requests.stream()
+                .flatMap(request -> Stream.concat(
+                    Stream.of(request.content),
+                    Stream.concat(
+                        request.headers != null
+                            ? request.headers.stream().flatMap(header -> Stream.of(header != null ? header.validator : null))
+                            : Stream.empty(),
+                        Stream.concat(
+                            request.pathParams != null
+                                ? request.pathParams.stream().flatMap(param -> Stream.of(param != null ? param.validator : null))
+                                : Stream.empty(),
+                            request.queryParams != null
+                                ? request.queryParams.stream().flatMap(param -> Stream.of(param != null ? param.validator : null))
+                                : Stream.empty()))).filter(Objects::nonNull))
+                .collect(Collectors.toList())
+            : emptyList());
+
         this.versions = versions;
         this.overrides = overrides;
         this.access = access;

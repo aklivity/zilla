@@ -30,8 +30,8 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpParamConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfig;
-import io.aklivity.zilla.runtime.engine.config.ConverterConfig;
-import io.aklivity.zilla.runtime.engine.config.ConverterConfigAdapter;
+import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
+import io.aklivity.zilla.runtime.engine.config.ValidatorConfigAdapter;
 
 public class HttpRequestConfigAdapter implements JsonbAdapter<HttpRequestConfig, JsonObject>
 {
@@ -44,7 +44,7 @@ public class HttpRequestConfigAdapter implements JsonbAdapter<HttpRequestConfig,
     private static final String QUERY_PARAMS_NAME = "query";
     private static final String CONTENT_NAME = "content";
 
-    private final ConverterConfigAdapter converter = new ConverterConfigAdapter();
+    private final ValidatorConfigAdapter validator = new ValidatorConfigAdapter();
 
     @Override
     public JsonObject adaptToJson(
@@ -70,8 +70,8 @@ public class HttpRequestConfigAdapter implements JsonbAdapter<HttpRequestConfig,
             JsonObjectBuilder headers = Json.createObjectBuilder();
             for (HttpParamConfig header : request.headers)
             {
-                converter.adaptType(header.converter.type);
-                headers.add(header.name, converter.adaptToJson(header.converter));
+                validator.adaptType(header.validator.type);
+                headers.add(header.name, validator.adaptToJson(header.validator));
             }
             object.add(HEADERS_NAME, headers);
         }
@@ -83,8 +83,8 @@ public class HttpRequestConfigAdapter implements JsonbAdapter<HttpRequestConfig,
                 JsonObjectBuilder pathParams = Json.createObjectBuilder();
                 for (HttpParamConfig pathParam : request.pathParams)
                 {
-                    converter.adaptType(pathParam.converter.type);
-                    pathParams.add(pathParam.name, converter.adaptToJson(pathParam.converter));
+                    validator.adaptType(pathParam.validator.type);
+                    pathParams.add(pathParam.name, validator.adaptToJson(pathParam.validator));
                 }
                 params.add(PATH_PARAMS_NAME, pathParams);
             }
@@ -93,8 +93,8 @@ public class HttpRequestConfigAdapter implements JsonbAdapter<HttpRequestConfig,
                 JsonObjectBuilder queryParams = Json.createObjectBuilder();
                 for (HttpParamConfig queryParam : request.queryParams)
                 {
-                    converter.adaptType(queryParam.converter.type);
-                    queryParams.add(queryParam.name, converter.adaptToJson(queryParam.converter));
+                    validator.adaptType(queryParam.validator.type);
+                    queryParams.add(queryParam.name, validator.adaptToJson(queryParam.validator));
                 }
                 params.add(QUERY_PARAMS_NAME, queryParams);
             }
@@ -102,8 +102,8 @@ public class HttpRequestConfigAdapter implements JsonbAdapter<HttpRequestConfig,
         }
         if (request.content != null)
         {
-            converter.adaptType(request.content.type);
-            JsonValue content = converter.adaptToJson(request.content);
+            validator.adaptType(request.content.type);
+            JsonValue content = validator.adaptToJson(request.content);
             object.add(CONTENT_NAME, content);
         }
         return object.build();
@@ -130,11 +130,11 @@ public class HttpRequestConfigAdapter implements JsonbAdapter<HttpRequestConfig,
                 .map(i -> ((JsonString) i).getString())
                 .collect(Collectors.toList());
         }
-        ConverterConfig content = null;
+        ValidatorConfig content = null;
         if (object.containsKey(CONTENT_NAME))
         {
             JsonValue contentJson = object.get(CONTENT_NAME);
-            content = converter.adaptFromJson(contentJson);
+            content = validator.adaptFromJson(contentJson);
         }
         List<HttpParamConfig> headers = null;
         if (object.containsKey(HEADERS_NAME))
@@ -145,7 +145,7 @@ public class HttpRequestConfigAdapter implements JsonbAdapter<HttpRequestConfig,
             {
                 HttpParamConfig header = HttpParamConfig.builder()
                     .name(entry.getKey())
-                    .converter(converter.adaptFromJson(entry.getValue()))
+                    .validator(validator.adaptFromJson(entry.getValue()))
                     .build();
                 headers.add(header);
             }
@@ -163,7 +163,7 @@ public class HttpRequestConfigAdapter implements JsonbAdapter<HttpRequestConfig,
                 {
                     HttpParamConfig pathParam = HttpParamConfig.builder()
                         .name(entry.getKey())
-                        .converter(converter.adaptFromJson(entry.getValue()))
+                        .validator(validator.adaptFromJson(entry.getValue()))
                         .build();
                     pathParams.add(pathParam);
                 }
@@ -176,7 +176,7 @@ public class HttpRequestConfigAdapter implements JsonbAdapter<HttpRequestConfig,
                 {
                     HttpParamConfig queryParam = HttpParamConfig.builder()
                         .name(entry.getKey())
-                        .converter(converter.adaptFromJson(entry.getValue()))
+                        .validator(validator.adaptFromJson(entry.getValue()))
                         .build();
                     queryParams.add(queryParam);
                 }

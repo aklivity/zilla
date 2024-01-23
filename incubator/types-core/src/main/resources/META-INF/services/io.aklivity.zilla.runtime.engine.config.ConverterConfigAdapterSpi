@@ -1,2 +1,2 @@
-io.aklivity.zilla.runtime.types.core.config.IntegerConverterConfigAdapter
-io.aklivity.zilla.runtime.types.core.config.StringConverterConfigAdapter
+io.aklivity.zilla.runtime.types.core.internal.config.IntegerConverterConfigAdapter
+io.aklivity.zilla.runtime.types.core.internal.config.StringConverterConfigAdapter

@@ -25,7 +25,7 @@ public class ConverterTest
     @Test
     public void shouldCreateAndVerifyNoOpValueConverter()
     {
-        Converter converter = Converter.NONE;
+        ConverterHandler converter = ConverterHandler.NONE;
 
         assertEquals(1, converter.convert(new UnsafeBuffer(), 1, 1, (b, i, l) -> {}));
     }

@@ -46,7 +46,7 @@ import io.aklivity.zilla.runtime.engine.config.CatalogedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ConfigWriter;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
-import io.aklivity.zilla.runtime.types.json.config.JsonConverterConfig;
+import io.aklivity.zilla.runtime.types.json.config.JsonValidatorConfig;
 import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig;
 
 public class AsyncApiMqttProxyConfigGenerator extends AsyncApiConfigGenerator
@@ -248,7 +248,7 @@ public class AsyncApiMqttProxyConfigGenerator extends AsyncApiConfigGenerator
                     .options(MqttOptionsConfig::builder)
                         .topic()
                             .name(topic)
-                            .content(JsonConverterConfig::builder)
+                            .content(JsonValidatorConfig::builder)
                                 .catalog()
                                     .name(INLINE_CATALOG_NAME)
                                     .inject(cataloged -> injectJsonSchemas(cataloged, messages, APPLICATION_JSON))

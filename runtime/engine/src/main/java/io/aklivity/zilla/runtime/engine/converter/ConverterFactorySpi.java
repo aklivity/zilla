@@ -16,10 +16,8 @@
 package io.aklivity.zilla.runtime.engine.converter;
 
 import java.net.URL;
-import java.util.function.LongFunction;
 
-import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.config.ConverterConfig;
+import io.aklivity.zilla.runtime.engine.Configuration;
 
 public interface ConverterFactorySpi
 {
@@ -27,11 +25,6 @@ public interface ConverterFactorySpi
 
     URL schema();
 
-    Converter createReader(
-        ConverterConfig config,
-        LongFunction<CatalogHandler> supplyCatalog);
-
-    Converter createWriter(
-        ConverterConfig config,
-        LongFunction<CatalogHandler> supplyCatalog);
+    Converter create(
+        Configuration config);
 }

@@ -40,7 +40,7 @@ public final class KafkaOptionsConfig extends OptionsConfig
                 .flatMap(t -> Stream.of(t.key, t.value))
                 .filter(Objects::nonNull)
                 .collect(toList())
-            : emptyList());
+            : emptyList(), emptyList());
         this.bootstrap = bootstrap;
         this.topics = topics;
         this.sasl = sasl;

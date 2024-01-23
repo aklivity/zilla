@@ -15,61 +15,32 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.converter;
 
-import java.util.function.LongFunction;
+import java.net.URL;
 
-import org.agrona.DirectBuffer;
-
-import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
-import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.converter.Converter;
-import io.aklivity.zilla.runtime.engine.converter.function.ValueConsumer;
-import io.aklivity.zilla.runtime.engine.test.internal.converter.config.TestConverterConfig;
+import io.aklivity.zilla.runtime.engine.converter.ConverterContext;
 
 public class TestConverter implements Converter
 {
-    private final int length;
-    private final int schemaId;
-    private final boolean read;
-    private final CatalogHandler handler;
-    private final SchemaConfig schema;
+    public static final String NAME = "test";
 
-    public TestConverter(
-        TestConverterConfig config,
-        LongFunction<CatalogHandler> supplyCatalog)
+    @Override
+    public String name()
     {
-        this.length = config.length;
-        this.read = config.read;
-        CatalogedConfig cataloged = config.cataloged != null && !config.cataloged.isEmpty()
-            ? config.cataloged.get(0)
-            : null;
-        schema = cataloged != null ? cataloged.schemas.get(0) : null;
-        schemaId = schema != null ? schema.id : 0;
-        this.handler = cataloged != null ? supplyCatalog.apply(cataloged.id) : null;
+        return NAME;
     }
 
     @Override
-    public int padding(
-        DirectBuffer data,
-        int index,
-        int length)
+    public ConverterContext supply(
+        EngineContext context)
     {
-        return handler.encodePadding();
+        return new TestConverterContext(context);
     }
 
     @Override
-    public int convert(
-        DirectBuffer data,
-        int index,
-        int length,
-        ValueConsumer next)
+    public URL type()
     {
-        boolean valid = length == this.length;
-        if (valid)
-        {
-            next.accept(data, index, length);
-        }
-        return valid ? length : -1;
+        return getClass().getResource("test.schema.patch.json");
     }
 }
-

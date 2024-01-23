@@ -189,9 +189,10 @@ import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.converter.Converter;
+import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 import io.aklivity.zilla.runtime.engine.converter.function.ValueConsumer;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
+import io.aklivity.zilla.runtime.engine.validator.ValidatorHandler;
 
 public final class MqttServerFactory implements MqttStreamFactory
 {
@@ -561,8 +562,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 affinity,
                 binding.guard,
                 binding.credentials(),
-                binding.authField(),
-                binding::supplyConverter)::onNetwork;
+                binding.authField())::onNetwork;
         }
         return newStream;
     }
@@ -1238,7 +1238,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 final int payloadSize = payload.sizeof();
 
-                if (!server.validContent(mqttPublishHeader.topic, payload))
+                if (!server.validContent(publisher.contentType, payload))
                 {
                     reasonCode = PAYLOAD_FORMAT_INVALID;
                     server.onDecodeError(traceId, authorization, reasonCode);
@@ -1372,7 +1372,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 final int payloadSize = payload.sizeof();
 
-                if (!server.validContent(mqttPublishHeader.topic, payload))
+                if (!server.validContent(publisher.contentType, payload))
                 {
                     reasonCode = PAYLOAD_FORMAT_INVALID;
                     server.onDecodeError(traceId, authorization, reasonCode);
@@ -2277,7 +2277,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private final GuardHandler guard;
         private final Function<String, String> credentials;
         private final MqttConnectProperty authField;
-        private final Function<String, Converter> supplyConverter;
+        private final Function<ValidatorConfig, ValidatorHandler> supplyValidator;
 
         private MqttSessionStream session;
 
@@ -2349,8 +2349,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             long affinity,
             GuardHandler guard,
             Function<String, String> credentials,
-            MqttConnectProperty authField,
-            Function<String, Converter> supplyConverter)
+            MqttConnectProperty authField)
         {
             this.network = network;
             this.originId = originId;
@@ -2371,7 +2370,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             this.qos2Subscribes = new Int2ObjectHashMap<>();
             this.credentials = credentials;
             this.authField = authField;
-            this.supplyConverter = supplyConverter;
+            this.supplyValidator = context::supplyValidator;
         }
 
         private void onNetwork(
@@ -2967,7 +2966,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                 final long resolvedId = resolved.id;
                 final long topicKey = topicKey(topic, qos);
 
-                stream = publishes.computeIfAbsent(topicKey, s -> new MqttPublishStream(routedId, resolvedId, topic, qos));
+                stream = publishes.computeIfAbsent(topicKey, s ->
+                    new MqttPublishStream(routedId, resolvedId, topic, qos, binding.supplyValidatorConfig(topic)));
                 stream.doPublishBegin(traceId, affinity);
             }
             else
@@ -4710,11 +4710,11 @@ public final class MqttServerFactory implements MqttStreamFactory
         }
 
         private boolean validContent(
-            String topic,
+            ValidatorHandler contentType,
             OctetsFW payload)
         {
-            final Converter converter = supplyConverter.apply(topic);
-            return converter.convert(payload.buffer(), payload.offset(), payload.sizeof(), ValueConsumer.NOP) != -1;
+            return contentType == null ||
+                contentType.validate(payload.buffer(), payload.offset(), payload.sizeof(), ValueConsumer.NOP);
         }
 
         private final class Subscription
@@ -5259,6 +5259,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             private final long routedId;
             private final long initialId;
             private final long replyId;
+            private final ValidatorHandler contentType;
             private long budgetId;
 
             private BudgetDebitor debitor;
@@ -5282,7 +5283,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                 long originId,
                 long routedId,
                 String topic,
-                int qos)
+                int qos,
+                ValidatorConfig config)
             {
                 this.originId = originId;
                 this.routedId = routedId;
@@ -5291,6 +5293,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 this.topic = topic;
                 this.qos = qos;
                 this.topicKey = topicKey(topic, qos);
+                this.contentType = config != null ? supplyValidator.apply(config) : null;
             }
 
             private void doPublishBegin(

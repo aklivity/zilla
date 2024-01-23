@@ -31,6 +31,7 @@ import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 import io.aklivity.zilla.runtime.engine.util.function.ObjectLongLongFunction;
+import io.aklivity.zilla.runtime.engine.validator.ValidatorContext;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 
 public class ConfigurationRegistry
@@ -39,6 +40,7 @@ public class ConfigurationRegistry
     private final Function<String, GuardContext> guardsByType;
     private final Function<String, VaultContext> vaultsByType;
     private final Function<String, CatalogContext> catalogsByType;
+    private final Function<String, ValidatorContext> validatorsByType;
     private final Function<String, MetricContext> metricsByName;
     private final Function<String, ExporterContext> exportersByType;
     private final ToIntFunction<String> supplyLabelId;
@@ -54,6 +56,7 @@ public class ConfigurationRegistry
             Function<String, GuardContext> guardsByType,
             Function<String, VaultContext> vaultsByType,
             Function<String, CatalogContext> catalogsByType,
+            Function<String, ValidatorContext> validatorsByType,
             Function<String, MetricContext> metricsByName,
             Function<String, ExporterContext> exportersByType,
             ToIntFunction<String> supplyLabelId,
@@ -67,6 +70,7 @@ public class ConfigurationRegistry
         this.guardsByType = guardsByType;
         this.vaultsByType = vaultsByType;
         this.catalogsByType = catalogsByType;
+        this.validatorsByType = validatorsByType;
         this.metricsByName = metricsByName;
         this.exportersByType = exportersByType;
         this.supplyLabelId = supplyLabelId;
@@ -166,8 +170,8 @@ public class ConfigurationRegistry
         NamespaceConfig namespace)
     {
         NamespaceRegistry registry =
-                new NamespaceRegistry(namespace, bindingsByType, guardsByType, vaultsByType, catalogsByType, metricsByName,
-                    exportersByType, supplyLabelId, this::resolveMetric, exporterAttached, exporterDetached,
+                new NamespaceRegistry(namespace, bindingsByType, guardsByType, vaultsByType, catalogsByType, validatorsByType,
+                    metricsByName, exportersByType, supplyLabelId, this::resolveMetric, exporterAttached, exporterDetached,
                     supplyMetricRecorder, detachBinding, collector);
         namespacesById.put(registry.namespaceId(), registry);
         registry.attach();
