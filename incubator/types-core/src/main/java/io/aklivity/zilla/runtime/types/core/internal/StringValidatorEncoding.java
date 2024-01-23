@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.types.core;
+package io.aklivity.zilla.runtime.types.core.internal;
 
 import static io.aklivity.zilla.runtime.engine.validator.ValidatorHandler.FLAGS_FIN;
 import static io.aklivity.zilla.runtime.engine.validator.ValidatorHandler.FLAGS_INIT;
@@ -74,19 +74,6 @@ public enum StringValidatorEncoding
                 ? index == limit
                 : pendingCharBytes == 0 && index == limit;
         }
-    },
-
-    INVALID
-    {
-        @Override
-        public boolean validate(
-            int flags,
-            DirectBuffer data,
-            int index,
-            int length)
-        {
-            return false;
-        }
     };
 
     public abstract boolean validate(
@@ -95,15 +82,13 @@ public enum StringValidatorEncoding
         int index,
         int length);
 
-    static StringValidatorEncoding of(
+    public static StringValidatorEncoding of(
         String encoding)
     {
         switch (encoding)
         {
-        case "utf_8":
-            return UTF_8;
         default:
-            return INVALID;
+            return UTF_8;
         }
     }
 }

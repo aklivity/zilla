@@ -19,6 +19,7 @@ import org.agrona.DirectBuffer;
 import io.aklivity.zilla.runtime.engine.converter.function.ValueConsumer;
 import io.aklivity.zilla.runtime.engine.validator.ValidatorHandler;
 import io.aklivity.zilla.runtime.types.core.config.StringValidatorConfig;
+import io.aklivity.zilla.runtime.types.core.internal.StringValidatorEncoding;
 
 public class StringValidatorHandler implements ValidatorHandler
 {

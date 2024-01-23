@@ -21,6 +21,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.nio.charset.StandardCharsets;
 
+import io.aklivity.zilla.runtime.types.core.internal.StringValidatorEncoding;
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
@@ -70,6 +71,5 @@ public class StringEncodingTest
         assertEquals(StringEncoding.INVALID, StringEncoding.of("invalid_encoding"));
 
         assertEquals(StringValidatorEncoding.UTF_8, StringValidatorEncoding.of("utf_8"));
-        assertEquals(StringValidatorEncoding.INVALID, StringValidatorEncoding.of("invalid_encoding"));
     }
 }
