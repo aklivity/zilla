@@ -201,6 +201,12 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
+      <artifactId>resolver-env</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
       <artifactId>vault-filesystem</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>
