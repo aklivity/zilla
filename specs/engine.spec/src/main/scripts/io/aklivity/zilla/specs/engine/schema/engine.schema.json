@@ -233,6 +233,11 @@
                     "title": "Vault",
                     "type": "string"
                 },
+                "catalog":
+                {
+                    "title": "Catalog",
+                    "type": "string"
+                },
                 "type":
                 {
                     "title": "Type",
