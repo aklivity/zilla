@@ -16,11 +16,10 @@
 package io.aklivity.zilla.runtime.engine.binding;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.factory.FactorySpi;
 
-public interface BindingFactorySpi
+public interface BindingFactorySpi extends FactorySpi
 {
-    String name();
-
     Binding create(
         Configuration config);
 }

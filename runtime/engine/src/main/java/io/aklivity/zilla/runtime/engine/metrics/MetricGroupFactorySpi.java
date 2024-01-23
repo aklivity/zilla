@@ -16,8 +16,9 @@
 package io.aklivity.zilla.runtime.engine.metrics;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.factory.FactorySpi;
 
-public interface MetricGroupFactorySpi
+public interface MetricGroupFactorySpi extends FactorySpi
 {
     String type();
 

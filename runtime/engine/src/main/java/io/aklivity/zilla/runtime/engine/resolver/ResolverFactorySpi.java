@@ -16,11 +16,10 @@
 package io.aklivity.zilla.runtime.engine.resolver;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.factory.FactorySpi;
 
-public interface ResolverFactorySpi
+public interface ResolverFactorySpi extends FactorySpi
 {
-    String name();
-
     ResolverSpi create(
         Configuration config);
 }

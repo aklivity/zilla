@@ -19,7 +19,6 @@ import io.aklivity.zilla.runtime.engine.resolver.ResolverSpi;
 
 public class TestResolverSpi implements ResolverSpi
 {
-    @Override
     public String resolve(
         String var)
     {

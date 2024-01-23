@@ -15,13 +15,13 @@
  */
 package io.aklivity.zilla.runtime.engine.resolver;
 
+import static io.aklivity.zilla.runtime.common.feature.FeatureFilter.filter;
 import static java.util.Collections.unmodifiableMap;
 import static java.util.Objects.requireNonNull;
 import static java.util.ServiceLoader.load;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.ServiceLoader;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -38,7 +38,7 @@ public final class Resolver
     public static Resolver instantiate(
         Configuration config)
     {
-        return instantiate(config, load(ResolverFactorySpi.class));
+        return instantiate(config, filter(load(ResolverFactorySpi.class)));
     }
 
     public String resolve(
@@ -59,10 +59,10 @@ public final class Resolver
 
     private static Resolver instantiate(
         Configuration config,
-        ServiceLoader<ResolverFactorySpi> factories)
+        Iterable<ResolverFactorySpi> factories)
     {
         Map<String, ResolverSpi> resolversByName = new HashMap<>();
-        factories.forEach(f -> resolversByName.put(f.name(), f.create(config)));
+        factories.forEach(f -> resolversByName.put(f.type(), f.create(config)));
         return new Resolver(unmodifiableMap(resolversByName));
     }
 

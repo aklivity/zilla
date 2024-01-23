@@ -21,7 +21,7 @@ import io.aklivity.zilla.runtime.engine.resolver.ResolverFactorySpi;
 public class TestResolverFactorySpi implements ResolverFactorySpi
 {
     @Override
-    public String name()
+    public String type()
     {
         return "test";
     }

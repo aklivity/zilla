@@ -62,6 +62,7 @@
     <module>runtime</module>
     <module>manager</module>
     <module>cloud</module>
+    <module>incubator</module>
   </modules>
 
   <dependencyManagement>
@@ -591,7 +592,6 @@
       </activation>
 
       <properties>
-        <docker.context>incubator</docker.context>
         <docker.skip.push>true</docker.skip.push>
         <docker.skip.tag>true</docker.skip.tag>
       </properties>
@@ -620,10 +620,6 @@
           </plugin>
         </plugins>
       </build>
-
-      <modules>
-        <module>incubator</module>
-      </modules>
     </profile>
 
     <profile>
@@ -648,7 +644,6 @@
       </distributionManagement>
 
       <properties>
-        <docker.context>release</docker.context>
         <docker.skip.push>false</docker.skip.push>
         <docker.skip.tag>false</docker.skip.tag>
       </properties>
