@@ -28,13 +28,13 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.JsonEncoder;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.converter.Converter;
+import io.aklivity.zilla.runtime.engine.converter.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.converter.function.ValueConsumer;
 import io.aklivity.zilla.runtime.types.avro.config.AvroConverterConfig;
 
-public class AvroReadConverter extends AvroConverter implements Converter
+public class AvroReadConverterHandler extends AvroConverterHandler implements ConverterHandler
 {
-    public AvroReadConverter(
+    public AvroReadConverterHandler(
         AvroConverterConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
     {

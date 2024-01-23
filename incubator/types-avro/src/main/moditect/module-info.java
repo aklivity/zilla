@@ -28,5 +28,5 @@ module io.aklivity.zilla.runtime.types.avro
         with io.aklivity.zilla.runtime.types.avro.internal.config.AvroConverterConfigAdapter;
 
     provides io.aklivity.zilla.runtime.engine.converter.ConverterFactorySpi
-        with io.aklivity.zilla.runtime.types.avro.internal.AvroConverterFactory;
+        with io.aklivity.zilla.runtime.types.avro.internal.AvroConverterFactorySpi;
 }

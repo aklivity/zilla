@@ -15,15 +15,12 @@
 package io.aklivity.zilla.runtime.types.core.internal;
 
 import java.net.URL;
-import java.util.function.LongFunction;
 
-import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.config.ConverterConfig;
+import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.converter.Converter;
 import io.aklivity.zilla.runtime.engine.converter.ConverterFactorySpi;
-import io.aklivity.zilla.runtime.types.core.config.StringConverterConfig;
 
-public final class StringConverterFactory implements ConverterFactorySpi
+public final class StringConverterFactorySpi implements ConverterFactorySpi
 {
     @Override
     public String type()
@@ -38,24 +35,11 @@ public final class StringConverterFactory implements ConverterFactorySpi
     }
 
     @Override
-    public Converter createReader(
-        ConverterConfig config,
-        LongFunction<CatalogHandler> supplyCatalog)
+    public Converter create(
+        Configuration config)
     {
-        return create(config);
+        return new StringConverter();
     }
 
-    @Override
-    public Converter createWriter(
-        ConverterConfig config,
-        LongFunction<CatalogHandler> supplyCatalog)
-    {
-        return create(config);
-    }
 
-    private StringConverter create(
-        ConverterConfig config)
-    {
-        return new StringConverter(StringConverterConfig.class.cast(config));
-    }
 }

@@ -26,7 +26,7 @@ import io.aklivity.zilla.runtime.types.core.config.IntegerConverterConfig;
 public class IntegerConverterTest
 {
     private final IntegerConverterConfig config = new IntegerConverterConfig();
-    private final IntegerConverter converter = new IntegerConverter(config);
+    private final IntegerConverterHandler converter = new IntegerConverterHandler(config);
 
     @Test
     public void shouldVerifyValidInteger()

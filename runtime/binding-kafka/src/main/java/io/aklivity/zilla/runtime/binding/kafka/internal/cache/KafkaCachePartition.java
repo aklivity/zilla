@@ -73,7 +73,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Varint32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheDeltaFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW;
-import io.aklivity.zilla.runtime.engine.converter.Converter;
+import io.aklivity.zilla.runtime.engine.converter.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.converter.function.ValueConsumer;
 
 public final class KafkaCachePartition
@@ -339,8 +339,8 @@ public final class KafkaCachePartition
         KafkaCacheEntryFW ancestor,
         int entryFlags,
         KafkaDeltaType deltaType,
-        Converter convertKey,
-        Converter convertValue)
+        ConverterHandler convertKey,
+        ConverterHandler convertValue)
     {
         final long keyHash = computeHash(key);
         final int valueLength = value != null ? value.sizeof() : -1;
@@ -363,8 +363,8 @@ public final class KafkaCachePartition
         int entryFlags,
         KafkaDeltaType deltaType,
         OctetsFW payload,
-        Converter convertKey,
-        Converter convertValue)
+        ConverterHandler convertKey,
+        ConverterHandler convertValue)
     {
         assert offset > this.progress : String.format("%d > %d", offset, this.progress);
         this.progress = offset;
@@ -397,7 +397,7 @@ public final class KafkaCachePartition
         this.ancestorEntry = ancestor;
 
         int convertedPos = NO_CONVERTED_POSITION;
-        if (convertValue != Converter.NONE)
+        if (convertValue != ConverterHandler.NONE)
         {
             int convertedPadding = convertValue.padding(payload.buffer(), payload.offset(), payload.sizeof());
             int convertedMaxLength = valueMaxLength + convertedPadding;
@@ -469,7 +469,7 @@ public final class KafkaCachePartition
         MutableInteger entryMark,
         MutableInteger valueMark,
         OctetsFW payload,
-        Converter convertValue)
+        ConverterHandler convertValue)
     {
         final Node head = sentinel.previous;
         assert head != sentinel;
@@ -486,7 +486,7 @@ public final class KafkaCachePartition
 
         logFile.appendBytes(payload.buffer(), payload.offset(), payload.sizeof());
 
-        if (payload != null && convertValue != Converter.NONE)
+        if (payload != null && convertValue != ConverterHandler.NONE)
         {
             final ValueConsumer consumeConverted = (buffer, index, length) ->
             {
@@ -612,8 +612,8 @@ public final class KafkaCachePartition
         ArrayFW<KafkaHeaderFW> headers,
         int trailersSizeMax,
         OctetsFW payload,
-        Converter convertKey,
-        Converter convertValue)
+        ConverterHandler convertKey,
+        ConverterHandler convertValue)
     {
         assert offset > this.progress : String.format("%d > %d", offset, this.progress);
         this.progress = offset;
@@ -628,7 +628,7 @@ public final class KafkaCachePartition
         final int valueMaxLength = valueLength == -1 ? 0 : valueLength;
 
         int convertedPos = NO_CONVERTED_POSITION;
-        if (convertValue != Converter.NONE)
+        if (convertValue != ConverterHandler.NONE)
         {
             int convertedPadding = convertValue.padding(payload.buffer(), payload.offset(), payload.sizeof());
             int convertedMaxLength = valueMaxLength + convertedPadding;
@@ -711,7 +711,7 @@ public final class KafkaCachePartition
         MutableInteger valueMark,
         MutableInteger valueLimit,
         OctetsFW payload,
-        Converter convertValue)
+        ConverterHandler convertValue)
     {
         final KafkaCacheSegment segment = head.segment;
         assert segment != null;
@@ -724,7 +724,7 @@ public final class KafkaCachePartition
         {
             valueLimit.value += logFile.writeBytes(valueLimit.value, payload);
 
-            if (convertValue != Converter.NONE)
+            if (convertValue != ConverterHandler.NONE)
             {
                 final ValueConsumer consumeConverted = (buffer, index, length) ->
                 {

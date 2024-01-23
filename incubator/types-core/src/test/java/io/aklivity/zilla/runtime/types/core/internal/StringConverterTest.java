@@ -33,7 +33,7 @@ public class StringConverterTest
         StringConverterConfig config = StringConverterConfig.builder()
                 .encoding("utf_8")
                 .build();
-        StringConverter converter = new StringConverter(config);
+        StringConverterHandler converter = new StringConverterHandler(config);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -48,7 +48,7 @@ public class StringConverterTest
         StringConverterConfig config = StringConverterConfig.builder()
                 .encoding("utf_8")
                 .build();
-        StringConverter converter = new StringConverter(config);
+        StringConverterHandler converter = new StringConverterHandler(config);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -63,7 +63,7 @@ public class StringConverterTest
         StringConverterConfig config = StringConverterConfig.builder()
                 .encoding("utf_16")
                 .build();
-        StringConverter converter = new StringConverter(config);
+        StringConverterHandler converter = new StringConverterHandler(config);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -79,7 +79,7 @@ public class StringConverterTest
         StringConverterConfig config = StringConverterConfig.builder()
                 .encoding("utf_16")
                 .build();
-        StringConverter converter = new StringConverter(config);
+        StringConverterHandler converter = new StringConverterHandler(config);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -94,7 +94,7 @@ public class StringConverterTest
         StringConverterConfig config = StringConverterConfig.builder()
                 .encoding("utf_16")
                 .build();
-        StringConverter converter = new StringConverter(config);
+        StringConverterHandler converter = new StringConverterHandler(config);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -109,7 +109,7 @@ public class StringConverterTest
         StringConverterConfig config = StringConverterConfig.builder()
                 .encoding("utf_16")
                 .build();
-        StringConverter converter = new StringConverter(config);
+        StringConverterHandler converter = new StringConverterHandler(config);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -124,7 +124,7 @@ public class StringConverterTest
         StringConverterConfig config = StringConverterConfig.builder()
                 .encoding("utf_16")
                 .build();
-        StringConverter converter = new StringConverter(config);
+        StringConverterHandler converter = new StringConverterHandler(config);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -139,7 +139,7 @@ public class StringConverterTest
         StringConverterConfig config = StringConverterConfig.builder()
                 .encoding("utf_16")
                 .build();
-        StringConverter converter = new StringConverter(config);
+        StringConverterHandler converter = new StringConverterHandler(config);
 
         DirectBuffer data = new UnsafeBuffer();
 

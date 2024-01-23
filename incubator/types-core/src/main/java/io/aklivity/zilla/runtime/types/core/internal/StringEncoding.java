@@ -96,18 +96,6 @@ public enum StringEncoding
             }
             return index == limit;
         }
-    },
-
-    INVALID
-    {
-        @Override
-        public boolean validate(
-            DirectBuffer data,
-            int index,
-            int length)
-        {
-            return false;
-        }
     };
 
     public abstract boolean validate(
@@ -120,12 +108,10 @@ public enum StringEncoding
     {
         switch (encoding)
         {
-        case "utf_8":
-            return UTF_8;
         case "utf_16":
             return UTF_16;
         default:
-            return INVALID;
+            return UTF_8;
         }
     }
 }

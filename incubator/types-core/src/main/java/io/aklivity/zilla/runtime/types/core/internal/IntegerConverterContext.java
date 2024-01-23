@@ -14,32 +14,36 @@
  */
 package io.aklivity.zilla.runtime.types.core.internal;
 
-import java.net.URL;
-
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.converter.Converter;
+import io.aklivity.zilla.runtime.engine.config.ConverterConfig;
 import io.aklivity.zilla.runtime.engine.converter.ConverterContext;
+import io.aklivity.zilla.runtime.engine.converter.ConverterHandler;
+import io.aklivity.zilla.runtime.types.core.config.IntegerConverterConfig;
 
-public class StringConverter implements Converter
+public class IntegerConverterContext implements ConverterContext
 {
-    public static final String NAME = "string";
-
-    @Override
-    public String name()
-    {
-        return NAME;
-    }
-
-    @Override
-    public ConverterContext supply(
+    public IntegerConverterContext(
         EngineContext context)
     {
-        return new StringConverterContext(context);
     }
 
     @Override
-    public URL type()
+    public ConverterHandler supplyReadHandler(
+        ConverterConfig config)
     {
-        return getClass().getResource("schema/string.schema.patch.json");
+        return supply(config);
+    }
+
+    @Override
+    public ConverterHandler supplyWriteHandler(
+        ConverterConfig config)
+    {
+        return supply(config);
+    }
+
+    private IntegerConverterHandler supply(
+        ConverterConfig config)
+    {
+        return new IntegerConverterHandler(IntegerConverterConfig.class.cast(config));
     }
 }

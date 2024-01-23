@@ -16,15 +16,12 @@
 package io.aklivity.zilla.runtime.engine.test.internal.converter;
 
 import java.net.URL;
-import java.util.function.LongFunction;
 
-import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.config.ConverterConfig;
+import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.converter.Converter;
 import io.aklivity.zilla.runtime.engine.converter.ConverterFactorySpi;
-import io.aklivity.zilla.runtime.engine.test.internal.converter.config.TestConverterConfig;
 
-public class TestConverterFactory implements ConverterFactorySpi
+public class TestConverterFactorySpi implements ConverterFactorySpi
 {
     @Override
     public String type()
@@ -39,25 +36,9 @@ public class TestConverterFactory implements ConverterFactorySpi
     }
 
     @Override
-    public Converter createReader(
-        ConverterConfig config,
-        LongFunction<CatalogHandler> supplyCatalog)
+    public Converter create(
+        Configuration config)
     {
-        return create(config, supplyCatalog);
-    }
-
-    @Override
-    public Converter createWriter(
-        ConverterConfig config,
-        LongFunction<CatalogHandler> supplyCatalog)
-    {
-        return create(config, supplyCatalog);
-    }
-
-    private TestConverter create(
-        ConverterConfig config,
-        LongFunction<CatalogHandler> supplyCatalog)
-    {
-        return new TestConverter(TestConverterConfig.class.cast(config), supplyCatalog);
+        return new TestConverter();
     }
 }

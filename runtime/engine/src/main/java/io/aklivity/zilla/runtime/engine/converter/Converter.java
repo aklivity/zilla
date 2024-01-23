@@ -15,29 +15,16 @@
  */
 package io.aklivity.zilla.runtime.engine.converter;
 
-import org.agrona.DirectBuffer;
+import java.net.URL;
 
-import io.aklivity.zilla.runtime.engine.converter.function.ValueConsumer;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 
 public interface Converter
 {
-    Converter NONE = (data, index, length, next) ->
-    {
-        next.accept(data, index, length);
-        return length;
-    };
+    String name();
 
-    int convert(
-        DirectBuffer data,
-        int index,
-        int length,
-        ValueConsumer next);
+    ConverterContext supply(
+        EngineContext context);
 
-    default int padding(
-        DirectBuffer data,
-        int index,
-        int length)
-    {
-        return 0;
-    }
+    URL type();
 }

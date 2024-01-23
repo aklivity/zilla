@@ -18,46 +18,31 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.mock;
 
-import java.util.function.LongFunction;
-
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.ConverterConfig;
 import io.aklivity.zilla.runtime.engine.converter.Converter;
+import io.aklivity.zilla.runtime.engine.converter.ConverterContext;
+import io.aklivity.zilla.runtime.engine.converter.ConverterFactory;
 import io.aklivity.zilla.runtime.types.core.config.IntegerConverterConfig;
 
 public class IntegerConverterFactoryTest
 {
     @Test
-    @SuppressWarnings("unchecked")
     public void shouldCreateReader()
     {
-        // GIVEN
-        ConverterConfig converter = new IntegerConverterConfig();
-        LongFunction<CatalogHandler> supplyCatalog = mock(LongFunction.class);
-        IntegerConverterFactory factory = new IntegerConverterFactory();
+        Configuration config = new Configuration();
+        ConverterFactory factory = ConverterFactory.instantiate();
+        Converter converter = factory.create("integer", config);
 
-        // WHEN
-        Converter reader = factory.createReader(converter, supplyCatalog);
+        ConverterContext context = new IntegerConverterContext(mock(EngineContext.class));
 
-        // THEN
-        assertThat(reader, instanceOf(IntegerConverter.class));
-    }
+        ConverterConfig converterConfig = IntegerConverterConfig.builder().build();
 
-    @Test
-    @SuppressWarnings("unchecked")
-    public void shouldCreateWriter()
-    {
-        // GIVEN
-        ConverterConfig converter = new IntegerConverterConfig();
-        LongFunction<CatalogHandler> supplyCatalog = mock(LongFunction.class);
-        IntegerConverterFactory factory = new IntegerConverterFactory();
-
-        // WHEN
-        Converter writer = factory.createWriter(converter, supplyCatalog);
-
-        // THEN
-        assertThat(writer, instanceOf(IntegerConverter.class));
+        assertThat(converter, instanceOf(IntegerConverter.class));
+        assertThat(context.supplyReadHandler(converterConfig), instanceOf(IntegerConverterHandler.class));
+        assertThat(context.supplyWriteHandler(converterConfig), instanceOf(IntegerConverterHandler.class));
     }
 }

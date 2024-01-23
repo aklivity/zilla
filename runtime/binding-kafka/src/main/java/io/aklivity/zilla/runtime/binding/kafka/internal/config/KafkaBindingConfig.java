@@ -31,7 +31,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
-import io.aklivity.zilla.runtime.engine.converter.Converter;
+import io.aklivity.zilla.runtime.engine.converter.ConverterHandler;
 
 public final class KafkaBindingConfig
 {
@@ -41,10 +41,10 @@ public final class KafkaBindingConfig
     public final KindConfig kind;
     public final List<KafkaRouteConfig> routes;
     public final ToLongFunction<String> resolveId;
-    public final Map<String, Converter> keyReaders;
-    public final Map<String, Converter> keyWriters;
-    public final Map<String, Converter> valueReaders;
-    public final Map<String, Converter> valueWriters;
+    public final Map<String, ConverterHandler> keyReaders;
+    public final Map<String, ConverterHandler> keyWriters;
+    public final Map<String, ConverterHandler> valueReaders;
+    public final Map<String, ConverterHandler> valueWriters;
 
     public KafkaBindingConfig(
         BindingConfig binding,
@@ -61,32 +61,32 @@ public final class KafkaBindingConfig
                 .collect(Collectors.toMap(
                     t -> t.name,
                     t -> t.key != null
-                        ? context.createReader(t.key)
-                        : Converter.NONE))
+                        ? context.supplyReadHandler(t.key)
+                        : ConverterHandler.NONE))
                 : null;
         this.keyWriters = options != null && options.topics != null
                 ? options.topics.stream()
                 .collect(Collectors.toMap(
                     t -> t.name,
                     t -> t.key != null
-                        ? context.createWriter(t.key)
-                        : Converter.NONE))
+                        ? context.supplyWriteHandler(t.key)
+                        : ConverterHandler.NONE))
                 : null;
         this.valueReaders = options != null && options.topics != null
                 ? options.topics.stream()
                 .collect(Collectors.toMap(
                     t -> t.name,
                     t -> t.value != null
-                        ? context.createReader(t.value)
-                        : Converter.NONE))
+                        ? context.supplyReadHandler(t.value)
+                        : ConverterHandler.NONE))
                 : null;
         this.valueWriters = options != null && options.topics != null
                 ? options.topics.stream()
                 .collect(Collectors.toMap(
                     t -> t.name,
                     t -> t.value != null
-                        ? context.createWriter(t.value)
-                        : Converter.NONE))
+                        ? context.supplyWriteHandler(t.value)
+                        : ConverterHandler.NONE))
                 : null;
     }
 
@@ -141,27 +141,27 @@ public final class KafkaBindingConfig
         return config != null && config.defaultOffset != null ? config.defaultOffset : HISTORICAL;
     }
 
-    public Converter resolveKeyReader(
+    public ConverterHandler resolveKeyReader(
         String topic)
     {
-        return keyReaders != null ? keyReaders.getOrDefault(topic, Converter.NONE) : Converter.NONE;
+        return keyReaders != null ? keyReaders.getOrDefault(topic, ConverterHandler.NONE) : ConverterHandler.NONE;
     }
 
-    public Converter resolveKeyWriter(
+    public ConverterHandler resolveKeyWriter(
         String topic)
     {
-        return keyWriters != null ? keyWriters.getOrDefault(topic, Converter.NONE) : Converter.NONE;
+        return keyWriters != null ? keyWriters.getOrDefault(topic, ConverterHandler.NONE) : ConverterHandler.NONE;
     }
 
-    public Converter resolveValueReader(
+    public ConverterHandler resolveValueReader(
         String topic)
     {
-        return valueReaders != null ? valueReaders.getOrDefault(topic, Converter.NONE) : Converter.NONE;
+        return valueReaders != null ? valueReaders.getOrDefault(topic, ConverterHandler.NONE) : ConverterHandler.NONE;
     }
 
-    public Converter resolveValueWriter(
+    public ConverterHandler resolveValueWriter(
         String topic)
     {
-        return valueWriters != null ? valueWriters.getOrDefault(topic, Converter.NONE) : Converter.NONE;
+        return valueWriters != null ? valueWriters.getOrDefault(topic, ConverterHandler.NONE) : ConverterHandler.NONE;
     }
 }

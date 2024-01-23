@@ -27,18 +27,18 @@ import com.google.protobuf.DynamicMessage;
 import com.google.protobuf.util.JsonFormat;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.converter.Converter;
+import io.aklivity.zilla.runtime.engine.converter.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.converter.function.ValueConsumer;
 import io.aklivity.zilla.runtime.types.protobuf.config.ProtobufConverterConfig;
 
-public class ProtobufWriteConverter extends ProtobufConverter implements Converter
+public class ProtobufWriteConverterHandler extends ProtobufConverterHandler implements ConverterHandler
 {
     private final DirectBuffer indexesRO;
     private final InputStreamReader input;
     private final DirectBufferInputStream in;
     private final JsonFormat.Parser parser;
 
-    public ProtobufWriteConverter(
+    public ProtobufWriteConverterHandler(
         ProtobufConverterConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
     {

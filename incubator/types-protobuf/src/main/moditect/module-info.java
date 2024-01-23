@@ -24,5 +24,5 @@ module io.aklivity.zilla.runtime.types.protobuf
         with io.aklivity.zilla.runtime.types.protobuf.internal.config.ProtobufConverterConfigAdapter;
 
     provides io.aklivity.zilla.runtime.engine.converter.ConverterFactorySpi
-        with io.aklivity.zilla.runtime.types.protobuf.internal.ProtobufConverterFactory;
+        with io.aklivity.zilla.runtime.types.protobuf.internal.ProtobufConverterFactorySpi;
 }

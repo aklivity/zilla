@@ -115,7 +115,7 @@
                                 <fileMappers>
                                     <org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
                                         <pattern>^\Qio/aklivity/zilla/specs/types/protobuf/\E</pattern>
-                                        <replacement>io/aklivity/zilla/runtime/types/protobuf/</replacement>
+                                        <replacement>io/aklivity/zilla/runtime/types/protobuf/internal/</replacement>
                                     </org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
                                 </fileMappers>
                             </artifactItem>

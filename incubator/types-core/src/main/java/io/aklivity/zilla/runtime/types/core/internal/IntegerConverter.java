@@ -14,33 +14,32 @@
  */
 package io.aklivity.zilla.runtime.types.core.internal;
 
-import org.agrona.DirectBuffer;
+import java.net.URL;
 
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.converter.Converter;
-import io.aklivity.zilla.runtime.engine.converter.function.ValueConsumer;
-import io.aklivity.zilla.runtime.types.core.config.IntegerConverterConfig;
+import io.aklivity.zilla.runtime.engine.converter.ConverterContext;
 
 public class IntegerConverter implements Converter
 {
-    public IntegerConverter(
-        IntegerConverterConfig config)
+    public static final String NAME = "integer";
+
+    @Override
+    public String name()
     {
+        return NAME;
     }
 
     @Override
-    public int convert(
-        DirectBuffer data,
-        int index,
-        int length,
-        ValueConsumer next)
+    public ConverterContext supply(
+        EngineContext context)
     {
-        boolean valid = length == 4;
+        return new IntegerConverterContext(context);
+    }
 
-        if (valid)
-        {
-            next.accept(data, index, length);
-        }
-
-        return valid ? length : -1;
+    @Override
+    public URL type()
+    {
+        return getClass().getResource("schema/integer.schema.patch.json");
     }
 }

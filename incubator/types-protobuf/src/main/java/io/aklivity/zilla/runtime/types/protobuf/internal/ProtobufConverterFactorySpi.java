@@ -15,20 +15,17 @@
 package io.aklivity.zilla.runtime.types.protobuf.internal;
 
 import java.net.URL;
-import java.util.function.LongFunction;
 
-import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.config.ConverterConfig;
+import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.converter.Converter;
 import io.aklivity.zilla.runtime.engine.converter.ConverterFactorySpi;
-import io.aklivity.zilla.runtime.types.protobuf.config.ProtobufConverterConfig;
 
-public final class ProtobufConverterFactory implements ConverterFactorySpi
+public final class ProtobufConverterFactorySpi implements ConverterFactorySpi
 {
     @Override
     public String type()
     {
-        return "protobuf";
+        return ProtobufConverter.NAME;
     }
 
     public URL schema()
@@ -37,18 +34,9 @@ public final class ProtobufConverterFactory implements ConverterFactorySpi
     }
 
     @Override
-    public Converter createReader(
-        ConverterConfig config,
-        LongFunction<CatalogHandler> supplyCatalog)
+    public Converter create(
+        Configuration config)
     {
-        return new ProtobufReadConverter(ProtobufConverterConfig.class.cast(config), supplyCatalog);
-    }
-
-    @Override
-    public Converter createWriter(
-        ConverterConfig config,
-        LongFunction<CatalogHandler> supplyCatalog)
-    {
-        return new ProtobufWriteConverter(ProtobufConverterConfig.class.cast(config), supplyCatalog);
+        return new ProtobufConverter();
     }
 }

@@ -83,7 +83,7 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.budget.BudgetCreditor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
-import io.aklivity.zilla.runtime.engine.converter.Converter;
+import io.aklivity.zilla.runtime.engine.converter.ConverterHandler;
 
 public final class KafkaCacheClientProduceFactory implements BindingHandler
 {
@@ -257,8 +257,8 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 final KafkaCache cache = supplyCache.apply(cacheName);
                 final KafkaCacheTopic topic = cache.supplyTopic(topicName);
                 final KafkaCachePartition partition = topic.supplyProducePartition(partitionId, localIndex);
-                final Converter convertKey = binding.resolveKeyWriter(topicName);
-                final Converter convertValue = binding.resolveValueWriter(topicName);
+                final ConverterHandler convertKey = binding.resolveKeyWriter(topicName);
+                final ConverterHandler convertValue = binding.resolveValueWriter(topicName);
                 final KafkaCacheClientProduceFan newFan =
                         new KafkaCacheClientProduceFan(routedId, resolvedId, authorization, budget,
                             partition, cacheRoute, topicName, convertKey, convertValue);
@@ -496,8 +496,8 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         private final long routedId;
         private final long authorization;
         private final int partitionId;
-        private final Converter convertKey;
-        private final Converter convertValue;
+        private final ConverterHandler convertKey;
+        private final ConverterHandler convertValue;
 
         private long initialId;
         private long replyId;
@@ -534,8 +534,8 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             KafkaCachePartition partition,
             KafkaCacheRoute cacheRoute,
             String topicName,
-            Converter convertKey,
-            Converter convertValue)
+            ConverterHandler convertKey,
+            ConverterHandler convertValue)
         {
             this.originId = originId;
             this.routedId = routedId;

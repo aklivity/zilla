@@ -107,7 +107,7 @@ public class ProtobufConverterTest
                     .build()
                 .build();
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        ProtobufWriteConverter converter = new ProtobufWriteConverter(config, handler);
+        ProtobufWriteConverterHandler converter = new ProtobufWriteConverterHandler(config, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -139,7 +139,7 @@ public class ProtobufConverterTest
                     .build()
                 .build();
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        ProtobufWriteConverter converter = new ProtobufWriteConverter(config, handler);
+        ProtobufWriteConverterHandler converter = new ProtobufWriteConverterHandler(config, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -169,7 +169,7 @@ public class ProtobufConverterTest
                     .build()
                 .build();
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        ProtobufWriteConverter converter = new ProtobufWriteConverter(config, handler);
+        ProtobufWriteConverterHandler converter = new ProtobufWriteConverterHandler(config, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -198,7 +198,7 @@ public class ProtobufConverterTest
                     .build()
                 .build();
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        ProtobufReadConverter converter = new ProtobufReadConverter(config, handler);
+        ProtobufReadConverterHandler converter = new ProtobufReadConverterHandler(config, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -229,7 +229,7 @@ public class ProtobufConverterTest
                     .build()
                 .build();
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        ProtobufReadConverter converter = new ProtobufReadConverter(config, handler);
+        ProtobufReadConverterHandler converter = new ProtobufReadConverterHandler(config, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -260,7 +260,7 @@ public class ProtobufConverterTest
                 .build();
 
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        ProtobufReadConverter converter = new ProtobufReadConverter(config, handler);
+        ProtobufReadConverterHandler converter = new ProtobufReadConverterHandler(config, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -307,7 +307,7 @@ public class ProtobufConverterTest
                 .build();
 
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        ProtobufWriteConverter converter = new ProtobufWriteConverter(config, handler);
+        ProtobufWriteConverterHandler converter = new ProtobufWriteConverterHandler(config, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -347,7 +347,7 @@ public class ProtobufConverterTest
                         .build()
                     .build()
                 .build();
-        ProtobufReadConverter converter = new ProtobufReadConverter(config, handler);
+        ProtobufReadConverterHandler converter = new ProtobufReadConverterHandler(config, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -374,7 +374,7 @@ public class ProtobufConverterTest
                         .build()
                     .build()
                 .build();
-        ProtobufWriteConverter converter = new ProtobufWriteConverter(config, handler);
+        ProtobufWriteConverterHandler converter = new ProtobufWriteConverterHandler(config, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 

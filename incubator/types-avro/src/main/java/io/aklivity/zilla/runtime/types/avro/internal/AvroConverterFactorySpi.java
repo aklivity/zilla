@@ -15,20 +15,17 @@
 package io.aklivity.zilla.runtime.types.avro.internal;
 
 import java.net.URL;
-import java.util.function.LongFunction;
 
-import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.config.ConverterConfig;
+import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.converter.Converter;
 import io.aklivity.zilla.runtime.engine.converter.ConverterFactorySpi;
-import io.aklivity.zilla.runtime.types.avro.config.AvroConverterConfig;
 
-public final class AvroConverterFactory implements ConverterFactorySpi
+public final class AvroConverterFactorySpi implements ConverterFactorySpi
 {
     @Override
     public String type()
     {
-        return "avro";
+        return AvroConverter.NAME;
     }
 
     public URL schema()
@@ -37,18 +34,9 @@ public final class AvroConverterFactory implements ConverterFactorySpi
     }
 
     @Override
-    public Converter createReader(
-        ConverterConfig config,
-        LongFunction<CatalogHandler> supplyCatalog)
+    public Converter create(
+        Configuration config)
     {
-        return new AvroReadConverter(AvroConverterConfig.class.cast(config), supplyCatalog);
-    }
-
-    @Override
-    public Converter createWriter(
-        ConverterConfig config,
-        LongFunction<CatalogHandler> supplyCatalog)
-    {
-        return new AvroWriteConverter(AvroConverterConfig.class.cast(config), supplyCatalog);
+        return new AvroConverter();
     }
 }

@@ -33,7 +33,7 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.ConverterConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
-import io.aklivity.zilla.runtime.engine.converter.Converter;
+import io.aklivity.zilla.runtime.engine.converter.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
@@ -132,17 +132,17 @@ public interface EngineContext
     ValidatorHandler supplyValidator(
         ValidatorConfig config);
 
+    ConverterHandler supplyReadHandler(
+        ConverterConfig config);
+
+    ConverterHandler supplyWriteHandler(
+        ConverterConfig config);
+
     URL resolvePath(
         String path);
 
     Metric resolveMetric(
         String name);
-
-    Converter createReader(
-        ConverterConfig converter);
-
-    Converter createWriter(
-        ConverterConfig converter);
 
     void onExporterAttached(
         long exporterId);

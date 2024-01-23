@@ -27,6 +27,7 @@ import io.aklivity.zilla.runtime.engine.binding.Binding;
 import io.aklivity.zilla.runtime.engine.binding.BindingFactory;
 import io.aklivity.zilla.runtime.engine.catalog.Catalog;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogFactory;
+import io.aklivity.zilla.runtime.engine.converter.Converter;
 import io.aklivity.zilla.runtime.engine.converter.ConverterFactory;
 import io.aklivity.zilla.runtime.engine.exporter.Exporter;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterFactory;
@@ -140,11 +141,17 @@ public class EngineBuilder
             validators.add(validator);
         }
 
+        final Set<Converter> converters = new LinkedHashSet<>();
         final ConverterFactory converterFactory = ConverterFactory.instantiate();
+        for (String name : converterFactory.names())
+        {
+            Converter converter = converterFactory.create(name, config);
+            converters.add(converter);
+        }
 
         final ErrorHandler errorHandler = requireNonNull(this.errorHandler, "errorHandler");
 
         return new Engine(config, bindings, exporters, guards, metricGroups, vaults,
-                catalogs, validators, converterFactory, errorHandler, affinities, readonly);
+                catalogs, validators, converters, errorHandler, affinities, readonly);
     }
 }

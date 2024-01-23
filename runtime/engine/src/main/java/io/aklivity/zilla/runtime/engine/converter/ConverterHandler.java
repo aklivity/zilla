@@ -15,18 +15,29 @@
  */
 package io.aklivity.zilla.runtime.engine.converter;
 
-import static org.junit.Assert.assertEquals;
+import org.agrona.DirectBuffer;
 
-import org.agrona.concurrent.UnsafeBuffer;
-import org.junit.Test;
+import io.aklivity.zilla.runtime.engine.converter.function.ValueConsumer;
 
-public class ConverterTest
+public interface ConverterHandler
 {
-    @Test
-    public void shouldCreateAndVerifyNoOpValueConverter()
+    ConverterHandler NONE = (data, index, length, next) ->
     {
-        ConverterHandler converter = ConverterHandler.NONE;
+        next.accept(data, index, length);
+        return length;
+    };
 
-        assertEquals(1, converter.convert(new UnsafeBuffer(), 1, 1, (b, i, l) -> {}));
+    int convert(
+        DirectBuffer data,
+        int index,
+        int length,
+        ValueConsumer next);
+
+    default int padding(
+        DirectBuffer data,
+        int index,
+        int length)
+    {
+        return 0;
     }
 }

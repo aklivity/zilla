@@ -1,2 +1,2 @@
-io.aklivity.zilla.runtime.types.core.internal.IntegerConverterFactory
-io.aklivity.zilla.runtime.types.core.internal.StringConverterFactory
+io.aklivity.zilla.runtime.types.core.internal.IntegerConverterFactorySpi
+io.aklivity.zilla.runtime.types.core.internal.StringConverterFactorySpi

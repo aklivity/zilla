@@ -74,7 +74,7 @@ public class AvroConverterTest
                 .schema(SCHEMA)
                 .build());
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        AvroReadConverter converter = new AvroReadConverter(avroConfig, handler);
+        AvroReadConverterHandler converter = new AvroReadConverterHandler(avroConfig, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -93,7 +93,7 @@ public class AvroConverterTest
                 .schema(SCHEMA)
                 .build());
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        AvroWriteConverter converter = new AvroWriteConverter(avroConfig, handler);
+        AvroWriteConverterHandler converter = new AvroWriteConverterHandler(avroConfig, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -112,7 +112,7 @@ public class AvroConverterTest
                 .schema(SCHEMA)
                 .build());
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        AvroReadConverter converter = new AvroReadConverter(avroConfig, handler);
+        AvroReadConverterHandler converter = new AvroReadConverterHandler(avroConfig, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -141,7 +141,7 @@ public class AvroConverterTest
                         .build()
                     .build()
                 .build();
-        AvroReadConverter converter = new AvroReadConverter(config, handler);
+        AvroReadConverterHandler converter = new AvroReadConverterHandler(config, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -184,7 +184,7 @@ public class AvroConverterTest
                         .build()
                     .build()
                 .build();
-        AvroWriteConverter converter = new AvroWriteConverter(config, handler);
+        AvroWriteConverterHandler converter = new AvroWriteConverterHandler(config, handler);
 
         DirectBuffer expected = new UnsafeBuffer();
 
@@ -226,7 +226,7 @@ public class AvroConverterTest
                         .build()
                     .build()
                 .build();
-        AvroReadConverter converter = new AvroReadConverter(config, handler);
+        AvroReadConverterHandler converter = new AvroReadConverterHandler(config, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 

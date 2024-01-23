@@ -46,6 +46,7 @@ import io.aklivity.zilla.runtime.engine.config.MetricConfig;
 import io.aklivity.zilla.runtime.engine.config.MetricRefConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
+import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 import io.aklivity.zilla.runtime.engine.config.VaultConfig;
 import io.aklivity.zilla.runtime.engine.expression.ExpressionResolver;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtContext;
@@ -171,6 +172,16 @@ public class ConfigurationManager
                         if (converter.cataloged != null)
                         {
                             for (CatalogedConfig cataloged : converter.cataloged)
+                            {
+                                cataloged.id = namespace.resolveId.applyAsLong(cataloged.name);
+                            }
+                        }
+                    }
+                    for (ValidatorConfig validator : binding.options.validators)
+                    {
+                        if (validator.cataloged != null)
+                        {
+                            for (CatalogedConfig cataloged : validator.cataloged)
                             {
                                 cataloged.id = namespace.resolveId.applyAsLong(cataloged.name);
                             }

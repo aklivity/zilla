@@ -95,7 +95,7 @@ public class JsonConverterTest
                 .schema(OBJECT_SCHEMA)
                 .build());
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        JsonReadConverter converter = new JsonReadConverter(config, handler);
+        JsonReadConverterHandler converter = new JsonReadConverterHandler(config, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -118,7 +118,7 @@ public class JsonConverterTest
                 .schema(ARRAY_SCHEMA)
                 .build());
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        JsonWriteConverter converter = new JsonWriteConverter(config, handler);
+        JsonWriteConverterHandler converter = new JsonWriteConverterHandler(config, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -144,7 +144,7 @@ public class JsonConverterTest
                 .schema(OBJECT_SCHEMA)
                 .build());
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        JsonReadConverter converter = new JsonReadConverter(config, handler);
+        JsonReadConverterHandler converter = new JsonReadConverterHandler(config, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -172,7 +172,7 @@ public class JsonConverterTest
                 .schema(OBJECT_SCHEMA)
                 .build());
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        JsonWriteConverter converter = new JsonWriteConverter(config, handler);
+        JsonWriteConverterHandler converter = new JsonWriteConverterHandler(config, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -196,7 +196,7 @@ public class JsonConverterTest
                 .schema(ARRAY_SCHEMA)
                 .build());
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        JsonWriteConverter converter = new JsonWriteConverter(config, handler);
+        JsonWriteConverterHandler converter = new JsonWriteConverterHandler(config, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 

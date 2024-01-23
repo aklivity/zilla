@@ -67,7 +67,6 @@ public class StringEncodingTest
     {
         assertEquals(StringEncoding.UTF_8, StringEncoding.of("utf_8"));
         assertEquals(StringEncoding.UTF_16, StringEncoding.of("utf_16"));
-        assertEquals(StringEncoding.INVALID, StringEncoding.of("invalid_encoding"));
 
         assertEquals(StringValidatorEncoding.UTF_8, StringValidatorEncoding.of("utf_8"));
     }

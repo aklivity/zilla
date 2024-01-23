@@ -120,7 +120,7 @@
                   <fileMappers>
                     <org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
                       <pattern>^\Qio/aklivity/zilla/specs/types/core/\E</pattern>
-                      <replacement>io/aklivity/zilla/runtime/types/core/</replacement>
+                      <replacement>io/aklivity/zilla/runtime/types/core/internal/</replacement>
                     </org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
                   </fileMappers>
                 </artifactItem>

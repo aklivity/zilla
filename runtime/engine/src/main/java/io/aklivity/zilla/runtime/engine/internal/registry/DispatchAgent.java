@@ -98,7 +98,8 @@ import io.aklivity.zilla.runtime.engine.config.ConverterConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 import io.aklivity.zilla.runtime.engine.converter.Converter;
-import io.aklivity.zilla.runtime.engine.converter.ConverterFactory;
+import io.aklivity.zilla.runtime.engine.converter.ConverterContext;
+import io.aklivity.zilla.runtime.engine.converter.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.exporter.Exporter;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterContext;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
@@ -202,6 +203,7 @@ public class DispatchAgent implements EngineContext, Agent
     private final Long2ObjectHashMap<MessageConsumer> correlations;
     private final Long2ObjectHashMap<AgentRunner> exportersById;
     private final Map<String, ValidatorContext> validatorsByType;
+    private final Map<String, ConverterContext> convertersByType;
 
     private final ConfigurationRegistry configuration;
     private final Deque<Runnable> taskQueue;
@@ -212,7 +214,6 @@ public class DispatchAgent implements EngineContext, Agent
     private final ScalarsLayout countersLayout;
     private final ScalarsLayout gaugesLayout;
     private final HistogramsLayout histogramsLayout;
-    private final ConverterFactory converterFactory;
     private long initialId;
     private long promiseId;
     private long traceId;
@@ -233,8 +234,8 @@ public class DispatchAgent implements EngineContext, Agent
         Collection<Vault> vaults,
         Collection<Catalog> catalogs,
         Collection<Validator> validators,
+        Collection<Converter> converters,
         Collection<MetricGroup> metricGroups,
-        ConverterFactory converterFactory,
         Collector collector,
         int index,
         boolean readonly)
@@ -385,6 +386,14 @@ public class DispatchAgent implements EngineContext, Agent
         }
         this.validatorsByType = validatorsByType;
 
+        Map<String, ConverterContext> convertersByType = new LinkedHashMap<>();
+        for (Converter converter : converters)
+        {
+            String type = converter.name();
+            convertersByType.put(type, converter.supply(this));
+        }
+        this.convertersByType = convertersByType;
+
         Map<String, MetricContext> metricsByName = new LinkedHashMap<>();
         for (MetricGroup metricGroup : metricGroups)
         {
@@ -410,7 +419,6 @@ public class DispatchAgent implements EngineContext, Agent
         this.idleStrategy = idleStrategy;
         this.errorHandler = errorHandler;
         this.exportersById = new Long2ObjectHashMap<>();
-        this.converterFactory = converterFactory;
     }
 
     public static int indexOfId(
@@ -676,6 +684,22 @@ public class DispatchAgent implements EngineContext, Agent
     }
 
     @Override
+    public ConverterHandler supplyReadHandler(
+        ConverterConfig config)
+    {
+        ConverterContext converter = convertersByType.get(config.type);
+        return converter != null ? converter.supplyReadHandler(config) : null;
+    }
+
+    @Override
+    public ConverterHandler supplyWriteHandler(
+        ConverterConfig config)
+    {
+        ConverterContext converter = convertersByType.get(config.type);
+        return converter != null ? converter.supplyWriteHandler(config) : null;
+    }
+
+    @Override
     public URL resolvePath(
         String path)
     {
@@ -881,20 +905,6 @@ public class DispatchAgent implements EngineContext, Agent
         long metricId)
     {
         return histogramsLayout.supplyWriter(bindingId, metricId);
-    }
-
-    @Override
-    public Converter createReader(
-        ConverterConfig converter)
-    {
-        return converterFactory.createReader(converter, this::supplyCatalog);
-    }
-
-    @Override
-    public Converter createWriter(
-        ConverterConfig converter)
-    {
-        return converterFactory.createWriter(converter, this::supplyCatalog);
     }
 
     private void onSystemMessage(

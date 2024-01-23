@@ -23,10 +23,8 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.TreeMap;
-import java.util.function.LongFunction;
 
-import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.config.ConverterConfig;
+import io.aklivity.zilla.runtime.engine.Configuration;
 
 public final class ConverterFactory
 {
@@ -37,28 +35,20 @@ public final class ConverterFactory
         return instantiate(load(ConverterFactorySpi.class));
     }
 
-    public Converter createReader(
-        ConverterConfig config,
-        LongFunction<CatalogHandler> supplyCatalog)
+    public Iterable<String> names()
     {
-        String type = config.type;
-        requireNonNull(type, "name");
-
-        ConverterFactorySpi converterSpi = requireNonNull(converterSpis.get(type), () -> "Unrecognized Converter name: " + type);
-
-        return converterSpi.createReader(config, supplyCatalog);
+        return converterSpis.keySet();
     }
 
-    public Converter createWriter(
-        ConverterConfig config,
-        LongFunction<CatalogHandler> supplyCatalog)
+    public Converter create(
+        String name,
+        Configuration config)
     {
-        String type = config.type;
-        requireNonNull(type, "name");
+        requireNonNull(name, "name");
 
-        ConverterFactorySpi converterSpi = requireNonNull(converterSpis.get(type), () -> "Unrecognized Converter name: " + type);
+        ConverterFactorySpi converterSpi = requireNonNull(converterSpis.get(name), () -> "Unrecognized Converter name: " + name);
 
-        return converterSpi.createWriter(config, supplyCatalog);
+        return converterSpi.create(config);
     }
 
     public Collection<ConverterFactorySpi> converterSpis()
