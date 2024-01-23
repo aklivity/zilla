@@ -54,12 +54,14 @@ scope http
     {
         enum HttpEventType (uint8)
         {
-            CORS_PREFLIGHT_REQUEST_NOT_ALLOWED (1),
-            CORS_REQUEST_NOT_ALLOWED (2),
-            GUARD_AUTHORIZATION_FAILURE (3),
-            GUARD_AUTHORIZATION_SUCCESS (4),
-            ROUTE_NOT_FOUND (5),
-            ROUTE_FOUND (6)
+            ACCESS_CONTROL (1),
+            AUTHORIZATION (2)
+        }
+
+        enum Result
+        {
+            SUCCESS,
+            FAILURE
         }
 
         enum Level
@@ -71,55 +73,20 @@ scope http
 
         struct HttpEventCommon
         {
+            Result result;
+            Level level;
             int64 timestamp = 0;
             int64 originId;
             int64 routedId;
             int64 initialId;
             int64 replyId;
-            int64 affinity;
-            int64 authorization = 0;
-            int64 budgetId;
             int64 traceId;
-        }
-
-        struct HttpEventCorsPreflightRequestNotAllowed extends HttpEventCommon
-        {
-            Level level = WARNING;
-        }
-
-        struct HttpEventCorsRequestNotAllowed extends HttpEventCommon
-        {
-            Level level = WARNING;
-        }
-
-        struct HttpEventGuardAuthorizationFailure extends HttpEventCommon
-        {
-            Level level = WARNING;
-        }
-
-        struct HttpEventGuardAuthorizationSuccess extends HttpEventCommon
-        {
-            Level level = INFO;
-        }
-
-        struct HttpEventRouteNotFound extends HttpEventCommon
-        {
-            Level level = WARNING;
-        }
-
-        struct HttpEventRouteFound extends HttpEventCommon
-        {
-            Level level = INFO;
         }
 
         union HttpEvent switch (HttpEventType)
         {
-            case CORS_PREFLIGHT_REQUEST_NOT_ALLOWED: HttpEventCorsPreflightRequestNotAllowed corsPreflightRequestNotAllowed;
-            case CORS_REQUEST_NOT_ALLOWED: HttpEventCorsRequestNotAllowed corsRequestNotAllowed;
-            case GUARD_AUTHORIZATION_FAILURE: HttpEventGuardAuthorizationFailure guardAuthorizationFailure;
-            case GUARD_AUTHORIZATION_SUCCESS: HttpEventGuardAuthorizationSuccess guardAuthorizationSuccess;
-            case ROUTE_NOT_FOUND: HttpEventRouteNotFound routeNotFound;
-            case ROUTE_FOUND: HttpEventRouteFound routeFound;
+            case ACCESS_CONTROL: HttpEventCommon accessControl;
+            case AUTHORIZATION: HttpEventCommon authorization;
         }
     }
 }
