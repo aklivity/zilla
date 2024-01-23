@@ -21,11 +21,11 @@ module io.aklivity.zilla.runtime.types.json
     exports io.aklivity.zilla.runtime.types.json.config;
 
     provides io.aklivity.zilla.runtime.engine.config.ConverterConfigAdapterSpi
-        with io.aklivity.zilla.runtime.types.json.config.JsonConverterConfigAdapter;
+        with io.aklivity.zilla.runtime.types.json.internal.config.JsonConverterConfigAdapter;
 
     provides io.aklivity.zilla.runtime.engine.converter.ConverterFactorySpi
-        with io.aklivity.zilla.runtime.types.json.JsonConverterFactory;
+        with io.aklivity.zilla.runtime.types.json.internal.JsonConverterFactory;
 
     provides io.aklivity.zilla.runtime.engine.config.ValidatorConfigAdapterSpi
-        with io.aklivity.zilla.runtime.types.json.config.JsonValidatorConfigAdapter;
+        with io.aklivity.zilla.runtime.types.json.internal.config.JsonValidatorConfigAdapter;
 }

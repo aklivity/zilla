@@ -24,7 +24,7 @@ public final class JsonConverterConfig extends ConverterConfig
 {
     public final String subject;
 
-    JsonConverterConfig(
+    public JsonConverterConfig(
         List<CatalogedConfig> cataloged,
         String subject)
     {

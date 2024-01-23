@@ -24,7 +24,7 @@ public final class JsonValidatorConfig extends ValidatorConfig
 {
     public final String subject;
 
-    JsonValidatorConfig(
+    public JsonValidatorConfig(
         List<CatalogedConfig> cataloged,
         String subject)
     {

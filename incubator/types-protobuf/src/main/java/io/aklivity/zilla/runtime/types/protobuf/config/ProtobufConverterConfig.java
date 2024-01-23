@@ -25,7 +25,7 @@ public final class ProtobufConverterConfig extends ConverterConfig
     public final String subject;
     public final String format;
 
-    ProtobufConverterConfig(
+    public ProtobufConverterConfig(
         List<CatalogedConfig> cataloged,
         String subject,
         String format)

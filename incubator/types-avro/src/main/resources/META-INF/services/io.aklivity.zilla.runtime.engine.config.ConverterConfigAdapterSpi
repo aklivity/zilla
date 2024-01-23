@@ -1,1 +1,1 @@
-io.aklivity.zilla.runtime.types.avro.config.AvroConverterConfigAdapter
+io.aklivity.zilla.runtime.types.avro.internal.config.AvroConverterConfigAdapter
