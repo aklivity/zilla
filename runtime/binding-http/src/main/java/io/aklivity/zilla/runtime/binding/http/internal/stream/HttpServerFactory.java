@@ -1067,7 +1067,8 @@ public final class HttpServerFactory implements HttpStreamFactory
                                 event.authorization(
                                     exchangeAuth == 0 ? Result.FAILURE : Result.SUCCESS,
                                     exchangeAuth == 0 ? Level.WARNING : Level.INFO,
-                                    server.originId, server.routedId, server.initialId, server.replyId, traceId);
+                                    server.originId, server.routedId, server.initialId, server.replyId, traceId,
+                                    guard.identity(authorization));
                             }
                         }
 
@@ -4892,7 +4893,8 @@ public final class HttpServerFactory implements HttpStreamFactory
                                 event.authorization(
                                     exchangeAuth == 0 ? Result.FAILURE : Result.SUCCESS,
                                     exchangeAuth == 0 ? Level.WARNING : Level.INFO,
-                                    originId, routedId, initialId, replyId, traceId);
+                                    originId, routedId, initialId, replyId, traceId,
+                                    guard.identity(authorization));
                             }
                         }
 

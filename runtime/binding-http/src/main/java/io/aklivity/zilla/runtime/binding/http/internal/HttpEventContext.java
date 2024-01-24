@@ -71,7 +71,8 @@ public class HttpEventContext
         long routedId,
         long initialId,
         long replyId,
-        long traceId)
+        long traceId,
+        String identity)
     {
         HttpEventFW event = httpEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
@@ -83,6 +84,7 @@ public class HttpEventContext
                 .initialId(initialId)
                 .replyId(replyId)
                 .traceId(traceId)
+                .identity(identity)
             )
             .build();
         logEvent.accept(event);

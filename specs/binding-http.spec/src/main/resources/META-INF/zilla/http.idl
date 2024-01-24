@@ -54,12 +54,13 @@ scope http
     {
         enum HttpEventType (uint8)
         {
-            ACCESS_CONTROL (1),
-            AUTHORIZATION (2)
+            AUTHORIZATION (1),
+            ACCESS_CONTROL (2)
         }
 
         struct HttpAuthorizationEvent extends core::event::BindingEvent
         {
+            string8 identity;
         }
 
         union HttpEvent switch (HttpEventType)
