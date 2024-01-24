@@ -285,13 +285,13 @@
         <configuration>
           <excludes>
             <exclude>src/main/docker/**/zpmw</exclude>
-            <exclude>src/main/docker/zilla</exclude>
-            <exclude>src/main/docker/zilla.properties</exclude>
-            <exclude>src/main/docker/zilla.yaml</exclude>
-            <exclude>src/main/docker/.zilla/**</exclude>
-            <exclude>src/main/docker/zpm.json.template</exclude>
-            <exclude>src/main/docker/zpm.json</exclude>
-            <exclude>src/main/docker/.zpm/**</exclude>
+            <exclude>src/main/docker/**/zilla</exclude>
+            <exclude>src/main/docker/**/zilla.properties</exclude>
+            <exclude>src/main/docker/**/zilla.yaml</exclude>
+            <exclude>src/main/docker/**/.zilla/**</exclude>
+            <exclude>src/main/docker/**/zpm.json.template</exclude>
+            <exclude>src/main/docker/**/zpm.json</exclude>
+            <exclude>src/main/docker/**/.zpm/**</exclude>
           </excludes>
         </configuration>
       </plugin>
