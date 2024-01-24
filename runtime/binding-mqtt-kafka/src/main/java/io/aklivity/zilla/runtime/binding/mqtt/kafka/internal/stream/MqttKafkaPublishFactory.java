@@ -64,10 +64,8 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaM
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaResetExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttBeginExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttDataExFW;
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttFlushExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttPublishBeginExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttPublishDataExFW;
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttPublishFlushExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttResetExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.WindowFW;
@@ -122,7 +120,6 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
 
     private final ExtensionFW extensionRO = new ExtensionFW();
     private final MqttBeginExFW mqttBeginExRO = new MqttBeginExFW();
-    private final MqttFlushExFW mqttFlushExRO = new MqttFlushExFW();
     private final MqttDataExFW mqttDataExRO = new MqttDataExFW();
     private final KafkaResetExFW kafkaResetExRO = new KafkaResetExFW();
     private final KafkaBeginExFW kafkaBeginExRO = new KafkaBeginExFW();
@@ -132,7 +129,6 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
     private final KafkaFlushExFW.Builder kafkaFlushExRW = new KafkaFlushExFW.Builder();
     private final KafkaDataExFW.Builder kafkaDataExRW = new KafkaDataExFW.Builder();
     private final MqttResetExFW.Builder mqttResetExRW = new MqttResetExFW.Builder();
-    private final MqttFlushExFW.Builder mqttFlushExRW = new MqttFlushExFW.Builder();
     private final Array32FW.Builder<KafkaHeaderFW.Builder, KafkaHeaderFW> kafkaHeadersRW =
         new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW());
 
@@ -338,10 +334,6 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                 final BeginFW begin = beginRO.wrap(buffer, index, index + length);
                 onMqttBegin(begin);
                 break;
-            case FlushFW.TYPE_ID:
-                final FlushFW flush = flushRO.wrap(buffer, index, index + length);
-                onMqttFlush(flush);
-                break;
             case DataFW.TYPE_ID:
                 final DataFW data = dataRO.wrap(buffer, index, index + length);
                 onMqttData(data);
@@ -483,43 +475,6 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             return clientHashKey;
         }
 
-        private void onMqttFlush(
-            FlushFW flush)
-        {
-            final long sequence = flush.sequence();
-            final long acknowledge = flush.acknowledge();
-            final long traceId = flush.traceId();
-            final long authorization = flush.authorization();
-
-            assert acknowledge <= sequence;
-            assert sequence >= initialSeq;
-            assert acknowledge >= initialAck;
-
-            initialSeq = sequence;
-
-            assert initialAck <= initialSeq;
-
-            final OctetsFW extension = flush.extension();
-            final MqttFlushExFW mqttFlushEx = extension.get(mqttFlushExRO::tryWrap);
-
-            assert mqttFlushEx.kind() == MqttFlushExFW.KIND_PUBLISH;
-            final MqttPublishFlushExFW mqttPublishFlushEx = mqttFlushEx.publish();
-
-            final int packetId = mqttPublishFlushEx.packetId();
-
-            final MqttKafkaBindingConfig binding = supplyBinding.apply(routedId);
-            MqttKafkaSessionFactory.MqttSessionProxy session = binding.sessions.get(affinity);
-
-            session.commitOffsetComplete(traceId, authorization, messages.topicString,
-                messages.qos2PartitionId, packetId, this);
-
-            if (hasPublishFlagRetained(publishFlags))
-            {
-                session.commitOffsetComplete(traceId, authorization, retained.topicString,
-                    retained.qos2PartitionId, packetId, this);
-            }
-        }
-
         private void onMqttData(
             DataFW data)
         {
@@ -653,9 +608,8 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
 
             if ((flags & DATA_FLAG_FIN) != 0x00 && qos == MqttQoS.EXACTLY_ONCE.value())
             {
-                //TODO: when the ack comes for this we need to send the FIN bit, not the
                 session.commitOffsetIncomplete(traceId, authorization, messages.topicString,
-                    messages.qos2PartitionId, packetId, messages);
+                    messages.qos2PartitionId, packetId, messages, false);
             }
 
             if (retainAvailable)
@@ -695,7 +649,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                     if ((flags & DATA_FLAG_FIN) != 0x00 && qos == MqttQoS.EXACTLY_ONCE.value())
                     {
                         session.commitOffsetIncomplete(traceId, authorization, retained.topicString,
-                            retained.qos2PartitionId, packetId, retained);
+                            retained.qos2PartitionId, packetId, retained, true);
                     }
                 }
                 else
@@ -862,30 +816,6 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
 
             doBegin(mqtt, originId, routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, authorization, affinity);
-        }
-
-        public void doMqttFlush(
-            long traceId,
-            long authorization,
-            long budgetId,
-            int reserved,
-            int packetId)
-        {
-            if (!hasPublishFlagRetained(publishFlags))
-            {
-                final MqttFlushExFW mqttFlushEx =
-                    mqttFlushExRW.wrap(extBuffer, FlushFW.FIELD_OFFSET_EXTENSION, extBuffer.capacity())
-                        .typeId(mqttTypeId)
-                        .publish(p -> p.packetId(packetId))
-                        .build();
-
-                doFlush(mqtt, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization,
-                    budgetId, reserved, mqttFlushEx);
-            }
-            else
-            {
-                publishFlags = 0;
-            }
         }
 
         private void doMqttAbort(

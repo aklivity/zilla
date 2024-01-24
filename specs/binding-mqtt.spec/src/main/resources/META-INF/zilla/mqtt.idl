@@ -236,11 +236,11 @@ scope mqtt
 
         union MqttFlushEx switch (uint8) extends core::stream::Extension
         {
-            case 0: mqtt::stream::MqttPublishFlushEx publish;
             case 1: mqtt::stream::MqttSubscribeFlushEx subscribe;
+            case 2: mqtt::stream::MqttSessionFlushEx session;
         }
 
-        struct MqttPublishFlushEx
+        struct MqttSessionFlushEx
         {
             uint16 packetId = 0;
         }

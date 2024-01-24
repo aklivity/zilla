@@ -316,6 +316,39 @@ public class MqttKafkaPublishProxyIT
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
+        "${mqtt}/publish.qos2.abort/client",
+        "${kafka}/publish.qos2.offset.fetch.abort/server"})
+    public void shouldSessionReceiveQos2OffsetFetchSentAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/publish.qos2.abort/client",
+        "${kafka}/publish.qos2.init.producer.abort/server"})
+    public void shouldSessionReceiveQos2InitProducerSentAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/publish.qos2.offset.commit.abort/client",
+        "${kafka}/publish.qos2.offset.commit.abort/server"})
+    public void shouldSessionReceiveQos2OffsetCommitSentAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
         "${mqtt}/publish.mixture.qos/client",
         "${kafka}/publish.mixture.qos/server"})
     public void shouldSendMessageMixtureQos() throws Exception

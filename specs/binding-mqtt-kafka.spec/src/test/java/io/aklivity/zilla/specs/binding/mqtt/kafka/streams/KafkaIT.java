@@ -867,6 +867,36 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/publish.qos2.offset.fetch.abort/client",
+        "${kafka}/publish.qos2.offset.fetch.abort/server"})
+    public void shouldSessionReceiveQos2OffsetFetchSentAbort() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/publish.qos2.init.producer.abort/client",
+        "${kafka}/publish.qos2.init.producer.abort/server"})
+    public void shouldSessionReceiveQos2InitProducerSentAbort() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/publish.qos2.offset.commit.abort/client",
+        "${kafka}/publish.qos2.offset.commit.abort/server"})
+    public void shouldSessionReceiveQos2OffsetCommitSentAbort() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/publish.mixture.qos/client",
         "${kafka}/publish.mixture.qos/server"})
     public void shouldSendMessageMixtureQos() throws Exception

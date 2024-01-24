@@ -1207,11 +1207,11 @@ public class MqttFunctionsTest
     }
 
     @Test
-    public void shouldEncodeMqttPublishFlushEx()
+    public void shouldEncodeMqttSessionFlushEx()
     {
         final byte[] array = MqttFunctions.flushEx()
             .typeId(0)
-            .publish()
+            .session()
                 .packetId(1)
                 .build()
             .build();
@@ -1220,14 +1220,14 @@ public class MqttFunctionsTest
         MqttFlushExFW mqttFlushEx = new MqttFlushExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(0, mqttFlushEx.typeId());
-        assertEquals(1, mqttFlushEx.publish().packetId());
+        assertEquals(1, mqttFlushEx.session().packetId());
     }
 
     @Test
     public void shouldMatchMqttPublishFlushEx() throws Exception
     {
         BytesMatcher matcher = MqttFunctions.matchFlushEx()
-            .publish()
+            .session()
                 .packetId(1)
                 .build()
             .build();
@@ -1237,7 +1237,7 @@ public class MqttFunctionsTest
         new MqttFlushExFW.Builder()
             .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
             .typeId(0x00)
-            .publish(p -> p.packetId(1))
+            .session(p -> p.packetId(1))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
