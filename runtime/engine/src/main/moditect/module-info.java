@@ -27,6 +27,7 @@ module io.aklivity.zilla.runtime.engine
     exports io.aklivity.zilla.runtime.engine.metrics;
     exports io.aklivity.zilla.runtime.engine.metrics.reader;
     exports io.aklivity.zilla.runtime.engine.reader;
+    exports io.aklivity.zilla.runtime.engine.resolver;
     exports io.aklivity.zilla.runtime.engine.util.function;
     exports io.aklivity.zilla.runtime.engine.vault;
     exports io.aklivity.zilla.runtime.engine.validator;
