@@ -43,11 +43,9 @@ public class MqttEventContext
     public void authorization(
         Result result,
         Level level,
-        long originId,
+        long traceId,
         long routedId,
         long initialId,
-        long replyId,
-        long traceId,
         String identity)
     {
         MqttEventFW event = mqttEventRW
@@ -55,11 +53,9 @@ public class MqttEventContext
             .authorization(e -> e
                 .result(r -> r.set(result))
                 .level(l -> l.set(level))
-                .originId(originId)
+                .traceId(traceId)
                 .routedId(routedId)
                 .initialId(initialId)
-                .replyId(replyId)
-                .traceId(traceId)
                 .identity(identity)
             )
             .build();

@@ -2931,8 +2931,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                         event.authorization(
                             sessionAuth == 0 ? Result.FAILURE : Result.SUCCESS,
                             sessionAuth == 0 ? Level.WARNING : Level.INFO,
-                            originId, routedId, initialId, replyId, traceId,
-                            guard.identity(sessionId));
+                            traceId, routedId, initialId, guard.identity(sessionId));
                     }
                 }
 

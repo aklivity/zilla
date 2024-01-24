@@ -1034,8 +1034,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 }
                 else if (!isCorsRequestAllowed(server.binding, headers))
                 {
-                    event.accessControl(Result.FAILURE, Level.WARNING, server.originId, server.routedId, server.initialId,
-                        server.replyId, traceId);
+                    event.accessControl(Result.FAILURE, Level.WARNING, traceId, server.routedId, server.initialId);
                     server.onDecodeHeadersError(traceId, authorization, response403);
                     server.decoder = decodeIgnore;
                 }
@@ -1067,8 +1066,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                                 event.authorization(
                                     exchangeAuth == 0 ? Result.FAILURE : Result.SUCCESS,
                                     exchangeAuth == 0 ? Level.WARNING : Level.INFO,
-                                    server.originId, server.routedId, server.initialId, server.replyId, traceId,
-                                    guard.identity(authorization));
+                                    traceId, server.routedId, server.initialId, guard.identity(authorization));
                             }
                         }
 
@@ -4857,7 +4855,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 }
                 else if (!isCorsRequestAllowed(binding, headers))
                 {
-                    event.accessControl(Result.FAILURE, Level.WARNING, originId, routedId, initialId, replyId, traceId);
+                    event.accessControl(Result.FAILURE, Level.WARNING, traceId, routedId, initialId);
                     doEncodeHeaders(traceId, authorization, streamId, headers403, true);
                 }
                 else
@@ -4893,8 +4891,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                                 event.authorization(
                                     exchangeAuth == 0 ? Result.FAILURE : Result.SUCCESS,
                                     exchangeAuth == 0 ? Level.WARNING : Level.INFO,
-                                    originId, routedId, initialId, replyId, traceId,
-                                    guard.identity(authorization));
+                                    traceId, routedId, initialId, guard.identity(authorization));
                             }
                         }
 
