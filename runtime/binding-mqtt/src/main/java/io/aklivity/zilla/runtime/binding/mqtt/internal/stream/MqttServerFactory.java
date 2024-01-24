@@ -112,6 +112,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttPatternConfig.MqttConnectProperty;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttBinding;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttEventContext;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttValidator;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttBindingConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttRouteConfig;
@@ -167,6 +168,8 @@ import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttUnsubscri
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttUserPropertyFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttWillV4FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttWillV5FW;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.event.Level;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.event.Result;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.DataFW;
@@ -403,6 +406,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final Map<MqttPacketType, MqttServerDecoder> decodersByPacketTypeV5;
     private final IntSupplier supplySubscriptionId;
     private final EngineContext context;
+    private final MqttEventContext event;
 
     private int maximumPacketSize = Integer.MAX_VALUE;
 
@@ -527,6 +531,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         this.decodePacketTypeByVersion.put(MQTT_PROTOCOL_VERSION_4, this::decodePacketTypeV4);
         this.decodePacketTypeByVersion.put(MQTT_PROTOCOL_VERSION_5, this::decodePacketTypeV5);
         this.unreleasedPacketIdsByClientId = unreleasedPacketIdsByClientId;
+        this.event = new MqttEventContext(context);
     }
 
     @Override
@@ -2923,6 +2928,11 @@ public final class MqttServerFactory implements MqttStreamFactory
                     if (credentialsMatch != null)
                     {
                         sessionAuth = guard.reauthorize(initialId, credentialsMatch);
+                        event.authorization(
+                            sessionAuth == 0 ? Result.FAILURE : Result.SUCCESS,
+                            sessionAuth == 0 ? Level.WARNING : Level.INFO,
+                            originId, routedId, initialId, replyId, traceId,
+                            guard.identity(sessionId));
                     }
                 }
 

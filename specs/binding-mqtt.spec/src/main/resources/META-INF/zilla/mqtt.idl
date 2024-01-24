@@ -257,4 +257,22 @@ scope mqtt
             int16[length] packetIds;
         }
     }
+
+    scope event
+    {
+        enum MqttEventType (uint8)
+        {
+            AUTHORIZATION (1)
+        }
+
+        struct MqttAuthorizationEvent extends core::event::BindingEvent
+        {
+            string8 identity;
+        }
+
+        union MqttEvent switch (MqttEventType)
+        {
+            case AUTHORIZATION: MqttAuthorizationEvent authorization;
+        }
+    }
 }
