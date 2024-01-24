@@ -581,7 +581,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         this.encodeMax = bufferPool.slotCapacity();
         this.createValidator = context::createValidator;
         this.bindings = new Long2ObjectHashMap<>();
-        this.event = new HttpEventContext(context);
+        this.event = new HttpEventContext(httpTypeId, context);
 
         this.headers200 = initHeaders(config, STATUS_200);
         this.headers204 = initHeaders(config, STATUS_204);

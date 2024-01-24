@@ -21,6 +21,7 @@ import java.nio.channels.SelectableChannel;
 import java.util.function.LongSupplier;
 import java.util.function.ToLongFunction;
 
+import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
@@ -144,6 +145,8 @@ public interface EngineContext
     void onExporterDetached(
         long exporterId);
 
-    <T> void logEvent(
-        T event);
+    void logEvent(int msgTypeId,
+        DirectBuffer buffer,
+        int index,
+        int length);
 }

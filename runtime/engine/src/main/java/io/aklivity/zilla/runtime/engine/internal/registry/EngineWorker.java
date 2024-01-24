@@ -871,11 +871,15 @@ public class EngineWorker implements EngineContext, Agent
     }
 
     @Override
-    public <T> void logEvent(
-        T event)
+    public void logEvent(
+        int msgTypeId,
+        DirectBuffer buffer,
+        int index,
+        int length)
     {
-        // TODO: Ati
-        System.out.println(event);
+        // TODO: Ati - write record
+        // TODO: Ati - include timestamp
+        System.out.printf("%d %s %d %d%n", msgTypeId, buffer, index, length);
     }
 
     private void onSystemMessage(

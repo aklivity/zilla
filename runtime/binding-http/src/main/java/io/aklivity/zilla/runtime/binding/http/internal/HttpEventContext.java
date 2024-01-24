@@ -16,7 +16,6 @@
 package io.aklivity.zilla.runtime.binding.http.internal;
 
 import java.nio.ByteBuffer;
-import java.util.function.Consumer;
 
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -25,6 +24,7 @@ import io.aklivity.zilla.runtime.binding.http.internal.types.event.HttpEventFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.event.Level;
 import io.aklivity.zilla.runtime.binding.http.internal.types.event.Result;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
 public class HttpEventContext
 {
@@ -32,11 +32,14 @@ public class HttpEventContext
 
     private final HttpEventFW.Builder httpEventRW = new HttpEventFW.Builder();
     private final MutableDirectBuffer eventBuffer = new UnsafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
-    private final Consumer<HttpEventFW> logEvent;
+    private final int httpTypeId;
+    private final MessageConsumer logEvent;
 
     public HttpEventContext(
+        int httpTypeId,
         EngineContext context)
     {
+        this.httpTypeId = httpTypeId;
         this.logEvent = context::logEvent;
     }
 
@@ -57,7 +60,8 @@ public class HttpEventContext
                 .result(r -> r.set(result))
             )
             .build();
-        logEvent.accept(event);
+        System.out.println(event); // TODO: Ati
+        logEvent.accept(httpTypeId, event.buffer(), event.offset(), event.limit());
     }
 
     public void authorization(
@@ -79,6 +83,7 @@ public class HttpEventContext
                 .identity(identity)
             )
             .build();
-        logEvent.accept(event);
+        System.out.println(event); // TODO: Ati
+        logEvent.accept(httpTypeId, event.buffer(), event.offset(), event.limit());
     }
 }

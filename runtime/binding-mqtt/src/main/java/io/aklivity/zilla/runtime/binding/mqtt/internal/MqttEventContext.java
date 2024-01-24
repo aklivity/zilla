@@ -16,7 +16,6 @@
 package io.aklivity.zilla.runtime.binding.mqtt.internal;
 
 import java.nio.ByteBuffer;
-import java.util.function.Consumer;
 
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -25,6 +24,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.internal.types.event.Level;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.event.MqttEventFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.event.Result;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
 public class MqttEventContext
 {
@@ -32,11 +32,14 @@ public class MqttEventContext
 
     private final MqttEventFW.Builder mqttEventRW = new MqttEventFW.Builder();
     private final MutableDirectBuffer eventBuffer = new UnsafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
-    private final Consumer<MqttEventFW> logEvent;
+    private final int mqttTypeId;
+    private final MessageConsumer logEvent;
 
     public MqttEventContext(
+        int mqttTypeId,
         EngineContext context)
     {
+        this.mqttTypeId = mqttTypeId;
         this.logEvent = context::logEvent;
     }
 
@@ -59,6 +62,7 @@ public class MqttEventContext
                 .identity(identity)
             )
             .build();
-        logEvent.accept(event);
+        System.out.println(event); // TODO: Ati
+        logEvent.accept(mqttTypeId, event.buffer(), event.offset(), event.limit());
     }
 }

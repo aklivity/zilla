@@ -531,7 +531,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         this.decodePacketTypeByVersion.put(MQTT_PROTOCOL_VERSION_4, this::decodePacketTypeV4);
         this.decodePacketTypeByVersion.put(MQTT_PROTOCOL_VERSION_5, this::decodePacketTypeV5);
         this.unreleasedPacketIdsByClientId = unreleasedPacketIdsByClientId;
-        this.event = new MqttEventContext(context);
+        this.event = new MqttEventContext(mqttTypeId, context);
     }
 
     @Override
