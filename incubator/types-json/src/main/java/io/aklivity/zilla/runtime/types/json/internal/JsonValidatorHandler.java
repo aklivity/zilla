@@ -82,6 +82,11 @@ public class JsonValidatorHandler implements ValidatorHandler
         ValueConsumer next)
     {
         boolean status = true;
+
+        int schemaId = catalog != null && catalog.id > 0
+            ? catalog.id
+            : handler.resolve(subject, catalog.version);
+
         try
         {
             if ((flags & FLAGS_INIT) != 0x00)
@@ -95,7 +100,7 @@ public class JsonValidatorHandler implements ValidatorHandler
             if ((flags & FLAGS_FIN) != 0x00)
             {
                 in.wrap(buffer, 0, progress);
-                JsonProvider provider = supplyProvider(catalog.id);
+                JsonProvider provider = supplyProvider(schemaId);
                 parser = provider.createParser(in);
                 while (parser.hasNext())
                 {
