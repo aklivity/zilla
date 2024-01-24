@@ -217,7 +217,6 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         long affinity,
         String16FW topic)
     {
-        //TODO: handle null as delegate in doKafkaBegin, onKafka*
         return new KafkaMessagesProxy(originId, resolvedId, routedId, affinity, null, topic);
     }
 
@@ -228,7 +227,6 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         long affinity,
         String16FW topic)
     {
-        //TODO: handle null as delegate in doKafkaBegin, onKafka*
         return new KafkaRetainedProxy(originId, resolvedId, routedId, affinity, null, topic);
     }
 
@@ -289,9 +287,6 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                 final KafkaMessagesProxy messages = binding.sessions.get(affinity).getQos2PublishStream(kafkaMessagesTopic);
                 if (messages != null)
                 {
-                    //TODO: check if originId, routedId is correct or not (equals to the ones we have here)
-
-                    // set correct delegate as now we know it
                     messages.delegate = this;
                     this.messages = messages;
                 }
@@ -303,7 +298,6 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                 final KafkaRetainedProxy retained = binding.sessions.get(affinity).getQos2PublishRetainedStream();
                 if (retained != null)
                 {
-                    // set correct delegate as now we know it
                     retained.delegate = this;
                     this.retained = retained;
                 }
@@ -866,8 +860,6 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                 }
 
                 assert initialAck <= initialSeq;
-                //TODO: check if setting min to always initialMax will cause problems on qos2 large messages
-                // only set min to max at qos2
                 doWindow(mqtt, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, budgetId, padding, minimum, capabilities);
             }
@@ -1329,7 +1321,6 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             final int capabilities = window.capabilities();
 
             assert acknowledge <= sequence;
-            //TODO: does this have to be delegate?
             assert acknowledge >= initialAck;
             assert maximum >= initialMax;
 

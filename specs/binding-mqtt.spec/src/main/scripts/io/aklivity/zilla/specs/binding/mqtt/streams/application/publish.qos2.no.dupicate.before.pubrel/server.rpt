@@ -44,6 +44,21 @@ connected
 write zilla:data.empty
 write flush
 
+read advised zilla:flush ${mqtt:flushEx()
+                                 .typeId(zilla:id("mqtt"))
+                                 .session()
+                                     .packetId(1)
+                                     .build()
+                                 .build()}
+
+write advise zilla:flush ${mqtt:flushEx()
+                                 .typeId(zilla:id("mqtt"))
+                                 .session()
+                                     .packetId(1)
+                                     .build()
+                                 .build()}
+
+
 accepted
 
 read zilla:begin.ext ${mqtt:matchBeginEx()

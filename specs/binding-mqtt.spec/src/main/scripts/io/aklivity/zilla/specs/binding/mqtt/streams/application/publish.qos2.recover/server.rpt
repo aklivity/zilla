@@ -24,7 +24,6 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
                              .typeId(zilla:id("mqtt"))
                              .session()
                                 .flags("CLEAN_START")
-                                .expiry(1)
                                 .clientId("client")
                                 .build()
                              .build()}
@@ -32,9 +31,8 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
 write zilla:begin.ext ${mqtt:beginEx()
                               .typeId(zilla:id("mqtt"))
                               .session()
-                                .expiry(1)
                                 .qosMax(2)
-                                .capabilities("RETAIN", "WILDCARD", "SUBSCRIPTION_IDS")
+                                .capabilities("RETAIN", "WILDCARD", "SUBSCRIPTION_IDS", "SHARED_SUBSCRIPTIONS")
                                 .clientId("client")
                                 .packetId(1)
                                 .packetId(2)
@@ -47,39 +45,19 @@ connected
 write zilla:data.empty
 write flush
 
-
-accepted
-
-read zilla:begin.ext ${mqtt:matchBeginEx()
-                             .typeId(zilla:id("mqtt"))
-                             .publish()
-                                .clientId("client")
-                                .topic("sensor/one")
-                                .qos(2)
-                                .build()
-                             .build()}
-
-connected
-
-read zilla:data.ext ${mqtt:matchDataEx()
-                            .typeId(zilla:id("mqtt"))
-                            .publish()
-                                .qos("EXACTLY_ONCE")
-                                .packetId(1)
-                                .build()
-                            .build()}
-read "message"
-
 read advised zilla:flush ${mqtt:flushEx()
                                  .typeId(zilla:id("mqtt"))
-                                 .publish()
+                                 .session()
                                      .packetId(1)
                                      .build()
                                  .build()}
 
 write advise zilla:flush ${mqtt:flushEx()
                                  .typeId(zilla:id("mqtt"))
-                                 .publish()
+                                 .session()
                                      .packetId(1)
                                      .build()
                                  .build()}
+
+
+

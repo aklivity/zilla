@@ -22,7 +22,6 @@ write zilla:begin.ext ${mqtt:beginEx()
                             .typeId(zilla:id("mqtt"))
                             .session()
                               .flags("CLEAN_START")
-                              .expiry(1)
                               .clientId("client")
                               .build()
                             .build()}
@@ -30,9 +29,8 @@ write zilla:begin.ext ${mqtt:beginEx()
 read zilla:begin.ext ${mqtt:matchBeginEx()
                               .typeId(zilla:id("mqtt"))
                               .session()
-                                .expiry(1)
                                 .qosMax(2)
-                                .capabilities("RETAIN", "SUBSCRIPTION_IDS", "WILDCARD")
+                                .capabilities("RETAIN", "SUBSCRIPTION_IDS", "WILDCARD", "SHARED_SUBSCRIPTIONS")
                                 .clientId("client")
                                 .packetId(1)
                                 .packetId(2)
@@ -43,46 +41,18 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
 connected
 
 read zilla:data.empty
-read notify RECEIVED_SESSION_STATE
-
-
-connect await RECEIVED_SESSION_STATE
-        "zilla://streams/app0"
-         option zilla:window 8192
-         option zilla:transmission "duplex"
-
-write zilla:begin.ext ${mqtt:beginEx()
-                              .typeId(zilla:id("mqtt"))
-                              .publish()
-                                .clientId("client")
-                                .topic("sensor/one")
-                                .qos(2)
-                                .build()
-                              .build()}
-
-connected
-
-write zilla:data.ext ${mqtt:dataEx()
-                            .typeId(zilla:id("mqtt"))
-                            .publish()
-                                .qos("EXACTLY_ONCE")
-                                .packetId(1)
-                                .build()
-                            .build()}
-write "message"
-write flush
 
 # Triggered by PUBREL
 write advise zilla:flush ${mqtt:flushEx()
                                  .typeId(zilla:id("mqtt"))
-                                 .publish()
+                                 .session()
                                      .packetId(1)
                                      .build()
                                  .build()}
 
-read advised zilla:flush ${mqtt:matchFlushEx()
+read advised zilla:flush ${mqtt:flushEx()
                                  .typeId(zilla:id("mqtt"))
-                                 .publish()
+                                 .session()
                                      .packetId(1)
                                      .build()
                                  .build()}

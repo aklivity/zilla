@@ -285,7 +285,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final FlushFW.Builder flushRW = new FlushFW.Builder();
 
     private final MqttDataExFW mqttSubscribeDataExRO = new MqttDataExFW();
-    private final MqttFlushExFW mqttSubscribeFlushExRO = new MqttFlushExFW();
+    private final MqttFlushExFW mqttFlushExRO = new MqttFlushExFW();
     private final MqttResetExFW mqttResetExRO = new MqttResetExFW();
     private final MqttBeginExFW mqttBeginExRO = new MqttBeginExFW();
 
@@ -3337,16 +3337,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             int limit,
             int packetId)
         {
-            unreleasedPacketIds.removeInt(packetId);
-            switch (version)
-            {
-            case 4:
-                doEncodePubcompV4(traceId, authorization, packetId);
-                break;
-            case 5:
-                doEncodePubcompV5(traceId, authorization, packetId);
-                break;
-            }
+            session.doSessionFlush(traceId, 0, packetId);
             doSignalKeepAliveTimeout(traceId);
         }
 
@@ -5075,6 +5066,10 @@ public final class MqttServerFactory implements MqttStreamFactory
                     final BeginFW begin = beginRO.wrap(buffer, index, index + length);
                     onSessionBegin(begin);
                     break;
+                case FlushFW.TYPE_ID:
+                    final FlushFW flush = flushRO.wrap(buffer, index, index + length);
+                    onSessionFlush(flush);
+                    break;
                 case DataFW.TYPE_ID:
                     final DataFW data = dataRO.wrap(buffer, index, index + length);
                     onSessionData(data);
@@ -5215,6 +5210,40 @@ public final class MqttServerFactory implements MqttStreamFactory
                 }
 
                 doSessionWindow(traceId, encodeSlotOffset, encodeBudgetMax);
+            }
+
+            private void onSessionFlush(
+                FlushFW flush)
+            {
+                final long sequence = flush.sequence();
+                final long acknowledge = flush.acknowledge();
+                final long traceId = flush.traceId();
+                final long authorization = flush.authorization();
+                final OctetsFW extension = flush.extension();
+
+                assert acknowledge <= sequence;
+                assert sequence >= replySeq;
+
+                replySeq = sequence;
+
+                assert replyAck <= replySeq;
+
+                if (extension.sizeof() > 0)
+                {
+                    final MqttFlushExFW sessionFlushEx = extension.get(mqttFlushExRO::tryWrap);
+                    final int packetId = sessionFlushEx.session().packetId();
+
+                    unreleasedPacketIds.removeInt(packetId);
+                    switch (version)
+                    {
+                    case 4:
+                        doEncodePubcompV4(traceId, authorization, packetId);
+                        break;
+                    case 5:
+                        doEncodePubcompV5(traceId, authorization, packetId);
+                        break;
+                    }
+                }
             }
 
             private void onSessionData(
@@ -5388,6 +5417,23 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                     doSessionWindow(traceId, 0, 0);
                 }
+            }
+
+            private void doSessionFlush(
+                long traceId,
+                int reserved,
+                int packetId)
+            {
+                doFlush(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, sessionId, 0L, reserved,
+                    ex -> ex.set((b, o, l) -> mqttFlushExRW.wrap(b, o, l)
+                        .typeId(mqttTypeId)
+                        .session(sessionBuilder -> sessionBuilder.packetId(packetId))
+                        .build()
+                        .sizeof()));
+
+                initialSeq += reserved;
+                assert initialSeq <= initialAck + initialMax;
             }
 
             private boolean hasSessionWindow(
@@ -6389,7 +6435,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 if (extension.sizeof() > 0)
                 {
-                    final MqttFlushExFW subscribeFlushEx = extension.get(mqttSubscribeFlushExRO::tryWrap);
+                    final MqttFlushExFW subscribeFlushEx = extension.get(mqttFlushExRO::tryWrap);
                     final int packetId = subscribeFlushEx.subscribe().packetId();
 
                     switch (version)

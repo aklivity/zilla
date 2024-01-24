@@ -4047,8 +4047,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                             {
                                 final long routedId = delegate.session.routedId;
                                 delegate.offsetCommit =
-                                    new KafkaOffsetCommitStream(originId, routedId, delegate, delegate.clientId,
-                                        delegate.memberId, offsetMetadata.producerId, offsetMetadata.producerEpoch);
+                                    new KafkaOffsetCommitStream(originId, routedId, delegate,
+                                        offsetMetadata.producerId, offsetMetadata.producerEpoch);
                                 delegate.offsetCommit.doKafkaBegin(traceId, authorization, 0);
                             }
                             delegate.offsets.put(offsetKey, offsetMetadata);
@@ -4342,8 +4342,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 short producerEpoch = kafkaInitProducerIdBeginEx.producerEpoch();
 
                 final long routedId = delegate.session.routedId;
-                delegate.offsetCommit = new KafkaOffsetCommitStream(originId, routedId, delegate, delegate.clientId,
-                    delegate.memberId, producerId, producerEpoch);
+                delegate.offsetCommit = new KafkaOffsetCommitStream(originId, routedId, delegate, producerId, producerEpoch);
                 delegate.offsetCommit.doKafkaBegin(traceId, authorization, 0);
             }
 
@@ -4428,12 +4427,9 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             long originId,
             long routedId,
             MqttSessionProxy delegate,
-            String16FW groupId,
-            String memberId,
             long producerId,
             short producerEpoch)
         {
-            //TODO: do we need instanceId?
             this.originId = originId;
             this.routedId = routedId;
             this.delegate = delegate;
