@@ -250,5 +250,63 @@ write zilla:begin.ext ${kafka:beginEx()
 
 connected
 
+read notify RECEIVED_SESSION_CONNECTED
 read aborted
+
+connect await RECEIVED_PRODUCER
+        "zilla://streams/kafka0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"
+
+write zilla:begin.ext ${kafka:beginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("PRODUCE_AND_FETCH")
+                                .topic("mqtt-sessions")
+                                .groupId("mqtt-clients")
+                                .filter()
+                                    .key("client")
+                                    .build()
+                                .filter()
+                                    .key("client#migrate")
+                                    .headerNot("sender-id", "sender-1")
+                                    .build()
+                                .build()
+                            .build()}
+
+connected
+
+write zilla:data.ext ${kafka:dataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                             .produce()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client#expiry-signal")
+                               .hashKey("client")
+                               .header("type", "expiry-signal")
+                               .build()
+                           .build()}
+write flush
+
+write zilla:data.ext ${kafka:dataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                             .produce()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client#expiry-signal")
+                               .hashKey("client")
+                               .header("type", "expiry-signal")
+                               .build()
+                           .build()}
+write ${mqtt:sessionSignal()
+            .expiry()
+                .instanceId("zilla-1")
+                .clientId("client")
+                .delay(1000)
+                .expireAt(-1)
+                .build()
+            .build()}
+write flush
 

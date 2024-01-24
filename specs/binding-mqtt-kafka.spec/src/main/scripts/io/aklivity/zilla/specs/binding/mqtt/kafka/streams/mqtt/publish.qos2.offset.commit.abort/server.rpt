@@ -40,4 +40,4 @@ write zilla:begin.ext ${mqtt:beginEx()
 
 connected
 
-read abort
+write abort

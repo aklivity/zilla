@@ -37,5 +37,6 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
                               .build()}
 
 connected
+read notify RECEIVED_SESSION_CONNECTED
 
-write aborted
+read aborted
