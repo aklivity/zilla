@@ -28,4 +28,8 @@ module io.aklivity.zilla.runtime.types.json
 
     provides io.aklivity.zilla.runtime.engine.config.ValidatorConfigAdapterSpi
         with io.aklivity.zilla.runtime.types.json.internal.config.JsonValidatorConfigAdapter;
+
+    provides io.aklivity.zilla.runtime.engine.validator.ValidatorFactorySpi
+        with io.aklivity.zilla.runtime.types.json.internal.JsonValidatorFactorySpi;
+
 }
