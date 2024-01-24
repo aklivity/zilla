@@ -33,20 +33,23 @@ public final class HttpRequestType
     private static final Pattern QUERY_PATTERN = Pattern.compile(QUERY_REGEX);
     private static final String EMPTY_INPUT = "";
 
-    // selectors
+    // request selectors
     public final String path;
     public final HttpRequestConfig.Method method;
     public final List<String> contentType;
 
-    // matchers
+    // request matchers
     public final Matcher pathMatcher;
     public final Matcher queryMatcher;
 
-    // validators
+    // request validators
     public final Map<String8FW, Validator> headers;
     public final Map<String, Validator> pathParams;
     public final Map<String, Validator> queryParams;
     public final Validator content;
+
+    // responses
+    public final List<Response> responses;
 
     private HttpRequestType(
         String path,
@@ -57,7 +60,8 @@ public final class HttpRequestType
         Map<String8FW, Validator> headers,
         Map<String, Validator> pathParams,
         Map<String, Validator> queryParams,
-        Validator content)
+        Validator content,
+        List<Response> responses)
     {
         this.path = path;
         this.method = method;
@@ -68,6 +72,27 @@ public final class HttpRequestType
         this.pathParams = pathParams;
         this.queryParams = queryParams;
         this.content = content;
+        this.responses = responses;
+    }
+
+    public static final class Response
+    {
+        public final List<String> status;
+        public final List<String> contentType;
+        public final Map<String8FW, Validator> headers;
+        public final Validator content;
+
+        public Response(
+            List<String> status,
+            List<String> contentType,
+            Map<String8FW, Validator> headers,
+            Validator content)
+        {
+            this.status = status;
+            this.contentType = contentType;
+            this.headers = headers;
+            this.content = content;
+        }
     }
 
     public static Builder builder()
@@ -84,6 +109,7 @@ public final class HttpRequestType
         private Map<String, Validator> pathParams;
         private Map<String, Validator> queryParams;
         private Validator content;
+        private List<Response> responses;
 
         public Builder path(
             String path)
@@ -134,13 +160,20 @@ public final class HttpRequestType
             return this;
         }
 
+        public Builder responses(
+            List<Response> responses)
+        {
+            this.responses = responses;
+            return this;
+        }
+
         public HttpRequestType build()
         {
             String pathPattern = String.format(PATH_FORMAT, path.replaceAll(PATH_REGEX, PATH_REPLACEMENT));
             Matcher pathMatcher = Pattern.compile(pathPattern).matcher(EMPTY_INPUT);
             Matcher queryMatcher = QUERY_PATTERN.matcher(EMPTY_INPUT);
             return new HttpRequestType(path, method, contentType, pathMatcher, queryMatcher, headers, pathParams, queryParams,
-                content);
+                content, responses);
         }
     }
 }

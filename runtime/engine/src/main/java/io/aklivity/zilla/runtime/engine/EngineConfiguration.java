@@ -67,7 +67,6 @@ public class EngineConfiguration extends Configuration
     public static final BooleanPropertyDef ENGINE_VERBOSE;
     public static final BooleanPropertyDef ENGINE_VERBOSE_SCHEMA;
     public static final IntPropertyDef ENGINE_WORKERS;
-    public static final BooleanPropertyDef ENGINE_CONFIG_RESOLVE_EXPRESSIONS;
 
     private static final ConfigurationDef ENGINE_CONFIG;
 
@@ -105,7 +104,6 @@ public class EngineConfiguration extends Configuration
         ENGINE_VERBOSE = config.property("verbose", false);
         ENGINE_VERBOSE_SCHEMA = config.property("verbose.schema", false);
         ENGINE_WORKERS = config.property("workers", Runtime.getRuntime().availableProcessors());
-        ENGINE_CONFIG_RESOLVE_EXPRESSIONS = config.property("config.resolve.expressions", true);
         ENGINE_CONFIG = config;
     }
 
@@ -257,11 +255,6 @@ public class EngineConfiguration extends Configuration
     public int workers()
     {
         return ENGINE_WORKERS.getAsInt(this);
-    }
-
-    public boolean configResolveExpressions()
-    {
-        return ENGINE_CONFIG_RESOLVE_EXPRESSIONS.getAsBoolean(this);
     }
 
     public Function<String, InetAddress[]> hostResolver()

@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>runtime</artifactId>
-    <version>0.9.65</version>
+    <version>0.9.66</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -36,6 +36,11 @@
       <artifactId>engine.spec</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>common</artifactId>
+      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>jakarta.json</groupId>
@@ -249,10 +254,9 @@
                 <include>io/aklivity/zilla/runtime/engine/test/internal/binding/**/*.class</include>
                 <include>io/aklivity/zilla/runtime/engine/test/internal/catalog/**/*.class</include>
                 <include>io/aklivity/zilla/runtime/engine/test/internal/exporter/**/*.class</include>
-                <include>io/aklivity/zilla/runtime/engine/test/internal/expression/**/*.class</include>
                 <include>io/aklivity/zilla/runtime/engine/test/internal/guard/**/*.class</include>
-                <include>io/aklivity/zilla/runtime/engine/test/internal/catalog/**/*.class</include>
                 <include>io/aklivity/zilla/runtime/engine/test/internal/metrics/**/*.class</include>
+                <include>io/aklivity/zilla/runtime/engine/test/internal/resolver/**/*.class</include>
                 <include>io/aklivity/zilla/runtime/engine/test/internal/validator/**/*.class</include>
                 <include>io/aklivity/zilla/runtime/engine/test/internal/vault/**/*.class</include>
                 <include>io/aklivity/zilla/runtime/engine/internal/concurrent/bench/**/*.class</include>
@@ -317,6 +321,7 @@
             <includes>
               <include>org.agrona:agrona</include>
               <include>io.aklivity.zilla:engine</include>
+              <include>io.aklivity.zilla:common</include>
               <include>org.openjdk.jmh:jmh-core</include>
               <include>net.sf.jopt-simple:jopt-simple</include>
               <include>org.apache.commons:commons-math3</include>

@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>runtime</artifactId>
-    <version>0.9.65</version>
+    <version>0.9.66</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -45,6 +45,11 @@
           <artifactId>commons-collections4</artifactId>
         </exclusion>
       </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>common</artifactId>
+      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>com.guicedee.services</groupId>

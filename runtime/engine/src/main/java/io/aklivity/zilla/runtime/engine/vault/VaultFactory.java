@@ -15,23 +15,21 @@
  */
 package io.aklivity.zilla.runtime.engine.vault;
 
-import static java.util.Collections.unmodifiableMap;
 import static java.util.Objects.requireNonNull;
 import static java.util.ServiceLoader.load;
 
 import java.util.Map;
-import java.util.ServiceLoader;
-import java.util.TreeMap;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.factory.Factory;
 
-public final class VaultFactory
+public final class VaultFactory extends Factory
 {
     private final Map<String, VaultFactorySpi> factorySpis;
 
     public static VaultFactory instantiate()
     {
-        return instantiate(load(VaultFactorySpi.class));
+        return instantiate(load(VaultFactorySpi.class), VaultFactory::new);
     }
 
     public Iterable<String> names()
@@ -48,15 +46,6 @@ public final class VaultFactory
         VaultFactorySpi factorySpi = requireNonNull(factorySpis.get(name), () -> "Unrecognized vault name: " + name);
 
         return factorySpi.create(config);
-    }
-
-    private static VaultFactory instantiate(
-        ServiceLoader<VaultFactorySpi> factories)
-    {
-        Map<String, VaultFactorySpi> factorySpisByName = new TreeMap<>();
-        factories.forEach(factorySpi -> factorySpisByName.put(factorySpi.name(), factorySpi));
-
-        return new VaultFactory(unmodifiableMap(factorySpisByName));
     }
 
     private VaultFactory(

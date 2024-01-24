@@ -2,7 +2,30 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.64...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.65...HEAD)
+
+**Fixed bugs:**
+
+- Schema validation fails before the `${{env.*}}` parameters have been removed [\#583](https://github.com/aklivity/zilla/issues/583)
+
+**Closed issues:**
+
+- Support `openapi` `http` response validation [\#684](https://github.com/aklivity/zilla/issues/684)
+- Support `protobuf` conversion to and from `json` for `kafka` messages [\#682](https://github.com/aklivity/zilla/issues/682)
+- Support incubator features preview in zilla release docker image [\#670](https://github.com/aklivity/zilla/issues/670)
+
+**Merged pull requests:**
+
+- update license exclude path to include both zpmw files [\#759](https://github.com/aklivity/zilla/pull/759) ([vordimous](https://github.com/vordimous))
+- Refactor resolvers to support configuration [\#758](https://github.com/aklivity/zilla/pull/758) ([jfallows](https://github.com/jfallows))
+- Fix docker file path [\#756](https://github.com/aklivity/zilla/pull/756) ([akrambek](https://github.com/akrambek))
+- Support incubator features preview in zilla release docker image [\#753](https://github.com/aklivity/zilla/pull/753) ([akrambek](https://github.com/akrambek))
+- Support  expression for primitive type in json schema [\#751](https://github.com/aklivity/zilla/pull/751) ([akrambek](https://github.com/akrambek))
+-  Implement response validation in http client binding [\#732](https://github.com/aklivity/zilla/pull/732) ([attilakreiner](https://github.com/attilakreiner))
+
+## [0.9.65](https://github.com/aklivity/zilla/tree/0.9.65) (2024-01-18)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.64...0.9.65)
 
 **Implemented enhancements:**
 

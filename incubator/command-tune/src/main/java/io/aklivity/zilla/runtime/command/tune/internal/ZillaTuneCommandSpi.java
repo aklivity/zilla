@@ -19,7 +19,9 @@ import com.github.rvesse.airline.builder.CliBuilder;
 
 import io.aklivity.zilla.runtime.command.ZillaCommandSpi;
 import io.aklivity.zilla.runtime.command.tune.internal.airline.ZillaTuneCommand;
+import io.aklivity.zilla.runtime.common.feature.Incubating;
 
+@Incubating
 public final class ZillaTuneCommandSpi implements ZillaCommandSpi
 {
     @Override

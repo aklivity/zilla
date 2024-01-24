@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>runtime</artifactId>
-    <version>0.9.65</version>
+    <version>0.9.66</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -47,6 +47,16 @@
       <groupId>org.bitbucket.b_c</groupId>
       <artifactId>jose4j</artifactId>
       <version>0.9.3</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.slf4j</groupId>
+          <artifactId>slf4j-api</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
