@@ -284,7 +284,7 @@
         <artifactId>license-maven-plugin</artifactId>
         <configuration>
           <excludes>
-            <exclude>src/main/docker/zpmw</exclude>
+            <exclude>src/main/docker/**/zpmw</exclude>
             <exclude>src/main/docker/zilla</exclude>
             <exclude>src/main/docker/zilla.properties</exclude>
             <exclude>src/main/docker/zilla.yaml</exclude>
