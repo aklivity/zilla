@@ -18,5 +18,5 @@ module io.aklivity.zilla.runtime.resolver.env
     requires io.aklivity.zilla.runtime.engine;
 
     provides io.aklivity.zilla.runtime.engine.resolver.ResolverFactorySpi
-        with io.aklivity.zilla.runtime.resolver.env.internal.EnvironmentResolverSpi;
+        with io.aklivity.zilla.runtime.resolver.env.internal.EnvironmentResolverFactorySpi;
 }
