@@ -972,7 +972,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 server.onDecodeError(traceId, authorization, PACKET_TOO_LARGE);
                 server.decoder = decodeIgnoreAll;
             }
-            else if (length >= 0)
+            else if (limit - packet.limit() >= length || server.decodeBudget() == 0)
             {
                 server.decodeablePacketBytes = packet.sizeof() + length;
                 server.decoder = decoder;
@@ -4978,6 +4978,11 @@ public final class MqttServerFactory implements MqttStreamFactory
             }
 
             return flags;
+        }
+
+        private int decodeBudget()
+        {
+            return decodeMax - (int) (decodeSeq - decodeAck);
         }
 
         private final class Subscription
