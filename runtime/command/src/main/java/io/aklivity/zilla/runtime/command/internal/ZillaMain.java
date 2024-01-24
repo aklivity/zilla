@@ -15,7 +15,8 @@
  */
 package io.aklivity.zilla.runtime.command.internal;
 
-import java.util.ServiceLoader;
+import static io.aklivity.zilla.runtime.common.feature.FeatureFilter.filter;
+import static java.util.ServiceLoader.load;
 
 import com.github.rvesse.airline.Cli;
 import com.github.rvesse.airline.builder.CliBuilder;
@@ -53,7 +54,8 @@ public final class ZillaMain
                     .withCommand(Help.class);
 
             ClassLoader loader = Thread.currentThread().getContextClassLoader();
-            for (ZillaCommandSpi service : ServiceLoader.load(ZillaCommandSpi.class, loader))
+
+            for (ZillaCommandSpi service : filter(load(ZillaCommandSpi.class, loader)))
             {
                 service.mixin(builder);
             }

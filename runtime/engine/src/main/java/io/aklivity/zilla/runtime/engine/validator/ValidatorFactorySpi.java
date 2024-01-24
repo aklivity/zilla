@@ -21,8 +21,9 @@ import java.util.function.ToLongFunction;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
+import io.aklivity.zilla.runtime.engine.factory.FactorySpi;
 
-public interface ValidatorFactorySpi
+public interface ValidatorFactorySpi extends FactorySpi
 {
     String type();
 

@@ -25,7 +25,7 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                                 .capabilities("PRODUCE_ONLY")
                                 .topic("mqtt-sensors")
                                 .partition(-1, -2)
-                                .ackMode("LEADER_ONLY")
+                                .ackMode("NONE")
                                 .build()
                             .build()}
 
@@ -58,7 +58,7 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                                 .capabilities("PRODUCE_ONLY")
                                 .topic("mqtt-devices")
                                 .partition(-1, -2)
-                                .ackMode("LEADER_ONLY")
+                                .ackMode("NONE")
                                 .build()
                             .build()}
 

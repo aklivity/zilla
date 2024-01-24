@@ -22,10 +22,12 @@ module io.aklivity.zilla.runtime.engine
     exports io.aklivity.zilla.runtime.engine.binding.function;
     exports io.aklivity.zilla.runtime.engine.catalog;
     exports io.aklivity.zilla.runtime.engine.exporter;
+    exports io.aklivity.zilla.runtime.engine.factory;
     exports io.aklivity.zilla.runtime.engine.guard;
     exports io.aklivity.zilla.runtime.engine.metrics;
     exports io.aklivity.zilla.runtime.engine.metrics.reader;
     exports io.aklivity.zilla.runtime.engine.reader;
+    exports io.aklivity.zilla.runtime.engine.resolver;
     exports io.aklivity.zilla.runtime.engine.util.function;
     exports io.aklivity.zilla.runtime.engine.vault;
     exports io.aklivity.zilla.runtime.engine.validator;
@@ -46,6 +48,7 @@ module io.aklivity.zilla.runtime.engine
     requires jdk.unsupported;
     requires java.net.http;
     requires org.slf4j;
+    requires io.aklivity.zilla.runtime.common;
 
     uses io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
     uses io.aklivity.zilla.runtime.engine.config.CompositeBindingAdapterSpi;
@@ -61,8 +64,5 @@ module io.aklivity.zilla.runtime.engine
     uses io.aklivity.zilla.runtime.engine.validator.ValidatorFactorySpi;
     uses io.aklivity.zilla.runtime.engine.vault.VaultFactorySpi;
     uses io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
-    uses io.aklivity.zilla.runtime.engine.expression.ExpressionResolverSpi;
-
-    provides io.aklivity.zilla.runtime.engine.expression.ExpressionResolverSpi
-            with io.aklivity.zilla.runtime.engine.internal.expression.EnvironmentResolverSpi;
+    uses io.aklivity.zilla.runtime.engine.resolver.ResolverFactorySpi;
 }
