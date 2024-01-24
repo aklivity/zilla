@@ -110,15 +110,8 @@ scope core
             ERROR
         }
 
-        enum Result
-        {
-            SUCCESS,
-            FAILURE
-        }
-
         struct Event
         {
-            Result result;
             Level level;
             int64 timestamp = 0;
             int64 traceId;

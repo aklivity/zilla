@@ -51,11 +51,11 @@ public class MqttEventContext
         MqttEventFW event = mqttEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .authorization(e -> e
-                .result(r -> r.set(result))
                 .level(l -> l.set(level))
                 .traceId(traceId)
                 .routedId(routedId)
                 .initialId(initialId)
+                .result(r -> r.set(result))
                 .identity(identity)
             )
             .build();

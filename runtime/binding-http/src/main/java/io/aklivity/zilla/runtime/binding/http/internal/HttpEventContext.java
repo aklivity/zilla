@@ -50,11 +50,11 @@ public class HttpEventContext
         HttpEventFW event = httpEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .accessControl(e -> e
-                .result(r -> r.set(result))
                 .level(l -> l.set(level))
                 .traceId(traceId)
                 .routedId(routedId)
                 .initialId(initialId)
+                .result(r -> r.set(result))
             )
             .build();
         logEvent.accept(event);
@@ -71,11 +71,11 @@ public class HttpEventContext
         HttpEventFW event = httpEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .authorization(e -> e
-                .result(r -> r.set(result))
                 .level(l -> l.set(level))
                 .traceId(traceId)
                 .routedId(routedId)
                 .initialId(initialId)
+                .result(r -> r.set(result))
                 .identity(identity)
             )
             .build();

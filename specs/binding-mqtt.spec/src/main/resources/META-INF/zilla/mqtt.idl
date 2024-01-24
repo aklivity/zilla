@@ -265,7 +265,18 @@ scope mqtt
             AUTHORIZATION (1)
         }
 
-        struct MqttAuthorizationEvent extends core::event::BindingEvent
+        enum Result (uint8)
+        {
+            SUCCESS (0),
+            FAILURE (1)
+        }
+
+        struct MqttBindingEvent extends core::event::BindingEvent
+        {
+            Result result;
+        }
+
+        struct MqttAuthorizationEvent extends MqttBindingEvent
         {
             string8 identity;
         }
