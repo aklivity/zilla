@@ -109,8 +109,8 @@ import io.aklivity.zilla.runtime.command.log.internal.types.stream.MqttDataExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.MqttFlushExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.MqttPublishBeginExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.MqttPublishDataExFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.stream.MqttPublishFlushExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.MqttSessionBeginExFW;
+import io.aklivity.zilla.runtime.command.log.internal.types.stream.MqttSessionFlushExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.MqttSubscribeBeginExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.MqttSubscribeDataExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.MqttSubscribeFlushExFW;
@@ -1519,8 +1519,8 @@ public final class LoggableStream implements AutoCloseable
 
         switch (mqttFlushEx.kind())
         {
-        case MqttFlushExFW.KIND_PUBLISH:
-            onMqttPublishFlushEx(offset, timestamp, mqttFlushEx.publish());
+        case MqttFlushExFW.KIND_SESSION:
+            onMqttSessionFlushEx(offset, timestamp, mqttFlushEx.session());
             break;
         case MqttFlushExFW.KIND_SUBSCRIBE:
             onMqttSubscribeFlushEx(offset, timestamp, mqttFlushEx.subscribe());
@@ -1528,12 +1528,12 @@ public final class LoggableStream implements AutoCloseable
         }
     }
 
-    private void onMqttPublishFlushEx(
+    private void onMqttSessionFlushEx(
         int offset,
         long timestamp,
-        MqttPublishFlushExFW publish)
+        MqttSessionFlushExFW session)
     {
-        out.printf(verboseFormat, index, offset, timestamp, format("%d", publish.packetId()));
+        out.printf(verboseFormat, index, offset, timestamp, format("%d", session.packetId()));
     }
 
     private void onMqttSubscribeFlushEx(

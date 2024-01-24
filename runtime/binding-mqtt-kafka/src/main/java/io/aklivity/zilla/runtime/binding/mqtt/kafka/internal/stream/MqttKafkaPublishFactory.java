@@ -203,8 +203,6 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             final MqttPublishProxy proxy = new MqttPublishProxy(mqtt, originId, routedId, initialId, resolvedId, affinity,
                 binding, messagesTopic, binding.retainedTopic(), qos, binding.clients);
             newStream = proxy::onMqttMessage;
-
-            binding.publishes.put(affinity, proxy);
         }
 
         return newStream;

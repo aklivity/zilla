@@ -26,7 +26,6 @@ import java.util.stream.Collectors;
 import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaConditionKind;
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaPublishFactory;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionFactory;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttTopicFilterFW;
@@ -46,7 +45,6 @@ public class MqttKafkaBindingConfig
 
     public MqttKafkaSessionFactory.KafkaSignalStream willProxy;
     public Long2ObjectHashMap<MqttKafkaSessionFactory.MqttSessionProxy> sessions;
-    public Long2ObjectHashMap<MqttKafkaPublishFactory.MqttPublishProxy> publishes;
 
     public MqttKafkaBindingConfig(
         BindingConfig binding)
@@ -67,7 +65,6 @@ public class MqttKafkaBindingConfig
         });
         this.bootstrapRoutes = bootstrapRoutes;
         this.sessions = new Long2ObjectHashMap<>();
-        this.publishes = new Long2ObjectHashMap<>();
     }
 
     public MqttKafkaRouteConfig resolve(
