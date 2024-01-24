@@ -13,20 +13,10 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.expression;
-
-import static org.junit.Assert.assertEquals;
-
-import org.junit.Test;
-
-public class ExpressionResolverTest
+module io.aklivity.zilla.runtime.resolver.env
 {
-    @Test
-    public void shouldLoadAndResolve()
-    {
-        ExpressionResolver expressions = ExpressionResolver.instantiate();
-        String actual = expressions.resolve("${{test.PASSWORD}}");
+    requires io.aklivity.zilla.runtime.engine;
 
-        assertEquals("ACTUALPASSWORD", actual);
-    }
+    provides io.aklivity.zilla.runtime.engine.resolver.ResolverFactorySpi
+        with io.aklivity.zilla.runtime.resolver.env.internal.EnvironmentResolverSpi;
 }

@@ -13,23 +13,13 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.internal.expression;
+package io.aklivity.zilla.runtime.engine.resolver;
 
-import io.aklivity.zilla.runtime.engine.expression.ExpressionResolverSpi;
+import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.factory.FactorySpi;
 
-public class EnvironmentResolverSpi implements ExpressionResolverSpi
+public interface ResolverFactorySpi extends FactorySpi
 {
-
-    @Override
-    public String type()
-    {
-        return "env";
-    }
-
-    @Override
-    public String resolve(
-        String var)
-    {
-        return System.getenv(var);
-    }
+    ResolverSpi create(
+        Configuration config);
 }

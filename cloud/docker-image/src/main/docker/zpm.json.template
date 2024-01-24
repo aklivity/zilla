@@ -49,6 +49,7 @@
     "io.aklivity.zilla:metrics-stream",
     "io.aklivity.zilla:metrics-http",
     "io.aklivity.zilla:metrics-grpc",
+    "io.aklivity.zilla:resolver-env",
     "io.aklivity.zilla:validator-avro",
     "io.aklivity.zilla:validator-core",
     "io.aklivity.zilla:validator-json",

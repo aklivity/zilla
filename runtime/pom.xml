@@ -46,6 +46,7 @@
     <module>metrics-grpc</module>
     <module>metrics-http</module>
     <module>metrics-stream</module>
+    <module>resolver-env</module>
     <module>vault-filesystem</module>
   </modules>
 
@@ -194,6 +195,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>metrics-stream</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>resolver-env</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
