@@ -67,32 +67,23 @@ public class CatalogRefAdapter implements JsonbAdapter<CatalogRefConfig, JsonObj
 
     @Override
     public CatalogRefConfig adaptFromJson(
-        JsonObject object)
+        JsonObject catalogsJson)
     {
-        CatalogRefConfig result = null;
-        if (object.containsKey(CATALOG_NAME))
+        List<CatalogedConfig> catalogs = new LinkedList<>();
+        for (String catalogName: catalogsJson.keySet())
         {
-            JsonObject catalogsJson = object.getJsonObject(CATALOG_NAME);
-            List<CatalogedConfig> catalogs = new LinkedList<>();
-            for (String catalogName: catalogsJson.keySet())
+            JsonArray schemasJson = catalogsJson.getJsonArray(catalogName);
+            List<SchemaConfig> schemas = new LinkedList<>();
+            for (JsonValue item : schemasJson)
             {
-                JsonArray schemasJson = catalogsJson.getJsonArray(catalogName);
-                List<SchemaConfig> schemas = new LinkedList<>();
-                for (JsonValue item : schemasJson)
-                {
-                    JsonObject schemaJson = (JsonObject) item;
-                    SchemaConfig schemaElement = schema.adaptFromJson(schemaJson);
-                    schemas.add(schemaElement);
-                }
-                catalogs.add(new CatalogedConfig(catalogName, schemas));
+                JsonObject schemaJson = (JsonObject) item;
+                SchemaConfig schemaElement = schema.adaptFromJson(schemaJson);
+                schemas.add(schemaElement);
             }
-
-            String subject = object.containsKey(SUBJECT)
-                ? object.getString(SUBJECT)
-                : null;
-
-            result = new CatalogRefConfig(catalogs, subject);
+            catalogs.add(new CatalogedConfig(catalogName, schemas));
         }
+
+        CatalogRefConfig result = new CatalogRefConfig(catalogs, null);
         return result;
     }
 }

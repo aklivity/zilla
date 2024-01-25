@@ -17,41 +17,37 @@
 name: test
 catalogs:
   catalog0:
-    type: inline
+    type: test
     options:
-      subjects:
-        echo:
-          version: latest
-          schema: |
-            syntax = "proto3";
-            
-            package example;
-            
-            option java_multiple_files = true;
-            option java_outer_classname = "EchoProto";
-            
-            service EchoService
-            {
-              rpc EchoUnary(EchoMessage) returns (EchoMessage);
-              
-              rpc EchoClientStream(stream EchoMessage) returns (EchoMessage);
-              
-              rpc EchoServerStream( EchoMessage) returns (stream EchoMessage);
-              
-              rpc EchoStream(stream EchoMessage) returns (stream EchoMessage);
-            }
+      schema: |
+        syntax = "proto3";
+        
+        package example;
+        
+        option java_multiple_files = true;
+        option java_outer_classname = "EchoProto";
+        
+        service EchoService
+        {
+          rpc EchoUnary(EchoMessage) returns (EchoMessage);
           
-            message EchoMessage
-            {
-              string message = 1;
-            }
+          rpc EchoClientStream(stream EchoMessage) returns (EchoMessage);
+          
+          rpc EchoServerStream( EchoMessage) returns (stream EchoMessage);
+          
+          rpc EchoStream(stream EchoMessage) returns (stream EchoMessage);
+        }
+      
+        message EchoMessage
+        {
+          string message = 1;
+        }
 bindings:
   net0:
     type: grpc
     kind: server
     catalog:
-      catalog0:
-        subject: echo
+        catalog0: []
     routes:
       - exit: app0
         when:
