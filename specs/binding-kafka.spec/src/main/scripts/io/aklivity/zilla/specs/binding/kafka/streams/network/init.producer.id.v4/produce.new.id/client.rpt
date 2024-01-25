@@ -30,7 +30,7 @@ connected
 
 write 31                                # size
       22s                               # init producer id
-      4s                                # v4
+      1s                                # v1
       ${newRequestId}
       5s "zilla"                        # client id
       -1s                               # transaction
