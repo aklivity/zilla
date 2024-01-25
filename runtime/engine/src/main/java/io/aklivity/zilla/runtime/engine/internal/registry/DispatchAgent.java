@@ -94,12 +94,8 @@ import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.ConverterConfig;
+import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
-import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
-import io.aklivity.zilla.runtime.engine.converter.Converter;
-import io.aklivity.zilla.runtime.engine.converter.ConverterContext;
-import io.aklivity.zilla.runtime.engine.converter.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.exporter.Exporter;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterContext;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
@@ -133,11 +129,12 @@ import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
+import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
+import io.aklivity.zilla.runtime.engine.model.Model;
+import io.aklivity.zilla.runtime.engine.model.ModelContext;
+import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
 import io.aklivity.zilla.runtime.engine.util.function.LongLongFunction;
-import io.aklivity.zilla.runtime.engine.validator.Validator;
-import io.aklivity.zilla.runtime.engine.validator.ValidatorContext;
-import io.aklivity.zilla.runtime.engine.validator.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
@@ -202,8 +199,7 @@ public class DispatchAgent implements EngineContext, Agent
     private final ElektronSignaler signaler;
     private final Long2ObjectHashMap<MessageConsumer> correlations;
     private final Long2ObjectHashMap<AgentRunner> exportersById;
-    private final Map<String, ValidatorContext> validatorsByType;
-    private final Map<String, ConverterContext> convertersByType;
+    private final Map<String, ModelContext> modelsByType;
 
     private final ConfigurationRegistry configuration;
     private final Deque<Runnable> taskQueue;
@@ -233,8 +229,7 @@ public class DispatchAgent implements EngineContext, Agent
         Collection<Guard> guards,
         Collection<Vault> vaults,
         Collection<Catalog> catalogs,
-        Collection<Validator> validators,
-        Collection<Converter> converters,
+        Collection<Model> models,
         Collection<MetricGroup> metricGroups,
         Collector collector,
         int index,
@@ -378,21 +373,13 @@ public class DispatchAgent implements EngineContext, Agent
             catalogsByType.put(type, catalog.supply(this));
         }
 
-        Map<String, ValidatorContext> validatorsByType = new LinkedHashMap<>();
-        for (Validator validator : validators)
+        Map<String, ModelContext> modelsByType = new LinkedHashMap<>();
+        for (Model model : models)
         {
-            String type = validator.name();
-            validatorsByType.put(type, validator.supply(this));
+            String type = model.name();
+            modelsByType.put(type, model.supply(this));
         }
-        this.validatorsByType = validatorsByType;
-
-        Map<String, ConverterContext> convertersByType = new LinkedHashMap<>();
-        for (Converter converter : converters)
-        {
-            String type = converter.name();
-            convertersByType.put(type, converter.supply(this));
-        }
-        this.convertersByType = convertersByType;
+        this.modelsByType = modelsByType;
 
         Map<String, MetricContext> metricsByName = new LinkedHashMap<>();
         for (MetricGroup metricGroup : metricGroups)
@@ -411,7 +398,7 @@ public class DispatchAgent implements EngineContext, Agent
         }
 
         this.configuration = new ConfigurationRegistry(
-                bindingsByType::get, guardsByType::get, vaultsByType::get, catalogsByType::get, validatorsByType::get,
+                bindingsByType::get, guardsByType::get, vaultsByType::get, catalogsByType::get,
                 metricsByName::get, exportersByType::get, labels::supplyLabelId, this::onExporterAttached,
                 this::onExporterDetached, this::supplyMetricWriter, this::detachStreams, collector);
         this.taskQueue = new ConcurrentLinkedDeque<>();
@@ -677,26 +664,26 @@ public class DispatchAgent implements EngineContext, Agent
 
     @Override
     public ValidatorHandler supplyValidator(
-        ValidatorConfig config)
+        ModelConfig config)
     {
-        ValidatorContext validator = validatorsByType.get(config.type);
-        return validator != null ? validator.supplyHandler(config) : null;
+        ModelContext model = modelsByType.get(config.type);
+        return model != null ? model.supplyValidatorHandler(config) : null;
     }
 
     @Override
-    public ConverterHandler supplyReadHandler(
-        ConverterConfig config)
+    public ConverterHandler supplyReadConverter(
+        ModelConfig config)
     {
-        ConverterContext converter = convertersByType.get(config.type);
-        return converter != null ? converter.supplyReadHandler(config) : null;
+        ModelContext model = modelsByType.get(config.type);
+        return model != null ? model.supplyReadConverterHandler(config) : null;
     }
 
     @Override
-    public ConverterHandler supplyWriteHandler(
-        ConverterConfig config)
+    public ConverterHandler supplyWriteConverter(
+        ModelConfig config)
     {
-        ConverterContext converter = convertersByType.get(config.type);
-        return converter != null ? converter.supplyWriteHandler(config) : null;
+        ModelContext model = modelsByType.get(config.type);
+        return model != null ? model.supplyWriteConverterHandler(config) : null;
     }
 
     @Override

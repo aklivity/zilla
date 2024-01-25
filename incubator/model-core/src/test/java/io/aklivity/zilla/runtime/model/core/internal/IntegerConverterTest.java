@@ -20,12 +20,12 @@ import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.engine.converter.function.ValueConsumer;
-import io.aklivity.zilla.runtime.model.core.config.IntegerConverterConfig;
+import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
+import io.aklivity.zilla.runtime.model.core.config.IntegerModelConfig;
 
 public class IntegerConverterTest
 {
-    private final IntegerConverterConfig config = new IntegerConverterConfig();
+    private final IntegerModelConfig config = new IntegerModelConfig();
     private final IntegerConverterHandler converter = new IntegerConverterHandler(config);
 
     @Test

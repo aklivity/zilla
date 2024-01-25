@@ -33,7 +33,7 @@ import org.leadpony.justify.api.ProblemHandler;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
-import io.aklivity.zilla.runtime.model.json.config.JsonConverterConfig;
+import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
 public abstract class JsonConverterHandler
 {
@@ -49,7 +49,7 @@ public abstract class JsonConverterHandler
     private DirectBufferInputStream in;
 
     public JsonConverterHandler(
-        JsonConverterConfig config,
+        JsonModelConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
     {
         this.schemaProvider = JsonProvider.provider();

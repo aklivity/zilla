@@ -32,7 +32,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.config.MqttPatternConfig.MqttConne
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
-import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
+import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public final class MqttBindingConfig
@@ -45,7 +45,7 @@ public final class MqttBindingConfig
     public final MqttOptionsConfig options;
     public final List<MqttRouteConfig> routes;
     public final Function<String, String> credentials;
-    public final Map<String, ValidatorConfig> topics;
+    public final Map<String, ModelConfig> topics;
     public final ToLongFunction<String> resolveId;
     public final GuardHandler guard;
 
@@ -108,7 +108,7 @@ public final class MqttBindingConfig
             .orElse(null);
     }
 
-    public ValidatorConfig supplyValidatorConfig(
+    public ModelConfig supplyModelConfig(
         String topic)
     {
         return topics != null ? topics.getOrDefault(topic, null) : null;

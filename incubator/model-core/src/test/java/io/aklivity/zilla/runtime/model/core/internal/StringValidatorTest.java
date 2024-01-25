@@ -21,16 +21,16 @@ import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.engine.converter.function.ValueConsumer;
-import io.aklivity.zilla.runtime.engine.validator.ValidatorHandler;
-import io.aklivity.zilla.runtime.model.core.config.StringValidatorConfig;
+import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
+import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
+import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
 
 public class StringValidatorTest
 {
     @Test
     public void shouldVerifyValidUtf8()
     {
-        StringValidatorConfig config = StringValidatorConfig.builder()
+        StringModelConfig config = StringModelConfig.builder()
             .encoding("utf_8")
             .build();
         StringValidatorHandler handler = new StringValidatorHandler(config);
@@ -44,7 +44,7 @@ public class StringValidatorTest
     @Test
     public void shouldVerifyFragmentedValidUtf8()
     {
-        StringValidatorConfig config = StringValidatorConfig.builder()
+        StringModelConfig config = StringModelConfig.builder()
                 .encoding("utf_8")
                 .build();
         StringValidatorHandler handler = new StringValidatorHandler(config);
@@ -65,7 +65,7 @@ public class StringValidatorTest
     @Test
     public void shouldVerifyFragmentedInValidUtf8()
     {
-        StringValidatorConfig config = StringValidatorConfig.builder()
+        StringModelConfig config = StringModelConfig.builder()
                 .encoding("utf_8")
                 .build();
         StringValidatorHandler handler = new StringValidatorHandler(config);
@@ -90,7 +90,10 @@ public class StringValidatorTest
     @Test
     public void shouldVerifyWithPendingCharBytes()
     {
-        StringValidatorHandler handler = new StringValidatorHandler(new StringValidatorConfig("utf_8"));
+        StringModelConfig config = StringModelConfig.builder()
+            .encoding("utf_8")
+            .build();
+        StringValidatorHandler handler = new StringValidatorHandler(config);
         UnsafeBuffer data = new UnsafeBuffer();
 
         byte[] bytes = {(byte) 0xc3, (byte) 0xa4};

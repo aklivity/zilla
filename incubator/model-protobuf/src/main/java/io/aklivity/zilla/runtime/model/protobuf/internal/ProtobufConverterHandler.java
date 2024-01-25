@@ -41,7 +41,7 @@ import com.google.protobuf.DynamicMessage;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
-import io.aklivity.zilla.runtime.model.protobuf.config.ProtobufConverterConfig;
+import io.aklivity.zilla.runtime.model.protobuf.config.ProtobufModelConfig;
 import io.aklivity.zilla.runtime.model.protobuf.internal.parser.Protobuf3Lexer;
 import io.aklivity.zilla.runtime.model.protobuf.internal.parser.Protobuf3Parser;
 
@@ -68,7 +68,7 @@ public class ProtobufConverterHandler
     private final Int2IntHashMap paddings;
 
     protected ProtobufConverterHandler(
-        ProtobufConverterConfig config,
+        ProtobufModelConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
     {
         CatalogedConfig cataloged = config.cataloged.get(0);

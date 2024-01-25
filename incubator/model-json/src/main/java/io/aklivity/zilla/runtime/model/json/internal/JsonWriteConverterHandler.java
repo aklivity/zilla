@@ -19,14 +19,14 @@ import java.util.function.LongFunction;
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.converter.ConverterHandler;
-import io.aklivity.zilla.runtime.engine.converter.function.ValueConsumer;
-import io.aklivity.zilla.runtime.model.json.config.JsonConverterConfig;
+import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
+import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
+import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
 public class JsonWriteConverterHandler extends JsonConverterHandler implements ConverterHandler
 {
     public JsonWriteConverterHandler(
-        JsonConverterConfig config,
+        JsonModelConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
     {
         super(config, supplyCatalog);

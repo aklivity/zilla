@@ -27,9 +27,9 @@ import com.google.protobuf.DynamicMessage;
 import com.google.protobuf.util.JsonFormat;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.converter.ConverterHandler;
-import io.aklivity.zilla.runtime.engine.converter.function.ValueConsumer;
-import io.aklivity.zilla.runtime.model.protobuf.config.ProtobufConverterConfig;
+import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
+import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
+import io.aklivity.zilla.runtime.model.protobuf.config.ProtobufModelConfig;
 
 public class ProtobufWriteConverterHandler extends ProtobufConverterHandler implements ConverterHandler
 {
@@ -39,7 +39,7 @@ public class ProtobufWriteConverterHandler extends ProtobufConverterHandler impl
     private final JsonFormat.Parser parser;
 
     public ProtobufWriteConverterHandler(
-        ProtobufConverterConfig config,
+        ProtobufModelConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
     {
         super(config, supplyCatalog);

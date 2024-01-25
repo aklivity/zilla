@@ -20,16 +20,9 @@ module io.aklivity.zilla.runtime.model.json
 
     exports io.aklivity.zilla.runtime.model.json.config;
 
-    provides io.aklivity.zilla.runtime.engine.config.ConverterConfigAdapterSpi
-        with io.aklivity.zilla.runtime.model.json.internal.config.JsonConverterConfigAdapter;
+    provides io.aklivity.zilla.runtime.engine.config.ModelConfigAdapterSpi
+        with io.aklivity.zilla.runtime.model.json.internal.config.JsonModelConfigAdapter;
 
-    provides io.aklivity.zilla.runtime.engine.converter.ConverterFactorySpi
-        with io.aklivity.zilla.runtime.model.json.internal.JsonConverterFactorySpi;
-
-    provides io.aklivity.zilla.runtime.engine.config.ValidatorConfigAdapterSpi
-        with io.aklivity.zilla.runtime.model.json.internal.config.JsonValidatorConfigAdapter;
-
-    provides io.aklivity.zilla.runtime.engine.validator.ValidatorFactorySpi
-        with io.aklivity.zilla.runtime.model.json.internal.JsonValidatorFactorySpi;
-
+    provides io.aklivity.zilla.runtime.engine.model.ModelFactorySpi
+        with io.aklivity.zilla.runtime.model.json.internal.JsonModelFactorySpi;
 }

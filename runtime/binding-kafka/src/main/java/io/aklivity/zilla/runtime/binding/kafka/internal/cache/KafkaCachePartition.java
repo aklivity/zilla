@@ -73,8 +73,8 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Varint32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheDeltaFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW;
-import io.aklivity.zilla.runtime.engine.converter.ConverterHandler;
-import io.aklivity.zilla.runtime.engine.converter.function.ValueConsumer;
+import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
+import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 
 public final class KafkaCachePartition
 {

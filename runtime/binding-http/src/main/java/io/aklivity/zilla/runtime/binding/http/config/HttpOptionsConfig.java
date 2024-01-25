@@ -55,20 +55,20 @@ public final class HttpOptionsConfig extends OptionsConfig
         HttpAuthorizationConfig authorization,
         List<HttpRequestConfig> requests)
     {
-        super(emptyList(), requests != null && !requests.isEmpty()
+        super(requests != null && !requests.isEmpty()
             ? requests.stream()
                 .flatMap(request -> Stream.concat(
                     Stream.of(request.content),
                     Stream.concat(
                         request.headers != null
-                            ? request.headers.stream().flatMap(header -> Stream.of(header != null ? header.validator : null))
+                            ? request.headers.stream().flatMap(header -> Stream.of(header != null ? header.model : null))
                             : Stream.empty(),
                         Stream.concat(
                             request.pathParams != null
-                                ? request.pathParams.stream().flatMap(param -> Stream.of(param != null ? param.validator : null))
+                                ? request.pathParams.stream().flatMap(param -> Stream.of(param != null ? param.model : null))
                                 : Stream.empty(),
                             request.queryParams != null
-                                ? request.queryParams.stream().flatMap(param -> Stream.of(param != null ? param.validator : null))
+                                ? request.queryParams.stream().flatMap(param -> Stream.of(param != null ? param.model : null))
                                 : Stream.empty()))).filter(Objects::nonNull))
                 .collect(Collectors.toList())
             : emptyList());

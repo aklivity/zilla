@@ -33,10 +33,10 @@ import io.aklivity.zilla.runtime.engine.catalog.Catalog;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
-import io.aklivity.zilla.runtime.engine.converter.function.ValueConsumer;
+import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalog;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogOptionsConfig;
-import io.aklivity.zilla.runtime.model.json.config.JsonConverterConfig;
+import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
 public class JsonConverterTest
 {
@@ -63,7 +63,7 @@ public class JsonConverterTest
                         OBJECT_SCHEMA +
                     "}";
 
-    private final JsonConverterConfig config = JsonConverterConfig.builder()
+    private final JsonModelConfig config = JsonModelConfig.builder()
             .catalog()
                 .name("test0")
                     .schema()

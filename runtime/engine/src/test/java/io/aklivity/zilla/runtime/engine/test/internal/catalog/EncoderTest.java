@@ -21,7 +21,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.converter.function.ValueConsumer;
+import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 
 public class EncoderTest
 {

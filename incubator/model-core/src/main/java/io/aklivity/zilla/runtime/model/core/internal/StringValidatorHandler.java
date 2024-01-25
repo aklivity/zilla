@@ -16,16 +16,16 @@ package io.aklivity.zilla.runtime.model.core.internal;
 
 import org.agrona.DirectBuffer;
 
-import io.aklivity.zilla.runtime.engine.converter.function.ValueConsumer;
-import io.aklivity.zilla.runtime.engine.validator.ValidatorHandler;
-import io.aklivity.zilla.runtime.model.core.config.StringValidatorConfig;
+import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
+import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
+import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
 
 public class StringValidatorHandler implements ValidatorHandler
 {
     private final StringValidatorEncoding encoding;
 
     public StringValidatorHandler(
-        StringValidatorConfig config)
+        StringModelConfig config)
     {
         this.encoding = StringValidatorEncoding.of(config.encoding);
     }

@@ -32,7 +32,7 @@ public class SchemaTest
     public final ConfigSchemaRule schema = new ConfigSchemaRule()
         .schemaPatch("io/aklivity/zilla/specs/binding/kafka/schema/kafka.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/catalog/test.schema.patch.json")
-        .schemaPatch("io/aklivity/zilla/specs/engine/schema/converter/test.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/specs/engine/schema/model/test.schema.patch.json")
         .configurationRoot("io/aklivity/zilla/specs/binding/kafka/config");
 
     @Test

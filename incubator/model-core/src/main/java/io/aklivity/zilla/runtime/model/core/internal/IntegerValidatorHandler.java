@@ -16,16 +16,16 @@ package io.aklivity.zilla.runtime.model.core.internal;
 
 import org.agrona.DirectBuffer;
 
-import io.aklivity.zilla.runtime.engine.converter.function.ValueConsumer;
-import io.aklivity.zilla.runtime.engine.validator.ValidatorHandler;
-import io.aklivity.zilla.runtime.model.core.config.IntegerValidatorConfig;
+import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
+import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
+import io.aklivity.zilla.runtime.model.core.config.IntegerModelConfig;
 
 public class IntegerValidatorHandler implements ValidatorHandler
 {
     private int pendingBytes;
 
     public IntegerValidatorHandler(
-        IntegerValidatorConfig config)
+        IntegerModelConfig config)
     {
     }
 

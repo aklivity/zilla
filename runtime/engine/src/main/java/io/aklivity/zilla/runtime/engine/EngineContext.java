@@ -30,14 +30,13 @@ import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.ConverterConfig;
+import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
-import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
-import io.aklivity.zilla.runtime.engine.converter.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
+import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
+import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
-import io.aklivity.zilla.runtime.engine.validator.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
 public interface EngineContext
@@ -130,13 +129,13 @@ public interface EngineContext
         long catalogId);
 
     ValidatorHandler supplyValidator(
-        ValidatorConfig config);
+        ModelConfig config);
 
-    ConverterHandler supplyReadHandler(
-        ConverterConfig config);
+    ConverterHandler supplyReadConverter(
+        ModelConfig config);
 
-    ConverterHandler supplyWriteHandler(
-        ConverterConfig config);
+    ConverterHandler supplyWriteConverter(
+        ModelConfig config);
 
     URL resolvePath(
         String path);

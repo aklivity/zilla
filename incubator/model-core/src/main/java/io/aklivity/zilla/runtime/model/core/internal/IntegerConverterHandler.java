@@ -16,14 +16,14 @@ package io.aklivity.zilla.runtime.model.core.internal;
 
 import org.agrona.DirectBuffer;
 
-import io.aklivity.zilla.runtime.engine.converter.ConverterHandler;
-import io.aklivity.zilla.runtime.engine.converter.function.ValueConsumer;
-import io.aklivity.zilla.runtime.model.core.config.IntegerConverterConfig;
+import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
+import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
+import io.aklivity.zilla.runtime.model.core.config.IntegerModelConfig;
 
 public class IntegerConverterHandler implements ConverterHandler
 {
     public IntegerConverterHandler(
-        IntegerConverterConfig config)
+        IntegerModelConfig config)
     {
     }
 

@@ -16,16 +16,16 @@ package io.aklivity.zilla.runtime.model.core.internal;
 
 import org.agrona.DirectBuffer;
 
-import io.aklivity.zilla.runtime.engine.converter.ConverterHandler;
-import io.aklivity.zilla.runtime.engine.converter.function.ValueConsumer;
-import io.aklivity.zilla.runtime.model.core.config.StringConverterConfig;
+import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
+import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
+import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
 
 public class StringConverterHandler implements ConverterHandler
 {
     private StringEncoding encoding;
 
     public StringConverterHandler(
-        StringConverterConfig config)
+        StringModelConfig config)
     {
         this.encoding = StringEncoding.of(config.encoding);
     }

@@ -41,7 +41,7 @@ import org.apache.avro.io.EncoderFactory;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
-import io.aklivity.zilla.runtime.model.avro.config.AvroConverterConfig;
+import io.aklivity.zilla.runtime.model.avro.config.AvroModelConfig;
 
 public abstract class AvroConverterHandler
 {
@@ -69,7 +69,7 @@ public abstract class AvroConverterHandler
     private final Int2IntHashMap paddings;
 
     protected AvroConverterHandler(
-        AvroConverterConfig config,
+        AvroModelConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
     {
         this.decoderFactory = DecoderFactory.get();

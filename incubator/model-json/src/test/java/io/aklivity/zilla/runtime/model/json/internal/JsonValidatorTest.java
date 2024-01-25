@@ -15,8 +15,8 @@
 package io.aklivity.zilla.runtime.model.json.internal;
 
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DIRECTORY;
-import static io.aklivity.zilla.runtime.engine.validator.ValidatorHandler.FLAGS_FIN;
-import static io.aklivity.zilla.runtime.engine.validator.ValidatorHandler.FLAGS_INIT;
+import static io.aklivity.zilla.runtime.engine.model.ValidatorHandler.FLAGS_FIN;
+import static io.aklivity.zilla.runtime.engine.model.ValidatorHandler.FLAGS_INIT;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -35,10 +35,10 @@ import io.aklivity.zilla.runtime.engine.catalog.Catalog;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
-import io.aklivity.zilla.runtime.engine.converter.function.ValueConsumer;
+import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalog;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogOptionsConfig;
-import io.aklivity.zilla.runtime.model.json.config.JsonValidatorConfig;
+import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
 public class JsonValidatorTest
 {
@@ -65,7 +65,7 @@ public class JsonValidatorTest
             OBJECT_SCHEMA +
             "}";
 
-    private final JsonValidatorConfig config = JsonValidatorConfig.builder()
+    private final JsonModelConfig config = JsonModelConfig.builder()
             .catalog()
             .name("test0")
                 .schema()

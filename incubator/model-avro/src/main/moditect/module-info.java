@@ -24,9 +24,9 @@ module io.aklivity.zilla.runtime.model.avro
     uses io.aklivity.zilla.runtime.model.avro.internal.avro.Conversion;
     uses io.aklivity.zilla.runtime.model.avro.internal.avro.LogicalTypes$LogicalTypeFactory;
 
-    provides io.aklivity.zilla.runtime.engine.config.ConverterConfigAdapterSpi
-        with io.aklivity.zilla.runtime.model.avro.internal.config.AvroConverterConfigAdapter;
+    provides io.aklivity.zilla.runtime.engine.config.ModelConfigAdapterSpi
+        with io.aklivity.zilla.runtime.model.avro.internal.config.AvroModelConfigAdapter;
 
-    provides io.aklivity.zilla.runtime.engine.converter.ConverterFactorySpi
-        with io.aklivity.zilla.runtime.model.avro.internal.AvroConverterFactorySpi;
+    provides io.aklivity.zilla.runtime.engine.model.ModelFactorySpi
+        with io.aklivity.zilla.runtime.model.avro.internal.AvroModelFactorySpi;
 }

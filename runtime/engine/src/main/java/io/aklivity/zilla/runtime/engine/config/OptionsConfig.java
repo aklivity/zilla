@@ -20,19 +20,16 @@ import java.util.List;
 
 public class OptionsConfig
 {
-    public final List<ConverterConfig> converters;
-    public final List<ValidatorConfig> validators;
+    public final List<ModelConfig> models;
 
     public OptionsConfig()
     {
-        this(Collections.emptyList(), Collections.emptyList());
+        this(Collections.emptyList());
     }
 
     public OptionsConfig(
-        List<ConverterConfig> converters,
-        List<ValidatorConfig> validators)
+        List<ModelConfig> models)
     {
-        this.converters = converters;
-        this.validators = validators;
+        this.models = models;
     }
 }

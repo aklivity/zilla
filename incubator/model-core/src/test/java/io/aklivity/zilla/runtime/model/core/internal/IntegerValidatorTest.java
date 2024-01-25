@@ -21,13 +21,13 @@ import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.engine.converter.function.ValueConsumer;
-import io.aklivity.zilla.runtime.engine.validator.ValidatorHandler;
-import io.aklivity.zilla.runtime.model.core.config.IntegerValidatorConfig;
+import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
+import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
+import io.aklivity.zilla.runtime.model.core.config.IntegerModelConfig;
 
 public class IntegerValidatorTest
 {
-    private final IntegerValidatorConfig config = IntegerValidatorConfig.builder().build();
+    private final IntegerModelConfig config = IntegerModelConfig.builder().build();
     private final IntegerValidatorHandler handler = new IntegerValidatorHandler(config);
 
     @Test

@@ -14,8 +14,8 @@
  */
 package io.aklivity.zilla.runtime.model.core.internal;
 
-import static io.aklivity.zilla.runtime.engine.validator.ValidatorHandler.FLAGS_FIN;
-import static io.aklivity.zilla.runtime.engine.validator.ValidatorHandler.FLAGS_INIT;
+import static io.aklivity.zilla.runtime.engine.model.ValidatorHandler.FLAGS_FIN;
+import static io.aklivity.zilla.runtime.engine.model.ValidatorHandler.FLAGS_INIT;
 
 import org.agrona.DirectBuffer;
 

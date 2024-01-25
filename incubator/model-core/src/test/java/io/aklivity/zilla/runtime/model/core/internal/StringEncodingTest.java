@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.model.core.internal;
 
-import static io.aklivity.zilla.runtime.engine.validator.ValidatorHandler.FLAGS_COMPLETE;
+import static io.aklivity.zilla.runtime.engine.model.ValidatorHandler.FLAGS_COMPLETE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;

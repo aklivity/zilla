@@ -64,7 +64,6 @@ import io.aklivity.zilla.runtime.engine.catalog.Catalog;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
-import io.aklivity.zilla.runtime.engine.converter.Converter;
 import io.aklivity.zilla.runtime.engine.exporter.Exporter;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtContext;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
@@ -81,7 +80,7 @@ import io.aklivity.zilla.runtime.engine.internal.registry.WatcherTask;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
-import io.aklivity.zilla.runtime.engine.validator.Validator;
+import io.aklivity.zilla.runtime.engine.model.Model;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 
 public final class Engine implements Collector, AutoCloseable
@@ -114,8 +113,7 @@ public final class Engine implements Collector, AutoCloseable
         Collection<MetricGroup> metricGroups,
         Collection<Vault> vaults,
         Collection<Catalog> catalogs,
-        Collection<Validator> validators,
-        Collection<Converter> converters,
+        Collection<Model> models,
         ErrorHandler errorHandler,
         Collection<EngineAffinity> affinities,
         boolean readonly)
@@ -170,7 +168,7 @@ public final class Engine implements Collector, AutoCloseable
         {
             DispatchAgent agent =
                 new DispatchAgent(config, tasks, labels, errorHandler, tuning::affinity,
-                        bindings, exporters, guards, vaults, catalogs, validators, converters, metricGroups,
+                        bindings, exporters, guards, vaults, catalogs, models, metricGroups,
                         this, coreIndex, readonly);
             dispatchers.add(agent);
         }
@@ -191,8 +189,7 @@ public final class Engine implements Collector, AutoCloseable
         schemaTypes.addAll(metricGroups.stream().map(MetricGroup::type).filter(Objects::nonNull).collect(toList()));
         schemaTypes.addAll(vaults.stream().map(Vault::type).filter(Objects::nonNull).collect(toList()));
         schemaTypes.addAll(catalogs.stream().map(Catalog::type).filter(Objects::nonNull).collect(toList()));
-        schemaTypes.addAll(validators.stream().map(Validator::type).filter(Objects::nonNull).collect(toList()));
-        schemaTypes.addAll(converters.stream().map(Converter::type).filter(Objects::nonNull).collect(toList()));
+        schemaTypes.addAll(models.stream().map(Model::type).filter(Objects::nonNull).collect(toList()));
 
         bindingsByType = bindings.stream().collect(Collectors.toMap(b -> b.name(), b -> b));
         final Map<String, Guard> guardsByType = guards.stream()

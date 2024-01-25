@@ -29,7 +29,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfig;
-import io.aklivity.zilla.runtime.engine.test.internal.validator.config.TestValidatorConfig;
+import io.aklivity.zilla.runtime.engine.test.internal.model.config.TestModelConfig;
 
 public class HttpRequestConfigAdapterTest
 {
@@ -81,15 +81,15 @@ public class HttpRequestConfigAdapterTest
         assertThat(request.method, equalTo(HttpRequestConfig.Method.GET));
         assertThat(request.contentType.get(0), equalTo("application/json"));
         assertThat(request.headers.get(0).name, equalTo("content-type"));
-        assertThat(request.headers.get(0).validator, instanceOf(TestValidatorConfig.class));
-        assertThat(request.headers.get(0).validator.type, equalTo("test"));
+        assertThat(request.headers.get(0).model, instanceOf(TestModelConfig.class));
+        assertThat(request.headers.get(0).model.type, equalTo("test"));
         assertThat(request.pathParams.get(0).name, equalTo("id"));
-        assertThat(request.pathParams.get(0).validator, instanceOf(TestValidatorConfig.class));
-        assertThat(request.pathParams.get(0).validator.type, equalTo("test"));
+        assertThat(request.pathParams.get(0).model, instanceOf(TestModelConfig.class));
+        assertThat(request.pathParams.get(0).model.type, equalTo("test"));
         assertThat(request.queryParams.get(0).name, equalTo("index"));
-        assertThat(request.queryParams.get(0).validator, instanceOf(TestValidatorConfig.class));
-        assertThat(request.queryParams.get(0).validator.type, equalTo("test"));
-        assertThat(request.content, instanceOf(TestValidatorConfig.class));
+        assertThat(request.queryParams.get(0).model, instanceOf(TestModelConfig.class));
+        assertThat(request.queryParams.get(0).model.type, equalTo("test"));
+        assertThat(request.content, instanceOf(TestModelConfig.class));
         assertThat(request.content.type, equalTo("test"));
     }
 
@@ -128,20 +128,20 @@ public class HttpRequestConfigAdapterTest
             .contentType("application/json")
             .header()
                 .name("content-type")
-                .validator(TestValidatorConfig::builder)
+                .model(TestModelConfig::builder)
                     .build()
                 .build()
             .pathParam()
                 .name("id")
-                .validator(TestValidatorConfig::builder)
+                .model(TestModelConfig::builder)
                     .build()
                 .build()
             .queryParam()
                 .name("index")
-                .validator(TestValidatorConfig::builder)
+                .model(TestModelConfig::builder)
                     .build()
                 .build()
-            .content(TestValidatorConfig::builder)
+            .content(TestModelConfig::builder)
                 .build()
             .build();
 

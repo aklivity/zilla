@@ -23,14 +23,14 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttTopicConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttTopicConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.ValidatorConfigAdapter;
+import io.aklivity.zilla.runtime.engine.config.ModelConfigAdapter;
 
 public class MqttTopicConfigAdapter implements JsonbAdapter<MqttTopicConfig, JsonObject>
 {
     private static final String NAME_NAME = "name";
     private static final String CONTENT_NAME = "content";
 
-    private final ValidatorConfigAdapter validator = new ValidatorConfigAdapter();
+    private final ModelConfigAdapter model = new ModelConfigAdapter();
 
     @Override
     public JsonObject adaptToJson(
@@ -44,8 +44,8 @@ public class MqttTopicConfigAdapter implements JsonbAdapter<MqttTopicConfig, Jso
 
         if (topic.content != null)
         {
-            validator.adaptType(topic.content.type);
-            JsonValue content = validator.adaptToJson(topic.content);
+            model.adaptType(topic.content.type);
+            JsonValue content = model.adaptToJson(topic.content);
             object.add(CONTENT_NAME, content);
         }
 
@@ -65,7 +65,7 @@ public class MqttTopicConfigAdapter implements JsonbAdapter<MqttTopicConfig, Jso
         if (object.containsKey(CONTENT_NAME))
         {
             JsonValue contentJson = object.get(CONTENT_NAME);
-            mqttTopic.content(validator.adaptFromJson(contentJson));
+            mqttTopic.content(model.adaptFromJson(contentJson));
         }
         return mqttTopic.build();
     }

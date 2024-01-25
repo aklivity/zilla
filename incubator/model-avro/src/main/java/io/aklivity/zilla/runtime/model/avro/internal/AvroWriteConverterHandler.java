@@ -25,14 +25,14 @@ import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.converter.ConverterHandler;
-import io.aklivity.zilla.runtime.engine.converter.function.ValueConsumer;
-import io.aklivity.zilla.runtime.model.avro.config.AvroConverterConfig;
+import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
+import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
+import io.aklivity.zilla.runtime.model.avro.config.AvroModelConfig;
 
 public class AvroWriteConverterHandler extends AvroConverterHandler implements ConverterHandler
 {
     public AvroWriteConverterHandler(
-        AvroConverterConfig config,
+        AvroModelConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
     {
         super(config, supplyCatalog);

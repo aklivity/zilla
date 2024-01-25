@@ -34,9 +34,9 @@ import org.leadpony.justify.api.ProblemHandler;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
-import io.aklivity.zilla.runtime.engine.converter.function.ValueConsumer;
-import io.aklivity.zilla.runtime.engine.validator.ValidatorHandler;
-import io.aklivity.zilla.runtime.model.json.config.JsonValidatorConfig;
+import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
+import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
+import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
 public class JsonValidatorHandler implements ValidatorHandler
 {
@@ -55,7 +55,7 @@ public class JsonValidatorHandler implements ValidatorHandler
     private int progress;
 
     public JsonValidatorHandler(
-        JsonValidatorConfig config,
+        JsonModelConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
     {
         this.schemaProvider = JsonProvider.provider();

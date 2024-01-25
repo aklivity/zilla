@@ -22,15 +22,15 @@ import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.engine.converter.function.ValueConsumer;
-import io.aklivity.zilla.runtime.model.core.config.StringConverterConfig;
+import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
+import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
 
 public class StringConverterTest
 {
     @Test
     public void shouldVerifyValidUtf8()
     {
-        StringConverterConfig config = StringConverterConfig.builder()
+        StringModelConfig config = StringModelConfig.builder()
                 .encoding("utf_8")
                 .build();
         StringConverterHandler converter = new StringConverterHandler(config);
@@ -45,7 +45,7 @@ public class StringConverterTest
     @Test
     public void shouldVerifyInvalidUtf8()
     {
-        StringConverterConfig config = StringConverterConfig.builder()
+        StringModelConfig config = StringModelConfig.builder()
                 .encoding("utf_8")
                 .build();
         StringConverterHandler converter = new StringConverterHandler(config);
@@ -60,7 +60,7 @@ public class StringConverterTest
     @Test
     public void shouldVerifyValidUtf16()
     {
-        StringConverterConfig config = StringConverterConfig.builder()
+        StringModelConfig config = StringModelConfig.builder()
                 .encoding("utf_16")
                 .build();
         StringConverterHandler converter = new StringConverterHandler(config);
@@ -76,7 +76,7 @@ public class StringConverterTest
     @Test
     public void shouldVerifyIncompleteUtf16()
     {
-        StringConverterConfig config = StringConverterConfig.builder()
+        StringModelConfig config = StringModelConfig.builder()
                 .encoding("utf_16")
                 .build();
         StringConverterHandler converter = new StringConverterHandler(config);
@@ -91,7 +91,7 @@ public class StringConverterTest
     @Test
     public void shouldVerifyIncompleteSurrogatePairUtf16()
     {
-        StringConverterConfig config = StringConverterConfig.builder()
+        StringModelConfig config = StringModelConfig.builder()
                 .encoding("utf_16")
                 .build();
         StringConverterHandler converter = new StringConverterHandler(config);
@@ -106,7 +106,7 @@ public class StringConverterTest
     @Test
     public void shouldVerifyInvalidSecondSurrogateUtf16()
     {
-        StringConverterConfig config = StringConverterConfig.builder()
+        StringModelConfig config = StringModelConfig.builder()
                 .encoding("utf_16")
                 .build();
         StringConverterHandler converter = new StringConverterHandler(config);
@@ -121,7 +121,7 @@ public class StringConverterTest
     @Test
     public void shouldVerifyUnexpectedSecondSurrogateUtf16()
     {
-        StringConverterConfig config = StringConverterConfig.builder()
+        StringModelConfig config = StringModelConfig.builder()
                 .encoding("utf_16")
                 .build();
         StringConverterHandler converter = new StringConverterHandler(config);
@@ -136,7 +136,7 @@ public class StringConverterTest
     @Test
     public void shouldVerifyValidMixedUtf16()
     {
-        StringConverterConfig config = StringConverterConfig.builder()
+        StringModelConfig config = StringModelConfig.builder()
                 .encoding("utf_16")
                 .build();
         StringConverterHandler converter = new StringConverterHandler(config);
