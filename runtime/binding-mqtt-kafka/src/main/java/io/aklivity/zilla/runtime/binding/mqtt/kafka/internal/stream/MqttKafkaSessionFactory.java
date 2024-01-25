@@ -463,7 +463,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             this.session = new KafkaFetchWillSignalStream(originId, resolvedId, this);
             this.sessionsTopic = sessionsTopic;
             this.sessionId = new String16FW(sessionIds.get(bindingId));
-            this.leaderEpochs = new Long2LongHashMap(-1);
+            this.leaderEpochs = new Long2LongHashMap(-2);
             this.qos2Publishes = new Object2ObjectHashMap<>();
             this.offsetFetches = new ArrayList<>();
             this.offsets = new Long2ObjectHashMap<>();
@@ -4025,7 +4025,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             if (partitions != null)
             {
                 final KafkaTopicPartitionOffsetFW samplePartition = partitions.matchFirst(p -> true);
-                boolean initProducer = samplePartition == null || samplePartition.metadata().length() == -1;
+                boolean initProducer = samplePartition == null || samplePartition.metadata().length() <= 0;
 
                 partitions.forEach(partition ->
                 {
