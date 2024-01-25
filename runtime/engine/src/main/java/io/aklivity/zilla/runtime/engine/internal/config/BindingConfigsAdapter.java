@@ -46,6 +46,7 @@ import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], JsonObject>
 {
     private static final String VAULT_NAME = "vault";
+    private static final String CATALOG_NAME = "catalog";
     private static final String EXIT_NAME = "exit";
     private static final String TYPE_NAME = "type";
     private static final String KIND_NAME = "kind";
@@ -57,6 +58,7 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
     private final KindAdapter kind;
     private final RouteAdapter route;
     private final OptionsAdapter options;
+    private final CatalogRefAdapter catalogRef;
     private final TelemetryRefAdapter telemetryRef;
 
     private final Map<String, CompositeBindingAdapterSpi> composites;
@@ -69,6 +71,7 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
         this.kind = new KindAdapter(context);
         this.route = new RouteAdapter(context);
         this.options = new OptionsAdapter(OptionsConfigAdapterSpi.Kind.BINDING, context);
+        this.catalogRef = new CatalogRefAdapter();
         this.telemetryRef = new TelemetryRefAdapter();
 
         this.composites = ServiceLoader
@@ -135,6 +138,12 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
                 }
             }
 
+            if (binding.catalogRef != null)
+            {
+                JsonObject catalogRef0 = catalogRef.adaptToJson(binding.catalogRef);
+                item.add(CATALOG_NAME, catalogRef0);
+            }
+
             if (binding.telemetryRef != null)
             {
                 JsonObject telemetryRef0 = telemetryRef.adaptToJson(binding.telemetryRef);
@@ -187,6 +196,11 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
             if (item.containsKey(VAULT_NAME))
             {
                 binding.vault(item.getString(VAULT_NAME));
+            }
+
+            if (item.containsKey(CATALOG_NAME))
+            {
+                binding.catalog(catalogRef.adaptFromJson(item.getJsonObject(CATALOG_NAME)));
             }
 
             if (item.containsKey(OPTIONS_NAME))

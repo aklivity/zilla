@@ -38,6 +38,7 @@ public final class BindingConfigBuilder<T> extends ConfigBuilder<T, BindingConfi
     private String exit;
     private OptionsConfig options;
     private List<RouteConfig> routes;
+    private CatalogRefConfig catalogRef;
     private TelemetryRefConfig telemetryRef;
     private List<NamespaceConfig> composites;
 
@@ -113,6 +114,18 @@ public final class BindingConfigBuilder<T> extends ConfigBuilder<T, BindingConfi
         OptionsConfig options)
     {
         this.options = options;
+        return this;
+    }
+
+    public CatalogRefConfigBuilder<BindingConfigBuilder<T>> catalog()
+    {
+        return new CatalogRefConfigBuilder<>(this::catalog);
+    }
+
+    public BindingConfigBuilder<T> catalog(
+        CatalogRefConfig catalogRef)
+    {
+        this.catalogRef = catalogRef;
         return this;
     }
 
@@ -197,6 +210,7 @@ public final class BindingConfigBuilder<T> extends ConfigBuilder<T, BindingConfi
             vault,
             options,
             Optional.ofNullable(routes).orElse(ROUTES_DEFAULT),
+            catalogRef,
             telemetryRef,
             Optional.ofNullable(composites).orElse(COMPOSITES_DEFAULT)));
     }
