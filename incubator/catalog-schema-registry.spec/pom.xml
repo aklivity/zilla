@@ -64,6 +64,23 @@
         <artifactId>maven-notice-plugin</artifactId>
       </plugin>
       <plugin>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>flyweight-maven-plugin</artifactId>
+        <version>${project.version}</version>
+        <configuration>
+          <scopeNames>core schemaregistry</scopeNames>
+          <packageName>io.aklivity.zilla.specs.catalog.schema.registry.internal.types</packageName>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>validate</goal>
+              <goal>generate</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
         <groupId>com.mycila</groupId>
         <artifactId>license-maven-plugin</artifactId>
       </plugin>
@@ -86,6 +103,9 @@
         <groupId>org.jacoco</groupId>
         <artifactId>jacoco-maven-plugin</artifactId>
         <configuration>
+          <excludes>
+            <exclude>io/aklivity/zilla/specs/catalog/schema/registry/internal/types/**/*.class</exclude>
+          </excludes>
           <rules>
             <rule>
               <element>BUNDLE</element>

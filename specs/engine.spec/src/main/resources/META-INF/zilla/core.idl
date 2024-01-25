@@ -114,13 +114,17 @@ scope core
         {
             Level level;
             int64 timestamp = 0;
-            int64 traceId;
+            int64 traceId = 0;
         }
 
         struct BindingEvent extends Event
         {
             int64 routedId;
             int64 initialId;
+        }
+
+        struct CatalogEvent extends Event
+        {
         }
     }
 }

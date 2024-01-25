@@ -25,6 +25,9 @@ import org.agrona.collections.Int2ObjectCache;
 
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.config.SchemaRegistryOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.serializer.RegisterSchemaRequest;
+import io.aklivity.zilla.runtime.catalog.schema.registry.internal.types.event.Level;
+import io.aklivity.zilla.runtime.catalog.schema.registry.internal.types.event.Result;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 
 public class SchemaRegistryCatalogHandler implements CatalogHandler
@@ -39,9 +42,11 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
     private final CRC32C crc32c;
     private final Int2ObjectCache<String> cache;
     private final Int2ObjectCache<String> schemaIdCache;
+    private final SchemaRegistryEventContext event;
 
     public SchemaRegistryCatalogHandler(
-        SchemaRegistryOptionsConfig config)
+        SchemaRegistryOptionsConfig config,
+        EngineContext context)
     {
         this.baseUrl = config.url;
         this.client = HttpClient.newHttpClient();
@@ -49,6 +54,7 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
         this.crc32c = new CRC32C();
         this.cache = new Int2ObjectCache<>(1, 1024, i -> {});
         this.schemaIdCache = new Int2ObjectCache<>(1, 1024, i -> {});
+        this.event = new SchemaRegistryEventContext(context);
     }
 
     @Override
@@ -136,10 +142,21 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
         try
         {
             HttpResponse<String> response = client.send(httpRequest, HttpResponse.BodyHandlers.ofString());
-            return response.statusCode() == 200 ? response.body() : null;
+            String responseBody = null;
+            if (response.statusCode() == 200)
+            {
+                responseBody = response.body();
+            }
+            else
+            {
+                event.remoteAccess(Result.FAILURE, Level.ERROR, httpRequest.uri().toString(), httpRequest.method(),
+                    response.statusCode());
+            }
+            return responseBody;
         }
         catch (Exception ex)
         {
+            event.remoteAccess(Result.FAILURE, Level.ERROR, httpRequest.uri().toString(), httpRequest.method(), -1);
             ex.printStackTrace(System.out);
         }
         return null;

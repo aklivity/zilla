@@ -15,16 +15,25 @@
 package io.aklivity.zilla.runtime.catalog.schema.registry.internal;
 
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.config.SchemaRegistryOptionsConfig;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
 
 public class SchemaRegistryCatalogContext implements CatalogContext
 {
+    private final EngineContext context;
+
+    public SchemaRegistryCatalogContext(
+        EngineContext context)
+    {
+        this.context = context;
+    }
+
     @Override
     public CatalogHandler attach(
         CatalogConfig catalog)
     {
-        return new SchemaRegistryCatalogHandler(SchemaRegistryOptionsConfig.class.cast(catalog.options));
+        return new SchemaRegistryCatalogHandler(SchemaRegistryOptionsConfig.class.cast(catalog.options), context);
     }
 }
