@@ -12,25 +12,25 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-module io.aklivity.zilla.runtime.types.core
+module io.aklivity.zilla.runtime.model.core
 {
     requires io.aklivity.zilla.runtime.engine;
 
-    exports io.aklivity.zilla.runtime.types.core.config;
+    exports io.aklivity.zilla.runtime.model.core.config;
 
     provides io.aklivity.zilla.runtime.engine.config.ConverterConfigAdapterSpi
-        with io.aklivity.zilla.runtime.types.core.internal.config.StringConverterConfigAdapter,
-            io.aklivity.zilla.runtime.types.core.internal.config.IntegerConverterConfigAdapter;
+        with io.aklivity.zilla.runtime.model.core.internal.config.StringConverterConfigAdapter,
+            io.aklivity.zilla.runtime.model.core.internal.config.IntegerConverterConfigAdapter;
 
     provides io.aklivity.zilla.runtime.engine.converter.ConverterFactorySpi
-        with io.aklivity.zilla.runtime.types.core.internal.StringConverterFactorySpi,
-            io.aklivity.zilla.runtime.types.core.internal.IntegerConverterFactorySpi;
+        with io.aklivity.zilla.runtime.model.core.internal.StringConverterFactorySpi,
+            io.aklivity.zilla.runtime.model.core.internal.IntegerConverterFactorySpi;
 
     provides io.aklivity.zilla.runtime.engine.config.ValidatorConfigAdapterSpi
-        with io.aklivity.zilla.runtime.types.core.internal.config.IntegerValidatorConfigAdapter,
-            io.aklivity.zilla.runtime.types.core.internal.config.StringValidatorConfigAdapter;
+        with io.aklivity.zilla.runtime.model.core.internal.config.IntegerValidatorConfigAdapter,
+            io.aklivity.zilla.runtime.model.core.internal.config.StringValidatorConfigAdapter;
 
     provides io.aklivity.zilla.runtime.engine.validator.ValidatorFactorySpi
-        with io.aklivity.zilla.runtime.types.core.internal.IntegerValidatorFactorySpi,
-            io.aklivity.zilla.runtime.types.core.internal.StringValidatorFactorySpi;
+        with io.aklivity.zilla.runtime.model.core.internal.IntegerValidatorFactorySpi,
+            io.aklivity.zilla.runtime.model.core.internal.StringValidatorFactorySpi;
 }

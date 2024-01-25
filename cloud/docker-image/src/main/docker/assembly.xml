@@ -31,7 +31,6 @@
         <include>io/aklivity/zilla/exporter-*/**</include>
         <include>io/aklivity/zilla/guard-*/**</include>
         <include>io/aklivity/zilla/metrics-*/**</include>
-        <include>io/aklivity/zilla/types-*/**</include>
         <include>io/aklivity/zilla/model-*/**</include>
         <include>io/aklivity/zilla/vault-*/**</include>
         <include>io/aklivity/zilla/command/**</include>

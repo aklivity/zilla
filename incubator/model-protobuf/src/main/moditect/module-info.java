@@ -12,17 +12,17 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-module io.aklivity.zilla.runtime.types.protobuf
+module io.aklivity.zilla.runtime.model.protobuf
 {
     requires org.antlr.antlr4.runtime;
     requires protobuf.java;
     requires io.aklivity.zilla.runtime.engine;
 
-    exports io.aklivity.zilla.runtime.types.protobuf.config;
+    exports io.aklivity.zilla.runtime.model.protobuf.config;
 
     provides io.aklivity.zilla.runtime.engine.config.ConverterConfigAdapterSpi
-        with io.aklivity.zilla.runtime.types.protobuf.internal.config.ProtobufConverterConfigAdapter;
+        with io.aklivity.zilla.runtime.model.protobuf.internal.config.ProtobufConverterConfigAdapter;
 
     provides io.aklivity.zilla.runtime.engine.converter.ConverterFactorySpi
-        with io.aklivity.zilla.runtime.types.protobuf.internal.ProtobufConverterFactorySpi;
+        with io.aklivity.zilla.runtime.model.protobuf.internal.ProtobufConverterFactorySpi;
 }

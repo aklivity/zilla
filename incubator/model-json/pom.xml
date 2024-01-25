@@ -101,13 +101,13 @@
                                 <artifactId>model-json.spec</artifactId>
                                 <fileMappers>
                                     <org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
-                                        <pattern>^\Qio/aklivity/zilla/specs/types/json/\E</pattern>
-                                        <replacement>io/aklivity/zilla/runtime/types/json/internal/</replacement>
+                                        <pattern>^\Qio/aklivity/zilla/specs/model/json/\E</pattern>
+                                        <replacement>io/aklivity/zilla/runtime/model/json/internal/</replacement>
                                     </org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
                                 </fileMappers>
                             </artifactItem>
                         </artifactItems>
-                        <includes>io/aklivity/zilla/specs/types/json/schema/json.schema.patch.json</includes>
+                        <includes>io/aklivity/zilla/specs/model/json/schema/json.schema.patch.json</includes>
                         <outputDirectory>${project.build.directory}/classes</outputDirectory>
                     </configuration>
                 </execution>

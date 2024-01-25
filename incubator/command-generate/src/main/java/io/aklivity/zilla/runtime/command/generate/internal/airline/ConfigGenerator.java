@@ -29,8 +29,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
 import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
-import io.aklivity.zilla.runtime.types.core.config.IntegerValidatorConfig;
-import io.aklivity.zilla.runtime.types.core.config.StringValidatorConfig;
+import io.aklivity.zilla.runtime.model.core.config.IntegerValidatorConfig;
+import io.aklivity.zilla.runtime.model.core.config.StringValidatorConfig;
 
 public abstract class ConfigGenerator
 {

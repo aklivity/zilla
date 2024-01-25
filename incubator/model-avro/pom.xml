@@ -83,7 +83,7 @@
         <version>${project.version}</version>
         <configuration>
           <scopeNames>core</scopeNames>
-          <packageName>io.aklivity.zilla.runtime.types.avro.internal.types</packageName>
+          <packageName>io.aklivity.zilla.runtime.model.avro.internal.types</packageName>
         </configuration>
         <executions>
           <execution>
@@ -123,13 +123,13 @@
                   <artifactId>model-avro.spec</artifactId>
                   <fileMappers>
                     <org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
-                      <pattern>^\Qio/aklivity/zilla/specs/types/avro/\E</pattern>
-                      <replacement>io/aklivity/zilla/runtime/types/avro/internal/</replacement>
+                      <pattern>^\Qio/aklivity/zilla/specs/model/avro/\E</pattern>
+                      <replacement>io/aklivity/zilla/runtime/model/avro/internal/</replacement>
                     </org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
                   </fileMappers>
                 </artifactItem>
               </artifactItems>
-              <includes>io/aklivity/zilla/specs/types/avro/schema/avro.schema.patch.json</includes>
+              <includes>io/aklivity/zilla/specs/model/avro/schema/avro.schema.patch.json</includes>
               <outputDirectory>${project.build.directory}/classes</outputDirectory>
             </configuration>
           </execution>
@@ -153,7 +153,7 @@
               <relocations>
                 <relocation>
                   <pattern>org.apache.avro</pattern>
-                  <shadedPattern>io.aklivity.zilla.runtime.types.avro.internal.avro</shadedPattern>
+                  <shadedPattern>io.aklivity.zilla.runtime.model.avro.internal.avro</shadedPattern>
                 </relocation>
               </relocations>
               <keepDependenciesWithProvidedScope>true</keepDependenciesWithProvidedScope>
@@ -187,7 +187,7 @@
         <artifactId>jacoco-maven-plugin</artifactId>
         <configuration>
           <excludes>
-            <exclude>io/aklivity/zilla/runtime/types/avro/internal/types/**/*.class</exclude>
+            <exclude>io/aklivity/zilla/runtime/model/avro/internal/types/**/*.class</exclude>
           </excludes>
           <rules>
             <rule>

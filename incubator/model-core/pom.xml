@@ -79,7 +79,7 @@
         <version>${project.version}</version>
         <configuration>
           <scopeNames>core</scopeNames>
-          <packageName>io.aklivity.zilla.runtime.types.core.internal.types</packageName>
+          <packageName>io.aklivity.zilla.runtime.model.core.internal.types</packageName>
         </configuration>
         <executions>
           <execution>
@@ -119,13 +119,13 @@
                   <artifactId>model-core.spec</artifactId>
                   <fileMappers>
                     <org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
-                      <pattern>^\Qio/aklivity/zilla/specs/types/core/\E</pattern>
-                      <replacement>io/aklivity/zilla/runtime/types/core/internal/</replacement>
+                      <pattern>^\Qio/aklivity/zilla/specs/model/core/\E</pattern>
+                      <replacement>io/aklivity/zilla/runtime/model/core/internal/</replacement>
                     </org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
                   </fileMappers>
                 </artifactItem>
               </artifactItems>
-              <includes>io/aklivity/zilla/specs/types/core/schema/*.schema.patch.json</includes>
+              <includes>io/aklivity/zilla/specs/model/core/schema/*.schema.patch.json</includes>
               <outputDirectory>${project.build.directory}/classes</outputDirectory>
             </configuration>
           </execution>
@@ -155,7 +155,7 @@
         <artifactId>jacoco-maven-plugin</artifactId>
         <configuration>
           <excludes>
-            <exclude>io/aklivity/zilla/runtime/types/core/internal/types/**/*.class</exclude>
+            <exclude>io/aklivity/zilla/runtime/model/core/internal/types/**/*.class</exclude>
           </excludes>
           <rules>
             <rule>

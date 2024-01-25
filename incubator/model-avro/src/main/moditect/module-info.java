@@ -12,21 +12,21 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-module io.aklivity.zilla.runtime.types.avro
+module io.aklivity.zilla.runtime.model.avro
 {
     requires com.fasterxml.jackson.core;
     requires com.fasterxml.jackson.databind;
     requires org.slf4j;
     requires io.aklivity.zilla.runtime.engine;
 
-    exports io.aklivity.zilla.runtime.types.avro.config;
+    exports io.aklivity.zilla.runtime.model.avro.config;
 
-    uses io.aklivity.zilla.runtime.types.avro.internal.avro.Conversion;
-    uses io.aklivity.zilla.runtime.types.avro.internal.avro.LogicalTypes$LogicalTypeFactory;
+    uses io.aklivity.zilla.runtime.model.avro.internal.avro.Conversion;
+    uses io.aklivity.zilla.runtime.model.avro.internal.avro.LogicalTypes$LogicalTypeFactory;
 
     provides io.aklivity.zilla.runtime.engine.config.ConverterConfigAdapterSpi
-        with io.aklivity.zilla.runtime.types.avro.internal.config.AvroConverterConfigAdapter;
+        with io.aklivity.zilla.runtime.model.avro.internal.config.AvroConverterConfigAdapter;
 
     provides io.aklivity.zilla.runtime.engine.converter.ConverterFactorySpi
-        with io.aklivity.zilla.runtime.types.avro.internal.AvroConverterFactorySpi;
+        with io.aklivity.zilla.runtime.model.avro.internal.AvroConverterFactorySpi;
 }

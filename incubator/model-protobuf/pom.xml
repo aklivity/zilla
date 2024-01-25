@@ -114,13 +114,13 @@
                                 <artifactId>model-protobuf.spec</artifactId>
                                 <fileMappers>
                                     <org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
-                                        <pattern>^\Qio/aklivity/zilla/specs/types/protobuf/\E</pattern>
-                                        <replacement>io/aklivity/zilla/runtime/types/protobuf/internal/</replacement>
+                                        <pattern>^\Qio/aklivity/zilla/specs/model/protobuf/\E</pattern>
+                                        <replacement>io/aklivity/zilla/runtime/model/protobuf/internal/</replacement>
                                     </org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
                                 </fileMappers>
                             </artifactItem>
                         </artifactItems>
-                        <includes>io/aklivity/zilla/specs/types/protobuf/schema/protobuf.schema.patch.json</includes>
+                        <includes>io/aklivity/zilla/specs/model/protobuf/schema/protobuf.schema.patch.json</includes>
                         <outputDirectory>${project.build.directory}/classes</outputDirectory>
                     </configuration>
                 </execution>
@@ -165,7 +165,7 @@
             <artifactId>jacoco-maven-plugin</artifactId>
             <configuration>
                 <excludes>
-                    <exclude>io/aklivity/zilla/runtime/types/protobuf/internal/parser/**/*.class</exclude>
+                    <exclude>io/aklivity/zilla/runtime/model/protobuf/internal/parser/**/*.class</exclude>
                 </excludes>
                 <rules>
                     <rule>

@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-open module io.aklivity.zilla.specs.types.avro
+open module io.aklivity.zilla.specs.model.avro
 {
     requires transitive io.aklivity.zilla.specs.engine;
 }

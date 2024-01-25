@@ -12,24 +12,24 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-module io.aklivity.zilla.runtime.types.json
+module io.aklivity.zilla.runtime.model.json
 {
     requires io.aklivity.zilla.runtime.engine;
 
     requires org.leadpony.justify;
 
-    exports io.aklivity.zilla.runtime.types.json.config;
+    exports io.aklivity.zilla.runtime.model.json.config;
 
     provides io.aklivity.zilla.runtime.engine.config.ConverterConfigAdapterSpi
-        with io.aklivity.zilla.runtime.types.json.internal.config.JsonConverterConfigAdapter;
+        with io.aklivity.zilla.runtime.model.json.internal.config.JsonConverterConfigAdapter;
 
     provides io.aklivity.zilla.runtime.engine.converter.ConverterFactorySpi
-        with io.aklivity.zilla.runtime.types.json.internal.JsonConverterFactorySpi;
+        with io.aklivity.zilla.runtime.model.json.internal.JsonConverterFactorySpi;
 
     provides io.aklivity.zilla.runtime.engine.config.ValidatorConfigAdapterSpi
-        with io.aklivity.zilla.runtime.types.json.internal.config.JsonValidatorConfigAdapter;
+        with io.aklivity.zilla.runtime.model.json.internal.config.JsonValidatorConfigAdapter;
 
     provides io.aklivity.zilla.runtime.engine.validator.ValidatorFactorySpi
-        with io.aklivity.zilla.runtime.types.json.internal.JsonValidatorFactorySpi;
+        with io.aklivity.zilla.runtime.model.json.internal.JsonValidatorFactorySpi;
 
 }

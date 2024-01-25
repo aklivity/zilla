@@ -1,2 +1,2 @@
-io.aklivity.zilla.runtime.types.core.internal.config.IntegerValidatorConfigAdapter
-io.aklivity.zilla.runtime.types.core.internal.config.StringValidatorConfigAdapter
+io.aklivity.zilla.runtime.model.core.internal.config.IntegerValidatorConfigAdapter
+io.aklivity.zilla.runtime.model.core.internal.config.StringValidatorConfigAdapter
