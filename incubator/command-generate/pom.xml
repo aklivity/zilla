@@ -87,25 +87,25 @@
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
-      <artifactId>types-avro</artifactId>
+      <artifactId>model-avro</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
-      <artifactId>types-core</artifactId>
+      <artifactId>model-core</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
-      <artifactId>types-json</artifactId>
+      <artifactId>model-json</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
-      <artifactId>types-protobuf</artifactId>
+      <artifactId>model-protobuf</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>

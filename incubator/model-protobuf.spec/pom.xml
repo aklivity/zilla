@@ -12,8 +12,8 @@
     <relativePath>../pom.xml</relativePath>
 </parent>
 
-<artifactId>types-protobuf.spec</artifactId>
-<name>zilla::incubator::types-protobuf.spec</name>
+<artifactId>model-protobuf.spec</artifactId>
+<name>zilla::incubator::model-protobuf.spec</name>
 
 <licenses>
     <license>

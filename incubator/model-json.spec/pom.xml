@@ -12,8 +12,8 @@
     <relativePath>../pom.xml</relativePath>
 </parent>
 
-<artifactId>types-json.spec</artifactId>
-<name>zilla::incubator::types-json.spec</name>
+<artifactId>model-json.spec</artifactId>
+<name>zilla::incubator::model-json.spec</name>
 
 <licenses>
     <license>

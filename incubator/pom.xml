@@ -21,10 +21,10 @@
     <module>catalog-inline.spec</module>
     <module>catalog-schema-registry.spec</module>
     <module>exporter-otlp.spec</module>
-    <module>types-avro.spec</module>
-    <module>types-core.spec</module>
-    <module>types-json.spec</module>
-    <module>types-protobuf.spec</module>
+    <module>model-avro.spec</module>
+    <module>model-core.spec</module>
+    <module>model-json.spec</module>
+    <module>model-protobuf.spec</module>
 
     <module>binding-amqp</module>
 
@@ -38,10 +38,10 @@
 
     <module>exporter-otlp</module>
 
-    <module>types-avro</module>
-    <module>types-core</module>
-    <module>types-json</module>
-    <module>types-protobuf</module>
+    <module>model-avro</module>
+    <module>model-core</module>
+    <module>model-json</module>
+    <module>model-protobuf</module>
   </modules>
 
   <dependencyManagement>
@@ -88,22 +88,22 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>types-avro</artifactId>
+        <artifactId>model-avro</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>types-core</artifactId>
+        <artifactId>model-core</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>types-json</artifactId>
+        <artifactId>model-json</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>types-protobuf</artifactId>
+        <artifactId>model-protobuf</artifactId>
         <version>${project.version}</version>
       </dependency>
     </dependencies>

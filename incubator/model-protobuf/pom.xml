@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
 <modelVersion>4.0.0</modelVersion>
 <parent>
     <groupId>io.aklivity.zilla</groupId>
@@ -10,8 +12,8 @@
     <relativePath>../pom.xml</relativePath>
 </parent>
 
-<artifactId>types-json</artifactId>
-<name>zilla::incubator::types-json</name>
+<artifactId>model-protobuf</artifactId>
+<name>zilla::incubator::model-protobuf</name>
 
 <licenses>
     <license>
@@ -31,7 +33,7 @@
 <dependencies>
     <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>types-json.spec</artifactId>
+        <artifactId>model-protobuf.spec</artifactId>
         <version>${project.version}</version>
         <scope>provided</scope>
     </dependency>
@@ -42,12 +44,19 @@
         <scope>provided</scope>
     </dependency>
     <dependency>
-        <groupId>jakarta.json</groupId>
-        <artifactId>jakarta.json-api</artifactId>
+        <groupId>com.google.protobuf</groupId>
+        <artifactId>protobuf-java</artifactId>
+        <version>3.24.4</version>
     </dependency>
     <dependency>
-        <groupId>org.leadpony.justify</groupId>
-        <artifactId>justify</artifactId>
+        <groupId>com.google.protobuf</groupId>
+        <artifactId>protobuf-java-util</artifactId>
+        <version>3.24.4</version>
+    </dependency>
+    <dependency>
+        <groupId>org.antlr</groupId>
+        <artifactId>antlr4-runtime</artifactId>
+        <scope>provided</scope>
     </dependency>
     <dependency>
         <groupId>${project.groupId}</groupId>
@@ -87,6 +96,10 @@
             <artifactId>maven-checkstyle-plugin</artifactId>
         </plugin>
         <plugin>
+            <groupId>org.antlr</groupId>
+            <artifactId>antlr4-maven-plugin</artifactId>
+        </plugin>
+        <plugin>
             <artifactId>maven-dependency-plugin</artifactId>
             <executions>
                 <execution>
@@ -98,17 +111,35 @@
                         <artifactItems>
                             <artifactItem>
                                 <groupId>${project.groupId}</groupId>
-                                <artifactId>types-json.spec</artifactId>
+                                <artifactId>model-protobuf.spec</artifactId>
                                 <fileMappers>
                                     <org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
-                                        <pattern>^\Qio/aklivity/zilla/specs/types/json/\E</pattern>
-                                        <replacement>io/aklivity/zilla/runtime/types/json/internal/</replacement>
+                                        <pattern>^\Qio/aklivity/zilla/specs/types/protobuf/\E</pattern>
+                                        <replacement>io/aklivity/zilla/runtime/types/protobuf/internal/</replacement>
                                     </org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
                                 </fileMappers>
                             </artifactItem>
                         </artifactItems>
-                        <includes>io/aklivity/zilla/specs/types/json/schema/json.schema.patch.json</includes>
+                        <includes>io/aklivity/zilla/specs/types/protobuf/schema/protobuf.schema.patch.json</includes>
                         <outputDirectory>${project.build.directory}/classes</outputDirectory>
+                    </configuration>
+                </execution>
+                <execution>
+                    <id>unpack-proto</id>
+                    <phase>generate-sources</phase>
+                    <goals>
+                        <goal>unpack</goal>
+                    </goals>
+                    <configuration>
+                        <artifactItems>
+                            <artifactItem>
+                                <groupId>${project.groupId}</groupId>
+                                <artifactId>model-protobuf.spec</artifactId>
+                                <version>${project.version}</version>
+                                <outputDirectory>${basedir}/target/test-classes</outputDirectory>
+                                <includes>**\/*.proto</includes>
+                            </artifactItem>
+                        </artifactItems>
                     </configuration>
                 </execution>
             </executions>
@@ -133,6 +164,9 @@
             <groupId>org.jacoco</groupId>
             <artifactId>jacoco-maven-plugin</artifactId>
             <configuration>
+                <excludes>
+                    <exclude>io/aklivity/zilla/runtime/types/protobuf/internal/parser/**/*.class</exclude>
+                </excludes>
                 <rules>
                     <rule>
                         <element>BUNDLE</element>
@@ -171,4 +205,5 @@
         </plugin>
     </plugins>
 </build>
+
 </project>
