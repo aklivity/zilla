@@ -45,8 +45,8 @@ import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
-import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
-import io.aklivity.zilla.runtime.engine.validator.ValidatorHandler;
+import io.aklivity.zilla.runtime.engine.config.ModelConfig;
+import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 
 public final class HttpBindingConfig
 {
@@ -76,7 +76,7 @@ public final class HttpBindingConfig
 
     public HttpBindingConfig(
         BindingConfig binding,
-        Function<ValidatorConfig, ValidatorHandler> supplyValidator)
+        Function<ModelConfig, ValidatorHandler> supplyValidator)
     {
         this.id = binding.id;
         this.name = binding.name;
@@ -191,7 +191,7 @@ public final class HttpBindingConfig
     }
 
     private List<HttpRequestType> createRequestTypes(
-        Function<ValidatorConfig, ValidatorHandler> supplyValidator)
+        Function<ModelConfig, ValidatorHandler> supplyValidator)
     {
         List<HttpRequestType> requestTypes = new LinkedList<>();
         if (this.options != null && this.options.requests != null)
@@ -203,7 +203,7 @@ public final class HttpBindingConfig
                 {
                     for (HttpParamConfig header : request.headers)
                     {
-                        headers.put(new String8FW(header.name), supplyValidator.apply(header.validator));
+                        headers.put(new String8FW(header.name), supplyValidator.apply(header.model));
                     }
                 }
 
@@ -212,7 +212,7 @@ public final class HttpBindingConfig
                 {
                     for (HttpParamConfig pathParam : request.pathParams)
                     {
-                        pathParams.put(pathParam.name, supplyValidator.apply(pathParam.validator));
+                        pathParams.put(pathParam.name, supplyValidator.apply(pathParam.model));
                     }
                 }
 
@@ -221,7 +221,7 @@ public final class HttpBindingConfig
                 {
                     for (HttpParamConfig queryParam : request.queryParams)
                     {
-                        queryParams.put(queryParam.name, supplyValidator.apply(queryParam.validator));
+                        queryParams.put(queryParam.name, supplyValidator.apply(queryParam.model));
                     }
                 }
 

@@ -344,25 +344,25 @@
         </dependency>
         <dependency>
           <groupId>${project.groupId}</groupId>
-          <artifactId>types-avro</artifactId>
+          <artifactId>model-avro</artifactId>
           <version>${project.version}</version>
           <scope>runtime</scope>
         </dependency>
         <dependency>
           <groupId>${project.groupId}</groupId>
-          <artifactId>types-core</artifactId>
+          <artifactId>model-core</artifactId>
           <version>${project.version}</version>
           <scope>runtime</scope>
         </dependency>
         <dependency>
           <groupId>${project.groupId}</groupId>
-          <artifactId>types-json</artifactId>
+          <artifactId>model-json</artifactId>
           <version>${project.version}</version>
           <scope>runtime</scope>
         </dependency>
         <dependency>
           <groupId>${project.groupId}</groupId>
-          <artifactId>types-protobuf</artifactId>
+          <artifactId>model-protobuf</artifactId>
           <version>${project.version}</version>
           <scope>runtime</scope>
         </dependency>

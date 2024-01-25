@@ -54,12 +54,12 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ConfigWriter;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfigBuilder;
+import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 import io.aklivity.zilla.runtime.guard.jwt.config.JwtOptionsConfig;
-import io.aklivity.zilla.runtime.types.json.config.JsonValidatorConfig;
+import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig;
 
 public class AsyncApiHttpProxyConfigGenerator extends AsyncApiConfigGenerator
@@ -355,7 +355,7 @@ public class AsyncApiHttpProxyConfigGenerator extends AsyncApiConfigGenerator
             if (hasJsonContentType())
             {
                 request.
-                    content(JsonValidatorConfig::builder)
+                    content(JsonModelConfig::builder)
                         .catalog()
                             .name(INLINE_CATALOG_NAME)
                             .inject(catalog -> injectSchemas(catalog, messages))
@@ -394,13 +394,13 @@ public class AsyncApiHttpProxyConfigGenerator extends AsyncApiConfigGenerator
                 Parameter parameter = parameters.get(name);
                 if (parameter.schema != null && parameter.schema.type != null)
                 {
-                    ValidatorConfig validator = validators.get(parameter.schema.type);
-                    if (validator != null)
+                    ModelConfig model = models.get(parameter.schema.type);
+                    if (model != null)
                     {
                         request
                             .pathParam()
                                 .name(name)
-                                .validator(validator)
+                                .model(model)
                                 .build();
                     }
                 }

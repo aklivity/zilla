@@ -45,7 +45,7 @@ bindings:
       topics:
         - name: test
           value:
-            type: test
+            model: test
             length: 13
             catalog:
               test0:

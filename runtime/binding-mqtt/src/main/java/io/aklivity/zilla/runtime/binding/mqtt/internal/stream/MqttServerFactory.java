@@ -189,10 +189,10 @@ import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
-import io.aklivity.zilla.runtime.engine.converter.function.ValueConsumer;
+import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
-import io.aklivity.zilla.runtime.engine.validator.ValidatorHandler;
+import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
+import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 
 public final class MqttServerFactory implements MqttStreamFactory
 {
@@ -2277,7 +2277,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private final GuardHandler guard;
         private final Function<String, String> credentials;
         private final MqttConnectProperty authField;
-        private final Function<ValidatorConfig, ValidatorHandler> supplyValidator;
+        private final Function<ModelConfig, ValidatorHandler> supplyValidator;
 
         private MqttSessionStream session;
 
@@ -2967,7 +2967,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 final long topicKey = topicKey(topic, qos);
 
                 stream = publishes.computeIfAbsent(topicKey, s ->
-                    new MqttPublishStream(routedId, resolvedId, topic, qos, binding.supplyValidatorConfig(topic)));
+                    new MqttPublishStream(routedId, resolvedId, topic, qos, binding.supplyModelConfig(topic)));
                 stream.doPublishBegin(traceId, affinity);
             }
             else
@@ -5284,7 +5284,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 long routedId,
                 String topic,
                 int qos,
-                ValidatorConfig config)
+                ModelConfig config)
             {
                 this.originId = originId;
                 this.routedId = routedId;

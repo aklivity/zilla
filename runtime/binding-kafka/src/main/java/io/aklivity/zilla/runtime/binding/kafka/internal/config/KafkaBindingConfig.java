@@ -31,7 +31,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
-import io.aklivity.zilla.runtime.engine.converter.ConverterHandler;
+import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 
 public final class KafkaBindingConfig
 {
@@ -61,7 +61,7 @@ public final class KafkaBindingConfig
                 .collect(Collectors.toMap(
                     t -> t.name,
                     t -> t.key != null
-                        ? context.supplyReadHandler(t.key)
+                        ? context.supplyReadConverter(t.key)
                         : ConverterHandler.NONE))
                 : null;
         this.keyWriters = options != null && options.topics != null
@@ -69,7 +69,7 @@ public final class KafkaBindingConfig
                 .collect(Collectors.toMap(
                     t -> t.name,
                     t -> t.key != null
-                        ? context.supplyWriteHandler(t.key)
+                        ? context.supplyWriteConverter(t.key)
                         : ConverterHandler.NONE))
                 : null;
         this.valueReaders = options != null && options.topics != null
@@ -77,7 +77,7 @@ public final class KafkaBindingConfig
                 .collect(Collectors.toMap(
                     t -> t.name,
                     t -> t.value != null
-                        ? context.supplyReadHandler(t.value)
+                        ? context.supplyReadConverter(t.value)
                         : ConverterHandler.NONE))
                 : null;
         this.valueWriters = options != null && options.topics != null
@@ -85,7 +85,7 @@ public final class KafkaBindingConfig
                 .collect(Collectors.toMap(
                     t -> t.name,
                     t -> t.value != null
-                        ? context.supplyWriteHandler(t.value)
+                        ? context.supplyWriteConverter(t.value)
                         : ConverterHandler.NONE))
                 : null;
     }

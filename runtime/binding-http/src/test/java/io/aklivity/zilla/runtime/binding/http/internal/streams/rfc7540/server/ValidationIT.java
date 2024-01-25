@@ -50,7 +50,7 @@ public class ValidationIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("server.validation.yaml")
+    @Configuration("server.model.yaml")
     @Specification({
         "${net}/invalid/client",
         "${app}/invalid/server" })
@@ -60,7 +60,7 @@ public class ValidationIT
     }
 
     @Test
-    @Configuration("server.validation.yaml")
+    @Configuration("server.model.yaml")
     @Specification({
         "${net}/valid/client",
         "${app}/valid/server" })

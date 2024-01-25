@@ -34,7 +34,7 @@ bindings:
       topics:
       - name: smartylighting/streetlights/1/0/event/*/lighting/measured
         content:
-          type: json
+          model: json
           catalog:
             catalog0:
             - subject: items

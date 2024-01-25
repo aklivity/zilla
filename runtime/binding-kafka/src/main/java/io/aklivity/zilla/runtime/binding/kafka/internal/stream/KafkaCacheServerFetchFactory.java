@@ -88,7 +88,7 @@ import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
-import io.aklivity.zilla.runtime.engine.converter.ConverterHandler;
+import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 
 public final class KafkaCacheServerFetchFactory implements BindingHandler
 {

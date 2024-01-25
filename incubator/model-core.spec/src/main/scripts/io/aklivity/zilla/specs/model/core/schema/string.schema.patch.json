@@ -1,0 +1,85 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/converter/types/enum/-",
+        "value": "string"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/converter/allOf/-",
+        "value":
+        {
+            "if":
+            {
+                "properties":
+                {
+                    "model":
+                    {
+                        "const": "string"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "model":
+                    {
+                        "const": "string"
+                    },
+                    "encoding":
+                    {
+                        "type": "string",
+                        "enum":
+                        [
+                            "utf_8",
+                            "utf_16"
+                        ]
+                    }
+                },
+                "additionalProperties": false
+            }
+        }
+    },
+    {
+        "op": "add",
+        "path": "/$defs/validator/types/enum/-",
+        "value": "string"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/validator/allOf/-",
+        "value":
+        {
+            "if":
+            {
+                "properties":
+                {
+                    "model":
+                    {
+                        "const": "string"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "model":
+                    {
+                        "const": "string"
+                    },
+                    "encoding":
+                    {
+                        "type": "string",
+                        "enum":
+                        [
+                            "utf_8"
+                        ]
+                    }
+                },
+                "additionalProperties": false
+            }
+        }
+    }
+]

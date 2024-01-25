@@ -48,7 +48,6 @@ import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 import io.aklivity.zilla.runtime.engine.util.function.ObjectLongLongFunction;
-import io.aklivity.zilla.runtime.engine.validator.ValidatorContext;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 
 public class NamespaceRegistry
@@ -81,7 +80,6 @@ public class NamespaceRegistry
         Function<String, GuardContext> guardsByType,
         Function<String, VaultContext> vaultsByType,
         Function<String, CatalogContext> catalogsByType,
-        Function<String, ValidatorContext> validatorsByType,
         Function<String, MetricContext> metricsByName,
         Function<String, ExporterContext> exportersByType,
         ToIntFunction<String> supplyLabelId,

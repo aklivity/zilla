@@ -23,14 +23,14 @@ bindings:
           path:
             id: string
         content:
-          type: json
+          model: json
           catalog:
             catalog0:
             - subject: item
       - path: /items
         method: POST
         content:
-          type: json
+          model: json
           catalog:
             catalog0:
             - subject: item

@@ -22,8 +22,8 @@ import java.util.regex.Pattern;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfig;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
-import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
-import io.aklivity.zilla.runtime.engine.validator.ValidatorHandler;
+import io.aklivity.zilla.runtime.engine.config.ModelConfig;
+import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 
 public final class HttpRequestType
 {
@@ -47,7 +47,7 @@ public final class HttpRequestType
     public final Map<String8FW, ValidatorHandler> headers;
     public final Map<String, ValidatorHandler> pathParams;
     public final Map<String, ValidatorHandler> queryParams;
-    public final ValidatorConfig content;
+    public final ModelConfig content;
 
     private HttpRequestType(
         String path,
@@ -58,7 +58,7 @@ public final class HttpRequestType
         Map<String8FW, ValidatorHandler> headers,
         Map<String, ValidatorHandler> pathParams,
         Map<String, ValidatorHandler> queryParams,
-        ValidatorConfig content)
+        ModelConfig content)
     {
         this.path = path;
         this.method = method;
@@ -84,7 +84,7 @@ public final class HttpRequestType
         private Map<String8FW, ValidatorHandler> headers;
         private Map<String, ValidatorHandler> pathParams;
         private Map<String, ValidatorHandler> queryParams;
-        private ValidatorConfig content;
+        private ModelConfig content;
 
         public Builder path(
             String path)
@@ -129,7 +129,7 @@ public final class HttpRequestType
         }
 
         public Builder content(
-            ValidatorConfig content)
+            ModelConfig content)
         {
             this.content = content;
             return this;

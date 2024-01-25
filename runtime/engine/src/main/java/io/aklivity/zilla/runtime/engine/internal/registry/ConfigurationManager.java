@@ -38,15 +38,14 @@ import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.ConfigReader;
-import io.aklivity.zilla.runtime.engine.config.ConverterConfig;
 import io.aklivity.zilla.runtime.engine.config.GuardConfig;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.MetricConfig;
 import io.aklivity.zilla.runtime.engine.config.MetricRefConfig;
+import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
-import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 import io.aklivity.zilla.runtime.engine.config.VaultConfig;
 import io.aklivity.zilla.runtime.engine.expression.ExpressionResolver;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtContext;
@@ -167,21 +166,11 @@ public class ConfigurationManager
 
                 if (binding.options != null)
                 {
-                    for (ConverterConfig converter : binding.options.converters)
+                    for (ModelConfig model : binding.options.models)
                     {
-                        if (converter.cataloged != null)
+                        if (model.cataloged != null)
                         {
-                            for (CatalogedConfig cataloged : converter.cataloged)
-                            {
-                                cataloged.id = namespace.resolveId.applyAsLong(cataloged.name);
-                            }
-                        }
-                    }
-                    for (ValidatorConfig validator : binding.options.validators)
-                    {
-                        if (validator.cataloged != null)
-                        {
-                            for (CatalogedConfig cataloged : validator.cataloged)
+                            for (CatalogedConfig cataloged : model.cataloged)
                             {
                                 cataloged.id = namespace.resolveId.applyAsLong(cataloged.name);
                             }

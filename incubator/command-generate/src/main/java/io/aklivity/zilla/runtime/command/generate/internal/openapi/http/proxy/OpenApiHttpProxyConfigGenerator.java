@@ -51,12 +51,12 @@ import io.aklivity.zilla.runtime.command.generate.internal.openapi.view.ServerVi
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ConfigWriter;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfigBuilder;
+import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 import io.aklivity.zilla.runtime.guard.jwt.config.JwtOptionsConfig;
-import io.aklivity.zilla.runtime.types.json.config.JsonValidatorConfig;
+import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig;
 
 public class OpenApiHttpProxyConfigGenerator extends OpenApiConfigGenerator
@@ -326,7 +326,7 @@ public class OpenApiHttpProxyConfigGenerator extends OpenApiConfigGenerator
             if (schema != null)
             {
                 request.
-                    content(JsonValidatorConfig::builder)
+                    content(JsonModelConfig::builder)
                     .catalog()
                         .name(INLINE_CATALOG_NAME)
                         .schema()
@@ -349,8 +349,8 @@ public class OpenApiHttpProxyConfigGenerator extends OpenApiConfigGenerator
             {
                 if (parameter.schema != null && parameter.schema.type != null)
                 {
-                    ValidatorConfig validator = validators.get(parameter.schema.type);
-                    if (validator != null)
+                    ModelConfig model = models.get(parameter.schema.type);
+                    if (model != null)
                     {
                         switch (parameter.in)
                         {
@@ -358,21 +358,21 @@ public class OpenApiHttpProxyConfigGenerator extends OpenApiConfigGenerator
                             request.
                                 pathParam()
                                     .name(parameter.name)
-                                    .validator(validator)
+                                    .model(model)
                                     .build();
                             break;
                         case "query":
                             request.
                                 queryParam()
                                     .name(parameter.name)
-                                    .validator(validator)
+                                    .model(model)
                                     .build();
                             break;
                         case "header":
                             request.
                                 header()
                                     .name(parameter.name)
-                                    .validator(validator)
+                                    .model(model)
                                     .build();
                             break;
                         }

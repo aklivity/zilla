@@ -23,8 +23,8 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
-import io.aklivity.zilla.runtime.engine.config.ConverterConfig;
-import io.aklivity.zilla.runtime.engine.config.ConverterConfigAdapter;
+import io.aklivity.zilla.runtime.engine.config.ModelConfig;
+import io.aklivity.zilla.runtime.engine.config.ModelConfigAdapter;
 
 public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicConfig, JsonObject>
 {
@@ -35,7 +35,7 @@ public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicCon
     private static final String EVENT_VALUE = "value";
     private static final String SUBJECT = "subject";
 
-    private final ConverterConfigAdapter converter = new ConverterConfigAdapter();
+    private final ModelConfigAdapter converter = new ModelConfigAdapter();
 
     @Override
     public JsonObject adaptToJson(
@@ -58,14 +58,14 @@ public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicCon
 
         if (topic.key != null)
         {
-            converter.adaptType(topic.key.type);
+            converter.adaptType(topic.key.model);
 
             object.add(EVENT_KEY, converter.adaptToJson(topic.key));
         }
 
         if (topic.value != null)
         {
-            converter.adaptType(topic.value.type);
+            converter.adaptType(topic.value.model);
 
             object.add(EVENT_VALUE, converter.adaptToJson(topic.value));
         }
@@ -93,7 +93,7 @@ public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicCon
                 ? object.getJsonObject(EVENT_KEY)
                 : null;
 
-        ConverterConfig keyConfig = null;
+        ModelConfig keyConfig = null;
 
         if (key != null)
         {
@@ -109,7 +109,7 @@ public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicCon
                 ? object.getJsonObject(EVENT_VALUE)
                 : null;
 
-        ConverterConfig valueConfig = null;
+        ModelConfig valueConfig = null;
 
         if (value != null)
         {
