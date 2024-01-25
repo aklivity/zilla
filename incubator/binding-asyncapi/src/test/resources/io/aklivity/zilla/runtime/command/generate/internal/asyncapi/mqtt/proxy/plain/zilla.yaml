@@ -1,0 +1,32 @@
+name: example
+bindings:
+  tcp_server0:
+    type: tcp
+    kind: server
+    options:
+      host: 0.0.0.0
+      port: 1883
+    routes:
+    - exit: mqtt_server0
+      when:
+      - port: 1883
+  mqtt_server0:
+    type: mqtt
+    kind: server
+    routes:
+    - exit: mqtt_client0
+      when:
+      - publish:
+        - topic: smartylighting/streetlights/1/0/event/*/lighting/measured
+      - subscribe:
+        - topic: smartylighting/streetlights/1/0/event/*/lighting/measured
+  mqtt_client0:
+    type: mqtt
+    kind: client
+    exit: tcp_client0
+  tcp_client0:
+    type: tcp
+    kind: client
+    options:
+      host: "${{env.TCP_CLIENT_HOST}}"
+      port: ${{env.TCP_CLIENT_PORT}}

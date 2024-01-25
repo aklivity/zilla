@@ -17,6 +17,8 @@
   <name>zilla::incubator</name>
 
   <modules>
+    <module>binding-asyncapi</module>
+    <module>binding-asyncapi.spec</module>
     <module>binding-amqp.spec</module>
     <module>catalog-inline.spec</module>
     <module>catalog-schema-registry.spec</module>
@@ -44,6 +46,11 @@
 
   <dependencyManagement>
     <dependencies>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>binding-asyncapi</artifactId>
+        <version>${project.version}</version>
+      </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>binding-amqp</artifactId>
