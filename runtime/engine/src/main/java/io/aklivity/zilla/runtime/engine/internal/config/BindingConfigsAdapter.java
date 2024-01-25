@@ -169,7 +169,10 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
                 : BindingConfig.builder();
 
             Matcher matcher = NamespaceAdapter.PATTERN_NAME.matcher(name);
-            assert matcher.matches();
+            if (!matcher.matches())
+            {
+                throw new IllegalStateException(String.format("%s does not match pattern", name));
+            }
 
             binding.namespace(Optional.ofNullable(matcher.group("namespace")).orElse(namespace))
                    .name(matcher.group("name"))

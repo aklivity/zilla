@@ -7,6 +7,8 @@ updates:
       versions: [ "4.x", "5.x" ]
     - dependency-name: "com.guicedee.services:commons-*"
       versions: [ "62" ]
+    - dependency-name: "org.slf4j:slf4j-*"
+      versions: [ "2.x" ]
   schedule:
     interval: daily
 - package-ecosystem: docker
