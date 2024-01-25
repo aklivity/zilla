@@ -44,9 +44,12 @@ import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tcp.internal.TcpConfiguration;
+import io.aklivity.zilla.runtime.binding.tcp.internal.TcpEventContext;
 import io.aklivity.zilla.runtime.binding.tcp.internal.config.TcpBindingConfig;
 import io.aklivity.zilla.runtime.binding.tcp.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.tcp.internal.types.OctetsFW;
+import io.aklivity.zilla.runtime.binding.tcp.internal.types.event.Level;
+import io.aklivity.zilla.runtime.binding.tcp.internal.types.event.Result;
 import io.aklivity.zilla.runtime.binding.tcp.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.tcp.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.tcp.internal.types.stream.DataFW;
@@ -95,6 +98,7 @@ public class TcpClientFactory implements TcpStreamFactory
     private final int proxyTypeId;
     private final int windowThreshold;
     private final int initialMax;
+    private final TcpEventContext event;
 
     public TcpClientFactory(
         TcpConfiguration config,
@@ -115,6 +119,7 @@ public class TcpClientFactory implements TcpStreamFactory
 
         this.initialMax = bufferPool.slotCapacity();
         this.windowThreshold = (bufferPool.slotCapacity() * config.windowThreshold()) / 100;
+        this.event = new TcpEventContext(proxyTypeId, context);
     }
 
     @Override
@@ -270,7 +275,7 @@ public class TcpClientFactory implements TcpStreamFactory
             }
             catch (UnresolvedAddressException | IOException ex)
             {
-                onNetRejected();
+                onNetRejected(remoteAddress);
             }
         }
 
@@ -285,7 +290,7 @@ public class TcpClientFactory implements TcpStreamFactory
             }
             catch (UnresolvedAddressException | IOException ex)
             {
-                onNetRejected();
+                onNetRejected(null);
             }
 
             return 1;
@@ -311,10 +316,12 @@ public class TcpClientFactory implements TcpStreamFactory
             }
         }
 
-        private void onNetRejected()
+        private void onNetRejected(
+            InetSocketAddress remoteAddress)
         {
             final long traceId = supplyTraceId.getAsLong();
-
+            String address = remoteAddress == null ? null : remoteAddress.toString();
+            event.remoteAccess(Result.FAILURE, Level.ERROR, traceId, routedId, initialId, address);
             cleanup(traceId);
         }
 
