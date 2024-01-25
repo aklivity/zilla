@@ -75,7 +75,7 @@ public class ProtobufWriteConverterHandler extends ProtobufConverterHandler impl
                 ? catalog.id
                 : handler.resolve(subject, catalog.version);
 
-        if (FORMAT_JSON.equals(format))
+        if (VIEW_JSON.equals(view))
         {
             valLength = handler.encode(schemaId, data, index, length, next, this::serializeJsonRecord);
         }

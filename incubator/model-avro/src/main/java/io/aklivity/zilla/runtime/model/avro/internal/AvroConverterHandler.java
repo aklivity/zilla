@@ -45,7 +45,7 @@ import io.aklivity.zilla.runtime.model.avro.config.AvroModelConfig;
 
 public abstract class AvroConverterHandler
 {
-    protected static final String FORMAT_JSON = "json";
+    protected static final String VIEW_JSON = "json";
 
     private static final InputStream EMPTY_INPUT_STREAM = new ByteArrayInputStream(new byte[0]);
     private static final OutputStream EMPTY_OUTPUT_STREAM = new ByteArrayOutputStream(0);
@@ -58,7 +58,7 @@ public abstract class AvroConverterHandler
     protected final BinaryDecoder decoder;
     protected final BinaryEncoder encoder;
     protected final String subject;
-    protected final String format;
+    protected final String view;
     protected final ExpandableDirectBufferOutputStream expandable;
     protected final DirectBufferInputStream in;
 
@@ -79,7 +79,7 @@ public abstract class AvroConverterHandler
         CatalogedConfig cataloged = config.cataloged.get(0);
         this.handler = supplyCatalog.apply(cataloged.id);
         this.catalog = cataloged.schemas.size() != 0 ? cataloged.schemas.get(0) : null;
-        this.format = config.format;
+        this.view = config.view;
         this.subject = catalog != null && catalog.subject != null
                 ? catalog.subject
                 : config.subject;

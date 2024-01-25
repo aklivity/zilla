@@ -13,7 +13,7 @@
             {
                 "properties":
                 {
-                    "type":
+                    "model":
                     {
                         "const": "test"
                     }
@@ -23,7 +23,7 @@
             {
                 "properties":
                 {
-                    "type":
+                    "model":
                     {
                         "const": "test"
                     },
@@ -147,7 +147,7 @@
             {
                 "properties":
                 {
-                    "type":
+                    "model":
                     {
                         "const": "test"
                     }
@@ -157,7 +157,7 @@
             {
                 "properties":
                 {
-                    "type":
+                    "model":
                     {
                         "const": "test"
                     },

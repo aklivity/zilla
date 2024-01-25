@@ -364,14 +364,14 @@
             "type": "object",
             "properties":
             {
-                "type":
+                "model":
                 {
                     "$ref": "#/$defs/converter/types"
                 }
             },
             "required":
             [
-                "type"
+                "model"
             ],
             "allOf":
             [
@@ -387,14 +387,14 @@
             "type": "object",
             "properties":
             {
-                "type":
+                "model":
                 {
                     "$ref": "#/$defs/validator/types"
                 }
             },
             "required":
             [
-                "type"
+                "model"
             ],
             "allOf":
             [

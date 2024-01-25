@@ -23,16 +23,16 @@ import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 public final class AvroModelConfig extends ModelConfig
 {
     public final String subject;
-    public final String format;
+    public final String view;
 
     public AvroModelConfig(
         List<CatalogedConfig> cataloged,
         String subject,
-        String format)
+        String view)
     {
         super("avro", cataloged);
         this.subject = subject;
-        this.format = format;
+        this.view = view;
     }
 
     public static <T> AvroModelConfigBuilder<T> builder(

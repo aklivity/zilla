@@ -30,7 +30,7 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 public final class ModelConfigAdapter implements JsonbAdapter<ModelConfig, JsonValue>
 {
-    private static final String TYPE_NAME = "type";
+    private static final String MODEL_NAME = "model";
 
     private final Map<String, ModelConfigAdapterSpi> delegatesByName;
     private ModelConfigAdapterSpi delegate;
@@ -65,7 +65,7 @@ public final class ModelConfigAdapter implements JsonbAdapter<ModelConfig, JsonV
         if (value instanceof JsonString)
         {
             object = Json.createObjectBuilder()
-                .add(TYPE_NAME, ((JsonString) value).getString())
+                .add(MODEL_NAME, ((JsonString) value).getString())
                 .build();
         }
         else if (value instanceof JsonObject)
@@ -77,8 +77,8 @@ public final class ModelConfigAdapter implements JsonbAdapter<ModelConfig, JsonV
             assert false;
         }
 
-        String type = object.containsKey(TYPE_NAME)
-                ? object.getString(TYPE_NAME)
+        String type = object.containsKey(MODEL_NAME)
+                ? object.getString(MODEL_NAME)
                 : null;
 
         adaptType(type);

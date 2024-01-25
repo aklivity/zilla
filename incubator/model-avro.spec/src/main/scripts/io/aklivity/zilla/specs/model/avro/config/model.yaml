@@ -20,11 +20,20 @@ catalogs:
     type: test
     options:
       schema: |
-        syntax = "proto3";
-        message example 
         {
-          string id = 1;
-          string status = 2;
+          "fields": [
+            {
+              "name": "id",
+              "type": "string"
+            },
+            {
+              "name": "status",
+              "type": "string"
+            }
+          ],
+          "name": "Event",
+          "namespace": "io.aklivity.example",
+          "type": "record"
         }
 bindings:
   test:
@@ -32,11 +41,10 @@ bindings:
     type: test
     options:
       value:
-        type: protobuf
-        format: json
+        model: avro
+        view: json
         catalog:
           catalog0:
             - subject: test0
               version: latest
-              record: example
     exit: test

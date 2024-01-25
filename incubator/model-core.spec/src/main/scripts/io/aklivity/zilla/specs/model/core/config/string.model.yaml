@@ -15,36 +15,12 @@
 
 ---
 name: test
-catalogs:
-  test0:
-    type: test
-    options:
-      schema: |
-        {
-          "fields": [
-            {
-              "name": "id",
-              "type": "string"
-            },
-            {
-              "name": "status",
-              "type": "string"
-            }
-          ],
-          "name": "Event",
-          "namespace": "io.aklivity.example",
-          "type": "record"
-        }
 bindings:
   test:
     kind: server
     type: test
     options:
       value:
-        type: avro
-        format: json
-        catalog:
-          catalog0:
-            - subject: test0
-              version: latest
+        model: string
+        encoding: utf_8
     exit: test

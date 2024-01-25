@@ -13,7 +13,7 @@
             {
                 "properties":
                 {
-                    "type":
+                    "model":
                     {
                         "const": "json"
                     }
@@ -23,7 +23,7 @@
             {
                 "properties":
                 {
-                    "type":
+                    "model":
                     {
                         "const": "json"
                     },
@@ -139,7 +139,7 @@
             {
                 "properties":
                 {
-                    "type":
+                    "model":
                     {
                         "const": "json"
                     }
@@ -149,7 +149,7 @@
             {
                 "properties":
                 {
-                    "type":
+                    "model":
                     {
                         "const": "json"
                     },

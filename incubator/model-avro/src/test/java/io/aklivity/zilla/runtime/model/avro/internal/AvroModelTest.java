@@ -131,7 +131,7 @@ public class AvroModelTest
                 .build());
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
         AvroModelConfig config = AvroModelConfig.builder()
-                .format("json")
+                .view("json")
                 .catalog()
                     .name("test0")
                         .schema()
@@ -174,7 +174,7 @@ public class AvroModelTest
                 .build());
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
         AvroModelConfig config = AvroModelConfig.builder()
-                .format("json")
+                .view("json")
                 .catalog()
                     .name("test0")
                         .schema()
@@ -216,7 +216,7 @@ public class AvroModelTest
                 .build());
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
         AvroModelConfig config = AvroModelConfig.builder()
-                .format("json")
+                .view("json")
                 .catalog()
                     .name("test0")
                     .schema()

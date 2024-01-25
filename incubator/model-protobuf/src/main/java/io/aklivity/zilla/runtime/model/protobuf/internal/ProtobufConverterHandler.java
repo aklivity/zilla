@@ -48,7 +48,7 @@ import io.aklivity.zilla.runtime.model.protobuf.internal.parser.Protobuf3Parser;
 public class ProtobufConverterHandler
 {
     protected static final byte[] ZERO_INDEX = new byte[]{0x0};
-    protected static final String FORMAT_JSON = "json";
+    protected static final String VIEW_JSON = "json";
 
     private static final int JSON_FIELD_STRUCTURE_LENGTH = "\"\":\"\",".length();
     private static final int JSON_OBJECT_CURLY_BRACES = 2;
@@ -56,7 +56,7 @@ public class ProtobufConverterHandler
     protected final SchemaConfig catalog;
     protected final CatalogHandler handler;
     protected final String subject;
-    protected final String format;
+    protected final String view;
     protected final List<Integer> indexes;
     protected final DirectBufferInputStream in;
     protected final ExpandableDirectBufferOutputStream out;
@@ -77,7 +77,7 @@ public class ProtobufConverterHandler
         this.subject = catalog != null && catalog.subject != null
                 ? catalog.subject
                 : config.subject;
-        this.format = config.format;
+        this.view = config.view;
         this.descriptors = new Int2ObjectCache<>(1, 1024, i -> {});
         this.tree = new Int2ObjectCache<>(1, 1024, i -> {});
         this.builders = new Object2ObjectHashMap<>();

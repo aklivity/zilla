@@ -82,15 +82,15 @@ public class HttpRequestConfigAdapterTest
         assertThat(request.contentType.get(0), equalTo("application/json"));
         assertThat(request.headers.get(0).name, equalTo("content-type"));
         assertThat(request.headers.get(0).model, instanceOf(TestModelConfig.class));
-        assertThat(request.headers.get(0).model.type, equalTo("test"));
+        assertThat(request.headers.get(0).model.model, equalTo("test"));
         assertThat(request.pathParams.get(0).name, equalTo("id"));
         assertThat(request.pathParams.get(0).model, instanceOf(TestModelConfig.class));
-        assertThat(request.pathParams.get(0).model.type, equalTo("test"));
+        assertThat(request.pathParams.get(0).model.model, equalTo("test"));
         assertThat(request.queryParams.get(0).name, equalTo("index"));
         assertThat(request.queryParams.get(0).model, instanceOf(TestModelConfig.class));
-        assertThat(request.queryParams.get(0).model.type, equalTo("test"));
+        assertThat(request.queryParams.get(0).model.model, equalTo("test"));
         assertThat(request.content, instanceOf(TestModelConfig.class));
-        assertThat(request.content.type, equalTo("test"));
+        assertThat(request.content.model, equalTo("test"));
     }
 
     @Test

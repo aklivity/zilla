@@ -51,15 +51,15 @@ public class ModelConfigAdapterTest
         // GIVEN
         String json =
             "{" +
-                "\"type\": \"test\"" +
+                "\"model\": \"test\"" +
             "}";
 
         // WHEN
-        ModelConfig converter = jsonb.fromJson(json, ModelConfig.class);
+        ModelConfig model = jsonb.fromJson(json, ModelConfig.class);
 
         // THEN
-        assertThat(converter, not(nullValue()));
-        assertThat(converter.type, equalTo("test"));
+        assertThat(model, not(nullValue()));
+        assertThat(model.model, equalTo("test"));
     }
 
     @Test
@@ -67,10 +67,10 @@ public class ModelConfigAdapterTest
     {
         // GIVEN
         String expectedJson = "\"test\"";
-        ModelConfig converter = TestModelConfig.builder().build();
+        ModelConfig model = TestModelConfig.builder().build();
 
         // WHEN
-        String json = jsonb.toJson(converter);
+        String json = jsonb.toJson(model);
 
         // THEN
         assertThat(json, not(nullValue()));

@@ -25,7 +25,7 @@ bindings:
         - path: /hello
           method: GET
           content:
-            type: test
+            model: test
             length: 13
         - path: /valid/{category}/{id}
           method: POST
@@ -33,25 +33,25 @@ bindings:
             - text/plain
           headers:
             code:
-              type: test
+              model: test
               length: 13
           params:
             path:
               category:
-                type: test
+                model: test
                 length: 13
               id:
-                type: test
+                model: test
                 length: 13
             query:
               page:
-                type: test
+                model: test
                 length: 13
           content:
-            type: test
+            model: test
             length: 13
       versions:
-        - http/1.1
+        - h2
     routes:
       - exit: app0
         when:

@@ -44,7 +44,7 @@ public class MqttTopicConfigAdapter implements JsonbAdapter<MqttTopicConfig, Jso
 
         if (topic.content != null)
         {
-            model.adaptType(topic.content.type);
+            model.adaptType(topic.content.model);
             JsonValue content = model.adaptToJson(topic.content);
             object.add(CONTENT_NAME, content);
         }

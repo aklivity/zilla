@@ -70,7 +70,7 @@ public class HttpRequestConfigAdapter implements JsonbAdapter<HttpRequestConfig,
             JsonObjectBuilder headers = Json.createObjectBuilder();
             for (HttpParamConfig header : request.headers)
             {
-                model.adaptType(header.model.type);
+                model.adaptType(header.model.model);
                 headers.add(header.name, model.adaptToJson(header.model));
             }
             object.add(HEADERS_NAME, headers);
@@ -83,7 +83,7 @@ public class HttpRequestConfigAdapter implements JsonbAdapter<HttpRequestConfig,
                 JsonObjectBuilder pathParams = Json.createObjectBuilder();
                 for (HttpParamConfig pathParam : request.pathParams)
                 {
-                    model.adaptType(pathParam.model.type);
+                    model.adaptType(pathParam.model.model);
                     pathParams.add(pathParam.name, model.adaptToJson(pathParam.model));
                 }
                 params.add(PATH_PARAMS_NAME, pathParams);
@@ -93,7 +93,7 @@ public class HttpRequestConfigAdapter implements JsonbAdapter<HttpRequestConfig,
                 JsonObjectBuilder queryParams = Json.createObjectBuilder();
                 for (HttpParamConfig queryParam : request.queryParams)
                 {
-                    model.adaptType(queryParam.model.type);
+                    model.adaptType(queryParam.model.model);
                     queryParams.add(queryParam.name, model.adaptToJson(queryParam.model));
                 }
                 params.add(QUERY_PARAMS_NAME, queryParams);
@@ -102,7 +102,7 @@ public class HttpRequestConfigAdapter implements JsonbAdapter<HttpRequestConfig,
         }
         if (request.content != null)
         {
-            model.adaptType(request.content.type);
+            model.adaptType(request.content.model);
             JsonValue content = model.adaptToJson(request.content);
             object.add(CONTENT_NAME, content);
         }

@@ -96,7 +96,7 @@ public class MqttOptionsConfigAdapterTest
         MqttTopicConfig topic = options.topics.get(0);
         assertThat(topic.name, equalTo("sensor/one"));
         assertThat(topic.content, instanceOf(TestModelConfig.class));
-        assertThat(topic.content.type, equalTo("test"));
+        assertThat(topic.content.model, equalTo("test"));
     }
 
     @Test

@@ -35,10 +35,10 @@ import io.aklivity.zilla.runtime.model.avro.config.AvroModelConfig;
 public final class AvroModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdapter<ModelConfig, JsonValue>
 {
     private static final String AVRO = "avro";
-    private static final String TYPE_NAME = "type";
+    private static final String MODEL_NAME = "model";
     private static final String CATALOG_NAME = "catalog";
     private static final String SUBJECT_NAME = "subject";
-    private static final String FORMAT = "format";
+    private static final String VIEW = "view";
 
     private final SchemaConfigAdapter schema = new SchemaConfigAdapter();
 
@@ -55,12 +55,12 @@ public final class AvroModelConfigAdapter implements ModelConfigAdapterSpi, Json
         AvroModelConfig converterConfig = (AvroModelConfig) config;
         JsonObjectBuilder converter = Json.createObjectBuilder();
 
-        if (converterConfig.format != null)
+        if (converterConfig.view != null)
         {
-            converter.add(FORMAT, converterConfig.format);
+            converter.add(VIEW, converterConfig.view);
         }
 
-        converter.add(TYPE_NAME, AVRO);
+        converter.add(MODEL_NAME, AVRO);
         if (converterConfig.cataloged != null && !converterConfig.cataloged.isEmpty())
         {
             JsonObjectBuilder catalogs = Json.createObjectBuilder();
@@ -105,10 +105,10 @@ public final class AvroModelConfigAdapter implements ModelConfigAdapterSpi, Json
                 ? object.getString(SUBJECT_NAME)
                 : null;
 
-        String expect = object.containsKey(FORMAT)
-                ? object.getString(FORMAT)
+        String view = object.containsKey(VIEW)
+                ? object.getString(VIEW)
                 : null;
 
-        return new AvroModelConfig(catalogs, subject, expect);
+        return new AvroModelConfig(catalogs, subject, view);
     }
 }

@@ -35,7 +35,7 @@ import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 public final class JsonModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdapter<ModelConfig, JsonValue>
 {
     private static final String JSON = "json";
-    private static final String TYPE_NAME = "type";
+    private static final String MODEL_NAME = "model";
     private static final String CATALOG_NAME = "catalog";
     private static final String SUBJECT_NAME = "subject";
 
@@ -53,7 +53,7 @@ public final class JsonModelConfigAdapter implements ModelConfigAdapterSpi, Json
     {
         JsonModelConfig jsonConfig = (JsonModelConfig) config;
         JsonObjectBuilder converter = Json.createObjectBuilder();
-        converter.add(TYPE_NAME, JSON);
+        converter.add(MODEL_NAME, JSON);
         if (jsonConfig.cataloged != null && !jsonConfig.cataloged.isEmpty())
         {
             JsonObjectBuilder catalogs = Json.createObjectBuilder();

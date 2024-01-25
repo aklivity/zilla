@@ -28,7 +28,7 @@ public class ProtobufModelConfigBuilder<T> extends ConfigBuilder<T, ProtobufMode
 
     private List<CatalogedConfig> catalogs;
     private String subject;
-    private String format;
+    private String view;
 
     ProtobufModelConfigBuilder(
         Function<ProtobufModelConfig, T> mapper)
@@ -66,16 +66,16 @@ public class ProtobufModelConfigBuilder<T> extends ConfigBuilder<T, ProtobufMode
         return this;
     }
 
-    public ProtobufModelConfigBuilder<T> format(
-        String format)
+    public ProtobufModelConfigBuilder<T> view(
+        String view)
     {
-        this.format = format;
+        this.view = view;
         return this;
     }
 
     @Override
     public T build()
     {
-        return mapper.apply(new ProtobufModelConfig(catalogs, subject, format));
+        return mapper.apply(new ProtobufModelConfig(catalogs, subject, view));
     }
 }

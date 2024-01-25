@@ -19,20 +19,20 @@ import java.util.List;
 
 public abstract class ModelConfig
 {
-    public final String type;
+    public final String model;
     public final List<CatalogedConfig> cataloged;
 
     public ModelConfig(
-        String type)
+        String model)
     {
-        this(type, null);
+        this(model, null);
     }
 
     public ModelConfig(
-        String type,
+        String model,
         List<CatalogedConfig> cataloged)
     {
-        this.type = type;
+        this.model = model;
         this.cataloged = cataloged;
     }
 }

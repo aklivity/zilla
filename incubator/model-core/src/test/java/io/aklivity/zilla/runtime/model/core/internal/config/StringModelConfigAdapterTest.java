@@ -46,17 +46,17 @@ public class StringModelConfigAdapterTest
         // GIVEN
         String json =
             "{" +
-                "\"type\": \"string\"," +
+                "\"model\": \"string\"," +
                 "\"encoding\": \"utf_8\"" +
             "}";
 
         // WHEN
-        StringModelConfig converter = jsonb.fromJson(json, StringModelConfig.class);
+        StringModelConfig model = jsonb.fromJson(json, StringModelConfig.class);
 
         // THEN
-        assertThat(converter, not(nullValue()));
-        assertThat(converter.type, equalTo("string"));
-        assertThat(converter.encoding, equalTo("utf_8"));
+        assertThat(model, not(nullValue()));
+        assertThat(model.model, equalTo("string"));
+        assertThat(model.encoding, equalTo("utf_8"));
     }
 
     @Test
@@ -80,15 +80,15 @@ public class StringModelConfigAdapterTest
         // GIVEN
         String expectedJson =
             "{" +
-                "\"type\":\"string\"," +
+                "\"model\":\"string\"," +
                 "\"encoding\":\"utf_16\"" +
             "}";
-        StringModelConfig converter = StringModelConfig.builder()
+        StringModelConfig model = StringModelConfig.builder()
             .encoding("utf_16")
             .build();
 
         // WHEN
-        String json = jsonb.toJson(converter);
+        String json = jsonb.toJson(model);
 
         // THEN
         assertThat(json, not(nullValue()));

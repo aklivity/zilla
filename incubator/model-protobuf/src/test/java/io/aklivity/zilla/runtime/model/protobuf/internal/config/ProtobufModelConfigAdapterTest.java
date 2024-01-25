@@ -46,7 +46,7 @@ public class ProtobufModelConfigAdapterTest
         // GIVEN
         String json =
             "{" +
-                "\"type\": \"protobuf\"," +
+                "\"model\": \"protobuf\"," +
                 "\"catalog\":" +
                 "{" +
                     "\"test0\":" +
@@ -71,7 +71,7 @@ public class ProtobufModelConfigAdapterTest
 
         // THEN
         assertThat(converter, not(nullValue()));
-        assertThat(converter.type, equalTo("protobuf"));
+        assertThat(converter.model, equalTo("protobuf"));
         assertThat(converter.cataloged.size(), equalTo(1));
         assertThat(converter.cataloged.get(0).name, equalTo("test0"));
         assertThat(converter.cataloged.get(0).schemas.get(0).strategy, equalTo("topic"));
@@ -92,7 +92,7 @@ public class ProtobufModelConfigAdapterTest
         // GIVEN
         String expectedJson =
             "{" +
-                "\"type\":\"protobuf\"," +
+                "\"model\":\"protobuf\"," +
                 "\"catalog\":" +
                 "{" +
                     "\"test0\":" +

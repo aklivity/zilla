@@ -13,7 +13,7 @@
             {
                 "properties":
                 {
-                    "type":
+                    "model":
                     {
                         "const": "protobuf"
                     }
@@ -23,11 +23,11 @@
             {
                 "properties":
                 {
-                    "type":
+                    "model":
                     {
                         "const": "protobuf"
                     },
-                    "format":
+                    "view":
                     {
                         "type": "string",
                         "enum":

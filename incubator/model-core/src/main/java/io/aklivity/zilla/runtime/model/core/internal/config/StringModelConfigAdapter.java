@@ -27,7 +27,7 @@ import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
 
 public final class StringModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdapter<ModelConfig, JsonValue>
 {
-    private static final String TYPE_NAME = "type";
+    private static final String MODEL_NAME = "model";
     private static final String ENCODING_NAME = "encoding";
 
     @Override
@@ -39,7 +39,7 @@ public final class StringModelConfigAdapter implements ModelConfigAdapterSpi, Js
         if (encoding != null && !encoding.isEmpty() && !encoding.equals(StringModelConfig.DEFAULT_ENCODING))
         {
             JsonObjectBuilder converter = Json.createObjectBuilder();
-            converter.add(TYPE_NAME, type());
+            converter.add(MODEL_NAME, type());
             converter.add(ENCODING_NAME, encoding);
             result = converter.build();
         }

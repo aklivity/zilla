@@ -46,7 +46,7 @@ public class IntegerModelConfigAdapterTest
         // GIVEN
         String json =
             "{" +
-                "\"type\": \"integer\"" +
+                "\"model\": \"integer\"" +
             "}";
 
         // WHEN
@@ -54,7 +54,7 @@ public class IntegerModelConfigAdapterTest
 
         // THEN
         assertThat(converter, not(nullValue()));
-        assertThat(converter.type, equalTo("integer"));
+        assertThat(converter.model, equalTo("integer"));
     }
 
     @Test

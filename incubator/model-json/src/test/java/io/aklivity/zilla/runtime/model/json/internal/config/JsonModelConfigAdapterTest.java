@@ -46,7 +46,7 @@ public class JsonModelConfigAdapterTest
         // GIVEN
         String json =
             "{" +
-                "\"type\": \"json\"," +
+                "\"model\": \"json\"," +
                 "\"catalog\":" +
                 "{" +
                     "\"test0\":" +
@@ -71,7 +71,7 @@ public class JsonModelConfigAdapterTest
 
         // THEN
         assertThat(config, not(nullValue()));
-        assertThat(config.type, equalTo("json"));
+        assertThat(config.model, equalTo("json"));
         assertThat(config.cataloged.size(), equalTo(1));
         assertThat(config.cataloged.get(0).name, equalTo("test0"));
         assertThat(config.cataloged.get(0).schemas.get(0).subject, equalTo("subject1"));
@@ -91,7 +91,7 @@ public class JsonModelConfigAdapterTest
         // GIVEN
         String expectedJson =
             "{" +
-                "\"type\":\"json\"," +
+                "\"model\":\"json\"," +
                 "\"catalog\":" +
                 "{" +
                     "\"test0\":" +

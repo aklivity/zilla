@@ -13,7 +13,7 @@
             {
                 "properties":
                 {
-                    "type":
+                    "model":
                     {
                         "const": "string"
                     }
@@ -23,7 +23,7 @@
             {
                 "properties":
                 {
-                    "type":
+                    "model":
                     {
                         "const": "string"
                     },
@@ -55,7 +55,7 @@
             {
                 "properties":
                 {
-                    "type":
+                    "model":
                     {
                         "const": "string"
                     }
@@ -65,7 +65,7 @@
             {
                 "properties":
                 {
-                    "type":
+                    "model":
                     {
                         "const": "string"
                     },

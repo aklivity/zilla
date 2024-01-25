@@ -28,7 +28,7 @@ public class AvroModelConfigBuilder<T> extends ConfigBuilder<T, AvroModelConfigB
 
     private List<CatalogedConfig> catalogs;
     private String subject;
-    private String format;
+    private String view;
 
     AvroModelConfigBuilder(
         Function<AvroModelConfig, T> mapper)
@@ -50,10 +50,10 @@ public class AvroModelConfigBuilder<T> extends ConfigBuilder<T, AvroModelConfigB
         return this;
     }
 
-    public AvroModelConfigBuilder<T> format(
-        String format)
+    public AvroModelConfigBuilder<T> view(
+        String view)
     {
-        this.format = format;
+        this.view = view;
         return this;
     }
 
@@ -76,6 +76,6 @@ public class AvroModelConfigBuilder<T> extends ConfigBuilder<T, AvroModelConfigB
     @Override
     public T build()
     {
-        return mapper.apply(new AvroModelConfig(catalogs, subject, format));
+        return mapper.apply(new AvroModelConfig(catalogs, subject, view));
     }
 }

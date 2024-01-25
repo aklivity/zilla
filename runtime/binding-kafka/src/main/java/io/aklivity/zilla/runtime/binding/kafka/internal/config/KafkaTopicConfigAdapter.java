@@ -58,14 +58,14 @@ public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicCon
 
         if (topic.key != null)
         {
-            converter.adaptType(topic.key.type);
+            converter.adaptType(topic.key.model);
 
             object.add(EVENT_KEY, converter.adaptToJson(topic.key));
         }
 
         if (topic.value != null)
         {
-            converter.adaptType(topic.value.type);
+            converter.adaptType(topic.value.model);
 
             object.add(EVENT_VALUE, converter.adaptToJson(topic.value));
         }

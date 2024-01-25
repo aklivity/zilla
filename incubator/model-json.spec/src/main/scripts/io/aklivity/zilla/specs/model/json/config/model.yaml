@@ -41,7 +41,7 @@ bindings:
     type: test
     options:
       value:
-        type: json
+        model: json
         catalog:
           catalog0:
             - subject: test0

@@ -666,7 +666,7 @@ public class DispatchAgent implements EngineContext, Agent
     public ValidatorHandler supplyValidator(
         ModelConfig config)
     {
-        ModelContext model = modelsByType.get(config.type);
+        ModelContext model = modelsByType.get(config.model);
         return model != null ? model.supplyValidatorHandler(config) : null;
     }
 
@@ -674,7 +674,7 @@ public class DispatchAgent implements EngineContext, Agent
     public ConverterHandler supplyReadConverter(
         ModelConfig config)
     {
-        ModelContext model = modelsByType.get(config.type);
+        ModelContext model = modelsByType.get(config.model);
         return model != null ? model.supplyReadConverterHandler(config) : null;
     }
 
@@ -682,7 +682,7 @@ public class DispatchAgent implements EngineContext, Agent
     public ConverterHandler supplyWriteConverter(
         ModelConfig config)
     {
-        ModelContext model = modelsByType.get(config.type);
+        ModelContext model = modelsByType.get(config.model);
         return model != null ? model.supplyWriteConverterHandler(config) : null;
     }
 

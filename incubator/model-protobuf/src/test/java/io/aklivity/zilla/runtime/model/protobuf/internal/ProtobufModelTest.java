@@ -248,7 +248,7 @@ public class ProtobufModelTest
                 .build());
 
         ProtobufModelConfig config = ProtobufModelConfig.builder()
-                .format("json")
+                .view("json")
                 .catalog()
                     .name("test0")
                     .schema()
@@ -294,7 +294,7 @@ public class ProtobufModelTest
                 .build());
 
         ProtobufModelConfig config = ProtobufModelConfig.builder()
-                .format("json")
+                .view("json")
                 .catalog()
                     .name("test0")
                     .schema()
@@ -337,7 +337,7 @@ public class ProtobufModelTest
                         .build());
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
         ProtobufModelConfig config = ProtobufModelConfig.builder()
-                .format("json")
+                .view("json")
                 .catalog()
                     .name("test0")
                         .schema()

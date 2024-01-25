@@ -35,10 +35,10 @@ import io.aklivity.zilla.runtime.model.protobuf.config.ProtobufModelConfig;
 public final class ProtobufModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdapter<ModelConfig, JsonValue>
 {
     private static final String PROTOBUF = "protobuf";
-    private static final String TYPE_NAME = "type";
+    private static final String MODEL_NAME = "model";
     private static final String CATALOG_NAME = "catalog";
     private static final String SUBJECT_NAME = "subject";
-    private static final String FORMAT = "format";
+    private static final String VIEW = "view";
 
     private final SchemaConfigAdapter schema = new SchemaConfigAdapter();
 
@@ -54,11 +54,11 @@ public final class ProtobufModelConfigAdapter implements ModelConfigAdapterSpi, 
     {
         ProtobufModelConfig protobufConfig = (ProtobufModelConfig) config;
         JsonObjectBuilder converter = Json.createObjectBuilder();
-        converter.add(TYPE_NAME, PROTOBUF);
+        converter.add(MODEL_NAME, PROTOBUF);
 
-        if (protobufConfig.format != null)
+        if (protobufConfig.view != null)
         {
-            converter.add(FORMAT, protobufConfig.format);
+            converter.add(VIEW, protobufConfig.view);
         }
 
         if (protobufConfig.cataloged != null && !protobufConfig.cataloged.isEmpty())
@@ -105,10 +105,10 @@ public final class ProtobufModelConfigAdapter implements ModelConfigAdapterSpi, 
                 ? object.getString(SUBJECT_NAME)
                 : null;
 
-        String format = object.containsKey(FORMAT)
-                ? object.getString(FORMAT)
+        String view = object.containsKey(VIEW)
+                ? object.getString(VIEW)
                 : null;
 
-        return new ProtobufModelConfig(catalogs, subject, format);
+        return new ProtobufModelConfig(catalogs, subject, view);
     }
 }

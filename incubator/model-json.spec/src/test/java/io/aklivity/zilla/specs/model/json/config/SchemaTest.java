@@ -37,7 +37,7 @@ public class SchemaTest
     @Test
     public void shouldValidateCatalog()
     {
-        JsonObject config = schema.validate("converter.yaml");
+        JsonObject config = schema.validate("model.yaml");
 
         assertThat(config, not(nullValue()));
     }

@@ -46,8 +46,8 @@ public class AvroModelConfigAdapterTest
         // GIVEN
         String json =
             "{" +
-                "\"format\":\"json\"," +
-                "\"type\": \"avro\"," +
+                "\"view\":\"json\"," +
+                "\"model\": \"avro\"," +
                 "\"catalog\":" +
                 "{" +
                     "\"test0\":" +
@@ -72,8 +72,8 @@ public class AvroModelConfigAdapterTest
 
         // THEN
         assertThat(converter, not(nullValue()));
-        assertThat(converter.format, equalTo("json"));
-        assertThat(converter.type, equalTo("avro"));
+        assertThat(converter.view, equalTo("json"));
+        assertThat(converter.model, equalTo("avro"));
         assertThat(converter.cataloged.size(), equalTo(1));
         assertThat(converter.cataloged.get(0).name, equalTo("test0"));
         assertThat(converter.cataloged.get(0).schemas.get(0).strategy, equalTo("topic"));
@@ -94,8 +94,8 @@ public class AvroModelConfigAdapterTest
         // GIVEN
         String expectedJson =
             "{" +
-                "\"format\":\"json\"," +
-                "\"type\":\"avro\"," +
+                "\"view\":\"json\"," +
+                "\"model\":\"avro\"," +
                 "\"catalog\":" +
                 "{" +
                     "\"test0\":" +
@@ -115,7 +115,7 @@ public class AvroModelConfigAdapterTest
                 "}" +
             "}";
         AvroModelConfig converter = AvroModelConfig.builder()
-            .format("json")
+            .view("json")
             .catalog()
                 .name("test0")
                     .schema()

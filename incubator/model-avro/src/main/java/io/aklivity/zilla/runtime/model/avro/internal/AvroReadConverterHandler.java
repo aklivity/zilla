@@ -48,7 +48,7 @@ public class AvroReadConverterHandler extends AvroConverterHandler implements Co
         int length)
     {
         int padding = 0;
-        if (FORMAT_JSON.equals(format))
+        if (VIEW_JSON.equals(view))
         {
             int schemaId = handler.resolve(data, index, length);
 
@@ -99,7 +99,7 @@ public class AvroReadConverterHandler extends AvroConverterHandler implements Co
             }
         }
 
-        if (FORMAT_JSON.equals(format))
+        if (VIEW_JSON.equals(view))
         {
             deserializeRecord(schemaId, data, index, length);
             int recordLength = expandable.position();

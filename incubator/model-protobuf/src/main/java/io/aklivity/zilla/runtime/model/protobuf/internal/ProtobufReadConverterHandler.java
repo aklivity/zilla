@@ -55,7 +55,7 @@ public class ProtobufReadConverterHandler extends ProtobufConverterHandler imple
         int length)
     {
         int padding = 0;
-        if (FORMAT_JSON.equals(format))
+        if (VIEW_JSON.equals(view))
         {
             int schemaId = handler.resolve(data, index, length);
 
@@ -130,7 +130,7 @@ public class ProtobufReadConverterHandler extends ProtobufConverterHandler imple
                         break validate;
                     }
 
-                    if (FORMAT_JSON.equals(format))
+                    if (VIEW_JSON.equals(view))
                     {
                         out.wrap(out.buffer());
                         printer.appendTo(message, output);

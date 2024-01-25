@@ -15,12 +15,28 @@
 
 ---
 name: test
+catalogs:
+  test0:
+    type: test
+    options:
+      schema: |
+        syntax = "proto3";
+        message example 
+        {
+          string id = 1;
+          string status = 2;
+        }
 bindings:
   test:
     kind: server
     type: test
     options:
       value:
-        type: string
-        encoding: utf_8
+        model: protobuf
+        view: json
+        catalog:
+          catalog0:
+            - subject: test0
+              version: latest
+              record: example
     exit: test
