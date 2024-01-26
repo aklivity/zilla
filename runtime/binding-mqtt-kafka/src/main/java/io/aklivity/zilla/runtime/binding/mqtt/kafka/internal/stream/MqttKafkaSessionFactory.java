@@ -273,7 +273,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private int nextContextId;
     private Set<String16FW> kafkaTopics;
     private String16FW retainedTopic;
-    private int unfetchedKafkaTopics;
     private long affinity;
 
     public MqttKafkaSessionFactory(
@@ -367,7 +366,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         this.retainedTopic = binding.retainedTopic();
         this.kafkaTopics = binding.routes.stream().map(r -> r.messages).collect(Collectors.toSet());
         this.kafkaTopics.add(messagesTopic);
-        this.unfetchedKafkaTopics = kafkaTopics.size() + 1;
 
         if (willAvailable && coreIndex == 0)
         {
@@ -3871,6 +3869,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         private long replyAck;
         private int replyMax;
         private int replyPad;
+        private int unfetchedKafkaTopics;
 
         private KafkaOffsetFetchStream(
             long originId,
@@ -3892,6 +3891,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             this.topic = topic;
             this.partitions = partitions;
             this.retained = retained;
+            this.unfetchedKafkaTopics = kafkaTopics.size() + 1;
         }
 
         private void doKafkaBegin(
