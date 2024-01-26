@@ -519,4 +519,28 @@ scope kafka
             int32 index;
         }
     }
+
+    scope event
+    {
+        enum KafkaEventType (uint8)
+        {
+            AUTHORIZATION (1)
+        }
+
+        enum Result (uint8)
+        {
+            SUCCESS (0),
+            FAILURE (1)
+        }
+
+        struct KafkaBindingEvent extends core::event::BindingEvent
+        {
+            Result result;
+        }
+
+        union KafkaEvent switch (KafkaEventType)
+        {
+            case AUTHORIZATION: KafkaBindingEvent authorization;
+        }
+    }
 }

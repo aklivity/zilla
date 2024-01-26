@@ -34,7 +34,9 @@ import org.agrona.collections.LongLongConsumer;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
+import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
+import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaEventContext;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaScramMechanism;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.RequestHeaderFW;
@@ -44,6 +46,8 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.sasl.SaslAut
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.sasl.SaslHandshakeMechanismResponseFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.sasl.SaslHandshakeRequestFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.sasl.SaslHandshakeResponseFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.Level;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.Result;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 
@@ -82,6 +86,7 @@ public abstract class KafkaClientSaslHandshaker
     private final SaslHandshakeResponseFW saslHandshakeResponseRO = new SaslHandshakeResponseFW();
     private final SaslHandshakeMechanismResponseFW saslHandshakeMechanismResponseRO = new SaslHandshakeMechanismResponseFW();
     private final SaslAuthenticateResponseFW saslAuthenticateResponseRO = new SaslAuthenticateResponseFW();
+    private final KafkaEventContext event;
 
     private KafkaSaslClientDecoder decodeSaslPlainAuthenticate = this::decodeSaslPlainAuthenticate;
     private KafkaSaslClientDecoder decodeSaslScramAuthenticateFirst = this::decodeSaslScramAuthenticateFirst;
@@ -109,6 +114,7 @@ public abstract class KafkaClientSaslHandshaker
         this.supplyReplyId = context::supplyReplyId;
         this.writeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.nonceSupplier = config.nonceSupplier();
+        this.event = new KafkaEventContext(context.supplyTypeId(KafkaBinding.NAME), context);
     }
 
     public abstract class KafkaSaslClient
@@ -656,6 +662,10 @@ public abstract class KafkaClientSaslHandshaker
             if (authenticateResponse != null)
             {
                 final int errorCode = authenticateResponse.errorCode();
+                event.authorization(
+                    errorCode == ERROR_NONE ? Result.SUCCESS : Result.FAILURE,
+                    errorCode == ERROR_NONE ? Level.INFO : Level.WARNING,
+                    traceId, client.routedId, client.initialId);
 
                 progress = authenticateResponse.limit();
 
@@ -714,11 +724,13 @@ public abstract class KafkaClientSaslHandshaker
                     client.decodeSaslAuthenticate = decodeSaslScramAuthenticateFinal;
                     client.onDecodeSaslResponse(traceId);
                     client.onDecodeSaslHandshakeResponse(traceId, authorization, ERROR_NONE);
+                    event.authorization(Result.SUCCESS, Level.INFO, traceId, client.routedId, client.initialId);
                 }
                 else
                 {
                     client.onDecodeSaslResponse(traceId);
                     client.onDecodeSaslAuthenticateResponse(traceId, authorization, ERROR_SASL_AUTHENTICATION_FAILED);
+                    event.authorization(Result.FAILURE, Level.WARNING, traceId, client.routedId, client.initialId);
                 }
             }
         }
