@@ -19,6 +19,9 @@ import static io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcT
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.io.StringReader;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -28,12 +31,18 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.ToLongFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
+import jakarta.json.spi.JsonProvider;
+import jakarta.json.stream.JsonParser;
 import org.agrona.AsciiSequenceView;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
+import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.grpc.config.GrpcMethodConfig;
 import io.aklivity.zilla.runtime.binding.grpc.config.GrpcOptionsConfig;
@@ -44,8 +53,15 @@ import io.aklivity.zilla.runtime.binding.grpc.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcMetadataFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcType;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.HttpBeginExFW;
+import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
+import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
+import org.leadpony.justify.api.JsonSchema;
+import org.leadpony.justify.api.JsonSchemaReader;
+import org.leadpony.justify.api.ProblemHandler;
+
 
 public final class GrpcBindingConfig
 {
@@ -58,16 +74,22 @@ public final class GrpcBindingConfig
     private static final byte[] BIN_SUFFIX = "-bin".getBytes();
     private final HttpGrpcHeaderHelper helper;
 
+    private final Long2ObjectHashMap<CatalogHandler> handlersById;
+    private final List<CatalogedConfig> catalogs;
+    private final SchemaConfig catalog;
+    private final CatalogHandler handler;
+    public final List<GrpcRouteConfig> routes;
     public final long id;
     public final String name;
     public final KindConfig kind;
     public final GrpcOptionsConfig options;
-    public final List<GrpcRouteConfig> routes;
 
 
     public GrpcBindingConfig(
         BindingConfig binding,
-        MutableDirectBuffer metadataBuffer)
+        MutableDirectBuffer metadataBuffer,
+        ToLongFunction<String> resolveId,
+        Function<Long, CatalogHandler> supplyCatalog)
     {
         this.id = binding.id;
         this.name = binding.name;
@@ -75,8 +97,17 @@ public final class GrpcBindingConfig
         this.options = GrpcOptionsConfig.class.cast(binding.options);
         this.routes = binding.routes.stream().map(GrpcRouteConfig::new).collect(toList());
         this.helper = new HttpGrpcHeaderHelper(metadataBuffer);
-    }
+        this.handlersById = new Long2ObjectHashMap<>();
+        this.catalogs = binding.catalogRef.catalogs.stream().map(c ->
+        {
+            c.id = resolveId.applyAsLong(c.name);
+            handlersById.put(c.id, supplyCatalog.apply(c.id));
+            return c;
+        }).collect(Collectors.toList());
+        this.catalog = catalogs.get(0).schemas.size() != 0 ? catalogs.get(0).schemas.get(0) : null;
+        this.handler = handlersById.get(catalogs.get(0).id);
 
+    }
 
     public GrpcRouteConfig resolve(
         long authorization,
@@ -131,6 +162,51 @@ public final class GrpcBindingConfig
         }
 
         return methodResolver;
+    }
+
+    private boolean resolveCatalog()
+    {
+        String schema = null;
+        int schemaId = catalog != null ? catalog.id : 0;
+
+        byte[] payloadBytes = new byte[length];
+        data.getBytes(0, payloadBytes);
+
+        if (schemaId > 0)
+        {
+            schema = handler.resolve(schemaId);
+        }
+        else if (catalog != null)
+        {
+            schemaId = handler.resolve(catalog.subject, catalog.version);
+            if (schemaId != 0)
+            {
+                schema = handler.resolve(schemaId);
+            }
+        }
+
+        return schema != null && validate(schema, payloadBytes);
+    }
+
+    private boolean validate(
+        String schema,
+        byte[] payloadBytes)
+    {
+        boolean status = false;
+        try
+        {
+            JsonParser schemaParser = factory.createParser(new StringReader(schema));
+            JsonSchemaReader reader = service.createSchemaReader(schemaParser);
+            JsonSchema jsonSchema = reader.read();
+            JsonProvider provider = service.createJsonProvider(jsonSchema, parser -> ProblemHandler.throwing());
+            InputStream input = new ByteArrayInputStream(payloadBytes);
+            provider.createReader(input).readValue();
+            status = true;
+        }
+        catch (Exception e)
+        {
+        }
+        return status;
     }
 
     private static final class HttpGrpcHeaderHelper

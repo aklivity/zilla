@@ -14,8 +14,10 @@
  */
 package io.aklivity.zilla.runtime.binding.grpc.internal.stream;
 
+import java.util.function.Function;
 import java.util.function.LongUnaryOperator;
 
+import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
@@ -114,6 +116,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
     private final MutableDirectBuffer metadataBuffer;
     private final MutableDirectBuffer extBuffer;
     private final BindingHandler streamFactory;
+    private final Function<Long, CatalogHandler> supplyCatalog;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final int httpTypeId;
@@ -130,6 +133,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
         this.metadataBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.extBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.streamFactory = context.streamFactory();
+        this.supplyCatalog = context::supplyCatalog;
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.httpTypeId = context.supplyTypeId(HTTP_TYPE_NAME);
@@ -159,7 +163,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        GrpcBindingConfig grpcBinding = new GrpcBindingConfig(binding, metadataBuffer);
+        GrpcBindingConfig grpcBinding = new GrpcBindingConfig(binding, metadataBuffer, supplyCatalog);
         bindings.put(binding.id, grpcBinding);
     }
 
