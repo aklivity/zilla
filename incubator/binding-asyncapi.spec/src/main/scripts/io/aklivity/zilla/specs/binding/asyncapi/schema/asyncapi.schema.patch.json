@@ -2,7 +2,7 @@
     {
         "op": "add",
         "path": "/$defs/binding/properties/type/enum/-",
-        "value": "amqp"
+        "value": "asyncapi"
     },
     {
         "op": "add",
@@ -11,11 +11,11 @@
         {
             "if":
             {
-               "properties":
+                "properties":
                 {
                     "type":
                     {
-                        "const": "amqp"
+                        "const": "asyncapi"
                     }
                 }
             },
@@ -25,46 +25,30 @@
                 {
                     "type":
                     {
-                        "const": "amqp"
+                        "const": "asyncapi"
                     },
                     "kind":
                     {
-                        "enum": [ "server" ]
+                        "enum": [ "server", "client" ]
                     },
                     "vault": false,
-                    "options": false,
-                    "routes":
+                    "options":
                     {
-                        "items":
+                        "properties":
                         {
-                            "properties":
+                            "specs":
                             {
-                                "when":
+                                "title": "Specifications",
+                                "type": "array",
+                                "items":
                                 {
-                                    "items":
-                                    {
-                                        "additionalProperties": false,
-                                        "properties":
-                                        {
-                                            "address":
-                                            {
-                                                "title": "Address",
-                                                "type": "string"
-                                            },
-                                            "capabilities":
-                                            {
-                                                "title": "Capabilities",
-                                                "type": "string",
-                                                "enum": [ "send_only", "receive_only", "send_and_receive" ],
-                                                "default": "send_and_receive"
-                                            }
-                                        }
-                                    }
-                                },
-                                "with": false
+                                    "type": "string"
+                                }
                             }
-                        }
-                    }
+                        },
+                        "additionalProperties": false
+                    },
+                    "routes": false
                 },
                 "anyOf":
                 [
@@ -72,12 +56,6 @@
                         "required":
                         [
                             "exit"
-                        ]
-                    },
-                    {
-                        "required":
-                        [
-                            "routes"
                         ]
                     }
                 ]

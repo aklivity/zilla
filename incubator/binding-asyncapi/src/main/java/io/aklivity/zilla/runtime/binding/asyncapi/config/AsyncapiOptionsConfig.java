@@ -14,11 +14,17 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.config;
 
-import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
+import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
-public final class AsyncapiConditionConfig extends ConditionConfig
+import java.util.List;
+
+public final class AsyncapiOptionsConfig extends OptionsConfig
 {
-    public AsyncapiConditionConfig()
+    public final List<String> specs;
+
+    public AsyncapiOptionsConfig(
+        List<String> specs)
     {
+        this.specs = specs;
     }
 }

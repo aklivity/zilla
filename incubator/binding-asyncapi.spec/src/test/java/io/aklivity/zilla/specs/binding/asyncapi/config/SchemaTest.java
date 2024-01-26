@@ -21,7 +21,6 @@ import static org.hamcrest.Matchers.nullValue;
 
 import jakarta.json.JsonObject;
 
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -34,7 +33,6 @@ public class SchemaTest
         .schemaPatch("io/aklivity/zilla/specs/binding/asyncapi/schema/asyncapi.schema.patch.json")
         .configurationRoot("io/aklivity/zilla/specs/binding/asyncapi/config");
 
-    @Ignore("TODO")
     @Test
     public void shouldValidateClient()
     {

@@ -19,7 +19,7 @@ import static java.util.stream.Collectors.toList;
 import java.util.List;
 import java.util.function.LongPredicate;
 
-import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiConditionConfig;
+import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 
 public final class AsyncapiRouteConfig
@@ -34,7 +34,7 @@ public final class AsyncapiRouteConfig
     {
         this.id = route.id;
         this.when = route.when.stream()
-            .map(AsyncapiConditionConfig.class::cast)
+            .map(AsyncapiOptionsConfig.class::cast)
             .map(AsyncapiConditionMatcher::new)
             .collect(toList());
         this.authorized = route.authorized;

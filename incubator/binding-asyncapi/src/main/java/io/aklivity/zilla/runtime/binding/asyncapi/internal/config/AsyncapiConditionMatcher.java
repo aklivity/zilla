@@ -17,13 +17,13 @@ package io.aklivity.zilla.runtime.binding.asyncapi.internal.config;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiConditionConfig;
+import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 
 public final class AsyncapiConditionMatcher
 {
 
     public AsyncapiConditionMatcher(
-        AsyncapiConditionConfig condition)
+        AsyncapiOptionsConfig condition)
     {
     }
 

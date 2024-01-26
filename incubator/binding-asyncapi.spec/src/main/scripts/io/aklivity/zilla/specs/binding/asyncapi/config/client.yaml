@@ -17,7 +17,10 @@
 ---
 name: test
 bindings:
-    app0:
-        type: amqp
+    asyncapi_client0:
+        type: asyncapi
         kind: client
-        exit: net0
+        options:
+            specs:
+                - mqtt/asyncapi.yaml
+        exit: app0

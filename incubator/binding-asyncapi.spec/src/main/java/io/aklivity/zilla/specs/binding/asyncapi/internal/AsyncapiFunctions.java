@@ -15,11 +15,27 @@
  */
 package io.aklivity.zilla.specs.binding.asyncapi.internal;
 
+import org.kaazing.k3po.lang.el.spi.FunctionMapperSpi;
+
 public final class AsyncapiFunctions
 {
 
     private AsyncapiFunctions()
     {
         // utility
+    }
+
+    public static class Mapper extends FunctionMapperSpi.Reflective
+    {
+        public Mapper()
+        {
+            super(AsyncapiFunctions.class);
+        }
+
+        @Override
+        public String getPrefixName()
+        {
+            return "asyncapi";
+        }
     }
 }

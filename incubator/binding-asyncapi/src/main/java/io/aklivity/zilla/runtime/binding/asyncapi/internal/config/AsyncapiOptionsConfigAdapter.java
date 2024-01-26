@@ -19,13 +19,20 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiConditionConfig;
+import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiBinding;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
+import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
+import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
-public final class AsyncapiConditionConfigAdapter implements ConditionConfigAdapterSpi, JsonbAdapter<ConditionConfig, JsonObject>
+public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
+    public Kind kind()
+    {
+        return Kind.BINDING;
+    }
+
     @Override
     public String type()
     {
@@ -34,9 +41,9 @@ public final class AsyncapiConditionConfigAdapter implements ConditionConfigAdap
 
     @Override
     public JsonObject adaptToJson(
-        ConditionConfig condition)
+        OptionsConfig options)
     {
-        AsyncapiConditionConfig mqttCondition = (AsyncapiConditionConfig) condition;
+        AsyncapiOptionsConfig mqttCondition = (AsyncapiOptionsConfig) options;
 
         JsonObjectBuilder object = Json.createObjectBuilder();
 
@@ -49,7 +56,7 @@ public final class AsyncapiConditionConfigAdapter implements ConditionConfigAdap
     }
 
     @Override
-    public ConditionConfig adaptFromJson(
+    public OptionsConfig adaptFromJson(
         JsonObject object)
     {
         //        String address = object.containsKey(ADDRESS_NAME)
@@ -57,6 +64,6 @@ public final class AsyncapiConditionConfigAdapter implements ConditionConfigAdap
         //                : null;
 
 
-        return new AsyncapiConditionConfig();
+        return new AsyncapiOptionsConfig();
     }
 }

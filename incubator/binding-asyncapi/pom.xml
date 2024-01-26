@@ -126,8 +126,7 @@
         <artifactId>license-maven-plugin</artifactId>
         <configuration>
           <excludes>
-            <exclude>src/test/resources/io/aklivity/zilla/runtime/command/generate/internal/openapi/**/*</exclude>
-            <exclude>src/test/resources/io/aklivity/zilla/runtime/command/generate/internal/asyncapi/**/*</exclude>
+            <exclude>src/test/resources/io/aklivity/zilla/runtime/binding/asyncapi/internal/**/*</exclude>
           </excludes>
         </configuration>
       </plugin>
