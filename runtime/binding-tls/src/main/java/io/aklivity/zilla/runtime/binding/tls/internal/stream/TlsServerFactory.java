@@ -52,12 +52,15 @@ import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.tls.internal.TlsConfiguration;
+import io.aklivity.zilla.runtime.binding.tls.internal.TlsEventContext;
 import io.aklivity.zilla.runtime.binding.tls.internal.config.TlsBindingConfig;
 import io.aklivity.zilla.runtime.binding.tls.internal.config.TlsRouteConfig;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.codec.TlsRecordInfoFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.codec.TlsUnwrappedDataFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.codec.TlsUnwrappedInfoFW;
+import io.aklivity.zilla.runtime.binding.tls.internal.types.event.Level;
+import io.aklivity.zilla.runtime.binding.tls.internal.types.event.Result;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.DataFW;
@@ -145,6 +148,7 @@ public final class TlsServerFactory implements TlsStreamFactory
     private final LongUnaryOperator supplyReplyId;
     private final int replyPadAdjust;
     private final Long2ObjectHashMap<TlsBindingConfig> bindings;
+    private final TlsEventContext event;
 
     private final int decodeMax;
     private final int handshakeMax;
@@ -183,6 +187,7 @@ public final class TlsServerFactory implements TlsStreamFactory
         this.handshakeMax = Math.min(config.handshakeWindowBytes(), decodeMax);
         this.handshakeTimeoutMillis = SECONDS.toMillis(config.handshakeTimeout());
         this.bindings = new Long2ObjectHashMap<>();
+        this.event = new TlsEventContext(proxyTypeId, context);
 
         this.inNetByteBuffer = ByteBuffer.allocate(writeBuffer.capacity());
         this.inNetBuffer = new UnsafeBuffer(inNetByteBuffer);
@@ -528,6 +533,7 @@ public final class TlsServerFactory implements TlsStreamFactory
         }
         catch (SSLException | RuntimeException ex)
         {
+            event.tls(Result.FAILURE, Level.ERROR, traceId);
             server.cleanupNet(traceId);
             server.decoder = decodeIgnoreAll;
         }
@@ -646,6 +652,7 @@ public final class TlsServerFactory implements TlsStreamFactory
                     }
                     catch (SSLException | RuntimeException ex)
                     {
+                        event.tls(Result.FAILURE, Level.ERROR, traceId);
                         server.cleanupNet(traceId);
                         server.decoder = decodeIgnoreAll;
                     }
@@ -827,6 +834,7 @@ public final class TlsServerFactory implements TlsStreamFactory
             }
             catch (SSLException | RuntimeException ex)
             {
+                event.tls(Result.FAILURE, Level.ERROR, traceId);
                 server.doEncodeWrapIfNecessary(traceId, budgetId);
                 server.cleanupNet(traceId);
                 server.decoder = decodeIgnoreAll;
@@ -1305,6 +1313,7 @@ public final class TlsServerFactory implements TlsStreamFactory
                 handshakeTimeoutFutureId = NO_CANCEL_ID;
 
                 cleanupNet(traceId);
+                event.tls(Result.HANDSHAKE_TIMEOUT, Level.ERROR, traceId);
                 decoder = decodeIgnoreAll;
             }
         }
@@ -1681,6 +1690,7 @@ public final class TlsServerFactory implements TlsStreamFactory
             }
             catch (SSLException | RuntimeException ex)
             {
+                event.tls(Result.FAILURE, Level.ERROR, traceId);
                 cleanupNet(traceId);
             }
         }

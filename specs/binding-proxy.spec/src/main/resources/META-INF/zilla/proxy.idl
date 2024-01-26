@@ -132,13 +132,15 @@ scope proxy
     {
         enum ProxyEventType (uint8)
         {
-            REMOTE_ACCESS (1)
+            REMOTE_ACCESS (1),
+            TLS (2)
         }
 
         enum Result (uint8)
         {
             SUCCESS (0),
-            FAILURE (1)
+            FAILURE (1),
+            HANDSHAKE_TIMEOUT (2)
         }
 
         struct ProxyBindingEvent extends core::event::BindingEvent
@@ -154,6 +156,7 @@ scope proxy
         union ProxyEvent switch (ProxyEventType)
         {
             case REMOTE_ACCESS: ProxyRemoteAccessEvent remoteAccess;
+            case TLS: ProxyBindingEvent tls;
         }
     }
 }
