@@ -41,6 +41,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
+import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaEventContext;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaRouteConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Array32FW;
@@ -62,6 +63,8 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.produce.Prod
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.produce.ProduceResponseTrailerFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.produce.ProduceTopicRequestFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.produce.ProduceTopicResponseFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.Level;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.Result;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.DataFW;
@@ -105,6 +108,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
     private static final int RECORD_LENGTH_MAX = 5; // varint32(max_value)
 
     private static final int ERROR_NONE = 0;
+    private static final int ERROR_UNSUPPORTED_VERSION = 35;
 
     private static final int SIGNAL_NEXT_REQUEST = 1;
 
@@ -191,6 +195,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
     private final int decodeMaxBytes;
     private final int encodeMaxBytes;
     private final CRC32C crc32c;
+    private final KafkaEventContext event;
 
     public KafkaClientProduceFactory(
         KafkaConfiguration config,
@@ -216,6 +221,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
         this.encodeMaxBytes = Math.min(config.clientProduceMaxBytes(),
                 encodePool.slotCapacity() - PRODUCE_REQUEST_RECORDS_OFFSET_MAX);
         this.crc32c = new CRC32C();
+        this.event = new KafkaEventContext(kafkaTypeId, context);
     }
 
     @Override
@@ -792,6 +798,10 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
             final int partitionId = partition.partitionId();
             final int errorCode = partition.errorCode();
+            if (errorCode == ERROR_UNSUPPORTED_VERSION)
+            {
+                event.apiVersion(Result.FAILURE, Level.ERROR, traceId);
+            }
 
             progress = partition.limit();
 
