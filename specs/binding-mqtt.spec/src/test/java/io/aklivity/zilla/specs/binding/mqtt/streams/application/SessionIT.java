@@ -48,8 +48,8 @@ public class SessionIT
 
     @Test
     @Specification({
-        "${app}/session.connect.sharding.support/client",
-        "${app}/session.connect.sharding.support/server"})
+        "${app}/session.connect.redirect.support/client",
+        "${app}/session.connect.redirect.support/server"})
     public void shouldConnectSupportSharding() throws Exception
     {
         k3po.finish();

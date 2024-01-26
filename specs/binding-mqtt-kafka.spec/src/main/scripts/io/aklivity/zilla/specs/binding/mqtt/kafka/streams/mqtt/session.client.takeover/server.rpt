@@ -22,8 +22,8 @@ accepted
 read zilla:begin.ext ${mqtt:matchBeginEx()
                              .typeId(zilla:id("mqtt"))
                              .session()
-                                .flags("SHARDING")
                                 .expiry(1)
+                                .capabilities("REDIRECT")
                                 .clientId("client-1")
                                 .build()
                              .build()}
@@ -74,8 +74,8 @@ accepted
 read zilla:begin.ext ${mqtt:matchBeginEx()
                              .typeId(zilla:id("mqtt"))
                              .session()
-                                .flags("SHARDING")
                                 .expiry(1)
+                                .capabilities("REDIRECT")
                                 .clientId("client-1")
                                 .build()
                              .build()}

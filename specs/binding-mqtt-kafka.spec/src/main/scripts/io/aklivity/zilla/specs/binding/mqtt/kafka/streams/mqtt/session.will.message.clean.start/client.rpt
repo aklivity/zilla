@@ -21,8 +21,9 @@ connect await WILL_STREAM_STARTED
 write zilla:begin.ext ${mqtt:beginEx()
                            .typeId(zilla:id("mqtt"))
                            .session()
-                              .flags("WILL", "CLEAN_START", "SHARDING")
+                              .flags("WILL", "CLEAN_START")
                               .expiry(1)
+                              .capabilities("REDIRECT")
                               .clientId("client-1")
                               .build()
                            .build()}

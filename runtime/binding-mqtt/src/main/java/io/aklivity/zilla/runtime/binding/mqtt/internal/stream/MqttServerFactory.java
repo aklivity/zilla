@@ -225,7 +225,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private static final int SUBSCRIPTION_IDS_AVAILABLE_MASK = 1 << MqttServerCapabilities.SUBSCRIPTION_IDS.value();
     private static final int SHARED_SUBSCRIPTIONS_AVAILABLE_MASK = 1 << MqttServerCapabilities.SHARED_SUBSCRIPTIONS.value();
 
-    private static final int SHARDING_FLAG_MASK = 0b0000_1000;
+    private static final int REDIRECT_MASK = 1 << MqttServerCapabilities.REDIRECT.value();
     private static final int WILL_FLAG_MASK = 0b0000_0100;
     private static final int CLEAN_START_FLAG_MASK = 0b0000_0010;
     private static final int WILL_QOS_MASK = 0b0001_1000;
@@ -2950,14 +2950,15 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 this.session = new MqttSessionStream(originId, resolved.id, 0);
 
-                final int shardingMask = protocolVersions.contains(MQTT_PROTOCOL_VERSION_5) && protocolVersions.size() == 1
-                    ? SHARDING_FLAG_MASK : 0;
+                final int redirectMask = protocolVersions.contains(MQTT_PROTOCOL_VERSION_5) && protocolVersions.size() == 1
+                    ? REDIRECT_MASK : 0;
 
                 final MqttBeginExFW.Builder builder = mqttSessionBeginExRW.wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())
                     .typeId(mqttTypeId)
                     .session(s -> s
-                        .flags(connectFlags & (CLEAN_START_FLAG_MASK | WILL_FLAG_MASK) | shardingMask)
+                        .flags(connectFlags & (CLEAN_START_FLAG_MASK | WILL_FLAG_MASK))
                         .expiry(sessionExpiry)
+                        .capabilities(redirectMask)
                         .clientId(clientId)
                     );
                 session.doSessionBegin(traceId, affinity, builder.build());

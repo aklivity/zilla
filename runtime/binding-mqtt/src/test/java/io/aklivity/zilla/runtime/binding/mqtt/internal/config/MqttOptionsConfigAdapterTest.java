@@ -59,8 +59,8 @@ public class MqttOptionsConfigAdapterTest
                 "{" +
                     "\"versions\":" +
                     "[" +
-                        "4," +
-                        "5" +
+                        "v3.1.1," +
+                        "v5" +
                     "]," +
                     "\"authorization\":" +
                     "{" +
@@ -154,8 +154,8 @@ public class MqttOptionsConfigAdapterTest
                         "]," +
                         "\"versions\":" +
                         "[" +
-                            "4," +
-                            "5" +
+                            "\"v3.1.1\"," +
+                            "\"v5\"" +
                         "]" +
                     "}"));
     }

@@ -22,6 +22,6 @@ bindings:
     kind: server
     options:
       versions:
-        - 5
+        - v5
     routes:
       - exit: app0

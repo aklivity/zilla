@@ -18,8 +18,7 @@ scope mqtt
     enum MqttSessionFlags (uint8)
     {
         CLEAN_START(1),
-        WILL(2),
-        SHARDING(3)
+        WILL(2)
     }
 
     enum MqttSubscribeFlags (uint8)
@@ -149,7 +148,8 @@ scope mqtt
             RETAIN (0),
             WILDCARD (1),
             SUBSCRIPTION_IDS (2),
-            SHARED_SUBSCRIPTIONS (3)
+            SHARED_SUBSCRIPTIONS (3),
+            REDIRECT(4)
         }
 
         struct MqttSessionBeginEx

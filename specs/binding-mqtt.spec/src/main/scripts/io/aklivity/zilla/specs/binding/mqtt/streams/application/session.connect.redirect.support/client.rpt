@@ -14,32 +14,31 @@
 # under the License.
 #
 
-accept "zilla://streams/app0"
-        option zilla:window 8192
-        option zilla:transmission "duplex"
-
-accepted
-
-read zilla:begin.ext ${mqtt:matchBeginEx()
-                             .typeId(zilla:id("mqtt"))
-                             .session()
-                                .flags("CLEAN_START", "SHARDING")
-                                .clientId("client")
-                                .build()
-                             .build()}
+connect "zilla://streams/app0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"
 
 write zilla:begin.ext ${mqtt:beginEx()
                               .typeId(zilla:id("mqtt"))
                               .session()
-                                .flags("CLEAN_START", "SHARDING")
+                                .flags("CLEAN_START")
+                                .capabilities("REDIRECT")
+                                .clientId("client")
+                                .build()
+                              .build()}
+
+read zilla:begin.ext ${mqtt:matchBeginEx()
+                              .typeId(zilla:id("mqtt"))
+                              .session()
+                                .flags("CLEAN_START")
                                 .qosMax(2)
                                 .packetSizeMax(66560)
-                                .capabilities("RETAIN", "WILDCARD", "SUBSCRIPTION_IDS", "SHARED_SUBSCRIPTIONS")
+                                .capabilities("RETAIN", "WILDCARD", "SUBSCRIPTION_IDS", "SHARED_SUBSCRIPTIONS", "REDIRECT")
                                 .clientId("client")
                                 .build()
                               .build()}
 
 connected
 
-write zilla:data.empty
-write flush
+read zilla:data.empty
+

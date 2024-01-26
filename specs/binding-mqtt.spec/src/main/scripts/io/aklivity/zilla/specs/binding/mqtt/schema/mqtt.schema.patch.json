@@ -42,9 +42,8 @@
                                 "type": "array",
                                 "items":
                                 {
-                                    "type": "integer",
-                                    "minimum": 4,
-                                    "maximum": 5
+                                    "type": "string",
+                                    "enum": [ "v3.1.1", "v5" ]
                                 }
                             },
                             "authorization":

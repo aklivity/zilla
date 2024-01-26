@@ -20,8 +20,9 @@ connect "zilla://streams/mqtt0"
 write zilla:begin.ext ${mqtt:beginEx()
                            .typeId(zilla:id("mqtt"))
                            .session()
-                              .flags("WILL", "SHARDING")
+                              .flags("WILL")
                               .expiry(1)
+                              .capabilities("REDIRECT")
                               .clientId("one")
                               .build()
                            .build()}
@@ -56,8 +57,9 @@ connect await RECEIVED_CONNACK_TRIGGER
 write zilla:begin.ext ${mqtt:beginEx()
                            .typeId(zilla:id("mqtt"))
                            .session()
-                              .flags("WILL", "SHARDING")
+                              .flags("WILL")
                               .expiry(1)
+                              .capabilities("REDIRECT")
                               .clientId("one")
                               .build()
                            .build()}

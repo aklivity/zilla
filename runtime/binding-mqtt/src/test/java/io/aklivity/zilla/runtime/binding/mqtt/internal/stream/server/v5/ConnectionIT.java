@@ -173,16 +173,6 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.protocol.version.yaml")
-    @Specification({
-        "${net}/connect.successful/client",
-        "${app}/session.connect.sharding.support/server"})
-    public void shouldConnectSupportSharding() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
     @Configuration("server.yaml")
     @Specification({
         "${net}/connect.invalid.flags/client"})
