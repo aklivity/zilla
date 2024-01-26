@@ -138,6 +138,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private static final OctetsFW EXPIRY_SIGNAL_NAME_OCTETS =
         new OctetsFW().wrap(EXPIRY_SIGNAL_NAME.value(), 0, EXPIRY_SIGNAL_NAME.length());
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(new byte[0]), 0, 0);
+    private static final String16FW EMPTY_STRING = new String16FW("");
     private static final int DATA_FLAG_INIT = 0x02;
     private static final int DATA_FLAG_FIN = 0x01;
     private static final int DATA_FLAG_COMPLETE = 0x03;
@@ -3796,7 +3797,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                     mqttSessionResetExRW.wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())
                     .typeId(mqttTypeId)
                     .reasonCode(MQTT_REASON_CODES.get(error))
-                    .reason(MQTT_REASONS.get(error))
+                    .reason(MQTT_REASONS.getOrDefault(error, EMPTY_STRING))
                     .build();
             }
             delegate.doMqttReset(traceId, mqttResetEx);
@@ -4733,7 +4734,10 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         final IntArrayList packetIds = new IntArrayList();
         UnsafeBuffer buffer = new UnsafeBuffer(BitUtil.fromHex(metadata.asString()));
         final MqttPublishOffsetMetadataFW offsetMetadata = mqttOffsetMetadataRO.wrap(buffer, 0, buffer.capacity());
-        offsetMetadata.packetIds().forEachRemaining((IntConsumer) packetIds::add);
+        if (offsetMetadata.packetIds() != null)
+        {
+            offsetMetadata.packetIds().forEachRemaining((IntConsumer) packetIds::add);
+        }
         return new PublishOffsetMetadata(offsetMetadata.producerId(), offsetMetadata.producerEpoch(), packetIds);
     }
 
@@ -5338,12 +5342,14 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         long traceId,
         long authorization,
         long affinity,
-        String16FW groupId,
+        String16FW clientId,
         String host,
         int port,
         String topic,
         Array32FW<KafkaOffsetFW> partitions)
     {
+        final String groupId = String.format("%s-%s", clientId.asString(), GROUPID_SESSION_SUFFIX);
+
         final KafkaBeginExFW kafkaBeginEx =
             kafkaBeginExRW.wrap(writeBuffer, BeginFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
                 .typeId(kafkaTypeId)
@@ -5427,10 +5433,12 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         long traceId,
         long authorization,
         long affinity,
-        String16FW groupId,
+        String16FW clientId,
         String memberId,
         String instanceId)
     {
+        final String groupId = String.format("%s-%s", clientId.asString(), GROUPID_SESSION_SUFFIX);
+
         final KafkaBeginExFW kafkaBeginEx =
             kafkaBeginExRW.wrap(writeBuffer, BeginFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
                 .typeId(kafkaTypeId)
