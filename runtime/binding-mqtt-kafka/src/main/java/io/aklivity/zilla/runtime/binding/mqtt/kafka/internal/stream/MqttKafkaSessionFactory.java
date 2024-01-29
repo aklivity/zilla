@@ -443,6 +443,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         private int sessionPadding;
         private String willId;
         private int delay;
+        private int unfetchedKafkaTopics;
 
         private MqttSessionProxy(
             MessageConsumer mqtt,
@@ -469,6 +470,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             this.partitions = new Int2ObjectHashMap<>();
             this.retainedPartitions = new Int2ObjectHashMap<>();
             this.initialisablePartitions = new ArrayList<>();
+            this.unfetchedKafkaTopics = kafkaTopics.size() + 1;
         }
 
         private void onMqttMessage(
@@ -3869,7 +3871,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         private long replyAck;
         private int replyMax;
         private int replyPad;
-        private int unfetchedKafkaTopics;
 
         private KafkaOffsetFetchStream(
             long originId,
@@ -3891,7 +3892,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             this.topic = topic;
             this.partitions = partitions;
             this.retained = retained;
-            this.unfetchedKafkaTopics = kafkaTopics.size() + 1;
         }
 
         private void doKafkaBegin(
@@ -4072,15 +4072,15 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                     }
                 });
 
-                unfetchedKafkaTopics--;
+                delegate.unfetchedKafkaTopics--;
 
-                if (unfetchedKafkaTopics == 0 && initProducer)
+                if (delegate.unfetchedKafkaTopics == 0 && initProducer)
                 {
                     final long routedId = delegate.session.routedId;
                     delegate.producerInit = new KafkaInitProducerStream(originId, routedId, delegate);
                     delegate.producerInit.doKafkaBegin(traceId, authorization, 0);
                 }
-                else if (unfetchedKafkaTopics == 0)
+                else if (delegate.unfetchedKafkaTopics == 0)
                 {
                     Flyweight mqttBeginEx = mqttSessionBeginExRW.wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())
                         .typeId(mqttTypeId)
