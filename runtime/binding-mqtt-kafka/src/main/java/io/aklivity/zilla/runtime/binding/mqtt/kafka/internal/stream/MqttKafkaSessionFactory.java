@@ -465,7 +465,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             sessionExpiryMillis = (int) SECONDS.toMillis(mqttSessionBeginEx.expiry());
             sessionFlags = mqttSessionBeginEx.flags();
-            redirect = redirectCapability(mqttSessionBeginEx.capabilities());
+            redirect = hasRedirectCapability(mqttSessionBeginEx.capabilities());
 
             if (!isSetWillFlag(sessionFlags) || isSetCleanStart(sessionFlags))
             {
@@ -2310,10 +2310,10 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         return byteAt;
     }
 
-    private static boolean redirectCapability(
+    private static boolean hasRedirectCapability(
         int flags)
     {
-        return (flags & 1 << MqttServerCapabilities.REDIRECT.value()) != 0;
+        return (flags & REDIRECT_AVAILABLE_MASK) != 0;
     }
 
     private static boolean isSetWillFlag(

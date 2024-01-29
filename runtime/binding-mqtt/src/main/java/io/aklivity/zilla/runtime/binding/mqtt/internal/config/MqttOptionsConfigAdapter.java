@@ -44,8 +44,6 @@ public class MqttOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbA
     private static final String AUTHORIZATION_CREDENTIALS_CONNECT_NAME = "connect";
     private static final String TOPICS_NAME = "topics";
     private static final String VERSIONS_NAME = "versions";
-    private static final String MQTT_VERSION_4 = "v3.1.1";
-    private static final String MQTT_VERSION_5 = "v5";
 
     private final MqttTopicConfigAdapter mqttTopic = new MqttTopicConfigAdapter();
 
@@ -110,8 +108,7 @@ public class MqttOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbA
         if (mqttOptions.versions != null)
         {
             JsonArrayBuilder versions = Json.createArrayBuilder();
-            mqttOptions.versions
-                .forEach(v -> versions.add(v == 4 ? MQTT_VERSION_4 : MQTT_VERSION_5));
+            mqttOptions.versions.forEach(v -> versions.add(v.protocolVersion()));
             object.add(VERSIONS_NAME, versions);
         }
 
@@ -166,16 +163,56 @@ public class MqttOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbA
 
         if (object.containsKey(VERSIONS_NAME))
         {
-            List<Integer> versions = object.getJsonArray(VERSIONS_NAME).stream()
-                .map(item ->
-                {
-                    String s = ((JsonString) item).getString();
-                    return s.equals(MQTT_VERSION_4) ? 4 : 5;
-                })
+            List<MqttVersion> versions = object.getJsonArray(VERSIONS_NAME).stream()
+                .map(item -> MqttVersion.protocolVersion(((JsonString) item).getString()))
                 .collect(Collectors.toList());
             mqttOptions.versions(versions);
         }
 
         return mqttOptions.build();
+    }
+
+    public enum MqttVersion
+    {
+        VERSION_3_1_1("v3.1.1", 4),
+        VERSION_5("v5", 5);
+
+        private final String protocolVersion;
+        private final int versionNumber;
+
+        MqttVersion(
+            String protocolVersion,
+            int versionNumber)
+        {
+            this.protocolVersion = protocolVersion;
+            this.versionNumber = versionNumber;
+        }
+
+        public String protocolVersion()
+        {
+            return protocolVersion;
+        }
+
+        public int versionNumber()
+        {
+            return versionNumber;
+        }
+
+        static MqttVersion protocolVersion(
+            String versionString)
+        {
+            MqttVersion version = null;
+            for (MqttVersion v : values())
+            {
+                if (v.protocolVersion().equals(versionString))
+                {
+                    version = v;
+                    break;
+                }
+            }
+            return version;
+        }
+
+
     }
 }

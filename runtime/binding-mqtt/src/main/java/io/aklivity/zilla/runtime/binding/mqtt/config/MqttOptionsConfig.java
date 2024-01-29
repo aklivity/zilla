@@ -18,13 +18,14 @@ package io.aklivity.zilla.runtime.binding.mqtt.config;
 import java.util.List;
 import java.util.function.Function;
 
+import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttOptionsConfigAdapter.MqttVersion;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public class MqttOptionsConfig extends OptionsConfig
 {
     public final MqttAuthorizationConfig authorization;
     public final List<MqttTopicConfig> topics;
-    public final List<Integer> versions;
+    public final List<MqttVersion> versions;
 
     public static MqttOptionsConfigBuilder<MqttOptionsConfig> builder()
     {
@@ -40,7 +41,7 @@ public class MqttOptionsConfig extends OptionsConfig
     public MqttOptionsConfig(
         MqttAuthorizationConfig authorization,
         List<MqttTopicConfig> topics,
-        List<Integer> versions)
+        List<MqttVersion> versions)
     {
         this.authorization = authorization;
         this.topics = topics;

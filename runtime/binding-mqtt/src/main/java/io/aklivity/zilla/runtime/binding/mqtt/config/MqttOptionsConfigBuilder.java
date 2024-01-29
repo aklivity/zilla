@@ -19,6 +19,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Function;
 
+import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttOptionsConfigAdapter.MqttVersion;
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
@@ -28,7 +29,7 @@ public class MqttOptionsConfigBuilder<T> extends ConfigBuilder<T, MqttOptionsCon
 
     private MqttAuthorizationConfig authorization;
     private List<MqttTopicConfig> topics;
-    private List<Integer> versions;
+    private List<MqttVersion> versions;
 
     MqttOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
@@ -67,7 +68,7 @@ public class MqttOptionsConfigBuilder<T> extends ConfigBuilder<T, MqttOptionsCon
     }
 
     public MqttOptionsConfigBuilder<T> versions(
-        List<Integer> versions)
+        List<MqttVersion> versions)
     {
         if (versions == null)
         {
@@ -78,7 +79,7 @@ public class MqttOptionsConfigBuilder<T> extends ConfigBuilder<T, MqttOptionsCon
     }
 
     public MqttOptionsConfigBuilder<T> version(
-        Integer version)
+        MqttVersion version)
     {
         if (this.versions == null)
         {

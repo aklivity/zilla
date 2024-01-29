@@ -38,6 +38,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.config.MqttCredentialsConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttPatternConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttTopicConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttOptionsConfigAdapter.MqttVersion;
 import io.aklivity.zilla.runtime.engine.test.internal.validator.config.TestValidatorConfig;
 
 public class MqttOptionsConfigAdapterTest
@@ -103,10 +104,10 @@ public class MqttOptionsConfigAdapterTest
         assertThat(topic.content, instanceOf(TestValidatorConfig.class));
         assertThat(topic.content.type, equalTo("test"));
 
-        int version1 = options.versions.get(0);
-        assertThat(version1, equalTo(4));
-        int version2 = options.versions.get(1);
-        assertThat(version2, equalTo(5));
+        MqttVersion version1 = options.versions.get(0);
+        assertThat(version1.versionNumber(), equalTo(4));
+        MqttVersion version2 = options.versions.get(1);
+        assertThat(version2.versionNumber(), equalTo(5));
     }
 
     @Test
@@ -114,9 +115,9 @@ public class MqttOptionsConfigAdapterTest
     {
         List<MqttTopicConfig> topics = new ArrayList<>();
         topics.add(new MqttTopicConfig("sensor/one", new TestValidatorConfig()));
-        List<Integer> versions = new ArrayList<>();
-        versions.add(4);
-        versions.add(5);
+        List<MqttVersion> versions = new ArrayList<>();
+        versions.add(MqttVersion.VERSION_3_1_1);
+        versions.add(MqttVersion.VERSION_5);
 
         MqttOptionsConfig options = new MqttOptionsConfig(
                 new MqttAuthorizationConfig(
