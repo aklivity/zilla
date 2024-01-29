@@ -45,16 +45,14 @@ public class HttpEventContext
 
     public void accessControlFailure(
         long traceId,
-        long routedId,
-        long initialId)
+        long routedId)
     {
         HttpEventFW event = httpEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .accessControlFailure(e -> e
                 .level(l -> l.set(Level.WARNING))
                 .traceId(traceId)
-                .routedId(routedId)
-                .initialId(initialId)
+                .bindingId(routedId)
             )
             .build();
         System.out.println(event); // TODO: Ati
@@ -65,7 +63,6 @@ public class HttpEventContext
         Result result,
         long traceId,
         long routedId,
-        long initialId,
         String identity)
     {
         Level level = result == Result.FAILURE ? Level.WARNING : Level.INFO;
@@ -74,8 +71,7 @@ public class HttpEventContext
             .authorization(e -> e
                 .level(l -> l.set(level))
                 .traceId(traceId)
-                .routedId(routedId)
-                .initialId(initialId)
+                .bindingId(routedId)
                 .result(r -> r.set(result))
                 .identity(identity)
             )

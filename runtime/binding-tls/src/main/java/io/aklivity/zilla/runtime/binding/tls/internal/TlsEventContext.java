@@ -22,7 +22,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.tls.internal.types.event.Level;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.event.ProxyEventFW;
-import io.aklivity.zilla.runtime.binding.tls.internal.types.event.Result;
+import io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsError;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
@@ -44,7 +44,7 @@ public class TlsEventContext
     }
 
     public void tlsFailure(
-        Result result,
+        TlsError error,
         long traceId)
     {
         ProxyEventFW event = proxyEventRW
@@ -52,7 +52,7 @@ public class TlsEventContext
             .tlsFailure(e -> e
                 .level(l -> l.set(Level.ERROR))
                 .traceId(traceId)
-                .result(r -> r.set(result))
+                .error(r -> r.set(error))
             )
             .build();
         System.out.println(event); // TODO: Ati

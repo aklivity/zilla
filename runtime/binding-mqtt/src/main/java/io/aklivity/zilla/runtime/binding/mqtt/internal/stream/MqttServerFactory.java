@@ -2929,7 +2929,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                         sessionAuth = guard.reauthorize(initialId, credentialsMatch);
                         event.authorization(
                             sessionAuth == 0 ? Result.FAILURE : Result.SUCCESS,
-                            traceId, routedId, initialId, guard.identity(sessionId));
+                            traceId, routedId, guard.identity(sessionId));
                     }
                 }
 

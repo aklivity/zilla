@@ -119,8 +119,7 @@ scope core
 
         struct BindingEvent extends Event
         {
-            int64 routedId = 0;
-            int64 initialId = 0;
+            int64 bindingId = 0;
         }
 
         struct CatalogEvent extends Event

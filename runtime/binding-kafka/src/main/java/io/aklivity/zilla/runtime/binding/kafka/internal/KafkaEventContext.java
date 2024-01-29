@@ -46,8 +46,7 @@ public class KafkaEventContext
     public void authorization(
         Result result,
         long traceId,
-        long routedId,
-        long initialId)
+        long routedId)
     {
         Level level = result == Result.FAILURE ? Level.WARNING : Level.INFO;
         KafkaEventFW event = kafkaEventRW
@@ -55,8 +54,7 @@ public class KafkaEventContext
             .authorization(e -> e
                 .level(l -> l.set(level))
                 .traceId(traceId)
-                .routedId(routedId)
-                .initialId(initialId)
+                .bindingId(routedId)
                 .result(r -> r.set(result))
             )
             .build();

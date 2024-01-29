@@ -1033,7 +1033,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 }
                 else if (!isCorsRequestAllowed(server.binding, headers))
                 {
-                    event.accessControlFailure(traceId, server.routedId, server.initialId);
+                    event.accessControlFailure(traceId, server.routedId);
                     server.onDecodeHeadersError(traceId, authorization, response403);
                     server.decoder = decodeIgnore;
                 }
@@ -1064,7 +1064,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                                 exchangeAuth = guard.reauthorize(server.initialId, credentialsMatch);
                                 event.authorization(
                                     exchangeAuth == 0 ? Result.FAILURE : Result.SUCCESS,
-                                    traceId, server.routedId, server.initialId, guard.identity(authorization));
+                                    traceId, server.routedId, guard.identity(authorization));
                             }
                         }
 
@@ -4853,7 +4853,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 }
                 else if (!isCorsRequestAllowed(binding, headers))
                 {
-                    event.accessControlFailure(traceId, routedId, initialId);
+                    event.accessControlFailure(traceId, routedId);
                     doEncodeHeaders(traceId, authorization, streamId, headers403, true);
                 }
                 else
@@ -4888,7 +4888,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                                 exchangeAuth = guard.reauthorize(initialId, credentialsMatch);
                                 event.authorization(
                                     exchangeAuth == 0 ? Result.FAILURE : Result.SUCCESS,
-                                    traceId, routedId, initialId, guard.identity(authorization));
+                                    traceId, routedId, guard.identity(authorization));
                             }
                         }
 

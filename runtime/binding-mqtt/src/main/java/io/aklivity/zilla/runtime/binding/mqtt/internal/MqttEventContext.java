@@ -47,7 +47,6 @@ public class MqttEventContext
         Result result,
         long traceId,
         long routedId,
-        long initialId,
         String identity)
     {
         Level level = result == Result.FAILURE ? Level.WARNING : Level.INFO;
@@ -56,8 +55,7 @@ public class MqttEventContext
             .authorization(e -> e
                 .level(l -> l.set(level))
                 .traceId(traceId)
-                .routedId(routedId)
-                .initialId(initialId)
+                .bindingId(routedId)
                 .result(r -> r.set(result))
                 .identity(identity)
             )

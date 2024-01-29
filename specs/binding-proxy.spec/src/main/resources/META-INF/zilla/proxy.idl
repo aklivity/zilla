@@ -136,7 +136,7 @@ scope proxy
             TLS_FAILURE (2)
         }
 
-        enum Result (uint8)
+        enum TlsError (uint8)
         {
             HANDSHAKE_TIMEOUT (1),
             UNKNOWN_ERROR (2)
@@ -149,7 +149,7 @@ scope proxy
 
         struct ProxyTlsFailure extends core::event::BindingEvent
         {
-            Result result;
+            TlsError error;
         }
 
         union ProxyEvent switch (ProxyEventType)
