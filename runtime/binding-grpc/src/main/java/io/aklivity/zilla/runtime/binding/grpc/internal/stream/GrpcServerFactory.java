@@ -27,7 +27,6 @@ import java.util.function.Function;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 
-import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
@@ -64,6 +63,7 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
+import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
@@ -263,7 +263,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        GrpcBindingConfig grpcBinding = new GrpcBindingConfig(binding, metadataBuffer, supplyCatalog);
+        GrpcBindingConfig grpcBinding = new GrpcBindingConfig(binding, metadataBuffer, binding.resolveId, supplyCatalog);
         bindings.put(binding.id, grpcBinding);
     }
 
