@@ -549,7 +549,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
             (maxEncodeableBytes > encodePool.slotCapacity() ||
                 client.producerId != producerId ||
                 client.producerEpoch != producerEpoch ||
-                sequence <= client.sequence))
+                sequence <= client.sequence && sequence != RECORD_BATCH_BASE_SEQUENCE_NONE))
         {
             client.doEncodeRequestIfNecessary(traceId, budgetId);
         }

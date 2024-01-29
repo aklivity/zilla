@@ -77,7 +77,7 @@ read zilla:begin.ext ${proxy:matchBeginEx()
 
 connected
 
-read 125
+read 140
      0s
      3s
      (int:requestId)
@@ -89,9 +89,9 @@ read 125
      4s "test"
      1
      0
-     80                                 # record set size
+     95                                 # record set size
      0L                                 # first offset
-     68                                 # length
+     83                                 # length
      -1
      [0x02]
      [0..4]
@@ -103,14 +103,18 @@ read 125
      1s
      0
      1                                  # records
-     ${kafka:varint(18)}
+     ${kafka:varint(33)}
      [0x00]
      ${kafka:varint(0)}
      ${kafka:varint(0)}
-     ${kafka:varint(-1)}                # key
-     ${kafka:varint(12)}                # value
+     ${kafka:varint(-1)}
+     ${kafka:varint(12)}
      "Hello, world"
-     ${kafka:varint(0)}                 # headers
+     ${kafka:varint(1)}                 # headers
+       ${kafka:varint(7)}                   # key size
+       "header1"                            # key bytes
+       ${kafka:varint(6)}                   # value size
+       "value1"                             # value bytes
 
 write 44
       ${requestId}
@@ -123,7 +127,7 @@ write 44
       0L                                # log append time
       0                                 # throttle
 
-read 125
+read 140
      0s
      3s
      (int:requestId)
@@ -135,9 +139,9 @@ read 125
      4s "test"
      1
      0
-     80                                 # record set size
+     95                                 # record set size
      0L                                 # first offset
-     68                                 # length
+     83                                 # length
      -1
      [0x02]
      [0..4]
@@ -149,14 +153,18 @@ read 125
      2s
      0
      1                                  # records
-     ${kafka:varint(18)}
+     ${kafka:varint(33)}
      [0x00]
      ${kafka:varint(0)}
      ${kafka:varint(0)}
-     ${kafka:varint(-1)}                # key
-     ${kafka:varint(12)}                # value
+     ${kafka:varint(-1)}
+     ${kafka:varint(12)}
      "Hello, again"
-     ${kafka:varint(0)}                 # headers
+     ${kafka:varint(1)}                 # headers
+       ${kafka:varint(7)}                   # key size
+       "header1"                            # key bytes
+       ${kafka:varint(6)}                   # value size
+       "value1"                             # value bytes
 
 write 44
       ${requestId}
