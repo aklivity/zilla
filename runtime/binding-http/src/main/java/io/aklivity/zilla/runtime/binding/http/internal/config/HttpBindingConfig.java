@@ -239,13 +239,8 @@ public final class HttpBindingConfig
                                 }
                             }
                         }
-                        ValidatorHandler contentValidator = null;
-                        if (response0.content != null)
-                        {
-                            contentValidator = supplyValidator.apply(response0.content);
-                        }
                         HttpRequestType.Response response = new HttpRequestType.Response(response0.status, response0.contentType,
-                            responseHeaderValidators, contentValidator);
+                            responseHeaderValidators, response0.content);
                         responses.add(response);
                     }
                 }

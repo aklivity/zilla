@@ -2927,7 +2927,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             boolean valid = true;
             if (exchange.response != null && exchange.response.content != null)
             {
-                valid = exchange.response.content.validate(buffer, offset, limit - offset, ValueConsumer.NOP);
+                valid = exchange.validateResponseContent(buffer, offset, limit - offset);
             }
             if (valid)
             {
@@ -3363,7 +3363,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                             boolean valid = true;
                             if (exchange.response != null && exchange.response.content != null)
                             {
-                                valid = exchange.response.content.validate(payload, 0, payloadLength, ValueConsumer.NOP);
+                                valid = exchange.validateResponseContent(payload, 0, payloadLength);
                             }
                             if (valid)
                             {
@@ -4515,6 +4515,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         private final HttpBindingConfig binding;
         private HttpRequestType requestType;
         private HttpRequestType.Response response;
+        private ValidatorHandler contentType;
 
         private HttpExchange(
             HttpClient client,
@@ -5070,6 +5071,9 @@ public final class HttpClientFactory implements HttpStreamFactory
             HttpBeginExFW beginEx)
         {
             this.response = binding.resolveResponse(requestType, beginEx);
+            this.contentType = response != null && response.content != null
+                ? supplyValidator.apply(response.content)
+                : null;
         }
 
         public boolean validateResponseHeaders(
@@ -5093,6 +5097,15 @@ public final class HttpClientFactory implements HttpStreamFactory
                 });
             }
             return valid.value;
+        }
+
+        private boolean validateResponseContent(
+            DirectBuffer buffer,
+            int index,
+            int length)
+        {
+            return contentType == null ||
+                contentType.validate(buffer, index, length, ValueConsumer.NOP);
         }
     }
 
