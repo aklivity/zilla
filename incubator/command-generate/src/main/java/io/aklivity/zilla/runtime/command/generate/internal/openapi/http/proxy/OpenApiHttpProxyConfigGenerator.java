@@ -476,13 +476,13 @@ public class OpenApiHttpProxyConfigGenerator extends OpenApiConfigGenerator
             for (Map.Entry<String, Header> header : responses.headers.entrySet())
             {
                 String name = header.getKey();
-                ValidatorConfig validator = validators.get(header.getValue().schema.type);
-                if (validator != null)
+                ModelConfig model = models.get(header.getValue().schema.type);
+                if (model != null)
                 {
                     response
                         .header()
                             .name(name)
-                            .validator(validator)
+                            .model(model)
                             .build();
                 }
             }

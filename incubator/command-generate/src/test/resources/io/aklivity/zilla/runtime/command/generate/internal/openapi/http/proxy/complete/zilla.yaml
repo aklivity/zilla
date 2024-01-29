@@ -113,7 +113,7 @@ bindings:
             x-pages: integer
             x-next: string
           content:
-            type: json
+            model: json
             catalog:
               catalog0:
               - subject: Items
@@ -124,7 +124,7 @@ bindings:
           content-type:
           - application/json
           content:
-            type: json
+            model: json
             catalog:
               catalog0:
               - subject: Item

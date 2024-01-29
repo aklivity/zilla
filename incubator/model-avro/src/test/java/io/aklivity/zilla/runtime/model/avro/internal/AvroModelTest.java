@@ -68,7 +68,7 @@ public class AvroModelTest
     @Test
     public void shouldVerifyValidAvroEvent()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test",
             TestCatalogOptionsConfig.builder()
                 .id(9)
                 .schema(SCHEMA)
@@ -87,7 +87,7 @@ public class AvroModelTest
     @Test
     public void shouldWriteValidAvroEvent()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test",
             TestCatalogOptionsConfig.builder()
                 .id(1)
                 .schema(SCHEMA)
@@ -106,7 +106,7 @@ public class AvroModelTest
     @Test
     public void shouldVerifyInvalidAvroEvent()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test",
             TestCatalogOptionsConfig.builder()
                 .id(9)
                 .schema(SCHEMA)
@@ -124,7 +124,7 @@ public class AvroModelTest
     @Test
     public void shouldReadAvroEventExpectJson()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test",
             TestCatalogOptionsConfig.builder()
                 .id(9)
                 .schema(SCHEMA)
@@ -167,7 +167,7 @@ public class AvroModelTest
     @Test
     public void shouldWriteJsonEventExpectAvro()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test",
             TestCatalogOptionsConfig.builder()
                 .id(9)
                 .schema(SCHEMA)
@@ -209,7 +209,7 @@ public class AvroModelTest
     @Test
     public void shouldVerifyPaddingLength()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test",
             TestCatalogOptionsConfig.builder()
                 .id(9)
                 .schema(SCHEMA)

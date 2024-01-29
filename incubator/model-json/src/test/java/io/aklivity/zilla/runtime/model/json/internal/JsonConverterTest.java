@@ -89,7 +89,7 @@ public class JsonConverterTest
     @Test
     public void shouldVerifyValidJsonObject()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test","test0", "test",
+        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test",
             TestCatalogOptionsConfig.builder()
                 .id(9)
                 .schema(OBJECT_SCHEMA)
@@ -112,7 +112,7 @@ public class JsonConverterTest
     @Test
     public void shouldVerifyValidJsonArray()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test","test0", "test",
+        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test",
             TestCatalogOptionsConfig.builder()
                 .id(9)
                 .schema(ARRAY_SCHEMA)
@@ -138,7 +138,7 @@ public class JsonConverterTest
     @Test
     public void shouldVerifyInvalidJsonObject()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test","test0", "test",
+        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test",
             TestCatalogOptionsConfig.builder()
                 .id(9)
                 .schema(OBJECT_SCHEMA)
@@ -166,7 +166,7 @@ public class JsonConverterTest
     @Test
     public void shouldWriteValidJsonData()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test","test0", "test",
+        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test",
             TestCatalogOptionsConfig.builder()
                 .id(9)
                 .schema(OBJECT_SCHEMA)
@@ -190,7 +190,7 @@ public class JsonConverterTest
     @Test
     public void shouldVerifyInvalidJsonArray()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test","test0", "test",
+        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test",
             TestCatalogOptionsConfig.builder()
                 .id(9)
                 .schema(ARRAY_SCHEMA)

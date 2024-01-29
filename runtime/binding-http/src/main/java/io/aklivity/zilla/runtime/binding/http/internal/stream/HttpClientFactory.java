@@ -44,12 +44,11 @@ import java.util.Map;
 import java.util.SortedSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
-import java.util.function.ToLongFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -118,9 +117,9 @@ import io.aklivity.zilla.runtime.engine.budget.BudgetCreditor;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
-import io.aklivity.zilla.runtime.engine.validator.Validator;
-
+import io.aklivity.zilla.runtime.engine.config.ModelConfig;
+import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
+import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 
 public final class HttpClientFactory implements HttpStreamFactory
 {
@@ -290,7 +289,7 @@ public final class HttpClientFactory implements HttpStreamFactory
     private final HpackHeaderBlockFW headerBlockRO = new HpackHeaderBlockFW();
     private final MutableInteger payloadRemaining = new MutableInteger(0);
 
-    private final BiFunction<ValidatorConfig, ToLongFunction<String>, Validator> createValidator;
+    private final Function<ModelConfig, ValidatorHandler> supplyValidator;
 
     private final EnumMap<Http2FrameType, HttpClientDecoder> decodersByFrameType;
     {
@@ -377,7 +376,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         this.maximumPushPromiseListSize = config.maxPushPromiseListSize();
         this.decodeMax = bufferPool.slotCapacity();
         this.encodeMax = bufferPool.slotCapacity();
-        this.createValidator = context::createValidator;
+        this.supplyValidator = context::supplyValidator;
 
         final byte[] settingsPayload = new byte[12];
         http2SettingsRW.wrap(frameBuffer, 0, frameBuffer.capacity())
@@ -398,7 +397,7 @@ public final class HttpClientFactory implements HttpStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        HttpBindingConfig httpBinding = new HttpBindingConfig(binding, createValidator);
+        HttpBindingConfig httpBinding = new HttpBindingConfig(binding, supplyValidator);
         bindings.put(binding.id, httpBinding);
     }
 
@@ -2928,7 +2927,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             boolean valid = true;
             if (exchange.response != null && exchange.response.content != null)
             {
-                valid = exchange.response.content.read(buffer, offset, limit - offset);
+                valid = exchange.response.content.validate(buffer, offset, limit - offset, ValueConsumer.NOP);
             }
             if (valid)
             {
@@ -3364,7 +3363,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                             boolean valid = true;
                             if (exchange.response != null && exchange.response.content != null)
                             {
-                                valid = exchange.response.content.read(payload, 0, payloadLength);
+                                valid = exchange.response.content.validate(payload, 0, payloadLength, ValueConsumer.NOP);
                             }
                             if (valid)
                             {
@@ -5076,7 +5075,24 @@ public final class HttpClientFactory implements HttpStreamFactory
         public boolean validateResponseHeaders(
             HttpBeginExFW beginEx)
         {
-            return binding.validateResponseHeaders(response, beginEx);
+            MutableBoolean valid = new MutableBoolean(true);
+            if (response != null && response.headers != null)
+            {
+                beginEx.headers().forEach(header ->
+                {
+                    if (valid.value)
+                    {
+                        ValidatorHandler validator = response.headers.get(header.name());
+                        if (validator != null)
+                        {
+                            String16FW value = header.value();
+                            valid.value &=
+                                validator.validate(value.value(), value.offset(), value.length(), ValueConsumer.NOP);
+                        }
+                    }
+                });
+            }
+            return valid.value;
         }
     }
 
