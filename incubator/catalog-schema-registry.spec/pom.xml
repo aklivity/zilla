@@ -68,7 +68,7 @@
         <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <scopeNames>core schemaregistry</scopeNames>
+          <scopeNames>core schema_registry</scopeNames>
           <packageName>io.aklivity.zilla.specs.catalog.schema.registry.internal.types</packageName>
         </configuration>
         <executions>
