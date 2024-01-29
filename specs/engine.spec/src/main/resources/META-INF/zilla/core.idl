@@ -125,6 +125,7 @@ scope core
 
         struct CatalogEvent extends Event
         {
+            string8 catalogId = null;
         }
     }
 }
