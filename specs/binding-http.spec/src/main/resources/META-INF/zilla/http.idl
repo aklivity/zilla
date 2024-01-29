@@ -55,7 +55,7 @@ scope http
         enum HttpEventType (uint8)
         {
             AUTHORIZATION (1),
-            ACCESS_CONTROL (2)
+            ACCESS_CONTROL_FAILURE (2)
         }
 
         enum Result (uint8)
@@ -64,20 +64,16 @@ scope http
             FAILURE (1)
         }
 
-        struct HttpBindingEvent extends core::event::BindingEvent
+        struct HttpAuthorizationEvent extends core::event::BindingEvent
         {
             Result result;
-        }
-
-        struct HttpAuthorizationEvent extends HttpBindingEvent
-        {
             string8 identity;
         }
 
         union HttpEvent switch (HttpEventType)
         {
-            case ACCESS_CONTROL: HttpBindingEvent accessControl;
             case AUTHORIZATION: HttpAuthorizationEvent authorization;
+            case ACCESS_CONTROL_FAILURE: core::event::BindingEvent accessControlFailure;
         }
     }
 }

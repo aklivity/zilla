@@ -43,14 +43,14 @@ public class TlsEventContext
         this.logEvent = context::logEvent;
     }
 
-    public void tls(
+    public void tlsFailure(
         Result result,
         Level level,
         long traceId)
     {
         ProxyEventFW event = proxyEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
-            .tls(e -> e
+            .tlsFailure(e -> e
                 .level(l -> l.set(level))
                 .traceId(traceId)
                 .result(r -> r.set(result))

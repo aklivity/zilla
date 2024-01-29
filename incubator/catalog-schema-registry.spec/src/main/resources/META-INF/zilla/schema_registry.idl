@@ -18,21 +18,10 @@ scope schema_registry
     {
         enum SchemaRegistryEventType (uint8)
         {
-            REMOTE_ACCESS (1)
+            REMOTE_ACCESS_FAILURE (1)
         }
 
-        enum Result (uint8)
-        {
-            SUCCESS (0),
-            FAILURE (1)
-        }
-
-        struct SchemaRegistryCatalogEvent extends core::event::CatalogEvent
-        {
-            Result result;
-        }
-
-        struct SchemaRegistryRemoteAccessEvent extends SchemaRegistryCatalogEvent
+        struct SchemaRegistryRemoteAccessFailure extends core::event::CatalogEvent
         {
             string16 url;
             string8 method;
@@ -41,7 +30,7 @@ scope schema_registry
 
         union SchemaRegistryEvent switch (SchemaRegistryEventType)
         {
-            case REMOTE_ACCESS: SchemaRegistryRemoteAccessEvent remoteAccess;
+            case REMOTE_ACCESS_FAILURE: SchemaRegistryRemoteAccessFailure remoteAccessFailure;
         }
     }
 }

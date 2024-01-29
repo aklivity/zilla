@@ -533,7 +533,7 @@ public final class TlsServerFactory implements TlsStreamFactory
         }
         catch (SSLException | RuntimeException ex)
         {
-            event.tls(Result.FAILURE, Level.ERROR, traceId);
+            event.tlsFailure(Result.UNKNOWN_ERROR, Level.ERROR, traceId);
             server.cleanupNet(traceId);
             server.decoder = decodeIgnoreAll;
         }
@@ -652,7 +652,7 @@ public final class TlsServerFactory implements TlsStreamFactory
                     }
                     catch (SSLException | RuntimeException ex)
                     {
-                        event.tls(Result.FAILURE, Level.ERROR, traceId);
+                        event.tlsFailure(Result.UNKNOWN_ERROR, Level.ERROR, traceId);
                         server.cleanupNet(traceId);
                         server.decoder = decodeIgnoreAll;
                     }
@@ -834,7 +834,7 @@ public final class TlsServerFactory implements TlsStreamFactory
             }
             catch (SSLException | RuntimeException ex)
             {
-                event.tls(Result.FAILURE, Level.ERROR, traceId);
+                event.tlsFailure(Result.UNKNOWN_ERROR, Level.ERROR, traceId);
                 server.doEncodeWrapIfNecessary(traceId, budgetId);
                 server.cleanupNet(traceId);
                 server.decoder = decodeIgnoreAll;
@@ -1313,7 +1313,7 @@ public final class TlsServerFactory implements TlsStreamFactory
                 handshakeTimeoutFutureId = NO_CANCEL_ID;
 
                 cleanupNet(traceId);
-                event.tls(Result.HANDSHAKE_TIMEOUT, Level.ERROR, traceId);
+                event.tlsFailure(Result.HANDSHAKE_TIMEOUT, Level.ERROR, traceId);
                 decoder = decodeIgnoreAll;
             }
         }
@@ -1690,7 +1690,7 @@ public final class TlsServerFactory implements TlsStreamFactory
             }
             catch (SSLException | RuntimeException ex)
             {
-                event.tls(Result.FAILURE, Level.ERROR, traceId);
+                event.tlsFailure(Result.UNKNOWN_ERROR, Level.ERROR, traceId);
                 cleanupNet(traceId);
             }
         }

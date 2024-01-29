@@ -43,8 +43,7 @@ public class HttpEventContext
         this.logEvent = context::logEvent;
     }
 
-    public void accessControl(
-        Result result,
+    public void accessControlFailure(
         Level level,
         long traceId,
         long routedId,
@@ -52,12 +51,11 @@ public class HttpEventContext
     {
         HttpEventFW event = httpEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
-            .accessControl(e -> e
+            .accessControlFailure(e -> e
                 .level(l -> l.set(level))
                 .traceId(traceId)
                 .routedId(routedId)
                 .initialId(initialId)
-                .result(r -> r.set(result))
             )
             .build();
         System.out.println(event); // TODO: Ati

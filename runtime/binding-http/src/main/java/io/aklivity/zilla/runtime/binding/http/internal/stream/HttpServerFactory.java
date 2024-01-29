@@ -1034,7 +1034,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 }
                 else if (!isCorsRequestAllowed(server.binding, headers))
                 {
-                    event.accessControl(Result.FAILURE, Level.WARNING, traceId, server.routedId, server.initialId);
+                    event.accessControlFailure(Level.WARNING, traceId, server.routedId, server.initialId);
                     server.onDecodeHeadersError(traceId, authorization, response403);
                     server.decoder = decodeIgnore;
                 }
@@ -4855,7 +4855,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 }
                 else if (!isCorsRequestAllowed(binding, headers))
                 {
-                    event.accessControl(Result.FAILURE, Level.WARNING, traceId, routedId, initialId);
+                    event.accessControlFailure(Level.WARNING, traceId, routedId, initialId);
                     doEncodeHeaders(traceId, authorization, streamId, headers403, true);
                 }
                 else

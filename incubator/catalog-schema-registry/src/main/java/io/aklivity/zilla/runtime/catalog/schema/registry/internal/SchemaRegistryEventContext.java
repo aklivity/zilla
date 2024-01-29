@@ -20,7 +20,6 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.types.event.Level;
-import io.aklivity.zilla.runtime.catalog.schema.registry.internal.types.event.Result;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.types.event.SchemaRegistryEventFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -41,8 +40,7 @@ public class SchemaRegistryEventContext
         this.logEvent = context::logEvent;
     }
 
-    public void remoteAccess(
-        Result result,
+    public void remoteAccessFailure(
         Level level,
         String url,
         String method,
@@ -50,9 +48,8 @@ public class SchemaRegistryEventContext
     {
         SchemaRegistryEventFW event = schemaRegistryEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
-            .remoteAccess(e -> e
+            .remoteAccessFailure(e -> e
                 .level(l -> l.set(level))
-                .result(r -> r.set(result))
                 .url(url)
                 .method(method)
                 .status((short) status)

@@ -22,7 +22,6 @@ import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.tcp.internal.types.event.Level;
 import io.aklivity.zilla.runtime.binding.tcp.internal.types.event.ProxyEventFW;
-import io.aklivity.zilla.runtime.binding.tcp.internal.types.event.Result;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
@@ -43,8 +42,7 @@ public class TcpEventContext
         this.logEvent = context::logEvent;
     }
 
-    public void remoteAccess(
-        Result result,
+    public void remoteAccessFailure(
         Level level,
         long traceId,
         long routedId,
@@ -53,12 +51,11 @@ public class TcpEventContext
     {
         ProxyEventFW event = proxyEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
-            .remoteAccess(e -> e
+            .remoteAccessFailure(e -> e
                 .level(l -> l.set(level))
                 .traceId(traceId)
                 .routedId(routedId)
                 .initialId(initialId)
-                .result(r -> r.set(result))
                 .address(address)
             )
             .build();

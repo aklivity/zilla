@@ -64,17 +64,15 @@ public class KafkaEventContext
         logEvent.accept(kafkaTypeId, event.buffer(), event.offset(), event.limit());
     }
 
-    public void apiVersion(
-        Result result,
+    public void apiVersionRejection(
         Level level,
         long traceId)
     {
         KafkaEventFW event = kafkaEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
-            .apiVersion(e -> e
+            .apiVersionRejection(e -> e
                 .level(l -> l.set(level))
                 .traceId(traceId)
-                .result(r -> r.set(result))
             )
             .build();
         System.out.println(event); // TODO: Ati

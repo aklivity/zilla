@@ -622,7 +622,7 @@ public final class TlsClientFactory implements TlsStreamFactory
                     }
                     catch (SSLException ex)
                     {
-                        event.tls(Result.FAILURE, Level.ERROR, traceId);
+                        event.tlsFailure(Result.UNKNOWN_ERROR, Level.ERROR, traceId);
                         client.cleanupNet(traceId);
                         client.decoder = decodeIgnoreAll;
                     }
@@ -786,7 +786,7 @@ public final class TlsClientFactory implements TlsStreamFactory
             }
             catch (SSLException ex)
             {
-                event.tls(Result.FAILURE, Level.ERROR, traceId);
+                event.tlsFailure(Result.UNKNOWN_ERROR, Level.ERROR, traceId);
                 client.cleanupNet(traceId);
                 client.decoder = decodeIgnoreAll;
             }
@@ -1629,7 +1629,7 @@ public final class TlsClientFactory implements TlsStreamFactory
                     final long traceId = signal.traceId();
 
                     cleanupNet(traceId);
-                    event.tls(Result.HANDSHAKE_TIMEOUT, Level.ERROR, traceId);
+                    event.tlsFailure(Result.HANDSHAKE_TIMEOUT, Level.ERROR, traceId);
                     decoder = decodeIgnoreAll;
                 }
             }
@@ -1650,7 +1650,7 @@ public final class TlsClientFactory implements TlsStreamFactory
                 }
                 catch (SSLException ex)
                 {
-                    event.tls(Result.FAILURE, Level.ERROR, traceId);
+                    event.tlsFailure(Result.UNKNOWN_ERROR, Level.ERROR, traceId);
                     cleanupNet(traceId);
                 }
 
@@ -2033,7 +2033,7 @@ public final class TlsClientFactory implements TlsStreamFactory
                 }
                 catch (SSLException ex)
                 {
-                    event.tls(Result.FAILURE, Level.ERROR, traceId);
+                    event.tlsFailure(Result.UNKNOWN_ERROR, Level.ERROR, traceId);
                     cleanupNet(traceId);
                 }
             }

@@ -132,31 +132,30 @@ scope proxy
     {
         enum ProxyEventType (uint8)
         {
-            REMOTE_ACCESS (1),
-            TLS (2)
+            REMOTE_ACCESS_FAILURE (1),
+            TLS_FAILURE (2)
         }
 
         enum Result (uint8)
         {
-            SUCCESS (0),
-            FAILURE (1),
-            HANDSHAKE_TIMEOUT (2)
+            HANDSHAKE_TIMEOUT (1),
+            UNKNOWN_ERROR (2)
         }
 
-        struct ProxyBindingEvent extends core::event::BindingEvent
-        {
-            Result result;
-        }
-
-        struct ProxyRemoteAccessEvent extends ProxyBindingEvent
+        struct ProxyRemoteAccessFailure extends core::event::BindingEvent
         {
             string16 address;
         }
 
+        struct ProxyTlsFailure extends core::event::BindingEvent
+        {
+            Result result;
+        }
+
         union ProxyEvent switch (ProxyEventType)
         {
-            case REMOTE_ACCESS: ProxyRemoteAccessEvent remoteAccess;
-            case TLS: ProxyBindingEvent tls;
+            case REMOTE_ACCESS_FAILURE: ProxyRemoteAccessFailure remoteAccessFailure;
+            case TLS_FAILURE: ProxyTlsFailure tlsFailure;
         }
     }
 }

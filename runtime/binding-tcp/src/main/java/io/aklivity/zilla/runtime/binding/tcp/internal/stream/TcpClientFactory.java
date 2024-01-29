@@ -49,7 +49,6 @@ import io.aklivity.zilla.runtime.binding.tcp.internal.config.TcpBindingConfig;
 import io.aklivity.zilla.runtime.binding.tcp.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.tcp.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.tcp.internal.types.event.Level;
-import io.aklivity.zilla.runtime.binding.tcp.internal.types.event.Result;
 import io.aklivity.zilla.runtime.binding.tcp.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.tcp.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.tcp.internal.types.stream.DataFW;
@@ -321,7 +320,7 @@ public class TcpClientFactory implements TcpStreamFactory
         {
             final long traceId = supplyTraceId.getAsLong();
             String address = remoteAddress == null ? null : remoteAddress.toString();
-            event.remoteAccess(Result.FAILURE, Level.ERROR, traceId, routedId, initialId, address);
+            event.remoteAccessFailure(Level.ERROR, traceId, routedId, initialId, address);
             cleanup(traceId);
         }
 
