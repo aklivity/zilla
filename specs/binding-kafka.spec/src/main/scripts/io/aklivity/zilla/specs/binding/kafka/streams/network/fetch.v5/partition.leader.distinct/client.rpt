@@ -69,16 +69,6 @@ read  150                               # size
       -1
       0
 
-read notify RECEIVED_FIRST_TOPIC_META
-
-connect await RECEIVED_FIRST_TOPIC_META
- "zilla://streams/net0"
-  option zilla:window ${networkConnectWindow}
-  option zilla:transmission "duplex"
-  option zilla:byteorder "network"
-
-connected
-
 write  27                                 # size
        3s                                 # metadata
        5s                                 # v5
@@ -136,6 +126,9 @@ write zilla:begin.ext ${proxy:beginEx()
                                 .destination("broker1.example.com")
                                 .sourcePort(0)
                                 .destinationPort(9092)
+                                .build()
+                              .info()
+                                .authority("broker1.example.com")
                                 .build()
                               .build()}
 

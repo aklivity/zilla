@@ -109,6 +109,24 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/publish.10k/client",
+        "${mqtt}/publish.10k/server"})
+    public void shouldSendMessage10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/publish.retained.10k/client",
+        "${mqtt}/publish.retained.10k/server"})
+    public void shouldSendRetainedMessage10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/publish.multiple.messages/client",
         "${mqtt}/publish.multiple.messages/server"})
     public void shouldSendMultipleMessages() throws Exception
@@ -585,6 +603,17 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/session.will.message.10k.abort.deliver.will/client",
+        "${mqtt}/session.will.message.10k.abort.deliver.will/server"})
+    public void shouldSendWillMessage10kOnAbort() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("WILL_STREAM_STARTED");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/session.will.message.normal.disconnect/client",
         "${mqtt}/session.will.message.normal.disconnect/server"})
     public void shouldNotSendWillMessageOnNormalDisconnect() throws Exception
@@ -665,6 +694,15 @@ public class MqttIT
     public void shouldSendMessageMixtureQos() throws Exception
     {
         k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/publish.reject.large.message/client",
+        "${mqtt}/publish.reject.large.message/server"})
+    public void shouldRejectLargeMessage() throws Exception
+    {
         k3po.finish();
     }
 
@@ -754,6 +792,15 @@ public class MqttIT
         "${mqtt}/subscribe.receive.message.overlapping.wildcard.mixed.qos/client",
         "${mqtt}/subscribe.receive.message.overlapping.wildcard.mixed.qos/server"})
     public void shouldReceiveMessageOverlappingWildcardMixedQos() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.expire.message/client",
+        "${mqtt}/subscribe.expire.message/server"})
+    public void shouldExpireMessage() throws Exception
     {
         k3po.finish();
     }

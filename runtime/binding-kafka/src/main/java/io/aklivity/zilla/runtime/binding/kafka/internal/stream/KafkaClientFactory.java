@@ -69,13 +69,15 @@ public final class KafkaClientFactory implements KafkaStreamFactory
                 context.signaler();
 
         final KafkaClientMetaFactory clientMetaFactory = new KafkaClientMetaFactory(
-                config, context, bindings::get, accountant::supplyDebitor, supplyClientRoute);
+                config, context, bindings::get, accountant::supplyDebitor, supplyClientRoute,
+                signaler, streamFactory, resolveSasl);
 
         final KafkaClientDescribeFactory clientDescribeFactory = new KafkaClientDescribeFactory(
-                config, context, bindings::get, accountant::supplyDebitor);
+                config, context, bindings::get, accountant::supplyDebitor, signaler, streamFactory, resolveSasl);
 
         final KafkaClientGroupFactory clientGroupFactory = new KafkaClientGroupFactory(
-            config, context, bindings::get, accountant::supplyDebitor, signaler, streamFactory, resolveSasl);
+            config, context, bindings::get, accountant::supplyDebitor, signaler, streamFactory,
+            resolveSasl, supplyClientRoute);
 
         final KafkaClientFetchFactory clientFetchFactory = new KafkaClientFetchFactory(
                 config, context, bindings::get, accountant::supplyDebitor, supplyClientRoute);
@@ -84,10 +86,10 @@ public final class KafkaClientFactory implements KafkaStreamFactory
                 config, context, bindings::get, supplyClientRoute);
 
         final KafkaClientOffsetFetchFactory clientOffsetFetchFactory = new KafkaClientOffsetFetchFactory(
-            config, context, bindings::get);
+            config, context, bindings::get, accountant::supplyDebitor, signaler, streamFactory, resolveSasl);
 
         final KafkaClientOffsetCommitFactory clientOffsetCommitFactory = new KafkaClientOffsetCommitFactory(
-            config, context, bindings::get);
+            config, context, bindings::get, accountant::supplyDebitor, signaler, streamFactory, resolveSasl);
 
         final KafkaMergedFactory clientMergedFactory = new KafkaMergedFactory(
                 config, context, bindings::get, accountant.creditor());

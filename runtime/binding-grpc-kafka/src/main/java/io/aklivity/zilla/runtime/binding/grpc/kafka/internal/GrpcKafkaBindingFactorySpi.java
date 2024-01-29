@@ -20,7 +20,7 @@ import io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi;
 public final class GrpcKafkaBindingFactorySpi implements BindingFactorySpi
 {
     @Override
-    public String name()
+    public String type()
     {
         return GrpcKafkaBinding.NAME;
     }

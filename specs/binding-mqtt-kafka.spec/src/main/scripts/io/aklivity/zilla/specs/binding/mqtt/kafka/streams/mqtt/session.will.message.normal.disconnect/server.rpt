@@ -41,8 +41,9 @@ read zilla:data.ext ${mqtt:dataEx()
 read ${mqtt:will()
                .topic("obituaries")
                .format("TEXT")
-               .payload("client-1 disconnected abruptly")
+               .payloadSize(30)
                .build()}
+read "client-1 disconnected abruptly"
 
 write zilla:data.empty
 write flush

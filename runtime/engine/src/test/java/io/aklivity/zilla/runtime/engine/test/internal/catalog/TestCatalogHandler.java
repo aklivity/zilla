@@ -26,8 +26,9 @@ public class TestCatalogHandler implements CatalogHandler
     public TestCatalogHandler(
         TestCatalogOptionsConfig config)
     {
-        this.schema = config.schema;
-        this.id = config.id;
+
+        this.id = config != null ? config.id : 0;
+        this.schema = config != null ? config.schema : null;
     }
 
     @Override

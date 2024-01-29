@@ -75,6 +75,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ExtensionFW
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaConsumerAssignmentFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaConsumerBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaConsumerDataExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaConsumerFlushExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaDataExFW;
@@ -1732,6 +1733,12 @@ public final class KafkaMergedFactory implements BindingHandler
                 produceStreams.forEach(p -> initialNoAckRW.value = Math.max(p.initialNoAck(), initialNoAckRW.value));
                 produceStreams.forEach(p -> initialPadRW.value = Math.max(p.initialPad, initialPadRW.value));
                 produceStreams.forEach(p -> initialMaxRW.value = Math.min(p.initialMax, initialMaxRW.value));
+
+                if (producer != null)
+                {
+                    initialMaxRW.value = Math.max(producer.initialMax, initialMaxRW.value);
+                }
+
                 maxInitialNoAck = initialNoAckRW.value;
                 maxInitialPad = initialPadRW.value;
                 minInitialMax = initialMaxRW.value;
@@ -2776,6 +2783,8 @@ public final class KafkaMergedFactory implements BindingHandler
         private long replySeq;
         private long replyAck;
         private int replyMax;
+        private String host;
+        private int port;
 
         private KafkaUnmergedConsumerStream(
             KafkaMergedStream merged)
@@ -2926,8 +2935,16 @@ public final class KafkaMergedFactory implements BindingHandler
             BeginFW begin)
         {
             final long traceId = begin.traceId();
+            final OctetsFW extension = begin.extension();
 
             state = KafkaState.openingReply(state);
+
+            final ExtensionFW beginEx = extensionRO.tryWrap(extension.buffer(), extension.offset(), extension.limit());
+            final KafkaBeginExFW kafkaBeginEx = beginEx.typeId() == kafkaTypeId ? extension.get(kafkaBeginExRO::wrap) : null;
+            final KafkaConsumerBeginExFW kafkaConsumerBeginEx = kafkaBeginEx != null ? kafkaBeginEx.consumer() : null;
+
+            host = kafkaConsumerBeginEx.host().asString();
+            port = kafkaConsumerBeginEx.port();
 
             doConsumerReplyWindow(traceId, 0, 8192);
         }
@@ -3148,6 +3165,8 @@ public final class KafkaMergedFactory implements BindingHandler
                     .typeId(kafkaTypeId)
                     .offsetFetch(c -> c
                         .groupId(merged.groupId)
+                        .host(merged.consumerStream.host)
+                        .port(merged.consumerStream.port)
                         .topic(merged.topic)
                         .partitions(p -> merged.leadersByAssignedId.forEach((k, v) ->
                             p.item(tp -> tp.partitionId(k))))

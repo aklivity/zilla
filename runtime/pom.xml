@@ -36,6 +36,7 @@
     <module>binding-tcp</module>
     <module>binding-tls</module>
     <module>binding-ws</module>
+    <module>common</module>
     <module>command</module>
     <module>command-metrics</module>
     <module>command-start</module>
@@ -45,6 +46,7 @@
     <module>metrics-grpc</module>
     <module>metrics-http</module>
     <module>metrics-stream</module>
+    <module>resolver-env</module>
     <module>vault-filesystem</module>
   </modules>
 
@@ -147,6 +149,11 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
+        <artifactId>common</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
         <artifactId>command</artifactId>
         <version>${project.version}</version>
       </dependency>
@@ -192,13 +199,23 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
+        <artifactId>resolver-env</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
         <artifactId>vault-filesystem</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-api</artifactId>
+        <version>${slf4j.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.slf4j</groupId>
         <artifactId>slf4j-simple</artifactId>
-        <version>1.7.21</version>
+        <version>${slf4j.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>

@@ -22,7 +22,7 @@ import io.aklivity.zilla.runtime.engine.catalog.CatalogFactorySpi;
 public class TestCatalogFactorySpi implements CatalogFactorySpi
 {
     @Override
-    public String name()
+    public String type()
     {
         return TestCatalog.NAME;
     }

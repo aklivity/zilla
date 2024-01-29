@@ -153,6 +153,17 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.one.message/client",
+        "${kafka}/subscribe.one.message.fragmented/server"})
+    public void shouldReceiveOneMessageFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.options.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
@@ -247,6 +258,17 @@ public class MqttKafkaSubscribeProxyIT
         "${mqtt}/subscribe.retain/client",
         "${kafka}/subscribe.retain/server"})
     public void shouldReceiveRetainedNoRetainAsPublished() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.retain/client",
+        "${kafka}/subscribe.retain.fragmented/server"})
+    public void shouldReceiveRetainedFragmented() throws Exception
     {
         k3po.finish();
     }
@@ -577,6 +599,28 @@ public class MqttKafkaSubscribeProxyIT
         "${mqtt}/subscribe.replay.retained.message.qos2/client",
         "${kafka}/subscribe.replay.retained.message.qos2/server"})
     public void shouldReplayRetainedQos2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.expire.message/client",
+        "${kafka}/subscribe.expire.message/server"})
+    public void shouldExpireMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.expire.message/client",
+        "${kafka}/subscribe.expire.message.fragmented/server"})
+    public void shouldExpireMessageFragmented() throws Exception
     {
         k3po.finish();
     }

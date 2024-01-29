@@ -46,7 +46,7 @@ read 238                                # size
          21s "max.compaction.lag.ms"
          25s "min.cleanable.dirty.ratio"
 
-write 365                               # size
+write 372                               # size
       ${requestId}
       0
       1                                 # resources
@@ -111,11 +111,6 @@ write 365                               # size
           [0x00]
           [0x00]
 
-accepted
-
-
-connected
-
 read 26                                 # size
      3s                                 # metadata
      5s                                 # v5
@@ -159,7 +154,7 @@ write 150                               # size
 
 accepted
 
-read zilla:begin.ext ${proxy:beginEx()
+read zilla:begin.ext ${proxy:matchBeginEx()
                               .typeId(zilla:id("proxy"))
                               .addressInet()
                                 .protocol("stream")
@@ -167,6 +162,9 @@ read zilla:begin.ext ${proxy:beginEx()
                                 .destination("broker1.example.com")
                                 .sourcePort(0)
                                 .destinationPort(9092)
+                                .build()
+                              .info()
+                                .authority("broker1.example.com")
                                 .build()
                               .build()}
 
@@ -219,7 +217,7 @@ write 119
 
 accepted
 
-read zilla:begin.ext ${proxy:beginEx()
+read zilla:begin.ext ${proxy:matchBeginEx()
                               .typeId(zilla:id("proxy"))
                               .addressInet()
                                 .protocol("stream")
@@ -227,6 +225,9 @@ read zilla:begin.ext ${proxy:beginEx()
                                 .destination("broker2.example.com")
                                 .sourcePort(0)
                                 .destinationPort(9092)
+                                .build()
+                              .info()
+                                .authority("broker2.example.com")
                                 .build()
                               .build()}
 

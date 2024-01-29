@@ -272,8 +272,11 @@ public class TcpServerFactory implements TcpStreamFactory
             PollerKey key)
         {
             assert initialMax > initialPad;
+            assert initialSeq >= initialAck;
 
-            final int limit = Math.min(initialMax - initialPad, readBuffer.capacity());
+            final int initialNoAck = (int)(initialSeq - initialAck);
+            final int initialBudget = Math.max(initialMax - initialPad - initialNoAck, 0);
+            final int limit = Math.min(initialBudget, readBuffer.capacity());
 
             ((Buffer) readByteBuffer).position(0);
             ((Buffer) readByteBuffer).limit(limit);

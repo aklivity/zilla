@@ -15,10 +15,20 @@
  */
 package io.aklivity.zilla.runtime.binding.tls.internal.config;
 
+import java.util.stream.IntStream;
+
 import jakarta.json.Json;
+import jakarta.json.JsonArray;
+import jakarta.json.JsonArrayBuilder;
+import jakarta.json.JsonNumber;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonString;
+import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
+
+import org.agrona.collections.IntHashSet;
+import org.agrona.collections.MutableInteger;
 
 import io.aklivity.zilla.runtime.binding.tls.config.TlsConditionConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsConditionConfigBuilder;
@@ -30,6 +40,7 @@ public final class TlsConditionConfigAdapter implements ConditionConfigAdapterSp
 {
     private static final String AUTHORITY_NAME = "authority";
     private static final String ALPN_NAME = "alpn";
+    private static final String PORT_NAME = "port";
 
     @Override
     public String type()
@@ -55,6 +66,24 @@ public final class TlsConditionConfigAdapter implements ConditionConfigAdapterSp
             object.add(ALPN_NAME, tlsCondition.alpn);
         }
 
+        if (tlsCondition.ports != null)
+        {
+            if (tlsCondition.ports.length == 1)
+            {
+                object.add(PORT_NAME, tlsCondition.ports[0]);
+            }
+            else
+            {
+                JsonArrayBuilder ports = Json.createArrayBuilder();
+                for (int port : tlsCondition.ports)
+                {
+                    ports.add(port);
+                }
+
+                object.add(PORT_NAME, ports);
+            }
+        }
+
         return object.build();
     }
 
@@ -74,6 +103,61 @@ public final class TlsConditionConfigAdapter implements ConditionConfigAdapterSp
             tlsCondition.alpn(object.getString(ALPN_NAME));
         }
 
+        if (object.containsKey(PORT_NAME))
+        {
+            JsonValue portsValue = object.get(PORT_NAME);
+
+            IntHashSet portsSet = new IntHashSet();
+            switch (portsValue.getValueType())
+            {
+            case ARRAY:
+                JsonArray portsArray = portsValue.asJsonArray();
+                portsArray.forEach(value -> adaptPortsValueFromJson(value, portsSet));
+                break;
+            default:
+                adaptPortsValueFromJson(portsValue, portsSet);
+                break;
+            }
+
+            int[] ports = new int[portsSet.size()];
+            MutableInteger index = new MutableInteger();
+            portsSet.forEach(i -> ports[index.value++] = i);
+
+            tlsCondition.ports(ports);
+        }
+
         return tlsCondition.build();
+    }
+
+    private static void adaptPortsValueFromJson(
+        JsonValue value,
+        IntHashSet ports)
+    {
+        switch (value.getValueType())
+        {
+        case STRING:
+        {
+            String port = ((JsonString) value).getString();
+            int dashAt = port.indexOf('-');
+            if (dashAt != -1)
+            {
+                int portRangeLow = Integer.parseInt(port.substring(0, dashAt));
+                int portRangeHigh = Integer.parseInt(port.substring(dashAt + 1));
+                IntStream.range(portRangeLow, portRangeHigh + 1).forEach(ports::add);
+            }
+            else
+            {
+                ports.add(Integer.parseInt(port));
+            }
+            break;
+        }
+        case NUMBER:
+        default:
+        {
+            int port = ((JsonNumber) value).intValue();
+            ports.add(port);
+            break;
+        }
+        }
     }
 }

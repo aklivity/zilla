@@ -77,7 +77,8 @@
                                         "deltaType":
                                         {
                                             "type": "string",
-                                            "enum": [ "none", "json_patch" ]
+                                            "enum": [ "none", "json_patch" ],
+                                            "deprecated": true
                                         },
                                         "key":
                                         {
@@ -88,6 +89,16 @@
                                             "$ref": "#/$defs/converter"
                                         }
                                     }
+                                }
+                            },
+                            "servers":
+                            {
+                                "title": "Servers",
+                                "type": "array",
+                                "items":
+                                {
+                                    "type": "string",
+                                    "pattern": "([^\\:]+):(\\d+)"
                                 }
                             },
                             "sasl":
@@ -230,7 +241,8 @@
                                             "groupId":
                                             {
                                                 "title": "groupId",
-                                                "type": "string"
+                                                "type": "string",
+                                                "deprecated": true
                                             }
                                         },
                                         "additionalProperties": false

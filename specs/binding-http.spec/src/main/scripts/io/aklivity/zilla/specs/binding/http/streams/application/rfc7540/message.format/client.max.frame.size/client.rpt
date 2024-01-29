@@ -20,7 +20,6 @@ connect "zilla://streams/app0"
         option zilla:window 60000
         option zilla:transmission "half-duplex"
 
-
 write zilla:begin.ext ${http:beginEx()
                               .typeId(zilla:id("http"))
                               .header(":method", "POST")

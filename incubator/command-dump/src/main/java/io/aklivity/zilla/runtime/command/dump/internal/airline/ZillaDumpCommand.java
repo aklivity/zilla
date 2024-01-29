@@ -21,14 +21,16 @@ import static java.nio.file.StandardOpenOption.TRUNCATE_EXISTING;
 import static java.nio.file.StandardOpenOption.WRITE;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.agrona.LangUtil.rethrowUnchecked;
+import static org.agrona.concurrent.ringbuffer.RecordDescriptor.HEADER_LENGTH;
 
-import java.io.IOException;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.WritableByteChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -60,6 +62,7 @@ import io.aklivity.zilla.runtime.command.dump.internal.airline.layouts.StreamsLa
 import io.aklivity.zilla.runtime.command.dump.internal.airline.spy.RingBufferSpy;
 import io.aklivity.zilla.runtime.command.dump.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.command.dump.internal.types.IPv6HeaderFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.IPv6JumboHeaderFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.PcapGlobalHeaderFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.PcapPacketHeaderFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.TcpFlag;
@@ -90,7 +93,8 @@ public final class ZillaDumpCommand extends ZillaCommand
     private static final long MIN_PARK_NS = MILLISECONDS.toNanos(1L);
     private static final int MAX_YIELDS = 30;
     private static final int MAX_SPINS = 20;
-    private static final int BUFFER_SLOT_CAPACITY = 64 * 1024;
+    private static final int WRITE_BUFFER_SLOT_CAPACITY = 64 * 1024;
+    private static final int PATCH_BUFFER_SLOT_CAPACITY = 64 * 1024 + 85;
     private static final int LABELS_BUFFER_SLOT_CAPACITY = 4 * 128;
 
     private static final long PCAP_GLOBAL_MAGIC = 2712847316L;
@@ -99,10 +103,15 @@ public final class ZillaDumpCommand extends ZillaCommand
     private static final int PCAP_GLOBAL_SIZE = 24;
     private static final int PCAP_LINK_TYPE_IPV6 = 1;
 
-    private static final byte[] PSEUDO_ETHERNET_FRAME = BitUtil.fromHex("2052454356002053454e440086dd");
-    private static final int PSEUDO_IPV6_PREFIX = 1629561669;
-    private static final short PSEUDO_NEXT_HEADER_AND_HOP_LIMIT = 0x0640;
+    private static final byte[] ETHERNET_FRAME = BitUtil.fromHex("2052454356002053454e440086dd");
+
+    private static final int IPV6_PREFIX = 0x61212345;
+    private static final byte IPV6_NEXT_HEADER_TCP = 0x06;
+    private static final byte IPV6_NEXT_HEADER_JUMBO = 0x00;
+    private static final byte IPV6_HOP_LIMIT = 0x40;
     private static final long IPV6_LOCAL_ADDRESS = 0xfe80L << 48;
+    private static final int IPV6_JUMBO_PREFIX = 0x0600c204;
+    private static final int IPV6_JUMBO_THRESHOLD = 0xffff;
 
     private static final int PCAP_HEADER_OFFSET = 0;
     private static final int PCAP_HEADER_SIZE = 16;
@@ -115,6 +124,8 @@ public final class ZillaDumpCommand extends ZillaCommand
     private static final int IPV6_HEADER_OFFSET = ETHER_HEADER_LIMIT;
     private static final int IPV6_HEADER_SIZE = 40;
     private static final int IPV6_HEADER_LIMIT = IPV6_HEADER_OFFSET + IPV6_HEADER_SIZE;
+    private static final int IPV6_JUMBO_HEADER_OFFSET = IPV6_HEADER_LIMIT;
+    private static final int IPV6_JUMBO_HEADER_SIZE = 8;
 
     private static final int TCP_HEADER_OFFSET = IPV6_HEADER_LIMIT;
     private static final int TCP_HEADER_SIZE = 20;
@@ -122,7 +133,9 @@ public final class ZillaDumpCommand extends ZillaCommand
 
     private static final int ZILLA_HEADER_OFFSET = TCP_HEADER_LIMIT;
     private static final int ZILLA_PROTOCOL_TYPE_OFFSET = ZILLA_HEADER_OFFSET + 4;
-    private static final int ZILLA_HEADER_SIZE = 8;
+    private static final int ZILLA_WORKER_OFFSET = ZILLA_PROTOCOL_TYPE_OFFSET + 4;
+    private static final int ZILLA_OFFSET_OFFSET = ZILLA_WORKER_OFFSET + 4;
+    private static final int ZILLA_HEADER_SIZE = 16;
     private static final int ZILLA_HEADER_LIMIT = ZILLA_HEADER_OFFSET + ZILLA_HEADER_SIZE;
 
     private static final int TYPE_ID_INDEX = 0;
@@ -149,8 +162,13 @@ public final class ZillaDumpCommand extends ZillaCommand
         description = "Dump specific namespaced bindings only, e.g example.http0,example.kafka0")
     public List<String> bindings = new ArrayList<>();
 
-    @Option(name = {"-o", "--output"},
-        description = "PCAP output filename",
+    @Option(name = {"-i", "--install"},
+        description = "Install Zilla dissector to Wireshark plugin directory",
+        typeConverterProvider = ZillaDumpCommandPathConverterProvider.class)
+    public Path pluginDirectory;
+
+    @Option(name = {"-w", "--write"},
+        description = "Write output to PCAP file",
         typeConverterProvider = ZillaDumpCommandPathConverterProvider.class)
     public Path output;
 
@@ -167,6 +185,11 @@ public final class ZillaDumpCommand extends ZillaCommand
         description = "Path to properties",
         hidden = true)
     public String propertiesPath;
+
+    @Option(name = "-e",
+        description = "Show exception traces",
+        hidden = true)
+    public boolean exceptions;
 
     boolean continuous = true;
 
@@ -190,6 +213,7 @@ public final class ZillaDumpCommand extends ZillaCommand
     private final FlushFW.Builder flushRW = new FlushFW.Builder();
     private final ChallengeFW.Builder challengeRW = new ChallengeFW.Builder();
     private final IPv6HeaderFW.Builder ipv6HeaderRW = new IPv6HeaderFW.Builder();
+    private final IPv6JumboHeaderFW.Builder ipv6JumboHeaderRW = new IPv6JumboHeaderFW.Builder();
     private final TcpHeaderFW.Builder tcpHeaderRW = new TcpHeaderFW.Builder();
     private final MutableDirectBuffer patchBuffer;
     private final MutableDirectBuffer writeBuffer;
@@ -198,13 +222,37 @@ public final class ZillaDumpCommand extends ZillaCommand
 
     public ZillaDumpCommand()
     {
-        this.patchBuffer = new UnsafeBuffer(ByteBuffer.allocate(BUFFER_SLOT_CAPACITY));
-        this.writeBuffer = new UnsafeBuffer(ByteBuffer.allocate(BUFFER_SLOT_CAPACITY));
+        this.patchBuffer = new UnsafeBuffer(ByteBuffer.allocate(PATCH_BUFFER_SLOT_CAPACITY));
+        this.writeBuffer = new UnsafeBuffer(ByteBuffer.allocate(WRITE_BUFFER_SLOT_CAPACITY));
     }
 
     @Override
     public void run()
     {
+        if (pluginDirectory != null)
+        {
+            try
+            {
+                InputStream is = getClass().getResourceAsStream("zilla.lua");
+                Files.createDirectories(pluginDirectory);
+                Path target = pluginDirectory.resolve("zilla.lua");
+                Files.copy(is, target, StandardCopyOption.REPLACE_EXISTING);
+                if (verbose)
+                {
+                    System.out.printf("Copied Wireshark plugin to the directory: %s%n", pluginDirectory);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.out.printf("Failed to copy the Wireshark plugin to the directory: %s%n", pluginDirectory);
+                if (exceptions)
+                {
+                    ex.printStackTrace();
+                }
+                rethrowUnchecked(ex);
+            }
+        }
+
         Properties props = new Properties();
         props.setProperty(ENGINE_DIRECTORY.name(), ".zilla/engine");
 
@@ -215,9 +263,13 @@ public final class ZillaDumpCommand extends ZillaCommand
             {
                 props.load(Files.newInputStream(path));
             }
-            catch (IOException ex)
+            catch (Exception ex)
             {
-                System.out.println("Failed to load properties: " + path);
+                System.out.printf("Failed to load properties: %s%n", path);
+                if (exceptions)
+                {
+                    ex.printStackTrace();
+                }
                 rethrowUnchecked(ex);
             }
         }
@@ -247,42 +299,58 @@ public final class ZillaDumpCommand extends ZillaCommand
             .forEach(filtered::add);
         final LongPredicate filter = filtered.isEmpty() ? b -> true : filtered::contains;
 
-        try (Stream<Path> files = Files.walk(directory, 3);
-             WritableByteChannel writer = Files.newByteChannel(output, CREATE, WRITE, TRUNCATE_EXISTING))
+        if (output != null)
         {
-            final RingBufferSpy[] streamBuffers = files
-                .filter(this::isStreamsFile)
-                .peek(this::onDiscovered)
-                .map(this::createStreamBuffer)
-                .collect(Collectors.toList())
-                .toArray(RingBufferSpy[]::new);
-            final int streamBufferCount = streamBuffers.length;
-
-            final IdleStrategy idleStrategy = new BackoffIdleStrategy(MAX_SPINS, MAX_YIELDS, MIN_PARK_NS, MAX_PARK_NS);
-            final BindingsLayoutReader bindings = BindingsLayoutReader.builder().directory(directory).build();
-            final DumpHandler dumpHandler = new DumpHandler(filter, labels::lookupLabel, bindings.bindings()::get, writer);
-            final MessagePredicate spyHandler = dumpHandler::handleFrame;
-
-            final MutableDirectBuffer buffer = writeBuffer;
-            encodePcapGlobal(buffer);
-            writePcapOutput(writer, buffer, 0, PCAP_GLOBAL_SIZE);
-
-            final int exitWorkCount = continuous ? -1 : 0;
-            int workCount;
-            do
+            try (Stream<Path> files = Files.walk(directory, 3);
+                 WritableByteChannel writer = Files.newByteChannel(output, CREATE, WRITE, TRUNCATE_EXISTING))
             {
-                workCount = 0;
+                final RingBufferSpy[] streamBuffers = files
+                    .filter(this::isStreamsFile)
+                    .sorted()
+                    .peek(this::onDiscovered)
+                    .map(this::createStreamBuffer)
+                    .collect(Collectors.toList())
+                    .toArray(RingBufferSpy[]::new);
+                final int streamBufferCount = streamBuffers.length;
+
+                final IdleStrategy idleStrategy = new BackoffIdleStrategy(MAX_SPINS, MAX_YIELDS, MIN_PARK_NS, MAX_PARK_NS);
+                final BindingsLayoutReader bindings = BindingsLayoutReader.builder().directory(directory).build();
+                final DumpHandler[] dumpHandlers = new DumpHandler[streamBufferCount];
                 for (int i = 0; i < streamBufferCount; i++)
                 {
-                    final RingBufferSpy streamBuffer = streamBuffers[i];
-                    workCount += streamBuffer.spy(spyHandler, 1);
+                    dumpHandlers[i] = new DumpHandler(i, filter, labels::lookupLabel, bindings.bindings()::get, writer);
                 }
-                idleStrategy.idle(workCount);
-            } while (workCount != exitWorkCount);
+
+                final MutableDirectBuffer buffer = writeBuffer;
+                encodePcapGlobal(buffer);
+                writePcapOutput(writer, buffer, 0, PCAP_GLOBAL_SIZE);
+
+                final int exitWorkCount = continuous ? -1 : 0;
+                int workCount;
+                do
+                {
+                    workCount = 0;
+                    for (int i = 0; i < streamBufferCount; i++)
+                    {
+                        final RingBufferSpy streamBuffer = streamBuffers[i];
+                        MessagePredicate spyHandler = dumpHandlers[i]::handleFrame;
+                        workCount += streamBuffer.spy(spyHandler, 1);
+                    }
+                    idleStrategy.idle(workCount);
+                } while (workCount != exitWorkCount);
+            }
+            catch (Exception ex)
+            {
+                if (exceptions)
+                {
+                    ex.printStackTrace();
+                }
+                rethrowUnchecked(ex);
+            }
         }
-        catch (IOException ex)
+        else if (verbose)
         {
-            rethrowUnchecked(ex);
+            System.out.println("Output file not specified, exiting now.");
         }
     }
 
@@ -319,7 +387,7 @@ public final class ZillaDumpCommand extends ZillaCommand
     {
         if (verbose)
         {
-            System.out.printf("Discovered: %s\n", path);
+            System.out.printf("Discovered: %s%n", path);
         }
     }
 
@@ -351,9 +419,13 @@ public final class ZillaDumpCommand extends ZillaCommand
             byteBuf.limit(offset + length);
             writer.write(byteBuf);
         }
-        catch (IOException ex)
+        catch (Exception ex)
         {
-            System.out.println("Could not write to file. Reason: " + ex.getMessage());
+            System.out.printf("Could not write to file. Reason: %s%n", ex.getMessage());
+            if (exceptions)
+            {
+                ex.printStackTrace();
+            }
             rethrowUnchecked(ex);
         }
     }
@@ -372,6 +444,7 @@ public final class ZillaDumpCommand extends ZillaCommand
 
     private final class DumpHandler
     {
+        private final int worker;
         private final LongPredicate allowedBinding;
         private final WritableByteChannel writer;
         private final IntFunction<String> lookupLabel;
@@ -385,11 +458,13 @@ public final class ZillaDumpCommand extends ZillaCommand
         private long nextTimestamp = Long.MAX_VALUE;
 
         private DumpHandler(
+            int worker,
             LongPredicate allowedBinding,
             IntFunction<String> lookupLabel,
             Function<Long, long[]> lookupBindingInfo,
             WritableByteChannel writer)
         {
+            this.worker = worker;
             this.allowedBinding = allowedBinding;
             this.lookupLabel = lookupLabel;
             this.lookupBindingInfo = lookupBindingInfo;
@@ -471,14 +546,15 @@ public final class ZillaDumpCommand extends ZillaCommand
         {
             if (allowedBinding.test(begin.routedId()))
             {
+                int offset = begin.offset() - HEADER_LENGTH;
                 final BeginFW newBegin = beginRW.wrap(patchBuffer, 0, begin.sizeof()).set(begin).build();
                 final ExtensionFW extension = newBegin.extension().get(extensionRO::tryWrap);
                 patchExtension(patchBuffer, extension, BeginFW.FIELD_OFFSET_EXTENSION);
 
                 final boolean initial = begin.streamId() % 2 != 0;
                 short tcpFlags = initial ? PSH_ACK_SYN : PSH_ACK;
-                writeFrame(BeginFW.TYPE_ID, newBegin.originId(), newBegin.routedId(), newBegin.streamId(), newBegin.timestamp(),
-                    newBegin, tcpFlags);
+                writeFrame(BeginFW.TYPE_ID, worker, offset, newBegin.originId(), newBegin.routedId(), newBegin.streamId(),
+                    newBegin.timestamp(), newBegin, tcpFlags);
             }
         }
 
@@ -487,12 +563,14 @@ public final class ZillaDumpCommand extends ZillaCommand
         {
             if (allowedBinding.test(data.routedId()))
             {
+                int offset = data.offset() - HEADER_LENGTH;
                 final DataFW newData = dataRW.wrap(patchBuffer, 0, data.sizeof()).set(data).build();
                 final ExtensionFW extension = newData.extension().get(extensionRO::tryWrap);
-                patchExtension(patchBuffer, extension, DataFW.FIELD_OFFSET_EXTENSION);
+                int extensionOffset = DataFW.FIELD_OFFSET_PAYLOAD + Math.max(newData.length(), 0) + DataFW.FIELD_OFFSET_EXTENSION;
+                patchExtension(patchBuffer, extension, extensionOffset);
 
-                writeFrame(DataFW.TYPE_ID, newData.originId(), newData.routedId(), newData.streamId(), newData.timestamp(),
-                    newData, PSH_ACK);
+                writeFrame(DataFW.TYPE_ID, worker, offset, newData.originId(), newData.routedId(), newData.streamId(),
+                    newData.timestamp(), newData, PSH_ACK);
             }
         }
 
@@ -501,12 +579,13 @@ public final class ZillaDumpCommand extends ZillaCommand
         {
             if (allowedBinding.test(end.routedId()))
             {
+                int offset = end.offset() - HEADER_LENGTH;
                 final EndFW newEnd = endRW.wrap(patchBuffer, 0, end.sizeof()).set(end).build();
                 final ExtensionFW extension = newEnd.extension().get(extensionRO::tryWrap);
                 patchExtension(patchBuffer, extension, EndFW.FIELD_OFFSET_EXTENSION);
 
-                writeFrame(EndFW.TYPE_ID, newEnd.originId(), newEnd.routedId(), newEnd.streamId(), newEnd.timestamp(),
-                    newEnd, PSH_ACK_FIN);
+                writeFrame(EndFW.TYPE_ID, worker, offset, newEnd.originId(), newEnd.routedId(), newEnd.streamId(),
+                    newEnd.timestamp(), newEnd, PSH_ACK_FIN);
             }
         }
 
@@ -515,12 +594,13 @@ public final class ZillaDumpCommand extends ZillaCommand
         {
             if (allowedBinding.test(abort.routedId()))
             {
+                int offset = abort.offset() - HEADER_LENGTH;
                 final AbortFW newAbort = abortRW.wrap(patchBuffer, 0, abort.sizeof()).set(abort).build();
                 final ExtensionFW extension = newAbort.extension().get(extensionRO::tryWrap);
                 patchExtension(patchBuffer, extension, AbortFW.FIELD_OFFSET_EXTENSION);
 
-                writeFrame(AbortFW.TYPE_ID, newAbort.originId(), newAbort.routedId(), newAbort.streamId(), newAbort.timestamp(),
-                    newAbort, PSH_ACK_FIN);
+                writeFrame(AbortFW.TYPE_ID, worker, offset, newAbort.originId(), newAbort.routedId(), newAbort.streamId(),
+                    newAbort.timestamp(), newAbort, PSH_ACK_FIN);
             }
         }
 
@@ -529,8 +609,9 @@ public final class ZillaDumpCommand extends ZillaCommand
         {
             if (allowedBinding.test(window.routedId()))
             {
-                writeFrame(WindowFW.TYPE_ID, window.originId(), window.routedId(), window.streamId(), window.timestamp(), window,
-                    PSH_ACK);
+                int offset = window.offset() - HEADER_LENGTH;
+                writeFrame(WindowFW.TYPE_ID, worker, offset, window.originId(), window.routedId(), window.streamId(),
+                    window.timestamp(), window, PSH_ACK);
             }
         }
 
@@ -539,12 +620,13 @@ public final class ZillaDumpCommand extends ZillaCommand
         {
             if (allowedBinding.test(reset.routedId()))
             {
+                int offset = reset.offset() - HEADER_LENGTH;
                 final ResetFW newReset = resetRW.wrap(patchBuffer, 0, reset.sizeof()).set(reset).build();
                 final ExtensionFW extension = newReset.extension().get(extensionRO::tryWrap);
                 patchExtension(patchBuffer, extension, ResetFW.FIELD_OFFSET_EXTENSION);
 
-                writeFrame(ResetFW.TYPE_ID, newReset.originId(), newReset.routedId(), newReset.streamId(), newReset.timestamp(),
-                    newReset, PSH_ACK_FIN);
+                writeFrame(ResetFW.TYPE_ID, worker, offset, newReset.originId(), newReset.routedId(), newReset.streamId(),
+                    newReset.timestamp(), newReset, PSH_ACK_FIN);
             }
         }
 
@@ -553,12 +635,13 @@ public final class ZillaDumpCommand extends ZillaCommand
         {
             if (allowedBinding.test(flush.routedId()))
             {
+                int offset = flush.offset() - HEADER_LENGTH;
                 final FlushFW newFlush = flushRW.wrap(patchBuffer, 0, flush.sizeof()).set(flush).build();
                 final ExtensionFW extension = newFlush.extension().get(extensionRO::tryWrap);
                 patchExtension(patchBuffer, extension, FlushFW.FIELD_OFFSET_EXTENSION);
 
-                writeFrame(FlushFW.TYPE_ID, newFlush.originId(), newFlush.routedId(), newFlush.streamId(), newFlush.timestamp(),
-                    newFlush, PSH_ACK);
+                writeFrame(FlushFW.TYPE_ID, worker, offset, newFlush.originId(), newFlush.routedId(), newFlush.streamId(),
+                    newFlush.timestamp(), newFlush, PSH_ACK);
             }
         }
 
@@ -567,8 +650,9 @@ public final class ZillaDumpCommand extends ZillaCommand
         {
             if (allowedBinding.test(signal.routedId()))
             {
-                writeFrame(SignalFW.TYPE_ID, signal.originId(), signal.routedId(), signal.streamId(), signal.timestamp(), signal,
-                    PSH_ACK);
+                int offset = signal.offset() - HEADER_LENGTH;
+                writeFrame(SignalFW.TYPE_ID, worker, offset, signal.originId(), signal.routedId(), signal.streamId(),
+                    signal.timestamp(), signal, PSH_ACK);
             }
         }
 
@@ -577,12 +661,13 @@ public final class ZillaDumpCommand extends ZillaCommand
         {
             if (allowedBinding.test(challenge.routedId()))
             {
+                int offset = challenge.offset() - HEADER_LENGTH;
                 final ChallengeFW newChallenge = challengeRW.wrap(patchBuffer, 0, challenge.sizeof()).set(challenge).build();
                 final ExtensionFW extension = newChallenge.extension().get(extensionRO::tryWrap);
                 patchExtension(patchBuffer, extension, ChallengeFW.FIELD_OFFSET_EXTENSION);
 
-                writeFrame(ChallengeFW.TYPE_ID, newChallenge.originId(), newChallenge.routedId(), newChallenge.streamId(),
-                    newChallenge.timestamp(), newChallenge, PSH_ACK);
+                writeFrame(ChallengeFW.TYPE_ID, worker, offset, newChallenge.originId(), newChallenge.routedId(),
+                    newChallenge.streamId(), newChallenge.timestamp(), newChallenge, PSH_ACK);
             }
         }
 
@@ -634,6 +719,8 @@ public final class ZillaDumpCommand extends ZillaCommand
 
         private void writeFrame(
             int frameTypeId,
+            int worker,
+            int offset,
             long originId,
             long routedId,
             long streamId,
@@ -644,22 +731,24 @@ public final class ZillaDumpCommand extends ZillaCommand
             final int labelsLength = encodeZillaLabels(labelsBuffer, originId, routedId);
             final int tcpSegmentLength = ZILLA_HEADER_SIZE + labelsLength + frame.sizeof();
             final int ipv6Length = TCP_HEADER_SIZE + tcpSegmentLength;
-            final int pcapLength = ETHER_HEADER_SIZE + IPV6_HEADER_SIZE + ipv6Length;
+            final boolean jumbo = ipv6Length > IPV6_JUMBO_THRESHOLD;
+            final int ipv6JumboLength = jumbo ? IPV6_JUMBO_HEADER_SIZE : 0;
+            final int pcapLength = ETHER_HEADER_SIZE + IPV6_HEADER_SIZE + ipv6Length + ipv6JumboLength;
 
             encodePcapHeader(writeBuffer, pcapLength, timestamp);
             encodeEtherHeader(writeBuffer);
-            encodeIpv6Header(writeBuffer, streamId ^ 1L, streamId, ipv6Length);
+            encodeIpv6Header(writeBuffer, jumbo, streamId ^ 1L, streamId, ipv6Length);
 
             final boolean initial = streamId % 2 != 0;
             final long seq = sequence.get(streamId);
             final long ack = sequence.get(streamId ^ 1L);
             sequence.put(streamId, sequence.get(streamId) + tcpSegmentLength);
-            encodeTcpHeader(writeBuffer, initial, seq, ack, tcpFlags);
+            encodeTcpHeader(writeBuffer, ipv6JumboLength, initial, seq, ack, tcpFlags);
 
             final int protocolTypeId = resolveProtocolTypeId(originId, routedId);
-            encodeZillaHeader(writeBuffer, frameTypeId, protocolTypeId);
+            encodeZillaHeader(writeBuffer, ipv6JumboLength, frameTypeId, protocolTypeId, worker, offset);
 
-            writePcapOutput(writer, writeBuffer, PCAP_HEADER_OFFSET, ZILLA_HEADER_LIMIT);
+            writePcapOutput(writer, writeBuffer, PCAP_HEADER_OFFSET, ZILLA_HEADER_LIMIT + ipv6JumboLength);
             writePcapOutput(writer, labelsBuffer, 0, labelsLength);
             writePcapOutput(writer, frame.buffer(), frame.offset(), frame.sizeof());
         }
@@ -704,28 +793,52 @@ public final class ZillaDumpCommand extends ZillaCommand
         private void encodeEtherHeader(
             MutableDirectBuffer buffer)
         {
-            buffer.putBytes(ETHER_HEADER_OFFSET, PSEUDO_ETHERNET_FRAME);
+            buffer.putBytes(ETHER_HEADER_OFFSET, ETHERNET_FRAME);
         }
 
         private void encodeIpv6Header(
             MutableDirectBuffer buffer,
+            boolean jumbo,
             long source,
             long destination,
             int payloadLength)
         {
-            ipv6HeaderRW.wrap(buffer, IPV6_HEADER_OFFSET, buffer.capacity())
-                .prefix(PSEUDO_IPV6_PREFIX)
-                .payload_length((short) payloadLength)
-                .next_header_and_hop_limit(PSEUDO_NEXT_HEADER_AND_HOP_LIMIT)
-                .src_addr_part1(IPV6_LOCAL_ADDRESS)
-                .src_addr_part2(source)
-                .dst_addr_part1(IPV6_LOCAL_ADDRESS)
-                .dst_addr_part2(destination)
-                .build();
+            long addrPart1 = IPV6_LOCAL_ADDRESS | worker;
+            if (jumbo)
+            {
+                ipv6HeaderRW.wrap(buffer, IPV6_HEADER_OFFSET, buffer.capacity())
+                    .prefix(IPV6_PREFIX)
+                    .payload_length((short) 0)
+                    .next_header(IPV6_NEXT_HEADER_JUMBO)
+                    .hop_limit(IPV6_HOP_LIMIT)
+                    .src_addr_part1(addrPart1)
+                    .src_addr_part2(source)
+                    .dst_addr_part1(addrPart1)
+                    .dst_addr_part2(destination)
+                    .build();
+                ipv6JumboHeaderRW.wrap(buffer, IPV6_JUMBO_HEADER_OFFSET, buffer.capacity())
+                    .prefix(IPV6_JUMBO_PREFIX)
+                    .payload_length(payloadLength + IPV6_JUMBO_HEADER_SIZE)
+                    .build();
+            }
+            else
+            {
+                ipv6HeaderRW.wrap(buffer, IPV6_HEADER_OFFSET, buffer.capacity())
+                    .prefix(IPV6_PREFIX)
+                    .payload_length((short) payloadLength)
+                    .next_header(IPV6_NEXT_HEADER_TCP)
+                    .hop_limit(IPV6_HOP_LIMIT)
+                    .src_addr_part1(addrPart1)
+                    .src_addr_part2(source)
+                    .dst_addr_part1(addrPart1)
+                    .dst_addr_part2(destination)
+                    .build();
+            }
         }
 
         private void encodeTcpHeader(
             MutableDirectBuffer buffer,
+            int ipv6JumboLength,
             boolean initial,
             long sequence,
             long acknowledge,
@@ -735,7 +848,7 @@ public final class ZillaDumpCommand extends ZillaCommand
             short sourcePort = initial ? TCP_SRC_PORT : TCP_DEST_PORT;
             short destPort = initial ? TCP_DEST_PORT : TCP_SRC_PORT;
 
-            tcpHeaderRW.wrap(buffer, TCP_HEADER_OFFSET, buffer.capacity())
+            tcpHeaderRW.wrap(buffer, TCP_HEADER_OFFSET + ipv6JumboLength, buffer.capacity())
                 .src_port(sourcePort)
                 .dst_port(destPort)
                 .sequence_number((int) sequence)
@@ -749,11 +862,16 @@ public final class ZillaDumpCommand extends ZillaCommand
 
         private void encodeZillaHeader(
             MutableDirectBuffer buffer,
+            int ipv6JumboLength,
             int frameTypeId,
-            int protocolTypeId)
+            int protocolTypeId,
+            int worker,
+            int offset)
         {
-            buffer.putInt(ZILLA_HEADER_OFFSET, frameTypeId);
-            buffer.putInt(ZILLA_PROTOCOL_TYPE_OFFSET, protocolTypeId);
+            buffer.putInt(ZILLA_HEADER_OFFSET + ipv6JumboLength, frameTypeId);
+            buffer.putInt(ZILLA_PROTOCOL_TYPE_OFFSET + ipv6JumboLength, protocolTypeId);
+            buffer.putInt(ZILLA_WORKER_OFFSET + ipv6JumboLength, worker);
+            buffer.putInt(ZILLA_OFFSET_OFFSET + ipv6JumboLength, offset);
         }
 
         private int encodeZillaLabels(

@@ -119,6 +119,9 @@ write zilla:begin.ext ${proxy:beginEx()
                                  .sourcePort(0)
                                  .destinationPort(9092)
                                  .build()
+                               .info()
+                                 .authority("broker1.example.com")
+                                 .build()
                                .build()}
 
 connected

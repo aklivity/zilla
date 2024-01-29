@@ -33,6 +33,7 @@ public class HttpRequestConfigBuilder<T> extends ConfigBuilder<T, HttpRequestCon
     private List<HttpParamConfig> pathParams;
     private List<HttpParamConfig> queryParams;
     private ModelConfig content;
+    private List<HttpResponseConfig> responses;
 
     HttpRequestConfigBuilder(
         Function<HttpRequestConfig, T> mapper)
@@ -120,6 +121,12 @@ public class HttpRequestConfigBuilder<T> extends ConfigBuilder<T, HttpRequestCon
         return this;
     }
 
+    public HttpParamConfigBuilder<HttpRequestConfigBuilder<T>> pathParam()
+    {
+        return new HttpParamConfigBuilder<>(this::pathParam);
+    }
+
+
     public HttpParamConfigBuilder<HttpRequestConfigBuilder<T>> queryParam()
     {
         return new HttpParamConfigBuilder<>(this::queryParam);
@@ -143,11 +150,6 @@ public class HttpRequestConfigBuilder<T> extends ConfigBuilder<T, HttpRequestCon
         return this;
     }
 
-    public HttpParamConfigBuilder<HttpRequestConfigBuilder<T>> pathParam()
-    {
-        return new HttpParamConfigBuilder<>(this::pathParam);
-    }
-
     public HttpRequestConfigBuilder<T> content(
         ModelConfig content)
     {
@@ -161,9 +163,33 @@ public class HttpRequestConfigBuilder<T> extends ConfigBuilder<T, HttpRequestCon
         return content.apply(this::content);
     }
 
+    public HttpRequestConfigBuilder<T> responses(
+        List<HttpResponseConfig> responses)
+    {
+        this.responses = responses;
+        return this;
+    }
+
+    public HttpRequestConfigBuilder<T> response(
+        HttpResponseConfig response)
+    {
+        if (this.responses == null)
+        {
+            this.responses = new LinkedList<>();
+        }
+        this.responses.add(response);
+        return this;
+    }
+
+    public HttpResponseConfigBuilder<HttpRequestConfigBuilder<T>> response()
+    {
+        return new HttpResponseConfigBuilder<>(this::response);
+    }
+
     @Override
     public T build()
     {
-        return mapper.apply(new HttpRequestConfig(path, method, contentTypes, headers, pathParams, queryParams, content));
+        return mapper.apply(new HttpRequestConfig(path, method, contentTypes, headers, pathParams, queryParams, content,
+            responses));
     }
 }

@@ -75,13 +75,18 @@ public final class TcpClientRouter
         ProxyBeginExFW beginEx)
     {
         final TcpOptionsConfig options = binding.options;
-        final int port = options.ports != null && options.ports.length > 0 ? options.ports[0] : 0;
+        final int port = options != null && options.ports != null && options.ports.length > 0 ? options.ports[0] : 0;
 
         InetSocketAddress resolved = null;
 
         if (beginEx == null)
         {
-            resolved = new InetSocketAddress(options.host, port);
+            resolved = options != null ? new InetSocketAddress(options.host, port) : null;
+        }
+        else if (binding.routes == TcpBindingConfig.DEFAULT_CLIENT_ROUTES)
+        {
+            ProxyAddressFW address = beginEx.address();
+            resolved = resolveInetSocketAddress(address);
         }
         else
         {
@@ -124,7 +129,10 @@ public final class TcpClientRouter
                 }
             }
 
-            if (resolved == null && options.host != null && !"*".equals(options.host))
+            if (resolved == null &&
+                options != null &&
+                options.host != null &&
+                !"*".equals(options.host))
             {
                 final List<InetSocketAddress> host = Arrays
                     .stream(resolveHost.apply(options.host))
@@ -240,5 +248,47 @@ public final class TcpClientRouter
                 .of(new InetSocketAddress(InetAddress.getByAddress(ipv6), destinationPort))
                 .filter(filter)
                 .orElse(null);
+    }
+
+    private InetSocketAddress resolveInetSocketAddress(
+        ProxyAddressFW address)
+    {
+        InetSocketAddress resolved = null;
+
+        try
+        {
+            switch (address.kind())
+            {
+            case INET:
+                ProxyAddressInetFW addressInet = address.inet();
+                resolved = new InetSocketAddress(addressInet.destination().asString(), addressInet.destinationPort());
+                break;
+            case INET4:
+                ProxyAddressInet4FW addressInet4 = address.inet4();
+                OctetsFW destinationInet4 = addressInet4.destination();
+                int destinationPortInet4 = addressInet4.destinationPort();
+
+                byte[] ipv4 = ipv4RO;
+                destinationInet4.buffer().getBytes(destinationInet4.offset(), ipv4);
+                resolved = new InetSocketAddress(InetAddress.getByAddress(ipv4), destinationPortInet4);
+                break;
+            case INET6:
+                ProxyAddressInet6FW addressInet6 = address.inet6();
+
+                OctetsFW destinationInet6 = addressInet6.destination();
+                int destinationPortInet6 = addressInet6.destinationPort();
+
+                byte[] ipv6 = ipv6ros;
+                destinationInet6.buffer().getBytes(destinationInet6.offset(), ipv6);
+                resolved = new InetSocketAddress(InetAddress.getByAddress(ipv6), destinationPortInet6);
+                break;
+            }
+        }
+        catch (UnknownHostException e)
+        {
+            //Ignore
+        }
+
+        return resolved;
     }
 }

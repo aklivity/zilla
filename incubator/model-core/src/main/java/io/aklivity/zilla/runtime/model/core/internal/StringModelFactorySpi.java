@@ -16,10 +16,12 @@ package io.aklivity.zilla.runtime.model.core.internal;
 
 import java.net.URL;
 
+import io.aklivity.zilla.runtime.common.feature.Incubating;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.model.Model;
 import io.aklivity.zilla.runtime.engine.model.ModelFactorySpi;
 
+@Incubating
 public final class StringModelFactorySpi implements ModelFactorySpi
 {
     @Override

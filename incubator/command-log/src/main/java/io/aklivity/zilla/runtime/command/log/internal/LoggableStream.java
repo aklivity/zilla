@@ -92,8 +92,10 @@ import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaFlushExF
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaGroupBeginExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaGroupFlushExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaMergedBeginExFW;
+import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaMergedConsumerFlushExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaMergedDataExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaMergedFetchDataExFW;
+import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaMergedFetchFlushExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaMergedFlushExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaMergedProduceDataExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaMetaBeginExFW;
@@ -1291,17 +1293,46 @@ public final class LoggableStream implements AutoCloseable
         long timestamp,
         KafkaMergedFlushExFW merged)
     {
-        final ArrayFW<KafkaOffsetFW> progress = merged.fetch().progress();
-        final Array32FW<KafkaFilterFW> filters = merged.fetch().filters();
+        switch (merged.kind())
+        {
+        case KafkaFlushExFW.KIND_FETCH:
+            onKafkaMergedFetchFlushEx(offset, timestamp, merged.fetch());
+            break;
+        case KafkaFlushExFW.KIND_CONSUMER:
+            onKafkaMergedConsumerFlushEx(offset, timestamp, merged.consumer());
+            break;
+        }
+    }
 
-        out.printf(verboseFormat, index, offset, timestamp, "[merged]");
+    private void onKafkaMergedFetchFlushEx(
+        int offset,
+        long timestamp,
+        KafkaMergedFetchFlushExFW fetch)
+    {
+        final ArrayFW<KafkaOffsetFW> progress = fetch.progress();
+        final Array32FW<KafkaFilterFW> filters = fetch.filters();
+
+        out.printf(verboseFormat, index, offset, timestamp, "[merged] [fetch]");
         progress.forEach(p -> out.printf(verboseFormat, index, offset, timestamp,
-                   format("%d: %d %d %d",
-                       p.partitionId(),
-                       p.partitionOffset(),
-                       p.stableOffset(),
-                       p.latestOffset())));
+            format("%d: %d %d %d",
+                p.partitionId(),
+                p.partitionOffset(),
+                p.stableOffset(),
+                p.latestOffset())));
         filters.forEach(f -> f.conditions().forEach(c -> out.printf(verboseFormat, index, offset, timestamp, asString(c))));
+    }
+
+    private void onKafkaMergedConsumerFlushEx(
+        int offset,
+        long timestamp,
+        KafkaMergedConsumerFlushExFW consumer)
+    {
+        final KafkaOffsetFW progress = consumer.progress();
+        final long correlationId = consumer.correlationId();
+
+        out.printf(verboseFormat, index, offset, timestamp,
+            format("[merged] [consumer]  %d %d %d ",
+                progress.partitionId(), progress.partitionOffset(), correlationId));
     }
 
     private void onKafkaGroupFlushEx(

@@ -51,7 +51,7 @@ public class TelemetryConfigsAdapterTest
     public void initJson()
     {
         JsonbConfig config = new JsonbConfig()
-                .withAdapters(new TelemetryAdapter(context));
+                .withAdapters(new TelemetryAdapter(context).adaptNamespace("test"));
         jsonb = JsonbBuilder.create(config);
     }
 
@@ -116,6 +116,7 @@ public class TelemetryConfigsAdapterTest
                 .exporter()
                     .inject(identity())
                     .name("test0")
+                    .namespace("test")
                     .type("test")
                     .build()
                 .build();
@@ -194,6 +195,7 @@ public class TelemetryConfigsAdapterTest
                     .build()
                 .exporter()
                     .inject(identity())
+                    .namespace("test")
                     .name("test0")
                     .type("test")
                     .options(TestExporterOptionsConfig::builder)

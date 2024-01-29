@@ -255,7 +255,7 @@ public class TcpClientFactory implements TcpStreamFactory
             try
             {
                 state = TcpState.openingInitial(state);
-                net.setOption(SO_KEEPALIVE, options.keepalive);
+                net.setOption(SO_KEEPALIVE, options != null && options.keepalive);
 
                 if (net.connect(remoteAddress))
                 {
@@ -321,11 +321,12 @@ public class TcpClientFactory implements TcpStreamFactory
         private int onNetReadable(
             PollerKey key)
         {
-            final int replyBudget = (int) Math.max(replyMax - (replySeq - replyAck), 0L);
+            assert replyMax > replyPad;
+            assert replySeq >= replyAck;
 
-            assert replyBudget > replyPad;
-
-            final int limit = Math.min(replyBudget - replyPad, readBuffer.capacity());
+            final int replyNoAck = (int)(replySeq - replyAck);
+            final int replyBudget = Math.max(replyMax - replyPad - replyNoAck, 0);
+            final int limit = Math.min(replyBudget, readBuffer.capacity());
 
             ((Buffer) readByteBuffer).position(0);
             ((Buffer) readByteBuffer).limit(limit);

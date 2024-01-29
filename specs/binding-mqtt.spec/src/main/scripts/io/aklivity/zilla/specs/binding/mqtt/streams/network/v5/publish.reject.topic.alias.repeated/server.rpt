@@ -31,11 +31,10 @@ read  [0x10 0x16]                    # CONNECT
       [0x22 0x00 0x01]               # topic alias maximum = 1
       [0x00 0x06] "client"           # client id
 
-write [0x20 0x0b]                    # CONNACK
+write [0x20 0x06]                    # CONNACK
       [0x00]                         # flags = none
       [0x00]                         # reason code
-      [0x08]                         # properties
-      [0x27] 66560                   # maximum packet size = 66560
+      [0x03]                         # properties
       [0x22] 1s                      # topic alias maximum = 1
 
 read  [0x30 0x1a]                    # PUBLISH
