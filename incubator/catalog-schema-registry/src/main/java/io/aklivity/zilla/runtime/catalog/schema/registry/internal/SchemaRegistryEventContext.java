@@ -41,7 +41,6 @@ public class SchemaRegistryEventContext
     }
 
     public void remoteAccessFailure(
-        Level level,
         String url,
         String method,
         int status)
@@ -49,7 +48,7 @@ public class SchemaRegistryEventContext
         SchemaRegistryEventFW event = schemaRegistryEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .remoteAccessFailure(e -> e
-                .level(l -> l.set(level))
+                .level(l -> l.set(Level.ERROR))
                 .url(url)
                 .method(method)
                 .status((short) status)

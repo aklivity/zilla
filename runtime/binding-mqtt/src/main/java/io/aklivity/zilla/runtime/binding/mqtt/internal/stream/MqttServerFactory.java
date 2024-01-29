@@ -168,7 +168,6 @@ import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttUnsubscri
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttUserPropertyFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttWillV4FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttWillV5FW;
-import io.aklivity.zilla.runtime.binding.mqtt.internal.types.event.Level;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.event.Result;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.BeginFW;
@@ -2930,7 +2929,6 @@ public final class MqttServerFactory implements MqttStreamFactory
                         sessionAuth = guard.reauthorize(initialId, credentialsMatch);
                         event.authorization(
                             sessionAuth == 0 ? Result.FAILURE : Result.SUCCESS,
-                            sessionAuth == 0 ? Level.WARNING : Level.INFO,
                             traceId, routedId, initialId, guard.identity(sessionId));
                     }
                 }

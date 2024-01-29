@@ -45,11 +45,11 @@ public class KafkaEventContext
 
     public void authorization(
         Result result,
-        Level level,
         long traceId,
         long routedId,
         long initialId)
     {
+        Level level = result == Result.FAILURE ? Level.WARNING : Level.INFO;
         KafkaEventFW event = kafkaEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .authorization(e -> e
@@ -65,13 +65,12 @@ public class KafkaEventContext
     }
 
     public void apiVersionRejection(
-        Level level,
         long traceId)
     {
         KafkaEventFW event = kafkaEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .apiVersionRejection(e -> e
-                .level(l -> l.set(level))
+                .level(l -> l.set(Level.ERROR))
                 .traceId(traceId)
             )
             .build();

@@ -118,7 +118,6 @@ import io.aklivity.zilla.runtime.binding.http.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.ProxyInfoFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
-import io.aklivity.zilla.runtime.binding.http.internal.types.event.Level;
 import io.aklivity.zilla.runtime.binding.http.internal.types.event.Result;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.BeginFW;
@@ -1034,7 +1033,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 }
                 else if (!isCorsRequestAllowed(server.binding, headers))
                 {
-                    event.accessControlFailure(Level.WARNING, traceId, server.routedId, server.initialId);
+                    event.accessControlFailure(traceId, server.routedId, server.initialId);
                     server.onDecodeHeadersError(traceId, authorization, response403);
                     server.decoder = decodeIgnore;
                 }
@@ -1065,7 +1064,6 @@ public final class HttpServerFactory implements HttpStreamFactory
                                 exchangeAuth = guard.reauthorize(server.initialId, credentialsMatch);
                                 event.authorization(
                                     exchangeAuth == 0 ? Result.FAILURE : Result.SUCCESS,
-                                    exchangeAuth == 0 ? Level.WARNING : Level.INFO,
                                     traceId, server.routedId, server.initialId, guard.identity(authorization));
                             }
                         }
@@ -4855,7 +4853,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 }
                 else if (!isCorsRequestAllowed(binding, headers))
                 {
-                    event.accessControlFailure(Level.WARNING, traceId, routedId, initialId);
+                    event.accessControlFailure(traceId, routedId, initialId);
                     doEncodeHeaders(traceId, authorization, streamId, headers403, true);
                 }
                 else
@@ -4890,7 +4888,6 @@ public final class HttpServerFactory implements HttpStreamFactory
                                 exchangeAuth = guard.reauthorize(initialId, credentialsMatch);
                                 event.authorization(
                                     exchangeAuth == 0 ? Result.FAILURE : Result.SUCCESS,
-                                    exchangeAuth == 0 ? Level.WARNING : Level.INFO,
                                     traceId, routedId, initialId, guard.identity(authorization));
                             }
                         }

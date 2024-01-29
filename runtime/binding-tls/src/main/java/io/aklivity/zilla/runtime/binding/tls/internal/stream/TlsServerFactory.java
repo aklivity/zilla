@@ -59,7 +59,6 @@ import io.aklivity.zilla.runtime.binding.tls.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.codec.TlsRecordInfoFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.codec.TlsUnwrappedDataFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.codec.TlsUnwrappedInfoFW;
-import io.aklivity.zilla.runtime.binding.tls.internal.types.event.Level;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.event.Result;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.BeginFW;
@@ -533,7 +532,7 @@ public final class TlsServerFactory implements TlsStreamFactory
         }
         catch (SSLException | RuntimeException ex)
         {
-            event.tlsFailure(Result.UNKNOWN_ERROR, Level.ERROR, traceId);
+            event.tlsFailure(Result.UNKNOWN_ERROR, traceId);
             server.cleanupNet(traceId);
             server.decoder = decodeIgnoreAll;
         }
@@ -652,7 +651,7 @@ public final class TlsServerFactory implements TlsStreamFactory
                     }
                     catch (SSLException | RuntimeException ex)
                     {
-                        event.tlsFailure(Result.UNKNOWN_ERROR, Level.ERROR, traceId);
+                        event.tlsFailure(Result.UNKNOWN_ERROR, traceId);
                         server.cleanupNet(traceId);
                         server.decoder = decodeIgnoreAll;
                     }
@@ -834,7 +833,7 @@ public final class TlsServerFactory implements TlsStreamFactory
             }
             catch (SSLException | RuntimeException ex)
             {
-                event.tlsFailure(Result.UNKNOWN_ERROR, Level.ERROR, traceId);
+                event.tlsFailure(Result.UNKNOWN_ERROR, traceId);
                 server.doEncodeWrapIfNecessary(traceId, budgetId);
                 server.cleanupNet(traceId);
                 server.decoder = decodeIgnoreAll;
@@ -1313,7 +1312,7 @@ public final class TlsServerFactory implements TlsStreamFactory
                 handshakeTimeoutFutureId = NO_CANCEL_ID;
 
                 cleanupNet(traceId);
-                event.tlsFailure(Result.HANDSHAKE_TIMEOUT, Level.ERROR, traceId);
+                event.tlsFailure(Result.HANDSHAKE_TIMEOUT, traceId);
                 decoder = decodeIgnoreAll;
             }
         }
@@ -1690,7 +1689,7 @@ public final class TlsServerFactory implements TlsStreamFactory
             }
             catch (SSLException | RuntimeException ex)
             {
-                event.tlsFailure(Result.UNKNOWN_ERROR, Level.ERROR, traceId);
+                event.tlsFailure(Result.UNKNOWN_ERROR, traceId);
                 cleanupNet(traceId);
             }
         }

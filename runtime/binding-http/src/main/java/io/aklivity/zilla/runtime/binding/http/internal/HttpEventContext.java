@@ -44,7 +44,6 @@ public class HttpEventContext
     }
 
     public void accessControlFailure(
-        Level level,
         long traceId,
         long routedId,
         long initialId)
@@ -52,7 +51,7 @@ public class HttpEventContext
         HttpEventFW event = httpEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .accessControlFailure(e -> e
-                .level(l -> l.set(level))
+                .level(l -> l.set(Level.WARNING))
                 .traceId(traceId)
                 .routedId(routedId)
                 .initialId(initialId)
@@ -64,12 +63,12 @@ public class HttpEventContext
 
     public void authorization(
         Result result,
-        Level level,
         long traceId,
         long routedId,
         long initialId,
         String identity)
     {
+        Level level = result == Result.FAILURE ? Level.WARNING : Level.INFO;
         HttpEventFW event = httpEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .authorization(e -> e

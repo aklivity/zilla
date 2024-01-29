@@ -45,12 +45,12 @@ public class MqttEventContext
 
     public void authorization(
         Result result,
-        Level level,
         long traceId,
         long routedId,
         long initialId,
         String identity)
     {
+        Level level = result == Result.FAILURE ? Level.WARNING : Level.INFO;
         MqttEventFW event = mqttEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .authorization(e -> e

@@ -46,7 +46,6 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.sasl.SaslAut
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.sasl.SaslHandshakeMechanismResponseFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.sasl.SaslHandshakeRequestFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.sasl.SaslHandshakeResponseFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.Level;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.Result;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -664,7 +663,6 @@ public abstract class KafkaClientSaslHandshaker
                 final int errorCode = authenticateResponse.errorCode();
                 event.authorization(
                     errorCode == ERROR_NONE ? Result.SUCCESS : Result.FAILURE,
-                    errorCode == ERROR_NONE ? Level.INFO : Level.WARNING,
                     traceId, client.routedId, client.initialId);
 
                 progress = authenticateResponse.limit();
@@ -724,13 +722,13 @@ public abstract class KafkaClientSaslHandshaker
                     client.decodeSaslAuthenticate = decodeSaslScramAuthenticateFinal;
                     client.onDecodeSaslResponse(traceId);
                     client.onDecodeSaslHandshakeResponse(traceId, authorization, ERROR_NONE);
-                    event.authorization(Result.SUCCESS, Level.INFO, traceId, client.routedId, client.initialId);
+                    event.authorization(Result.SUCCESS, traceId, client.routedId, client.initialId);
                 }
                 else
                 {
                     client.onDecodeSaslResponse(traceId);
                     client.onDecodeSaslAuthenticateResponse(traceId, authorization, ERROR_SASL_AUTHENTICATION_FAILED);
-                    event.authorization(Result.FAILURE, Level.WARNING, traceId, client.routedId, client.initialId);
+                    event.authorization(Result.FAILURE, traceId, client.routedId, client.initialId);
                 }
             }
         }

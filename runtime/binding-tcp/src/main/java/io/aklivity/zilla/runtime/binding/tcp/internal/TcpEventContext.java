@@ -43,7 +43,6 @@ public class TcpEventContext
     }
 
     public void remoteAccessFailure(
-        Level level,
         long traceId,
         long routedId,
         long initialId,
@@ -52,7 +51,7 @@ public class TcpEventContext
         ProxyEventFW event = proxyEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .remoteAccessFailure(e -> e
-                .level(l -> l.set(level))
+                .level(l -> l.set(Level.ERROR))
                 .traceId(traceId)
                 .routedId(routedId)
                 .initialId(initialId)

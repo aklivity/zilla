@@ -25,7 +25,6 @@ import org.agrona.collections.Int2ObjectCache;
 
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.config.SchemaRegistryOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.serializer.RegisterSchemaRequest;
-import io.aklivity.zilla.runtime.catalog.schema.registry.internal.types.event.Level;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 
@@ -148,13 +147,13 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
             }
             else
             {
-                event.remoteAccessFailure(Level.ERROR, httpRequest.uri().toString(), httpRequest.method(), response.statusCode());
+                event.remoteAccessFailure(httpRequest.uri().toString(), httpRequest.method(), response.statusCode());
             }
             return responseBody;
         }
         catch (Exception ex)
         {
-            event.remoteAccessFailure(Level.ERROR, httpRequest.uri().toString(), httpRequest.method(), -1);
+            event.remoteAccessFailure(httpRequest.uri().toString(), httpRequest.method(), -1);
             ex.printStackTrace(System.out);
         }
         return null;

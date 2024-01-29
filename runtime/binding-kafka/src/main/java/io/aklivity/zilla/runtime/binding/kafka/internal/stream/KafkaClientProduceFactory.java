@@ -63,7 +63,6 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.produce.Prod
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.produce.ProduceResponseTrailerFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.produce.ProduceTopicRequestFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.produce.ProduceTopicResponseFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.Level;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.DataFW;
@@ -799,7 +798,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
             final int errorCode = partition.errorCode();
             if (errorCode == ERROR_UNSUPPORTED_VERSION)
             {
-                event.apiVersionRejection(Level.ERROR, traceId);
+                event.apiVersionRejection(traceId);
             }
 
             progress = partition.limit();

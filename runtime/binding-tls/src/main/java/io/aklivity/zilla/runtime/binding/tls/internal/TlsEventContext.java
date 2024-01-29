@@ -45,13 +45,12 @@ public class TlsEventContext
 
     public void tlsFailure(
         Result result,
-        Level level,
         long traceId)
     {
         ProxyEventFW event = proxyEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .tlsFailure(e -> e
-                .level(l -> l.set(level))
+                .level(l -> l.set(Level.ERROR))
                 .traceId(traceId)
                 .result(r -> r.set(result))
             )
