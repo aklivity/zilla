@@ -525,7 +525,7 @@ scope kafka
         enum KafkaEventType (uint8)
         {
             AUTHORIZATION (1),
-            API_VERSION_REJECTION (2)
+            API_VERSION_REJECTED (2)
         }
 
         enum Result (uint8)
@@ -542,7 +542,7 @@ scope kafka
         union KafkaEvent switch (KafkaEventType)
         {
             case AUTHORIZATION: KafkaAuthorizationEvent authorization;
-            case API_VERSION_REJECTION: core::event::BindingEvent apiVersionRejection;
+            case API_VERSION_REJECTED: core::event::BindingEvent apiVersionRejected;
         }
     }
 }

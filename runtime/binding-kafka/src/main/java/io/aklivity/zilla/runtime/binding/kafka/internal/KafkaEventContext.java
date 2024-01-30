@@ -59,12 +59,12 @@ public class KafkaEventContext
         logEvent.accept(kafkaTypeId, event.buffer(), event.offset(), event.limit());
     }
 
-    public void apiVersionRejection(
+    public void apiVersionRejected(
         long traceId)
     {
         KafkaEventFW event = kafkaEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
-            .apiVersionRejection(e -> e
+            .apiVersionRejected(e -> e
                 .traceId(traceId)
             )
             .build();

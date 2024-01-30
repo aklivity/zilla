@@ -798,7 +798,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
             final int errorCode = partition.errorCode();
             if (errorCode == ERROR_UNSUPPORTED_VERSION)
             {
-                event.apiVersionRejection(traceId);
+                event.apiVersionRejected(traceId);
             }
 
             progress = partition.limit();
