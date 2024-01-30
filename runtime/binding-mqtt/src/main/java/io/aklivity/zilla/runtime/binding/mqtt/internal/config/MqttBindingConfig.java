@@ -30,7 +30,6 @@ import io.aklivity.zilla.runtime.binding.mqtt.config.MqttCredentialsConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttPatternConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttPatternConfig.MqttConnectProperty;
-import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttOptionsConfigAdapter.MqttVersion;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
@@ -39,7 +38,7 @@ import io.aklivity.zilla.runtime.engine.validator.Validator;
 public final class MqttBindingConfig
 {
     private static final Function<String, String> DEFAULT_CREDENTIALS = x -> null;
-    private static final List<MqttVersion> DEFAULT_VERSIONS = Arrays.asList(MqttVersion.VERSION_3_1_1, MqttVersion.VERSION_5);
+    private static final List<MqttVersion> DEFAULT_VERSIONS = Arrays.asList(MqttVersion.V3_1_1, MqttVersion.V_5);
 
     public final long id;
     public final String name;

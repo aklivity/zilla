@@ -18,7 +18,7 @@ package io.aklivity.zilla.runtime.binding.mqtt.config;
 import java.util.List;
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttOptionsConfigAdapter.MqttVersion;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttVersion;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public class MqttOptionsConfig extends OptionsConfig

@@ -114,8 +114,8 @@ import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttBinding;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttValidator;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttBindingConfig;
-import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttOptionsConfigAdapter.MqttVersion;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttRouteConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttVersion;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttBinaryFW;
@@ -899,7 +899,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             if (mqttConnect != null)
             {
                 int reasonCode = decodeConnectProtocol(mqttConnect.protocolName(), mqttConnect.protocolVersion());
-                if (!server.protocolVersions.contains(mqttConnect.protocolVersion()))
+                if (!server.versions.contains(MqttVersion.ofProtocol(mqttConnect.protocolVersion())))
                 {
                     reasonCode = UNSUPPORTED_PROTOCOL_VERSION;
                 }
@@ -2410,7 +2410,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private final GuardHandler guard;
         private final Function<String, String> credentials;
         private final MqttConnectProperty authField;
-        private final List<Integer> protocolVersions;
+        private final List<MqttVersion> versions;
 
         private final OctetsFW.Builder correlationDataRW = new OctetsFW.Builder();
         private final Array32FW.Builder<MqttUserPropertyFW.Builder, MqttUserPropertyFW> userPropertiesRW =
@@ -2522,7 +2522,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             this.qos1Subscribes = new Int2ObjectHashMap<>();
             this.qos2Subscribes = new Int2ObjectHashMap<>();
             this.guard = resolveGuard(options, resolveId);
-            this.protocolVersions = versions.stream().map(MqttVersion::versionNumber).collect(Collectors.toList());
+            this.versions = versions;
             this.credentials = credentials;
             this.authField = authField;
         }
@@ -2951,7 +2951,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 this.session = new MqttSessionStream(originId, resolved.id, 0);
 
-                final int capabilities = protocolVersions.contains(MQTT_PROTOCOL_VERSION_5) && protocolVersions.size() == 1
+                final int capabilities = versions.contains(MqttVersion.V_5) && versions.size() == 1
                     ? REDIRECT_MASK : 0;
 
                 final MqttBeginExFW.Builder builder = mqttSessionBeginExRW.wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())

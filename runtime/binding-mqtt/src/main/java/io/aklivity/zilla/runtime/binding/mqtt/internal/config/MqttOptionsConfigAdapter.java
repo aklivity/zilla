@@ -108,7 +108,7 @@ public class MqttOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbA
         if (mqttOptions.versions != null)
         {
             JsonArrayBuilder versions = Json.createArrayBuilder();
-            mqttOptions.versions.forEach(v -> versions.add(v.protocolVersion()));
+            mqttOptions.versions.forEach(v -> versions.add(v.specification()));
             object.add(VERSIONS_NAME, versions);
         }
 
@@ -164,55 +164,11 @@ public class MqttOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbA
         if (object.containsKey(VERSIONS_NAME))
         {
             List<MqttVersion> versions = object.getJsonArray(VERSIONS_NAME).stream()
-                .map(item -> MqttVersion.protocolVersion(((JsonString) item).getString()))
+                .map(item -> MqttVersion.ofSpecification(((JsonString) item).getString()))
                 .collect(Collectors.toList());
             mqttOptions.versions(versions);
         }
 
         return mqttOptions.build();
-    }
-
-    public enum MqttVersion
-    {
-        VERSION_3_1_1("v3.1.1", 4),
-        VERSION_5("v5", 5);
-
-        private final String protocolVersion;
-        private final int versionNumber;
-
-        MqttVersion(
-            String protocolVersion,
-            int versionNumber)
-        {
-            this.protocolVersion = protocolVersion;
-            this.versionNumber = versionNumber;
-        }
-
-        public String protocolVersion()
-        {
-            return protocolVersion;
-        }
-
-        public int versionNumber()
-        {
-            return versionNumber;
-        }
-
-        static MqttVersion protocolVersion(
-            String versionString)
-        {
-            MqttVersion version = null;
-            for (MqttVersion v : values())
-            {
-                if (v.protocolVersion().equals(versionString))
-                {
-                    version = v;
-                    break;
-                }
-            }
-            return version;
-        }
-
-
     }
 }
