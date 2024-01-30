@@ -319,7 +319,7 @@ public class TcpClientFactory implements TcpStreamFactory
         {
             final long traceId = supplyTraceId.getAsLong();
             String address = remoteAddress == null ? null : remoteAddress.toString();
-            event.remoteAccessFailure(traceId, routedId, address);
+            event.remoteAccessFailed(traceId, routedId, address);
             cleanup(traceId);
         }
 

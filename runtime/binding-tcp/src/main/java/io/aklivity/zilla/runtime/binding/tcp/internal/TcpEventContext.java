@@ -41,14 +41,14 @@ public class TcpEventContext
         this.logEvent = context::logEvent;
     }
 
-    public void remoteAccessFailure(
+    public void remoteAccessFailed(
         long traceId,
         long routedId,
         String address)
     {
         ProxyEventFW event = proxyEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
-            .remoteAccessFailure(e -> e
+            .remoteAccessFailed(e -> e
                 .traceId(traceId)
                 .bindingId(routedId)
                 .address(address)
