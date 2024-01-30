@@ -52,7 +52,6 @@ import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 import io.aklivity.zilla.runtime.engine.config.TelemetryRefConfig;
 import io.aklivity.zilla.runtime.engine.config.VaultConfig;
-import io.aklivity.zilla.runtime.engine.expression.ExpressionResolver;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtContext;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
 import io.aklivity.zilla.runtime.engine.guard.Guard;
@@ -60,6 +59,7 @@ import io.aklivity.zilla.runtime.engine.internal.Tuning;
 import io.aklivity.zilla.runtime.engine.internal.config.NamespaceAdapter;
 import io.aklivity.zilla.runtime.engine.internal.layouts.BindingsLayout;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
+import io.aklivity.zilla.runtime.engine.resolver.Resolver;
 
 public class EngineManager
 {
@@ -77,7 +77,7 @@ public class EngineManager
     private final EngineConfiguration config;
     private final List<EngineExtSpi> extensions;
     private final BiFunction<URL, String, String> readURL;
-    private final ExpressionResolver expressions;
+    private final Resolver expressions;
     private final Matcher matchName;
 
     private EngineConfig current;
@@ -108,7 +108,7 @@ public class EngineManager
         this.config = config;
         this.extensions = extensions;
         this.readURL = readURL;
-        this.expressions = ExpressionResolver.instantiate();
+        this.expressions = Resolver.instantiate(config);
         this.matchName = NamespaceAdapter.PATTERN_NAME.matcher("");
     }
 
