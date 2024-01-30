@@ -20,7 +20,7 @@ import io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi;
 public final class FileSystemBindingFactorySpi implements BindingFactorySpi
 {
     @Override
-    public String name()
+    public String type()
     {
         return FileSystemBinding.NAME;
     }

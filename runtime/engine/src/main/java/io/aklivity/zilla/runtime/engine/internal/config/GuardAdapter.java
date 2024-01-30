@@ -31,10 +31,18 @@ public class GuardAdapter
 
     private final OptionsAdapter options;
 
+    private String namespace;
+
     public GuardAdapter(
         ConfigAdapterContext context)
     {
         this.options = new OptionsAdapter(OptionsConfigAdapterSpi.Kind.GUARD, context);
+    }
+
+    public void adaptNamespace(
+        String namespace)
+    {
+        this.namespace = namespace;
     }
 
     public JsonObject adaptToJson(
@@ -63,6 +71,7 @@ public class GuardAdapter
         options.adaptType(type);
 
         GuardConfigBuilder<GuardConfig> guard = GuardConfig.builder()
+            .namespace(namespace)
             .name(name)
             .type(type);
 

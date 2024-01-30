@@ -34,7 +34,7 @@ public class MqttKafkaHeaderHelper
     private static final String KAFKA_LOCAL_HEADER_NAME = "zilla:local";
     private static final String KAFKA_QOS_HEADER_NAME = "zilla:qos";
 
-    private static final String KAFKA_TIMEOUT_HEADER_NAME = "zilla:timeout-ms";
+    private static final String KAFKA_TIMEOUT_HEADER_NAME = "zilla:expiry";
 
     private static final String KAFKA_CONTENT_TYPE_HEADER_NAME = "zilla:content-type";
 

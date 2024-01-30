@@ -52,8 +52,9 @@ public class SchemaRegistryCatalogFactoryTest
             .context("default")
             .maxAge(Duration.ofSeconds(100))
             .build();
-        CatalogConfig options = new CatalogConfig("catalog0", "schema-registry", catalogConfig);
+        CatalogConfig options = new CatalogConfig("test", "catalog0", "schema-registry", catalogConfig);
         CatalogHandler handler = context.attach(options);
+
         assertThat(handler, instanceOf(SchemaRegistryCatalogHandler.class));
     }
 }

@@ -46,6 +46,15 @@ public class GrpcIT
 
     @Test
     @Specification({
+        "${grpc}/unary.rpc.message.value.100k/client",
+        "${grpc}/unary.rpc.message.value.100k/server"})
+    public void shouldExchangeMessageValue100kInUnary() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${grpc}/client.stream.rpc/client",
         "${grpc}/client.stream.rpc/server"})
     public void shouldExchangeMessageInClientStream() throws Exception

@@ -66,4 +66,14 @@ public class ProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.ports.yaml")
+    @Specification({
+        "${proxy}/client/reject.port.not.routed/client"
+    })
+    public void shouldRejectWhenPortNotRouted() throws Exception
+    {
+        k3po.finish();
+    }
 }

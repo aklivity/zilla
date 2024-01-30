@@ -391,25 +391,6 @@ public class ConnectionIT
         k3po.finish();
     }
 
-    // [MQTT-3.1.2-24]
-    @Test
-    @Specification({
-        "${net}/connect.max.packet.size.exceeded/client",
-        "${net}/connect.max.packet.size.exceeded/server"})
-    public void shouldNotReceivePublishPacketExceedingMaxPacketLimit() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/connect.reject.packet.too.large/client",
-        "${net}/connect.reject.packet.too.large/server"})
-    public void shouldRejectPacketTooLarge() throws Exception
-    {
-        k3po.finish();
-    }
-
     @Test
     @Specification({
         "${net}/connect.subscribe.batched/client",

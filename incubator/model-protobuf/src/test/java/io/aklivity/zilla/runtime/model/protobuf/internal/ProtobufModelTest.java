@@ -89,7 +89,7 @@ public class ProtobufModelTest
     @Test
     public void shouldWriteValidProtobufEvent()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test",
             TestCatalogOptionsConfig.builder()
                 .id(1)
                 .schema(SCHEMA)
@@ -121,7 +121,7 @@ public class ProtobufModelTest
     @Test
     public void shouldWriteValidProtobufEventNestedMessage()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test",
             TestCatalogOptionsConfig.builder()
                 .id(1)
                 .schema(SCHEMA)
@@ -151,7 +151,7 @@ public class ProtobufModelTest
     @Test
     public void shouldWriteValidProtobufEventIncorrectRecordName()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test",
             TestCatalogOptionsConfig.builder()
                 .id(1)
                 .schema(SCHEMA)
@@ -181,7 +181,7 @@ public class ProtobufModelTest
     @Test
     public void shouldReadValidProtobufEvent()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test",
             TestCatalogOptionsConfig.builder()
                 .id(1)
                 .schema(SCHEMA)
@@ -212,7 +212,7 @@ public class ProtobufModelTest
     @Test
     public void shouldReadValidProtobufEventNestedMessage()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test",
             TestCatalogOptionsConfig.builder()
                 .id(1)
                 .schema(SCHEMA)
@@ -241,7 +241,7 @@ public class ProtobufModelTest
     @Test
     public void shouldReadValidProtobufEventFormatJson()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test",
             TestCatalogOptionsConfig.builder()
                 .id(1)
                 .schema(SCHEMA)
@@ -287,7 +287,7 @@ public class ProtobufModelTest
     @Test
     public void shouldWriteValidProtobufEventFormatJson()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test",
             TestCatalogOptionsConfig.builder()
                 .id(1)
                 .schema(SCHEMA)
@@ -330,7 +330,7 @@ public class ProtobufModelTest
     @Test
     public void shouldVerifyJsonFormatPaddingLength()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test",
                 TestCatalogOptionsConfig.builder()
                         .id(9)
                         .schema(SCHEMA)
@@ -357,7 +357,7 @@ public class ProtobufModelTest
     @Test
     public void shouldVerifyIndexPaddingLength()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test",
                 TestCatalogOptionsConfig.builder()
                         .id(9)
                         .schema(SCHEMA)

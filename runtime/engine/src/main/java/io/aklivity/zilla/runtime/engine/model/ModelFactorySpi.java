@@ -18,8 +18,9 @@ package io.aklivity.zilla.runtime.engine.model;
 import java.net.URL;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.factory.FactorySpi;
 
-public interface ModelFactorySpi
+public interface ModelFactorySpi extends FactorySpi
 {
     String type();
 

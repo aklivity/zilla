@@ -68,9 +68,6 @@ write 150                                # size
       -1
       0
 
-accepted
-
-connected
 
 read 27                                 # size
      3s                                 # metadata
@@ -115,7 +112,7 @@ write 151                               # size
 
 accepted
 
-read zilla:begin.ext ${proxy:beginEx()
+read zilla:begin.ext ${proxy:matchBeginEx()
                               .typeId(zilla:id("proxy"))
                               .addressInet()
                                 .protocol("stream")
@@ -123,6 +120,9 @@ read zilla:begin.ext ${proxy:beginEx()
                                 .destination("broker1.example.com")
                                 .sourcePort(0)
                                 .destinationPort(9092)
+                                .build()
+                              .info()
+                                .authority("broker1.example.com")
                                 .build()
                               .build()}
 

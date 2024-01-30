@@ -39,11 +39,18 @@ scope pcap
     {
         int32 prefix;         /* Version + Traffic class + Flow label = 32 bit */
         int16 payload_length;
-        int16 next_header_and_hop_limit;
+        int8 next_header;
+        int8 hop_limit;
         int64 src_addr_part1;
         int64 src_addr_part2;
         int64 dst_addr_part1;
         int64 dst_addr_part2;
+    }
+
+    struct IPv6JumboHeader
+    {
+        int32 prefix;         /* Next Header + Header Ext Length + Option Type + Option Data Length */
+        int32 payload_length;
     }
 
     struct TcpHeader

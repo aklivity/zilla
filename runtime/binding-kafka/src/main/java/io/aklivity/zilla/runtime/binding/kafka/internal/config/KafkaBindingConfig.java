@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
@@ -124,6 +125,11 @@ public final class KafkaBindingConfig
     public KafkaSaslConfig sasl()
     {
         return options != null ? options.sasl : null;
+    }
+
+    public List<KafkaServerConfig> servers()
+    {
+        return options != null ? options.servers : null;
     }
 
     public KafkaDeltaType supplyDeltaType(

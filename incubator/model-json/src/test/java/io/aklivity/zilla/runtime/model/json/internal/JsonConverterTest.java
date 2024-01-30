@@ -27,7 +27,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.Catalog;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
@@ -81,7 +81,7 @@ public class JsonConverterTest
     {
         Properties properties = new Properties();
         properties.setProperty(ENGINE_DIRECTORY.name(), "target/zilla-itests");
-        Configuration config = new Configuration(properties);
+        EngineConfiguration config = new EngineConfiguration(properties);
         Catalog catalog = new TestCatalog(config);
         context = catalog.supply(mock(EngineContext.class));
     }
@@ -89,7 +89,7 @@ public class JsonConverterTest
     @Test
     public void shouldVerifyValidJsonObject()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test",
             TestCatalogOptionsConfig.builder()
                 .id(9)
                 .schema(OBJECT_SCHEMA)
@@ -112,7 +112,7 @@ public class JsonConverterTest
     @Test
     public void shouldVerifyValidJsonArray()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test",
             TestCatalogOptionsConfig.builder()
                 .id(9)
                 .schema(ARRAY_SCHEMA)
@@ -138,7 +138,7 @@ public class JsonConverterTest
     @Test
     public void shouldVerifyInvalidJsonObject()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test",
             TestCatalogOptionsConfig.builder()
                 .id(9)
                 .schema(OBJECT_SCHEMA)
@@ -166,7 +166,7 @@ public class JsonConverterTest
     @Test
     public void shouldWriteValidJsonData()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test",
             TestCatalogOptionsConfig.builder()
                 .id(9)
                 .schema(OBJECT_SCHEMA)
@@ -190,7 +190,7 @@ public class JsonConverterTest
     @Test
     public void shouldVerifyInvalidJsonArray()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test",
             TestCatalogOptionsConfig.builder()
                 .id(9)
                 .schema(ARRAY_SCHEMA)

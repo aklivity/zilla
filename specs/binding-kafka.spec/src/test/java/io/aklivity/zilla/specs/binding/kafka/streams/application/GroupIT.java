@@ -197,4 +197,13 @@ public class GroupIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/server.sent.read.abort.after.join.group/client",
+        "${app}/server.sent.read.abort.after.join.group/server"})
+    public void shouldHandleServerSentReadAbortAfterJoinGroup() throws Exception
+    {
+        k3po.finish();
+    }
 }

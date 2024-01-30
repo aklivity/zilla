@@ -40,8 +40,9 @@ write ${mqtt:will()
                .topic("obituaries")
                .delay(1)
                .format("TEXT")
-               .payload("client-1 disconnected abruptly")
+               .payloadSize(30)
                .build()}
+"client-1 disconnected abruptly"
 write flush
 
 

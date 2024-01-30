@@ -120,6 +120,36 @@
                                             {
                                                 "title": "Application Protocol",
                                                 "type": "string"
+                                            },
+                                            "port":
+                                            {
+                                                "title": "Port",
+                                                "oneOf":
+                                                [
+                                                    {
+                                                        "type": "integer"
+                                                    },
+                                                    {
+                                                        "type": "string",
+                                                        "pattern": "^\\d+(-\\d+)?$"
+                                                    },
+                                                    {
+                                                        "type": "array",
+                                                        "items":
+                                                        {
+                                                            "oneOf":
+                                                            [
+                                                                {
+                                                                    "type": "integer"
+                                                                },
+                                                                {
+                                                                    "type": "string",
+                                                                    "pattern": "^\\d+(-\\d+)?$"
+                                                                }
+                                                            ]
+                                                        }
+                                                    }
+                                                ]
                                             }
                                         },
                                         "additionalProperties": false

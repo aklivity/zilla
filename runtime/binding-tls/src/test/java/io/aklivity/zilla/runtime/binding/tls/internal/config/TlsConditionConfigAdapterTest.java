@@ -72,4 +72,73 @@ public class TlsConditionConfigAdapterTest
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo("{\"authority\":\"example.net\",\"alpn\":\"echo\"}"));
     }
+
+    @Test
+    public void shouldReadConditionWithPortRange()
+    {
+        String text =
+                "{" +
+                    "\"authority\": \"example.net\"," +
+                    "\"alpn\": \"echo\"," +
+                    "\"port\": 8080-8081" +
+                "}";
+
+        TlsConditionConfig condition = jsonb.fromJson(text, TlsConditionConfig.class);
+
+        assertThat(condition, not(nullValue()));
+        assertThat(condition.ports, not(nullValue()));
+        assertThat(condition.ports.length, equalTo(2));
+        assertThat(condition.ports[0], equalTo(8080));
+        assertThat(condition.ports[1], equalTo(8081));
+    }
+
+    @Test
+    public void shouldWriteConditionWithPorts()
+    {
+        TlsConditionConfig condition = TlsConditionConfig.builder()
+            .inject(identity())
+            .authority("example.net")
+            .alpn("echo")
+            .ports(new int[] { 8080, 8081 })
+            .build();
+
+        String text = jsonb.toJson(condition);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo("{\"authority\":\"example.net\",\"alpn\":\"echo\",\"port\":[8080,8081]}"));
+    }
+
+    @Test
+    public void shouldReadConditionWithPortRangeSingleton()
+    {
+        String text =
+                "{" +
+                    "\"authority\": \"example.net\"," +
+                    "\"alpn\": \"echo\"," +
+                    "\"port\": \"8080\"" +
+                "}";
+
+        TlsConditionConfig condition = jsonb.fromJson(text, TlsConditionConfig.class);
+
+        assertThat(condition, not(nullValue()));
+        assertThat(condition.ports, not(nullValue()));
+        assertThat(condition.ports.length, equalTo(1));
+        assertThat(condition.ports[0], equalTo(8080));
+    }
+
+    @Test
+    public void shouldWriteConditionWithPortRangeSingleton()
+    {
+        TlsConditionConfig condition = TlsConditionConfig.builder()
+            .inject(identity())
+            .authority("example.net")
+            .alpn("echo")
+            .ports(new int[] {8080})
+            .build();
+
+        String text = jsonb.toJson(condition);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo("{\"authority\":\"example.net\",\"alpn\":\"echo\",\"port\":8080}"));
+    }
 }

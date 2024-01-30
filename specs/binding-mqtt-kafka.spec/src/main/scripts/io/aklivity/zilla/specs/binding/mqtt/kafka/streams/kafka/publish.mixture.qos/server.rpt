@@ -25,7 +25,7 @@ read zilla:begin.ext ${kafka:beginEx()
                                 .capabilities("PRODUCE_ONLY")
                                 .topic("mqtt-messages")
                                 .partition(-1, -2)
-                                .ackMode("LEADER_ONLY")
+                                .ackMode("NONE")
                                 .build()
                             .build()}
 
@@ -76,6 +76,21 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .build()
                            .build()}
 read "message2"
+
+
+accepted
+
+read zilla:begin.ext ${kafka:beginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("PRODUCE_ONLY")
+                                .topic("mqtt-messages")
+                                .partition(-1, -2)
+                                .ackMode("IN_SYNC_REPLICAS")
+                                .build()
+                            .build()}
+
+connected
 
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))

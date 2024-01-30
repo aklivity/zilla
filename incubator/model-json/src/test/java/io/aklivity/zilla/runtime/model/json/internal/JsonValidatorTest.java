@@ -91,7 +91,7 @@ public class JsonValidatorTest
     @Test
     public void shouldVerifyValidCompleteJsonObject()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test",
             TestCatalogOptionsConfig.builder()
                 .id(1)
                 .schema(OBJECT_SCHEMA)
@@ -115,7 +115,7 @@ public class JsonValidatorTest
     @Test
     public void shouldVerifyInvalidCompleteJsonObject()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test",
                 TestCatalogOptionsConfig.builder()
                         .id(1)
                         .schema(OBJECT_SCHEMA)
@@ -139,7 +139,7 @@ public class JsonValidatorTest
     @Test
     public void shouldVerifyValidFragmentedJsonObject()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test",
             TestCatalogOptionsConfig.builder()
                 .id(1)
                 .schema(OBJECT_SCHEMA)
@@ -164,7 +164,7 @@ public class JsonValidatorTest
     @Test
     public void shouldVerifyInalidFragmentedJsonObject()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test",
             TestCatalogOptionsConfig.builder()
                 .id(1)
                 .schema(OBJECT_SCHEMA)
@@ -189,7 +189,7 @@ public class JsonValidatorTest
     @Test
     public void shouldVerifyValidJsonArray()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test0", "test",
+        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test",
             TestCatalogOptionsConfig.builder()
                 .id(1)
                 .schema(ARRAY_SCHEMA)

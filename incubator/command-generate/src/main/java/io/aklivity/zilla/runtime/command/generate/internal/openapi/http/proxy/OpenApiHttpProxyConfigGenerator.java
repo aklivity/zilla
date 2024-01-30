@@ -37,22 +37,28 @@ import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfigBuilder;
+import io.aklivity.zilla.runtime.binding.http.config.HttpResponseConfigBuilder;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.command.generate.internal.openapi.OpenApiConfigGenerator;
+import io.aklivity.zilla.runtime.command.generate.internal.openapi.model.Header;
 import io.aklivity.zilla.runtime.command.generate.internal.openapi.model.OpenApi;
 import io.aklivity.zilla.runtime.command.generate.internal.openapi.model.Operation;
 import io.aklivity.zilla.runtime.command.generate.internal.openapi.model.Parameter;
+import io.aklivity.zilla.runtime.command.generate.internal.openapi.model.Response;
+import io.aklivity.zilla.runtime.command.generate.internal.openapi.model.ResponseByContentType;
 import io.aklivity.zilla.runtime.command.generate.internal.openapi.model.Server;
+import io.aklivity.zilla.runtime.command.generate.internal.openapi.view.OperationView;
+import io.aklivity.zilla.runtime.command.generate.internal.openapi.view.OperationsView;
 import io.aklivity.zilla.runtime.command.generate.internal.openapi.view.PathView;
 import io.aklivity.zilla.runtime.command.generate.internal.openapi.view.SchemaView;
 import io.aklivity.zilla.runtime.command.generate.internal.openapi.view.ServerView;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.ConfigWriter;
+import io.aklivity.zilla.runtime.engine.config.EngineConfig;
+import io.aklivity.zilla.runtime.engine.config.EngineConfigWriter;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
 import io.aklivity.zilla.runtime.guard.jwt.config.JwtOptionsConfig;
@@ -88,8 +94,8 @@ public class OpenApiHttpProxyConfigGenerator extends OpenApiConfigGenerator
         this.isTlsEnabled = httpsPorts != null;
         this.securitySchemes = resolveSecuritySchemes();
         this.isJwtEnabled = !securitySchemes.isEmpty();
-        ConfigWriter configWriter = new ConfigWriter(null);
-        String yaml = configWriter.write(createNamespace(), createEnvVarsPatch());
+        EngineConfigWriter configWriter = new EngineConfigWriter(null);
+        String yaml = configWriter.write(createConfig(), createEnvVarsPatch());
         return unquoteEnvVars(yaml, unquotedEnvVars());
     }
 
@@ -168,59 +174,62 @@ public class OpenApiHttpProxyConfigGenerator extends OpenApiConfigGenerator
         return result;
     }
 
-    private NamespaceConfig createNamespace()
+    private EngineConfig createConfig()
     {
-        return NamespaceConfig.builder()
-            .name("example")
-            .binding()
-                .name("tcp_server0")
-                .type("tcp")
-                .kind(SERVER)
-                .options(TcpOptionsConfig::builder)
-                    .host("0.0.0.0")
-                    .ports(allPorts)
-                    .build()
-                .inject(this::injectPlainTcpRoute)
-                .inject(this::injectTlsTcpRoute)
-                .build()
-            .inject(this::injectTlsServer)
-            .binding()
-                .name("http_server0")
-                .type("http")
-                .kind(SERVER)
-                .options(HttpOptionsConfig::builder)
-                    .access()
-                        .policy(CROSS_ORIGIN)
+        return EngineConfig.builder()
+            .namespace()
+                .name("example")
+                .binding()
+                    .name("tcp_server0")
+                    .type("tcp")
+                    .kind(SERVER)
+                    .options(TcpOptionsConfig::builder)
+                        .host("0.0.0.0")
+                        .ports(allPorts)
                         .build()
-                    .inject(this::injectHttpServerOptions)
-                    .inject(this::injectHttpServerRequests)
+                    .inject(this::injectPlainTcpRoute)
+                    .inject(this::injectTlsTcpRoute)
                     .build()
-                .inject(this::injectHttpServerRoutes)
-                .build()
-            .binding()
-                .name("http_client0")
-                .type("http")
-                .kind(CLIENT)
-                .exit(isTlsEnabled ? "tls_client0" : "tcp_client0")
-                .build()
-            .inject(this::injectTlsClient)
-            .binding()
-                .name("tcp_client0")
-                .type("tcp")
-                .kind(CLIENT)
-                .options(TcpOptionsConfig::builder)
-                    .host("") // env
-                    .ports(new int[]{0}) // env
+                .inject(this::injectTlsServer)
+                .binding()
+                    .name("http_server0")
+                    .type("http")
+                    .kind(SERVER)
+                    .options(HttpOptionsConfig::builder)
+                        .access()
+                            .policy(CROSS_ORIGIN)
+                            .build()
+                        .inject(this::injectHttpServerOptions)
+                        .inject(this::injectHttpServerRequests)
+                        .build()
+                    .inject(this::injectHttpServerRoutes)
                     .build()
+                .binding()
+                    .name("http_client0")
+                    .type("http")
+                    .kind(CLIENT)
+                    .inject(this::injectHttpClientOptions)
+                    .exit(isTlsEnabled ? "tls_client0" : "tcp_client0")
+                    .build()
+                .inject(this::injectTlsClient)
+                .binding()
+                    .name("tcp_client0")
+                    .type("tcp")
+                    .kind(CLIENT)
+                    .options(TcpOptionsConfig::builder)
+                        .host("") // env
+                        .ports(new int[]{0}) // env
+                        .build()
+                    .build()
+                .inject(this::injectGuard)
+                .inject(this::injectVaults)
+                .inject(this::injectCatalog)
                 .build()
-            .inject(this::injectGuard)
-            .inject(this::injectVaults)
-            .inject(this::injectCatalog)
             .build();
     }
 
-    private BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> injectPlainTcpRoute(
-        BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> binding)
+    private <C> BindingConfigBuilder<C> injectPlainTcpRoute(
+        BindingConfigBuilder<C> binding)
     {
         if (isPlainEnabled)
         {
@@ -235,8 +244,8 @@ public class OpenApiHttpProxyConfigGenerator extends OpenApiConfigGenerator
         return binding;
     }
 
-    private BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> injectTlsTcpRoute(
-        BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> binding)
+    private <C> BindingConfigBuilder<C> injectTlsTcpRoute(
+        BindingConfigBuilder<C> binding)
     {
         if (isTlsEnabled)
         {
@@ -251,8 +260,8 @@ public class OpenApiHttpProxyConfigGenerator extends OpenApiConfigGenerator
         return binding;
     }
 
-    private NamespaceConfigBuilder<NamespaceConfig> injectTlsServer(
-        NamespaceConfigBuilder<NamespaceConfig> namespace)
+    private <C> NamespaceConfigBuilder<C> injectTlsServer(
+        NamespaceConfigBuilder<C> namespace)
     {
         if (isTlsEnabled)
         {
@@ -383,8 +392,106 @@ public class OpenApiHttpProxyConfigGenerator extends OpenApiConfigGenerator
         return request;
     }
 
-    private BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> injectHttpServerRoutes(
-        BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>> binding)
+    private <C> BindingConfigBuilder<C> injectHttpClientOptions(
+        BindingConfigBuilder<C> binding)
+    {
+        OperationsView operations = OperationsView.of(openApi.paths);
+        if (operations.hasResponses())
+        {
+            binding.
+                options(HttpOptionsConfig::builder)
+                    .inject(options -> injectHttpClientRequests(operations, options))
+                    .build();
+        }
+        return binding;
+    }
+
+    private <C> HttpOptionsConfigBuilder<C> injectHttpClientRequests(
+        OperationsView operations,
+        HttpOptionsConfigBuilder<C> options)
+    {
+        for (String pathName : openApi.paths.keySet())
+        {
+            PathView path = PathView.of(openApi.paths.get(pathName));
+            for (String methodName : path.methods().keySet())
+            {
+                OperationView operation = operations.operation(pathName, methodName);
+                if (operation.hasResponses())
+                {
+                    options
+                        .request()
+                            .path(pathName)
+                            .method(HttpRequestConfig.Method.valueOf(methodName))
+                            .inject(request -> injectResponses(request, operation))
+                            .build()
+                        .build();
+                }
+            }
+        }
+        return options;
+    }
+
+    private <C> HttpRequestConfigBuilder<C> injectResponses(
+        HttpRequestConfigBuilder<C> request,
+        OperationView operation)
+    {
+        if (operation != null && operation.responsesByStatus() != null)
+        {
+            for (Map.Entry<String, ResponseByContentType> responses0 : operation.responsesByStatus().entrySet())
+            {
+                String status = responses0.getKey();
+                ResponseByContentType responses1 = responses0.getValue();
+                if (!(OperationView.DEFAULT.equals(status)) && responses1.content != null)
+                {
+                    for (Map.Entry<String, Response> response2 : responses1.content.entrySet())
+                    {
+                        SchemaView schema = SchemaView.of(openApi.components.schemas, response2.getValue().schema);
+                        request
+                            .response()
+                                .status(Integer.parseInt(status))
+                                .contentType(response2.getKey())
+                                .inject(response -> injectResponseHeaders(responses1, response))
+                                .content(JsonModelConfig::builder)
+                                    .catalog()
+                                    .name(INLINE_CATALOG_NAME)
+                                    .schema()
+                                        .subject(schema.refKey())
+                                        .build()
+                                    .build()
+                                .build()
+                            .build();
+                    }
+                }
+            }
+        }
+        return request;
+    }
+
+    private <C> HttpResponseConfigBuilder<C> injectResponseHeaders(
+        ResponseByContentType responses,
+        HttpResponseConfigBuilder<C> response)
+    {
+        if (responses.headers != null && !responses.headers.isEmpty())
+        {
+            for (Map.Entry<String, Header> header : responses.headers.entrySet())
+            {
+                String name = header.getKey();
+                ModelConfig model = models.get(header.getValue().schema.type);
+                if (model != null)
+                {
+                    response
+                        .header()
+                            .name(name)
+                            .model(model)
+                            .build();
+                }
+            }
+        }
+        return response;
+    }
+
+    private <C> BindingConfigBuilder<C> injectHttpServerRoutes(
+        BindingConfigBuilder<C> binding)
     {
         for (String item : openApi.paths.keySet())
         {
@@ -405,8 +512,8 @@ public class OpenApiHttpProxyConfigGenerator extends OpenApiConfigGenerator
         return binding;
     }
 
-    private RouteConfigBuilder<BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>>> injectHttpServerRouteGuarded(
-        RouteConfigBuilder<BindingConfigBuilder<NamespaceConfigBuilder<NamespaceConfig>>> route,
+    private <C> RouteConfigBuilder<C> injectHttpServerRouteGuarded(
+        RouteConfigBuilder<C> route,
         PathView path,
         String method)
     {
@@ -442,8 +549,8 @@ public class OpenApiHttpProxyConfigGenerator extends OpenApiConfigGenerator
         return guarded;
     }
 
-    private NamespaceConfigBuilder<NamespaceConfig> injectTlsClient(
-        NamespaceConfigBuilder<NamespaceConfig> namespace)
+    private <C> NamespaceConfigBuilder<C> injectTlsClient(
+        NamespaceConfigBuilder<C> namespace)
     {
         if (isTlsEnabled)
         {
@@ -465,8 +572,8 @@ public class OpenApiHttpProxyConfigGenerator extends OpenApiConfigGenerator
         return namespace;
     }
 
-    private NamespaceConfigBuilder<NamespaceConfig> injectGuard(
-        NamespaceConfigBuilder<NamespaceConfig> namespace)
+    private <C> NamespaceConfigBuilder<C> injectGuard(
+        NamespaceConfigBuilder<C> namespace)
     {
         if (isJwtEnabled)
         {
@@ -486,8 +593,8 @@ public class OpenApiHttpProxyConfigGenerator extends OpenApiConfigGenerator
         return namespace;
     }
 
-    private NamespaceConfigBuilder<NamespaceConfig> injectVaults(
-        NamespaceConfigBuilder<NamespaceConfig> namespace)
+    private <C> NamespaceConfigBuilder<C> injectVaults(
+        NamespaceConfigBuilder<C> namespace)
     {
         if (isTlsEnabled)
         {
