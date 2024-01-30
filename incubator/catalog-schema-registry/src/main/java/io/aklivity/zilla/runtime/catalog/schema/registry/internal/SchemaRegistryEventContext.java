@@ -39,14 +39,16 @@ public class SchemaRegistryEventContext
         this.logEvent = context::logEvent;
     }
 
-    public void remoteAccessFailure(
+    public void remoteAccessRejected(
+        long catalogId,
         String url,
         String method,
         int status)
     {
         SchemaRegistryEventFW event = schemaRegistryEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
-            .remoteAccessFailure(e -> e
+            .remoteAccessRejected(e -> e
+                .catalogId(catalogId)
                 .url(url)
                 .method(method)
                 .status((short) status)

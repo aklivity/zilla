@@ -62,7 +62,7 @@ public class SchemaRegistryIT
             "{\"name\":\"status\",\"type\":\"string\"}]," +
             "\"name\":\"Event\",\"namespace\":\"io.aklivity.example\",\"type\":\"record\"}";
 
-        SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config, context);
+        SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config, context, 0L);
 
         String schema = catalog.resolve(9);
 
@@ -81,7 +81,7 @@ public class SchemaRegistryIT
                 "{\"name\":\"status\",\"type\":\"string\"}]," +
                 "\"name\":\"Event\",\"namespace\":\"io.aklivity.example\",\"type\":\"record\"}";
 
-        SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config, context);
+        SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config, context, 0L);
 
         int schemaId = catalog.resolve("items-snapshots-value", "latest");
 
@@ -102,7 +102,7 @@ public class SchemaRegistryIT
         String schema = "{\"type\": \"record\",\"name\": \"test\",\"fields\":[{\"type\": \"string\",\"name\": \"field1\"}," +
                 "{\"type\": \"com.acme.Referenced\",\"name\": \"int\"}]}";
 
-        SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config, context);
+        SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config, context, 0L);
 
         int schemaId = catalog.register("items-snapshots-value", "avro", schema);
 
@@ -121,7 +121,7 @@ public class SchemaRegistryIT
                 "{\"name\":\"status\",\"type\":\"string\"}]," +
                 "\"name\":\"Event\",\"namespace\":\"io.aklivity.example\",\"type\":\"record\"}";
 
-        SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config, context);
+        SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config, context, 0L);
 
         catalog.resolve(9);
 
@@ -142,7 +142,7 @@ public class SchemaRegistryIT
                 "{\"name\":\"status\",\"type\":\"string\"}]," +
                 "\"name\":\"Event\",\"namespace\":\"io.aklivity.example\",\"type\":\"record\"}";
 
-        SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config, context);
+        SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config, context, 0L);
 
         catalog.resolve(catalog.resolve("items-snapshots-value", "latest"));
 

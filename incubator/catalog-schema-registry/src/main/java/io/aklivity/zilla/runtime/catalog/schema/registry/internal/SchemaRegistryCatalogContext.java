@@ -34,6 +34,6 @@ public class SchemaRegistryCatalogContext implements CatalogContext
     public CatalogHandler attach(
         CatalogConfig catalog)
     {
-        return new SchemaRegistryCatalogHandler(SchemaRegistryOptionsConfig.class.cast(catalog.options), context);
+        return new SchemaRegistryCatalogHandler(SchemaRegistryOptionsConfig.class.cast(catalog.options), context, catalog.id);
     }
 }

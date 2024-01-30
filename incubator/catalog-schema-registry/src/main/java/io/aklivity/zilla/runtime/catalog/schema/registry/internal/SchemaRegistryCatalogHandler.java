@@ -41,10 +41,12 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
     private final Int2ObjectCache<String> cache;
     private final Int2ObjectCache<String> schemaIdCache;
     private final SchemaRegistryEventContext event;
+    private final long catalogId;
 
     public SchemaRegistryCatalogHandler(
         SchemaRegistryOptionsConfig config,
-        EngineContext context)
+        EngineContext context,
+        long catalogId)
     {
         this.baseUrl = config.url;
         this.client = HttpClient.newHttpClient();
@@ -53,6 +55,7 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
         this.cache = new Int2ObjectCache<>(1, 1024, i -> {});
         this.schemaIdCache = new Int2ObjectCache<>(1, 1024, i -> {});
         this.event = new SchemaRegistryEventContext(context);
+        this.catalogId = catalogId;
     }
 
     @Override
@@ -147,13 +150,13 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
             }
             else
             {
-                event.remoteAccessFailure(httpRequest.uri().toString(), httpRequest.method(), response.statusCode());
+                event.remoteAccessRejected(catalogId, httpRequest.uri().toString(), httpRequest.method(), response.statusCode());
             }
             return responseBody;
         }
         catch (Exception ex)
         {
-            event.remoteAccessFailure(httpRequest.uri().toString(), httpRequest.method(), -1);
+            event.remoteAccessRejected(catalogId, httpRequest.uri().toString(), httpRequest.method(), -1);
             ex.printStackTrace(System.out);
         }
         return null;
