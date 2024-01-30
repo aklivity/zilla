@@ -14,6 +14,13 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.stream;
 
+import static org.agrona.LangUtil.rethrowUnchecked;
+
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
+
 import org.agrona.DirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 
@@ -27,12 +34,6 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.EngineConfig;
 
-import static org.agrona.LangUtil.rethrowUnchecked;
-
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-
 public final class AsyncapiServerFactory implements AsyncapiStreamFactory
 {
     private static final int FLAG_FIN = 1;
@@ -43,12 +44,14 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
 
     private final int asyncapiTypeId;
     private final Long2ObjectHashMap<AsyncapiBindingConfig> bindings;
+    private final URI asyncapiRoot;
 
     public AsyncapiServerFactory(
         AsyncapiConfiguration config,
         EngineContext context)
     {
         this.asyncapiTypeId = context.supplyTypeId(AsyncapiBinding.NAME);
+        this.asyncapiRoot = config.asyncapiRoot();
         this.bindings = new Long2ObjectHashMap<>();
     }
 
@@ -60,7 +63,8 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
         final AsyncapiOptionsConfig options = asyncapiBinding.options;
         options.specs.forEach(spec ->
         {
-            try (InputStream input = new FileInputStream(spec))
+            final URI resolved = asyncapiRoot.resolve(spec.getPath());
+            try (InputStream input = new FileInputStream(resolved.getPath()))
             {
                 AsyncApiMqttProxyConfigGenerator generator = new AsyncApiMqttProxyConfigGenerator(input);
                 EngineConfig config = generator.createConfig();

@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.engine.config;
 
 import static java.util.Collections.emptyList;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
@@ -25,7 +26,7 @@ import java.util.function.Function;
 public final class BindingConfigBuilder<T> extends ConfigBuilder<T, BindingConfigBuilder<T>>
 {
     public static final List<RouteConfig> ROUTES_DEFAULT = emptyList();
-    public static final List<NamespaceConfig> COMPOSITES_DEFAULT = emptyList();
+    public static final List<NamespaceConfig> COMPOSITES_DEFAULT = new ArrayList<>();
 
     private final Function<BindingConfig, T> mapper;
 

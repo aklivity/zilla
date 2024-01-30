@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.config;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -56,7 +57,7 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
         if (asyncapiOptions.specs != null)
         {
             JsonArrayBuilder topics = Json.createArrayBuilder();
-            asyncapiOptions.specs.forEach(topics::add);
+            asyncapiOptions.specs.forEach(s -> topics.add(s.toString()));
             object.add(SPECS_NAME, topics);
         }
 
@@ -71,12 +72,13 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
                 ? object.getJsonArray(SPECS_NAME)
                 : null;
 
-        List<String> specs = new ArrayList<>();
+        List<URI> specs = new ArrayList<>();
         if (specsJson != null)
         {
             for (int i = 0; i < specsJson.size(); i++)
             {
-                specs.add(specsJson.getString(i));
+                URI spec = URI.create(specsJson.getString(i));
+                specs.add(spec);
             }
         }
 

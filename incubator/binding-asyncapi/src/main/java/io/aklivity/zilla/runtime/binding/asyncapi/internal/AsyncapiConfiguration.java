@@ -14,15 +14,22 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal;
 
+import java.io.File;
+import java.net.URI;
+
 import io.aklivity.zilla.runtime.engine.Configuration;
 
 public class AsyncapiConfiguration extends Configuration
 {
     private static final ConfigurationDef ASYNCAPI_CONFIG;
+    public static final PropertyDef<URI> ASYNCAPI_ROOT;
 
     static
     {
         final ConfigurationDef config = new ConfigurationDef("zilla.binding.asyncapi");
+        ASYNCAPI_ROOT = config.property(URI.class, "root",
+            AsyncapiConfiguration::decodeAsyncapiRoot, new File(".").toURI());
+
         ASYNCAPI_CONFIG = config;
     }
 
@@ -30,5 +37,16 @@ public class AsyncapiConfiguration extends Configuration
         Configuration config)
     {
         super(ASYNCAPI_CONFIG, config);
+    }
+
+    public URI asyncapiRoot()
+    {
+        return ASYNCAPI_ROOT.get(this);
+    }
+
+    private static URI decodeAsyncapiRoot(
+        String location)
+    {
+        return location.indexOf(':') != -1 ? URI.create(location) : new File(location).toURI();
     }
 }

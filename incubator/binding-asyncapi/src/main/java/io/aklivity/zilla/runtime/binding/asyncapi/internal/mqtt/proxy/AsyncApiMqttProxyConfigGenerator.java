@@ -63,15 +63,15 @@ public class AsyncApiMqttProxyConfigGenerator extends AsyncApiConfigGenerator
         InputStream input)
     {
         this.input = input;
+        this.asyncApi = parseAsyncApi(input);
+        this.allPorts = resolveAllPorts();
+        this.mqttPorts = resolvePortsForScheme("mqtt");
+        this.mqttsPorts = resolvePortsForScheme("mqtts");
     }
 
     @Override
     public String generate()
     {
-        this.asyncApi = parseAsyncApi(input);
-        this.allPorts = resolveAllPorts();
-        this.mqttPorts = resolvePortsForScheme("mqtt");
-        this.mqttsPorts = resolvePortsForScheme("mqtts");
         this.isPlainEnabled = mqttPorts != null;
         this.isTlsEnabled = mqttsPorts != null;
         EngineConfigWriter configWriter = new EngineConfigWriter(null);

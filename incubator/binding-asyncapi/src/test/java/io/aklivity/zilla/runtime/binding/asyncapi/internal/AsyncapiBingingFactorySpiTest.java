@@ -15,32 +15,45 @@
 package io.aklivity.zilla.runtime.binding.asyncapi.internal;
 
 
+import static org.mockito.ArgumentMatchers.any;
+
+import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.Collections;
 
+import org.junit.Assert;
 import org.junit.Before;
-import org.junit.jupiter.api.Test;
+import org.junit.Rule;
+import org.junit.Test;
 import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
+import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 public class AsyncapiBingingFactorySpiTest
 {
+    @Rule
+    public MockitoRule rule = MockitoJUnit.rule();
     @Mock
     public EngineContext context;
 
 
     @Before
-    public void initProperties()
+    public void init()
     {
-        //Mockito.doReturn(context).when().readURL();
+        Mockito.doReturn(1).when(context).supplyTypeId(any());
     }
 
     @Test
-    public void shouldAddCompositeBinding() throws Exception
+    public void shouldAddCompositeBinding() throws URISyntaxException
     {
-        String resource = String.format("%s-%s.yaml", getClass().getSimpleName(), "configure-expression-invalid");
+        String resource = String.format("%s-%s.yaml", getClass().getSimpleName(), "asyncapi");
         URL configURL = getClass().getResource(resource);
         assert configURL != null;
 
@@ -49,6 +62,16 @@ public class AsyncapiBingingFactorySpiTest
 
         AsyncapiBindingContext asyncContext = binding.supply(context);
 
-        asyncContext.attach()
+        BindingConfig config = BindingConfig.builder()
+            .namespace("example")
+            .name("asyncapi0")
+            .type("asyncapi")
+            .kind(KindConfig.SERVER)
+            .options(new AsyncapiOptionsConfig(Collections.singletonList(configURL.toURI())))
+            .build();
+
+        asyncContext.attach(config);
+        Assert.assertNotNull(config.composites);
+        Assert.assertEquals(4, config.composites.get(0).bindings.size());
     }
 }
