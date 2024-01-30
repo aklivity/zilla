@@ -55,7 +55,7 @@ scope http
         enum HttpEventType (uint8)
         {
             AUTHORIZATION (1),
-            ACCESS_CONTROL_FAILURE (2)
+            ACCESS_DENIED (2)
         }
 
         enum Result (uint8)
@@ -73,7 +73,7 @@ scope http
         union HttpEvent switch (HttpEventType)
         {
             case AUTHORIZATION: HttpAuthorizationEvent authorization;
-            case ACCESS_CONTROL_FAILURE: core::event::BindingEvent accessControlFailure;
+            case ACCESS_DENIED: core::event::BindingEvent accessDenied;
         }
     }
 }

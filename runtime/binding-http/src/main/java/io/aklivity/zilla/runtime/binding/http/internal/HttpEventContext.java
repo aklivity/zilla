@@ -42,13 +42,13 @@ public class HttpEventContext
         this.logEvent = context::logEvent;
     }
 
-    public void accessControlFailure(
+    public void accessDenied(
         long traceId,
         long routedId)
     {
         HttpEventFW event = httpEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
-            .accessControlFailure(e -> e
+            .accessDenied(e -> e
                 .traceId(traceId)
                 .bindingId(routedId)
             )
