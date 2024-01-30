@@ -21,14 +21,11 @@ import java.util.function.Function;
 public final class CatalogRefConfig
 {
     public final List<CatalogedConfig> catalogs;
-    public final String subject;
 
     public CatalogRefConfig(
-        List<CatalogedConfig> catalogs,
-        String subject)
+        List<CatalogedConfig> catalogs)
     {
         this.catalogs = catalogs;
-        this.subject = subject;
     }
 
     public static <T> CatalogRefConfigBuilder<T> builder(

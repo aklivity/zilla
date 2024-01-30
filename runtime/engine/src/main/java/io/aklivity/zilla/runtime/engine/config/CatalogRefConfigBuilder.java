@@ -24,7 +24,6 @@ public class CatalogRefConfigBuilder<T> extends ConfigBuilder<T, CatalogRefConfi
     private final Function<CatalogRefConfig, T> mapper;
 
     private List<CatalogedConfig> catalogs;
-    private String subject;
 
     CatalogRefConfigBuilder(
         Function<CatalogRefConfig, T> mapper)
@@ -37,13 +36,6 @@ public class CatalogRefConfigBuilder<T> extends ConfigBuilder<T, CatalogRefConfi
     protected Class<CatalogRefConfigBuilder<T>> thisType()
     {
         return (Class<CatalogRefConfigBuilder<T>>) getClass();
-    }
-
-    public CatalogRefConfigBuilder<T> subject(
-        String subject)
-    {
-        this.subject = subject;
-        return this;
     }
 
     public CatalogedConfigBuilder<CatalogRefConfigBuilder<T>> catalog()
@@ -65,6 +57,6 @@ public class CatalogRefConfigBuilder<T> extends ConfigBuilder<T, CatalogRefConfi
     @Override
     public T build()
     {
-        return mapper.apply(new CatalogRefConfig(catalogs, subject));
+        return mapper.apply(new CatalogRefConfig(catalogs));
     }
 }

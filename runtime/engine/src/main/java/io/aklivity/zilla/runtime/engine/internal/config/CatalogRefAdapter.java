@@ -82,7 +82,7 @@ public class CatalogRefAdapter implements JsonbAdapter<CatalogRefConfig, JsonObj
             catalogs.add(new CatalogedConfig(catalogName, schemas));
         }
 
-        CatalogRefConfig result = new CatalogRefConfig(catalogs, null);
+        CatalogRefConfig result = new CatalogRefConfig(catalogs);
         return result;
     }
 }
