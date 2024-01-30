@@ -138,8 +138,11 @@ scope proxy
 
         enum TlsError (uint8)
         {
-            HANDSHAKE_TIMEOUT (1),
-            UNKNOWN_ERROR (2)
+            PROTOCOL_ERROR (1),
+            KEY_ERROR (2),
+            HANDSHAKE_ERROR (3),
+            PEER_UNVERIFIED_ERROR (4),
+            UNSPECIFIED_ERROR (5)
         }
 
         struct ProxyRemoteAccessFailedEvent extends core::event::BindingEvent

@@ -532,7 +532,7 @@ public final class TlsServerFactory implements TlsStreamFactory
         }
         catch (SSLException | RuntimeException ex)
         {
-            event.tlsFailed(TlsError.UNKNOWN_ERROR, traceId);
+            event.tlsFailed(ex, traceId);
             server.cleanupNet(traceId);
             server.decoder = decodeIgnoreAll;
         }
@@ -651,7 +651,7 @@ public final class TlsServerFactory implements TlsStreamFactory
                     }
                     catch (SSLException | RuntimeException ex)
                     {
-                        event.tlsFailed(TlsError.UNKNOWN_ERROR, traceId);
+                        event.tlsFailed(ex, traceId);
                         server.cleanupNet(traceId);
                         server.decoder = decodeIgnoreAll;
                     }
@@ -833,7 +833,7 @@ public final class TlsServerFactory implements TlsStreamFactory
             }
             catch (SSLException | RuntimeException ex)
             {
-                event.tlsFailed(TlsError.UNKNOWN_ERROR, traceId);
+                event.tlsFailed(ex, traceId);
                 server.doEncodeWrapIfNecessary(traceId, budgetId);
                 server.cleanupNet(traceId);
                 server.decoder = decodeIgnoreAll;
@@ -1312,7 +1312,7 @@ public final class TlsServerFactory implements TlsStreamFactory
                 handshakeTimeoutFutureId = NO_CANCEL_ID;
 
                 cleanupNet(traceId);
-                event.tlsFailed(TlsError.HANDSHAKE_TIMEOUT, traceId);
+                event.tlsFailed(TlsError.HANDSHAKE_ERROR, traceId);
                 decoder = decodeIgnoreAll;
             }
         }
@@ -1689,7 +1689,7 @@ public final class TlsServerFactory implements TlsStreamFactory
             }
             catch (SSLException | RuntimeException ex)
             {
-                event.tlsFailed(TlsError.UNKNOWN_ERROR, traceId);
+                event.tlsFailed(ex, traceId);
                 cleanupNet(traceId);
             }
         }

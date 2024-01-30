@@ -17,6 +17,11 @@ package io.aklivity.zilla.runtime.binding.tls.internal;
 
 import java.nio.ByteBuffer;
 
+import javax.net.ssl.SSLHandshakeException;
+import javax.net.ssl.SSLKeyException;
+import javax.net.ssl.SSLPeerUnverifiedException;
+import javax.net.ssl.SSLProtocolException;
+
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
@@ -55,5 +60,33 @@ public class TlsEventContext
             .build();
         System.out.println(event); // TODO: Ati
         logEvent.accept(typeId, event.buffer(), event.offset(), event.limit());
+    }
+
+    public void tlsFailed(
+        Exception ex,
+        long traceId)
+    {
+        TlsError error;
+        if (ex instanceof SSLProtocolException)
+        {
+            error = TlsError.PROTOCOL_ERROR;
+        }
+        else if (ex instanceof SSLKeyException)
+        {
+            error = TlsError.KEY_ERROR;
+        }
+        else if (ex instanceof SSLHandshakeException)
+        {
+            error = TlsError.HANDSHAKE_ERROR;
+        }
+        else if (ex instanceof SSLPeerUnverifiedException)
+        {
+            error = TlsError.PEER_UNVERIFIED_ERROR;
+        }
+        else
+        {
+            error = TlsError.UNSPECIFIED_ERROR;
+        }
+        tlsFailed(error, traceId);
     }
 }
