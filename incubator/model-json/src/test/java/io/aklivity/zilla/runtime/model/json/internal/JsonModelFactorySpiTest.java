@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.model.json.internal;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 
 import org.junit.Test;
@@ -31,13 +32,13 @@ import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 public class JsonModelFactorySpiTest
 {
     @Test
-    public void shouldCreateReader()
+    public void shouldLoadAndCreate()
     {
         Configuration config = new Configuration();
         ModelFactory factory = ModelFactory.instantiate();
         Model model = factory.create("json", config);
 
-        ModelContext context = new JsonModelContext(mock(EngineContext.class));
+        ModelContext context = model.supply(mock(EngineContext.class));
 
         ModelConfig modelConfig = JsonModelConfig.builder()
             .subject("test-value")
@@ -51,7 +52,9 @@ public class JsonModelFactorySpiTest
             .build();
 
         assertThat(model, instanceOf(JsonModel.class));
-        assertThat(context.supplyReadConverterHandler(modelConfig), instanceOf(JsonConverterHandler.class));
-        assertThat(context.supplyWriteConverterHandler(modelConfig), instanceOf(JsonConverterHandler.class));
+        assertEquals(model.name(), "json");
+        assertThat(context.supplyReadConverterHandler(modelConfig), instanceOf(JsonReadConverterHandler.class));
+        assertThat(context.supplyWriteConverterHandler(modelConfig), instanceOf(JsonWriteConverterHandler.class));
+        assertThat(context.supplyValidatorHandler(modelConfig), instanceOf(JsonValidatorHandler.class));
     }
 }
