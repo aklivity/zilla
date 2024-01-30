@@ -29,7 +29,7 @@ import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.model.avro.config.AvroModelConfig;
 
-public class AvroWriteConverterHandler extends AvroConverterHandler implements ConverterHandler
+public class AvroWriteConverterHandler extends AvroModelHandler implements ConverterHandler
 {
     public AvroWriteConverterHandler(
         AvroModelConfig config,
@@ -80,6 +80,7 @@ public class AvroWriteConverterHandler extends AvroConverterHandler implements C
     {
         try
         {
+            invalidateCacheOnSchemaUpdate(schemaId);
             Schema schema = supplySchema(schemaId);
             GenericDatumReader<GenericRecord> reader = supplyReader(schemaId);
             GenericDatumWriter<GenericRecord> writer = supplyWriter(schemaId);
