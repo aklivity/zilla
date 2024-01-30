@@ -137,7 +137,7 @@ public class AsyncApiMqttProxyConfigGenerator extends AsyncApiConfigGenerator
         return result;
     }
 
-    private EngineConfig createConfig()
+    public EngineConfig createConfig()
     {
         return EngineConfig.builder()
             .namespace()

@@ -14,20 +14,26 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.config;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import jakarta.json.Json;
+import jakarta.json.JsonArray;
+import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiBinding;
-import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
-import io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
+
 public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
+    private static final String SPECS_NAME = "specs";
+
     public Kind kind()
     {
         return Kind.BINDING;
@@ -43,14 +49,16 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
     public JsonObject adaptToJson(
         OptionsConfig options)
     {
-        AsyncapiOptionsConfig mqttCondition = (AsyncapiOptionsConfig) options;
+        AsyncapiOptionsConfig asyncapiOptions = (AsyncapiOptionsConfig) options;
 
         JsonObjectBuilder object = Json.createObjectBuilder();
 
-        //        if (mqttCondition.address != null)
-        //        {
-        //            object.add(ADDRESS_NAME, mqttCondition.address);
-        //        }
+        if (asyncapiOptions.specs != null)
+        {
+            JsonArrayBuilder topics = Json.createArrayBuilder();
+            asyncapiOptions.specs.forEach(topics::add);
+            object.add(SPECS_NAME, topics);
+        }
 
         return object.build();
     }
@@ -59,11 +67,19 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
     public OptionsConfig adaptFromJson(
         JsonObject object)
     {
-        //        String address = object.containsKey(ADDRESS_NAME)
-        //                ? object.getString(ADDRESS_NAME)
-        //                : null;
+        JsonArray specsJson = object.containsKey(SPECS_NAME)
+                ? object.getJsonArray(SPECS_NAME)
+                : null;
 
+        List<String> specs = new ArrayList<>();
+        if (specsJson != null)
+        {
+            for (int i = 0; i < specsJson.size(); i++)
+            {
+                specs.add(specsJson.getString(i));
+            }
+        }
 
-        return new AsyncapiOptionsConfig();
+        return new AsyncapiOptionsConfig(specs);
     }
 }

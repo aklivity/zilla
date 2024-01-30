@@ -14,9 +14,9 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.config;
 
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
-
 import java.util.List;
+
+import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public final class AsyncapiOptionsConfig extends OptionsConfig
 {

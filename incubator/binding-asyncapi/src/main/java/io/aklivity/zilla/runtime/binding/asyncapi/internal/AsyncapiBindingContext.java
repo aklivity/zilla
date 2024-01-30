@@ -31,7 +31,7 @@ final class AsyncapiBindingContext implements BindingContext
 {
     private final Map<KindConfig, AsyncapiStreamFactory> factories;
 
-    AsyncapiBindingContext(
+    public AsyncapiBindingContext(
         AsyncapiConfiguration config,
         EngineContext context)
     {

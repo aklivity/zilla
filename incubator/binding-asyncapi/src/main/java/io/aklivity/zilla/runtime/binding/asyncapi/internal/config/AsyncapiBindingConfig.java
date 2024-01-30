@@ -18,6 +18,8 @@ import static java.util.stream.Collectors.toList;
 
 import java.util.List;
 
+import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
@@ -26,6 +28,8 @@ public final class AsyncapiBindingConfig
     public final long id;
     public final String name;
     public final KindConfig kind;
+
+    public final AsyncapiOptionsConfig options;
     public final List<AsyncapiRouteConfig> routes;
 
     public AsyncapiBindingConfig(
@@ -34,6 +38,7 @@ public final class AsyncapiBindingConfig
         this.id = binding.id;
         this.name = binding.name;
         this.kind = binding.kind;
+        this.options = (AsyncapiOptionsConfig) binding.options;
         this.routes = binding.routes.stream().map(AsyncapiRouteConfig::new).collect(toList());
     }
 
