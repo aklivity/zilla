@@ -21,7 +21,6 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.http.internal.types.event.HttpEventFW;
-import io.aklivity.zilla.runtime.binding.http.internal.types.event.Level;
 import io.aklivity.zilla.runtime.binding.http.internal.types.event.Result;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -50,7 +49,6 @@ public class HttpEventContext
         HttpEventFW event = httpEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .accessControlFailure(e -> e
-                .level(l -> l.set(Level.WARNING))
                 .traceId(traceId)
                 .bindingId(routedId)
             )
@@ -65,11 +63,9 @@ public class HttpEventContext
         long routedId,
         String identity)
     {
-        Level level = result == Result.FAILURE ? Level.WARNING : Level.INFO;
         HttpEventFW event = httpEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .authorization(e -> e
-                .level(l -> l.set(level))
                 .traceId(traceId)
                 .bindingId(routedId)
                 .result(r -> r.set(result))

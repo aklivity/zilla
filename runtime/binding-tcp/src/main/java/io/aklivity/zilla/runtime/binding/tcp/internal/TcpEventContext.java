@@ -20,7 +20,6 @@ import java.nio.ByteBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
-import io.aklivity.zilla.runtime.binding.tcp.internal.types.event.Level;
 import io.aklivity.zilla.runtime.binding.tcp.internal.types.event.ProxyEventFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -50,7 +49,6 @@ public class TcpEventContext
         ProxyEventFW event = proxyEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .remoteAccessFailure(e -> e
-                .level(l -> l.set(Level.ERROR))
                 .traceId(traceId)
                 .bindingId(routedId)
                 .address(address)

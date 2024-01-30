@@ -19,7 +19,6 @@ import java.nio.ByteBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
-import io.aklivity.zilla.runtime.catalog.schema.registry.internal.types.event.Level;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.types.event.SchemaRegistryEventFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -48,7 +47,6 @@ public class SchemaRegistryEventContext
         SchemaRegistryEventFW event = schemaRegistryEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .remoteAccessFailure(e -> e
-                .level(l -> l.set(Level.ERROR))
                 .url(url)
                 .method(method)
                 .status((short) status)

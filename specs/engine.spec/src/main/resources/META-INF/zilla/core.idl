@@ -103,16 +103,8 @@ scope core
 
     scope event
     {
-        enum Level
-        {
-            INFO,
-            WARNING,
-            ERROR
-        }
-
         struct Event
         {
-            Level level;
             int64 timestamp = 0;
             int64 traceId = 0;
         }

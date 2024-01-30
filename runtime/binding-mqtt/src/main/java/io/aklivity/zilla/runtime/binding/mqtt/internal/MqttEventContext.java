@@ -20,7 +20,6 @@ import java.nio.ByteBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
-import io.aklivity.zilla.runtime.binding.mqtt.internal.types.event.Level;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.event.MqttEventFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.event.Result;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -49,11 +48,9 @@ public class MqttEventContext
         long routedId,
         String identity)
     {
-        Level level = result == Result.FAILURE ? Level.WARNING : Level.INFO;
         MqttEventFW event = mqttEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .authorization(e -> e
-                .level(l -> l.set(level))
                 .traceId(traceId)
                 .bindingId(routedId)
                 .result(r -> r.set(result))

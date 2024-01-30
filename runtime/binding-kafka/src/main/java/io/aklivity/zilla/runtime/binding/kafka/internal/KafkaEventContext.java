@@ -21,7 +21,6 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaEventFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.Level;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.Result;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -48,11 +47,9 @@ public class KafkaEventContext
         long traceId,
         long routedId)
     {
-        Level level = result == Result.FAILURE ? Level.WARNING : Level.INFO;
         KafkaEventFW event = kafkaEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .authorization(e -> e
-                .level(l -> l.set(level))
                 .traceId(traceId)
                 .bindingId(routedId)
                 .result(r -> r.set(result))
@@ -68,7 +65,6 @@ public class KafkaEventContext
         KafkaEventFW event = kafkaEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .apiVersionRejection(e -> e
-                .level(l -> l.set(Level.ERROR))
                 .traceId(traceId)
             )
             .build();
