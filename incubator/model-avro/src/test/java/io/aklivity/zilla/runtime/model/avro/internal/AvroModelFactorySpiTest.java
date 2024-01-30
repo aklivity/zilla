@@ -31,7 +31,7 @@ import io.aklivity.zilla.runtime.model.avro.config.AvroModelConfig;
 public class AvroModelFactorySpiTest
 {
     @Test
-    public void shouldCreateReader()
+    public void shouldLoadAndCreate()
     {
         Configuration config = new Configuration();
         ModelFactory factory = ModelFactory.instantiate();
