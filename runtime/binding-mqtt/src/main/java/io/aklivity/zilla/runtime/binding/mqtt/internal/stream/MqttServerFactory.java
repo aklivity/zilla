@@ -115,6 +115,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttValidator;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttBindingConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttRouteConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttVersion;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttBinaryFW;
@@ -199,8 +200,8 @@ public final class MqttServerFactory implements MqttStreamFactory
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(new byte[0]), 0, 0);
 
     private static final String16FW MQTT_PROTOCOL_NAME = new String16FW("MQTT", BIG_ENDIAN);
-    private static final int MQTT_PROTOCOL_VERSION_5 = 5;
-    private static final int MQTT_PROTOCOL_VERSION_4 = 4;
+    public static final int MQTT_PROTOCOL_VERSION_5 = 5;
+    public static final int MQTT_PROTOCOL_VERSION_4 = 4;
     private static final int MAXIMUM_CLIENT_ID_LENGTH = 36;
     private static final int CONNECT_FIXED_HEADER = 0b0001_0000;
     private static final int SUBSCRIBE_FIXED_HEADER = 0b1000_0010;
@@ -225,6 +226,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private static final int SUBSCRIPTION_IDS_AVAILABLE_MASK = 1 << MqttServerCapabilities.SUBSCRIPTION_IDS.value();
     private static final int SHARED_SUBSCRIPTIONS_AVAILABLE_MASK = 1 << MqttServerCapabilities.SHARED_SUBSCRIPTIONS.value();
 
+    private static final int REDIRECT_MASK = 1 << MqttServerCapabilities.REDIRECT.value();
     private static final int WILL_FLAG_MASK = 0b0000_0100;
     private static final int CLEAN_START_FLAG_MASK = 0b0000_0010;
     private static final int WILL_QOS_MASK = 0b0001_1000;
@@ -571,6 +573,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             newStream = new MqttServer(
                 binding.credentials(),
                 binding.authField(),
+                binding.versions,
                 binding.options,
                 binding.resolveId,
                 sender,
@@ -895,7 +898,11 @@ public final class MqttServerFactory implements MqttStreamFactory
             final MqttConnectFW mqttConnect = mqttConnectRO.tryWrap(buffer, offset, limit);
             if (mqttConnect != null)
             {
-                final int reasonCode = decodeConnectProtocol(mqttConnect.protocolName(), mqttConnect.protocolVersion());
+                int reasonCode = decodeConnectProtocol(mqttConnect.protocolName(), mqttConnect.protocolVersion());
+                if (!server.versions.contains(MqttVersion.ofProtocol(mqttConnect.protocolVersion())))
+                {
+                    reasonCode = UNSUPPORTED_PROTOCOL_VERSION;
+                }
                 if (reasonCode != SUCCESS)
                 {
                     server.onDecodeError(traceId, authorization, reasonCode, MQTT_PROTOCOL_VERSION_5);
@@ -2403,6 +2410,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private final GuardHandler guard;
         private final Function<String, String> credentials;
         private final MqttConnectProperty authField;
+        private final List<MqttVersion> versions;
 
         private final OctetsFW.Builder correlationDataRW = new OctetsFW.Builder();
         private final Array32FW.Builder<MqttUserPropertyFW.Builder, MqttUserPropertyFW> userPropertiesRW =
@@ -2486,6 +2494,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private MqttServer(
             Function<String, String> credentials,
             MqttConnectProperty authField,
+            List<MqttVersion> versions,
             MqttOptionsConfig options,
             ToLongFunction<String> resolveId,
             MessageConsumer network,
@@ -2513,6 +2522,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             this.qos1Subscribes = new Int2ObjectHashMap<>();
             this.qos2Subscribes = new Int2ObjectHashMap<>();
             this.guard = resolveGuard(options, resolveId);
+            this.versions = versions;
             this.credentials = credentials;
             this.authField = authField;
         }
@@ -2941,11 +2951,15 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 this.session = new MqttSessionStream(originId, resolved.id, 0);
 
+                final int capabilities = versions.contains(MqttVersion.V_5) && versions.size() == 1
+                    ? REDIRECT_MASK : 0;
+
                 final MqttBeginExFW.Builder builder = mqttSessionBeginExRW.wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())
                     .typeId(mqttTypeId)
                     .session(s -> s
                         .flags(connectFlags & (CLEAN_START_FLAG_MASK | WILL_FLAG_MASK))
                         .expiry(sessionExpiry)
+                        .capabilities(capabilities)
                         .clientId(clientId)
                     );
                 session.doSessionBegin(traceId, affinity, builder.build());

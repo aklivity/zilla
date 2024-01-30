@@ -43,6 +43,7 @@ public class MqttOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbA
     private static final String AUTHORIZATION_CREDENTIALS_NAME = "credentials";
     private static final String AUTHORIZATION_CREDENTIALS_CONNECT_NAME = "connect";
     private static final String TOPICS_NAME = "topics";
+    private static final String VERSIONS_NAME = "versions";
 
     private final MqttTopicConfigAdapter mqttTopic = new MqttTopicConfigAdapter();
 
@@ -104,6 +105,13 @@ public class MqttOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbA
             object.add(TOPICS_NAME, topics);
         }
 
+        if (mqttOptions.versions != null)
+        {
+            JsonArrayBuilder versions = Json.createArrayBuilder();
+            mqttOptions.versions.forEach(v -> versions.add(v.specification()));
+            object.add(VERSIONS_NAME, versions);
+        }
+
         return object.build();
     }
 
@@ -151,6 +159,14 @@ public class MqttOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbA
                 .map(item -> mqttTopic.adaptFromJson((JsonObject) item))
                 .collect(Collectors.toList());
             mqttOptions.topics(topics);
+        }
+
+        if (object.containsKey(VERSIONS_NAME))
+        {
+            List<MqttVersion> versions = object.getJsonArray(VERSIONS_NAME).stream()
+                .map(item -> MqttVersion.ofSpecification(((JsonString) item).getString()))
+                .collect(Collectors.toList());
+            mqttOptions.versions(versions);
         }
 
         return mqttOptions.build();
