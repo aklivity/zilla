@@ -19,6 +19,7 @@ catalogs:
   catalog0:
     type: test
     options:
+      subject: echo
       schema: |
         syntax = "proto3";
         
@@ -47,7 +48,8 @@ bindings:
     type: grpc
     kind: server
     catalog:
-        catalog0: []
+        catalog0:
+          - subject: echo
     routes:
       - exit: app0
         when:

@@ -24,6 +24,7 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
 public class TestCatalogOptionsConfigAdapter implements OptionsConfigAdapterSpi
 {
+    private static final String SUBJECT = "subject";
     private static final String SCHEMA = "schema";
 
     @Override
@@ -62,6 +63,11 @@ public class TestCatalogOptionsConfigAdapter implements OptionsConfigAdapterSpi
 
         if (object != null)
         {
+            if (object.containsKey(SUBJECT))
+            {
+                testOptions.subject(object.getString(SUBJECT));
+            }
+
             if (object.containsKey(SCHEMA))
             {
                 testOptions.schema(object.getString(SCHEMA));

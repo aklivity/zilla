@@ -327,7 +327,8 @@
                                 "$ref": "#/$defs/cataloged"
                             }
                         }
-                    }
+                    },
+                    "maxProperties": 1
                 },
                 "type":
                 {
