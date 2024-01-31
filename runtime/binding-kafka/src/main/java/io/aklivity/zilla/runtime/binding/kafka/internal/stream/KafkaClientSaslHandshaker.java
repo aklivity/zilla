@@ -59,6 +59,7 @@ public abstract class KafkaClientSaslHandshaker
     private static final short SASL_AUTHENTICATE_API_VERSION = 1;
     private static final int ERROR_SASL_AUTHENTICATION_FAILED = 58;
     private static final int ERROR_NONE = 0;
+    private static final int ERROR_UNSUPPORTED_VERSION = 35;
 
     private static final String CLIENT_KEY = "Client Key";
     private static final String SERVER_KEY = "Server Key";
@@ -788,6 +789,16 @@ public abstract class KafkaClientSaslHandshaker
         }
 
         return progress;
+    }
+
+    protected void checkUnsupportedVersionError(
+        int errorCode,
+        long traceId)
+    {
+        if (errorCode == ERROR_UNSUPPORTED_VERSION)
+        {
+            event.apiVersionRejected(traceId);
+        }
     }
 
     public byte[] hmac(byte[] key, byte[] bytes)

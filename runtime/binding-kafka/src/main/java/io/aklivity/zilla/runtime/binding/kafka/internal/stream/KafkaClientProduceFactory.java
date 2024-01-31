@@ -106,7 +106,6 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
     private static final int RECORD_LENGTH_MAX = 5; // varint32(max_value)
 
     private static final int ERROR_NONE = 0;
-    private static final int ERROR_UNSUPPORTED_VERSION = 35;
 
     private static final int SIGNAL_NEXT_REQUEST = 1;
 
@@ -796,10 +795,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
             final int partitionId = partition.partitionId();
             final int errorCode = partition.errorCode();
-            if (errorCode == ERROR_UNSUPPORTED_VERSION)
-            {
-                event.apiVersionRejected(traceId);
-            }
+            checkUnsupportedVersionError(errorCode, traceId);
 
             progress = partition.limit();
 

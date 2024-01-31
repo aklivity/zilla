@@ -534,6 +534,7 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
 
                     final String resourceName = resource.name().asString();
                     final int resourceError = resource.errorCode();
+                    checkUnsupportedVersionError(resourceError, traceId);
 
                     client.onDecodeResource(traceId, client.authorization, resourceError, resourceName);
                     // TODO: use different decoder for configs

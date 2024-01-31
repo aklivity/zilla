@@ -780,6 +780,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
                     final String resourceName = resource.name().asString();
                     final short errorCode = resource.errorCode();
+                    checkUnsupportedVersionError(errorCode, traceId);
 
                     if (errorCode != ERROR_NONE || !client.delegate.nodeId.equals(resourceName))
                     {
@@ -880,6 +881,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                         findCoordinatorResponse.host(), findCoordinatorResponse.port());
                     break;
                 default:
+                    checkUnsupportedVersionError(errorCode, traceId);
                     client.errorCode = errorCode;
                     client.decoder = decodeClusterReject;
                     break;
@@ -970,6 +972,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                     joinGroupResponseRO.tryWrap(buffer, progress, limit);
 
                 final short errorCode = joinGroupResponse != null ? joinGroupResponse.errorCode() : ERROR_EXISTS;
+                checkUnsupportedVersionError(errorCode, traceId);
 
                 if (joinGroupResponse == null)
                 {
@@ -1056,6 +1059,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                     syncGroupResponseRO.tryWrap(buffer, progress, limit);
 
                 final short errorCode = syncGroupResponse != null ? syncGroupResponse.errorCode() : ERROR_EXISTS;
+                checkUnsupportedVersionError(errorCode, traceId);
 
                 if (syncGroupResponse == null)
                 {
@@ -1122,6 +1126,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 progress = heartbeatResponse.limit();
 
                 final short errorCode = heartbeatResponse.errorCode();
+                checkUnsupportedVersionError(errorCode, traceId);
 
                 switch (errorCode)
                 {
@@ -1199,6 +1204,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                             }
                             else
                             {
+                                checkUnsupportedVersionError(errorCode, traceId);
                                 client.errorCode = errorCode;
                                 client.decoder = decodeCoordinatorReject;
                             }
@@ -1213,6 +1219,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 }
                 else
                 {
+                    checkUnsupportedVersionError(errorCode, traceId);
                     client.errorCode = errorCode;
                     client.decoder = decodeCoordinatorReject;
                 }

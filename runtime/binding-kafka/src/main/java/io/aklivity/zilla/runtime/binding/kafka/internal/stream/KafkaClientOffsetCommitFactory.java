@@ -579,6 +579,7 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
             }
             else
             {
+                checkUnsupportedVersionError(errorCode, traceId);
                 client.errorCode = errorCode;
                 client.decoder = decodeReject;
             }
