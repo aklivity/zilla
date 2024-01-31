@@ -26,7 +26,7 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
-public class CatalogRefConfigAdapterTest
+public class AvroValidatorConfigAdapterTest
 {
     private Jsonb jsonb;
 

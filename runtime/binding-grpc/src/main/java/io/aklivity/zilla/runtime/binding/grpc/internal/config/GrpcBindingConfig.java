@@ -74,6 +74,7 @@ public final class GrpcBindingConfig
     private final Int2ObjectHashMap<GrpcProtobufConfig> protobufsBySchemaId;
     private final List<CatalogedConfig> catalogs;
     private final Int2IntHashMap schemaIds;
+
     public final List<GrpcRouteConfig> routes;
     public final long id;
     public final String name;
