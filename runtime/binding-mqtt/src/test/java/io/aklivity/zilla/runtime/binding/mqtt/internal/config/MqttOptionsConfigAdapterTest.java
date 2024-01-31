@@ -57,6 +57,11 @@ public class MqttOptionsConfigAdapterTest
     {
         String text =
                 "{" +
+                    "\"versions\":" +
+                    "[" +
+                        "v3.1.1," +
+                        "v5" +
+                    "]," +
                     "\"authorization\":" +
                     "{" +
                         "\"test0\":" +
@@ -97,6 +102,9 @@ public class MqttOptionsConfigAdapterTest
         assertThat(topic.name, equalTo("sensor/one"));
         assertThat(topic.content, instanceOf(TestValidatorConfig.class));
         assertThat(topic.content.type, equalTo("test"));
+
+        assertThat(options.versions.get(0), equalTo(MqttVersion.V3_1_1));
+        assertThat(options.versions.get(1), equalTo(MqttVersion.V_5));
     }
 
     @Test
@@ -104,6 +112,9 @@ public class MqttOptionsConfigAdapterTest
     {
         List<MqttTopicConfig> topics = new ArrayList<>();
         topics.add(new MqttTopicConfig("sensor/one", new TestValidatorConfig()));
+        List<MqttVersion> versions = new ArrayList<>();
+        versions.add(MqttVersion.V3_1_1);
+        versions.add(MqttVersion.V_5);
 
         MqttOptionsConfig options = new MqttOptionsConfig(
                 new MqttAuthorizationConfig(
@@ -112,7 +123,7 @@ public class MqttOptionsConfigAdapterTest
                         singletonList(new MqttPatternConfig(
                             MqttPatternConfig.MqttConnectProperty.USERNAME,
                             "Bearer {credentials}")))),
-                    topics);
+                    topics, versions);
 
         String text = jsonb.toJson(options);
 
@@ -138,6 +149,11 @@ public class MqttOptionsConfigAdapterTest
                                 "\"name\":\"sensor/one\"," +
                                 "\"content\":\"test\"" +
                             "}" +
+                        "]," +
+                        "\"versions\":" +
+                        "[" +
+                            "\"v3.1.1\"," +
+                            "\"v5\"" +
                         "]" +
                     "}"));
     }

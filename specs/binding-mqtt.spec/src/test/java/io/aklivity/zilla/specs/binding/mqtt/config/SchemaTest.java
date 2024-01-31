@@ -91,6 +91,14 @@ public class SchemaTest
     }
 
     @Test
+    public void shouldValidateServerProtocolVersion()
+    {
+        JsonObject config = schema.validate("server.protocol.version.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
     public void shouldValidateServerWithAuthorizationOptions()
     {
         JsonObject config = schema.validate("server.credentials.username.yaml");
