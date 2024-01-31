@@ -16,11 +16,16 @@ package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream;
 
 import org.agrona.DirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
+import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.InstanceId;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaBindingConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionFactory.KafkaGroup;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionFactory.KafkaTopicPartition;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionFactory.PublishClientMetadata;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionFactory.PublishOffsetMetadata;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.ExtensionFW;
@@ -48,15 +53,16 @@ public class MqttKafkaProxyFactory implements MqttKafkaStreamFactory
     {
         final Long2ObjectHashMap<MqttKafkaBindingConfig> bindings = new Long2ObjectHashMap<>();
         final Int2ObjectHashMap<MqttKafkaStreamFactory> factories = new Int2ObjectHashMap<>();
+        final Long2ObjectHashMap<PublishClientMetadata> clientMetadata = new Long2ObjectHashMap<>();
 
-        final MqttKafkaPublishFactory publishFactory = new MqttKafkaPublishFactory(
-            config, context, bindings::get);
+        final MqttKafkaPublishFactory publishFactory = new MqttKafkaPublishFactory(config, context, bindings::get,
+            clientMetadata::get);
 
         final MqttKafkaSubscribeFactory subscribeFactory = new MqttKafkaSubscribeFactory(
             config, context, bindings::get);
 
         final MqttKafkaSessionFactory sessionFactory = new MqttKafkaSessionFactory(
-            config, context, instanceId, bindings::get, publishFactory);
+            config, context, instanceId, bindings::get, clientMetadata);
 
         factories.put(MqttBeginExFW.KIND_PUBLISH, publishFactory);
         factories.put(MqttBeginExFW.KIND_SUBSCRIBE, subscribeFactory);
