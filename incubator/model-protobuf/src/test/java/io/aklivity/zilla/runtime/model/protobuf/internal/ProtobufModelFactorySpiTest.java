@@ -31,7 +31,7 @@ import io.aklivity.zilla.runtime.model.protobuf.config.ProtobufModelConfig;
 public class ProtobufModelFactorySpiTest
 {
     @Test
-    public void shouldCreateReader()
+    public void shouldLoadAndCreate()
     {
         Configuration config = new Configuration();
         ModelFactory factory = ModelFactory.instantiate();
@@ -51,7 +51,7 @@ public class ProtobufModelFactorySpiTest
             .build();
 
         assertThat(model, instanceOf(ProtobufModel.class));
-        assertThat(context.supplyReadConverterHandler(modelConfig), instanceOf(ProtobufConverterHandler.class));
-        assertThat(context.supplyWriteConverterHandler(modelConfig), instanceOf(ProtobufConverterHandler.class));
+        assertThat(context.supplyReadConverterHandler(modelConfig), instanceOf(ProtobufReadConverterHandler.class));
+        assertThat(context.supplyWriteConverterHandler(modelConfig), instanceOf(ProtobufWriteConverterHandler.class));
     }
 }

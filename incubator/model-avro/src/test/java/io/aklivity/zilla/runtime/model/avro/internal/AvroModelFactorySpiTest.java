@@ -31,7 +31,7 @@ import io.aklivity.zilla.runtime.model.avro.config.AvroModelConfig;
 public class AvroModelFactorySpiTest
 {
     @Test
-    public void shouldCreateReader()
+    public void shouldLoadAndCreate()
     {
         Configuration config = new Configuration();
         ModelFactory factory = ModelFactory.instantiate();
@@ -51,7 +51,7 @@ public class AvroModelFactorySpiTest
                 .build();
 
         assertThat(model, instanceOf(AvroModel.class));
-        assertThat(context.supplyReadConverterHandler(modelConfig), instanceOf(AvroConverterHandler.class));
-        assertThat(context.supplyWriteConverterHandler(modelConfig), instanceOf(AvroConverterHandler.class));
+        assertThat(context.supplyReadConverterHandler(modelConfig), instanceOf(AvroReadConverterHandler.class));
+        assertThat(context.supplyWriteConverterHandler(modelConfig), instanceOf(AvroWriteConverterHandler.class));
     }
 }

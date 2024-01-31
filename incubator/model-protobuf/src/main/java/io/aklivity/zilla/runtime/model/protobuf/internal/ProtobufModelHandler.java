@@ -18,6 +18,7 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.LongFunction;
+import java.util.zip.CRC32C;
 
 import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
@@ -45,7 +46,7 @@ import io.aklivity.zilla.runtime.model.protobuf.config.ProtobufModelConfig;
 import io.aklivity.zilla.runtime.model.protobuf.internal.parser.Protobuf3Lexer;
 import io.aklivity.zilla.runtime.model.protobuf.internal.parser.Protobuf3Parser;
 
-public class ProtobufConverterHandler
+public class ProtobufModelHandler
 {
     protected static final byte[] ZERO_INDEX = new byte[]{0x0};
     protected static final String VIEW_JSON = "json";
@@ -66,8 +67,10 @@ public class ProtobufConverterHandler
     private final Object2ObjectHashMap<String, DynamicMessage.Builder> builders;
     private final FileDescriptor[] dependencies;
     private final Int2IntHashMap paddings;
+    private final Int2IntHashMap crcCache;
+    private final CRC32C crc32c;
 
-    protected ProtobufConverterHandler(
+    protected ProtobufModelHandler(
         ProtobufModelConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
     {
@@ -86,6 +89,8 @@ public class ProtobufConverterHandler
         this.indexes = new LinkedList<>();
         this.paddings = new Int2IntHashMap(-1);
         this.out = new ExpandableDirectBufferOutputStream(new ExpandableDirectByteBuffer());
+        this.crc32c = new CRC32C();
+        this.crcCache = new Int2IntHashMap(0);
     }
 
     protected FileDescriptor supplyDescriptor(
@@ -156,10 +161,11 @@ public class ProtobufConverterHandler
     }
 
     protected DynamicMessage.Builder supplyDynamicMessageBuilder(
-        Descriptors.Descriptor descriptor)
+        Descriptors.Descriptor descriptor,
+        boolean cacheUpdate)
     {
         DynamicMessage.Builder builder;
-        if (builders.containsKey(descriptor.getFullName()))
+        if (builders.containsKey(descriptor.getFullName()) && !cacheUpdate)
         {
             builder = builders.get(descriptor.getFullName());
         }
@@ -169,6 +175,26 @@ public class ProtobufConverterHandler
             builders.put(descriptor.getFullName(), builder);
         }
         return builder;
+    }
+
+    protected boolean invalidateCacheOnSchemaUpdate(
+        int schemaId)
+    {
+        boolean update = false;
+        if (crcCache.containsKey(schemaId))
+        {
+            String schemaText = handler.resolve(schemaId);
+            int checkSum = generateCRC32C(schemaText);
+            if (schemaText != null && crcCache.get(schemaId) != checkSum)
+            {
+                crcCache.remove(schemaId);
+                descriptors.remove(schemaId);
+                tree.remove(schemaId);
+                paddings.remove(schemaId);
+                update = true;
+            }
+        }
+        return update;
     }
 
     private DynamicMessage.Builder createDynamicMessageBuilder(
@@ -235,6 +261,7 @@ public class ProtobufConverterHandler
         String schemaText = handler.resolve(schemaId);
         if (schemaText != null)
         {
+            crcCache.put(schemaId, generateCRC32C(schemaText));
             CharStream input = CharStreams.fromString(schemaText);
             Protobuf3Lexer lexer = new Protobuf3Lexer(input);
             CommonTokenStream tokens = new CommonTokenStream(lexer);
@@ -269,5 +296,14 @@ public class ProtobufConverterHandler
             tree = new DescriptorTree(descriptor);
         }
         return tree;
+    }
+
+    private int generateCRC32C(
+        String schemaText)
+    {
+        byte[] bytes = schemaText.getBytes();
+        crc32c.reset();
+        crc32c.update(bytes, 0, bytes.length);
+        return (int) crc32c.getValue();
     }
 }

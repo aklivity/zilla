@@ -25,7 +25,7 @@ import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
-public class JsonReadConverterHandler extends JsonConverterHandler implements ConverterHandler
+public class JsonReadConverterHandler extends JsonModelHandler implements ConverterHandler
 {
     public JsonReadConverterHandler(
         JsonModelConfig config,
