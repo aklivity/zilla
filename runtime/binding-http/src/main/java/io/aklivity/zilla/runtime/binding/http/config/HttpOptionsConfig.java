@@ -67,9 +67,22 @@ public final class HttpOptionsConfig extends OptionsConfig
                             request.pathParams != null
                                 ? request.pathParams.stream().flatMap(param -> Stream.of(param != null ? param.model : null))
                                 : Stream.empty(),
-                            request.queryParams != null
-                                ? request.queryParams.stream().flatMap(param -> Stream.of(param != null ? param.model : null))
-                                : Stream.empty()))).filter(Objects::nonNull))
+                            Stream.concat(
+                                    request.queryParams != null
+                                    ? request.queryParams.stream().flatMap(param -> Stream.of(param != null ? param.model : null))
+                                    : Stream.empty(),
+                                    Stream.concat(request.responses != null
+                                        ? request.responses.stream().flatMap(param -> Stream.of(param != null
+                                            ? param.content
+                                            : null))
+                                        : Stream.empty(), request.responses != null
+                                        ? request.responses.stream()
+                                            .flatMap(response -> response.headers != null
+                                                ? response.headers.stream()
+                                                    .flatMap(param -> Stream.of(param != null ? param.model : null))
+                                                : Stream.empty())
+                                        : Stream.empty())
+                            )))).filter(Objects::nonNull))
                 .collect(Collectors.toList())
             : emptyList());
 

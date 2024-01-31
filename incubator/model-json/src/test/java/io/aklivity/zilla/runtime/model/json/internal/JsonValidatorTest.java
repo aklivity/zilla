@@ -162,7 +162,7 @@ public class JsonValidatorTest
     }
 
     @Test
-    public void shouldVerifyInalidFragmentedJsonObject()
+    public void shouldVerifyInvalidFragmentedJsonObject()
     {
         CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test",
             TestCatalogOptionsConfig.builder()
