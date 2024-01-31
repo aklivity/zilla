@@ -38,6 +38,8 @@ import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
+import io.aklivity.zilla.runtime.engine.config.CatalogRefConfig;
+import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.ConfigException;
 import io.aklivity.zilla.runtime.engine.config.EngineConfig;
@@ -240,6 +242,25 @@ public class EngineManager
             if (binding.vault != null)
             {
                 binding.vaultId = resolver.resolve(binding.vault);
+            }
+
+            CatalogRefConfig catalogRef = binding.catalogRef;
+            if (catalogRef != null)
+            {
+                if (catalogRef.catalogs != null)
+                {
+                    for (CatalogedConfig cataloged : catalogRef.catalogs)
+                    {
+                        Pattern pattern = Pattern.compile(cataloged.name);
+                        for (CatalogConfig catalog : namespace.catalogs)
+                        {
+                            if (pattern.matcher(catalog.name).matches())
+                            {
+                                catalog.id = resolver.resolve(catalog.name);
+                            }
+                        }
+                    }
+                }
             }
 
             for (RouteConfig route : binding.routes)

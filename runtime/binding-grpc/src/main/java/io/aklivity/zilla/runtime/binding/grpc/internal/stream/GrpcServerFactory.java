@@ -23,7 +23,7 @@ import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.time.Instant.now;
 
 import java.util.function.Consumer;
-import java.util.function.Function;
+import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 
@@ -136,7 +136,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
     private final BufferPool bufferPool;
     private final Signaler signaler;
     private final BindingHandler streamFactory;
-    private final Function<Long, CatalogHandler> supplyCatalog;
+    private final LongFunction<CatalogHandler> supplyCatalog;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyTraceId;
@@ -263,7 +263,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        GrpcBindingConfig grpcBinding = new GrpcBindingConfig(binding, metadataBuffer, binding.resolveId, supplyCatalog);
+        GrpcBindingConfig grpcBinding = new GrpcBindingConfig(binding, metadataBuffer, supplyCatalog);
         bindings.put(binding.id, grpcBinding);
     }
 

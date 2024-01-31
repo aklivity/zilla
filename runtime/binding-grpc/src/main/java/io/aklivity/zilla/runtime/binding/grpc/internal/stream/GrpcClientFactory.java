@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.grpc.internal.stream;
 
-import java.util.function.Function;
+import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
 
 import org.agrona.DirectBuffer;
@@ -116,7 +116,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
     private final MutableDirectBuffer metadataBuffer;
     private final MutableDirectBuffer extBuffer;
     private final BindingHandler streamFactory;
-    private final Function<Long, CatalogHandler> supplyCatalog;
+    private final LongFunction<CatalogHandler> supplyCatalog;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final int httpTypeId;
@@ -163,7 +163,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        GrpcBindingConfig grpcBinding = new GrpcBindingConfig(binding, metadataBuffer, binding.resolveId, supplyCatalog);
+        GrpcBindingConfig grpcBinding = new GrpcBindingConfig(binding, metadataBuffer, supplyCatalog);
         bindings.put(binding.id, grpcBinding);
     }
 

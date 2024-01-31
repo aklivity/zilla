@@ -20,6 +20,7 @@ import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -29,12 +30,9 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.ToLongFunction;
+import java.util.function.LongFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.agrona.AsciiSequenceView;
 import org.agrona.DirectBuffer;
@@ -59,7 +57,6 @@ import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 
-
 public final class GrpcBindingConfig
 {
     private static final Pattern METHOD_PATTERN = Pattern.compile("/(?<ServiceName>.*?)/(?<Method>.*)");
@@ -69,12 +66,6 @@ public final class GrpcBindingConfig
     private static final byte[] HEADER_BIN_SUFFIX = new byte[4];
     private static final byte[] GRPC_PREFIX = "grpc-".getBytes();
     private static final byte[] BIN_SUFFIX = "-bin".getBytes();
-    private final HttpGrpcHeaderHelper helper;
-
-    private final Long2ObjectHashMap<CatalogHandler> handlersById;
-    private final Int2ObjectHashMap<GrpcProtobufConfig> protobufsBySchemaId;
-    private final List<CatalogedConfig> catalogs;
-    private final Int2IntHashMap schemaIds;
 
     public final List<GrpcRouteConfig> routes;
     public final long id;
@@ -82,12 +73,16 @@ public final class GrpcBindingConfig
     public final KindConfig kind;
     public final GrpcOptionsConfig options;
 
+    private final HttpGrpcHeaderHelper helper;
+    private final Long2ObjectHashMap<CatalogHandler> handlersById;
+    private final Int2ObjectHashMap<GrpcProtobufConfig> protobufsBySchemaId;
+    private final List<CatalogedConfig> catalogs;
+    private final Int2IntHashMap schemaIds;
 
     public GrpcBindingConfig(
         BindingConfig binding,
         MutableDirectBuffer metadataBuffer,
-        ToLongFunction<String> resolveId,
-        Function<Long, CatalogHandler> supplyCatalog)
+        LongFunction<CatalogHandler> supplyCatalog)
     {
         this.id = binding.id;
         this.name = binding.name;
@@ -98,12 +93,11 @@ public final class GrpcBindingConfig
         this.schemaIds = new Int2IntHashMap(0);
         this.handlersById = new Long2ObjectHashMap<>();
         this.protobufsBySchemaId = new Int2ObjectHashMap<>();
-        this.catalogs = binding.catalogRef != null ? binding.catalogRef.catalogs.stream().map(c ->
+        this.catalogs = binding.catalogRef != null ? binding.catalogRef.catalogs : Collections.EMPTY_LIST;
+        for (CatalogedConfig catalog : this.catalogs)
         {
-            c.id = resolveId.applyAsLong(c.name);
-            handlersById.put(c.id, supplyCatalog.apply(c.id));
-            return c;
-        }).collect(Collectors.toList()) : Collections.EMPTY_LIST;
+            handlersById.put(catalog.id, supplyCatalog.apply(catalog.id));
+        }
     }
 
     public GrpcRouteConfig resolve(
@@ -139,7 +133,7 @@ public final class GrpcBindingConfig
 
             if (method == null)
             {
-                method = resolveMethod(options.protobufs.stream(), serviceName, methodName);
+                method = resolveMethod(options.protobufs, serviceName, methodName);
             }
 
             if (method != null)
@@ -161,11 +155,11 @@ public final class GrpcBindingConfig
     }
 
     private GrpcMethodConfig resolveMethod(
-        Stream<GrpcProtobufConfig> stream,
+        Collection<GrpcProtobufConfig> protobufConfigs,
         CharSequence serviceName,
         String methodName)
     {
-        return stream
+        return protobufConfigs.stream()
             .map(p -> p.services.stream().filter(s -> s.service.equals(serviceName)).findFirst().orElse(null))
             .filter(Objects::nonNull)
             .map(s -> s.methods.stream().filter(m -> m.method.equals(methodName)).findFirst().orElse(null))
@@ -174,8 +168,7 @@ public final class GrpcBindingConfig
             .orElse(null);
     }
 
-
-    private Stream<GrpcProtobufConfig> resolveCatalogs()
+    private Collection<GrpcProtobufConfig> resolveCatalogs()
     {
         for (CatalogedConfig catalog : catalogs)
         {
@@ -197,7 +190,7 @@ public final class GrpcBindingConfig
             }
         }
 
-        return protobufsBySchemaId.values().stream();
+        return protobufsBySchemaId.values();
     }
 
     private static final class HttpGrpcHeaderHelper
