@@ -20,6 +20,8 @@ import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
 
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -97,12 +99,12 @@ public final class GrpcBindingConfig
         this.schemaIds = new Int2IntHashMap(0);
         this.handlersById = new Long2ObjectHashMap<>();
         this.protobufsBySchemaId = new Int2ObjectHashMap<>();
-        this.catalogs = binding.catalogRef.catalogs.stream().map(c ->
+        this.catalogs = binding.catalogRef != null ? binding.catalogRef.catalogs.stream().map(c ->
         {
             c.id = resolveId.applyAsLong(c.name);
             handlersById.put(c.id, supplyCatalog.apply(c.id));
             return c;
-        }).collect(Collectors.toList());
+        }).collect(Collectors.toList()) : Collections.EMPTY_LIST;
     }
 
     public GrpcRouteConfig resolve(
