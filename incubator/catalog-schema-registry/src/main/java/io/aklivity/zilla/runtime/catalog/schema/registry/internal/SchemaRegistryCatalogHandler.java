@@ -48,7 +48,7 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
     private final String baseUrl;
     private final RegisterSchemaRequest request;
     private final CRC32C crc32c;
-    private final Int2ObjectCache<CachedSchema> schemas;
+    private final Int2ObjectCache<String> schemas;
     private final Int2ObjectCache<CachedSchemaId> schemaIds;
     private final long maxAgeMillis;
 
@@ -82,7 +82,7 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
             schemaId = response.statusCode() == 200 ? request.resolveResponse(response.body()) : NO_SCHEMA_ID;
             if (schemaId != NO_SCHEMA_ID)
             {
-                schemas.put(schemaId, new CachedSchema(System.currentTimeMillis(), schema));
+                schemas.put(schemaId, schema);
             }
         }
         catch (Exception ex)
@@ -97,10 +97,9 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
         int schemaId)
     {
         String schema;
-        if (schemas.containsKey(schemaId) &&
-            (System.currentTimeMillis() - schemas.get(schemaId).timestamp) < maxAgeMillis)
+        if (schemas.containsKey(schemaId))
         {
-            schema = schemas.get(schemaId).schema;
+            schema = schemas.get(schemaId);
         }
         else
         {
@@ -108,7 +107,7 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
             schema = response != null ? request.resolveSchemaResponse(response) : null;
             if (schema != null)
             {
-                schemas.put(schemaId, new CachedSchema(System.currentTimeMillis(), schema));
+                schemas.put(schemaId, schema);
             }
         }
         return schema;
