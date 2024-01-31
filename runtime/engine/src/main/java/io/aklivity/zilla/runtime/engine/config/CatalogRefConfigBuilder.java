@@ -38,12 +38,12 @@ public class CatalogRefConfigBuilder<T> extends ConfigBuilder<T, CatalogRefConfi
         return (Class<CatalogRefConfigBuilder<T>>) getClass();
     }
 
-    public CatalogedConfigBuilder<CatalogRefConfigBuilder<T>> catalog()
+    public CatalogedConfigBuilder<CatalogRefConfigBuilder<T>> cataloged()
     {
-        return CatalogedConfig.builder(this::catalog);
+        return CatalogedConfig.builder(this::cataloged);
     }
 
-    public CatalogRefConfigBuilder<T> catalog(
+    public CatalogRefConfigBuilder<T> cataloged(
         CatalogedConfig catalog)
     {
         if (catalogs == null)

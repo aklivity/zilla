@@ -33,7 +33,7 @@ import io.aklivity.zilla.runtime.engine.config.SchemaConfigAdapter;
 
 public class CatalogRefAdapter implements JsonbAdapter<CatalogRefConfig, JsonObject>
 {
-    private static final String CATALOG_NAME = "catalog";
+    private static final String CATALOG_NAME = "cataloged";
 
     private final SchemaConfigAdapter schema = new SchemaConfigAdapter();
 
