@@ -39,10 +39,9 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurat
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaHeaderHelper;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaRouteConfig;
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionFactory.KafkaGroup;
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionFactory.KafkaTopicPartition;
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionFactory.PublishClientMetadata;
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionFactory.PublishOffsetMetadata;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.PublishClientMetadata.KafkaGroup;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.PublishClientMetadata.KafkaTopicPartition;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.PublishClientMetadata.PublishOffsetMetadata;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaAckMode;
@@ -69,7 +68,6 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaM
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaResetExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttBeginExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttDataExFW;
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttFlushExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttPublishBeginExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttPublishDataExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttPublishOffsetMetadataFW;
@@ -135,7 +133,6 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
     private final KafkaBeginExFW.Builder kafkaBeginExRW = new KafkaBeginExFW.Builder();
     private final KafkaFlushExFW.Builder kafkaFlushExRW = new KafkaFlushExFW.Builder();
     private final KafkaDataExFW.Builder kafkaDataExRW = new KafkaDataExFW.Builder();
-    private final MqttFlushExFW.Builder mqttFlushExRW = new MqttFlushExFW.Builder();
     private final MqttResetExFW.Builder mqttResetExRW = new MqttResetExFW.Builder();
     private final MqttPublishOffsetMetadataFW.Builder mqttOffsetMetadataRW = new MqttPublishOffsetMetadataFW.Builder();
     private final Array32FW.Builder<KafkaHeaderFW.Builder, KafkaHeaderFW> kafkaHeadersRW =

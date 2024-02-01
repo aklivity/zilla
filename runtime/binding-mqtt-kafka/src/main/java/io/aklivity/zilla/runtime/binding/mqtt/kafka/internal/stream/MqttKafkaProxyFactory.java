@@ -21,7 +21,6 @@ import org.agrona.collections.Long2ObjectHashMap;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.InstanceId;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaBindingConfig;
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionFactory.PublishClientMetadata;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.ExtensionFW;

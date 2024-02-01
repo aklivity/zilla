@@ -57,6 +57,9 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurat
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaHeaderHelper;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaRouteConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.PublishClientMetadata.KafkaGroup;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.PublishClientMetadata.KafkaTopicPartition;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.PublishClientMetadata.PublishOffsetMetadata;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaAckMode;
@@ -262,7 +265,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private final InstanceId instanceId;
     private final boolean willAvailable;
     private final int reconnectDelay;
-    private final int publishMaxQos;
     private final Int2ObjectHashMap<String16FW> qosLevels;
     private final Long2ObjectHashMap<PublishClientMetadata> clientMetadata;
 
@@ -310,7 +312,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         this.sessionExpiryIds = new Object2LongHashMap<>(-1);
         this.instanceId = instanceId;
         this.reconnectDelay = config.willStreamReconnectDelay();
-        this.publishMaxQos = config.publishMaxQos();
         this.qosLevels = new Int2ObjectHashMap<>();
         this.qosLevels.put(0, new String16FW("0"));
         this.qosLevels.put(1, new String16FW("1"));
@@ -436,8 +437,9 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         private int sessionPadding;
         private String willId;
         private int delay;
+        private int publishMaxQos;
         private int unfetchedKafkaTopics;
-        private Long2ObjectHashMap<PublishOffsetMetadata> offsets;
+        private Long2ObjectHashMap<PublishClientMetadata.PublishOffsetMetadata> offsets;
         private Int2ObjectHashMap<KafkaTopicPartition> partitions;
         private Int2ObjectHashMap<KafkaTopicPartition> retainedPartitions;
         private PublishClientMetadata metadata;
@@ -537,6 +539,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             sessionExpiryMillis = (int) SECONDS.toMillis(mqttSessionBeginEx.expiry());
             sessionFlags = mqttSessionBeginEx.flags();
+            publishMaxQos = mqttSessionBeginEx.publishQosMax();
 
             if (!isSetWillFlag(sessionFlags) || isSetCleanStart(sessionFlags))
             {
@@ -2891,7 +2894,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                     .session(sessionBuilder -> sessionBuilder
                         .flags(delegate.sessionFlags)
                         .expiry((int) TimeUnit.MILLISECONDS.toSeconds(delegate.sessionExpiryMillis))
-                        .qosMax(MQTT_KAFKA_MAX_QOS)
+                        .subscribeQosMax(MQTT_KAFKA_MAX_QOS)
                         .capabilities(MQTT_KAFKA_CAPABILITIES)
                         .clientId(delegate.clientId))
                     .build();
@@ -3569,7 +3572,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 {
                     delegate.session.doKafkaEnd(traceId, authorization);
 
-                    if (publishMaxQos < 2)
+                    if (delegate.publishMaxQos < 2)
                     {
                         final long routedId = delegate.session.routedId;
                         delegate.session = new KafkaSessionStateProxy(originId, routedId, delegate);
@@ -3635,7 +3638,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 delegate.sessionExpiryMillis = sessionExpiryMillisInRange;
             }
 
-            if (publishMaxQos == 2)
+            if (delegate.publishMaxQos == 2)
             {
                 doKafkaWindow(traceId, authorization, 0, 0, 0);
             }
@@ -3646,7 +3649,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                     .session(sessionBuilder -> sessionBuilder
                         .flags(delegate.sessionFlags)
                         .expiry((int) TimeUnit.MILLISECONDS.toSeconds(delegate.sessionExpiryMillis))
-                        .qosMax(MQTT_KAFKA_MAX_QOS)
+                        .subscribeQosMax(MQTT_KAFKA_MAX_QOS)
                         .capabilities(MQTT_KAFKA_CAPABILITIES)
                         .clientId(delegate.clientId))
                     .build();
@@ -4275,7 +4278,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                             sessionBuilder
                                 .flags(delegate.sessionFlags)
                                 .expiry((int) TimeUnit.MILLISECONDS.toSeconds(delegate.sessionExpiryMillis))
-                                .qosMax(MQTT_KAFKA_MAX_QOS)
+                                .subscribeQosMax(MQTT_KAFKA_MAX_QOS)
                                 .capabilities(MQTT_KAFKA_CAPABILITIES)
                                 .clientId(delegate.clientId);
 
@@ -4797,7 +4800,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                                 sessionBuilder
                                     .flags(delegate.sessionFlags)
                                     .expiry((int) TimeUnit.MILLISECONDS.toSeconds(delegate.sessionExpiryMillis))
-                                    .qosMax(MQTT_KAFKA_MAX_QOS)
+                                    .subscribeQosMax(MQTT_KAFKA_MAX_QOS)
                                     .capabilities(MQTT_KAFKA_CAPABILITIES)
                                     .clientId(delegate.clientId);
 
@@ -4929,27 +4932,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             offsetMetadata.offset(), offsetMetadata.limit()));
     }
 
-    public static final class PublishClientMetadata
-    {
-        final Long2ObjectHashMap<PublishOffsetMetadata> offsets;
-        final Int2ObjectHashMap<KafkaTopicPartition> partitions;
-        final Int2ObjectHashMap<KafkaTopicPartition> retainedPartitions;
-        final Long2LongHashMap leaderEpochs;
-
-        KafkaGroup group;
-
-        private PublishClientMetadata(
-            Long2ObjectHashMap<PublishOffsetMetadata> offsets,
-            Int2ObjectHashMap<KafkaTopicPartition> partitions,
-            Int2ObjectHashMap<KafkaTopicPartition> retainedPartitions,
-            Long2LongHashMap leaderEpochs)
-        {
-            this.offsets = offsets;
-            this.partitions = partitions;
-            this.retainedPartitions = retainedPartitions;
-            this.leaderEpochs = leaderEpochs;
-        }
-    }
 
     private static final class KafkaPartition
     {
@@ -4963,70 +4945,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         {
             this.partitionId = partitionId;
             this.topic = topic;
-        }
-    }
-
-    public static final class KafkaGroup
-    {
-        public final String instanceId;
-        public final String groupId;
-        public final String memberId;
-        public final int generationId;
-
-        KafkaGroup(
-            String instanceId,
-            String groupId,
-            String memberId,
-            int generationId)
-        {
-            this.instanceId = instanceId;
-            this.groupId = groupId;
-            this.memberId = memberId;
-            this.generationId = generationId;
-        }
-    }
-
-    public static final class KafkaTopicPartition
-    {
-        private final String topic;
-        private final int partitionId;
-
-        KafkaTopicPartition(
-            String topic,
-            int partitionId)
-        {
-            this.topic = topic;
-            this.partitionId = partitionId;
-        }
-    }
-
-    public static final class PublishOffsetMetadata
-    {
-        public final long producerId;
-        public final short producerEpoch;
-        public final IntArrayList packetIds;
-
-        public long sequence;
-
-        PublishOffsetMetadata(
-            long producerId,
-            short producerEpoch)
-        {
-            this.sequence = 1;
-            this.producerId = producerId;
-            this.producerEpoch = producerEpoch;
-            this.packetIds = new IntArrayList();
-        }
-
-        PublishOffsetMetadata(
-            long producerId,
-            short producerEpoch,
-            IntArrayList packetIds)
-        {
-            this.sequence = 1;
-            this.producerId = producerId;
-            this.producerEpoch = producerEpoch;
-            this.packetIds = packetIds;
         }
     }
 

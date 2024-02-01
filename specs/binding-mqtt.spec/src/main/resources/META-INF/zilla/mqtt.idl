@@ -155,7 +155,8 @@ scope mqtt
         {
             uint8 flags = 0;
             int32 expiry = 0;
-            uint16 qosMax = 0;
+            uint16 subscribeQosMax = 0;
+            uint16 publishQosMax = 0;
             uint32 packetSizeMax = 0;
             uint8 capabilities = 0;
             string16 clientId;

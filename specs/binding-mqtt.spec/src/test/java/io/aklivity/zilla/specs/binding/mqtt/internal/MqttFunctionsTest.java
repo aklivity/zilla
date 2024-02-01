@@ -69,7 +69,8 @@ public class MqttFunctionsTest
                 .session()
                 .flags("WILL", "CLEAN_START")
                 .expiry(30)
-                .qosMax(1)
+                .subscribeQosMax(1)
+                .publishQosMax(1)
                 .packetSizeMax(100)
                 .capabilities("RETAIN", "WILDCARD", "SUBSCRIPTION_IDS")
                 .clientId("client")
@@ -83,7 +84,8 @@ public class MqttFunctionsTest
         assertEquals(2, mqttBeginEx.kind());
         assertEquals("client", mqttBeginEx.session().clientId().asString());
         assertEquals(30, mqttBeginEx.session().expiry());
-        assertEquals(1, mqttBeginEx.session().qosMax());
+        assertEquals(1, mqttBeginEx.session().subscribeQosMax());
+        assertEquals(1, mqttBeginEx.session().publishQosMax());
         assertEquals(100, mqttBeginEx.session().packetSizeMax());
         assertEquals(7, mqttBeginEx.session().capabilities());
         assertEquals(6, mqttBeginEx.session().flags());
@@ -301,7 +303,8 @@ public class MqttFunctionsTest
             .session()
                 .flags("CLEAN_START")
                 .expiry(10)
-                .qosMax(1)
+                .subscribeQosMax(1)
+                .publishQosMax(1)
                 .packetSizeMax(100)
                 .capabilities("RETAIN", "WILDCARD", "SUBSCRIPTION_IDS")
                 .clientId("client")
@@ -317,7 +320,8 @@ public class MqttFunctionsTest
             .session(s -> s
                 .flags(2)
                 .expiry(10)
-                .qosMax(1)
+                .subscribeQosMax(1)
+                .publishQosMax(1)
                 .packetSizeMax(100)
                 .capabilities(7)
                 .clientId("client")
