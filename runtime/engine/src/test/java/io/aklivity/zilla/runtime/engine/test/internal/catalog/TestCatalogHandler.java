@@ -24,11 +24,10 @@ public class TestCatalogHandler implements CatalogHandler
     private final int id;
 
     public TestCatalogHandler(
-        TestCatalogOptionsConfig config)
+        TestCatalogOptionsConfig options)
     {
-
-        this.id = config != null ? config.id : 0;
-        this.schema = config != null ? config.schema : null;
+        this.id = options != null ? options.id : 0;
+        this.schema = options != null ? options.schema : null;
     }
 
     @Override
