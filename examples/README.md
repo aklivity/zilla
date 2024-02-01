@@ -72,12 +72,14 @@ Options:
 | [http.echo](http.echo)                                             | Echoes request sent to the HTTP server from an HTTP client                                          |
 | [http.echo.jwt](http.echo.jwt)                                     | Echoes request sent to the HTTP server from a JWT-authorized HTTP client                            |
 | [http.proxy](http.proxy)                                           | Proxy request sent to the HTTP server from an HTTP client                                           |
+| [http.proxy.schema.inline](http.proxy.schema.inline)               | Proxy request sent to the HTTP server from an HTTP client with schema enforcement                   |
 | [http.kafka.sync](http.kafka.sync)                                 | Correlates HTTP requests and responses over separate Kafka topics                                   |
 | [http.kafka.async](http.kafka.async)                               | Correlates HTTP requests and responses over separate Kafka topics, asynchronously                   |
 | [http.kafka.cache](http.kafka.cache)                               | Serves cached responses from a Kafka topic, detect when updated                                     |
 | [http.kafka.oneway](http.kafka.oneway)                             | Sends messages to a Kafka topic, fire-and-forget                                                    |
 | [http.kafka.crud](http.kafka.crud)                                 | Exposes a REST API with CRUD operations where a log-compacted Kafka topic acts as a table           |
 | [http.kafka.sasl.scram](http.kafka.sasl.scram)                     | Sends messages to a SASL/SCRAM enabled Kafka                                                        |
+| [http.kafka.schema.registry](http.kafka.schema.registry)           | Validate messages while produce and fetch to a Kafka topic                                          |
 | [http.redpanda.sasl.scram](http.redpanda.sasl.scram)               | Sends messages to a SASL/SCRAM enabled Redpanda Cluster                                             |
 | [kubernetes.prometheus.autoscale](kubernetes.prometheus.autoscale) | Demo Kubernetes Horizontal Pod Autoscaling feature based a on a custom metric with Prometheus       |
 | [grpc.echo](grpc.echo)                                             | Echoes messages sent to the gRPC server from a gRPC client                                          |

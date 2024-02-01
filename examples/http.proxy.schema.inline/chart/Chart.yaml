@@ -1,0 +1,6 @@
+apiVersion: v2
+name: zilla
+description: zilla http.proxy.schema.inline example
+type: application
+version: 0.1.0
+appVersion: "latest"

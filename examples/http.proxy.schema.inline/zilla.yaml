@@ -1,0 +1,155 @@
+---
+name: example
+catalogs:
+  my_catalog:
+    type: inline
+    options:
+      subjects:
+        my_subject:
+          schema: |
+            {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer"
+                },
+                "status": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "status"
+              ]
+            }
+vaults:
+  your_clients:
+    type: filesystem
+    options:
+      trust:
+        store: tls/truststore.p12
+        type: pkcs12
+        password: ${{env.KEYSTORE_PASSWORD}}
+  my_servers:
+    type: filesystem
+    options:
+      keys:
+        store: tls/localhost.p12
+        type: pkcs12
+        password: ${{env.KEYSTORE_PASSWORD}}
+bindings:
+  north_tcp_server:
+    type: tcp
+    kind: server
+    options:
+      host: 0.0.0.0
+      port: 7143
+    exit: north_tls_server
+  north_tls_server:
+    type: tls
+    kind: server
+    vault: my_servers
+    options:
+      keys:
+        - localhost
+      sni:
+        - localhost
+      alpn:
+        - h2
+    exit: north_http_server
+  north_http_server:
+    type: http
+    kind: server
+    options:
+      access-control:
+        policy: cross-origin
+      requests:
+        - path: /valid.json
+          method: GET
+          content-type:
+            - application/json
+          content:
+            model: json
+            catalog:
+               my_catalog:
+                 - subject: my_subject
+        - path: /invalid.json
+          method: GET
+          content-type:
+            - application/json
+          content:
+            model: json
+            catalog:
+               my_catalog:
+                 - subject: my_subject
+    exit: south_http_client
+  south_http_client:
+    type: http
+    kind: client
+    options:
+      versions:
+        - http/1.1
+        - h2
+      requests:
+        - path: /valid.json
+          method: GET
+          content-type:
+            - application/json
+            - text/plain
+          responses:
+            - status: 200
+              content-type: 
+                - application/json
+              content:
+                model: json
+                catalog:
+                  my_catalog:
+                    - subject: my_subject
+            - status:
+                - 401
+                - 404
+              content-type: 
+                - text/plain
+              content:
+                model: string
+        - path: /invalid.json
+          method: GET
+          content-type:
+            - application/json
+            - text/plain
+          responses:
+            - status: 200
+              content-type: 
+                - application/json
+              content:
+                model: json
+                catalog:
+                  my_catalog:
+                    - subject: my_subject
+            - status:
+                - 401
+                - 404
+              content-type: 
+                - text/plain
+              content:
+                model: string
+    exit: south_tls_client
+  south_tls_client:
+    type: tls
+    kind: client
+    vault: your_clients
+    options:
+      trustcacerts: true
+      trust:
+        - nginx
+      sni:
+        - nginx
+      alpn:
+        - h2
+    exit: south_tcp_client
+  south_tcp_client:
+    type: tcp
+    kind: client
+    options:
+      host: nginx
+      port: 443

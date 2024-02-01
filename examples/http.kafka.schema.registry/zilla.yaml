@@ -1,0 +1,146 @@
+---
+name: example
+catalogs:
+  my_catalog:
+    type: schema-registry
+    options:
+      url: http://karapace-reg:8081
+      context: default
+vaults:
+  my_servers:
+    type: filesystem
+    options:
+      keys:
+        store: tls/localhost.p12
+        type: pkcs12
+        password: ${{env.KEYSTORE_PASSWORD}}
+bindings:
+  north_tcp_server:
+    type: tcp
+    kind: server
+    options:
+      host: 0.0.0.0
+      port:
+        - 7143
+        - 7114
+    routes:
+        - when:
+            - port: 7143
+          exit: north_tls_server
+        - when:
+            - port: 7114
+          exit: north_http_server
+  north_tls_server:
+    type: tls
+    kind: server
+    vault: my_servers
+    options:
+      keys:
+        - localhost
+      sni:
+        - localhost
+      alpn:
+        - http/1.1
+        - h2
+    exit: north_http_server
+  north_http_server:
+    type: http
+    kind: server
+    routes:
+      - when:
+          - headers:
+              :scheme: http
+              :authority: localhost:7114
+          - headers:
+              :scheme: https
+              :authority: localhost:7143
+        exit: north_http_kafka_mapping
+  north_http_kafka_mapping:
+    type: http-kafka
+    kind: proxy
+    routes:
+      - when:
+          - method: POST
+            path: /items
+        exit: north_kafka_cache_client
+        with:
+          capability: produce
+          topic: items-snapshots
+          key: ${idempotencyKey}
+      - when:
+          - method: PUT
+            path: /items/{id}
+        exit: north_kafka_cache_client
+        with:
+          capability: produce
+          topic: items-snapshots
+          key: ${params.id}
+      - when:
+          - method: DELETE
+            path: /items/{id}
+        exit: north_kafka_cache_client
+        with:
+          capability: produce
+          topic: items-snapshots
+          key: ${params.id}
+      - when:
+          - method: GET
+            path: /items
+        exit: north_kafka_cache_client
+        with:
+          capability: fetch
+          topic: items-snapshots
+          merge:
+            content-type: application/json
+      - when:
+          - method: GET
+            path: /items/{id}
+        exit: north_kafka_cache_client
+        with:
+          capability: fetch
+          topic: items-snapshots
+          filters:
+            - key: ${params.id}
+  north_kafka_cache_client:
+    type: kafka
+    kind: cache_client
+    options:
+      bootstrap:
+        - items-snapshots
+      topics:
+        - name: items-snapshots
+          value:
+            model: avro
+            view: json
+            catalog:
+              my_catalog:
+                - strategy: topic
+                  version: latest
+    exit: south_kafka_cache_server
+  south_kafka_cache_server:
+    type: kafka
+    kind: cache_server
+    options:
+      topics:
+        - name: items-snapshots
+          value:
+            model: avro
+            view: json
+            catalog:
+              my_catalog:
+                - strategy: topic
+                  version: latest
+    exit: south_kafka_client
+  south_kafka_client:
+    type: kafka
+    kind: client
+    exit: south_tcp_client
+  south_tcp_client:
+    type: tcp
+    kind: client
+    options:
+      host: kafka
+      port: 29092
+    routes:
+      - when:
+          - cidr: 0.0.0.0/0

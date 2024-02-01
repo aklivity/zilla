@@ -1,0 +1,14 @@
+image:
+  tag: develop-SNAPSHOT
+
+extraEnv:
+  - name: KEYSTORE_PASSWORD
+    value: generated
+
+livenessProbePort: 7143
+readinessProbePort: 7143
+
+service:
+  ports:
+    - port: 7143
+      name: https
