@@ -15,7 +15,6 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.config;
 
-import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -31,7 +30,7 @@ import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfigAdapter;
 
-public class CatalogedAdapter implements JsonbAdapter<Collection<CatalogedConfig>, JsonObject>
+public class CatalogedAdapter implements JsonbAdapter<List<CatalogedConfig>, JsonObject>
 {
     private final SchemaConfigAdapter schema = new SchemaConfigAdapter();
 
@@ -41,7 +40,7 @@ public class CatalogedAdapter implements JsonbAdapter<Collection<CatalogedConfig
 
     @Override
     public JsonObject adaptToJson(
-        Collection<CatalogedConfig> catalogs)
+        List<CatalogedConfig> catalogs)
     {
         JsonObjectBuilder catalogsBuilder = Json.createObjectBuilder();
         for (CatalogedConfig catalog : catalogs)
@@ -58,7 +57,7 @@ public class CatalogedAdapter implements JsonbAdapter<Collection<CatalogedConfig
     }
 
     @Override
-    public Collection<CatalogedConfig> adaptFromJson(
+    public List<CatalogedConfig> adaptFromJson(
         JsonObject catalogsJson)
     {
         List<CatalogedConfig> catalogs = new LinkedList<>();

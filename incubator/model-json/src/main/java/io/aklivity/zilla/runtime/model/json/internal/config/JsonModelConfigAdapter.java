@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.model.json.internal.config;
 
-import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
