@@ -583,7 +583,7 @@
 
   <profiles>
     <profile>
-      <id>incubator</id>
+      <id>develop</id>
       <activation>
         <property>
           <name>release</name>
@@ -594,6 +594,7 @@
       <properties>
         <docker.skip.push>true</docker.skip.push>
         <docker.skip.tag>true</docker.skip.tag>
+        <docker.latest.tag></docker.latest.tag>
       </properties>
 
       <build>
@@ -646,6 +647,7 @@
       <properties>
         <docker.skip.push>false</docker.skip.push>
         <docker.skip.tag>false</docker.skip.tag>
+        <docker.latest.tag>latest</docker.latest.tag>
       </properties>
 
       <build>

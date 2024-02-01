@@ -23,6 +23,7 @@ public class TestCatalogOptionsConfig extends OptionsConfig
 {
     public final String subject;
     public final String schema;
+    public final int id;
 
     public static TestCatalogOptionsConfigBuilder<TestCatalogOptionsConfig> builder()
     {
@@ -36,10 +37,12 @@ public class TestCatalogOptionsConfig extends OptionsConfig
     }
 
     public TestCatalogOptionsConfig(
+        int id,
         String subject,
         String schema)
     {
         this.subject = subject;
         this.schema = schema;
+        this.id = id;
     }
 }

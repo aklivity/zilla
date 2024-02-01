@@ -33,8 +33,14 @@
                     },
                     "options":
                     {
+                        "title": "Options",
+                        "type": "object",
                         "properties":
                         {
+                            "value":
+                            {
+                                "$ref": "#/$defs/converter"
+                            },
                             "port":
                             {
                                 "title": "Port",

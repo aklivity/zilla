@@ -57,13 +57,11 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
-import java.util.function.ToLongFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -142,9 +140,10 @@ import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
+import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
-import io.aklivity.zilla.runtime.engine.validator.Validator;
+import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
+import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 
 public final class HttpServerFactory implements HttpStreamFactory
 {
@@ -500,7 +499,7 @@ public final class HttpServerFactory implements HttpStreamFactory
     private final Http2ServerDecoder decodeHttp2IgnoreAll = this::decodeHttp2IgnoreAll;
 
     private final EnumMap<Http2FrameType, Http2ServerDecoder> decodersByFrameType;
-    private final BiFunction<ValidatorConfig, ToLongFunction<String>, Validator> createValidator;
+    private final Function<ModelConfig, ValidatorHandler> supplyValidator;
 
     {
         final EnumMap<Http2FrameType, Http2ServerDecoder> decodersByFrameType = new EnumMap<>(Http2FrameType.class);
@@ -574,8 +573,8 @@ public final class HttpServerFactory implements HttpStreamFactory
         this.connectionClose = CONNECTION_CLOSE_PATTERN.matcher("");
         this.maximumHeadersSize = bufferPool.slotCapacity();
         this.decodeMax = bufferPool.slotCapacity();
+        this.supplyValidator = context::supplyValidator;
         this.encodeMax = bufferPool.slotCapacity();
-        this.createValidator = context::createValidator;
         this.bindings = new Long2ObjectHashMap<>();
 
         this.headers200 = initHeaders(config, STATUS_200);
@@ -598,7 +597,7 @@ public final class HttpServerFactory implements HttpStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        HttpBindingConfig httpBinding = new HttpBindingConfig(binding, createValidator);
+        HttpBindingConfig httpBinding = new HttpBindingConfig(binding, supplyValidator);
         bindings.put(binding.id, httpBinding);
     }
 
@@ -1076,9 +1075,9 @@ public final class HttpServerFactory implements HttpStreamFactory
                             HttpPolicyConfig policy = binding.access().effectivePolicy(headers);
                             final String origin = policy == CROSS_ORIGIN ? headers.get(HEADER_NAME_ORIGIN) : null;
 
-                            server.requestType = binding.resolveRequestType(beginEx);
+                            HttpRequestType requestType = binding.resolveRequestType(beginEx);
                             boolean headersValid = server.onDecodeHeaders(server.routedId, route.id, traceId, exchangeAuth,
-                                policy, origin, beginEx);
+                                policy, origin, beginEx, requestType);
                             if (!headersValid)
                             {
                                 error = response400;
@@ -1583,7 +1582,6 @@ public final class HttpServerFactory implements HttpStreamFactory
         private long replyAck;
         private long replyBudgetId;
         private int replyMax;
-        private HttpRequestType requestType;
 
         private HttpServer(
             HttpBindingConfig binding,
@@ -2256,12 +2254,14 @@ public final class HttpServerFactory implements HttpStreamFactory
             long authorization,
             HttpPolicyConfig policy,
             String origin,
-            HttpBeginExFW beginEx)
+            HttpBeginExFW beginEx,
+            HttpRequestType requestType)
         {
-            boolean headersValid = binding.validateHeaders(requestType, beginEx);
+            final HttpExchange exchange = new HttpExchange(originId, routedId, authorization,
+                traceId, policy, origin, requestType);
+            boolean headersValid = exchange.validateHeaders(beginEx);
             if (headersValid)
             {
-                final HttpExchange exchange = new HttpExchange(originId, routedId, authorization, traceId, policy, origin);
                 exchange.doRequestBegin(traceId, beginEx);
                 exchange.doResponseWindow(traceId);
 
@@ -2293,7 +2293,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             int limit,
             Flyweight extension)
         {
-            boolean contentValid = binding.validateContent(requestType, buffer, 0, limit - offset);
+            boolean contentValid = exchange.validateContent(buffer, 0, limit - offset);
             int result;
             if (contentValid)
             {
@@ -2729,6 +2729,8 @@ public final class HttpServerFactory implements HttpStreamFactory
             private final long sessionId;
             private final HttpPolicyConfig policy;
             private final String origin;
+            private final HttpRequestType requestType;
+            private final ValidatorHandler contentType;
 
             private long expiringId;
 
@@ -2755,13 +2757,15 @@ public final class HttpServerFactory implements HttpStreamFactory
                 long sessionId,
                 long traceId,
                 HttpPolicyConfig policy,
-                String origin)
+                String origin,
+                HttpRequestType requestType)
             {
                 this.originId = originId;
                 this.routedId = routedId;
                 this.sessionId = sessionId;
                 this.policy = policy;
                 this.origin = origin;
+                this.requestType = requestType;
                 this.requestId = supplyInitialId.applyAsLong(routedId);
                 this.responseId = supplyReplyId.applyAsLong(requestId);
                 this.requestState = HttpExchangeState.PENDING;
@@ -2771,6 +2775,9 @@ public final class HttpServerFactory implements HttpStreamFactory
                 this.responseRemaining = Integer.MAX_VALUE - encodeMax;
 
                 this.expiringId = expireIfNecessary(guard, sessionId, originId, routedId, replyId, traceId, 0);
+                this.contentType = requestType != null && requestType.content != null
+                    ? supplyValidator.apply(requestType.content)
+                    : null;
             }
 
             private void doRequestBegin(
@@ -3133,6 +3140,91 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                 doChallenge(application, originId, routedId, responseId, responseSeq, responseAck, responseMax,
                         traceId, sessionId, httpChallengeEx);
+            }
+
+            private boolean validateHeaders(
+                HttpBeginExFW beginEx)
+            {
+                String path = beginEx.headers().matchFirst(h -> h.name().equals(HEADER_PATH)).value().asString();
+                return requestType == null ||
+                    validateHeaderValues(beginEx) &&
+                    validatePathParams(path) &&
+                    validateQueryParams(path);
+            }
+
+            private boolean validateHeaderValues(
+                HttpBeginExFW beginEx)
+            {
+                MutableBoolean valid = new MutableBoolean(true);
+                if (requestType != null && requestType.headers != null)
+                {
+                    beginEx.headers().forEach(header ->
+                    {
+                        if (valid.value)
+                        {
+                            ValidatorHandler validator = requestType.headers.get(header.name());
+                            if (validator != null)
+                            {
+                                String16FW value = header.value();
+                                valid.value &=
+                                    validator.validate(value.value(), value.offset(), value.length(), ValueConsumer.NOP);
+                            }
+                        }
+                    });
+                }
+                return valid.value;
+            }
+
+            private boolean validatePathParams(
+                String path)
+            {
+                Matcher matcher = requestType.pathMatcher.reset(path);
+                boolean matches = matcher.matches();
+                assert matches;
+
+                boolean valid = true;
+                for (String name : requestType.pathParams.keySet())
+                {
+                    String value = matcher.group(name);
+                    if (value != null)
+                    {
+                        String8FW value0 = new String8FW(value);
+                        ValidatorHandler validator = requestType.pathParams.get(name);
+                        if (!validator.validate(value0.value(), value0.offset(), value0.length(), ValueConsumer.NOP))
+                        {
+                            valid = false;
+                            break;
+                        }
+                    }
+                }
+                return valid;
+            }
+
+            private boolean validateQueryParams(
+                    String path)
+            {
+                Matcher matcher = requestType.queryMatcher.reset(path);
+                boolean valid = true;
+                while (valid && matcher.find())
+                {
+                    String name = matcher.group(1);
+                    ValidatorHandler validator = requestType.queryParams.get(name);
+                    if (validator != null)
+                    {
+                        String8FW value = new String8FW(matcher.group(2));
+                        valid &= validator.validate(value.value(), value.offset(), value.length(), ValueConsumer.NOP);
+                    }
+                }
+                return valid;
+            }
+
+            private boolean validateContent(
+                DirectBuffer buffer,
+                int index,
+                int length)
+            {
+                return contentType == null ||
+                    contentType.validate(buffer, index, length, ValueConsumer.NOP);
             }
 
             private void cleanupExpiringIfNecessary()
@@ -4909,7 +5001,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                             final Http2Exchange exchange = new Http2Exchange(originId, routedId, NO_REQUEST_ID, streamId,
                                 exchangeAuth, traceId, policy, origin, contentLength, requestType);
 
-                            boolean headersValid = binding.validateHeaders(requestType, beginEx);
+                            boolean headersValid = exchange.validateHeaders(beginEx);
                             if (headersValid)
                             {
                                 exchange.doRequestBegin(traceId, beginEx);
@@ -5123,7 +5215,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 else
                 {
                     final int payloadLength = payload.capacity();
-                    boolean contentValid = binding.validateContent(exchange.request, payload, 0, payloadLength);
+                    boolean contentValid = exchange.validateContent(payload, 0, payloadLength);
                     if (contentValid)
                     {
                         if (payloadLength > 0)
@@ -5580,6 +5672,8 @@ public final class HttpServerFactory implements HttpStreamFactory
             private final String origin;
             private final long requestContentLength;
             private final long sessionId;
+            private final HttpRequestType requestType;
+            private final ValidatorHandler contentType;
 
             private long responseContentLength;
             private long responseContentObserved;
@@ -5606,8 +5700,6 @@ public final class HttpServerFactory implements HttpStreamFactory
             private long responseAck;
             private int responseMax;
 
-            private final HttpRequestType request;
-
             private Http2Exchange(
                 long originId,
                 long routedId,
@@ -5618,7 +5710,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 HttpPolicyConfig policy,
                 String origin,
                 long requestContentLength,
-                HttpRequestType request)
+                HttpRequestType requestType)
             {
                 this.originId = originId;
                 this.routedId = routedId;
@@ -5630,7 +5722,10 @@ public final class HttpServerFactory implements HttpStreamFactory
                 this.requestId = requestId == NO_REQUEST_ID ? supplyInitialId.applyAsLong(routedId) : requestId;
                 this.responseId = supplyReplyId.applyAsLong(this.requestId);
                 this.expiringId = expireIfNecessary(guard, sessionId, originId, routedId, replyId, traceId, streamId);
-                this.request = request;
+                this.requestType = requestType;
+                this.contentType = requestType != null && requestType.content != null
+                    ? supplyValidator.apply(requestType.content)
+                    : null;
             }
 
             private int initialWindow()
@@ -6165,6 +6260,91 @@ public final class HttpServerFactory implements HttpStreamFactory
                 removeStreamIfNecessary();
                 deauthorizeIfNecessary();
                 cleanupExpiringIfNecessary();
+            }
+
+            private boolean validateHeaders(
+                HttpBeginExFW beginEx)
+            {
+                String path = beginEx.headers().matchFirst(h -> h.name().equals(HEADER_PATH)).value().asString();
+                return requestType == null ||
+                        validateHeaderValues(beginEx) &&
+                                validatePathParams(path) &&
+                                validateQueryParams(path);
+            }
+
+            private boolean validateHeaderValues(
+                HttpBeginExFW beginEx)
+            {
+                MutableBoolean valid = new MutableBoolean(true);
+                if (requestType != null && requestType.headers != null)
+                {
+                    beginEx.headers().forEach(header ->
+                    {
+                        if (valid.value)
+                        {
+                            ValidatorHandler validator = requestType.headers.get(header.name());
+                            if (validator != null)
+                            {
+                                String16FW value = header.value();
+                                valid.value &=
+                                    validator.validate(value.value(), value.offset(), value.length(), ValueConsumer.NOP);
+                            }
+                        }
+                    });
+                }
+                return valid.value;
+            }
+
+            private boolean validatePathParams(
+                String path)
+            {
+                Matcher matcher = requestType.pathMatcher.reset(path);
+                boolean matches = matcher.matches();
+                assert matches;
+
+                boolean valid = true;
+                for (String name : requestType.pathParams.keySet())
+                {
+                    String value = matcher.group(name);
+                    if (value != null)
+                    {
+                        String8FW value0 = new String8FW(value);
+                        ValidatorHandler validator = requestType.pathParams.get(name);
+                        if (!validator.validate(value0.value(), value0.offset(), value0.length(), ValueConsumer.NOP))
+                        {
+                            valid = false;
+                            break;
+                        }
+                    }
+                }
+                return valid;
+            }
+
+            private boolean validateQueryParams(
+                String path)
+            {
+                Matcher matcher = requestType.queryMatcher.reset(path);
+                boolean valid = true;
+                while (valid && matcher.find())
+                {
+                    String name = matcher.group(1);
+                    ValidatorHandler validator = requestType.queryParams.get(name);
+                    if (validator != null)
+                    {
+                        String8FW value = new String8FW(matcher.group(2));
+                        valid &= validator.validate(value.value(), value.offset(), value.length(), ValueConsumer.NOP);
+                    }
+                }
+                return valid;
+            }
+
+            private boolean validateContent(
+                DirectBuffer buffer,
+                int index,
+                int length)
+            {
+                return contentType == null ||
+                    contentType.validate(buffer, index, length, ValueConsumer.NOP);
             }
 
             private void removeStreamIfNecessary()

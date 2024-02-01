@@ -460,136 +460,50 @@
             [
             ]
         },
-        "validator":
+        "converter":
         {
-            "type":
+            "type": "object",
+            "properties":
             {
-                "oneOf":
-                [
-                    {
-                        "$ref": "#/$defs/validator/types"
-                    },
-                    {
-                        "type": "object",
-                        "properties":
-                        {
-                            "type":
-                            {
-                                "$ref": "#/$defs/validator/types"
-                            },
-                            "encoding":
-                            {
-                                "type": "string",
-                                "enum":
-                                [
-                                    "utf_8"
-                                ]
-                            },
-                            "catalog":
-                            {
-                                "type": "object",
-                                "patternProperties":
-                                {
-                                    "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
-                                    {
-                                        "type": "array",
-                                        "items":
-                                        {
-                                            "$ref": "#/$defs/validator/schema"
-                                        }
-                                    }
-                                }
-                            }
-                        },
-                        "additionalProperties": false
-                    }
-                ]
+                "model":
+                {
+                    "$ref": "#/$defs/converter/types"
+                }
             },
+            "required":
+            [
+                "model"
+            ],
+            "allOf":
+            [
+            ],
             "types":
             {
                 "type": "string",
                 "enum": []
-            },
-            "schema":
+            }
+        },
+        "validator":
+        {
+            "type": "object",
+            "properties":
             {
-                "oneOf":
-                [
-                    {
-                        "type": "object",
-                        "properties":
-                        {
-                            "id":
-                            {
-                                "type": "integer"
-                            }
-                        },
-                        "required":
-                        [
-                            "id"
-                        ],
-                        "additionalProperties": false
-                    },
-                    {
-                        "type": "object",
-                        "properties":
-                        {
-                            "schema":
-                            {
-                                "type": "string"
-                            },
-                            "version":
-                            {
-                                "type": "string",
-                                "default": "latest"
-                            }
-                        },
-                        "required":
-                        [
-                            "schema"
-                        ],
-                        "additionalProperties": false
-                    },
-                    {
-                        "type": "object",
-                        "properties":
-                        {
-                            "strategy":
-                            {
-                                "type": "string"
-                            },
-                            "version":
-                            {
-                                "type": "string",
-                                "default": "latest"
-                            }
-                        },
-                        "required":
-                        [
-                            "strategy"
-                        ],
-                        "additionalProperties": false
-                    },
-                    {
-                        "type": "object",
-                        "properties":
-                        {
-                            "subject":
-                            {
-                                "type": "string"
-                            },
-                            "version":
-                            {
-                                "type": "string",
-                                "default": "latest"
-                            }
-                        },
-                        "required":
-                        [
-                            "subject"
-                        ],
-                        "additionalProperties": false
-                    }
-                ]
+                "model":
+                {
+                    "$ref": "#/$defs/validator/types"
+                }
+            },
+            "required":
+            [
+                "model"
+            ],
+            "allOf":
+            [
+            ],
+            "types":
+            {
+                "type": "string",
+                "enum": []
             }
         }
     }
