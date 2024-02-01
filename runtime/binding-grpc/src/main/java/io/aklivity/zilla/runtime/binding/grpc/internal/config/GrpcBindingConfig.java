@@ -95,7 +95,7 @@ public final class GrpcBindingConfig
         this.schemaIds = new Int2IntHashMap(0);
         this.handlersById = new Long2ObjectHashMap<>();
         this.protobufsBySchemaId = new Int2ObjectHashMap<>();
-        this.catalogs = binding.catalogRef != null ? binding.catalogRef.catalogs : new ObjectHashSet<>();
+        this.catalogs = binding.catalogs != null ? binding.catalogs : new ObjectHashSet<>();
         for (CatalogedConfig catalog : this.catalogs)
         {
             handlersById.put(catalog.id, supplyCatalog.apply(catalog.id));

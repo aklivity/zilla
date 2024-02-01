@@ -22,6 +22,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 
+import org.agrona.collections.ObjectHashSet;
+
 public final class BindingConfigBuilder<T> extends ConfigBuilder<T, BindingConfigBuilder<T>>
 {
     public static final List<RouteConfig> ROUTES_DEFAULT = emptyList();
@@ -38,7 +40,7 @@ public final class BindingConfigBuilder<T> extends ConfigBuilder<T, BindingConfi
     private String exit;
     private OptionsConfig options;
     private List<RouteConfig> routes;
-    private CatalogRefConfig catalogRef;
+    private ObjectHashSet<CatalogedConfig> catalogs;
     private TelemetryRefConfig telemetryRef;
     private List<NamespaceConfig> composites;
 
@@ -117,15 +119,27 @@ public final class BindingConfigBuilder<T> extends ConfigBuilder<T, BindingConfi
         return this;
     }
 
-    public CatalogRefConfigBuilder<BindingConfigBuilder<T>> catalog()
+    public BindingConfigBuilder<T> catalogs(
+        ObjectHashSet<CatalogedConfig> catalogs)
     {
-        return new CatalogRefConfigBuilder<>(this::catalog);
+        this.catalogs = catalogs;
+        return this;
+    }
+
+    public CatalogedConfigBuilder<BindingConfigBuilder<T>> catalog()
+    {
+        return new CatalogedConfigBuilder<>(this::catalog);
     }
 
     public BindingConfigBuilder<T> catalog(
-        CatalogRefConfig catalogRef)
+        CatalogedConfig catalog)
     {
-        this.catalogRef = catalogRef;
+        if (catalogs == null)
+        {
+            catalogs = new ObjectHashSet<>();
+        }
+
+        catalogs.add(catalog);
         return this;
     }
 
@@ -209,8 +223,8 @@ public final class BindingConfigBuilder<T> extends ConfigBuilder<T, BindingConfi
             entry,
             vault,
             options,
+            catalogs,
             Optional.ofNullable(routes).orElse(ROUTES_DEFAULT),
-            catalogRef,
             telemetryRef,
             Optional.ofNullable(composites).orElse(COMPOSITES_DEFAULT)));
     }

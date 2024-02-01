@@ -369,11 +369,9 @@ public class BindingConfigsAdapterTest
                     .type("test")
                     .kind(SERVER)
                     .catalog()
-                        .cataloged()
-                            .name("catalog0")
-                                .schema()
-                                .subject("echo")
-                                .build()
+                        .name("catalog0")
+                            .schema()
+                            .subject("echo")
                             .build()
                         .build()
                     .build()
@@ -382,8 +380,8 @@ public class BindingConfigsAdapterTest
         String text = jsonb.toJson(bindings);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"test\":{\"type\":\"test\",\"kind\":\"server\",\"catalog\":{\"cataloged\"" +
-            ":{\"catalog0\":[{\"subject\":\"echo\"}]}}}}"));
+        assertThat(text, equalTo("{\"test\":{\"type\":\"test\",\"kind\":\"server\",\"catalog\":" +
+            "[{\"catalog0\":[{\"subject\":\"echo\"}]}]}}"));
     }
 
     @Test
@@ -412,8 +410,8 @@ public class BindingConfigsAdapterTest
         assertThat(bindings[0], not(nullValue()));
         assertThat(bindings[0].name, equalTo("test"));
         assertThat(bindings[0].kind, equalTo(SERVER));
-        assertThat(bindings[0].catalogRef.catalogs, hasSize(1));
-        assertThat(bindings[0].catalogRef.catalogs.stream().findFirst().get().name, equalTo("catalog0"));
+        assertThat(bindings[0].catalogs, hasSize(1));
+        assertThat(bindings[0].catalogs.stream().findFirst().get().name, equalTo("catalog0"));
     }
 
     @Test

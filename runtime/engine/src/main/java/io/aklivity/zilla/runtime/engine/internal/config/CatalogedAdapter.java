@@ -25,46 +25,39 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 import org.agrona.collections.ObjectHashSet;
 
-import io.aklivity.zilla.runtime.engine.config.CatalogRefConfig;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfigAdapter;
 
-public class CatalogRefAdapter implements JsonbAdapter<CatalogRefConfig, JsonObject>
+public class CatalogedAdapter implements JsonbAdapter<ObjectHashSet<CatalogedConfig>, JsonObject>
 {
-    private static final String CATALOG_NAME = "cataloged";
-
     private final SchemaConfigAdapter schema = new SchemaConfigAdapter();
 
-    public CatalogRefAdapter()
+    public CatalogedAdapter()
     {
     }
 
     @Override
     public JsonObject adaptToJson(
-        CatalogRefConfig config)
+        ObjectHashSet<CatalogedConfig> catalogs)
     {
-        JsonObjectBuilder catalogBuilder = Json.createObjectBuilder();
-        if (config.catalogs != null && !config.catalogs.isEmpty())
+        JsonObjectBuilder catalogsBuilder = Json.createObjectBuilder();
+        for (CatalogedConfig catalog : catalogs)
         {
-            JsonObjectBuilder catalogs = Json.createObjectBuilder();
-            for (CatalogedConfig catalog : config.catalogs)
+            JsonArrayBuilder array = Json.createArrayBuilder();
+            for (SchemaConfig schemaItem: catalog.schemas)
             {
-                JsonArrayBuilder array = Json.createArrayBuilder();
-                for (SchemaConfig schemaItem: catalog.schemas)
-                {
-                    array.add(schema.adaptToJson(schemaItem));
-                }
-                catalogs.add(catalog.name, array);
+                array.add(schema.adaptToJson(schemaItem));
             }
-            catalogBuilder.add(CATALOG_NAME, catalogs);
+            catalogsBuilder.add(catalog.name, array);
         }
-        return catalogBuilder.build();
+
+        return catalogsBuilder.build();
     }
 
 
     @Override
-    public CatalogRefConfig adaptFromJson(
+    public ObjectHashSet<CatalogedConfig> adaptFromJson(
         JsonObject catalogsJson)
     {
         ObjectHashSet<CatalogedConfig> catalogs = new ObjectHashSet<>();
@@ -81,7 +74,6 @@ public class CatalogRefAdapter implements JsonbAdapter<CatalogRefConfig, JsonObj
             catalogs.add(new CatalogedConfig(catalogName, schemas));
         }
 
-        CatalogRefConfig result = new CatalogRefConfig(catalogs);
-        return result;
+        return catalogs;
     }
 }

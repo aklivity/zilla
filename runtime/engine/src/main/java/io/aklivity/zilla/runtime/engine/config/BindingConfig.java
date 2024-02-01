@@ -22,6 +22,8 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.function.ToLongFunction;
 
+import org.agrona.collections.ObjectHashSet;
+
 public class BindingConfig
 {
     public transient long id;
@@ -40,8 +42,8 @@ public class BindingConfig
     public final String entry;
     public final String vault;
     public final OptionsConfig options;
+    public final ObjectHashSet<CatalogedConfig> catalogs;
     public final List<RouteConfig> routes;
-    public final CatalogRefConfig catalogRef;
     public final TelemetryRefConfig telemetryRef;
     public final List<NamespaceConfig> composites;
 
@@ -67,8 +69,8 @@ public class BindingConfig
             .kind(binding.kind)
             .entry(binding.entry)
             .options(binding.options)
+            .catalogs(binding.catalogs)
             .routes(binding.routes)
-            .catalog(binding.catalogRef)
             .telemetry(binding.telemetryRef)
             .composites(binding.composites);
     }
@@ -81,8 +83,8 @@ public class BindingConfig
         String entry,
         String vault,
         OptionsConfig options,
+        ObjectHashSet<CatalogedConfig> catalogs,
         List<RouteConfig> routes,
-        CatalogRefConfig catalogRef,
         TelemetryRefConfig telemetryRef,
         List<NamespaceConfig> namespaces)
     {
@@ -95,7 +97,7 @@ public class BindingConfig
         this.vault = vault;
         this.options = options;
         this.routes = routes;
-        this.catalogRef = catalogRef;
+        this.catalogs = catalogs;
         this.telemetryRef = telemetryRef;
         this.composites = namespaces;
     }

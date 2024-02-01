@@ -58,7 +58,7 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
     private final KindAdapter kind;
     private final RouteAdapter route;
     private final OptionsAdapter options;
-    private final CatalogRefAdapter catalogRef;
+    private final CatalogedAdapter cataloged;
     private final TelemetryRefAdapter telemetryRef;
 
     private final Map<String, CompositeBindingAdapterSpi> composites;
@@ -71,7 +71,7 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
         this.kind = new KindAdapter(context);
         this.route = new RouteAdapter(context);
         this.options = new OptionsAdapter(OptionsConfigAdapterSpi.Kind.BINDING, context);
-        this.catalogRef = new CatalogRefAdapter();
+        this.cataloged = new CatalogedAdapter();
         this.telemetryRef = new TelemetryRefAdapter();
 
         this.composites = ServiceLoader
@@ -120,6 +120,13 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
                 item.add(OPTIONS_NAME, options.adaptToJson(binding.options));
             }
 
+            if (binding.catalogs != null && !binding.catalogs.isEmpty())
+            {
+                JsonArrayBuilder catalogs = Json.createArrayBuilder();
+                catalogs.add(cataloged.adaptToJson(binding.catalogs));
+                item.add(CATALOG_NAME, catalogs);
+            }
+
             if (!ROUTES_DEFAULT.equals(binding.routes))
             {
                 RouteConfig lastRoute = binding.routes.get(binding.routes.size() - 1);
@@ -136,12 +143,6 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
                     binding.routes.forEach(r -> routes.add(route.adaptToJson(r)));
                     item.add(ROUTES_NAME, routes);
                 }
-            }
-
-            if (binding.catalogRef != null)
-            {
-                JsonObject catalogRef0 = catalogRef.adaptToJson(binding.catalogRef);
-                item.add(CATALOG_NAME, catalogRef0);
             }
 
             if (binding.telemetryRef != null)
@@ -200,7 +201,7 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
 
             if (item.containsKey(CATALOG_NAME))
             {
-                binding.catalog(catalogRef.adaptFromJson(item.getJsonObject(CATALOG_NAME)));
+                binding.catalogs(cataloged.adaptFromJson(item.getJsonObject(CATALOG_NAME)));
             }
 
             if (item.containsKey(OPTIONS_NAME))
