@@ -29,6 +29,7 @@ scope internal
             int64 ancestor;
             int64 descendant;
             int32 flags = 0;  // 0x01 = DIRTY, 0x02 = COMPLETED, 0x04 = ABORTED, 0x08 = CONTROL
+            int32 convertedPosition = -1;
             int32 deltaPosition = -1;
             int16 ackMode = -1;
             kafka::KafkaKey key;
@@ -36,6 +37,14 @@ scope internal
             octets[valueLen] value = null;
             kafka::KafkaHeader[] headers;
             kafka::KafkaHeader[] trailers;
+            uint32 paddingLen;
+            octets[paddingLen] padding;
+        }
+
+        struct KafkaCachePaddedValue
+        {
+            int32 length;
+            octets[length] value = null;
             uint32 paddingLen;
             octets[paddingLen] padding;
         }

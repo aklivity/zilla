@@ -21,6 +21,8 @@ module io.aklivity.zilla.runtime.engine
     exports io.aklivity.zilla.runtime.engine.binding;
     exports io.aklivity.zilla.runtime.engine.binding.function;
     exports io.aklivity.zilla.runtime.engine.catalog;
+    exports io.aklivity.zilla.runtime.engine.model;
+    exports io.aklivity.zilla.runtime.engine.model.function;
     exports io.aklivity.zilla.runtime.engine.exporter;
     exports io.aklivity.zilla.runtime.engine.factory;
     exports io.aklivity.zilla.runtime.engine.guard;
@@ -30,7 +32,6 @@ module io.aklivity.zilla.runtime.engine
     exports io.aklivity.zilla.runtime.engine.resolver;
     exports io.aklivity.zilla.runtime.engine.util.function;
     exports io.aklivity.zilla.runtime.engine.vault;
-    exports io.aklivity.zilla.runtime.engine.validator;
 
     exports io.aklivity.zilla.runtime.engine.ext;
 
@@ -53,15 +54,15 @@ module io.aklivity.zilla.runtime.engine
     uses io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
     uses io.aklivity.zilla.runtime.engine.config.CompositeBindingAdapterSpi;
     uses io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
-    uses io.aklivity.zilla.runtime.engine.config.ValidatorConfigAdapterSpi;
+    uses io.aklivity.zilla.runtime.engine.config.ModelConfigAdapterSpi;
     uses io.aklivity.zilla.runtime.engine.config.WithConfigAdapterSpi;
 
     uses io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi;
     uses io.aklivity.zilla.runtime.engine.catalog.CatalogFactorySpi;
+    uses io.aklivity.zilla.runtime.engine.model.ModelFactorySpi;
     uses io.aklivity.zilla.runtime.engine.exporter.ExporterFactorySpi;
     uses io.aklivity.zilla.runtime.engine.guard.GuardFactorySpi;
     uses io.aklivity.zilla.runtime.engine.metrics.MetricGroupFactorySpi;
-    uses io.aklivity.zilla.runtime.engine.validator.ValidatorFactorySpi;
     uses io.aklivity.zilla.runtime.engine.vault.VaultFactorySpi;
     uses io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
     uses io.aklivity.zilla.runtime.engine.resolver.ResolverFactorySpi;

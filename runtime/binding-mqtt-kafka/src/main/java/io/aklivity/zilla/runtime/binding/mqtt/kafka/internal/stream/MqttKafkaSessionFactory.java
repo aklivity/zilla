@@ -154,6 +154,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private static final int WILDCARD_AVAILABLE_MASK = 1 << MqttServerCapabilities.WILDCARD.value();
     private static final int SUBSCRIPTION_IDS_AVAILABLE_MASK = 1 << MqttServerCapabilities.SUBSCRIPTION_IDS.value();
     private static final int SHARED_SUBSCRIPTIONS_AVAILABLE_MASK = 1 << MqttServerCapabilities.SHARED_SUBSCRIPTIONS.value();
+    private static final int REDIRECT_AVAILABLE_MASK = 1 << MqttServerCapabilities.REDIRECT.value();
     private static final byte MQTT_KAFKA_MAX_QOS = 2;
     private static final int MQTT_KAFKA_CAPABILITIES = RETAIN_AVAILABLE_MASK | WILDCARD_AVAILABLE_MASK |
         SUBSCRIPTION_IDS_AVAILABLE_MASK;
@@ -437,6 +438,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         private int sessionPadding;
         private String willId;
         private int delay;
+        private boolean redirect;
         private int publishMaxQos;
         private int unfetchedKafkaTopics;
         private Long2ObjectHashMap<PublishClientMetadata.PublishOffsetMetadata> offsets;
@@ -539,6 +541,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             sessionExpiryMillis = (int) SECONDS.toMillis(mqttSessionBeginEx.expiry());
             sessionFlags = mqttSessionBeginEx.flags();
+            redirect = hasRedirectCapability(mqttSessionBeginEx.capabilities());
             publishMaxQos = mqttSessionBeginEx.publishQosMax();
 
             if (!isSetWillFlag(sessionFlags) || isSetCleanStart(sessionFlags))
@@ -2562,6 +2565,12 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         return byteAt;
     }
 
+    private static boolean hasRedirectCapability(
+        int flags)
+    {
+        return (flags & REDIRECT_AVAILABLE_MASK) != 0;
+    }
+
 
     private static long offsetKey(
         String topic,
@@ -2574,13 +2583,13 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private static boolean isSetWillFlag(
         int flags)
     {
-        return (flags & MqttSessionFlags.WILL.value() << 1) != 0;
+        return (flags & 1 << MqttSessionFlags.WILL.value()) != 0;
     }
 
     private static boolean isSetCleanStart(
         int flags)
     {
-        return (flags & MqttSessionFlags.CLEAN_START.value() << 1) != 0;
+        return (flags & 1 << MqttSessionFlags.CLEAN_START.value()) != 0;
     }
 
     private abstract class KafkaSessionStream
@@ -3087,9 +3096,10 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             state = MqttKafkaState.openingInitial(state);
 
+            final String server = delegate.redirect ? serverRef : null;
             kafka = newKafkaStream(super::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, affinity, delegate.sessionsTopic, null, delegate.clientIdMigrate,
-                delegate.sessionId, serverRef, KafkaCapabilities.PRODUCE_AND_FETCH);
+                delegate.sessionId, server, KafkaCapabilities.PRODUCE_AND_FETCH);
         }
 
         @Override
@@ -3172,9 +3182,10 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             KafkaCapabilities capabilities = isSetWillFlag(delegate.sessionFlags) ?
                 KafkaCapabilities.PRODUCE_ONLY : KafkaCapabilities.PRODUCE_AND_FETCH;
+            final String server = delegate.redirect ? serverRef : null;
             kafka = newKafkaStream(super::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, affinity, delegate.sessionsTopic, delegate.clientId, delegate.clientIdMigrate,
-                delegate.sessionId, serverRef, capabilities);
+                delegate.sessionId, server, capabilities);
         }
 
         @Override
@@ -3357,8 +3368,9 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             {
                 state = MqttKafkaState.openingInitial(state);
 
+                final String server = delegate.redirect ? serverRef : null;
                 kafka = newKafkaStream(super::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, authorization, affinity, delegate.sessionsTopic, delegate.clientId, serverRef);
+                    traceId, authorization, affinity, delegate.sessionsTopic, delegate.clientId, server);
             }
         }
 

@@ -24,6 +24,7 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
                             .session()
                                .flags("WILL")
                                .expiry(1)
+                               .capabilities("REDIRECT")
                                .clientId("one")
                                .build()
                             .build()}

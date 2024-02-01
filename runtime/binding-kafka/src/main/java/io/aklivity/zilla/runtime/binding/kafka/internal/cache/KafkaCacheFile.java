@@ -41,6 +41,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
 public class KafkaCacheFile implements AutoCloseable
 {
     private static final String EXT_LOG = ".log";
+    private static final String EXT_CONVERTED = ".converted";
     private static final String EXT_DELTA = ".delta";
     private static final String EXT_INDEX = ".index";
     private static final String EXT_HSCAN = ".hscan";
@@ -55,6 +56,7 @@ public class KafkaCacheFile implements AutoCloseable
 
     private static final String FORMAT_FILE = "%%019d%s";
     private static final String FORMAT_LOG_FILE = String.format(FORMAT_FILE, EXT_LOG);
+    private static final String FORMAT_CONVERTED_FILE = String.format(FORMAT_FILE, EXT_CONVERTED);
     private static final String FORMAT_DELTA_FILE = String.format(FORMAT_FILE, EXT_DELTA);
     private static final String FORMAT_INDEX_FILE = String.format(FORMAT_FILE, EXT_INDEX);
     private static final String FORMAT_HSCAN_FILE = String.format(FORMAT_FILE, EXT_HSCAN);
@@ -103,6 +105,11 @@ public class KafkaCacheFile implements AutoCloseable
         this.maxCapacity = mappedBuf.capacity();
     }
 
+    public DirectBuffer buffer()
+    {
+        return mappedBuf;
+    }
+
     public Path location()
     {
         return location;
@@ -147,11 +154,13 @@ public class KafkaCacheFile implements AutoCloseable
         return mappedBuf.getLong(position);
     }
 
-    public void writeBytes(
+    public int writeBytes(
         int position,
         Flyweight flyweight)
     {
-        writeBytes(position, flyweight.buffer(), flyweight.offset(), flyweight.sizeof());
+        final int length = flyweight.sizeof();
+        writeBytes(position, flyweight.buffer(), flyweight.offset(), length);
+        return length;
     }
 
     public void writeBytes(
@@ -576,6 +585,25 @@ public class KafkaCacheFile implements AutoCloseable
             long baseOffset)
         {
             super(location.resolve(String.format(FORMAT_DELTA_FILE, baseOffset)));
+        }
+    }
+
+    public static final class Converted extends KafkaCacheFile
+    {
+        public Converted(
+            Path location,
+            long baseOffset,
+            int capacity,
+            MutableDirectBuffer appendBuf)
+        {
+            super(location.resolve(String.format(FORMAT_CONVERTED_FILE, baseOffset)), capacity, appendBuf);
+        }
+
+        public Converted(
+            Path location,
+            long baseOffset)
+        {
+            super(location.resolve(String.format(FORMAT_CONVERTED_FILE, baseOffset)));
         }
     }
 }

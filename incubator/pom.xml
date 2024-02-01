@@ -21,9 +21,10 @@
     <module>catalog-inline.spec</module>
     <module>catalog-schema-registry.spec</module>
     <module>exporter-otlp.spec</module>
-    <module>validator-avro.spec</module>
-    <module>validator-core.spec</module>
-    <module>validator-json.spec</module>
+    <module>model-avro.spec</module>
+    <module>model-core.spec</module>
+    <module>model-json.spec</module>
+    <module>model-protobuf.spec</module>
 
     <module>binding-amqp</module>
 
@@ -37,9 +38,10 @@
 
     <module>exporter-otlp</module>
 
-    <module>validator-avro</module>
-    <module>validator-core</module>
-    <module>validator-json</module>
+    <module>model-avro</module>
+    <module>model-core</module>
+    <module>model-json</module>
+    <module>model-protobuf</module>
   </modules>
 
   <dependencyManagement>
@@ -86,17 +88,22 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>validator-avro</artifactId>
+        <artifactId>model-avro</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>validator-core</artifactId>
+        <artifactId>model-core</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>validator-json</artifactId>
+        <artifactId>model-json</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>model-protobuf</artifactId>
         <version>${project.version}</version>
       </dependency>
     </dependencies>

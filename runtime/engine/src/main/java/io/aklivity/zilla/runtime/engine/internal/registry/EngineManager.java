@@ -38,6 +38,7 @@ import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
+import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.ConfigException;
 import io.aklivity.zilla.runtime.engine.config.EngineConfig;
@@ -48,6 +49,7 @@ import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.MetricConfig;
 import io.aklivity.zilla.runtime.engine.config.MetricRefConfig;
+import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 import io.aklivity.zilla.runtime.engine.config.TelemetryRefConfig;
@@ -240,6 +242,20 @@ public class EngineManager
             if (binding.vault != null)
             {
                 binding.vaultId = resolver.resolve(binding.vault);
+            }
+
+            if (binding.options != null)
+            {
+                for (ModelConfig model : binding.options.models)
+                {
+                    if (model.cataloged != null)
+                    {
+                        for (CatalogedConfig cataloged : model.cataloged)
+                        {
+                            cataloged.id = resolver.resolve(cataloged.name);
+                        }
+                    }
+                }
             }
 
             for (RouteConfig route : binding.routes)
