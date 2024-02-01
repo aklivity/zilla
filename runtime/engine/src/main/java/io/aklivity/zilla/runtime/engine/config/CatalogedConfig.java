@@ -15,7 +15,8 @@
  */
 package io.aklivity.zilla.runtime.engine.config;
 
-import java.util.List;
+import org.agrona.collections.ObjectHashSet;
+
 import java.util.function.Function;
 
 public class CatalogedConfig
@@ -23,11 +24,11 @@ public class CatalogedConfig
     public transient long id;
 
     public final String name;
-    public final List<SchemaConfig> schemas;
+    public final ObjectHashSet<SchemaConfig> schemas;
 
     public CatalogedConfig(
         String name,
-        List<SchemaConfig> schemas)
+        ObjectHashSet<SchemaConfig> schemas)
     {
         this.name = name;
         this.schemas = schemas;

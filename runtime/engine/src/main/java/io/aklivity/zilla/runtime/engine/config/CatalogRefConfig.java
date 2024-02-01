@@ -15,15 +15,16 @@
  */
 package io.aklivity.zilla.runtime.engine.config;
 
-import java.util.List;
 import java.util.function.Function;
+
+import org.agrona.collections.ObjectHashSet;
 
 public final class CatalogRefConfig
 {
-    public final List<CatalogedConfig> catalogs;
+    public final ObjectHashSet<CatalogedConfig> catalogs;
 
     public CatalogRefConfig(
-        List<CatalogedConfig> catalogs)
+        ObjectHashSet<CatalogedConfig> catalogs)
     {
         this.catalogs = catalogs;
     }

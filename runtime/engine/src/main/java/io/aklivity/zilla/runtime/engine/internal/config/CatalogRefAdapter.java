@@ -15,9 +15,6 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.config;
 
-import java.util.LinkedList;
-import java.util.List;
-
 import jakarta.json.Json;
 import jakarta.json.JsonArray;
 import jakarta.json.JsonArrayBuilder;
@@ -26,9 +23,10 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import org.agrona.collections.ObjectHashSet;
+
 import io.aklivity.zilla.runtime.engine.config.CatalogRefConfig;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
-import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfigAdapter;
 
@@ -69,11 +67,11 @@ public class CatalogRefAdapter implements JsonbAdapter<CatalogRefConfig, JsonObj
     public CatalogRefConfig adaptFromJson(
         JsonObject catalogsJson)
     {
-        List<CatalogedConfig> catalogs = new LinkedList<>();
+        ObjectHashSet<CatalogedConfig> catalogs = new ObjectHashSet<>();
         for (String catalogName: catalogsJson.keySet())
         {
             JsonArray schemasJson = catalogsJson.getJsonArray(catalogName);
-            List<SchemaConfig> schemas = new LinkedList<>();
+            ObjectHashSet<SchemaConfig> schemas = new ObjectHashSet<>();
             for (JsonValue item : schemasJson)
             {
                 JsonObject schemaJson = (JsonObject) item;

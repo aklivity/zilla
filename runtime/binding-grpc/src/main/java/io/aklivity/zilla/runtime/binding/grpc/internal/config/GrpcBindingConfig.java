@@ -21,7 +21,6 @@ import static java.util.stream.Collectors.toList;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -40,6 +39,7 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
+import org.agrona.collections.ObjectHashSet;
 
 import io.aklivity.zilla.runtime.binding.grpc.config.GrpcMethodConfig;
 import io.aklivity.zilla.runtime.binding.grpc.config.GrpcOptionsConfig;
@@ -76,7 +76,7 @@ public final class GrpcBindingConfig
     private final HttpGrpcHeaderHelper helper;
     private final Long2ObjectHashMap<CatalogHandler> handlersById;
     private final Int2ObjectHashMap<GrpcProtobufConfig> protobufsBySchemaId;
-    private final List<CatalogedConfig> catalogs;
+    private final ObjectHashSet<CatalogedConfig> catalogs;
     private final Int2IntHashMap schemaIds;
 
     public GrpcBindingConfig(
@@ -93,7 +93,7 @@ public final class GrpcBindingConfig
         this.schemaIds = new Int2IntHashMap(0);
         this.handlersById = new Long2ObjectHashMap<>();
         this.protobufsBySchemaId = new Int2ObjectHashMap<>();
-        this.catalogs = binding.catalogRef != null ? binding.catalogRef.catalogs : Collections.EMPTY_LIST;
+        this.catalogs = binding.catalogRef != null ? binding.catalogRef.catalogs : new ObjectHashSet<>();
         for (CatalogedConfig catalog : this.catalogs)
         {
             handlersById.put(catalog.id, supplyCatalog.apply(catalog.id));
@@ -129,7 +129,8 @@ public final class GrpcBindingConfig
             final CharSequence serviceName = serviceNameHeader != null ? serviceNameHeader : matcher.group(SERVICE_NAME);
             final String methodName = matcher.group(METHOD);
 
-            GrpcMethodConfig method = resolveMethod(resolveCatalogs(), serviceName, methodName);
+            final Collection<GrpcProtobufConfig> protobufs = resolveProtobufs();
+            GrpcMethodConfig method = resolveMethod(protobufs, serviceName, methodName);
 
             if (method == null)
             {
@@ -155,11 +156,11 @@ public final class GrpcBindingConfig
     }
 
     private GrpcMethodConfig resolveMethod(
-        Collection<GrpcProtobufConfig> protobufConfigs,
+        Collection<GrpcProtobufConfig> protobufs,
         CharSequence serviceName,
         String methodName)
     {
-        return protobufConfigs.stream()
+        return protobufs.stream()
             .map(p -> p.services.stream().filter(s -> s.service.equals(serviceName)).findFirst().orElse(null))
             .filter(Objects::nonNull)
             .map(s -> s.methods.stream().filter(m -> m.method.equals(methodName)).findFirst().orElse(null))
@@ -168,12 +169,19 @@ public final class GrpcBindingConfig
             .orElse(null);
     }
 
-    private Collection<GrpcProtobufConfig> resolveCatalogs()
+    private Collection<GrpcProtobufConfig> resolveProtobufs()
     {
-        for (CatalogedConfig catalog : catalogs)
+        ObjectHashSet<CatalogedConfig>.ObjectIterator catalogIterator = catalogs.iterator();
+
+        while (catalogIterator.hasNext())
         {
-            for (SchemaConfig catalogSchema : catalog.schemas)
+            CatalogedConfig catalog = catalogIterator.nextValue();
+            ObjectHashSet<SchemaConfig>.ObjectIterator schemaIterator = catalog.schemas.iterator();
+
+            while (schemaIterator.hasNext())
             {
+                SchemaConfig catalogSchema = schemaIterator.nextValue();
+
                 final CatalogHandler handler = handlersById.get(catalog.id);
 
                 final int catalogSchemaId = catalogSchema.id;
