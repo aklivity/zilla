@@ -15,7 +15,6 @@
  */
 package io.aklivity.zilla.runtime.engine.config;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.function.Function;
 
