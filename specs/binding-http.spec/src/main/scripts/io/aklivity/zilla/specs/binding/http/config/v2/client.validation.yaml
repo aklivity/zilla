@@ -29,8 +29,12 @@ bindings:
               content-type:
                 - text/plain
               headers:
-                x-hello: test
-              content: test
+                x-hello:
+                  model: test
+                  length: 13
+              content:
+                model: test
+                length: 13
       versions:
         - h2
     exit: net0

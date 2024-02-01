@@ -167,8 +167,8 @@ public class EngineRegistry
         NamespaceConfig namespace)
     {
         NamespaceRegistry registry =
-                new NamespaceRegistry(namespace, bindingsByType, guardsByType, vaultsByType, catalogsByType, metricsByName,
-                    exportersByType, supplyLabelId, this::resolveMetric, exporterAttached, exporterDetached,
+                new NamespaceRegistry(namespace, bindingsByType, guardsByType, vaultsByType, catalogsByType,
+                    metricsByName, exportersByType, supplyLabelId, this::resolveMetric, exporterAttached, exporterDetached,
                     supplyMetricRecorder, detachBinding, collector);
         namespacesById.put(registry.namespaceId(), registry);
         registry.attach();

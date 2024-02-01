@@ -21,8 +21,6 @@ connect "zilla://streams/app0"
 write zilla:begin.ext ${mqtt:beginEx()
                               .typeId(zilla:id("mqtt"))
                               .session()
-                                .flags("CLEAN_START")
-                                .capabilities("REDIRECT")
                                 .clientId("client")
                                 .build()
                               .build()}
@@ -41,4 +39,3 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
 connected
 
 read zilla:data.empty
-

@@ -33,7 +33,8 @@ import io.aklivity.zilla.runtime.engine.guard.Guard;
 import io.aklivity.zilla.runtime.engine.guard.GuardFactory;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroupFactory;
-import io.aklivity.zilla.runtime.engine.validator.ValidatorFactory;
+import io.aklivity.zilla.runtime.engine.model.Model;
+import io.aklivity.zilla.runtime.engine.model.ModelFactory;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 import io.aklivity.zilla.runtime.engine.vault.VaultFactory;
 
@@ -130,11 +131,17 @@ public class EngineBuilder
             catalogs.add(catalog);
         }
 
-        final ValidatorFactory validatorFactory = ValidatorFactory.instantiate();
+        final Set<Model> models = new LinkedHashSet<>();
+        final ModelFactory modelFactory = ModelFactory.instantiate();
+        for (String name : modelFactory.names())
+        {
+            Model model = modelFactory.create(name, config);
+            models.add(model);
+        }
 
         final ErrorHandler errorHandler = requireNonNull(this.errorHandler, "errorHandler");
 
         return new Engine(config, bindings, exporters, guards, metricGroups, vaults,
-                catalogs, validatorFactory, errorHandler, affinities, readonly);
+                catalogs, models, errorHandler, affinities, readonly);
     }
 }

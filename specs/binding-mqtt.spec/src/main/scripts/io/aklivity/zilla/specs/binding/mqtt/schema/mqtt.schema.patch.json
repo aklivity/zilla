@@ -135,7 +135,7 @@
                                         },
                                         "content":
                                         {
-                                            "$ref": "#/$defs/validator/type"
+                                            "$ref": "#/$defs/validator"
                                         }
                                     }
                                 }
