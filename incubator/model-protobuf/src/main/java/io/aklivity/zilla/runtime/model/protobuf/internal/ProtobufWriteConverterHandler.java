@@ -31,7 +31,7 @@ import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.model.protobuf.config.ProtobufModelConfig;
 
-public class ProtobufWriteConverterHandler extends ProtobufModelHandler implements ConverterHandler
+public class ProtobufWriteConverterHandler extends ProtobufConverterHandler implements ConverterHandler
 {
     private final DirectBuffer indexesRO;
     private final InputStreamReader input;
@@ -93,7 +93,6 @@ public class ProtobufWriteConverterHandler extends ProtobufModelHandler implemen
         int length)
     {
         boolean status = false;
-        boolean cacheUpdate = invalidateCacheOnSchemaUpdate(schemaId);
         DescriptorTree trees = supplyDescriptorTree(schemaId);
         if (trees != null && catalog.record != null)
         {
@@ -105,7 +104,7 @@ public class ProtobufWriteConverterHandler extends ProtobufModelHandler implemen
                 indexes.add(tree.indexes.size());
                 indexes.addAll(tree.indexes);
                 in.wrap(buffer, index, length);
-                DynamicMessage.Builder builder = supplyDynamicMessageBuilder(descriptor, cacheUpdate);
+                DynamicMessage.Builder builder = supplyDynamicMessageBuilder(descriptor);
                 try
                 {
                     DynamicMessage message = builder.mergeFrom(in).build();
@@ -153,7 +152,6 @@ public class ProtobufWriteConverterHandler extends ProtobufModelHandler implemen
         ValueConsumer next)
     {
         int valLength = -1;
-        boolean cacheUpdate = invalidateCacheOnSchemaUpdate(schemaId);
         DescriptorTree tree = supplyDescriptorTree(schemaId);
         if (tree != null && catalog.record != null)
         {
@@ -164,7 +162,7 @@ public class ProtobufWriteConverterHandler extends ProtobufModelHandler implemen
                 indexes.clear();
                 indexes.add(tree.indexes.size());
                 indexes.addAll(tree.indexes);
-                DynamicMessage.Builder builder = supplyDynamicMessageBuilder(descriptor, cacheUpdate);
+                DynamicMessage.Builder builder = supplyDynamicMessageBuilder(descriptor);
                 in.wrap(buffer, index, length);
                 try
                 {

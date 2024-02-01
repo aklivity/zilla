@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.function.LongFunction;
-import java.util.zip.CRC32C;
 
 import org.agrona.DirectBuffer;
 import org.agrona.ExpandableDirectByteBuffer;
@@ -44,7 +43,7 @@ import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 import io.aklivity.zilla.runtime.model.avro.config.AvroModelConfig;
 
-public abstract class AvroModelHandler
+public abstract class AvroConverterHandler
 {
     protected static final String VIEW_JSON = "json";
 
@@ -68,10 +67,8 @@ public abstract class AvroModelHandler
     private final Int2ObjectCache<GenericDatumWriter<GenericRecord>> writers;
     private final Int2ObjectCache<GenericRecord> records;
     private final Int2IntHashMap paddings;
-    private final Int2IntHashMap crcCache;
-    private final CRC32C crc32c;
 
-    protected AvroModelHandler(
+    protected AvroConverterHandler(
         AvroModelConfig config,
         LongFunction<CatalogHandler> supplyCatalog)
     {
@@ -93,8 +90,6 @@ public abstract class AvroModelHandler
         this.paddings = new Int2IntHashMap(-1);
         this.expandable = new ExpandableDirectBufferOutputStream(new ExpandableDirectByteBuffer());
         this.in = new DirectBufferInputStream();
-        this.crc32c = new CRC32C();
-        this.crcCache = new Int2IntHashMap(0);
     }
 
     protected final boolean validate(
@@ -106,7 +101,6 @@ public abstract class AvroModelHandler
         boolean status = false;
         try
         {
-            invalidateCacheOnSchemaUpdate(schemaId);
             GenericRecord record = supplyRecord(schemaId);
             in.wrap(buffer, index, length);
             GenericDatumReader<GenericRecord> reader = supplyReader(schemaId);
@@ -153,26 +147,6 @@ public abstract class AvroModelHandler
         return records.computeIfAbsent(schemaId, this::createRecord);
     }
 
-    protected void invalidateCacheOnSchemaUpdate(
-        int schemaId)
-    {
-        if (crcCache.containsKey(schemaId))
-        {
-            String schemaText = handler.resolve(schemaId);
-            int checkSum = generateCRC32C(schemaText);
-            if (schemaText != null && crcCache.get(schemaId) != checkSum)
-            {
-                crcCache.remove(schemaId);
-                schemas.remove(schemaId);
-                readers.remove(schemaId);
-                writers.remove(schemaId);
-                records.remove(schemaId);
-                paddings.remove(schemaId);
-
-            }
-        }
-    }
-
     private GenericDatumReader<GenericRecord> createReader(
         int schemaId)
     {
@@ -217,7 +191,6 @@ public abstract class AvroModelHandler
         if (schemaText != null)
         {
             schema = new Schema.Parser().parse(schemaText);
-            crcCache.put(schemaId, generateCRC32C(schemaText));
         }
         return schema;
     }
@@ -243,14 +216,5 @@ public abstract class AvroModelHandler
             }
         }
         return padding;
-    }
-
-    private int generateCRC32C(
-        String schemaText)
-    {
-        byte[] bytes = schemaText.getBytes();
-        crc32c.reset();
-        crc32c.update(bytes, 0, bytes.length);
-        return (int) crc32c.getValue();
     }
 }

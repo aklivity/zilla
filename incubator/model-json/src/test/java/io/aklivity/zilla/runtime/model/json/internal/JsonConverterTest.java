@@ -210,7 +210,5 @@ public class JsonConverterTest
         byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
         assertEquals(-1, converter.convert(data, 0, data.capacity(), ValueConsumer.NOP));
-
-        converter.invalidateCacheOnSchemaUpdate(9);
     }
 }

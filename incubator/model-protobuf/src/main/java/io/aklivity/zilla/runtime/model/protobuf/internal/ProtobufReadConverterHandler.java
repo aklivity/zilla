@@ -31,7 +31,7 @@ import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.model.protobuf.config.ProtobufModelConfig;
 
-public class ProtobufReadConverterHandler extends ProtobufModelHandler implements ConverterHandler
+public class ProtobufReadConverterHandler extends ProtobufConverterHandler implements ConverterHandler
 {
     private final JsonFormat.Printer printer;
     private final OutputStreamWriter output;
@@ -112,7 +112,6 @@ public class ProtobufReadConverterHandler extends ProtobufModelHandler implement
         ValueConsumer next)
     {
         int valLength = -1;
-        boolean cacheUpdate = invalidateCacheOnSchemaUpdate(schemaId);
         DescriptorTree tree = supplyDescriptorTree(schemaId);
         if (tree != null)
         {
@@ -120,7 +119,7 @@ public class ProtobufReadConverterHandler extends ProtobufModelHandler implement
             if (descriptor != null)
             {
                 in.wrap(data, index, length);
-                DynamicMessage.Builder builder = supplyDynamicMessageBuilder(descriptor, cacheUpdate);
+                DynamicMessage.Builder builder = supplyDynamicMessageBuilder(descriptor);
                 validate:
                 try
                 {
