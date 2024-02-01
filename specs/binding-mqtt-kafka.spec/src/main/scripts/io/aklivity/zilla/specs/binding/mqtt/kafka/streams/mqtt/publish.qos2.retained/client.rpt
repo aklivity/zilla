@@ -23,6 +23,7 @@ write zilla:begin.ext ${mqtt:beginEx()
                               .flags("CLEAN_START")
                               .expiry(1)
                               .publishQosMax(2)
+                              .capabilities("REDIRECT")
                               .clientId("client")
                               .build()
                             .build()}

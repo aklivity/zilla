@@ -25,6 +25,7 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
                                 .flags("CLEAN_START")
                                 .expiry(1)
                                 .publishQosMax(2)
+                                .capabilities("REDIRECT")
                                 .clientId("client")
                                 .build()
                              .build()}
