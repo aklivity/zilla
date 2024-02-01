@@ -15,7 +15,6 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.model.config;
 
-import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -75,7 +74,7 @@ public class TestModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdapt
             for (String catalogName: catalogsJson.keySet())
             {
                 JsonArray schemasJson = catalogsJson.getJsonArray(catalogName);
-                Collection<SchemaConfig> schemas = new LinkedList<>();
+                List<SchemaConfig> schemas = new LinkedList<>();
                 for (JsonValue item : schemasJson)
                 {
                     JsonObject schemaJson = (JsonObject) item;

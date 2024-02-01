@@ -39,7 +39,6 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
-import org.agrona.collections.ObjectHashSet;
 
 import io.aklivity.zilla.runtime.binding.grpc.config.GrpcMethodConfig;
 import io.aklivity.zilla.runtime.binding.grpc.config.GrpcOptionsConfig;
@@ -77,7 +76,7 @@ public final class GrpcBindingConfig
     private final HttpGrpcHeaderHelper helper;
     private final Long2ObjectHashMap<CatalogHandler> handlersById;
     private final Int2ObjectHashMap<GrpcProtobufConfig> protobufsBySchemaId;
-    private final Collection<CatalogedConfig> catalogs;
+    private final List<CatalogedConfig> catalogs;
     private final Int2IntHashMap schemaIds;
 
     public GrpcBindingConfig(
@@ -95,7 +94,7 @@ public final class GrpcBindingConfig
         this.schemaIds = new Int2IntHashMap(-1);
         this.handlersById = new Long2ObjectHashMap<>();
         this.protobufsBySchemaId = new Int2ObjectHashMap<>();
-        this.catalogs = binding.catalogs != null ? binding.catalogs : new ObjectHashSet<>();
+        this.catalogs = binding.catalogs != null ? binding.catalogs : List.of();
         for (CatalogedConfig catalog : this.catalogs)
         {
             CatalogHandler handler = supplyCatalog.apply(catalog.id);
@@ -177,11 +176,14 @@ public final class GrpcBindingConfig
 
     private Collection<GrpcProtobufConfig> resolveProtobufs()
     {
-        for (CatalogedConfig catalog :catalogs)
+        for (int i = 0; i < catalogs.size(); i++)
         {
+            CatalogedConfig catalog = catalogs.get(0);
 
-            for (SchemaConfig catalogSchema : catalog.schemas)
+            List<SchemaConfig> schemas = catalog.schemas;
+            for (int j = 0; j < schemas.size(); j++)
             {
+                SchemaConfig catalogSchema = schemas.get(j);
                 final CatalogHandler handler = handlersById.get(catalog.id);
 
                 if (handler != null)

@@ -17,13 +17,10 @@ package io.aklivity.zilla.runtime.engine.config;
 
 import static java.util.Collections.emptyList;
 
-import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
-
-import org.agrona.collections.ObjectHashSet;
 
 public final class BindingConfigBuilder<T> extends ConfigBuilder<T, BindingConfigBuilder<T>>
 {
@@ -41,7 +38,7 @@ public final class BindingConfigBuilder<T> extends ConfigBuilder<T, BindingConfi
     private String exit;
     private OptionsConfig options;
     private List<RouteConfig> routes;
-    private Collection<CatalogedConfig> catalogs;
+    private List<CatalogedConfig> catalogs;
     private TelemetryRefConfig telemetryRef;
     private List<NamespaceConfig> composites;
 
@@ -121,7 +118,7 @@ public final class BindingConfigBuilder<T> extends ConfigBuilder<T, BindingConfi
     }
 
     public BindingConfigBuilder<T> catalogs(
-        Collection<CatalogedConfig> catalogs)
+        List<CatalogedConfig> catalogs)
     {
         this.catalogs = catalogs;
         return this;
@@ -137,7 +134,7 @@ public final class BindingConfigBuilder<T> extends ConfigBuilder<T, BindingConfi
     {
         if (catalogs == null)
         {
-            catalogs = new ObjectHashSet<>();
+            catalogs = new LinkedList<>();
         }
 
         catalogs.add(catalog);

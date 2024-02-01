@@ -41,7 +41,7 @@ public class BindingConfig
     public final String entry;
     public final String vault;
     public final OptionsConfig options;
-    public final Collection<CatalogedConfig> catalogs;
+    public final List<CatalogedConfig> catalogs;
     public final List<RouteConfig> routes;
     public final TelemetryRefConfig telemetryRef;
     public final List<NamespaceConfig> composites;
@@ -82,7 +82,7 @@ public class BindingConfig
         String entry,
         String vault,
         OptionsConfig options,
-        Collection<CatalogedConfig> catalogs,
+        List<CatalogedConfig> catalogs,
         List<RouteConfig> routes,
         TelemetryRefConfig telemetryRef,
         List<NamespaceConfig> namespaces)

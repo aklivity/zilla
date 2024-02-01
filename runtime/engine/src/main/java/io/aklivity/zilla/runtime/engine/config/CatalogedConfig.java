@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.engine.config;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.function.Function;
 
 public class CatalogedConfig
@@ -23,11 +24,11 @@ public class CatalogedConfig
     public transient long id;
 
     public final String name;
-    public final Collection<SchemaConfig> schemas;
+    public final List<SchemaConfig> schemas;
 
     public CatalogedConfig(
         String name,
-        Collection<SchemaConfig> schemas)
+        List<SchemaConfig> schemas)
     {
         this.name = name;
         this.schemas = schemas;

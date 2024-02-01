@@ -60,7 +60,7 @@ public abstract class JsonModelHandler
         this.service = JsonValidationService.newInstance();
         this.factory = schemaProvider.createParserFactory(null);
         CatalogedConfig cataloged = config.cataloged.get(0);
-        this.catalog = cataloged.schemas.size() != 0 ? cataloged.schemas.get(0) : null;
+        this.catalog = cataloged.schemas.size() != 0 ? cataloged.schemas.stream().findFirst().get() : null;
         this.handler = supplyCatalog.apply(cataloged.id);
         this.subject = catalog != null && catalog.subject != null
                 ? catalog.subject

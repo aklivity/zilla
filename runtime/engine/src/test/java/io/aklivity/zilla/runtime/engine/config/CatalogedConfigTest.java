@@ -18,7 +18,9 @@ package io.aklivity.zilla.runtime.engine.config;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
-import org.agrona.collections.ObjectHashSet;
+import java.util.LinkedList;
+import java.util.List;
+
 import org.junit.Test;
 
 public class CatalogedConfigTest
@@ -32,7 +34,7 @@ public class CatalogedConfigTest
                     .version("version")
                     .id(42)
                     .build();
-        ObjectHashSet<SchemaConfig> schemas = new ObjectHashSet<>();
+        List<SchemaConfig> schemas = new LinkedList<>();
         schemas.add(schema);
 
         CatalogedConfig cataloged = new CatalogedConfig("test", schemas);
