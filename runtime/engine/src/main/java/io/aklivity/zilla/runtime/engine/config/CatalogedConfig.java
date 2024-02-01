@@ -15,9 +15,9 @@
  */
 package io.aklivity.zilla.runtime.engine.config;
 
-import org.agrona.collections.ObjectHashSet;
-
 import java.util.function.Function;
+
+import org.agrona.collections.ObjectHashSet;
 
 public class CatalogedConfig
 {

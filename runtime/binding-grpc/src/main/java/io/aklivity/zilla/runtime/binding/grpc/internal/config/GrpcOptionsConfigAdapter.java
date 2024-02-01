@@ -38,6 +38,8 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 public final class GrpcOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
     private static final String SERVICES_NAME = "services";
+
+    private final GrpcProtobufParser parser = new GrpcProtobufParser();
     private Function<String, String> readURL;
 
     @Override
@@ -102,6 +104,6 @@ public final class GrpcOptionsConfigAdapter implements OptionsConfigAdapterSpi, 
         final String location = ((JsonString) value).getString();
         final String protoService = readURL.apply(location);
 
-        return ProtobufParser.protobufConfig(location, protoService);
+        return parser.parse(location, protoService);
     }
 }

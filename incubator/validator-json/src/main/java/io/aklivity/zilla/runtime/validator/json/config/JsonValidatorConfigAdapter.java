@@ -25,6 +25,8 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import org.agrona.collections.ObjectHashSet;
+
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfigAdapter;
@@ -82,7 +84,7 @@ public final class JsonValidatorConfigAdapter implements ValidatorConfigAdapterS
             for (String catalogName: catalogsJson.keySet())
             {
                 JsonArray schemasJson = catalogsJson.getJsonArray(catalogName);
-                List<SchemaConfig> schemas = new LinkedList<>();
+                ObjectHashSet<SchemaConfig> schemas = new ObjectHashSet<>();
                 for (JsonValue item : schemasJson)
                 {
                     JsonObject schemaJson = (JsonObject) item;

@@ -28,23 +28,33 @@ import io.aklivity.zilla.runtime.binding.grpc.config.GrpcServiceConfig;
 import io.aklivity.zilla.runtime.binding.grpc.internal.parser.Protobuf3Lexer;
 import io.aklivity.zilla.runtime.binding.grpc.internal.parser.Protobuf3Parser;
 
-public final class ProtobufParser
+public final class GrpcProtobufParser
 {
-    private ProtobufParser()
+    private final ParseTreeWalker walker;
+    private final BailErrorStrategy errorStrategy;
+    private final Protobuf3Lexer lexer;
+    private final Protobuf3Parser parser;
+
+    public GrpcProtobufParser()
     {
+        this.walker = new ParseTreeWalker();
+        this.errorStrategy = new BailErrorStrategy();
+        this.lexer = new Protobuf3Lexer(null);
+        this.parser = new Protobuf3Parser(null);
+        parser.setErrorHandler(errorStrategy);
     }
 
-    public static GrpcProtobufConfig protobufConfig(
+    public GrpcProtobufConfig parse(
         String location,
         String schema)
     {
         CharStream input = CharStreams.fromString(schema);
-        Protobuf3Lexer lexer = new Protobuf3Lexer(input);
-        CommonTokenStream tokens = new CommonTokenStream(lexer);
+        lexer.reset();
+        lexer.setInputStream(input);
 
-        Protobuf3Parser parser = new Protobuf3Parser(tokens);
-        parser.setErrorHandler(new BailErrorStrategy());
-        ParseTreeWalker walker = new ParseTreeWalker();
+        CommonTokenStream tokens = new CommonTokenStream(lexer);
+        parser.setTokenStream(tokens);
+
         Set<GrpcServiceConfig> services = new ObjectHashSet<>();
         GrpcServiceDefinitionListener listener = new GrpcServiceDefinitionListener(services);
         walker.walk(listener, parser.proto());

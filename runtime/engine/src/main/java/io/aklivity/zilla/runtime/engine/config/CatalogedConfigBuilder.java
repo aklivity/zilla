@@ -15,17 +15,17 @@
  */
 package io.aklivity.zilla.runtime.engine.config;
 
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
+
+import org.agrona.collections.ObjectHashSet;
 
 public final class CatalogedConfigBuilder<T> extends ConfigBuilder<T, CatalogedConfigBuilder<T>>
 {
     private final Function<CatalogedConfig, T> mapper;
 
     private String name;
-    private List<SchemaConfig> schemas;
+    private ObjectHashSet<SchemaConfig> schemas;
 
     CatalogedConfigBuilder(
         Function<CatalogedConfig, T> mapper)
@@ -57,7 +57,7 @@ public final class CatalogedConfigBuilder<T> extends ConfigBuilder<T, CatalogedC
     {
         if (schemas == null)
         {
-            schemas = new LinkedList<>();
+            schemas = new ObjectHashSet<>();
         }
         schemas.add(schema);
         return this;
@@ -68,7 +68,7 @@ public final class CatalogedConfigBuilder<T> extends ConfigBuilder<T, CatalogedC
     {
         return mapper.apply(new CatalogedConfig(
             name,
-            Optional.ofNullable(schemas).orElse(List.of()))
+            Optional.ofNullable(schemas).orElse(new ObjectHashSet<>()))
         );
     }
 }

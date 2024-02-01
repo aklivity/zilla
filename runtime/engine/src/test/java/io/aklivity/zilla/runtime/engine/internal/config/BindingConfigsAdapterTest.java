@@ -413,7 +413,7 @@ public class BindingConfigsAdapterTest
         assertThat(bindings[0].name, equalTo("test"));
         assertThat(bindings[0].kind, equalTo(SERVER));
         assertThat(bindings[0].catalogRef.catalogs, hasSize(1));
-        assertThat(bindings[0].catalogRef.catalogs.get(0).name, equalTo("catalog0"));
+        assertThat(bindings[0].catalogRef.catalogs.stream().findFirst().get().name, equalTo("catalog0"));
     }
 
     @Test

@@ -62,7 +62,7 @@ public final class AvroValidator implements Validator
         }).collect(Collectors.toList());
         this.handler = handlersById.get(catalogs.get(0).id);
         this.parser = new Schema.Parser();
-        this.catalog = catalogs.get(0).schemas.size() != 0 ? catalogs.get(0).schemas.get(0) : null;
+        this.catalog = catalogs.get(0).schemas.size() != 0 ? catalogs.get(0).schemas.stream().findFirst().get() : null;
         this.subject = config.subject;
     }
 

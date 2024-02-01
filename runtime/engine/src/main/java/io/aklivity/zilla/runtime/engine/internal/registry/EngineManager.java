@@ -256,7 +256,7 @@ public class EngineManager
                         {
                             if (pattern.matcher(catalog.name).matches())
                             {
-                                catalog.id = resolver.resolve(catalog.name);
+                                cataloged.id = resolver.resolve(cataloged.name);
                             }
                         }
                     }

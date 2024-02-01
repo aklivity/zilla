@@ -64,7 +64,7 @@ public class JsonValidator implements Validator
             handlersById.put(c.id, supplyCatalog.apply(c.id));
             return c;
         }).collect(Collectors.toList());
-        this.catalog = catalogs.get(0).schemas.size() != 0 ? catalogs.get(0).schemas.get(0) : null;
+        this.catalog = catalogs.get(0).schemas.size() != 0 ? catalogs.get(0).schemas.stream().findFirst().get() : null;
         this.handler = handlersById.get(catalogs.get(0).id);
     }
 
