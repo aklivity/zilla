@@ -112,7 +112,7 @@ write flush
 write notify SENT_DATA_TWO
 
 
-connect await RECEIVED_SESSION_STATE
+connect await SENT_DATA_TWO
         "zilla://streams/mqtt0"
          option zilla:window 8192
          option zilla:transmission "duplex"

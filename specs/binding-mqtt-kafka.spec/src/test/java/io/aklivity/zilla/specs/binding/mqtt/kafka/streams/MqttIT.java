@@ -701,8 +701,17 @@ public class MqttIT
 
     @Test
     @Specification({
-        "${mqtt}/publish.qos2.offset.commit.abort/client",
-        "${mqtt}/publish.qos2.offset.commit.abort/server"})
+        "${mqtt}/publish.qos2.offset.commit.abort.phase1/client",
+        "${mqtt}/publish.qos2.offset.commit.abort.phase1/server"})
+    public void shouldPublishReceiveQos2OffsetCommitSentAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/publish.qos2.offset.commit.abort.phase2/client",
+        "${mqtt}/publish.qos2.offset.commit.abort.phase2/server"})
     public void shouldSessionReceiveQos2OffsetCommitAbort() throws Exception
     {
         k3po.start();

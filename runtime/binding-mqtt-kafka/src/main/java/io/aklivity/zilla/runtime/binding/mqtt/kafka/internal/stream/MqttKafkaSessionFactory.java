@@ -3570,16 +3570,20 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 else
                 {
                     delegate.session.doKafkaEnd(traceId, authorization);
-                    final long routedId = delegate.session.routedId;
-                    delegate.memberId = memberId.asString();
-                    delegate.generationId = generationId;
-                    final String groupId = String.format("%s-%s", delegate.clientId.asString(), GROUPID_SESSION_SUFFIX);
-                    delegate.metadata.group = new KafkaGroup(delegate.groupInstanceId, groupId, delegate.memberId, generationId);
 
                     if (publishMaxQos < 2)
                     {
+                        final long routedId = delegate.session.routedId;
                         delegate.session = new KafkaSessionStateProxy(originId, routedId, delegate);
                         delegate.session.doKafkaBeginIfNecessary(traceId, authorization, 0);
+                    }
+                    else
+                    {
+                        delegate.memberId = memberId.asString();
+                        delegate.generationId = generationId;
+                        final String groupId = String.format("%s-%s", delegate.clientId.asString(), GROUPID_SESSION_SUFFIX);
+                        delegate.metadata.group = new KafkaGroup(delegate.groupInstanceId, groupId,
+                            delegate.memberId, generationId);
                     }
                 }
             }

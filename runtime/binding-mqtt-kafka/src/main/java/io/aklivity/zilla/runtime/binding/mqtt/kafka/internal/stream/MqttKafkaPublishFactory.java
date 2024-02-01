@@ -281,7 +281,10 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = affinity;
             this.qos = qos;
-            this.offsetCommit = new KafkaOffsetCommitStream(originId, resolvedId, this);
+            if (qos == MqttQoS.EXACTLY_ONCE.value())
+            {
+                this.offsetCommit = new KafkaOffsetCommitStream(originId, resolvedId, this);
+            }
             this.messages = new KafkaMessagesProxy(originId, resolvedId, affinity, this, kafkaMessagesTopic);
             this.retained = new KafkaRetainedProxy(originId, resolvedId, affinity, this, kafkaRetainedTopic);
             this.clients = clients;
@@ -565,7 +568,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             if ((flags & DATA_FLAG_FIN) != 0x00 && qos == MqttQoS.EXACTLY_ONCE.value())
             {
                 commitOffsetIncomplete(traceId, authorization, messages.topicString,
-                    messages.qos2PartitionId, packetId, messages,false);
+                    messages.qos2PartitionId, packetId, messages, false);
             }
 
             if (retainAvailable)
@@ -605,7 +608,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                     if ((flags & DATA_FLAG_FIN) != 0x00 && qos == MqttQoS.EXACTLY_ONCE.value())
                     {
                         commitOffsetIncomplete(traceId, authorization, retained.topicString,
-                            retained.qos2PartitionId, packetId, retained,true);
+                            retained.qos2PartitionId, packetId, retained, true);
                     }
                 }
                 else

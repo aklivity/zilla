@@ -317,6 +317,17 @@ public class MqttKafkaPublishProxyIT
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/publish.qos2.abort/client",
+        "${kafka}/publish.qos2.meta.abort/server"})
+    public void shouldSessionReceiveQos2MetaSentAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/publish.qos2.abort/client",
         "${kafka}/publish.qos2.offset.fetch.abort/server"})
     public void shouldSessionReceiveQos2OffsetFetchSentAbort() throws Exception
     {
@@ -338,8 +349,19 @@ public class MqttKafkaPublishProxyIT
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
-        "${mqtt}/publish.qos2.offset.commit.abort/client",
-        "${kafka}/publish.qos2.offset.commit.abort/server"})
+        "${mqtt}/publish.qos2.offset.commit.abort.phase1/client",
+        "${kafka}/publish.qos2.offset.commit.abort.phase1/server"})
+    public void shouldPublishReceiveQos2OffsetCommitSentAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/publish.qos2.offset.commit.abort.phase2/client",
+        "${kafka}/publish.qos2.offset.commit.abort.phase2/server"})
     public void shouldSessionReceiveQos2OffsetCommitSentAbort() throws Exception
     {
         k3po.finish();

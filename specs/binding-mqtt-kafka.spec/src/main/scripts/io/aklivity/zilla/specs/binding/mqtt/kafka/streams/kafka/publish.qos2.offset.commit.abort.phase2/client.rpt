@@ -13,13 +13,11 @@
 # specific language governing permissions and limitations under the License.
 #
 
-accept "zilla://streams/kafka0"
-    option zilla:window 8192
-    option zilla:transmission "duplex"
+connect "zilla://streams/kafka0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"
 
-accepted
-
-read zilla:begin.ext ${kafka:matchBeginEx()
+write zilla:begin.ext ${kafka:beginEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
                                 .capabilities("PRODUCE_AND_FETCH")
@@ -34,7 +32,7 @@ read zilla:begin.ext ${kafka:matchBeginEx()
 
 connected
 
-read zilla:data.ext ${kafka:matchDataEx()
+write zilla:data.ext ${kafka:dataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
                              .produce()
@@ -45,12 +43,17 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .header("sender-id", "sender-1")
                                .build()
                            .build()}
-read zilla:data.empty
+write zilla:data.empty
+write flush
+write notify SENT_MIGRATE_SIGNAL
 
 
-accepted
+connect await SENT_MIGRATE_SIGNAL
+        "zilla://streams/kafka0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"
 
-read zilla:begin.ext ${kafka:matchBeginEx()
+write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
                                .group()
                                    .groupId("client-session")
@@ -59,7 +62,7 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                                    .build()
                                .build()}
 
-write zilla:begin.ext ${kafka:beginEx()
+read zilla:begin.ext ${kafka:matchBeginEx()
                                .typeId(zilla:id("kafka"))
                                .group()
                                    .groupId("client-session")
@@ -73,73 +76,77 @@ write zilla:begin.ext ${kafka:beginEx()
 
 connected
 
-write advise zilla:flush ${kafka:flushEx()
+read advised zilla:flush ${kafka:matchFlushEx()
                              .typeId(zilla:id("kafka"))
                              .group()
-                                 .generationId(1)
                                  .leaderId("consumer-1")
                                  .memberId("consumer-1")
                                  .members("consumer-1")
                                  .build()
                              .build()}
+read notify RECEIVED_LEADER
+
+write zilla:data.empty
 write flush
 
-read zilla:data.empty
 
-
-accepted
-
-read zilla:begin.ext ${kafka:beginEx()
-                            .typeId(zilla:id("kafka"))
-                            .merged()
-                                .capabilities("PRODUCE_ONLY")
-                                .topic("mqtt-messages")
-                                .partition(-1, -2)
-                                .ackMode("IN_SYNC_REPLICAS")
-                                .build()
-                            .build()}
+connect await RECEIVED_LEADER
+        "zilla://streams/kafka0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"
 
 write zilla:begin.ext ${kafka:beginEx()
-                            .typeId(zilla:id("kafka"))
-                            .merged()
-                                .capabilities("PRODUCE_ONLY")
-                                .topic("mqtt-messages")
-                                .partition(0, -2)
-                                .partition(1, -2)
-                                .ackMode("IN_SYNC_REPLICAS")
-                                .build()
-                            .build()}
+                               .typeId(zilla:id("kafka"))
+                               .meta()
+                                   .topic("mqtt-messages")
+                                   .build()
+                               .build()}
+connected
+
+read zilla:data.ext ${kafka:dataEx()
+                              .typeId(zilla:id("kafka"))
+                              .meta()
+                                  .partition(0, -2)
+                                  .partition(1, -2)
+                                  .build()
+                              .build()}
+
+write close
 
 
-accepted
-
-read zilla:begin.ext ${kafka:beginEx()
-                            .typeId(zilla:id("kafka"))
-                            .merged()
-                                .capabilities("PRODUCE_ONLY")
-                                .topic("mqtt-retained")
-                                .partition(-1, -2)
-                                .ackMode("IN_SYNC_REPLICAS")
-                                .build()
-                            .build()}
+connect await RECEIVED_LEADER
+        "zilla://streams/kafka0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"
 
 write zilla:begin.ext ${kafka:beginEx()
-                            .typeId(zilla:id("kafka"))
-                            .merged()
-                                .capabilities("PRODUCE_ONLY")
-                                .topic("mqtt-retained")
-                                .partition(0, -2)
-                                .ackMode("IN_SYNC_REPLICAS")
-                                .build()
-                            .build()}
+                               .typeId(zilla:id("kafka"))
+                               .meta()
+                                   .topic("mqtt-retained")
+                                   .build()
+                               .build()}
+connected
+
+read zilla:data.ext ${kafka:dataEx()
+                              .typeId(zilla:id("kafka"))
+                              .meta()
+                                  .partition(0, -2)
+                                  .build()
+                              .build()}
+read notify RECEIVED_PARTITION_METADATA
+
+write close
 
 
-accepted
+connect await RECEIVED_PARTITION_METADATA
+        "zilla://streams/kafka0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"
 
-read zilla:begin.ext ${kafka:beginEx()
+write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
                                .offsetFetch()
-                                   .groupId("client")
+                                   .groupId("client-session")
                                    .host("localhost")
                                    .port(9092)
                                    .topic("mqtt-messages")
@@ -147,54 +154,57 @@ read zilla:begin.ext ${kafka:beginEx()
                                    .partition(1)
                                    .build()
                                .build()}
-
 connected
 
-write zilla:data.ext ${kafka:dataEx()
+read zilla:data.ext ${kafka:dataEx()
                                    .typeId(zilla:id("kafka"))
                                    .offsetFetch()
                                        .partition(0, 1, 0)
                                        .partition(1, 1, 0)
                                      .build()
                                    .build()}
-write zilla:data.empty
-write flush
+read zilla:data.empty
 
-read closed
 write close
+read closed
 
 
-accepted
+connect await RECEIVED_PARTITION_METADATA
+        "zilla://streams/kafka0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"
 
-read zilla:begin.ext ${kafka:beginEx()
+write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
                                .offsetFetch()
-                                   .groupId("client")
+                                   .groupId("client-session")
                                    .host("localhost")
                                    .port(9092)
                                    .topic("mqtt-retained")
                                    .partition(0)
                                    .build()
                                .build()}
-
 connected
 
-write zilla:data.ext ${kafka:dataEx()
+read zilla:data.ext ${kafka:dataEx()
                                    .typeId(zilla:id("kafka"))
                                    .offsetFetch()
                                        .partition(0, 1, 0)
                                      .build()
                                    .build()}
-write zilla:data.empty
-write flush
+read zilla:data.empty
+read notify RECEIVED_INITIAL_OFFSETS
 
-read closed
 write close
+read closed
 
 
-accepted
+connect await RECEIVED_INITIAL_OFFSETS
+        "zilla://streams/kafka0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"
 
-read zilla:begin.ext ${kafka:beginEx()
+write zilla:begin.ext ${kafka:beginEx()
                             .typeId(zilla:id("kafka"))
                             .initProducerId()
                                 .producerId(0)
@@ -202,26 +212,30 @@ read zilla:begin.ext ${kafka:beginEx()
                                 .build()
                             .build()}
 
-write zilla:begin.ext ${kafka:beginEx()
+read zilla:begin.ext ${kafka:beginEx()
                             .typeId(zilla:id("kafka"))
                             .initProducerId()
                                 .producerId(1)
                                 .producerEpoch(1)
                                 .build()
                             .build()}
+read notify RECEIVED_PRODUCER
 
 connected
 
-read closed
 write close
+read closed
 
 
-accepted
+connect await RECEIVED_PRODUCER
+        "zilla://streams/kafka0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"
 
-read zilla:begin.ext ${kafka:beginEx()
+write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
                                .offsetCommit()
-                                   .groupId("client")
+                                   .groupId("client-session")
                                    .memberId("consumer-1")
                                    .instanceId("zilla")
                                    .build()
@@ -229,13 +243,15 @@ read zilla:begin.ext ${kafka:beginEx()
 
 connected
 
-write await RECEIVED_SESSION_CONNECTED
-write abort
+read notify RECEIVED_SESSION_CONNECTED
+read aborted
 
+connect await RECEIVED_PRODUCER
+        "zilla://streams/kafka0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"
 
-accepted
-
-read zilla:begin.ext ${kafka:matchBeginEx()
+write zilla:begin.ext ${kafka:beginEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
                                 .capabilities("PRODUCE_AND_FETCH")
@@ -252,22 +268,8 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                             .build()}
 
 connected
-# session expiry cancellation signal for client
-read zilla:data.ext ${kafka:matchDataEx()
-                           .typeId(zilla:id("kafka"))
-                           .merged()
-                             .produce()
-                               .deferred(0)
-                               .partition(-1, -1)
-                               .key("client#expiry-signal")
-                               .hashKey("client")
-                               .header("type", "expiry-signal")
-                               .build()
-                           .build()}
-read zilla:data.null
 
-# session expire later signal for client
-read zilla:data.ext ${kafka:matchDataEx()
+write zilla:data.ext ${kafka:dataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
                              .produce()
@@ -278,11 +280,26 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .header("type", "expiry-signal")
                                .build()
                            .build()}
-read ${mqtt:sessionSignal()
-           .expiry()
-               .instanceId("zilla-1")
-               .clientId("client")
-               .delay(1000)
-               .expireAt(-1)
-               .build()
-           .build()}
+write flush
+
+write zilla:data.ext ${kafka:dataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                             .produce()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client#expiry-signal")
+                               .hashKey("client")
+                               .header("type", "expiry-signal")
+                               .build()
+                           .build()}
+write ${mqtt:sessionSignal()
+            .expiry()
+                .instanceId("zilla-1")
+                .clientId("client")
+                .delay(1000)
+                .expireAt(-1)
+                .build()
+            .build()}
+write flush
+
