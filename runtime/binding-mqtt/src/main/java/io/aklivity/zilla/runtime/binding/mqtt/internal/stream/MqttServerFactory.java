@@ -1247,7 +1247,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             String16FW topicName;
             int publishLimit;
-            int packetId = -1;
+            int packetId = 0;
             if (qos > 0)
             {
                 final MqttPublishQosV4FW publish =
@@ -1351,7 +1351,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             String16FW topicName;
             MqttPropertiesFW properties;
             int publishLimit;
-            int packetId = -1;
+            int packetId = 0;
             if (qos > 0)
             {
                 final MqttPublishQosV5FW publish =
@@ -3249,11 +3249,6 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                     if (publishPayloadDeferred == 0)
                     {
-                        if (qos == 2)
-                        {
-                            unreleasedPacketIds.add(packetId);
-                        }
-
                         publishPayloadDeferred = publishPayloadBytes - length;
                         final Flyweight dataEx = mqttPublishDataExRW.wrap(dataExtBuffer, 0, dataExtBuffer.capacity())
                             .typeId(mqttTypeId)
@@ -3262,6 +3257,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                                 p.deferred(publishPayloadDeferred)
                                     .qos(qos)
                                     .flags(flags)
+                                    .packetId(packetId)
                                     .expiryInterval(expiryInterval)
                                     .contentType(contentType)
                                     .format(f -> f.set(payloadFormat))
@@ -5889,16 +5885,18 @@ public final class MqttServerFactory implements MqttStreamFactory
                 {
                     if (e.getKey() <= acknowledge)
                     {
+                        final int packetId = e.getValue().intValue();
                         switch (version)
                         {
                         case 4:
-                            doEncodePubrecV4(traceId, authorization, e.getValue().intValue());
+                            doEncodePubrecV4(traceId, authorization, packetId);
                             break;
                         case 5:
-                            doEncodePubrecV5(traceId, authorization, e.getValue().intValue());
+                            doEncodePubrecV5(traceId, authorization, packetId);
                             break;
                         }
                         unAckedReceivedQos2PacketIds.remove(e.getKey());
+                        unreleasedPacketIds.add(packetId);
                     }
                     else
                     {

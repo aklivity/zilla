@@ -692,11 +692,11 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 final int valueLength = valueFragment != null ? valueFragment.sizeof() + deferred : -1;
                 final int maxValueLength = valueLength + headersSizeMax;
 
-                if ((flags & FLAGS_FIN) == 0x00 && deferred == 0)
-                {
-                    error = ERROR_CORRUPT_MESSAGE;
-                    break init;
-                }
+                //                if ((flags & FLAGS_FIN) == 0x00 && deferred == 0)
+                //                {
+                //                    error = ERROR_CORRUPT_MESSAGE;
+                //                    break init;
+                //                }
 
                 if (maxValueLength > partition.segmentBytes())
                 {

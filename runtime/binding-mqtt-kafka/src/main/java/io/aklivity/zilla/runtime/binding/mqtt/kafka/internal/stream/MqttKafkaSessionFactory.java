@@ -440,7 +440,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         private Long2ObjectHashMap<PublishOffsetMetadata> offsets;
         private Int2ObjectHashMap<KafkaTopicPartition> partitions;
         private Int2ObjectHashMap<KafkaTopicPartition> retainedPartitions;
-        private long affinity;
         private PublishClientMetadata metadata;
 
         private MqttSessionProxy(
@@ -523,7 +522,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             initialSeq = sequence;
             initialAck = acknowledge;
             state = MqttKafkaState.openingInitial(state);
-            this.affinity = affinity;
 
             assert initialAck <= initialSeq;
 
@@ -814,6 +812,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             final long offsetKey = offsetKey(topic, partitionId);
             final PublishOffsetMetadata metadata = offsets.get(offsetKey);
             metadata.packetIds.remove((Integer) packetId);
+            metadata.sequence++;
             Flyweight offsetCommitEx = kafkaDataExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(kafkaTypeId)
@@ -829,7 +828,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             offsetCommit.unackedPacketIds.add(packetId);
             offsetCommit.doKafkaData(traceId, authorization, 0, DATA_FLAG_COMPLETE, offsetCommitEx);
-            metadata.sequence++;
         }
 
         private void doFlushProduceAndFetchWithFilter(
@@ -3584,6 +3582,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                         final String groupId = String.format("%s-%s", delegate.clientId.asString(), GROUPID_SESSION_SUFFIX);
                         delegate.metadata.group = new KafkaGroup(delegate.groupInstanceId, groupId,
                             delegate.memberId, generationId);
+                        delegate.openMetaStreams(traceId, authorization);
                     }
                 }
             }
@@ -3639,7 +3638,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             if (publishMaxQos == 2)
             {
                 doKafkaWindow(traceId, authorization, 0, 0, 0);
-                delegate.openMetaStreams(traceId, authorization);
             }
             else
             {

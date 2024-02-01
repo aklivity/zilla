@@ -462,8 +462,6 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                 mqttDataEx = extension.get(mqttDataExRO::tryWrap);
             }
 
-            final MqttKafkaBindingConfig binding = supplyBinding.apply(routedId);
-            MqttKafkaSessionFactory.MqttSessionProxy session = binding.sessions.get(affinity);
             int deferred;
 
             if ((flags & DATA_FLAG_INIT) != 0x00)
@@ -1097,10 +1095,6 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         {
             doFlush(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, budgetId, initialPad, extension);
-
-            initialSeq += initialPad;
-
-            assert initialSeq <= initialAck + initialMax;
         }
 
         private void doKafkaEnd(
@@ -1315,11 +1309,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
 
             assert initialAck <= initialSeq;
 
-            if (wasOpen)
-            {
-                delegate.doMqttWindow(traceId, authorization, budgetId, padding, capabilities);
-            }
-            else if (delegate.qos < MqttQoS.EXACTLY_ONCE.value())
+            if (wasOpen || delegate.qos < MqttQoS.EXACTLY_ONCE.value())
             {
                 delegate.doMqttWindow(traceId, authorization, budgetId, padding, capabilities);
             }
