@@ -19,6 +19,9 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
@@ -26,6 +29,7 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 import io.aklivity.zilla.runtime.model.avro.config.AvroModelConfig;
 
 public class AvroModelConfigAdapterTest
@@ -76,16 +80,17 @@ public class AvroModelConfigAdapterTest
         assertThat(converter.model, equalTo("avro"));
         assertThat(converter.cataloged.size(), equalTo(1));
         assertThat(converter.cataloged.get(0).name, equalTo("test0"));
-        assertThat(converter.cataloged.get(0).schemas.get(0).strategy, equalTo("topic"));
-        assertThat(converter.cataloged.get(0).schemas.get(0).version, equalTo("latest"));
-        assertThat(converter.cataloged.get(0).schemas.get(0).id, equalTo(0));
-        assertThat(converter.cataloged.get(0).schemas.get(1).subject, equalTo("cat"));
-        assertThat(converter.cataloged.get(0).schemas.get(1).strategy, nullValue());
-        assertThat(converter.cataloged.get(0).schemas.get(1).version, equalTo("latest"));
-        assertThat(converter.cataloged.get(0).schemas.get(1).id, equalTo(0));
-        assertThat(converter.cataloged.get(0).schemas.get(2).strategy, nullValue());
-        assertThat(converter.cataloged.get(0).schemas.get(2).version, nullValue());
-        assertThat(converter.cataloged.get(0).schemas.get(2).id, equalTo(42));
+        List<SchemaConfig> schemas = new ArrayList<>(converter.cataloged.get(0).schemas);
+        assertThat(schemas.get(0).strategy, equalTo("topic"));
+        assertThat(schemas.get(0).version, equalTo("latest"));
+        assertThat(schemas.get(0).id, equalTo(0));
+        assertThat(schemas.get(1).subject, equalTo("cat"));
+        assertThat(schemas.get(1).strategy, nullValue());
+        assertThat(schemas.get(1).version, equalTo("latest"));
+        assertThat(schemas.get(1).id, equalTo(0));
+        assertThat(schemas.get(2).strategy, nullValue());
+        assertThat(schemas.get(2).version, nullValue());
+        assertThat(schemas.get(2).id, equalTo(42));
     }
 
     @Test

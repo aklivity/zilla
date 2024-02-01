@@ -87,7 +87,7 @@ public final class JsonModelConfigAdapter implements ModelConfigAdapterSpi, Json
         for (String catalogName: catalogsJson.keySet())
         {
             JsonArray schemasJson = catalogsJson.getJsonArray(catalogName);
-            Collection<SchemaConfig> schemas = new ObjectHashSet<>();
+            Collection<SchemaConfig> schemas = new LinkedList<>();
             for (JsonValue item : schemasJson)
             {
                 JsonObject schemaJson = (JsonObject) item;

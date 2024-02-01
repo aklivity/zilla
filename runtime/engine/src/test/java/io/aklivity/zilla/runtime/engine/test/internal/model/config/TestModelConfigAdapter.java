@@ -25,8 +25,6 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import org.agrona.collections.ObjectHashSet;
-
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfigAdapterSpi;
@@ -77,7 +75,7 @@ public class TestModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdapt
             for (String catalogName: catalogsJson.keySet())
             {
                 JsonArray schemasJson = catalogsJson.getJsonArray(catalogName);
-                Collection<SchemaConfig> schemas = new ObjectHashSet<>();
+                Collection<SchemaConfig> schemas = new LinkedList<>();
                 for (JsonValue item : schemasJson)
                 {
                     JsonObject schemaJson = (JsonObject) item;

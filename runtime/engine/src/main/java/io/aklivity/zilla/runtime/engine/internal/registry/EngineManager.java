@@ -248,14 +248,7 @@ public class EngineManager
             {
                 for (CatalogedConfig cataloged : binding.catalogs)
                 {
-                    Pattern pattern = Pattern.compile(cataloged.name);
-                    for (CatalogConfig catalog : namespace.catalogs)
-                    {
-                        if (pattern.matcher(catalog.name).matches())
-                        {
-                            cataloged.id = resolver.resolve(cataloged.name);
-                        }
-                    }
+                    cataloged.id = resolver.resolve(cataloged.name);
                 }
             }
 
