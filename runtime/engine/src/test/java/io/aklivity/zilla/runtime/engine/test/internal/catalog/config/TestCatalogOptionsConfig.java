@@ -21,7 +21,6 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public class TestCatalogOptionsConfig extends OptionsConfig
 {
-    public final String subject;
     public final String schema;
     public final int id;
 
@@ -38,10 +37,8 @@ public class TestCatalogOptionsConfig extends OptionsConfig
 
     public TestCatalogOptionsConfig(
         int id,
-        String subject,
         String schema)
     {
-        this.subject = subject;
         this.schema = schema;
         this.id = id;
     }
