@@ -184,16 +184,19 @@ public final class GrpcBindingConfig
             {
                 final CatalogHandler handler = handlersById.get(catalog.id);
 
-                final int catalogSchemaId = catalogSchema.id;
-                final int schemaId = schemaIds.get(catalogSchemaId);
-                final int newSchemaId = handler.resolve(catalogSchema.subject, catalogSchema.version);
-
-                if (schemaId != newSchemaId)
+                if (handler != null)
                 {
-                    schemaIds.put(catalogSchemaId, newSchemaId);
-                    String schema = handler.resolve(newSchemaId);
-                    GrpcProtobufConfig protobufConfig = parser.parse(null, schema);
-                    protobufsBySchemaId.put(catalogSchemaId, protobufConfig);
+                    final int catalogSchemaId = catalogSchema.id;
+                    final int schemaId = schemaIds.get(catalogSchemaId);
+                    final int newSchemaId = handler.resolve(catalogSchema.subject, catalogSchema.version);
+
+                    if (schemaId != newSchemaId)
+                    {
+                        schemaIds.put(catalogSchemaId, newSchemaId);
+                        String schema = handler.resolve(newSchemaId);
+                        GrpcProtobufConfig protobufConfig = parser.parse(null, schema);
+                        protobufsBySchemaId.put(catalogSchemaId, protobufConfig);
+                    }
                 }
             }
         }
