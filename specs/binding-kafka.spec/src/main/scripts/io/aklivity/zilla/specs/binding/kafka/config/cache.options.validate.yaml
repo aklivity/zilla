@@ -20,6 +20,7 @@ catalogs:
   test0:
     type: test
     options:
+      id: 1
       schema: |
         {
           "fields": [
@@ -50,10 +51,13 @@ bindings:
     options:
       topics:
         - name: test
-          key:
-            type: test
           value:
-            type: test
+            model: test
+            capability: read
+            length: 13
+            catalog:
+              test0:
+                - id: 1
     routes:
       - exit: app1
         when:

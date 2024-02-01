@@ -34,6 +34,10 @@
                             "schema":
                             {
                                 "type": "string"
+                            },
+                            "id":
+                            {
+                                "type": "integer"
                             }
                         },
                         "additionalProperties": false
