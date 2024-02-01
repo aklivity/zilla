@@ -66,7 +66,7 @@ public class TestCatalogOptionsConfigAdapter implements OptionsConfigAdapterSpi
         {
             if (object.containsKey(SUBJECT))
             {
-                testOptions.subject(object.getString(SUBJECT));
+                config.subject(object.getString(SUBJECT));
             }
 
             if (object.containsKey(SCHEMA))
