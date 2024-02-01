@@ -40,6 +40,7 @@ public final class GrpcOptionsConfigAdapter implements OptionsConfigAdapterSpi, 
     private static final String SERVICES_NAME = "services";
 
     private final GrpcProtobufParser parser = new GrpcProtobufParser();
+
     private Function<String, String> readURL;
 
     @Override
