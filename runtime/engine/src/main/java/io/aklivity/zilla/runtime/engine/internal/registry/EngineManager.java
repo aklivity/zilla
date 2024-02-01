@@ -244,6 +244,21 @@ public class EngineManager
                 binding.vaultId = resolver.resolve(binding.vault);
             }
 
+            if (binding.catalogs != null)
+            {
+                for (CatalogedConfig cataloged : binding.catalogs)
+                {
+                    Pattern pattern = Pattern.compile(cataloged.name);
+                    for (CatalogConfig catalog : namespace.catalogs)
+                    {
+                        if (pattern.matcher(catalog.name).matches())
+                        {
+                            cataloged.id = resolver.resolve(cataloged.name);
+                        }
+                    }
+                }
+            }
+
             if (binding.options != null)
             {
                 for (ModelConfig model : binding.options.models)

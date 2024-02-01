@@ -92,7 +92,7 @@ public final class GrpcBindingConfig
         this.routes = binding.routes.stream().map(GrpcRouteConfig::new).collect(toList());
         this.parser = new GrpcProtobufParser();
         this.helper = new HttpGrpcHeaderHelper(metadataBuffer);
-        this.schemaIds = new Int2IntHashMap(0);
+        this.schemaIds = new Int2IntHashMap(-1);
         this.handlersById = new Long2ObjectHashMap<>();
         this.protobufsBySchemaId = new Int2ObjectHashMap<>();
         this.catalogs = binding.catalogs != null ? binding.catalogs : new ObjectHashSet<>();
@@ -134,7 +134,7 @@ public final class GrpcBindingConfig
             final Collection<GrpcProtobufConfig> protobufs = resolveProtobufs();
             GrpcMethodConfig method = resolveMethod(protobufs, serviceName, methodName);
 
-            if (method == null)
+            if (method == null && options != null)
             {
                 method = resolveMethod(options.protobufs, serviceName, methodName);
             }
@@ -193,7 +193,7 @@ public final class GrpcBindingConfig
                 if (schemaId != newSchemaId)
                 {
                     schemaIds.put(catalogSchemaId, newSchemaId);
-                    String schema = handler.resolve(schemaId);
+                    String schema = handler.resolve(newSchemaId);
                     GrpcProtobufConfig protobufConfig = parser.parse(null, schema);
                     protobufsBySchemaId.put(catalogSchemaId, protobufConfig);
                 }
