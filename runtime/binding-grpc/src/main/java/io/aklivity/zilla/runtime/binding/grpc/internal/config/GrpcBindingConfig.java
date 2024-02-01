@@ -77,7 +77,7 @@ public final class GrpcBindingConfig
     private final HttpGrpcHeaderHelper helper;
     private final Long2ObjectHashMap<CatalogHandler> handlersById;
     private final Int2ObjectHashMap<GrpcProtobufConfig> protobufsBySchemaId;
-    private final ObjectHashSet<CatalogedConfig> catalogs;
+    private final Collection<CatalogedConfig> catalogs;
     private final Int2IntHashMap schemaIds;
 
     public GrpcBindingConfig(
@@ -98,7 +98,11 @@ public final class GrpcBindingConfig
         this.catalogs = binding.catalogs != null ? binding.catalogs : new ObjectHashSet<>();
         for (CatalogedConfig catalog : this.catalogs)
         {
-            handlersById.put(catalog.id, supplyCatalog.apply(catalog.id));
+            CatalogHandler handler = supplyCatalog.apply(catalog.id);
+            if (handler != null)
+            {
+                handlersById.put(catalog.id, supplyCatalog.apply(catalog.id));
+            }
         }
     }
 
@@ -173,17 +177,11 @@ public final class GrpcBindingConfig
 
     private Collection<GrpcProtobufConfig> resolveProtobufs()
     {
-        ObjectHashSet<CatalogedConfig>.ObjectIterator catalogIterator = catalogs.iterator();
-
-        while (catalogIterator.hasNext())
+        for (CatalogedConfig catalog :catalogs)
         {
-            CatalogedConfig catalog = catalogIterator.nextValue();
-            ObjectHashSet<SchemaConfig>.ObjectIterator schemaIterator = catalog.schemas.iterator();
 
-            while (schemaIterator.hasNext())
+            for (SchemaConfig catalogSchema : catalog.schemas)
             {
-                SchemaConfig catalogSchema = schemaIterator.nextValue();
-
                 final CatalogHandler handler = handlersById.get(catalog.id);
 
                 final int catalogSchemaId = catalogSchema.id;

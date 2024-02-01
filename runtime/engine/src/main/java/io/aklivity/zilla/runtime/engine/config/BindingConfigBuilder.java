@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.engine.config;
 
 import static java.util.Collections.emptyList;
 
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
@@ -40,7 +41,7 @@ public final class BindingConfigBuilder<T> extends ConfigBuilder<T, BindingConfi
     private String exit;
     private OptionsConfig options;
     private List<RouteConfig> routes;
-    private ObjectHashSet<CatalogedConfig> catalogs;
+    private Collection<CatalogedConfig> catalogs;
     private TelemetryRefConfig telemetryRef;
     private List<NamespaceConfig> composites;
 
@@ -120,7 +121,7 @@ public final class BindingConfigBuilder<T> extends ConfigBuilder<T, BindingConfi
     }
 
     public BindingConfigBuilder<T> catalogs(
-        ObjectHashSet<CatalogedConfig> catalogs)
+        Collection<CatalogedConfig> catalogs)
     {
         this.catalogs = catalogs;
         return this;

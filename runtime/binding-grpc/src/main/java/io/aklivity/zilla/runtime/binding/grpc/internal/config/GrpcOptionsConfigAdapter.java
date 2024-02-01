@@ -102,8 +102,8 @@ public final class GrpcOptionsConfigAdapter implements OptionsConfigAdapterSpi, 
         JsonValue value)
     {
         final String location = ((JsonString) value).getString();
-        final String protoService = readURL.apply(location);
+        final String protobuf = readURL.apply(location);
 
-        return parser.parse(location, protoService);
+        return parser.parse(location, protobuf);
     }
 }

@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.config;
 
+import java.util.Collection;
+
 import jakarta.json.Json;
 import jakarta.json.JsonArray;
 import jakarta.json.JsonArrayBuilder;
@@ -29,7 +31,7 @@ import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfigAdapter;
 
-public class CatalogedAdapter implements JsonbAdapter<ObjectHashSet<CatalogedConfig>, JsonObject>
+public class CatalogedAdapter implements JsonbAdapter<Collection<CatalogedConfig>, JsonObject>
 {
     private final SchemaConfigAdapter schema = new SchemaConfigAdapter();
 
@@ -39,7 +41,7 @@ public class CatalogedAdapter implements JsonbAdapter<ObjectHashSet<CatalogedCon
 
     @Override
     public JsonObject adaptToJson(
-        ObjectHashSet<CatalogedConfig> catalogs)
+        Collection<CatalogedConfig> catalogs)
     {
         JsonObjectBuilder catalogsBuilder = Json.createObjectBuilder();
         for (CatalogedConfig catalog : catalogs)
@@ -55,16 +57,15 @@ public class CatalogedAdapter implements JsonbAdapter<ObjectHashSet<CatalogedCon
         return catalogsBuilder.build();
     }
 
-
     @Override
-    public ObjectHashSet<CatalogedConfig> adaptFromJson(
+    public Collection<CatalogedConfig> adaptFromJson(
         JsonObject catalogsJson)
     {
-        ObjectHashSet<CatalogedConfig> catalogs = new ObjectHashSet<>();
+        Collection<CatalogedConfig> catalogs = new ObjectHashSet<>();
         for (String catalogName: catalogsJson.keySet())
         {
             JsonArray schemasJson = catalogsJson.getJsonArray(catalogName);
-            ObjectHashSet<SchemaConfig> schemas = new ObjectHashSet<>();
+            Collection<SchemaConfig> schemas = new ObjectHashSet<>();
             for (JsonValue item : schemasJson)
             {
                 JsonObject schemaJson = (JsonObject) item;

@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.config;
 
+import java.util.Collection;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -25,7 +26,7 @@ public final class CatalogedConfigBuilder<T> extends ConfigBuilder<T, CatalogedC
     private final Function<CatalogedConfig, T> mapper;
 
     private String name;
-    private ObjectHashSet<SchemaConfig> schemas;
+    private Collection<SchemaConfig> schemas;
 
     CatalogedConfigBuilder(
         Function<CatalogedConfig, T> mapper)

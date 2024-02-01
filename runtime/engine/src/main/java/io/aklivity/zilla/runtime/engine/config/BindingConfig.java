@@ -18,11 +18,10 @@ package io.aklivity.zilla.runtime.engine.config;
 import static java.util.Objects.requireNonNull;
 import static java.util.function.Function.identity;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.ToLongFunction;
-
-import org.agrona.collections.ObjectHashSet;
 
 public class BindingConfig
 {
@@ -42,7 +41,7 @@ public class BindingConfig
     public final String entry;
     public final String vault;
     public final OptionsConfig options;
-    public final ObjectHashSet<CatalogedConfig> catalogs;
+    public final Collection<CatalogedConfig> catalogs;
     public final List<RouteConfig> routes;
     public final TelemetryRefConfig telemetryRef;
     public final List<NamespaceConfig> composites;
@@ -83,7 +82,7 @@ public class BindingConfig
         String entry,
         String vault,
         OptionsConfig options,
-        ObjectHashSet<CatalogedConfig> catalogs,
+        Collection<CatalogedConfig> catalogs,
         List<RouteConfig> routes,
         TelemetryRefConfig telemetryRef,
         List<NamespaceConfig> namespaces)

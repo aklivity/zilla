@@ -33,6 +33,7 @@ public final class GrpcProtobufParser
     private final ParseTreeWalker walker;
     private final BailErrorStrategy errorStrategy;
     private final Protobuf3Lexer lexer;
+    private CommonTokenStream tokens;
     private final Protobuf3Parser parser;
 
     public GrpcProtobufParser()
@@ -41,6 +42,7 @@ public final class GrpcProtobufParser
         this.errorStrategy = new BailErrorStrategy();
         this.lexer = new Protobuf3Lexer(null);
         this.parser = new Protobuf3Parser(null);
+        this.tokens = new CommonTokenStream(lexer);
         parser.setErrorHandler(errorStrategy);
     }
 
@@ -52,7 +54,7 @@ public final class GrpcProtobufParser
         lexer.reset();
         lexer.setInputStream(input);
 
-        CommonTokenStream tokens = new CommonTokenStream(lexer);
+        tokens.setTokenSource(lexer);
         parser.setTokenStream(tokens);
 
         Set<GrpcServiceConfig> services = new ObjectHashSet<>();
