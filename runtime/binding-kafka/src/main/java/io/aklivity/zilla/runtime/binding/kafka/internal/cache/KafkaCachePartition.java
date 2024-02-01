@@ -440,9 +440,8 @@ public final class KafkaCachePartition
             int converted = convertKey.convert(value.buffer(), value.offset(), value.sizeof(), writeKey);
             if (converted == -1)
             {
-                // For Fetch Validation failure, we still push the event to Cache
-                logFile.appendBytes(key);
-                // TODO: Placeholder to log fetch validation failure
+                logFile.writeInt(entryMark.value + FIELD_OFFSET_FLAGS, CACHE_ENTRY_FLAGS_ABORTED);
+                System.out.println("Invalid Key");
             }
         }
         logFile.appendInt(valueLength);
@@ -503,13 +502,15 @@ public final class KafkaCachePartition
             };
 
             final int valueLength = logFile.capacity() - valueMark.value;
-            // TODO: log if invalid
-            if ((flags & FLAGS_FIN) != 0x00)
+            int entryFlags = logFile.readInt(entryMark.value + FIELD_OFFSET_FLAGS);
+
+            if ((flags & FLAGS_FIN) != 0x00 && (entryFlags & CACHE_ENTRY_FLAGS_ABORTED) == 0x00)
             {
                 int converted = convertValue.convert(logFile.buffer(), valueMark.value, valueLength, consumeConverted);
                 if (converted == -1)
                 {
-                    logFile.writeInt(entryMark.value + FIELD_OFFSET_CONVERTED_POSITION, NO_CONVERTED_POSITION);
+                    logFile.writeInt(entryMark.value + FIELD_OFFSET_FLAGS, CACHE_ENTRY_FLAGS_ABORTED);
+                    System.out.println("Invalid Value");
                 }
             }
         }
