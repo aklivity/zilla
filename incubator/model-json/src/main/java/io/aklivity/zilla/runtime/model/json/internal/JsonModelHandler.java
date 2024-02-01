@@ -16,14 +16,12 @@ package io.aklivity.zilla.runtime.model.json.internal;
 
 import java.io.StringReader;
 import java.util.function.LongFunction;
-import java.util.zip.CRC32C;
 
 import jakarta.json.spi.JsonProvider;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParserFactory;
 
 import org.agrona.DirectBuffer;
-import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Int2ObjectCache;
 import org.agrona.io.DirectBufferInputStream;
 import org.leadpony.justify.api.JsonSchema;
@@ -48,8 +46,6 @@ public abstract class JsonModelHandler
     private final JsonProvider schemaProvider;
     private final JsonValidationService service;
     private final JsonParserFactory factory;
-    private final CRC32C crc32c;
-    private final Int2IntHashMap crcCache;
     private DirectBufferInputStream in;
 
     public JsonModelHandler(
@@ -68,8 +64,6 @@ public abstract class JsonModelHandler
         this.schemas = new Int2ObjectCache<>(1, 1024, i -> {});
         this.providers = new Int2ObjectCache<>(1, 1024, i -> {});
         this.in = new DirectBufferInputStream();
-        this.crc32c = new CRC32C();
-        this.crcCache = new Int2IntHashMap(0);
     }
 
     protected final boolean validate(
@@ -81,7 +75,6 @@ public abstract class JsonModelHandler
         boolean status = false;
         try
         {
-            invalidateCacheOnSchemaUpdate(schemaId);
             JsonProvider provider = supplyProvider(schemaId);
             in.wrap(buffer, index, length);
             provider.createReader(in).readValue();
@@ -92,22 +85,6 @@ public abstract class JsonModelHandler
             ex.printStackTrace();
         }
         return status;
-    }
-
-    protected void invalidateCacheOnSchemaUpdate(
-        int schemaId)
-    {
-        if (crcCache.containsKey(schemaId))
-        {
-            String schemaText = handler.resolve(schemaId);
-            int checkSum = generateCRC32C(schemaText);
-            if (schemaText != null && crcCache.get(schemaId) != checkSum)
-            {
-                crcCache.remove(schemaId);
-                schemas.remove(schemaId);
-                providers.remove(schemaId);
-            }
-        }
     }
 
     protected JsonProvider supplyProvider(
@@ -132,7 +109,6 @@ public abstract class JsonModelHandler
             JsonParser schemaParser = factory.createParser(new StringReader(schemaText));
             JsonSchemaReader reader = service.createSchemaReader(schemaParser);
             schema = reader.read();
-            crcCache.put(schemaId, generateCRC32C(schemaText));
         }
 
         return schema;
@@ -148,14 +124,5 @@ public abstract class JsonModelHandler
             provider = service.createJsonProvider(schema, parser -> ProblemHandler.throwing());
         }
         return provider;
-    }
-
-    private int generateCRC32C(
-        String schemaText)
-    {
-        byte[] bytes = schemaText.getBytes();
-        crc32c.reset();
-        crc32c.update(bytes, 0, bytes.length);
-        return (int) crc32c.getValue();
     }
 }

@@ -112,7 +112,6 @@ public class ProtobufReadConverterHandler extends ProtobufModelHandler implement
         ValueConsumer next)
     {
         int valLength = -1;
-        boolean cacheUpdate = invalidateCacheOnSchemaUpdate(schemaId);
         DescriptorTree tree = supplyDescriptorTree(schemaId);
         if (tree != null)
         {
@@ -120,7 +119,7 @@ public class ProtobufReadConverterHandler extends ProtobufModelHandler implement
             if (descriptor != null)
             {
                 in.wrap(data, index, length);
-                DynamicMessage.Builder builder = supplyDynamicMessageBuilder(descriptor, cacheUpdate);
+                DynamicMessage.Builder builder = supplyDynamicMessageBuilder(descriptor);
                 validate:
                 try
                 {

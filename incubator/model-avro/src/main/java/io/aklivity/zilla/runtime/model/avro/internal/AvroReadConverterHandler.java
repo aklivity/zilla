@@ -125,7 +125,6 @@ public class AvroReadConverterHandler extends AvroModelHandler implements Conver
     {
         try
         {
-            invalidateCacheOnSchemaUpdate(schemaId);
             GenericDatumReader<GenericRecord> reader = supplyReader(schemaId);
             GenericDatumWriter<GenericRecord> writer = supplyWriter(schemaId);
             if (reader != null)
