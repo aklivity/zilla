@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.binding.grpc.internal.config;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
-import java.util.Set;
 import java.util.function.Function;
 
 import jakarta.json.Json;
@@ -29,19 +28,9 @@ import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import org.agrona.collections.ObjectHashSet;
-import org.antlr.v4.runtime.BailErrorStrategy;
-import org.antlr.v4.runtime.CharStream;
-import org.antlr.v4.runtime.CharStreams;
-import org.antlr.v4.runtime.CommonTokenStream;
-import org.antlr.v4.runtime.tree.ParseTreeWalker;
-
 import io.aklivity.zilla.runtime.binding.grpc.config.GrpcOptionsConfig;
 import io.aklivity.zilla.runtime.binding.grpc.config.GrpcProtobufConfig;
-import io.aklivity.zilla.runtime.binding.grpc.config.GrpcServiceConfig;
 import io.aklivity.zilla.runtime.binding.grpc.internal.GrpcBinding;
-import io.aklivity.zilla.runtime.binding.grpc.internal.parser.Protobuf3Lexer;
-import io.aklivity.zilla.runtime.binding.grpc.internal.parser.Protobuf3Parser;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
@@ -49,6 +38,9 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 public final class GrpcOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
     private static final String SERVICES_NAME = "services";
+
+    private final GrpcProtobufParser parser = new GrpcProtobufParser();
+
     private Function<String, String> readURL;
 
     @Override
@@ -111,18 +103,8 @@ public final class GrpcOptionsConfigAdapter implements OptionsConfigAdapterSpi, 
         JsonValue value)
     {
         final String location = ((JsonString) value).getString();
-        final String protoService = readURL.apply(location);
-        CharStream input = CharStreams.fromString(protoService);
-        Protobuf3Lexer lexer = new Protobuf3Lexer(input);
-        CommonTokenStream tokens = new CommonTokenStream(lexer);
+        final String protobuf = readURL.apply(location);
 
-        Protobuf3Parser parser = new Protobuf3Parser(tokens);
-        parser.setErrorHandler(new BailErrorStrategy());
-        ParseTreeWalker walker = new ParseTreeWalker();
-        Set<GrpcServiceConfig> services = new ObjectHashSet<>();
-        GrpcServiceDefinitionListener listener = new GrpcServiceDefinitionListener(services);
-        walker.walk(listener, parser.proto());
-
-        return new GrpcProtobufConfig(location, services);
+        return parser.parse(location, protobuf);
     }
 }

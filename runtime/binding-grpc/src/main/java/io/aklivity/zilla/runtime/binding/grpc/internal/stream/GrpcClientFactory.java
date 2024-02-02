@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.grpc.internal.stream;
 
+import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
 
 import org.agrona.DirectBuffer;
@@ -50,6 +51,7 @@ import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public class GrpcClientFactory implements GrpcStreamFactory
@@ -114,6 +116,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
     private final MutableDirectBuffer metadataBuffer;
     private final MutableDirectBuffer extBuffer;
     private final BindingHandler streamFactory;
+    private final LongFunction<CatalogHandler> supplyCatalog;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final int httpTypeId;
@@ -130,6 +133,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
         this.metadataBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.extBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.streamFactory = context.streamFactory();
+        this.supplyCatalog = context::supplyCatalog;
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.httpTypeId = context.supplyTypeId(HTTP_TYPE_NAME);
@@ -159,7 +163,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        GrpcBindingConfig grpcBinding = new GrpcBindingConfig(binding, metadataBuffer);
+        GrpcBindingConfig grpcBinding = new GrpcBindingConfig(binding, metadataBuffer, supplyCatalog);
         bindings.put(binding.id, grpcBinding);
     }
 

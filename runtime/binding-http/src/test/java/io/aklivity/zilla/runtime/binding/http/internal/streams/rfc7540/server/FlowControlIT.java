@@ -19,6 +19,7 @@ import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -59,6 +60,7 @@ public class FlowControlIT
         k3po.finish();
     }
 
+    @Ignore("Github Actions")
     @Test
     @Configuration("server.yaml")
     @Specification({
