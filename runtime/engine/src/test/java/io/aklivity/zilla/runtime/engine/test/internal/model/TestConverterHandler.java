@@ -43,7 +43,7 @@ public class TestConverterHandler implements ConverterHandler
         CatalogedConfig cataloged = config.cataloged != null && !config.cataloged.isEmpty()
             ? config.cataloged.get(0)
             : null;
-        schema = cataloged != null ? cataloged.schemas.stream().findFirst().get() : null;
+        schema = cataloged != null ? cataloged.schemas.get(0) : null;
         schemaId = schema != null ? schema.id : 0;
         this.handler = cataloged != null ? supplyCatalog.apply(cataloged.id) : null;
     }
