@@ -184,7 +184,6 @@ public final class GrpcBindingConfig
             .orElse(null);
     }
 
-
     private static final class HttpGrpcHeaderHelper
     {
         private static final Pattern PERIOD_PATTERN = Pattern.compile("([0-9]+)([HMSmun])");
@@ -412,7 +411,6 @@ public final class GrpcBindingConfig
         GrpcProtobufConfig protobuf;
 
         int schemaId = NO_SCHEMA_ID;
-
 
         GrpcCatalogSchema(
             CatalogHandler handler,
