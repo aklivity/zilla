@@ -80,7 +80,6 @@ public class AvroWriteConverterHandler extends AvroModelHandler implements Conve
     {
         try
         {
-            invalidateCacheOnSchemaUpdate(schemaId);
             Schema schema = supplySchema(schemaId);
             GenericDatumReader<GenericRecord> reader = supplyReader(schemaId);
             GenericDatumWriter<GenericRecord> writer = supplyWriter(schemaId);

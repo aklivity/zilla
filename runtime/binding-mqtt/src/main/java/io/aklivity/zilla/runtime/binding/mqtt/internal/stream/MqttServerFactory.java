@@ -478,6 +478,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final MqttValidator validator;
     private final CharsetDecoder utf8Decoder;
     private final ConcurrentMap<String, IntArrayList> unreleasedPacketIdsByClientId;
+    private final Function<ModelConfig, ValidatorHandler> supplyValidator;
 
     public MqttServerFactory(
         MqttConfiguration config,
@@ -525,6 +526,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         this.decodePacketTypeByVersion.put(MQTT_PROTOCOL_VERSION_4, this::decodePacketTypeV4);
         this.decodePacketTypeByVersion.put(MQTT_PROTOCOL_VERSION_5, this::decodePacketTypeV5);
         this.unreleasedPacketIdsByClientId = unreleasedPacketIdsByClientId;
+        this.supplyValidator = context::supplyValidator;
     }
 
     @Override
@@ -2392,7 +2394,6 @@ public final class MqttServerFactory implements MqttStreamFactory
         private final GuardHandler guard;
         private final Function<String, String> credentials;
         private final MqttConnectProperty authField;
-        private final Function<ModelConfig, ValidatorHandler> supplyValidator;
         private final List<MqttVersion> versions;
 
         private final OctetsFW.Builder correlationDataRW = new OctetsFW.Builder();
@@ -2505,7 +2506,6 @@ public final class MqttServerFactory implements MqttStreamFactory
             this.unAckedReceivedQos2PacketIds = new LinkedHashMap<>();
             this.qos1Subscribes = new Int2ObjectHashMap<>();
             this.qos2Subscribes = new Int2ObjectHashMap<>();
-            this.supplyValidator = context::supplyValidator;
         }
 
         private void onNetwork(

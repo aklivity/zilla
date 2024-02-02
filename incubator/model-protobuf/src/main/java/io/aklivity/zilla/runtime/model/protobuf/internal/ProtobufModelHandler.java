@@ -18,7 +18,6 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.LongFunction;
-import java.util.zip.CRC32C;
 
 import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
@@ -67,8 +66,6 @@ public class ProtobufModelHandler
     private final Object2ObjectHashMap<String, DynamicMessage.Builder> builders;
     private final FileDescriptor[] dependencies;
     private final Int2IntHashMap paddings;
-    private final Int2IntHashMap crcCache;
-    private final CRC32C crc32c;
 
     protected ProtobufModelHandler(
         ProtobufModelConfig config,
@@ -89,8 +86,6 @@ public class ProtobufModelHandler
         this.indexes = new LinkedList<>();
         this.paddings = new Int2IntHashMap(-1);
         this.out = new ExpandableDirectBufferOutputStream(new ExpandableDirectByteBuffer());
-        this.crc32c = new CRC32C();
-        this.crcCache = new Int2IntHashMap(0);
     }
 
     protected FileDescriptor supplyDescriptor(
@@ -161,11 +156,10 @@ public class ProtobufModelHandler
     }
 
     protected DynamicMessage.Builder supplyDynamicMessageBuilder(
-        Descriptors.Descriptor descriptor,
-        boolean cacheUpdate)
+        Descriptors.Descriptor descriptor)
     {
         DynamicMessage.Builder builder;
-        if (builders.containsKey(descriptor.getFullName()) && !cacheUpdate)
+        if (builders.containsKey(descriptor.getFullName()))
         {
             builder = builders.get(descriptor.getFullName());
         }
@@ -175,26 +169,6 @@ public class ProtobufModelHandler
             builders.put(descriptor.getFullName(), builder);
         }
         return builder;
-    }
-
-    protected boolean invalidateCacheOnSchemaUpdate(
-        int schemaId)
-    {
-        boolean update = false;
-        if (crcCache.containsKey(schemaId))
-        {
-            String schemaText = handler.resolve(schemaId);
-            int checkSum = generateCRC32C(schemaText);
-            if (schemaText != null && crcCache.get(schemaId) != checkSum)
-            {
-                crcCache.remove(schemaId);
-                descriptors.remove(schemaId);
-                tree.remove(schemaId);
-                paddings.remove(schemaId);
-                update = true;
-            }
-        }
-        return update;
     }
 
     private DynamicMessage.Builder createDynamicMessageBuilder(
@@ -261,7 +235,6 @@ public class ProtobufModelHandler
         String schemaText = handler.resolve(schemaId);
         if (schemaText != null)
         {
-            crcCache.put(schemaId, generateCRC32C(schemaText));
             CharStream input = CharStreams.fromString(schemaText);
             Protobuf3Lexer lexer = new Protobuf3Lexer(input);
             CommonTokenStream tokens = new CommonTokenStream(lexer);
@@ -296,14 +269,5 @@ public class ProtobufModelHandler
             tree = new DescriptorTree(descriptor);
         }
         return tree;
-    }
-
-    private int generateCRC32C(
-        String schemaText)
-    {
-        byte[] bytes = schemaText.getBytes();
-        crc32c.reset();
-        crc32c.update(bytes, 0, bytes.length);
-        return (int) crc32c.getValue();
     }
 }
