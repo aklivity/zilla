@@ -237,7 +237,6 @@ public final class GrpcBindingConfig
         public String16FW authority;
         public String16FW te;
 
-
         HttpGrpcHeaderHelper(
             MutableDirectBuffer metadataBuffer)
         {
