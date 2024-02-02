@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.config;
 
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 
 import jakarta.json.Json;
@@ -60,11 +60,11 @@ public class CatalogedAdapter implements JsonbAdapter<List<CatalogedConfig>, Jso
     public List<CatalogedConfig> adaptFromJson(
         JsonObject catalogsJson)
     {
-        List<CatalogedConfig> catalogs = new LinkedList<>();
+        List<CatalogedConfig> catalogs = new ArrayList<>();
         for (String catalogName: catalogsJson.keySet())
         {
             JsonArray schemasJson = catalogsJson.getJsonArray(catalogName);
-            List<SchemaConfig> schemas = new LinkedList<>();
+            List<SchemaConfig> schemas = new ArrayList<>();
             for (JsonValue item : schemasJson)
             {
                 JsonObject schemaJson = (JsonObject) item;
