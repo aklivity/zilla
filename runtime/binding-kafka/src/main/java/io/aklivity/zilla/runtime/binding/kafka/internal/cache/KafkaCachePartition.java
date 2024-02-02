@@ -340,13 +340,14 @@ public final class KafkaCachePartition
         int entryFlags,
         KafkaDeltaType deltaType,
         ConverterHandler convertKey,
-        ConverterHandler convertValue)
+        ConverterHandler convertValue,
+        String bindingName)
     {
         final long keyHash = computeHash(key);
         final int valueLength = value != null ? value.sizeof() : -1;
         writeEntryStart(offset, entryMark, valueMark, timestamp, producerId, key,
-            keyHash, valueLength, ancestor, entryFlags, deltaType, value, convertKey, convertValue);
-        writeEntryContinue(FLAGS_COMPLETE, entryMark, valueMark, value, convertValue);
+            keyHash, valueLength, ancestor, entryFlags, deltaType, value, convertKey, convertValue, bindingName);
+        writeEntryContinue(FLAGS_COMPLETE, offset, entryMark, valueMark, value, convertValue, bindingName);
         writeEntryFinish(headers, deltaType);
     }
 
@@ -364,7 +365,8 @@ public final class KafkaCachePartition
         KafkaDeltaType deltaType,
         OctetsFW payload,
         ConverterHandler convertKey,
-        ConverterHandler convertValue)
+        ConverterHandler convertValue,
+        String bindingName)
     {
         assert offset > this.progress : String.format("%d > %d", offset, this.progress);
         this.progress = offset;
@@ -441,7 +443,8 @@ public final class KafkaCachePartition
             if (converted == -1)
             {
                 logFile.writeInt(entryMark.value + FIELD_OFFSET_FLAGS, CACHE_ENTRY_FLAGS_ABORTED);
-                System.out.println("Invalid Key");
+                System.out.println(String.format("%s %s: Skipping invalid message on topic %s, partition %d, offset %d",
+                        System.currentTimeMillis(), bindingName, topic, id, offset));
             }
         }
         logFile.appendInt(valueLength);
@@ -465,10 +468,12 @@ public final class KafkaCachePartition
 
     public void writeEntryContinue(
         int flags,
+        long offset,
         MutableInteger entryMark,
         MutableInteger valueMark,
         OctetsFW payload,
-        ConverterHandler convertValue)
+        ConverterHandler convertValue,
+        String bindingName)
     {
         final Node head = sentinel.previous;
         assert head != sentinel;
@@ -510,7 +515,8 @@ public final class KafkaCachePartition
                 if (converted == -1)
                 {
                     logFile.writeInt(entryMark.value + FIELD_OFFSET_FLAGS, CACHE_ENTRY_FLAGS_ABORTED);
-                    System.out.println("Invalid Value");
+                    System.out.println(String.format("%s %s: Skipping invalid message on topic %s, partition %d, offset %d",
+                        System.currentTimeMillis(), bindingName, topic, id, offset));
                 }
             }
         }
