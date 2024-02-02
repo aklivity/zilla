@@ -433,7 +433,8 @@ local fields = {
     mqtt_ext_topic_length = ProtoField.int16("zilla.mqtt_ext.topic_length", "Length", base.DEC),
     mqtt_ext_topic = ProtoField.string("zilla.mqtt_ext.topic", "Topic", base.NONE),
     mqtt_ext_expiry = ProtoField.int32("zilla.mqtt_ext.expiry", "Expiry", base.DEC),
-    mqtt_ext_qos_max = ProtoField.uint16("zilla.mqtt_ext.qos_max", "QoS Maximum", base.DEC),
+    mqtt_ext_subscribe_qos_max = ProtoField.uint16("zilla.mqtt_ext.subscribe_qos_max", "Subscribe QoS Maximum", base.DEC),
+    mqtt_ext_publish_qos_max = ProtoField.uint16("zilla.mqtt_ext.publish_qos_max", "Publish QoS Maximum", base.DEC),
     mqtt_ext_packet_size_max = ProtoField.uint32("zilla.mqtt_ext.packet_size_max", "Packet Size Maximum", base.DEC),
     --     capabilities
     mqtt_ext_capabilities = ProtoField.uint8("zilla.mqtt_ext.capabilities", "Capabilities", base.HEX),
@@ -1724,13 +1725,18 @@ function handle_mqtt_begin_session_extension(buffer, offset, ext_subtree)
     local expiry_length = 4
     local slice_expiry = buffer(expiry_offset, expiry_length)
     ext_subtree:add_le(fields.mqtt_ext_expiry, slice_expiry)
-    -- qos_max
-    local qos_max_offset = expiry_offset + expiry_length
-    local qos_max_length = 2
-    local slice_qos_max = buffer(qos_max_offset, qos_max_length)
-    ext_subtree:add_le(fields.mqtt_ext_qos_max, slice_qos_max)
+    -- subscribe_qos_max
+    local subscribe_qos_max_offset = expiry_offset + expiry_length
+    local subscribe_qos_max_length = 2
+    local slice_subscribe_qos_max = buffer(subscribe_qos_max_offset, subscribe_qos_max_length)
+    ext_subtree:add_le(fields.mqtt_ext_subscribe_qos_max, slice_subscribe_qos_max)
+    -- publish_qos_max
+    local publish_qos_max_offset = subscribe_qos_max_offset + subscribe_qos_max_length
+    local publish_qos_max_length = 2
+    local slice_publish_qos_max = buffer(publish_qos_max_offset, publish_qos_max_length)
+    ext_subtree:add_le(fields.mqtt_ext_publish_qos_max, slice_publish_qos_max)
     -- packet_size_max
-    local packet_size_max_offset = qos_max_offset + qos_max_length
+    local packet_size_max_offset = publish_qos_max_offset + publish_qos_max_length
     local packet_size_max_length = 4
     local slice_packet_size_max = buffer(packet_size_max_offset, packet_size_max_length)
     ext_subtree:add_le(fields.mqtt_ext_packet_size_max, slice_packet_size_max)
