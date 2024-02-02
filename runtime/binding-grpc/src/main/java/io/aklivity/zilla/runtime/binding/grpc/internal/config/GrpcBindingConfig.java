@@ -161,7 +161,6 @@ public final class GrpcBindingConfig
         return resolveMethod(catalogs.stream().map(GrpcCatalogSchema::resolveProtobuf), serviceName, methodName);
     }
 
-
     private GrpcMethodConfig resolveMethod(
         List<GrpcProtobufConfig> protobufs,
         CharSequence serviceName,
