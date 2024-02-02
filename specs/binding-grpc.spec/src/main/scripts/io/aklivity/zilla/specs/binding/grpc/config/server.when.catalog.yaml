@@ -19,6 +19,7 @@ catalogs:
   catalog0:
     type: test
     options:
+      id: 1
       subject: echo
       schema: |
         syntax = "proto3";

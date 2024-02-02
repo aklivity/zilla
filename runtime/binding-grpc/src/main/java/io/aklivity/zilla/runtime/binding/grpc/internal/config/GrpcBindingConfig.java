@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.grpc.internal.config;
 
 import static io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcType.BASE64;
 import static io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcType.TEXT;
+import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
 
@@ -64,11 +65,11 @@ public final class GrpcBindingConfig
     private static final byte[] GRPC_PREFIX = "grpc-".getBytes();
     private static final byte[] BIN_SUFFIX = "-bin".getBytes();
 
-    public final List<GrpcRouteConfig> routes;
     public final long id;
     public final String name;
     public final KindConfig kind;
     public final GrpcOptionsConfig options;
+    public final List<GrpcRouteConfig> routes;
 
     private final GrpcProtobufParser parser;
     private final HttpGrpcHeaderHelper helper;
@@ -86,8 +87,7 @@ public final class GrpcBindingConfig
         this.routes = binding.routes.stream().map(GrpcRouteConfig::new).collect(toList());
         this.parser = new GrpcProtobufParser();
         this.helper = new HttpGrpcHeaderHelper(metadataBuffer);
-        this.catalogs = new ObjectHashSet<>();
-
+        Set<GrpcCatalogSchema> catalogs = new ObjectHashSet<>();
         for (CatalogedConfig catalog : binding.catalogs)
         {
             CatalogHandler handler = supplyCatalog.apply(catalog.id);
@@ -96,6 +96,7 @@ public final class GrpcBindingConfig
                 catalogs.add(new GrpcCatalogSchema(handler, schema.subject, schema.version));
             }
         }
+        this.catalogs = catalogs;
     }
 
     public GrpcRouteConfig resolve(
@@ -127,11 +128,6 @@ public final class GrpcBindingConfig
             final CharSequence serviceName = serviceNameHeader != null ? serviceNameHeader : matcher.group(SERVICE_NAME);
             final String methodName = matcher.group(METHOD);
 
-            for (GrpcCatalogSchema catalog : catalogs)
-            {
-                catalog.resolveProtobuf();
-            }
-
             GrpcMethodConfig method = resolveMethod(catalogs, serviceName, methodName);
 
             if (method == null && options != null)
@@ -162,7 +158,7 @@ public final class GrpcBindingConfig
         CharSequence serviceName,
         String methodName)
     {
-        return resolveMethod(catalogs.stream().map(c -> c.protobuf), serviceName, methodName);
+        return resolveMethod(catalogs.stream().map(GrpcCatalogSchema::resolveProtobuf), serviceName, methodName);
     }
 
 
@@ -415,7 +411,7 @@ public final class GrpcBindingConfig
 
         GrpcProtobufConfig protobuf;
 
-        int schemaId = -1;
+        int schemaId = NO_SCHEMA_ID;
 
 
         GrpcCatalogSchema(
@@ -428,7 +424,7 @@ public final class GrpcBindingConfig
             this.version = version;
         }
 
-        private void resolveProtobuf()
+        private GrpcProtobufConfig resolveProtobuf()
         {
             final int newSchemaId = handler.resolve(subject, version);
 
@@ -438,6 +434,8 @@ public final class GrpcBindingConfig
                 String schema = handler.resolve(schemaId);
                 protobuf = parser.parse(null, schema);
             }
+
+            return protobuf;
         }
     }
 }
