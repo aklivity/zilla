@@ -40,8 +40,8 @@ public class CatalogedConfigTest
         CatalogedConfig cataloged = new CatalogedConfig("test", schemas);
 
         assertThat(cataloged.name, equalTo("test"));
-        assertThat(cataloged.schemas.stream().findFirst().get().strategy, equalTo("strategy"));
-        assertThat(cataloged.schemas.stream().findFirst().get().version, equalTo("version"));
-        assertThat(cataloged.schemas.stream().findFirst().get().id, equalTo(42));
+        assertThat(cataloged.schemas.get(0).strategy, equalTo("strategy"));
+        assertThat(cataloged.schemas.get(0).version, equalTo("version"));
+        assertThat(cataloged.schemas.get(0).id, equalTo(42));
     }
 }
