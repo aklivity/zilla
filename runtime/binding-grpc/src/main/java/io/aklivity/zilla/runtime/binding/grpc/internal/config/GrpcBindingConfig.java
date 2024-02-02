@@ -72,7 +72,7 @@ public final class GrpcBindingConfig
 
     private final GrpcProtobufParser parser;
     private final HttpGrpcHeaderHelper helper;
-    private final ObjectHashSet<GrpcCatalogSchema> catalogs;
+    private final Set<GrpcCatalogSchema> catalogs;
 
     public GrpcBindingConfig(
         BindingConfig binding,
@@ -132,12 +132,11 @@ public final class GrpcBindingConfig
                 catalog.resolveProtobuf();
             }
 
-            final Stream<GrpcProtobufConfig> objectStream = catalogs.stream().map(c -> c.protobuf);
-            GrpcMethodConfig method = resolveMethod(objectStream, serviceName, methodName);
+            GrpcMethodConfig method = resolveMethod(catalogs, serviceName, methodName);
 
             if (method == null && options != null)
             {
-                method = resolveMethod(options.protobufs.stream(), serviceName, methodName);
+                method = resolveMethod(options.protobufs, serviceName, methodName);
             }
 
             if (method != null)
@@ -156,6 +155,23 @@ public final class GrpcBindingConfig
         }
 
         return methodResolver;
+    }
+
+    private GrpcMethodConfig resolveMethod(
+        Set<GrpcCatalogSchema> catalogs,
+        CharSequence serviceName,
+        String methodName)
+    {
+        return resolveMethod(catalogs.stream().map(c -> c.protobuf), serviceName, methodName);
+    }
+
+
+    private GrpcMethodConfig resolveMethod(
+        List<GrpcProtobufConfig> protobufs,
+        CharSequence serviceName,
+        String methodName)
+    {
+        return resolveMethod(protobufs.stream(), serviceName, methodName);
     }
 
     private GrpcMethodConfig resolveMethod(
@@ -399,7 +415,7 @@ public final class GrpcBindingConfig
 
         GrpcProtobufConfig protobuf;
 
-        int schemaId = -1;
+        int schemaId;
 
 
         GrpcCatalogSchema(
