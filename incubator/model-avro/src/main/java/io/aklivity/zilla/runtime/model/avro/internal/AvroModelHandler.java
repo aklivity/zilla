@@ -81,7 +81,7 @@ public abstract class AvroModelHandler
         this.encoder = encoderFactory.binaryEncoder(EMPTY_OUTPUT_STREAM, null);
         CatalogedConfig cataloged = config.cataloged.get(0);
         this.handler = supplyCatalog.apply(cataloged.id);
-        this.catalog = cataloged.schemas.size() != 0 ? cataloged.schemas.stream().findFirst().get() : null;
+        this.catalog = cataloged.schemas.size() != 0 ? cataloged.schemas.get(0) : null;
         this.view = config.view;
         this.subject = catalog != null && catalog.subject != null
                 ? catalog.subject

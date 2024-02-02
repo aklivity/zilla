@@ -20,7 +20,6 @@ import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
 
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -32,13 +31,12 @@ import java.util.function.Consumer;
 import java.util.function.LongFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import org.agrona.AsciiSequenceView;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
-import org.agrona.collections.Int2IntHashMap;
-import org.agrona.collections.Int2ObjectHashMap;
-import org.agrona.collections.Long2ObjectHashMap;
+import org.agrona.collections.ObjectHashSet;
 
 import io.aklivity.zilla.runtime.binding.grpc.config.GrpcMethodConfig;
 import io.aklivity.zilla.runtime.binding.grpc.config.GrpcOptionsConfig;
@@ -74,10 +72,7 @@ public final class GrpcBindingConfig
 
     private final GrpcProtobufParser parser;
     private final HttpGrpcHeaderHelper helper;
-    private final Long2ObjectHashMap<CatalogHandler> handlersById;
-    private final Int2ObjectHashMap<GrpcProtobufConfig> protobufsBySchemaId;
-    private final List<CatalogedConfig> catalogs;
-    private final Int2IntHashMap schemaIds;
+    private final ObjectHashSet<GrpcCatalogSchema> catalogs;
 
     public GrpcBindingConfig(
         BindingConfig binding,
@@ -91,16 +86,14 @@ public final class GrpcBindingConfig
         this.routes = binding.routes.stream().map(GrpcRouteConfig::new).collect(toList());
         this.parser = new GrpcProtobufParser();
         this.helper = new HttpGrpcHeaderHelper(metadataBuffer);
-        this.schemaIds = new Int2IntHashMap(-1);
-        this.handlersById = new Long2ObjectHashMap<>();
-        this.protobufsBySchemaId = new Int2ObjectHashMap<>();
-        this.catalogs = binding.catalogs != null ? binding.catalogs : List.of();
-        for (CatalogedConfig catalog : this.catalogs)
+        this.catalogs = new ObjectHashSet<>();
+
+        for (CatalogedConfig catalog : binding.catalogs)
         {
             CatalogHandler handler = supplyCatalog.apply(catalog.id);
-            if (handler != null)
+            for (SchemaConfig schema : catalog.schemas)
             {
-                handlersById.put(catalog.id, supplyCatalog.apply(catalog.id));
+                catalogs.add(new GrpcCatalogSchema(handler, schema.subject, schema.version));
             }
         }
     }
@@ -134,12 +127,17 @@ public final class GrpcBindingConfig
             final CharSequence serviceName = serviceNameHeader != null ? serviceNameHeader : matcher.group(SERVICE_NAME);
             final String methodName = matcher.group(METHOD);
 
-            final Collection<GrpcProtobufConfig> protobufs = resolveProtobufs();
-            GrpcMethodConfig method = resolveMethod(protobufs, serviceName, methodName);
+            for (GrpcCatalogSchema catalog : catalogs)
+            {
+                catalog.resolveProtobuf();
+            }
+
+            final Stream<GrpcProtobufConfig> objectStream = catalogs.stream().map(c -> c.protobuf);
+            GrpcMethodConfig method = resolveMethod(objectStream, serviceName, methodName);
 
             if (method == null && options != null)
             {
-                method = resolveMethod(options.protobufs, serviceName, methodName);
+                method = resolveMethod(options.protobufs.stream(), serviceName, methodName);
             }
 
             if (method != null)
@@ -161,11 +159,11 @@ public final class GrpcBindingConfig
     }
 
     private GrpcMethodConfig resolveMethod(
-        Collection<GrpcProtobufConfig> protobufs,
+        Stream<GrpcProtobufConfig> protobufs,
         CharSequence serviceName,
         String methodName)
     {
-        return protobufs.stream()
+        return protobufs
             .map(p -> p.services.stream().filter(s -> s.service.equals(serviceName)).findFirst().orElse(null))
             .filter(Objects::nonNull)
             .map(s -> s.methods.stream().filter(m -> m.method.equals(methodName)).findFirst().orElse(null))
@@ -174,37 +172,6 @@ public final class GrpcBindingConfig
             .orElse(null);
     }
 
-    private Collection<GrpcProtobufConfig> resolveProtobufs()
-    {
-        for (int i = 0; i < catalogs.size(); i++)
-        {
-            CatalogedConfig catalog = catalogs.get(0);
-
-            List<SchemaConfig> schemas = catalog.schemas;
-            for (int j = 0; j < schemas.size(); j++)
-            {
-                SchemaConfig catalogSchema = schemas.get(j);
-                final CatalogHandler handler = handlersById.get(catalog.id);
-
-                if (handler != null)
-                {
-                    final int catalogSchemaId = catalogSchema.id;
-                    final int schemaId = schemaIds.get(catalogSchemaId);
-                    final int newSchemaId = handler.resolve(catalogSchema.subject, catalogSchema.version);
-
-                    if (schemaId != newSchemaId)
-                    {
-                        schemaIds.put(catalogSchemaId, newSchemaId);
-                        String schema = handler.resolve(newSchemaId);
-                        GrpcProtobufConfig protobufConfig = parser.parse(null, schema);
-                        protobufsBySchemaId.put(catalogSchemaId, protobufConfig);
-                    }
-                }
-            }
-        }
-
-        return protobufsBySchemaId.values();
-    }
 
     private static final class HttpGrpcHeaderHelper
     {
@@ -421,6 +388,40 @@ public final class GrpcBindingConfig
                 }
             }
             return milliseconds;
+        }
+    }
+
+    final class GrpcCatalogSchema
+    {
+        final CatalogHandler handler;
+        final String subject;
+        final String version;
+
+        GrpcProtobufConfig protobuf;
+
+        int schemaId = -1;
+
+
+        GrpcCatalogSchema(
+            CatalogHandler handler,
+            String subject,
+            String version)
+        {
+            this.handler = handler;
+            this.subject = subject;
+            this.version = version;
+        }
+
+        private void resolveProtobuf()
+        {
+            final int newSchemaId = handler.resolve(subject, version);
+
+            if (schemaId != newSchemaId)
+            {
+                schemaId = newSchemaId;
+                String schema = handler.resolve(schemaId);
+                protobuf = parser.parse(null, schema);
+            }
         }
     }
 }

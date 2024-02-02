@@ -76,7 +76,7 @@ public class ProtobufModelHandler
     {
         CatalogedConfig cataloged = config.cataloged.get(0);
         this.handler = supplyCatalog.apply(cataloged.id);
-        this.catalog = cataloged.schemas.size() != 0 ? cataloged.schemas.stream().findFirst().get() : null;
+        this.catalog = cataloged.schemas.size() != 0 ? cataloged.schemas.get(0) : null;
         this.subject = catalog != null && catalog.subject != null
                 ? catalog.subject
                 : config.subject;

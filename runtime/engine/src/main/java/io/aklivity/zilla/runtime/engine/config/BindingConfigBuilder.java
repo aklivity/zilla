@@ -25,6 +25,7 @@ import java.util.function.Function;
 public final class BindingConfigBuilder<T> extends ConfigBuilder<T, BindingConfigBuilder<T>>
 {
     public static final List<RouteConfig> ROUTES_DEFAULT = emptyList();
+    public static final List<CatalogedConfig> CATALOGS_DEFAULT = emptyList();
     public static final List<NamespaceConfig> COMPOSITES_DEFAULT = emptyList();
 
     private final Function<BindingConfig, T> mapper;
@@ -221,7 +222,7 @@ public final class BindingConfigBuilder<T> extends ConfigBuilder<T, BindingConfi
             entry,
             vault,
             options,
-            catalogs,
+            Optional.ofNullable(catalogs).orElse(CATALOGS_DEFAULT),
             Optional.ofNullable(routes).orElse(ROUTES_DEFAULT),
             telemetryRef,
             Optional.ofNullable(composites).orElse(COMPOSITES_DEFAULT)));
