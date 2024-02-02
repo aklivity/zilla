@@ -415,7 +415,7 @@ public final class GrpcBindingConfig
 
         GrpcProtobufConfig protobuf;
 
-        int schemaId;
+        int schemaId = -1;
 
 
         GrpcCatalogSchema(
