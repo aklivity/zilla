@@ -15,29 +15,28 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal;
 
-import io.aklivity.zilla.runtime.binding.amqp.internal.stream.AmqpServerFactory;
-import io.aklivity.zilla.runtime.binding.amqp.internal.stream.AmqpStreamFactory;
+import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
+
+import java.util.EnumMap;
+import java.util.Map;
+
+import io.aklivity.zilla.runtime.binding.openapi.internal.stream.OpenapiStreamFactory;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
-import java.util.EnumMap;
-import java.util.Map;
-
-import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
-
 final class OpenapiBindingContext implements BindingContext
 {
-    private final Map<KindConfig, AmqpStreamFactory> factories;
+    private final Map<KindConfig, OpenapiStreamFactory> factories;
 
     OpenapiBindingContext(
         OpenapiConfiguration config,
         EngineContext context)
     {
-        Map<KindConfig, AmqpStreamFactory> factories = new EnumMap<>(KindConfig.class);
-        factories.put(SERVER, new AmqpServerFactory(config, context));
+        Map<KindConfig, OpenapiStreamFactory> factories = new EnumMap<>(KindConfig.class);
+        factories.put(SERVER, new OpenapiServerFactory(config, context));
         this.factories = factories;
     }
 
@@ -45,7 +44,7 @@ final class OpenapiBindingContext implements BindingContext
     public BindingHandler attach(
         BindingConfig binding)
     {
-        AmqpStreamFactory factory = factories.get(binding.kind);
+        OpenapiStreamFactory factory = factories.get(binding.kind);
 
         if (factory != null)
         {
@@ -59,7 +58,7 @@ final class OpenapiBindingContext implements BindingContext
     public void detach(
         BindingConfig binding)
     {
-        AmqpStreamFactory factory = factories.get(binding.kind);
+        OpenapiStreamFactory factory = factories.get(binding.kind);
 
         if (factory != null)
         {

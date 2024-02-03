@@ -20,10 +20,9 @@ scope openapi
     {
         struct OpenapiBeginEx extends core::stream::Extension
         {
-            string8 address;
-            AmqpCapabilities capabilities = SEND_AND_RECEIVE;
-            AmqpSenderSettleMode senderSettleMode;
-            AmqpReceiverSettleMode receiverSettleMode;
+            string16 operationId;
+            varint32 httpExLen;
+            octets[valueLen] httpEx;
         }
 
     }

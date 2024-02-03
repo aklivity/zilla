@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-open module io.aklivity.zilla.specs.binding.amqp
+open module io.aklivity.zilla.specs.binding.openapi
 {
     requires transitive io.aklivity.zilla.specs.engine;
 }

@@ -46,8 +46,6 @@ public abstract class ConfigGenerator
     );
     protected final Matcher jsonContentType = JSON_CONTENT_TYPE.matcher("");
 
-    public abstract String generate();
-
     protected static String writeSchemaYaml(
         Jsonb jsonb,
         YAMLMapper yaml,
