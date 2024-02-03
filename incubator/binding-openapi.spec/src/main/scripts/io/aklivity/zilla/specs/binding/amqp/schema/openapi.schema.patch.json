@@ -1,0 +1,66 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/binding/properties/type/enum/-",
+        "value": "openapi"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/binding/allOf/-",
+        "value":
+        {
+            "if":
+            {
+               "properties":
+                {
+                    "type":
+                    {
+                        "const": "openapi"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "openapi"
+                    },
+                    "kind":
+                    {
+                        "enum": [ "client", "server" ]
+                    },
+                    "vault": false,
+                    "options":
+                    {
+                        "properties":
+                        {
+                            "specs":
+                            {
+                                "title": "Specs",
+                                "type": "array",
+                                "items":
+                                {
+                                    "title": "Specs",
+                                    "type": "string"
+                                }
+                            }
+                        },
+                        "additionalProperties": false
+                    },
+                    "routes": false
+                },
+                "anyOf":
+                [
+                    {
+                        "required":
+                        [
+                            "exit"
+                        ]
+                    }
+                ]
+            }
+        }
+    }
+]

@@ -18,6 +18,7 @@
 
   <modules>
     <module>binding-amqp.spec</module>
+    <module>binding-openapi.spec</module>
     <module>catalog-inline.spec</module>
     <module>catalog-schema-registry.spec</module>
     <module>exporter-otlp.spec</module>
@@ -26,6 +27,7 @@
     <module>model-json.spec</module>
     <module>model-protobuf.spec</module>
 
+    <module>binding-openapi</module>
     <module>binding-amqp</module>
 
     <module>catalog-inline</module>
