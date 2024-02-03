@@ -158,6 +158,8 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
     private final Function<String, KafkaCache> supplyCache;
     private final LongFunction<KafkaCacheRoute> supplyCacheRoute;
     private final int reconnectDelay;
+    private final EngineContext context;
+    private final boolean verbose;
 
     public KafkaCacheServerFetchFactory(
         KafkaConfiguration config,
@@ -166,6 +168,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
         Function<String, KafkaCache> supplyCache,
         LongFunction<KafkaCacheRoute> supplyCacheRoute)
     {
+        this.context = context;
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
@@ -181,6 +184,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
         this.supplyCache = supplyCache;
         this.supplyCacheRoute = supplyCacheRoute;
         this.reconnectDelay = config.cacheServerReconnect();
+        this.verbose = config.verbose();
     }
 
     @Override
@@ -235,10 +239,9 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 final KafkaCachePartition partition = cacheTopic.supplyFetchPartition(partitionId);
                 final ConverterHandler convertKey = binding.resolveKeyReader(topicName);
                 final ConverterHandler convertValue = binding.resolveValueReader(topicName);
-                final String bindingName = binding.name;
                 final KafkaCacheServerFetchFanout newFanout =
                     new KafkaCacheServerFetchFanout(routedId, resolvedId, authorization,
-                        affinity, partition, routeDeltaType, defaultOffset, convertKey, convertValue, bindingName);
+                        affinity, partition, routeDeltaType, defaultOffset, convertKey, convertValue);
 
                 cacheRoute.serverFetchFanoutsByTopicPartition.put(partitionKey, newFanout);
                 fanout = newFanout;
@@ -479,7 +482,6 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
         private final ConverterHandler convertValue;
         private final MutableInteger entryMark;
         private final MutableInteger valueMark;
-        private final String bindingName;
 
         private long leaderId;
         private long initialId;
@@ -515,8 +517,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
             KafkaDeltaType deltaType,
             KafkaOffsetType defaultOffset,
             ConverterHandler convertKey,
-            ConverterHandler convertValue,
-            String bindingName)
+            ConverterHandler convertValue)
         {
             this.originId = originId;
             this.routedId = routedId;
@@ -531,7 +532,6 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
             this.convertValue = convertValue;
             this.entryMark = new MutableInteger(0);
             this.valueMark = new MutableInteger(0);
-            this.bindingName = bindingName;
         }
 
         private void onServerFanoutMemberOpening(
@@ -775,9 +775,9 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                     entryFlags |= CACHE_ENTRY_FLAGS_ABORTED;
                 }
 
-                partition.writeEntry(partitionOffset, entryMark, valueMark, 0L, producerId,
+                partition.writeEntry(context, routedId, partitionOffset, entryMark, valueMark, 0L, producerId,
                         EMPTY_KEY, EMPTY_HEADERS, EMPTY_OCTETS, null,
-                        entryFlags, KafkaDeltaType.NONE, convertKey, convertValue, bindingName);
+                        entryFlags, KafkaDeltaType.NONE, convertKey, convertValue, verbose);
 
                 if (result == KafkaTransactionResult.ABORT)
                 {
@@ -880,14 +880,14 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 final int entryFlags = (flags & FLAGS_SKIP) != 0x00 ? CACHE_ENTRY_FLAGS_ABORTED : 0x00;
                 final long keyHash = partition.computeKeyHash(key);
                 final KafkaCacheEntryFW ancestor = findAndMarkAncestor(key, nextHead, (int) keyHash, partitionOffset);
-                partition.writeEntryStart(partitionOffset, entryMark, valueMark, timestamp, producerId, key, keyHash,
-                    valueLength, ancestor, entryFlags, deltaType, valueFragment, convertKey, convertValue, bindingName);
+                partition.writeEntryStart(context, routedId, partitionOffset, entryMark, valueMark, timestamp, producerId,
+                    key, keyHash, valueLength, ancestor, entryFlags, deltaType, valueFragment, convertKey, convertValue, verbose);
             }
 
             if (valueFragment != null)
             {
-                partition.writeEntryContinue(flags, partitionOffset, entryMark, valueMark,
-                    valueFragment, convertValue, bindingName);
+                partition.writeEntryContinue(context, routedId, flags, partitionOffset, entryMark, valueMark,
+                    valueFragment, convertValue, verbose);
             }
 
             if ((flags & FLAGS_FIN) != 0x00)

@@ -73,6 +73,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Varint32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheDeltaFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 
@@ -328,6 +329,8 @@ public final class KafkaCachePartition
     }
 
     public void writeEntry(
+        EngineContext context,
+        long bindingId,
         long offset,
         MutableInteger entryMark,
         MutableInteger valueMark,
@@ -341,17 +344,19 @@ public final class KafkaCachePartition
         KafkaDeltaType deltaType,
         ConverterHandler convertKey,
         ConverterHandler convertValue,
-        String bindingName)
+        boolean verbose)
     {
         final long keyHash = computeHash(key);
         final int valueLength = value != null ? value.sizeof() : -1;
-        writeEntryStart(offset, entryMark, valueMark, timestamp, producerId, key,
-            keyHash, valueLength, ancestor, entryFlags, deltaType, value, convertKey, convertValue, bindingName);
-        writeEntryContinue(FLAGS_COMPLETE, offset, entryMark, valueMark, value, convertValue, bindingName);
+        writeEntryStart(context, bindingId, offset, entryMark, valueMark, timestamp, producerId, key,
+            keyHash, valueLength, ancestor, entryFlags, deltaType, value, convertKey, convertValue, verbose);
+        writeEntryContinue(context, bindingId, FLAGS_COMPLETE, offset, entryMark, valueMark, value, convertValue, verbose);
         writeEntryFinish(headers, deltaType);
     }
 
     public void writeEntryStart(
+        EngineContext context,
+        long bindingId,
         long offset,
         MutableInteger entryMark,
         MutableInteger valueMark,
@@ -366,7 +371,7 @@ public final class KafkaCachePartition
         OctetsFW payload,
         ConverterHandler convertKey,
         ConverterHandler convertValue,
-        String bindingName)
+        boolean verbose)
     {
         assert offset > this.progress : String.format("%d > %d", offset, this.progress);
         this.progress = offset;
@@ -443,8 +448,12 @@ public final class KafkaCachePartition
             if (converted == -1)
             {
                 logFile.writeInt(entryMark.value + FIELD_OFFSET_FLAGS, CACHE_ENTRY_FLAGS_ABORTED);
-                System.out.println(String.format("%s %s: Skipping invalid message on topic %s, partition %d, offset %d",
-                        System.currentTimeMillis(), bindingName, topic, id, offset));
+                if (verbose)
+                {
+                    System.out.printf("%s:%s %s: Skipping invalid message on topic %s, partition %d, offset %d\n",
+                        System.currentTimeMillis(), context.supplyNamespace(bindingId),
+                        context.supplyLocalName(bindingId), topic, id, offset);
+                }
             }
         }
         logFile.appendInt(valueLength);
@@ -467,13 +476,15 @@ public final class KafkaCachePartition
     }
 
     public void writeEntryContinue(
+        EngineContext context,
+        long bindingId,
         int flags,
         long offset,
         MutableInteger entryMark,
         MutableInteger valueMark,
         OctetsFW payload,
         ConverterHandler convertValue,
-        String bindingName)
+        boolean verbose)
     {
         final Node head = sentinel.previous;
         assert head != sentinel;
@@ -515,8 +526,12 @@ public final class KafkaCachePartition
                 if (converted == -1)
                 {
                     logFile.writeInt(entryMark.value + FIELD_OFFSET_FLAGS, CACHE_ENTRY_FLAGS_ABORTED);
-                    System.out.println(String.format("%s %s: Skipping invalid message on topic %s, partition %d, offset %d",
-                        System.currentTimeMillis(), bindingName, topic, id, offset));
+                    if (verbose)
+                    {
+                        System.out.printf("%s:%s %s: Skipping invalid message on topic %s, partition %d, offset %d\n",
+                            System.currentTimeMillis(), context.supplyNamespace(bindingId),
+                            context.supplyLocalName(bindingId), topic, id, offset);
+                    }
                 }
             }
         }
