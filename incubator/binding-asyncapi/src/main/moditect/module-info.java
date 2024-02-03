@@ -26,4 +26,10 @@ module io.aklivity.zilla.runtime.command.generate
 
     provides io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi
         with io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiConditionConfigAdapter;
+
+    provides io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi
+        with io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiOptionsConfigAdapter;
+
+    provides io.aklivity.zilla.runtime.engine.config.CompositeBindingAdapterSpi
+        with io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiCompositeBindingAdapter;
 }

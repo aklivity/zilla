@@ -60,22 +60,6 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
         BindingConfig binding)
     {
         AsyncapiBindingConfig asyncapiBinding = new AsyncapiBindingConfig(binding);
-        final AsyncapiOptionsConfig options = asyncapiBinding.options;
-        options.specs.forEach(spec ->
-        {
-            final URI resolved = asyncapiRoot.resolve(spec.getPath());
-            try (InputStream input = new FileInputStream(resolved.getPath()))
-            {
-                AsyncApiMqttProxyConfigGenerator generator = new AsyncApiMqttProxyConfigGenerator(input);
-                EngineConfig config = generator.createConfig();
-                binding.composites.addAll(config.namespaces);
-            }
-            catch (IOException e)
-            {
-                e.printStackTrace();
-                rethrowUnchecked(e);
-            }
-        });
         bindings.put(binding.id, asyncapiBinding);
     }
 

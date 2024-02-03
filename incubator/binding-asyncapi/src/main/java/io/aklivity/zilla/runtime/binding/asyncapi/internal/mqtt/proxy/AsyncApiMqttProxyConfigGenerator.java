@@ -51,29 +51,26 @@ import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig
 
 public class AsyncApiMqttProxyConfigGenerator extends AsyncApiConfigGenerator
 {
-    private final InputStream input;
-
-    private int[] allPorts;
-    private int[] mqttPorts;
-    private int[] mqttsPorts;
-    private boolean isPlainEnabled;
-    private boolean isTlsEnabled;
+    private final boolean isPlainEnabled;
+    private final boolean isTlsEnabled;
+    private final int[] allPorts;
+    private final int[] mqttPorts;
+    private final int[] mqttsPorts;
 
     public AsyncApiMqttProxyConfigGenerator(
         InputStream input)
     {
-        this.input = input;
         this.asyncApi = parseAsyncApi(input);
         this.allPorts = resolveAllPorts();
         this.mqttPorts = resolvePortsForScheme("mqtt");
         this.mqttsPorts = resolvePortsForScheme("mqtts");
+        this.isPlainEnabled = mqttPorts != null;
+        this.isTlsEnabled = mqttsPorts != null;
     }
 
     @Override
     public String generate()
     {
-        this.isPlainEnabled = mqttPorts != null;
-        this.isTlsEnabled = mqttsPorts != null;
         EngineConfigWriter configWriter = new EngineConfigWriter(null);
         String yaml = configWriter.write(createConfig(), createEnvVarsPatch());
         return unquoteEnvVars(yaml, unquotedEnvVars());
@@ -135,6 +132,61 @@ public class AsyncApiMqttProxyConfigGenerator extends AsyncApiConfigGenerator
             }
         }
         return result;
+    }
+
+    public EngineConfig createServerConfig(
+        String name)
+    {
+        return EngineConfig.builder()
+                .namespace()
+                    .name(name)
+                    .binding()
+                        .name("tcp_server0")
+                        .type("tcp")
+                        .kind(SERVER)
+                        .options(TcpOptionsConfig::builder)
+                            .host("0.0.0.0")
+                            .ports(allPorts)
+                            .build()
+                        .inject(this::injectPlainTcpRoute)
+                        .inject(this::injectTlsTcpRoute)
+                        .build()
+                    .inject(this::injectTlsServer)
+                    .binding()
+                        .name("mqtt_server0")
+                        .type("mqtt")
+                        .kind(SERVER)
+                        .inject(this::injectMqttServerOptions)
+                        .inject(this::injectMqttServerRoutes)
+                    .build()
+                .build()
+            .build();
+    }
+
+    public EngineConfig createClientConfig(
+        String name)
+    {
+        return EngineConfig.builder()
+            .namespace()
+                .name(name)
+                .binding()
+                    .name("mqtt_client0")
+                    .type("mqtt")
+                    .kind(CLIENT)
+                    .exit(isTlsEnabled ? "tls_client0" : "tcp_client0")
+                    .build()
+                .inject(this::injectTlsClient)
+                .binding()
+                    .name("tcp_client0")
+                    .type("tcp")
+                    .kind(CLIENT)
+                    .options(TcpOptionsConfig::builder)
+                        .host("${{env.TCP_CLIENT_HOST}}") // env
+                        .ports(new int[]{0}) // env
+                        .build()
+                    .build()
+                .build()
+            .build();
     }
 
     public EngineConfig createConfig()
@@ -336,7 +388,7 @@ public class AsyncApiMqttProxyConfigGenerator extends AsyncApiConfigGenerator
         return namespace;
     }
 
-    private <C> NamespaceConfigBuilder<C> injectVaults(
+    public <C> NamespaceConfigBuilder<C> injectVaults(
         NamespaceConfigBuilder<C> namespace)
     {
         if (isTlsEnabled)
