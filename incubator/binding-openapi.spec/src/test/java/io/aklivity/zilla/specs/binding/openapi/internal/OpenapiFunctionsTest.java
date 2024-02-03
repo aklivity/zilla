@@ -32,7 +32,6 @@ import org.kaazing.k3po.lang.internal.el.ExpressionContext;
 import io.aklivity.zilla.specs.binding.openapi.OpenapiFunctions;
 import io.aklivity.zilla.specs.binding.openapi.internal.types.stream.OpenapiBeginExFW;
 
-
 public class OpenapiFunctionsTest
 {
     @Test

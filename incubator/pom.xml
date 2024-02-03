@@ -28,6 +28,7 @@
     <module>model-json.spec</module>
     <module>model-protobuf.spec</module>
 
+    <module>binding-openapi</module>
     <module>binding-amqp</module>
     <module>binding-asyncapi</module>
     <module>binding-openapi</module>

@@ -39,8 +39,8 @@ import org.mockito.junit.MockitoRule;
 
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenApi;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.PathItem;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.Openapi;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiPathItem;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
@@ -102,14 +102,14 @@ public class OpenapiOptionsConfigAdapterTest
             "        }" +
             "      }" +
             "    }," +
-            "    \"specs\": [" +
-            "      \"openapi/petstore.yaml\"" +
-            "    ]" +
+            "    \"specs\": {" +
+            "      \"openapi-id\": \"openapi/petstore.yaml\"" +
+            "    }" +
             "  }";
 
         OpenapiOptionsConfig options = jsonb.fromJson(text, OpenapiOptionsConfig.class);
         OpenapiConfig openapi = options.openapis.stream().findFirst().get();
-        PathItem path = openapi.openapi.paths.get("/pets");
+        OpenapiPathItem path = openapi.openapi.paths.get("/pets");
 
         assertThat(options, not(nullValue()));
         assertThat(path.post, not(nullValue()));
@@ -121,7 +121,7 @@ public class OpenapiOptionsConfigAdapterTest
     public void shouldWriteOptions()
     {
         String expected = "{\"tcp\":{\"host\":\"localhost\",\"port\":8080},\"tls\":{\"sni\":[\"example.net\"]}," +
-            "\"specs\":[\"openapi/petstore.yaml\"]}";
+            "\"specs\":{\"openapi-id\":\"openapi/petstore.yaml\"}}";
 
         TcpOptionsConfig tcp = TcpOptionsConfig.builder()
             .inject(identity())
@@ -135,7 +135,7 @@ public class OpenapiOptionsConfigAdapterTest
             .build();
 
         OpenapiOptionsConfig options = new OpenapiOptionsConfig(tcp, tls, null, asList(
-            new OpenapiConfig("openapi/petstore.yaml", new OpenApi())));
+            new OpenapiConfig("openapi-id", 1L, "openapi/petstore.yaml", new Openapi())));
 
         String text = jsonb.toJson(options);
 

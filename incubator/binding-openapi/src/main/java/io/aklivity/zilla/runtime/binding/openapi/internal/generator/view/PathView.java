@@ -12,35 +12,22 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.openapi.internal.view;
-
-import static java.util.Collections.unmodifiableMap;
+package io.aklivity.zilla.runtime.binding.openapi.internal.generator.view;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenApiOperation;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiPathItem;
+import io.aklivity.zilla.runtime.binding.openapi.internal.generator.model.Operation;
+import io.aklivity.zilla.runtime.binding.openapi.internal.generator.model.PathItem;
 
-public final class OpenApiPathView
+public class PathView
 {
-    private final Map<String, OpenApiOperation> methods;
+    private final LinkedHashMap<String, Operation> methods;
 
-    public Map<String, OpenApiOperation> methods()
+    public PathView(
+        PathItem pathItem)
     {
-        return methods;
-    }
-
-    public static OpenApiPathView of(
-        OpenapiPathItem pathItem)
-    {
-        return new OpenApiPathView(pathItem);
-    }
-
-    private OpenApiPathView(
-        OpenapiPathItem pathItem)
-    {
-        Map<String, OpenApiOperation> methods = new LinkedHashMap<>();
+        this.methods = new LinkedHashMap<>();
         putIfNotNull(methods, "GET", pathItem.get);
         putIfNotNull(methods, "PUT", pathItem.put);
         putIfNotNull(methods, "POST", pathItem.post);
@@ -49,13 +36,23 @@ public final class OpenApiPathView
         putIfNotNull(methods, "HEAD", pathItem.head);
         putIfNotNull(methods, "PATCH", pathItem.patch);
         putIfNotNull(methods, "TRACE", pathItem.trace);
-        this.methods = unmodifiableMap(methods);
+    }
+
+    public Map<String, Operation> methods()
+    {
+        return methods;
+    }
+
+    public static PathView of(
+        PathItem pathItem)
+    {
+        return new PathView(pathItem);
     }
 
     private static void putIfNotNull(
-        Map<String, OpenApiOperation> methods,
+        Map<String, Operation> methods,
         String method,
-        OpenApiOperation operation)
+        Operation operation)
     {
         if (operation != null)
         {

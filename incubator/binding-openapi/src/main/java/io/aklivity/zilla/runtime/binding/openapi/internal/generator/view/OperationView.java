@@ -12,28 +12,28 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.openapi.internal.view;
+package io.aklivity.zilla.runtime.binding.openapi.internal.generator.view;
 
 import java.util.Map;
 
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenApiOperation;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiResponseByContentType;
+import io.aklivity.zilla.runtime.binding.openapi.internal.generator.model.Operation;
+import io.aklivity.zilla.runtime.binding.openapi.internal.generator.model.ResponseByContentType;
 
-public final class OpenApiOperationView
+public class OperationView
 {
     public static final String DEFAULT = "default";
 
-    private final OpenApiOperation operation;
+    private final Operation operation;
     private final boolean hasResponses;
 
-    private OpenApiOperationView(
-        OpenApiOperation operation)
+    public OperationView(
+        Operation operation)
     {
         this.operation = operation;
         this.hasResponses = initHasResponses();
     }
 
-    public Map<String, OpenapiResponseByContentType> responsesByStatus()
+    public Map<String, ResponseByContentType> responsesByStatus()
     {
         return operation.responses;
     }
@@ -48,10 +48,10 @@ public final class OpenApiOperationView
         boolean result = false;
         if (operation != null && operation.responses != null)
         {
-            for (Map.Entry<String, OpenapiResponseByContentType> response0 : operation.responses.entrySet())
+            for (Map.Entry<String, ResponseByContentType> response0 : operation.responses.entrySet())
             {
                 String status = response0.getKey();
-                OpenapiResponseByContentType response1 = response0.getValue();
+                ResponseByContentType response1 = response0.getValue();
                 if (!(DEFAULT.equals(status)) && response1.content != null)
                 {
                     result = true;
@@ -62,9 +62,9 @@ public final class OpenApiOperationView
         return result;
     }
 
-    public static OpenApiOperationView of(
-        OpenApiOperation operation)
+    public static OperationView of(
+        Operation operation)
     {
-        return new OpenApiOperationView(operation);
+        return new OperationView(operation);
     }
 }
