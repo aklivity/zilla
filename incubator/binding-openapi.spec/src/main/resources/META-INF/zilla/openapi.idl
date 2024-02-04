@@ -22,8 +22,7 @@ scope openapi
         {
             string16 operationId;
             varint32 httpExLen;
-            octets[valueLen] httpEx;
+            octets[httpExLen] httpEx;
         }
-
     }
 }

@@ -44,6 +44,12 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>binding-openapi.spec</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>binding-http</artifactId>
       <version>${project.version}</version>
@@ -113,10 +119,6 @@
       <artifactId>junit-jupiter-engine</artifactId>
       <scope>test</scope>
     </dependency>
-      <dependency>
-          <groupId>io.aklivity.zilla</groupId>
-          <artifactId>command-generate</artifactId>
-      </dependency>
   </dependencies>
 
   <build>
@@ -130,8 +132,7 @@
         <artifactId>license-maven-plugin</artifactId>
         <configuration>
           <excludes>
-            <exclude>src/test/resources/io/aklivity/zilla/runtime/command/generate/internal/openapi/**/*</exclude>
-            <exclude>src/test/resources/io/aklivity/zilla/runtime/command/generate/internal/asyncapi/**/*</exclude>
+            <exclude>src/test/resources/io/aklivity/zilla/runtime/binding/openapi/internal/generator/**/*</exclude>
           </excludes>
         </configuration>
       </plugin>
@@ -159,11 +160,8 @@
         <artifactId>jacoco-maven-plugin</artifactId>
         <configuration>
           <excludes>
-            <exclude>io/aklivity/zilla/runtime/command/generate/internal/types/**/*.class</exclude>
-            <exclude>io/aklivity/zilla/runtime/command/generate/internal/openapi/model/*.class</exclude>
-            <exclude>io/aklivity/zilla/runtime/command/generate/internal/openapi/model2/*.class</exclude>
-            <exclude>io/aklivity/zilla/runtime/command/generate/internal/asyncapi/model/*.class</exclude>
-            <exclude>io/aklivity/zilla/runtime/command/generate/internal/asyncapi/model2/*.class</exclude>
+            <exclude>io/aklivity/zilla/runtime/binding/openapi/internal/types/**/*.class</exclude>
+            <exclude>io/aklivity/zilla/runtime/binding/openapi/internal/openapi/model/*.class</exclude>
           </excludes>
           <rules>
             <rule>
@@ -190,7 +188,7 @@
         <version>${project.version}</version>
         <configuration>
           <scopeNames>core</scopeNames>
-          <packageName>io.aklivity.zilla.runtime.command.generate.internal.types</packageName>
+          <packageName>io.aklivity.zilla.runtime.binding.openapi.internal.types</packageName>
         </configuration>
         <executions>
           <execution>

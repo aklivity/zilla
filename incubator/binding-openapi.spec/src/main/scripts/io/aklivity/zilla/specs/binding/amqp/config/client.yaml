@@ -22,4 +22,4 @@ bindings:
         kind: client
         options:
             specs:
-                - http/openapi.yaml
+                - openapi/crud-item.yaml

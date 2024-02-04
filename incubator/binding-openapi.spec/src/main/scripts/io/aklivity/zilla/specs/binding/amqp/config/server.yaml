@@ -22,5 +22,5 @@ bindings:
         kind: server
         options:
             specs:
-                - http/openapi.yaml
+                - openapi/crud-item.yaml
         exit: net0
