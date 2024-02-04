@@ -20,6 +20,7 @@ import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static java.lang.System.currentTimeMillis;
 
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 import java.util.function.LongFunction;
@@ -37,6 +38,7 @@ import org.agrona.collections.Object2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.internal.budget.MergedBudgetCreditor;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
@@ -236,9 +238,10 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         long authorization)
     {
         final KafkaBindingConfig binding = supplyBinding.apply(originId);
+        final List<KafkaServerConfig> servers = binding.servers();
         final KafkaSaslConfig sasl = binding.sasl();
 
-        return new KafkaClientConnection(originId, routedId, authorization, sasl);
+        return new KafkaClientConnection(originId, routedId, authorization, servers, sasl);
     }
 
     private MessageConsumer newNetworkStream(
@@ -1217,9 +1220,10 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             long originId,
             long routedId,
             long authorization,
+            List<KafkaServerConfig> servers,
             KafkaSaslConfig sasl)
         {
-            super(sasl, originId, routedId);
+            super(servers, sasl, originId, routedId);
 
             this.originId = originId;
             this.routedId = routedId;

@@ -13,21 +13,16 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
+package io.aklivity.zilla.runtime.binding.kafka.identity;
 
-final class KafkaBrokerInfo
+import java.util.function.Supplier;
+
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
+
+public interface KafkaClientIdSupplierSpi extends Supplier<String>
 {
-    final int brokerId;
-    final String host;
-    final int port;
+    boolean matches(
+        KafkaServerConfig server);
 
-    KafkaBrokerInfo(
-        int brokerId,
-        String host,
-        int port)
-    {
-        this.brokerId = brokerId;
-        this.host = host;
-        this.port = port;
-    }
+    String get();
 }

@@ -19,6 +19,8 @@ module io.aklivity.zilla.runtime.binding.kafka
 
     exports io.aklivity.zilla.runtime.binding.kafka.config;
 
+    uses io.aklivity.zilla.runtime.binding.kafka.identity.KafkaClientIdSupplierFactorySpi;
+
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
         with io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBindingFactorySpi;
 
@@ -27,4 +29,7 @@ module io.aklivity.zilla.runtime.binding.kafka
 
     provides io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi
         with io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaConditionConfigAdapter;
+
+    provides io.aklivity.zilla.runtime.binding.kafka.identity.KafkaClientIdSupplierFactorySpi
+        with io.aklivity.zilla.runtime.binding.kafka.internal.identity.KafkaConfluentClientIdSupplierFactory;
 }

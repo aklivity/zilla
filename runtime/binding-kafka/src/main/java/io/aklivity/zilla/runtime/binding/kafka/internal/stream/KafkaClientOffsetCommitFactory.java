@@ -21,6 +21,7 @@ import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static java.util.Objects.requireNonNull;
 
 import java.util.ArrayDeque;
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.LongFunction;
 import java.util.function.UnaryOperator;
@@ -31,6 +32,7 @@ import org.agrona.collections.LongLongConsumer;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
@@ -198,6 +200,7 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
         if (resolved != null)
         {
             final long resolvedId = resolved.id;
+            final List<KafkaServerConfig> servers = binding.servers();
             final KafkaSaslConfig sasl = resolveSasl.apply(binding.sasl());
 
             newStream = new KafkaOffsetCommitStream(
@@ -211,6 +214,7 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
                     topic,
                     memberId,
                     instanceId,
+                    servers,
                     sasl)::onApplication;
         }
 
@@ -652,6 +656,7 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
             String topic,
             String memberId,
             String instanceId,
+            List<KafkaServerConfig> servers,
             KafkaSaslConfig sasl)
         {
             this.application = application;
@@ -662,7 +667,7 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
             this.affinity = affinity;
             this.initialMax = encodeMaxBytes;
             this.client = new KafkaOffsetCommitClient(this, routedId, resolvedId, groupId, topic,
-                memberId, instanceId, sasl);
+                memberId, instanceId, servers, sasl);
         }
 
         private void onApplication(
@@ -978,9 +983,10 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
             String topic,
             String memberId,
             String instanceId,
+            List<KafkaServerConfig> servers,
             KafkaSaslConfig sasl)
         {
-            super(sasl, originId, routedId);
+            super(servers, sasl, originId, routedId);
             this.delegate = delegate;
             this.groupId = requireNonNull(groupId);
             this.topic = requireNonNull(topic);

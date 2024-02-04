@@ -24,7 +24,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
 import java.nio.ByteOrder;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -133,8 +132,6 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
     private final KafkaDescribeClientDecoder decodeDescribeResponse = this::decodeDescribeResponse;
     private final KafkaDescribeClientDecoder decodeIgnoreAll = this::decodeIgnoreAll;
     private final KafkaDescribeClientDecoder decodeReject = this::decodeReject;
-
-    private final SecureRandom randomServerIdGenerator = new SecureRandom();
 
     private final long maxAgeMillis;
     private final int kafkaTypeId;
@@ -909,7 +906,6 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
             private MessageConsumer network;
             private final String topic;
             private final Map<String, String> configs;
-            private final List<KafkaServerConfig> servers;
 
             private int state;
             private long authorization;
@@ -948,10 +944,9 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
                 List<KafkaServerConfig> servers,
                 KafkaSaslConfig sasl)
             {
-                super(sasl, originId, routedId);
+                super(servers, sasl, originId, routedId);
                 this.topic = requireNonNull(topic);
                 this.configs = new LinkedHashMap<>(configs.size());
-                this.servers = servers;
                 configs.forEach(c -> this.configs.put(c, null));
 
                 this.encoder = sasl != null ? encodeSaslHandshakeRequest : encodeDescribeRequest;
@@ -1196,19 +1191,16 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
 
                 Consumer<OctetsFW.Builder> extension = EMPTY_EXTENSION;
 
-                final KafkaServerConfig kafkaServerConfig =
-                    servers != null ? servers.get(randomServerIdGenerator.nextInt(servers.size())) : null;
-
-                if (kafkaServerConfig != null)
+                if (server != null)
                 {
                     extension =  e -> e.set((b, o, l) -> proxyBeginExRW.wrap(b, o, l)
                         .typeId(proxyTypeId)
                         .address(a -> a.inet(i -> i.protocol(p -> p.set(STREAM))
                             .source("0.0.0.0")
-                            .destination(kafkaServerConfig.host)
+                            .destination(server.host)
                             .sourcePort(0)
-                            .destinationPort(kafkaServerConfig.port)))
-                        .infos(i -> i.item(ii -> ii.authority(kafkaServerConfig.host)))
+                            .destinationPort(server.port)))
+                        .infos(i -> i.item(ii -> ii.authority(server.host)))
                         .build()
                         .sizeof());
                 }

@@ -37,6 +37,8 @@ public class KafkaConfiguration extends Configuration
     public static final boolean DEBUG = Boolean.getBoolean("zilla.binding.kafka.debug");
     public static final boolean DEBUG_PRODUCE = DEBUG || Boolean.getBoolean("zilla.binding.kafka.debug.produce");
 
+    public static final String KAFKA_CLIENT_ID_DEFAULT = "zilla";
+
     public static final IntPropertyDef KAFKA_CLIENT_MAX_IDLE_MILLIS;
     public static final LongPropertyDef KAFKA_CLIENT_CONNECTION_POOL_CLEANUP_MILLIS;
     public static final IntPropertyDef KAFKA_CLIENT_META_MAX_AGE_MILLIS;
@@ -79,7 +81,7 @@ public class KafkaConfiguration extends Configuration
     static
     {
         final ConfigurationDef config = new ConfigurationDef("zilla.binding.kafka");
-        KAFKA_CLIENT_ID = config.property("client.id", "zilla");
+        KAFKA_CLIENT_ID = config.property("client.id");
         KAFKA_CLIENT_INSTANCE_ID = config.property(InstanceIdSupplier.class, "client.instance.id",
             KafkaConfiguration::decodeInstanceId, KafkaConfiguration::defaultInstanceId);
         KAFKA_CLIENT_MAX_IDLE_MILLIS = config.property("client.max.idle.ms", 1 * 60 * 1000);
