@@ -19,9 +19,8 @@ import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguratio
 import static io.aklivity.zilla.runtime.common.feature.FeatureFilter.filter;
 import static java.util.ServiceLoader.load;
 
-import java.util.Collection;
-
-import org.agrona.collections.ObjectHashSet;
+import java.util.ArrayList;
+import java.util.List;
 
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
@@ -35,7 +34,7 @@ public final class KafkaClientIdSupplier
         return instantiate(config, filter(load(KafkaClientIdSupplierFactorySpi.class)));
     }
 
-    private final Collection<KafkaClientIdSupplierSpi> suppliers;
+    private final List<KafkaClientIdSupplierSpi> suppliers;
 
     public String get(
         KafkaServerConfig server)
@@ -43,8 +42,9 @@ public final class KafkaClientIdSupplier
         String clientId = null;
 
         match:
-        for (KafkaClientIdSupplierSpi supplier : suppliers)
+        for (int index = 0; index < suppliers.size(); index ++)
         {
+            KafkaClientIdSupplierSpi supplier = suppliers.get(index);
             if (supplier.matches(server))
             {
                 clientId = supplier.get();
@@ -56,7 +56,7 @@ public final class KafkaClientIdSupplier
     }
 
     private KafkaClientIdSupplier(
-        Collection<KafkaClientIdSupplierSpi> suppliers)
+        List<KafkaClientIdSupplierSpi> suppliers)
     {
         this.suppliers = suppliers;
     }
@@ -65,7 +65,7 @@ public final class KafkaClientIdSupplier
         Configuration config,
         Iterable<KafkaClientIdSupplierFactorySpi> factories)
     {
-        Collection<KafkaClientIdSupplierSpi> suppliers = new ObjectHashSet<>();
+        List<KafkaClientIdSupplierSpi> suppliers = new ArrayList<>();
 
         KafkaConfiguration kafka = new KafkaConfiguration(config);
         String clientId = kafka.clientId();
