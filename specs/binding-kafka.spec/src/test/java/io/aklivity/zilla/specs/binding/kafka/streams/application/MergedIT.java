@@ -155,6 +155,15 @@ public class MergedIT
 
     @Test
     @Specification({
+        "${app}/merged.fetch.message.value.invalid/client",
+        "${app}/merged.fetch.message.value.invalid/server"})
+    public void shouldFetchMergedMessageValueInvalid() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/merged.fetch.message.values/client",
         "${app}/merged.fetch.message.values/server"})
     public void shouldFetchMergedMessageValues() throws Exception
@@ -584,6 +593,15 @@ public class MergedIT
         "${app}/unmerged.produce.message.value.invalid/client",
         "${app}/unmerged.produce.message.value.invalid/server"})
     public void shouldProduceUnmergedMessageValueInvalid() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/unmerged.fetch.message.value.invalid/client",
+        "${app}/unmerged.fetch.message.value.invalid/server"})
+    public void shouldFetchUnmergedMessageValueInvalid() throws Exception
     {
         k3po.finish();
     }

@@ -158,6 +158,8 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
     private final Function<String, KafkaCache> supplyCache;
     private final LongFunction<KafkaCacheRoute> supplyCacheRoute;
     private final int reconnectDelay;
+    private final EngineContext context;
+    private final boolean verbose;
 
     public KafkaCacheServerFetchFactory(
         KafkaConfiguration config,
@@ -166,6 +168,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
         Function<String, KafkaCache> supplyCache,
         LongFunction<KafkaCacheRoute> supplyCacheRoute)
     {
+        this.context = context;
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
@@ -181,6 +184,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
         this.supplyCache = supplyCache;
         this.supplyCacheRoute = supplyCacheRoute;
         this.reconnectDelay = config.cacheServerReconnect();
+        this.verbose = config.verbose();
     }
 
     @Override
@@ -771,9 +775,9 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                     entryFlags |= CACHE_ENTRY_FLAGS_ABORTED;
                 }
 
-                partition.writeEntry(partitionOffset, entryMark, valueMark, 0L, producerId,
+                partition.writeEntry(context, routedId, partitionOffset, entryMark, valueMark, 0L, producerId,
                         EMPTY_KEY, EMPTY_HEADERS, EMPTY_OCTETS, null,
-                        entryFlags, KafkaDeltaType.NONE, convertKey, convertValue);
+                        entryFlags, KafkaDeltaType.NONE, convertKey, convertValue, verbose);
 
                 if (result == KafkaTransactionResult.ABORT)
                 {
@@ -876,13 +880,14 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 final int entryFlags = (flags & FLAGS_SKIP) != 0x00 ? CACHE_ENTRY_FLAGS_ABORTED : 0x00;
                 final long keyHash = partition.computeKeyHash(key);
                 final KafkaCacheEntryFW ancestor = findAndMarkAncestor(key, nextHead, (int) keyHash, partitionOffset);
-                partition.writeEntryStart(partitionOffset, entryMark, valueMark, timestamp, producerId,
-                        key, keyHash, valueLength, ancestor, entryFlags, deltaType, valueFragment, convertKey, convertValue);
+                partition.writeEntryStart(context, routedId, partitionOffset, entryMark, valueMark, timestamp, producerId,
+                    key, keyHash, valueLength, ancestor, entryFlags, deltaType, valueFragment, convertKey, convertValue, verbose);
             }
 
             if (valueFragment != null)
             {
-                partition.writeEntryContinue(flags, entryMark, valueMark, valueFragment, convertValue);
+                partition.writeEntryContinue(context, routedId, flags, partitionOffset, entryMark, valueMark,
+                    valueFragment, convertValue, verbose);
             }
 
             if ((flags & FLAGS_FIN) != 0x00)
