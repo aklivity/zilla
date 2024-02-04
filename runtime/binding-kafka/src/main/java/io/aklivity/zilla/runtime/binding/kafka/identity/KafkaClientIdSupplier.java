@@ -42,7 +42,7 @@ public final class KafkaClientIdSupplier
         String clientId = null;
 
         match:
-        for (int index = 0; index < suppliers.size(); index ++)
+        for (int index = 0; index < suppliers.size(); index++)
         {
             KafkaClientIdSupplierSpi supplier = suppliers.get(index);
             if (supplier.matches(server))
