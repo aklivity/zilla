@@ -14,10 +14,18 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream;
 
+import java.util.function.IntConsumer;
+
+import org.agrona.BitUtil;
+import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.IntArrayList;
 import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
+import org.agrona.concurrent.UnsafeBuffer;
+
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttPublishOffsetMetadataFW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
 
 public class MqttKafkaPublishMetadata
 {
@@ -98,6 +106,51 @@ public class MqttKafkaPublishMetadata
             this.producerId = producerId;
             this.producerEpoch = producerEpoch;
             this.packetIds = packetIds;
+        }
+    }
+
+    public static final class KafkaOffsetMetadataHelper
+    {
+        private static final int OFFSET_METADATA_VERSION = 1;
+
+        private final MqttPublishOffsetMetadataFW mqttOffsetMetadataRO = new MqttPublishOffsetMetadataFW();
+        private final MqttPublishOffsetMetadataFW.Builder mqttOffsetMetadataRW = new MqttPublishOffsetMetadataFW.Builder();
+        private final MutableDirectBuffer offsetBuffer;
+
+        KafkaOffsetMetadataHelper(
+            MutableDirectBuffer offsetBuffer)
+        {
+            this.offsetBuffer = offsetBuffer;
+        }
+
+        public KafkaOffsetMetadata stringToOffsetMetadata(
+            String16FW metadata)
+        {
+            final IntArrayList packetIds = new IntArrayList();
+            UnsafeBuffer buffer = new UnsafeBuffer(BitUtil.fromHex(metadata.asString()));
+            final MqttPublishOffsetMetadataFW offsetMetadata = mqttOffsetMetadataRO.wrap(buffer, 0, buffer.capacity());
+            if (offsetMetadata.packetIds() != null)
+            {
+                offsetMetadata.packetIds().forEachRemaining((IntConsumer) packetIds::add);
+            }
+            return new KafkaOffsetMetadata(offsetMetadata.producerId(), offsetMetadata.producerEpoch(), packetIds);
+        }
+
+        public String16FW offsetMetadataToString(
+            KafkaOffsetMetadata metadata)
+        {
+            mqttOffsetMetadataRW.wrap(offsetBuffer, 0, offsetBuffer.capacity());
+            mqttOffsetMetadataRW.version(OFFSET_METADATA_VERSION);
+            mqttOffsetMetadataRW.producerId(metadata.producerId);
+            mqttOffsetMetadataRW.producerEpoch(metadata.producerEpoch);
+
+            if (metadata.packetIds != null)
+            {
+                metadata.packetIds.forEach(p -> mqttOffsetMetadataRW.appendPacketIds(p.shortValue()));
+            }
+            final MqttPublishOffsetMetadataFW offsetMetadata = mqttOffsetMetadataRW.build();
+            return new String16FW(BitUtil.toHex(offsetMetadata.buffer().byteArray(),
+                offsetMetadata.offset(), offsetMetadata.limit()));
         }
     }
 }

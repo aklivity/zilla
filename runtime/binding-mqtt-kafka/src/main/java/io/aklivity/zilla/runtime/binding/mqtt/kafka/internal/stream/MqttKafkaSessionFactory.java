@@ -19,30 +19,27 @@ import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaA
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static java.lang.System.currentTimeMillis;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.agrona.BitUtil.SIZE_OF_INT;
 import static org.agrona.BitUtil.SIZE_OF_LONG;
 
 import java.nio.ByteOrder;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.function.IntConsumer;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Int2ObjectHashMap;
-import org.agrona.collections.IntArrayList;
 import org.agrona.collections.IntArrayQueue;
 import org.agrona.collections.IntHashSet;
 import org.agrona.collections.Long2LongHashMap;
@@ -59,6 +56,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaHea
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaRouteConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaPublishMetadata.KafkaGroup;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaPublishMetadata.KafkaOffsetMetadata;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaPublishMetadata.KafkaOffsetMetadataHelper;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaPublishMetadata.KafkaTopicPartition;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.Flyweight;
@@ -103,7 +101,6 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaT
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttBeginExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttDataExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttFlushExFW;
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttPublishOffsetMetadataFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttResetExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttServerCapabilities;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttSessionBeginExFW;
@@ -141,7 +138,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private static final OctetsFW EXPIRY_SIGNAL_NAME_OCTETS =
         new OctetsFW().wrap(EXPIRY_SIGNAL_NAME.value(), 0, EXPIRY_SIGNAL_NAME.length());
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(new byte[0]), 0, 0);
-    private static final String16FW EMPTY_STRING = new String16FW("");
+    private static final String16FW DEFAULT_REASON = new String16FW(null, UTF_8);
     private static final int DATA_FLAG_INIT = 0x02;
     private static final int DATA_FLAG_FIN = 0x01;
     private static final int DATA_FLAG_COMPLETE = 0x03;
@@ -158,7 +155,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private static final byte MQTT_KAFKA_MAX_QOS = 2;
     private static final int MQTT_KAFKA_CAPABILITIES = RETAIN_AVAILABLE_MASK | WILDCARD_AVAILABLE_MASK |
         SUBSCRIPTION_IDS_AVAILABLE_MASK;
-    private static final int OFFSET_METADATA_VERSION = 1;
 
     public static final String GROUPID_SESSION_SUFFIX = "session";
     public static final Int2IntHashMap MQTT_REASON_CODES;
@@ -210,7 +206,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
-    private final MqttPublishOffsetMetadataFW.Builder mqttOffsetMetadataRW = new MqttPublishOffsetMetadataFW.Builder();
 
     private final ExtensionFW extensionRO = new ExtensionFW();
     private final MqttBeginExFW mqttBeginExRO = new MqttBeginExFW();
@@ -220,7 +215,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private final MqttWillMessageFW mqttWillRO = new MqttWillMessageFW();
     private final OctetsFW payloadRO = new OctetsFW();
     private final MqttDataExFW mqttDataExRO = new MqttDataExFW();
-    private final MqttPublishOffsetMetadataFW mqttOffsetMetadataRO = new MqttPublishOffsetMetadataFW();
 
     private final MqttResetExFW.Builder mqttResetExRW = new MqttResetExFW.Builder();
     private final MqttFlushExFW.Builder mqttFlushExRW = new MqttFlushExFW.Builder();
@@ -244,7 +238,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private final MutableDirectBuffer willKeyBuffer;
     private final MutableDirectBuffer sessionSignalKeyBuffer;
     private final MutableDirectBuffer sessionExtBuffer;
-    private final MutableDirectBuffer offsetBuffer;
     private final BufferPool bufferPool;
     private final BindingHandler streamFactory;
     private final Signaler signaler;
@@ -268,6 +261,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private final int reconnectDelay;
     private final Int2ObjectHashMap<String16FW> qosLevels;
     private final Long2ObjectHashMap<MqttKafkaPublishMetadata> clientMetadata;
+    private final KafkaOffsetMetadataHelper offsetMetadataHelper;
 
     private String serverRef;
     private int reconnectAttempt;
@@ -290,7 +284,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         this.willKeyBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.sessionSignalKeyBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.sessionExtBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.offsetBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.bufferPool = context.bufferPool();
         this.helper = new MqttKafkaHeaderHelper();
         this.streamFactory = context.streamFactory();
@@ -315,6 +308,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         this.qosLevels.put(1, new String16FW("1"));
         this.qosLevels.put(2, new String16FW("2"));
         this.clientMetadata = clientMetadata;
+        this.offsetMetadataHelper = new KafkaOffsetMetadataHelper(new UnsafeBuffer(new byte[context.writeBuffer().capacity()]));
     }
 
     @Override
@@ -620,7 +614,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             {
                 String16FW willSignalKey = new String16FW.Builder()
                     .wrap(sessionSignalKeyBuffer, 0, sessionSignalKeyBuffer.capacity())
-                    .set(clientId.asString() + WILL_SIGNAL_KEY_POSTFIX, StandardCharsets.UTF_8).build();
+                    .set(clientId.asString() + WILL_SIGNAL_KEY_POSTFIX, UTF_8).build();
                 Flyweight willSignalKafkaDataEx = kafkaDataExRW
                     .wrap(extBuffer, 0, extBuffer.capacity())
                     .typeId(kafkaTypeId)
@@ -700,7 +694,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             int length = kafkaPayload.sizeof() + payloadSize;
 
             String16FW key = new String16FW.Builder().wrap(willKeyBuffer, 0, willKeyBuffer.capacity())
-                .set(clientId.asString() + WILL_KEY_POSTFIX + lifetimeId, StandardCharsets.UTF_8).build();
+                .set(clientId.asString() + WILL_KEY_POSTFIX + lifetimeId, UTF_8).build();
 
             Flyweight kafkaDataEx = kafkaDataExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())
@@ -802,7 +796,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             {
                 // Cleanup will message + will signal
                 String16FW key = new String16FW.Builder().wrap(willKeyBuffer, 0, willKeyBuffer.capacity())
-                    .set(clientId.asString() + WILL_KEY_POSTFIX + lifetimeId, StandardCharsets.UTF_8).build();
+                    .set(clientId.asString() + WILL_KEY_POSTFIX + lifetimeId, UTF_8).build();
                 Flyweight kafkaWillDataEx = kafkaDataExRW
                     .wrap(extBuffer, 0, extBuffer.capacity())
                     .typeId(kafkaTypeId)
@@ -821,7 +815,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
                 String16FW willSignalKey = new String16FW.Builder()
                     .wrap(sessionSignalKeyBuffer, 0, sessionSignalKeyBuffer.capacity())
-                    .set(clientId.asString() + WILL_SIGNAL_KEY_POSTFIX, StandardCharsets.UTF_8).build();
+                    .set(clientId.asString() + WILL_SIGNAL_KEY_POSTFIX, UTF_8).build();
                 Flyweight willSignalKafkaDataEx = kafkaDataExRW
                     .wrap(extBuffer, 0, extBuffer.capacity())
                     .typeId(kafkaTypeId)
@@ -1046,7 +1040,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                     .progress(p -> p
                         .partitionId(partitionId)
                         .partitionOffset(offsetMetadata.sequence)
-                        .metadata(offsetMetadataToString(offsetMetadata)))
+                        .metadata(offsetMetadataHelper.offsetMetadataToString(offsetMetadata)))
                     .generationId(generationId)
                     .leaderEpoch((int) leaderEpochs.get(partitionKey)))
                 .build();
@@ -1304,9 +1298,51 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         private void onOffsetFetched(
             long traceId,
             long authorization,
-            boolean initProducer,
+            boolean retained,
+            String topic,
+            Array32FW<KafkaTopicPartitionOffsetFW> partitions,
             KafkaOffsetFetchStream kafkaOffsetFetchStream)
         {
+            boolean initProducer = !partitions.anyMatch(p -> p.metadata().length() > 0);
+
+            partitions.forEach(partition ->
+            {
+                final long offset = partition.partitionOffset();
+                final String16FW metadata = partition.metadata();
+                final int partitionId = partition.partitionId();
+                final long partitionKey = partitionKey(topic, partitionId);
+
+                leaderEpochs.put(partitionKey, partition.leaderEpoch());
+
+                KafkaOffsetMetadata offsetMetadata;
+                if (!initProducer)
+                {
+                    offsetMetadata = offsetMetadataHelper.stringToOffsetMetadata(metadata);
+                    offsetMetadata.sequence = offset;
+                    if (offsetCommit == null)
+                    {
+                        final long routedId = session.routedId;
+                        offsetCommit = new KafkaOffsetCommitStream(originId, routedId, this);
+                        offsetCommit.doKafkaBegin(traceId, authorization, 0);
+                    }
+                    this.metadata.offsets.put(partitionKey, offsetMetadata);
+                    if (!retained)
+                    {
+                        offsetMetadata.packetIds.forEach(p ->
+                            this.metadata.partitions.put(p, new KafkaTopicPartition(topic, partitionId)));
+                    }
+                    else
+                    {
+                        offsetMetadata.packetIds.forEach(p ->
+                            this.metadata.retainedPartitions.put(p, new KafkaTopicPartition(topic, partitionId)));
+                    }
+                }
+                else
+                {
+                    initializablePartitions.add(new KafkaTopicPartition(topic, partition.partitionId()));
+                }
+            });
+
             unfetchedKafkaTopics--;
 
             if (unfetchedKafkaTopics == 0 && initProducer)
@@ -1337,6 +1373,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             }
         }
 
+        //TODO: merge with
         private void onProducerInit(
             long traceId,
             long authorization,
@@ -1371,7 +1408,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                             .progress(p -> p
                                 .partitionId(kp.partitionId)
                                 .partitionOffset(metadata.sequence)
-                                .metadata(offsetMetadataToString(metadata)))
+                                .metadata(offsetMetadataHelper.offsetMetadataToString(metadata)))
                             .generationId(generationId)
                             .leaderEpoch((int) leaderEpochs.get(partitionKey)))
                         .build();
@@ -2296,7 +2333,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
                 // Cleanup will message + will signal
                 String16FW key = new String16FW.Builder().wrap(willKeyBuffer, 0, willKeyBuffer.capacity())
-                    .set(clientId.asString() + WILL_KEY_POSTFIX + lifetimeId, StandardCharsets.UTF_8).build();
+                    .set(clientId.asString() + WILL_KEY_POSTFIX + lifetimeId, UTF_8).build();
                 Flyweight kafkaWillDataEx = kafkaDataExRW
                     .wrap(extBuffer, 0, extBuffer.capacity())
                     .typeId(kafkaTypeId)
@@ -2314,7 +2351,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
                 String16FW willSignalKey = new String16FW.Builder()
                     .wrap(sessionSignalKeyBuffer, 0, sessionSignalKeyBuffer.capacity())
-                    .set(clientId.asString() + WILL_SIGNAL_KEY_POSTFIX, StandardCharsets.UTF_8).build();
+                    .set(clientId.asString() + WILL_SIGNAL_KEY_POSTFIX, UTF_8).build();
                 Flyweight willSignalKafkaDataEx = kafkaDataExRW
                     .wrap(extBuffer, 0, extBuffer.capacity())
                     .typeId(kafkaTypeId)
@@ -2890,7 +2927,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         {
             String16FW expirySignalKey = new String16FW.Builder()
                 .wrap(sessionSignalKeyBuffer, 0, sessionSignalKeyBuffer.capacity())
-                .set(delegate.clientId.asString() + EXPIRY_SIGNAL_KEY_POSTFIX, StandardCharsets.UTF_8).build();
+                .set(delegate.clientId.asString() + EXPIRY_SIGNAL_KEY_POSTFIX, UTF_8).build();
             Flyweight expirySignalKafkaDataEx = kafkaDataExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(kafkaTypeId)
@@ -2920,7 +2957,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         {
             String16FW expirySignalKey = new String16FW.Builder()
                 .wrap(sessionSignalKeyBuffer, 0, sessionSignalKeyBuffer.capacity())
-                .set(delegate.clientId.asString() + EXPIRY_SIGNAL_KEY_POSTFIX, StandardCharsets.UTF_8).build();
+                .set(delegate.clientId.asString() + EXPIRY_SIGNAL_KEY_POSTFIX, UTF_8).build();
             Flyweight expirySignalKafkaDataEx = kafkaDataExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(kafkaTypeId)
@@ -2949,7 +2986,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         {
             String16FW willSignalKey = new String16FW.Builder()
                 .wrap(sessionSignalKeyBuffer, 0, sessionSignalKeyBuffer.capacity())
-                .set(delegate.clientId.asString() + WILL_SIGNAL_KEY_POSTFIX, StandardCharsets.UTF_8).build();
+                .set(delegate.clientId.asString() + WILL_SIGNAL_KEY_POSTFIX, UTF_8).build();
             Flyweight willSignalKafkaDataEx = kafkaDataExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(kafkaTypeId)
@@ -3538,7 +3575,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         {
             String16FW willSignalKey = new String16FW.Builder()
                 .wrap(sessionSignalKeyBuffer, 0, sessionSignalKeyBuffer.capacity())
-                .set(delegate.clientId.asString() + WILL_SIGNAL_KEY_POSTFIX, StandardCharsets.UTF_8).build();
+                .set(delegate.clientId.asString() + WILL_SIGNAL_KEY_POSTFIX, UTF_8).build();
             Flyweight willSignalKafkaDataEx = kafkaDataExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(kafkaTypeId)
@@ -3917,7 +3954,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                     mqttSessionResetExRW.wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())
                     .typeId(mqttTypeId)
                     .reasonCode(MQTT_REASON_CODES.get(error))
-                    .reason(MQTT_REASONS.getOrDefault(error, EMPTY_STRING))
+                    .reason(MQTT_REASONS.getOrDefault(error, DEFAULT_REASON))
                     .build();
             }
             delegate.doMqttReset(traceId, mqttResetEx);
@@ -4373,58 +4410,12 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             }
 
             final OctetsFW extension = data.extension();
-            final ExtensionFW dataEx = extension.get(extensionRO::tryWrap);
-            final KafkaDataExFW kafkaDataEx =
-                dataEx != null && dataEx.typeId() == kafkaTypeId ? extension.get(kafkaDataExRO::tryWrap) : null;
-            final KafkaOffsetFetchDataExFW kafkaOffsetFetchDataEx =
-                kafkaDataEx != null && kafkaDataEx.kind() == KafkaDataExFW.KIND_OFFSET_FETCH ? kafkaDataEx.offsetFetch() : null;
-            final Array32FW<KafkaTopicPartitionOffsetFW> partitions =
-                kafkaOffsetFetchDataEx != null ? kafkaOffsetFetchDataEx.partitions() : null;
+            final KafkaDataExFW kafkaDataEx = extension.get(kafkaDataExRO::tryWrap);
+            final KafkaOffsetFetchDataExFW kafkaOffsetFetchDataEx = kafkaDataEx.offsetFetch();
+            final Array32FW<KafkaTopicPartitionOffsetFW> partitions = kafkaOffsetFetchDataEx.partitions();
 
-            if (partitions != null)
-            {
-                boolean initProducer = !partitions.anyMatch(p -> p.metadata().length() > 0);
-
-                partitions.forEach(partition ->
-                {
-                    final long offset = partition.partitionOffset();
-                    final String16FW metadata = partition.metadata();
-                    final int partitionId = partition.partitionId();
-                    final long partitionKey = partitionKey(topic, partitionId);
-
-                    delegate.leaderEpochs.put(partitionKey, partition.leaderEpoch());
-
-                    KafkaOffsetMetadata offsetMetadata;
-                    if (!initProducer)
-                    {
-                        offsetMetadata = stringToOffsetMetadata(metadata);
-                        offsetMetadata.sequence = offset;
-                        if (delegate.offsetCommit == null)
-                        {
-                            final long routedId = delegate.session.routedId;
-                            delegate.offsetCommit = new KafkaOffsetCommitStream(originId, routedId, delegate);
-                            delegate.offsetCommit.doKafkaBegin(traceId, authorization, 0);
-                        }
-                        delegate.metadata.offsets.put(partitionKey, offsetMetadata);
-                        if (!retained)
-                        {
-                            offsetMetadata.packetIds.forEach(p ->
-                                delegate.metadata.partitions.put(p, new KafkaTopicPartition(topic, partitionId)));
-                        }
-                        else
-                        {
-                            offsetMetadata.packetIds.forEach(p ->
-                                delegate.metadata.retainedPartitions.put(p, new KafkaTopicPartition(topic, partitionId)));
-                        }
-                    }
-                    else
-                    {
-                        delegate.initializablePartitions.add(new KafkaTopicPartition(topic, partition.partitionId()));
-                    }
-                });
-                delegate.onOffsetFetched(traceId, authorization, initProducer, this);
-                doKafkaEnd(traceId, authorization);
-            }
+            delegate.onOffsetFetched(traceId, authorization, retained, topic, partitions, this);
+            doKafkaEnd(traceId, authorization);
         }
 
         private void onKafkaEnd(
@@ -4959,36 +4950,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             doWindow(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, authorization, budgetId, padding, replyPad, capabilities);
         }
-    }
-
-    private KafkaOffsetMetadata stringToOffsetMetadata(
-        String16FW metadata)
-    {
-        final IntArrayList packetIds = new IntArrayList();
-        UnsafeBuffer buffer = new UnsafeBuffer(BitUtil.fromHex(metadata.asString()));
-        final MqttPublishOffsetMetadataFW offsetMetadata = mqttOffsetMetadataRO.wrap(buffer, 0, buffer.capacity());
-        if (offsetMetadata.packetIds() != null)
-        {
-            offsetMetadata.packetIds().forEachRemaining((IntConsumer) packetIds::add);
-        }
-        return new KafkaOffsetMetadata(offsetMetadata.producerId(), offsetMetadata.producerEpoch(), packetIds);
-    }
-
-    private String16FW offsetMetadataToString(
-        KafkaOffsetMetadata metadata)
-    {
-        mqttOffsetMetadataRW.wrap(offsetBuffer, 0, offsetBuffer.capacity());
-        mqttOffsetMetadataRW.version(OFFSET_METADATA_VERSION);
-        mqttOffsetMetadataRW.producerId(metadata.producerId);
-        mqttOffsetMetadataRW.producerEpoch(metadata.producerEpoch);
-
-        if (metadata.packetIds != null)
-        {
-            metadata.packetIds.forEach(p -> mqttOffsetMetadataRW.appendPacketIds(p.shortValue()));
-        }
-        final MqttPublishOffsetMetadataFW offsetMetadata = mqttOffsetMetadataRW.build();
-        return new String16FW(BitUtil.toHex(offsetMetadata.buffer().byteArray(),
-            offsetMetadata.offset(), offsetMetadata.limit()));
     }
 
     private void doBegin(

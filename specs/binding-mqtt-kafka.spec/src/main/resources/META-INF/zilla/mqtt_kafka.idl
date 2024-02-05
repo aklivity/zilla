@@ -13,16 +13,21 @@
  * specific language governing permissions and limitations under the License.
  */
 
- scope internal
-  {
-     scope codec
-     {
-         struct MqttSubscribeMessage
-         {
-            uint32 extensionLength;
-            octets[extensionLength] extension;
-            uint32 payloadLength;
-            octets[payloadLength] payload;
-         }
-     }
-  }
+scope mqtt_kafka
+{
+    struct MqttSubscribeOffsetMetadata
+    {
+         uint8 version = 1;
+         int8 length;
+         int16[length] packetIds = null;
+    }
+
+    struct MqttPublishOffsetMetadata
+    {
+         uint8 version = 1;
+         int64 producerId = 0;
+         int16 producerEpoch = 0;
+         int8 length;
+         int16[length] packetIds = null;
+    }
+}

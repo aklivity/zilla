@@ -23,11 +23,8 @@ import static org.junit.Assert.assertNull;
 
 import java.nio.ByteBuffer;
 import java.util.Objects;
-import java.util.function.IntConsumer;
 
-import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
-import org.agrona.collections.IntArrayList;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 import org.kaazing.k3po.lang.el.BytesMatcher;
@@ -40,8 +37,6 @@ import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttWillMessageFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttBeginExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttDataExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttFlushExFW;
-import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttOffsetMetadataFW;
-import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttPublishOffsetMetadataFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttResetExFW;
 
 public class MqttFunctionsTest
@@ -1331,41 +1326,6 @@ public class MqttFunctionsTest
         assertNotNull(sessionState.subscriptions()
             .matchFirst(f ->
                 "sensor/five".equals(f.pattern().asString())));
-    }
-
-    @Test
-    public void shouldEncodeMqttOffsetMetadata()
-    {
-        final String state = MqttFunctions.metadata()
-            .metadata(1)
-            .metadata(2)
-            .build();
-
-        final IntArrayList metadataList = new IntArrayList();
-        UnsafeBuffer buffer = new UnsafeBuffer(BitUtil.fromHex(state));
-        MqttOffsetMetadataFW offsetMetadata = new MqttOffsetMetadataFW().wrap(buffer, 0, buffer.capacity());
-        offsetMetadata.packetIds().forEachRemaining((IntConsumer) metadataList::add);
-
-        assertEquals(1, offsetMetadata.version());
-        assertEquals(1, (int) metadataList.get(0));
-        assertEquals(2, (int) metadataList.get(1));
-    }
-
-    @Test
-    public void shouldEncodeMqttPublishOffsetMetadata()
-    {
-        final String state = MqttFunctions.publishMetadata()
-            .producer(1L, (short) 1)
-            .packetId(1)
-            .build();
-
-        DirectBuffer buffer = new UnsafeBuffer(BitUtil.fromHex(state));
-        MqttPublishOffsetMetadataFW offsetMetadata = new MqttPublishOffsetMetadataFW().wrap(buffer, 0, buffer.capacity());
-
-        assertEquals(1, offsetMetadata.version());
-        assertEquals(1, offsetMetadata.packetIds().nextInt());
-        assertEquals(1, offsetMetadata.producerId());
-        assertEquals(1, offsetMetadata.producerEpoch());
     }
 
     @Test

@@ -62,6 +62,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaOffsetTy
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaSkip;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttPayloadFormat;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttQoS;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSubscribeOffsetMetadataFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttTopicFilterFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
@@ -83,7 +84,6 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaM
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttBeginExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttDataExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttFlushExFW;
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttOffsetMetadataFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttOffsetStateFlags;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttSubscribeBeginExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttSubscribeFlushExFW;
@@ -131,7 +131,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
     private final MqttSubscribeMessageFW.Builder mqttSubscribeMessageRW = new MqttSubscribeMessageFW.Builder();
-    private final MqttOffsetMetadataFW.Builder mqttOffsetMetadataRW = new MqttOffsetMetadataFW.Builder();
+    private final MqttSubscribeOffsetMetadataFW.Builder mqttOffsetMetadataRW = new MqttSubscribeOffsetMetadataFW.Builder();
 
     private final ExtensionFW extensionRO = new ExtensionFW();
     private final MqttBeginExFW mqttBeginExRO = new MqttBeginExFW();
@@ -141,7 +141,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
     private final KafkaFlushExFW kafkaFlushExRO = new KafkaFlushExFW();
     private final KafkaHeaderFW kafkaHeaderRO = new KafkaHeaderFW();
     private final MqttSubscribeMessageFW mqttSubscribeMessageRO = new MqttSubscribeMessageFW();
-    private final MqttOffsetMetadataFW mqttOffsetMetadataRO = new MqttOffsetMetadataFW();
+    private final MqttSubscribeOffsetMetadataFW mqttOffsetMetadataRO = new MqttSubscribeOffsetMetadataFW();
 
     private final MqttDataExFW.Builder mqttDataExRW = new MqttDataExFW.Builder();
     private final MqttFlushExFW.Builder mqttFlushExRW = new MqttFlushExFW.Builder();
@@ -1832,7 +1832,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
     {
         final IntArrayList metadataList = new IntArrayList();
         UnsafeBuffer buffer = new UnsafeBuffer(BitUtil.fromHex(metadata.asString()));
-        final MqttOffsetMetadataFW offsetMetadata = mqttOffsetMetadataRO.wrap(buffer, 0, buffer.capacity());
+        final MqttSubscribeOffsetMetadataFW offsetMetadata = mqttOffsetMetadataRO.wrap(buffer, 0, buffer.capacity());
         offsetMetadata.packetIds().forEachRemaining((IntConsumer) metadataList::add);
         return metadataList;
     }
@@ -1843,7 +1843,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         mqttOffsetMetadataRW.wrap(offsetBuffer, 0, offsetBuffer.capacity());
         mqttOffsetMetadataRW.version(OFFSET_METADATA_VERSION);
         metadataList.forEach(p -> mqttOffsetMetadataRW.appendPacketIds(p.shortValue()));
-        final MqttOffsetMetadataFW offsetMetadata = mqttOffsetMetadataRW.build();
+        final MqttSubscribeOffsetMetadataFW offsetMetadata = mqttOffsetMetadataRW.build();
         return new String16FW(BitUtil.toHex(offsetMetadata.buffer().byteArray(),
             offsetMetadata.offset(), offsetMetadata.limit()));
     }
