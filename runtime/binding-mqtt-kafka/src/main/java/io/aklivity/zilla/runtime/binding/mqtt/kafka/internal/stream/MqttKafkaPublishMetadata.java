@@ -19,17 +19,17 @@ import org.agrona.collections.IntArrayList;
 import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 
-public class PublishClientMetadata
+public class MqttKafkaPublishMetadata
 {
-    final Long2ObjectHashMap<PublishOffsetMetadata> offsets;
+    final Long2ObjectHashMap<KafkaOffsetMetadata> offsets;
     final Int2ObjectHashMap<KafkaTopicPartition> partitions;
     final Int2ObjectHashMap<KafkaTopicPartition> retainedPartitions;
     final Long2LongHashMap leaderEpochs;
 
     KafkaGroup group;
 
-    public PublishClientMetadata(
-        Long2ObjectHashMap<PublishOffsetMetadata> offsets,
+    public MqttKafkaPublishMetadata(
+        Long2ObjectHashMap<KafkaOffsetMetadata> offsets,
         Int2ObjectHashMap<KafkaTopicPartition> partitions,
         Int2ObjectHashMap<KafkaTopicPartition> retainedPartitions,
         Long2LongHashMap leaderEpochs)
@@ -74,7 +74,7 @@ public class PublishClientMetadata
         }
     }
 
-    public static final class PublishOffsetMetadata
+    public static final class KafkaOffsetMetadata
     {
         public final long producerId;
         public final short producerEpoch;
@@ -82,17 +82,14 @@ public class PublishClientMetadata
 
         public long sequence;
 
-        PublishOffsetMetadata(
+        KafkaOffsetMetadata(
             long producerId,
             short producerEpoch)
         {
-            this.sequence = 1;
-            this.producerId = producerId;
-            this.producerEpoch = producerEpoch;
-            this.packetIds = new IntArrayList();
+            this(producerId, producerEpoch, new IntArrayList());
         }
 
-        PublishOffsetMetadata(
+        KafkaOffsetMetadata(
             long producerId,
             short producerEpoch,
             IntArrayList packetIds)

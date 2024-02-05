@@ -39,9 +39,9 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurat
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaHeaderHelper;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaRouteConfig;
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.PublishClientMetadata.KafkaGroup;
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.PublishClientMetadata.KafkaTopicPartition;
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.PublishClientMetadata.PublishOffsetMetadata;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaPublishMetadata.KafkaGroup;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaPublishMetadata.KafkaOffsetMetadata;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaPublishMetadata.KafkaTopicPartition;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaAckMode;
@@ -152,13 +152,13 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
     private final String16FW binaryFormat;
     private final String16FW textFormat;
     private final Int2ObjectHashMap<String16FW> qosLevels;
-    private final LongFunction<PublishClientMetadata> supplyClientMetadata;
+    private final LongFunction<MqttKafkaPublishMetadata> supplyClientMetadata;
 
     public MqttKafkaPublishFactory(
         MqttKafkaConfiguration config,
         EngineContext context,
         LongFunction<MqttKafkaBindingConfig> supplyBinding,
-        LongFunction<PublishClientMetadata> supplyClientMetadata)
+        LongFunction<MqttKafkaPublishMetadata> supplyClientMetadata)
     {
         this.kafkaTypeId = context.supplyTypeId(KAFKA_TYPE_NAME);
         this.mqttTypeId = context.supplyTypeId(MQTT_TYPE_NAME);
@@ -252,7 +252,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         private int packetId;
         private int qos;
         private KafkaOffsetCommitStream offsetCommit;
-        private Long2ObjectHashMap<PublishOffsetMetadata> offsets;
+        private Long2ObjectHashMap<KafkaOffsetMetadata> offsets;
         private Int2ObjectHashMap<KafkaTopicPartition> partitions;
         private Int2ObjectHashMap<KafkaTopicPartition> retainedPartitions;
         private Long2LongHashMap leaderEpochs;
@@ -398,7 +398,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
 
             if (qos == MqttQoS.EXACTLY_ONCE.value())
             {
-                final PublishClientMetadata clientMetadata = supplyClientMetadata.apply(affinity);
+                final MqttKafkaPublishMetadata clientMetadata = supplyClientMetadata.apply(affinity);
                 this.offsets = clientMetadata.offsets;
                 this.partitions = clientMetadata.partitions;
                 this.retainedPartitions = clientMetadata.retainedPartitions;
@@ -524,7 +524,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                 {
                     kafkaFlags = flags & ~DATA_FLAG_FIN;
                     final long offsetKey = offsetKey(messages.topicString, messages.qos2PartitionId);
-                    final PublishOffsetMetadata metadata = offsets.get(offsetKey);
+                    final KafkaOffsetMetadata metadata = offsets.get(offsetKey);
                     producerId = metadata.producerId;
                     producerEpoch = metadata.producerEpoch;
                     producerSequence = metadata.sequence;
@@ -566,7 +566,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
 
             if ((flags & DATA_FLAG_FIN) != 0x00 && qos == MqttQoS.EXACTLY_ONCE.value())
             {
-                commitOffsetIncomplete(traceId, authorization, messages.topicString,
+                doCommitOffsetIncomplete(traceId, authorization, messages.topicString,
                     messages.qos2PartitionId, packetId, messages, false);
             }
 
@@ -582,7 +582,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                     {
                         kafkaFlags = flags & ~DATA_FLAG_FIN;
                         final long offsetKey = offsetKey(messages.topicString, messages.qos2PartitionId);
-                        final PublishOffsetMetadata metadata = offsets.get(offsetKey);
+                        final KafkaOffsetMetadata metadata = offsets.get(offsetKey);
                         producerId = metadata.producerId;
                         producerEpoch = metadata.producerEpoch;
                         producerSequence = metadata.sequence;
@@ -606,7 +606,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
 
                     if ((flags & DATA_FLAG_FIN) != 0x00 && qos == MqttQoS.EXACTLY_ONCE.value())
                     {
-                        commitOffsetIncomplete(traceId, authorization, retained.topicString,
+                        doCommitOffsetIncomplete(traceId, authorization, retained.topicString,
                             retained.qos2PartitionId, packetId, retained, true);
                     }
                 }
@@ -630,7 +630,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             }
         }
 
-        public void commitOffsetIncomplete(
+        public void doCommitOffsetIncomplete(
             long traceId,
             long authorization,
             String topic,
@@ -640,7 +640,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             boolean retained)
         {
             final long offsetKey = offsetKey(topic, partitionId);
-            final PublishOffsetMetadata metadata = offsets.get(offsetKey);
+            final KafkaOffsetMetadata metadata = offsets.get(offsetKey);
             metadata.packetIds.add(packetId);
             Flyweight offsetCommitEx = kafkaDataExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())
@@ -1995,7 +1995,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
     }
 
     private String16FW offsetMetadataToString(
-        PublishOffsetMetadata metadata)
+        KafkaOffsetMetadata metadata)
     {
         mqttOffsetMetadataRW.wrap(offsetBuffer, 0, offsetBuffer.capacity());
         mqttOffsetMetadataRW.version(OFFSET_METADATA_VERSION);

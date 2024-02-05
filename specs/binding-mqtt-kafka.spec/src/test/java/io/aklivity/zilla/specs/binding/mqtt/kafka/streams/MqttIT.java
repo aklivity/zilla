@@ -681,8 +681,8 @@ public class MqttIT
 
     @Test
     @Specification({
-        "${mqtt}/publish.qos2.recover/client",
-        "${mqtt}/publish.qos2.recover/server"})
+        "${mqtt}/publish.qos2.recovery/client",
+        "${mqtt}/publish.qos2.recovery/server"})
     public void shouldPublishQoS2MessageRecover() throws Exception
     {
         k3po.start();

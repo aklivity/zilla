@@ -305,8 +305,8 @@ public class MqttKafkaPublishProxyIT
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
-        "${mqtt}/publish.qos2.recover/client",
-        "${kafka}/publish.qos2.recover/server"})
+        "${mqtt}/publish.qos2.recovery/client",
+        "${kafka}/publish.qos2.recovery/server"})
     public void shouldSendMessageQos2Recover() throws Exception
     {
         k3po.finish();

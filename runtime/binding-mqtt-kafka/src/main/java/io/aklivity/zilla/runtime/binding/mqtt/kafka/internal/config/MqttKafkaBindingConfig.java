@@ -23,7 +23,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaConditionKind;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionFactory;
@@ -44,7 +43,6 @@ public class MqttKafkaBindingConfig
     public final List<Function<String, String>> clients;
 
     public MqttKafkaSessionFactory.KafkaSignalStream willProxy;
-    public Long2ObjectHashMap<MqttKafkaSessionFactory.MqttSessionProxy> sessions;
 
     public MqttKafkaBindingConfig(
         BindingConfig binding)
@@ -64,7 +62,6 @@ public class MqttKafkaBindingConfig
             }
         });
         this.bootstrapRoutes = bootstrapRoutes;
-        this.sessions = new Long2ObjectHashMap<>();
     }
 
     public MqttKafkaRouteConfig resolve(

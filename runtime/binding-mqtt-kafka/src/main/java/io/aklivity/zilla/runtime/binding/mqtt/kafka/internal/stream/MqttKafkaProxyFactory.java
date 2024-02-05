@@ -48,7 +48,7 @@ public class MqttKafkaProxyFactory implements MqttKafkaStreamFactory
     {
         final Long2ObjectHashMap<MqttKafkaBindingConfig> bindings = new Long2ObjectHashMap<>();
         final Int2ObjectHashMap<MqttKafkaStreamFactory> factories = new Int2ObjectHashMap<>();
-        final Long2ObjectHashMap<PublishClientMetadata> clientMetadata = new Long2ObjectHashMap<>();
+        final Long2ObjectHashMap<MqttKafkaPublishMetadata> clientMetadata = new Long2ObjectHashMap<>();
 
         final MqttKafkaPublishFactory publishFactory = new MqttKafkaPublishFactory(config, context, bindings::get,
             clientMetadata::get);

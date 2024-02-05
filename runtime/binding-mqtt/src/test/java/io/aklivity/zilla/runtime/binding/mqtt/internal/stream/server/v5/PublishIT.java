@@ -426,9 +426,9 @@ public class PublishIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/publish.qos2.recover/client",
-        "${app}/publish.qos2.recover/server"})
-    public void shouldReleaseQos2PacketIdAtRecover() throws Exception
+        "${net}/publish.qos2.recovery/client",
+        "${app}/publish.qos2.recovery/server"})
+    public void shouldReleaseQos2PacketIdDuringRecovery() throws Exception
     {
         k3po.finish();
     }

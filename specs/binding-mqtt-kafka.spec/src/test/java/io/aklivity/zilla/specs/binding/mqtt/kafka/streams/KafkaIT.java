@@ -857,8 +857,8 @@ public class KafkaIT
 
     @Test
     @Specification({
-        "${kafka}/publish.qos2.recover/client",
-        "${kafka}/publish.qos2.recover/server"})
+        "${kafka}/publish.qos2.recovery/client",
+        "${kafka}/publish.qos2.recovery/server"})
     public void shouldPublishQoS2MessageRecover() throws Exception
     {
         k3po.start();

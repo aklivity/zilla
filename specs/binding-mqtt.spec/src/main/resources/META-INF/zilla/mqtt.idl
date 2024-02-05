@@ -267,14 +267,5 @@ scope mqtt
             int8 length;
             int16[length] packetIds = null;
         }
-
-        struct MqttPublishOffsetMetadata
-        {
-            uint8 version = 1;
-            int64 producerId = 0;
-            int16 producerEpoch = 0;
-            int8 length;
-            int16[length] packetIds = null;
-        }
     }
 }

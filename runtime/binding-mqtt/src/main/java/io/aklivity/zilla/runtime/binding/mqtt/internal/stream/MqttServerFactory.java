@@ -83,6 +83,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.PrimitiveIterator;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -2434,7 +2435,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private long keepAliveTimeoutId = NO_CANCEL_ID;
         private long keepAliveTimeoutAt;
 
-        private int subscribeMaximumQos;
+        private int subscribeQosMax;
         private int packetSizeMax;
         private int capabilities = RETAIN_AVAILABLE_MASK | SUBSCRIPTION_IDS_AVAILABLE_MASK | WILDCARD_AVAILABLE_MASK;
         private boolean serverDefinedKeepAlive = false;
@@ -3015,7 +3016,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 final int flags = connectFlags;
                 final int willQos = decodeWillQos(flags);
 
-                if (willQos > subscribeMaximumQos)
+                if (willQos > subscribeQosMax)
                 {
                     reasonCode = QOS_NOT_SUPPORTED;
                     break decode;
@@ -3171,7 +3172,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             int reasonCode = SUCCESS;
 
-            if (qos > subscribeMaximumQos)
+            if (qos > subscribeQosMax)
             {
                 reasonCode = QOS_NOT_SUPPORTED;
             }
@@ -4489,10 +4490,10 @@ public final class MqttServerFactory implements MqttStreamFactory
                     propertiesSize = mqttProperty.limit();
                 }
 
-                if (0 <= subscribeMaximumQos && subscribeMaximumQos < 2)
+                if (0 <= subscribeQosMax && subscribeQosMax < 2)
                 {
                     mqttProperty = mqttPropertyRW.wrap(propertyBuffer, propertiesSize, propertyBuffer.capacity())
-                        .maximumQoS((byte) subscribeMaximumQos)
+                        .maximumQoS((byte) subscribeQosMax)
                         .build();
                     propertiesSize = mqttProperty.limit();
                 }
@@ -5201,13 +5202,14 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                     assert mqttBeginEx.kind() == MqttBeginExFW.KIND_SESSION;
                     final MqttSessionBeginExFW mqttSessionBeginEx = mqttBeginEx.session();
+                    final PrimitiveIterator.OfInt packetIds = mqttSessionBeginEx.packetIds();
 
                     sessionExpiry = mqttSessionBeginEx.expiry();
                     capabilities = mqttSessionBeginEx.capabilities();
-                    subscribeMaximumQos = mqttSessionBeginEx.subscribeQosMax();
-                    if (mqttSessionBeginEx.packetIds() != null)
+                    subscribeQosMax = mqttSessionBeginEx.subscribeQosMax();
+                    if (packetIds != null)
                     {
-                        mqttSessionBeginEx.packetIds().forEachRemaining((IntConsumer) p -> unreleasedPacketIds.add(p));
+                        packetIds.forEachRemaining((IntConsumer) p -> unreleasedPacketIds.add(p));
                     }
                 }
 
