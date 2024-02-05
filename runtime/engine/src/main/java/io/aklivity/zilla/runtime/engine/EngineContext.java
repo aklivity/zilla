@@ -150,4 +150,6 @@ public interface EngineContext
         long exporterId);
 
     MessageConsumer logEvent();
+
+    LongSupplier timestamp();
 }

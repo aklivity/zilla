@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.binding.http.internal;
 
 import java.nio.ByteBuffer;
+import java.util.function.LongSupplier;
 
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -33,6 +34,7 @@ public class HttpEventContext
     private final MutableDirectBuffer eventBuffer = new UnsafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
     private final int httpTypeId;
     private final MessageConsumer logEvent;
+    private final LongSupplier timestamp;
 
     public HttpEventContext(
         int httpTypeId,
@@ -40,6 +42,7 @@ public class HttpEventContext
     {
         this.httpTypeId = httpTypeId;
         this.logEvent = context.logEvent();
+        this.timestamp = context.timestamp();
     }
 
     public void accessDenied(
@@ -49,6 +52,7 @@ public class HttpEventContext
         HttpEventFW event = httpEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .accessDenied(e -> e
+                .timestamp(timestamp.getAsLong())
                 .traceId(traceId)
                 .bindingId(routedId)
             )
@@ -66,6 +70,7 @@ public class HttpEventContext
         HttpEventFW event = httpEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .authorization(e -> e
+                .timestamp(timestamp.getAsLong())
                 .traceId(traceId)
                 .bindingId(routedId)
                 .result(r -> r.set(result))

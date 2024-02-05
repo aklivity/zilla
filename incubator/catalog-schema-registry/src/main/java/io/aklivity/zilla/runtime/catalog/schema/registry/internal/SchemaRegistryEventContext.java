@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.catalog.schema.registry.internal;
 
 import java.nio.ByteBuffer;
+import java.util.function.LongSupplier;
 
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -31,12 +32,14 @@ public class SchemaRegistryEventContext
     private final MutableDirectBuffer eventBuffer = new UnsafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
     private final int typeId;
     private final MessageConsumer logEvent;
+    private final LongSupplier timestamp;
 
     public SchemaRegistryEventContext(
         EngineContext context)
     {
         this.typeId = context.supplyTypeId(SchemaRegistryCatalog.NAME);
         this.logEvent = context.logEvent();
+        this.timestamp = context.timestamp();
     }
 
     public void remoteAccessRejected(
@@ -48,6 +51,7 @@ public class SchemaRegistryEventContext
         SchemaRegistryEventFW event = schemaRegistryEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .remoteAccessRejected(e -> e
+                .timestamp(timestamp.getAsLong())
                 .catalogId(catalogId)
                 .url(url)
                 .method(method)

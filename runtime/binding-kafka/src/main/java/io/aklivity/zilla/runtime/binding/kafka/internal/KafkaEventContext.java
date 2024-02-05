@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.binding.kafka.internal;
 
 import java.nio.ByteBuffer;
+import java.util.function.LongSupplier;
 
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -33,6 +34,7 @@ public class KafkaEventContext
     private final MutableDirectBuffer eventBuffer = new UnsafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
     private final int kafkaTypeId;
     private final MessageConsumer logEvent;
+    private final LongSupplier timestamp;
 
     public KafkaEventContext(
         int kafkaTypeId,
@@ -40,6 +42,7 @@ public class KafkaEventContext
     {
         this.kafkaTypeId = kafkaTypeId;
         this.logEvent = context.logEvent();
+        this.timestamp = context.timestamp();
     }
 
     public void authorization(
@@ -50,6 +53,7 @@ public class KafkaEventContext
         KafkaEventFW event = kafkaEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .authorization(e -> e
+                .timestamp(timestamp.getAsLong())
                 .traceId(traceId)
                 .bindingId(routedId)
                 .result(r -> r.set(result))
@@ -65,6 +69,7 @@ public class KafkaEventContext
         KafkaEventFW event = kafkaEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .apiVersionRejected(e -> e
+                .timestamp(timestamp.getAsLong())
                 .traceId(traceId)
             )
             .build();

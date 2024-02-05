@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.binding.tcp.internal;
 
 import java.nio.ByteBuffer;
+import java.util.function.LongSupplier;
 
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -32,6 +33,7 @@ public class TcpEventContext
     private final MutableDirectBuffer eventBuffer = new UnsafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
     private final int typeId;
     private final MessageConsumer logEvent;
+    private final LongSupplier timestamp;
 
     public TcpEventContext(
         int typeId,
@@ -39,6 +41,7 @@ public class TcpEventContext
     {
         this.typeId = typeId;
         this.logEvent = context.logEvent();
+        this.timestamp = context.timestamp();
     }
 
     public void remoteAccessFailed(
@@ -49,6 +52,7 @@ public class TcpEventContext
         TcpEventFW event = tcpEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .remoteAccessFailed(e -> e
+                .timestamp(timestamp.getAsLong())
                 .traceId(traceId)
                 .bindingId(routedId)
                 .address(address)

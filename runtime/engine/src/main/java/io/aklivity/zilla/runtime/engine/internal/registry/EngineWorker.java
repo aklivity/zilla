@@ -909,6 +909,12 @@ public class EngineWorker implements EngineContext, Agent
         return this.eventsLayout.supplyWriter();
     }
 
+    @Override
+    public LongSupplier timestamp()
+    {
+        return () -> timestamps ? System.nanoTime() : 0L;
+    }
+
     private void onSystemMessage(
         int msgTypeId,
         DirectBuffer buffer,

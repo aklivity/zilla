@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.binding.tls.internal;
 
 import java.nio.ByteBuffer;
+import java.util.function.LongSupplier;
 
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLKeyException;
@@ -38,6 +39,7 @@ public class TlsEventContext
     private final MutableDirectBuffer eventBuffer = new UnsafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
     private final int typeId;
     private final MessageConsumer logEvent;
+    private final LongSupplier timestamp;
 
     public TlsEventContext(
         int typeId,
@@ -45,6 +47,7 @@ public class TlsEventContext
     {
         this.typeId = typeId;
         this.logEvent = context.logEvent();
+        this.timestamp = context.timestamp();
     }
 
     public void tlsFailed(
@@ -54,6 +57,7 @@ public class TlsEventContext
         TlsEventFW event = tlsEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .tlsFailed(e -> e
+                .timestamp(timestamp.getAsLong())
                 .traceId(traceId)
                 .error(r -> r.set(error))
             )
