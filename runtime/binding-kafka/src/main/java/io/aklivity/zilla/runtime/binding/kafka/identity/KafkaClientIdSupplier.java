@@ -15,7 +15,6 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.identity;
 
-import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CLIENT_ID_DEFAULT;
 import static io.aklivity.zilla.runtime.common.feature.FeatureFilter.filter;
 import static java.util.ServiceLoader.load;
 
@@ -77,11 +76,6 @@ public final class KafkaClientIdSupplier
         for (KafkaClientIdSupplierFactorySpi factory : factories)
         {
             suppliers.add(factory.create(config));
-        }
-
-        if (clientId == null)
-        {
-            suppliers.add(new Fixed(KAFKA_CLIENT_ID_DEFAULT));
         }
 
         return new KafkaClientIdSupplier(suppliers);
