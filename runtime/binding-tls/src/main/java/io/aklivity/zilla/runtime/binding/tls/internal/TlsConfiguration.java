@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.binding.tls.internal;
 
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_VERBOSE;
+
 import java.security.KeyStore;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
@@ -30,6 +32,7 @@ public class TlsConfiguration extends Configuration
     public static final BooleanPropertyDef TLS_IGNORE_EMPTY_VAULT_REFS;
     public static final LongPropertyDef TLS_AWAIT_SYNC_CLOSE_MILLIS;
     public static final BooleanPropertyDef TLS_PROACTIVE_CLIENT_REPLY_BEGIN;
+    public static final BooleanPropertyDef TLS_VERBOSE;
 
     private static final ConfigurationDef TLS_CONFIG;
 
@@ -45,6 +48,7 @@ public class TlsConfiguration extends Configuration
         TLS_IGNORE_EMPTY_VAULT_REFS = config.property("ignore.empty.vault.refs", false);
         TLS_AWAIT_SYNC_CLOSE_MILLIS = config.property("await.sync.close.millis", 3000L);
         TLS_PROACTIVE_CLIENT_REPLY_BEGIN = config.property("proactive.client.reply.begin", false);
+        TLS_VERBOSE = config.property("verbose", TlsConfiguration::verboseDefault);
         TLS_CONFIG = config;
     }
 
@@ -99,6 +103,11 @@ public class TlsConfiguration extends Configuration
         return TLS_PROACTIVE_CLIENT_REPLY_BEGIN.get(this);
     }
 
+    public boolean verbose()
+    {
+        return TLS_VERBOSE.getAsBoolean(this);
+    }
+
     private static String cacertsStoreTypeDefault(
         Configuration config)
     {
@@ -109,5 +118,11 @@ public class TlsConfiguration extends Configuration
         Configuration config)
     {
         return System.getProperty("javax.net.ssl.trustStore");
+    }
+
+    private static boolean verboseDefault(
+        Configuration config)
+    {
+        return ENGINE_VERBOSE.getAsBoolean(config);
     }
 }
