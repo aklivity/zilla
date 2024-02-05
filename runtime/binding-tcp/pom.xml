@@ -123,7 +123,7 @@
         <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <scopeNames>core proxy</scopeNames>
+          <scopeNames>core tcp proxy</scopeNames>
           <packageName>io.aklivity.zilla.runtime.binding.tcp.internal.types</packageName>
         </configuration>
         <executions>

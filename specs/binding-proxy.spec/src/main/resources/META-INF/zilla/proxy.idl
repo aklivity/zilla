@@ -127,22 +127,4 @@ scope proxy
             ProxyInfo[] infos;
         }
     }
-
-    scope event
-    {
-        enum ProxyEventType (uint8)
-        {
-            REMOTE_ACCESS_FAILED (1)
-        }
-
-        struct ProxyRemoteAccessFailedEvent extends core::event::BindingEvent
-        {
-            string16 address;
-        }
-
-        union ProxyEvent switch (ProxyEventType)
-        {
-            case REMOTE_ACCESS_FAILED: ProxyRemoteAccessFailedEvent remoteAccessFailed;
-        }
-    }
 }
