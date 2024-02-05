@@ -556,6 +556,10 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             else
             {
                 deferred = 0;
+                if (qos == MqttQoS.EXACTLY_ONCE.value())
+                {
+                    kafkaFlags = flags & ~DATA_FLAG_FIN;
+                }
             }
 
             messages.doKafkaData(traceId, authorization, budgetId, reserved, kafkaFlags, payload, kafkaDataEx);
