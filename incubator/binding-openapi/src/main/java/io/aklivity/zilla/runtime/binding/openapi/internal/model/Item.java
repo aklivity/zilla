@@ -12,11 +12,10 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.openapi.internal.generator.model;
+package io.aklivity.zilla.runtime.binding.openapi.internal.model;
 
-import java.util.LinkedHashMap;
-
-public class RequestBody
+public class Item
 {
-    public LinkedHashMap<String, MediaType> content;
+    public String type;
+    public String description;
 }

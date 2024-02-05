@@ -12,15 +12,12 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.openapi.internal.generator.model;
+package io.aklivity.zilla.runtime.binding.openapi.internal.model;
 
-import java.util.List;
-import java.util.Map;
-
-public class Operation
+public class Parameter
 {
-    public List<Map<String, List<String>>> security;
-    public RequestBody requestBody;
-    public List<Parameter> parameters;
-    public Map<String, ResponseByContentType> responses;
+    public String name;
+    public String in;
+    public boolean required;
+    public Schema schema;
 }

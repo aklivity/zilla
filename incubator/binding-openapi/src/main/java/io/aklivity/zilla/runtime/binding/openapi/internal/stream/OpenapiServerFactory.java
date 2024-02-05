@@ -14,58 +14,46 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.stream;
 
-import io.aklivity.zilla.runtime.binding.grpc.internal.GrpcBinding;
-import io.aklivity.zilla.runtime.binding.grpc.internal.GrpcConfiguration;
-import io.aklivity.zilla.runtime.binding.grpc.internal.config.GrpcBindingConfig;
-import io.aklivity.zilla.runtime.binding.grpc.internal.config.GrpcMethodResult;
-import io.aklivity.zilla.runtime.binding.grpc.internal.config.GrpcRouteConfig;
-import io.aklivity.zilla.runtime.binding.grpc.internal.types.Array32FW;
-import io.aklivity.zilla.runtime.binding.grpc.internal.types.Flyweight;
-import io.aklivity.zilla.runtime.binding.grpc.internal.types.HttpHeaderFW;
-import io.aklivity.zilla.runtime.binding.grpc.internal.types.OctetsFW;
-import io.aklivity.zilla.runtime.binding.grpc.internal.types.String16FW;
-import io.aklivity.zilla.runtime.binding.grpc.internal.types.String8FW;
-import io.aklivity.zilla.runtime.binding.grpc.internal.types.codec.GrpcMessageFW;
-import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.AbortFW;
-import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.BeginFW;
-import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.DataFW;
-import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.EndFW;
-import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.FlushFW;
-import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcAbortExFW;
-import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcBeginExFW;
-import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcDataExFW;
-import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcResetExFW;
-import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.HttpBeginExFW;
-import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.HttpEndExFW;
-import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.HttpResetExFW;
-import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.ResetFW;
-import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.SignalFW;
-import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.WindowFW;
+import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
+import static java.lang.Character.toLowerCase;
+import static java.lang.Character.toUpperCase;
+import static java.nio.charset.StandardCharsets.US_ASCII;
+import static java.time.Instant.now;
+
+import java.util.function.LongSupplier;
+import java.util.function.LongUnaryOperator;
+
+import io.aklivity.zilla.runtime.binding.openapi.internal.types.String8FW;
+import org.agrona.DirectBuffer;
+import org.agrona.MutableDirectBuffer;
+import org.agrona.collections.Long2ObjectHashMap;
+import org.agrona.concurrent.UnsafeBuffer;
+
 import io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiBinding;
 import io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiConfiguration;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiBindingConfig;
+import io.aklivity.zilla.runtime.binding.openapi.internal.types.Array32FW;
+import io.aklivity.zilla.runtime.binding.openapi.internal.types.Flyweight;
+import io.aklivity.zilla.runtime.binding.openapi.internal.types.HttpHeaderFW;
+import io.aklivity.zilla.runtime.binding.openapi.internal.types.OctetsFW;
+import io.aklivity.zilla.runtime.binding.openapi.internal.types.String16FW;
+import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.AbortFW;
+import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.BeginFW;
+import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.DataFW;
+import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.EndFW;
+import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.FlushFW;
+import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.HttpBeginExFW;
+import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.HttpEndExFW;
+import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.HttpResetExFW;
+import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.ResetFW;
+import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.SignalFW;
+import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
-import org.agrona.collections.Long2ObjectHashMap;
-import org.agrona.concurrent.UnsafeBuffer;
-
-import java.util.function.Consumer;
-import java.util.function.LongSupplier;
-import java.util.function.LongUnaryOperator;
-
-import static io.aklivity.zilla.runtime.binding.grpc.internal.stream.GrpcServerFactory.ContentType.GRPC;
-import static io.aklivity.zilla.runtime.binding.grpc.internal.stream.GrpcServerFactory.ContentType.GRPC_WEB_PROTO;
-import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
-import static java.lang.Character.toLowerCase;
-import static java.lang.Character.toUpperCase;
-import static java.nio.charset.StandardCharsets.US_ASCII;
-import static java.time.Instant.now;
 
 public final class OpenapiServerFactory implements OpenapiStreamFactory
 {
@@ -80,6 +68,9 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
     private static final byte SPACE_BYTE = ' ';
     private static final byte[] COLON_SPACE_BYTES = ": ".getBytes(US_ASCII);
     private static final byte[] CRLF_BYTES = "\r\n".getBytes(US_ASCII);
+    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(new byte[0]), 0, 0);
+    private static final String16FW HEADER_VALUE_STATUS_404 = new String16FW("404");
+    private static final String8FW HEADER_NAME_STATUS = new String8FW(":status");
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -103,7 +94,6 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
 
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer extBuffer;
-    private final MutableDirectBuffer metadataBuffer;
     private final BufferPool bufferPool;
     private final Signaler signaler;
     private final BindingHandler streamFactory;
@@ -121,7 +111,6 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
     {
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
-        this.metadataBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.bufferPool = context.bufferPool();
         this.signaler = context.signaler();
         this.streamFactory = context.streamFactory();
@@ -149,7 +138,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        OpenapiBindingConfig grpcBinding = new OpenapiBindingConfig(binding, metadataBuffer);
+        OpenapiBindingConfig grpcBinding = new OpenapiBindingConfig(binding);
         bindings.put(binding.id, grpcBinding);
     }
 
@@ -181,43 +170,22 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
 
         MessageConsumer newStream = (t, b, i, l) -> {};
 
-        if (!isGrpcRequestMethod(httpBeginEx))
+        final OpenapiBindingConfig binding = bindings.get(routedId);
+
+        if (binding.isCompositeBinding(originId))
         {
             doRejectNet(network, originId, routedId, traceId, authorization, initialId, sequence, acknowledge,
-                HEADER_VALUE_STATUS_405, HEADER_VALUE_GRPC_INTERNAL_ERROR);
+                HEADER_VALUE_STATUS_404);
         }
         else
         {
-            final GrpcBindingConfig binding = bindings.get(routedId);
-
-            final GrpcMethodResult method = binding != null ? binding.resolveMethod(httpBeginEx) : null;
-            final ContentType contentType = method != null ? asContentType(method.contentType) : null;
-
-            if (method == null)
-            {
-                doRejectNet(network, originId, routedId, traceId, authorization, initialId, sequence, acknowledge,
-                    HEADER_VALUE_STATUS_200, HEADER_VALUE_GRPC_UNIMPLEMENTED);
-            }
-            else if (contentType == null)
-            {
-                doRejectNet(network, originId, routedId, traceId, authorization, initialId, sequence, acknowledge,
-                    HEADER_VALUE_STATUS_415, null);
-            }
-            else if (method.te == null || !HEADER_VALUE_TRAILERS.equals(method.te))
-            {
-                doRejectNet(network, originId, routedId, traceId, authorization, initialId, sequence, acknowledge,
-                    HEADER_VALUE_STATUS_200, HEADER_VALUE_GRPC_ABORTED);
-            }
-            else
-            {
-                newStream = newInitialGrpcStream(begin, network, contentType, method);
-            }
+            newStream = newInitialOpenapiStream(begin, network, contentType, method);
         }
 
         return newStream;
     }
 
-    private MessageConsumer  newInitialGrpcStream(
+    private MessageConsumer newInitialOpenapiStream(
         final BeginFW begin,
         final MessageConsumer network,
         final ContentType contentType,
@@ -1251,7 +1219,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
     }
 
     private void doRejectNet(
-        MessageConsumer network,
+        MessageConsumer http,
         long originId,
         long routedId,
         long traceId,
@@ -1259,19 +1227,15 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
         long initialId,
         long sequence,
         long acknowledge,
-        String16FW httpStatus,
-        String16FW grpcStatus)
+        String16FW httpStatus)
     {
-        doWindow(network, originId, routedId, initialId, sequence, acknowledge, 0, traceId, 0L, 0, 0, 0);
-        HttpResetExFW.Builder resetEx = httpResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
+        doWindow(http, originId, routedId, initialId, sequence, acknowledge, 0, traceId, 0L, 0, 0, 0);
+        HttpResetExFW resetEx = httpResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
             .typeId(httpTypeId)
-            .headersItem(h -> h.name(HEADER_NAME_STATUS).value(httpStatus));
-        if (grpcStatus != null)
-        {
-            resetEx.headersItem(h -> h.name(HEADER_NAME_GRPC_STATUS).value(grpcStatus));
-        }
+            .headersItem(h -> h.name(HEADER_NAME_STATUS).value(httpStatus))
+            .build();
 
-        doReset(network, originId, routedId, initialId, sequence, acknowledge, 0, traceId, authorization, resetEx.build());
+        doReset(http, originId, routedId, initialId, sequence, acknowledge, 0, traceId, authorization, resetEx);
     }
 
     private Flyweight.Builder.Visitor visitHttpBeginEx(

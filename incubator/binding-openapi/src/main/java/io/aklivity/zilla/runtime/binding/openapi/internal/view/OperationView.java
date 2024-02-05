@@ -12,12 +12,12 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.openapi.internal.generator.view;
+package io.aklivity.zilla.runtime.binding.openapi.internal.view;
 
 import java.util.Map;
 
-import io.aklivity.zilla.runtime.binding.openapi.internal.generator.model.Operation;
-import io.aklivity.zilla.runtime.binding.openapi.internal.generator.model.ResponseByContentType;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.Operation;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.ResponseByContentType;
 
 public class OperationView
 {
