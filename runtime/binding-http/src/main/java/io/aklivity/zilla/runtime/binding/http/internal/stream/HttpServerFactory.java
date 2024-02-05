@@ -519,8 +519,6 @@ public final class HttpServerFactory implements HttpStreamFactory
     private final Http2HeadersEncoder headersEncoder = new Http2HeadersEncoder();
 
     private final HttpConfiguration config;
-    private final EngineContext context;
-    private final boolean verbose;
     private final MutableDirectBuffer codecBuffer;
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer frameBuffer;
@@ -551,7 +549,6 @@ public final class HttpServerFactory implements HttpStreamFactory
         HttpConfiguration config,
         EngineContext context)
     {
-        this.context = context;
         this.config = config;
         this.writeBuffer = context.writeBuffer();
         this.bufferPool = context.bufferPool();
@@ -579,7 +576,6 @@ public final class HttpServerFactory implements HttpStreamFactory
         this.supplyValidator = context::supplyValidator;
         this.encodeMax = bufferPool.slotCapacity();
         this.bindings = new Long2ObjectHashMap<>();
-        this.verbose = config.verbose();
 
         this.headers200 = initHeaders(config, STATUS_200);
         this.headers204 = initHeaders(config, STATUS_204);
@@ -2274,15 +2270,6 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                 this.exchange = exchange;
             }
-            else
-            {
-                if (verbose)
-                {
-                    System.out.printf("%s:%s %s: Skipping invalid message on method %s, path %s\n",
-                        System.currentTimeMillis(), context.supplyNamespace(routedId),
-                        context.supplyLocalName(routedId), exchange.requestType.method, exchange.requestType.path);
-                }
-            }
             return headersValid;
         }
 
@@ -2314,12 +2301,6 @@ public final class HttpServerFactory implements HttpStreamFactory
             }
             else
             {
-                if (verbose)
-                {
-                    System.out.printf("%s:%s %s: Skipping invalid message on method %s, path %s\n",
-                        System.currentTimeMillis(), context.supplyNamespace(routedId),
-                        context.supplyLocalName(routedId), exchange.requestType.method, exchange.requestType.path);
-                }
                 onDecodeBodyInvalid(traceId, authorization, ERROR_400_BAD_REQUEST);
                 result = limit;
             }
@@ -5031,13 +5012,6 @@ public final class HttpServerFactory implements HttpStreamFactory
                             }
                             else
                             {
-                                if (verbose)
-                                {
-                                    System.out.printf("%s:%s %s: Skipping invalid message on method %s, path %s\n",
-                                        System.currentTimeMillis(), context.supplyNamespace(routedId),
-                                        context.supplyLocalName(routedId), exchange.requestType.method,
-                                        exchange.requestType.path);
-                                }
                                 doEncodeHeaders(traceId, authorization, streamId, headers400, true);
                             }
                         }
@@ -5267,12 +5241,6 @@ public final class HttpServerFactory implements HttpStreamFactory
                     }
                     else
                     {
-                        if (verbose)
-                        {
-                            System.out.printf("%s:%s %s: Skipping invalid message on method %s, path %s\n",
-                                System.currentTimeMillis(), context.supplyNamespace(routedId),
-                                context.supplyLocalName(routedId), exchange.requestType.method, exchange.requestType.path);
-                        }
                         if (!HttpState.replyOpened(exchange.state))
                         {
                             doEncodeHeaders(traceId, authorization, streamId, headers400, true);

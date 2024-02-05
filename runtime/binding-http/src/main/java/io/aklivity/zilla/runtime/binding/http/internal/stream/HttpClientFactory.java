@@ -2905,12 +2905,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             }
             else
             {
-                if (verbose)
-                {
-                    System.out.printf("%s:%s %s: Skipping invalid response on method %s, path %s\n",
-                        System.currentTimeMillis(), context.supplyNamespace(routedId),
-                        context.supplyLocalName(routedId), exchange.requestType.method, exchange.requestType.path);
-                }
+                onResponseInvalid(exchange.requestType.method.name(), exchange.requestType.path);
                 exchange.cleanup(traceId, authorization);
                 decoder = decodeHttp11Ignore;
             }
@@ -2945,12 +2940,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             }
             else
             {
-                if (verbose)
-                {
-                    System.out.printf("%s:%s %s: Skipping invalid response on method %s, path %s\n",
-                        System.currentTimeMillis(), context.supplyNamespace(routedId),
-                        context.supplyLocalName(routedId), exchange.requestType.method, exchange.requestType.path);
-                }
+                onResponseInvalid(exchange.requestType.method.name(), exchange.requestType.path);
                 exchange.doResponseAbort(traceId, authorization, EMPTY_OCTETS);
                 result = limit;
             }
@@ -3392,13 +3382,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                             }
                             else
                             {
-                                if (verbose)
-                                {
-                                    System.out.printf("%s:%s %s: Skipping invalid response on method %s, path %s\n",
-                                        System.currentTimeMillis(), context.supplyNamespace(routedId),
-                                        context.supplyLocalName(routedId), exchange.requestType.method,
-                                        exchange.requestType.path);
-                                }
+                                onResponseInvalid(exchange.requestType.method.name(), exchange.requestType.path);
                                 exchange.cleanup(traceId, authorization);
                                 progress += payloadLength;
                             }
@@ -3422,6 +3406,18 @@ public final class HttpClientFactory implements HttpStreamFactory
             }
 
             return progress;
+        }
+
+        private void onResponseInvalid(
+            String method,
+            String path)
+        {
+            if (verbose)
+            {
+                System.out.printf("%s:%s %s: Skipping invalid response on method %s, path %s\n",
+                    System.currentTimeMillis(), context.supplyNamespace(routedId),
+                    context.supplyLocalName(routedId), method, path);
+            }
         }
 
         private void onDecodeHttp2Continuation(
@@ -3509,12 +3505,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 }
                 else
                 {
-                    if (verbose)
-                    {
-                        System.out.printf("%s:%s %s: Skipping invalid response on method %s, path %s\n",
-                            System.currentTimeMillis(), context.supplyNamespace(routedId),
-                            context.supplyLocalName(routedId), exchange.requestType.method, exchange.requestType.path);
-                    }
+                    onResponseInvalid(exchange.requestType.method.name(), exchange.requestType.path);
                     exchange.doResponseAbort(traceId, authorization, EMPTY_OCTETS);
                     exchange.doRequestReset(traceId, authorization);
                     doEncodeHttp2RstStream(traceId, streamId, Http2ErrorCode.CANCEL);
