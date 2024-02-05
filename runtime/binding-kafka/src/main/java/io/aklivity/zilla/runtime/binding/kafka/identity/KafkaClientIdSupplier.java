@@ -22,7 +22,6 @@ import static java.util.ServiceLoader.load;
 import java.util.ArrayList;
 import java.util.List;
 
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.engine.Configuration;
 
@@ -37,7 +36,7 @@ public final class KafkaClientIdSupplier
     private final List<KafkaClientIdSupplierSpi> suppliers;
 
     public String get(
-        KafkaServerConfig server)
+        String server)
     {
         String clientId = null;
 
@@ -100,7 +99,7 @@ public final class KafkaClientIdSupplier
 
         @Override
         public boolean matches(
-            KafkaServerConfig server)
+            String server)
         {
             return true;
         }

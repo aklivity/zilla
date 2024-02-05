@@ -21,7 +21,6 @@ import static org.junit.Assert.assertNotEquals;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
 import io.aklivity.zilla.runtime.engine.Configuration;
 
 public class KafkaClientIdSupplierTest
@@ -42,7 +41,7 @@ public class KafkaClientIdSupplierTest
     {
         Configuration config = new Configuration();
         KafkaClientIdSupplier supplier = KafkaClientIdSupplier.instantiate(config);
-        KafkaServerConfig server = new KafkaServerConfig("broker.confluent.cloud", 9092);
+        String server = "broker.confluent.cloud";
 
         String clientId = supplier.get(server);
 

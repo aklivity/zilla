@@ -15,7 +15,6 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.identity;
 
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
 import io.aklivity.zilla.runtime.binding.kafka.identity.KafkaClientIdSupplierSpi;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
@@ -32,12 +31,11 @@ final class KafkaConfluentClientIdSupplier implements KafkaClientIdSupplierSpi
     }
 
     public boolean matches(
-        KafkaServerConfig server)
+        String server)
     {
         return
             server != null &&
-            server.host != null &&
-            server.host.endsWith(".confluent.cloud");
+            server.endsWith(".confluent.cloud");
     }
 
     public String get()
