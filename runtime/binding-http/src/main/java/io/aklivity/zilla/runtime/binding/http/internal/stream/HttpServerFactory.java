@@ -2278,9 +2278,9 @@ public final class HttpServerFactory implements HttpStreamFactory
             {
                 if (verbose)
                 {
-                    System.out.printf("%s:%s %s: Skipping invalid message on requestId %d\n",
+                    System.out.printf("%s:%s %s: Skipping invalid message on method %s, path %s\n",
                         System.currentTimeMillis(), context.supplyNamespace(routedId),
-                        context.supplyLocalName(routedId), exchange.requestId);
+                        context.supplyLocalName(routedId), exchange.requestType.method, exchange.requestType.path);
                 }
             }
             return headersValid;
@@ -2316,9 +2316,9 @@ public final class HttpServerFactory implements HttpStreamFactory
             {
                 if (verbose)
                 {
-                    System.out.printf("%s:%s %s: Skipping invalid message on requestId %d\n",
+                    System.out.printf("%s:%s %s: Skipping invalid message on method %s, path %s\n",
                         System.currentTimeMillis(), context.supplyNamespace(routedId),
-                        context.supplyLocalName(routedId), exchange.requestId);
+                        context.supplyLocalName(routedId), exchange.requestType.method, exchange.requestType.path);
                 }
                 onDecodeBodyInvalid(traceId, authorization, ERROR_400_BAD_REQUEST);
                 result = limit;
@@ -5033,9 +5033,10 @@ public final class HttpServerFactory implements HttpStreamFactory
                             {
                                 if (verbose)
                                 {
-                                    System.out.printf("%s:%s %s: Skipping invalid message on requestId %d\n",
+                                    System.out.printf("%s:%s %s: Skipping invalid message on method %s, path %s\n",
                                         System.currentTimeMillis(), context.supplyNamespace(routedId),
-                                        context.supplyLocalName(routedId), exchange.requestId);
+                                        context.supplyLocalName(routedId), exchange.requestType.method,
+                                        exchange.requestType.path);
                                 }
                                 doEncodeHeaders(traceId, authorization, streamId, headers400, true);
                             }
@@ -5268,9 +5269,9 @@ public final class HttpServerFactory implements HttpStreamFactory
                     {
                         if (verbose)
                         {
-                            System.out.printf("%s:%s %s: Skipping invalid message on requestId %d\n",
+                            System.out.printf("%s:%s %s: Skipping invalid message on method %s, path %s\n",
                                 System.currentTimeMillis(), context.supplyNamespace(routedId),
-                                context.supplyLocalName(routedId), exchange.requestId);
+                                context.supplyLocalName(routedId), exchange.requestType.method, exchange.requestType.path);
                         }
                         if (!HttpState.replyOpened(exchange.state))
                         {
