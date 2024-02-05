@@ -15,37 +15,52 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.identity;
 
-import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CLIENT_ID_DEFAULT;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CLIENT_ID;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+
+import java.util.Properties;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
 import io.aklivity.zilla.runtime.engine.Configuration;
 
 public class KafkaClientIdSupplierTest
 {
     @Test
-    public void shouldSupplyClientIdForNullServer() throws Exception
+    public void shouldNotSupplyClientIdWhenNotConfigured() throws Exception
     {
         Configuration config = new Configuration();
         KafkaClientIdSupplier supplier = KafkaClientIdSupplier.instantiate(config);
 
-        String clientId = supplier.get(null);
+        String clientId = supplier.get("localhost");
 
-        assertEquals(clientId, KAFKA_CLIENT_ID_DEFAULT);
+        assertNull(clientId);
     }
 
     @Test
-    public void shouldSupplyClientIdForConfluentServer() throws Exception
+    public void shouldSupplyClientIdWhenConfigured() throws Exception
+    {
+        Properties properties = new Properties();
+        properties.setProperty(KAFKA_CLIENT_ID.name(), "custom client id");
+        Configuration config = new Configuration(properties);
+        KafkaClientIdSupplier supplier = KafkaClientIdSupplier.instantiate(config);
+
+        String clientId = supplier.get("localhost");
+
+        assertEquals("custom client id", clientId);
+    }
+
+    @Test
+    public void shouldSupplyClientIdWhenConfluentServer() throws Exception
     {
         Configuration config = new Configuration();
         KafkaClientIdSupplier supplier = KafkaClientIdSupplier.instantiate(config);
-        KafkaServerConfig server = new KafkaServerConfig("broker.confluent.cloud", 9092);
+        String server = "broker.confluent.cloud";
 
         String clientId = supplier.get(server);
 
-        assertNotEquals(clientId, KAFKA_CLIENT_ID_DEFAULT);
+        assertNotNull(clientId);
     }
 }

@@ -824,7 +824,8 @@ public abstract class KafkaClientSaslHandshaker
     private String16FW createClientId(
         KafkaServerConfig server)
     {
-        return new String16FW(clientIdSupplier.get(server));
+        String clientId = clientIdSupplier.get(server.host);
+        return clientId != null ? new String16FW(clientId) : KAFKA_CLIENT_ID_DEFAULT_VALUE;
     }
 
     public byte[] hmac(byte[] key, byte[] bytes)

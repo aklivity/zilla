@@ -17,12 +17,10 @@ package io.aklivity.zilla.runtime.binding.kafka.identity;
 
 import java.util.function.Supplier;
 
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
-
 public interface KafkaClientIdSupplierSpi extends Supplier<String>
 {
     boolean matches(
-        KafkaServerConfig server);
+        String server);
 
     String get();
 }

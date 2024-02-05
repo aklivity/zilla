@@ -15,14 +15,12 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.identity;
 
-import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CLIENT_ID_DEFAULT;
 import static io.aklivity.zilla.runtime.common.feature.FeatureFilter.filter;
 import static java.util.ServiceLoader.load;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.engine.Configuration;
 
@@ -37,7 +35,7 @@ public final class KafkaClientIdSupplier
     private final List<KafkaClientIdSupplierSpi> suppliers;
 
     public String get(
-        KafkaServerConfig server)
+        String server)
     {
         String clientId = null;
 
@@ -80,11 +78,6 @@ public final class KafkaClientIdSupplier
             suppliers.add(factory.create(config));
         }
 
-        if (clientId == null)
-        {
-            suppliers.add(new Fixed(KAFKA_CLIENT_ID_DEFAULT));
-        }
-
         return new KafkaClientIdSupplier(suppliers);
     }
 
@@ -100,7 +93,7 @@ public final class KafkaClientIdSupplier
 
         @Override
         public boolean matches(
-            KafkaServerConfig server)
+            String server)
         {
             return true;
         }
