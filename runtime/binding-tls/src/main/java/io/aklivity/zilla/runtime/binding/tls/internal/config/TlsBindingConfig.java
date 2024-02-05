@@ -20,6 +20,7 @@ import static io.aklivity.zilla.runtime.binding.tls.internal.types.ProxyInfoType
 import static io.aklivity.zilla.runtime.binding.tls.internal.types.ProxyInfoType.AUTHORITY;
 import static io.aklivity.zilla.runtime.binding.tls.internal.types.ProxyInfoType.SECURE;
 import static io.aklivity.zilla.runtime.binding.tls.internal.types.ProxySecureInfoType.NAME;
+import static java.lang.System.currentTimeMillis;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 import static javax.net.ssl.StandardConstants.SNI_HOST_NAME;
@@ -69,7 +70,7 @@ public final class TlsBindingConfig
 
     public final long id;
     public final long vaultId;
-    public final String name;
+    public final String qname;
     public final TlsOptionsConfig options;
     public final KindConfig kind;
     public final List<TlsRouteConfig> routes;
@@ -81,7 +82,7 @@ public final class TlsBindingConfig
     {
         this.id = binding.id;
         this.vaultId = binding.vaultId;
-        this.name = binding.name;
+        this.qname = binding.qname;
         this.kind = binding.kind;
         this.options = binding.options != null ? TlsOptionsConfig.class.cast(binding.options) : OPTIONS_DEFAULT;
         this.routes = binding.routes.stream().map(TlsRouteConfig::new).collect(toList());
@@ -439,6 +440,16 @@ public final class TlsBindingConfig
                 for (String keyName : keyNames)
                 {
                     KeyStore.PrivateKeyEntry entry = vault.key(keyName);
+                    if (entry == null)
+                    {
+                        if (config.verbose())
+                        {
+                            System.out.printf("%d [%s] key \"%s\" not found\n",
+                                    currentTimeMillis(), this.qname, keyName);
+                        }
+                        continue;
+                    }
+
                     KeyStore.ProtectionParameter protection = new KeyStore.PasswordProtection(password);
                     store.setEntry(keyName, entry, protection);
                 }
