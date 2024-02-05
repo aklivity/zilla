@@ -39,7 +39,7 @@ public class MqttEventContext
         EngineContext context)
     {
         this.mqttTypeId = mqttTypeId;
-        this.logEvent = context::logEvent;
+        this.logEvent = context.logEvent();
     }
 
     public void authorization(

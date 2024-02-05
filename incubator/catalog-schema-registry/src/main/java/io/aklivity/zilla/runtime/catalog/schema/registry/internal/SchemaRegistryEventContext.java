@@ -36,7 +36,7 @@ public class SchemaRegistryEventContext
         EngineContext context)
     {
         this.typeId = context.supplyTypeId(SchemaRegistryCatalog.NAME);
-        this.logEvent = context::logEvent;
+        this.logEvent = context.logEvent();
     }
 
     public void remoteAccessRejected(

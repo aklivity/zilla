@@ -108,6 +108,7 @@ import io.aklivity.zilla.runtime.engine.internal.budget.DefaultBudgetDebitor;
 import io.aklivity.zilla.runtime.engine.internal.exporter.ExporterAgent;
 import io.aklivity.zilla.runtime.engine.internal.layouts.BudgetsLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.BufferPoolLayout;
+import io.aklivity.zilla.runtime.engine.internal.layouts.EventsLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.StreamsLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.HistogramsLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.ScalarsLayout;
@@ -210,6 +211,7 @@ public class EngineWorker implements EngineContext, Agent
     private final ScalarsLayout countersLayout;
     private final ScalarsLayout gaugesLayout;
     private final HistogramsLayout histogramsLayout;
+    private final EventsLayout eventsLayout;
     private long initialId;
     private long promiseId;
     private long traceId;
@@ -284,6 +286,12 @@ public class EngineWorker implements EngineContext, Agent
                 .slotCount(config.bufferPoolCapacity() / config.bufferSlotCapacity())
                 .readonly(readonly)
                 .build();
+
+        this.eventsLayout = new EventsLayout.Builder()
+            .path(config.directory().resolve(String.format("events%d", index)))
+            .streamsCapacity(config.streamsBufferCapacity())
+            .readonly(readonly)
+            .build();
 
         this.agentName = String.format("engine/data#%d", index);
         this.streamsLayout = streamsLayout;
@@ -896,15 +904,9 @@ public class EngineWorker implements EngineContext, Agent
     }
 
     @Override
-    public void logEvent(
-        int msgTypeId,
-        DirectBuffer buffer,
-        int index,
-        int length)
+    public MessageConsumer logEvent()
     {
-        // TODO: Ati - write record
-        // TODO: Ati - include timestamp
-        System.out.printf("%d %s %d %d%n", msgTypeId, buffer, index, length);
+        return this.eventsLayout.supplyWriter();
     }
 
     private void onSystemMessage(

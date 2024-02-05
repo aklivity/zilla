@@ -39,7 +39,7 @@ public class HttpEventContext
         EngineContext context)
     {
         this.httpTypeId = httpTypeId;
-        this.logEvent = context::logEvent;
+        this.logEvent = context.logEvent();
     }
 
     public void accessDenied(

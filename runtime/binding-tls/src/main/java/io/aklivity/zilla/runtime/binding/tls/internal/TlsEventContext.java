@@ -44,7 +44,7 @@ public class TlsEventContext
         EngineContext context)
     {
         this.typeId = typeId;
-        this.logEvent = context::logEvent;
+        this.logEvent = context.logEvent();
     }
 
     public void tlsFailed(

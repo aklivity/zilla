@@ -39,7 +39,7 @@ public class KafkaEventContext
         EngineContext context)
     {
         this.kafkaTypeId = kafkaTypeId;
-        this.logEvent = context::logEvent;
+        this.logEvent = context.logEvent();
     }
 
     public void authorization(
