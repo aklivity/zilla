@@ -28,7 +28,7 @@ public class TcpEventContext
 {
     private static final int EVENT_BUFFER_CAPACITY = 1024;
 
-    private final TcpEventFW.Builder proxyEventRW = new TcpEventFW.Builder();
+    private final TcpEventFW.Builder tcpEventRW = new TcpEventFW.Builder();
     private final MutableDirectBuffer eventBuffer = new UnsafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
     private final int typeId;
     private final MessageConsumer logEvent;
@@ -46,7 +46,7 @@ public class TcpEventContext
         long routedId,
         String address)
     {
-        TcpEventFW event = proxyEventRW
+        TcpEventFW event = tcpEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .remoteAccessFailed(e -> e
                 .traceId(traceId)
