@@ -187,35 +187,6 @@ public final class KafkaCacheGroupFactory implements BindingHandler
         long traceId,
         long authorization,
         long affinity,
-        Consumer<OctetsFW.Builder> extension)
-    {
-        final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .originId(originId)
-                .routedId(routedId)
-                .streamId(streamId)
-                .sequence(sequence)
-                .acknowledge(acknowledge)
-                .maximum(maximum)
-                .traceId(traceId)
-                .authorization(authorization)
-                .affinity(affinity)
-                .extension(extension)
-                .build();
-
-        receiver.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
-    }
-
-    private void doBegin(
-        MessageConsumer receiver,
-        long originId,
-        long routedId,
-        long streamId,
-        long sequence,
-        long acknowledge,
-        int maximum,
-        long traceId,
-        long authorization,
-        long affinity,
         Flyweight extension)
     {
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())

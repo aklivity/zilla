@@ -14,8 +14,11 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.view;
 
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+
+import org.agrona.collections.Object2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.PathItem;
 
@@ -25,9 +28,9 @@ public final class OperationsView
     private final boolean hasResponses;
 
     private OperationsView(
-        LinkedHashMap<String, PathItem> paths)
+        HashMap<String, PathItem> paths)
     {
-        this.operationsPerPath = new LinkedHashMap<>();
+        this.operationsPerPath = new Object2ObjectHashMap<>();
         boolean hasResponses = false;
         for (String pathName : paths.keySet())
         {
@@ -64,7 +67,7 @@ public final class OperationsView
     }
 
     public static OperationsView of(
-        LinkedHashMap<String, PathItem> paths)
+        HashMap<String, PathItem> paths)
     {
         return new OperationsView(paths);
     }

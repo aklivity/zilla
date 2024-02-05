@@ -12,15 +12,28 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.openapi.internal.model;
+package io.aklivity.zilla.runtime.binding.openapi.internal.config;
 
-import java.util.HashMap;
-import java.util.List;
+import java.util.function.LongPredicate;
 
-public class OpenApi
+import io.aklivity.zilla.runtime.engine.config.RouteConfig;
+
+public final class OpenapiRouteConfig
 {
-    public String openapi;
-    public List<Server> servers;
-    public HashMap<String, PathItem> paths;
-    public Components components;
+    public final long id;
+
+    private final LongPredicate authorized;
+
+    public OpenapiRouteConfig(
+        RouteConfig route)
+    {
+        this.id = route.id;
+        this.authorized = route.authorized;
+    }
+
+    boolean authorized(
+        long authorization)
+    {
+        return authorized.test(authorization);
+    }
 }
