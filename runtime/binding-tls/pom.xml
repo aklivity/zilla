@@ -109,7 +109,7 @@
         <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <scopeNames>core proxy protocol</scopeNames>
+          <scopeNames>core proxy tls protocol</scopeNames>
           <packageName>io.aklivity.zilla.runtime.binding.tls.internal.types</packageName>
         </configuration>
         <executions>

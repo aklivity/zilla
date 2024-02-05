@@ -132,17 +132,7 @@ scope proxy
     {
         enum ProxyEventType (uint8)
         {
-            REMOTE_ACCESS_FAILED (1),
-            TLS_FAILED (2)
-        }
-
-        enum TlsError (uint8)
-        {
-            PROTOCOL_ERROR (1),
-            KEY_ERROR (2),
-            HANDSHAKE_ERROR (3),
-            PEER_UNVERIFIED_ERROR (4),
-            UNSPECIFIED_ERROR (5)
+            REMOTE_ACCESS_FAILED (1)
         }
 
         struct ProxyRemoteAccessFailedEvent extends core::event::BindingEvent
@@ -150,15 +140,9 @@ scope proxy
             string16 address;
         }
 
-        struct ProxyTlsFailed extends core::event::BindingEvent
-        {
-            TlsError error;
-        }
-
         union ProxyEvent switch (ProxyEventType)
         {
             case REMOTE_ACCESS_FAILED: ProxyRemoteAccessFailedEvent remoteAccessFailed;
-            case TLS_FAILED: ProxyTlsFailed tlsFailed;
         }
     }
 }

@@ -25,8 +25,8 @@ import javax.net.ssl.SSLProtocolException;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
-import io.aklivity.zilla.runtime.binding.tls.internal.types.event.ProxyEventFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsError;
+import io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsEventFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
@@ -34,7 +34,7 @@ public class TlsEventContext
 {
     private static final int EVENT_BUFFER_CAPACITY = 1024;
 
-    private final ProxyEventFW.Builder proxyEventRW = new ProxyEventFW.Builder();
+    private final TlsEventFW.Builder tlsEventRW = new TlsEventFW.Builder();
     private final MutableDirectBuffer eventBuffer = new UnsafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
     private final int typeId;
     private final MessageConsumer logEvent;
@@ -51,7 +51,7 @@ public class TlsEventContext
         TlsError error,
         long traceId)
     {
-        ProxyEventFW event = proxyEventRW
+        TlsEventFW event = tlsEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .tlsFailed(e -> e
                 .traceId(traceId)
