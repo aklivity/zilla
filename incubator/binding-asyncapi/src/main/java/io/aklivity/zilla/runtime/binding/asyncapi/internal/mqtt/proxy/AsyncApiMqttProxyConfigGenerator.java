@@ -77,7 +77,7 @@ public class AsyncApiMqttProxyConfigGenerator extends AsyncApiConfigGenerator
     }
 
     private AsyncApi parseAsyncApi(
-        InputStream inputStream)
+        String inputStream)
     {
         AsyncApi asyncApi = null;
         try (Jsonb jsonb = JsonbBuilder.create())

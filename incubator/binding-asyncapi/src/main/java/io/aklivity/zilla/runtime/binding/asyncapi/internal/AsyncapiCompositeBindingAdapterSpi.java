@@ -51,25 +51,16 @@ public class AsyncapiCompositeBindingAdapterSpi implements CompositeBindingAdapt
         AsyncapiBindingConfig asyncapiBinding = new AsyncapiBindingConfig(binding);
         BindingConfigBuilder<BindingConfig> builder = BindingConfig.builder(binding);
         final AsyncapiOptionsConfig options = asyncapiBinding.options;
-        final List<URI> specs = options.specs;
+        final List<String> specs = options.specs;
         switch (binding.kind)
         {
         case SERVER:
             for (int i = 0; i < specs.size(); i++)
             {
-                final URI resolved = asyncapiRoot.resolve(specs.get(i).getPath());
-                try (InputStream input = new FileInputStream(resolved.getPath()))
-                {
-                    AsyncApiMqttProxyConfigGenerator generator = new AsyncApiMqttProxyConfigGenerator(input);
-                    EngineConfig config = generator.createServerConfig(COMPOSITE_MQTT_SERVER_NAMESPACE + i);
-                    config.namespaces.forEach(builder::composite);
-                    //builder.vault()
-                }
-                catch (IOException e)
-                {
-                    e.printStackTrace();
-                    rethrowUnchecked(e);
-                }
+                AsyncApiMqttProxyConfigGenerator generator = new AsyncApiMqttProxyConfigGenerator(specs.get(i));
+                EngineConfig config = generator.createServerConfig(COMPOSITE_MQTT_SERVER_NAMESPACE + i);
+                config.namespaces.forEach(builder::composite);
+                //builder.vault()
             }
             return builder.build();
         case CLIENT:

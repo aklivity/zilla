@@ -14,9 +14,9 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.config;
 
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 import jakarta.json.Json;
 import jakarta.json.JsonArray;
@@ -27,6 +27,7 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiBinding;
+import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
@@ -34,6 +35,8 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
     private static final String SPECS_NAME = "specs";
+
+    private Function<String, String> readURL;
 
     public Kind kind()
     {
@@ -72,16 +75,23 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
                 ? object.getJsonArray(SPECS_NAME)
                 : null;
 
-        List<URI> specs = new ArrayList<>();
+        List<String> specs = new ArrayList<>();
         if (specsJson != null)
         {
             for (int i = 0; i < specsJson.size(); i++)
             {
-                URI spec = URI.create(specsJson.getString(i));
+                final String spec = readURL.apply(specsJson.getString(i));
                 specs.add(spec);
             }
         }
 
         return new AsyncapiOptionsConfig(specs);
+    }
+
+    @Override
+    public void adaptContext(
+        ConfigAdapterContext context)
+    {
+        this.readURL = context::readURL;
     }
 }

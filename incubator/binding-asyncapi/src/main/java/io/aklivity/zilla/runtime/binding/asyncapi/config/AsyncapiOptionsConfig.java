@@ -14,17 +14,16 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.config;
 
-import java.net.URI;
 import java.util.List;
 
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public final class AsyncapiOptionsConfig extends OptionsConfig
 {
-    public final List<URI> specs;
+    public final List<String> specs;
 
     public AsyncapiOptionsConfig(
-        List<URI> specs)
+        List<String> specs)
     {
         this.specs = specs;
     }
