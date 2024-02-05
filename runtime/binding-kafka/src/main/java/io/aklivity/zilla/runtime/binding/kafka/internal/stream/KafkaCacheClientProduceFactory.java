@@ -171,6 +171,8 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
     private final int cleanupDelay;
     private final int trailersSizeMax;
     private final int reconnectDelay;
+    private final EngineContext context;
+    private final boolean verbose;
 
     public KafkaCacheClientProduceFactory(
         KafkaConfiguration config,
@@ -179,6 +181,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         Function<String, KafkaCache> supplyCache,
         LongFunction<KafkaCacheRoute> supplyCacheRoute)
     {
+        this.context = context;
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.writeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
@@ -201,6 +204,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         this.cursorFactory = new KafkaCacheCursorFactory(context.writeBuffer().capacity());
         this.trailersSizeMax = config.cacheClientTrailersSizeMax();
         this.reconnectDelay = config.cacheServerReconnect();
+        this.verbose = config.verbose();
     }
 
     @Override
@@ -713,9 +717,10 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                         : String.format("%d >= 0 && %d >= %d", partitionOffset, partitionOffset, nextOffset);
 
                     final long keyHash = partition.computeKeyHash(key);
-                    if (partition.writeProduceEntryStart(partitionOffset, stream.segment, stream.entryMark, stream.valueMark,
-                        stream.valueLimit, timestamp, stream.initialId, sequence, ackMode, key, keyHash, valueLength,
-                        headers, trailersSizeMax, valueFragment, convertKey, convertValue) == -1)
+                    if (partition.writeProduceEntryStart(context, routedId, partitionOffset, stream.segment,
+                        stream.entryMark, stream.valueMark, stream.valueLimit, timestamp, stream.initialId,
+                        sequence, ackMode, key, keyHash, valueLength, headers, trailersSizeMax, valueFragment,
+                        convertKey, convertValue, verbose) == -1)
                     {
                         error = ERROR_INVALID_RECORD;
                         break init;
@@ -731,9 +736,9 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
             if (valueFragment != null && error == NO_ERROR)
             {
-                if (partition.writeProduceEntryContinue(flags, stream.segment,
+                if (partition.writeProduceEntryContinue(context, routedId, flags, stream.segment,
                         stream.entryMark, stream.valueMark, stream.valueLimit,
-                        valueFragment, convertValue) == -1)
+                        valueFragment, convertValue, verbose) == -1)
                 {
                     error = ERROR_INVALID_RECORD;
                 }
@@ -792,10 +797,10 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                     : String.format("%d >= 0 && %d >= %d", partitionOffset, partitionOffset, nextOffset);
 
                 final long keyHash = partition.computeKeyHash(EMPTY_KEY);
-                partition.writeProduceEntryStart(partitionOffset, stream.segment, stream.entryMark, stream.valueMark,
-                    stream.valueLimit, now().toEpochMilli(), stream.initialId, PRODUCE_FLUSH_SEQUENCE,
+                partition.writeProduceEntryStart(context, routedId, partitionOffset, stream.segment, stream.entryMark,
+                    stream.valueMark, stream.valueLimit, now().toEpochMilli(), stream.initialId, PRODUCE_FLUSH_SEQUENCE,
                     KafkaAckMode.LEADER_ONLY, EMPTY_KEY, keyHash, 0, EMPTY_TRAILERS,
-                    trailersSizeMax, EMPTY_OCTETS, convertKey, convertValue);
+                    trailersSizeMax, EMPTY_OCTETS, convertKey, convertValue, verbose);
                 stream.partitionOffset = partitionOffset;
                 partitionOffset++;
 

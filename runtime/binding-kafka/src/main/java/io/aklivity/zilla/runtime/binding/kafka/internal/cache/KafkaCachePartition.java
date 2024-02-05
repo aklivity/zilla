@@ -619,6 +619,8 @@ public final class KafkaCachePartition
     }
 
     public int writeProduceEntryStart(
+        EngineContext context,
+        long bindingId,
         long offset,
         Node head,
         MutableInteger entryMark,
@@ -635,7 +637,8 @@ public final class KafkaCachePartition
         int trailersSizeMax,
         OctetsFW payload,
         ConverterHandler convertKey,
-        ConverterHandler convertValue)
+        ConverterHandler convertValue,
+        boolean verbose)
     {
         assert offset > this.progress : String.format("%d > %d", offset, this.progress);
         this.progress = offset;
@@ -699,6 +702,12 @@ public final class KafkaCachePartition
 
                 if (converted == -1)
                 {
+                    if (verbose)
+                    {
+                        System.out.printf("%s:%s %s: Skipping invalid message on topic %s, partition %d\n",
+                            System.currentTimeMillis(), context.supplyNamespace(bindingId),
+                            context.supplyLocalName(bindingId), topic, id);
+                    }
                     break write;
                 }
             }
@@ -727,13 +736,16 @@ public final class KafkaCachePartition
     }
 
     public int writeProduceEntryContinue(
+        EngineContext context,
+        long bindingId,
         int flags,
         Node head,
         MutableInteger entryMark,
         MutableInteger valueMark,
         MutableInteger valueLimit,
         OctetsFW payload,
-        ConverterHandler convertValue)
+        ConverterHandler convertValue,
+        boolean verbose)
     {
         final KafkaCacheSegment segment = head.segment;
         assert segment != null;
@@ -766,6 +778,12 @@ public final class KafkaCachePartition
                 if ((flags & FLAGS_FIN) != 0x00)
                 {
                     converted = convertValue.convert(logFile.buffer(), valueMark.value, valueLength, consumeConverted);
+                    if (converted == -1 && verbose)
+                    {
+                        System.out.printf("%s:%s %s: Skipping invalid message on topic %s, partition %d\n",
+                            System.currentTimeMillis(), context.supplyNamespace(bindingId),
+                            context.supplyLocalName(bindingId), topic, id);
+                    }
                 }
             }
         }
