@@ -34,7 +34,7 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiBinding;
-import io.aklivity.zilla.runtime.binding.openapi.internal.generator.model.OpenApi;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenApi;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;

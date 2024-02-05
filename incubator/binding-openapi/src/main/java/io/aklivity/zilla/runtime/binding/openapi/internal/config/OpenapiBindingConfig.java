@@ -19,6 +19,10 @@ import org.agrona.MutableDirectBuffer;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
+import org.agrona.collections.LongHashSet;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 public final class OpenapiBindingConfig
 {
@@ -26,16 +30,28 @@ public final class OpenapiBindingConfig
     public final String name;
     public final KindConfig kind;
     public final OpenapiOptionsConfig options;
+    private final LongHashSet httpOrigins;
 
 
     public OpenapiBindingConfig(
-        BindingConfig binding,
-        MutableDirectBuffer metadataBuffer)
+        BindingConfig binding)
     {
         this.id = binding.id;
         this.name = binding.name;
         this.kind = binding.kind;
         this.options = OpenapiOptionsConfig.class.cast(binding.options);
+
+        httpOrigins = binding.composites.stream()
+            .map(c -> c.bindings)
+            .flatMap(List::stream)
+            .filter(b -> b.type.equals("http"))
+            .map(b -> b.id)
+            .collect(Collectors.toCollection(LongHashSet::new));
     }
 
+    public boolean isCompositeBinding(
+        long originId)
+    {
+        return httpOrigins.contains(originId);
+    }
 }

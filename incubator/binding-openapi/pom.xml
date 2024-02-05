@@ -128,16 +128,54 @@
         <artifactId>maven-notice-plugin</artifactId>
       </plugin>
       <plugin>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>flyweight-maven-plugin</artifactId>
+        <version>${project.version}</version>
+        <configuration>
+          <scopeNames>core http openapi</scopeNames>
+          <packageName>io.aklivity.zilla.runtime.binding.openapi.internal.types</packageName>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
         <groupId>com.mycila</groupId>
         <artifactId>license-maven-plugin</artifactId>
-        <configuration>
-          <excludes>
-            <exclude>src/test/resources/io/aklivity/zilla/runtime/binding/openapi/internal/generator/**/*</exclude>
-          </excludes>
-        </configuration>
       </plugin>
       <plugin>
         <artifactId>maven-checkstyle-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <phase>process-resources</phase>
+            <goals>
+              <goal>unpack</goal>
+            </goals>
+            <configuration>
+              <artifactItems>
+                <artifactItem>
+                  <groupId>${project.groupId}</groupId>
+                  <artifactId>binding-openapi.spec</artifactId>
+                  <fileMappers>
+                     <org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
+                       <pattern>^\Qio/aklivity/zilla/specs/binding/openapi/\E</pattern>
+                       <replacement>io/aklivity/zilla/runtime/binding/openapi/internal/</replacement>
+                     </org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
+                  </fileMappers>
+                </artifactItem>
+              </artifactItems>
+              <includes>io/aklivity/zilla/specs/binding/openapi/schema/openapi.schema.patch.json</includes>
+              <outputDirectory>${project.build.directory}/classes</outputDirectory>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -153,6 +191,34 @@
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <executions>
+          <execution>
+            <goals>
+              <goal>test-jar</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.kaazing</groupId>
+        <artifactId>k3po-maven-plugin</artifactId>
+        <dependencies>
+          <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>engine</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+          </dependency>
+          <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>engine</artifactId>
+            <version>${project.version}</version>
+          </dependency>
+        </dependencies>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-failsafe-plugin</artifactId>
       </plugin>
       <plugin>
@@ -161,7 +227,6 @@
         <configuration>
           <excludes>
             <exclude>io/aklivity/zilla/runtime/binding/openapi/internal/types/**/*.class</exclude>
-            <exclude>io/aklivity/zilla/runtime/binding/openapi/internal/openapi/model/*.class</exclude>
           </excludes>
           <rules>
             <rule>
@@ -183,20 +248,21 @@
         </configuration>
       </plugin>
       <plugin>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>flyweight-maven-plugin</artifactId>
-        <version>${project.version}</version>
+        <groupId>io.gatling</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
         <configuration>
-          <scopeNames>core</scopeNames>
-          <packageName>io.aklivity.zilla.runtime.binding.openapi.internal.types</packageName>
+          <artifactSet>
+            <includes>
+              <include>org.agrona:agrona</include>
+              <include>io.aklivity.zilla:engine</include>
+              <include>org.openjdk.jmh:jmh-core</include>
+              <include>net.sf.jopt-simple:jopt-simple</include>
+              <include>org.apache.commons:commons-math3</include>
+              <include>commons-cli:commons-cli</include>
+              <include>com.github.biboudis:jmh-profilers</include>
+            </includes>
+          </artifactSet>
         </configuration>
-        <executions>
-          <execution>
-            <goals>
-              <goal>generate</goal>
-            </goals>
-          </execution>
-        </executions>
       </plugin>
     </plugins>
   </build>

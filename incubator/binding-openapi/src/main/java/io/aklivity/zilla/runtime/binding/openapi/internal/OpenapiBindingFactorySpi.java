@@ -24,13 +24,13 @@ public final class OpenapiBindingFactorySpi implements BindingFactorySpi
     @Override
     public String type()
     {
-        return AmqpBinding.NAME;
+        return OpenapiBinding.NAME;
     }
 
     @Override
-    public AmqpBinding create(
+    public OpenapiBinding create(
         Configuration config)
     {
-        return new AmqpBinding(new OpenapiConfiguration(config));
+        return new OpenapiBinding(new OpenapiConfiguration(config));
     }
 }

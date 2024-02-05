@@ -14,20 +14,31 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.config;
 
+import static com.fasterxml.jackson.dataformat.yaml.YAMLGenerator.Feature.MINIMIZE_QUOTES;
+import static com.fasterxml.jackson.dataformat.yaml.YAMLGenerator.Feature.WRITE_DOC_START_MARKER;
 import static io.aklivity.zilla.runtime.binding.http.config.HttpPolicyConfig.CROSS_ORIGIN;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 import static java.util.Objects.requireNonNull;
+import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import jakarta.json.Json;
 import jakarta.json.JsonPatch;
 import jakarta.json.JsonPatchBuilder;
+import jakarta.json.bind.Jsonb;
+import jakarta.json.bind.JsonbBuilder;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpConditionConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
@@ -38,21 +49,25 @@ import io.aklivity.zilla.runtime.binding.http.config.HttpResponseConfigBuilder;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiBinding;
-import io.aklivity.zilla.runtime.binding.openapi.internal.generator.OpenApiConfigGenerator;
-import io.aklivity.zilla.runtime.binding.openapi.internal.generator.model.Header;
-import io.aklivity.zilla.runtime.binding.openapi.internal.generator.model.Operation;
-import io.aklivity.zilla.runtime.binding.openapi.internal.generator.model.Parameter;
-import io.aklivity.zilla.runtime.binding.openapi.internal.generator.model.Response;
-import io.aklivity.zilla.runtime.binding.openapi.internal.generator.model.ResponseByContentType;
-import io.aklivity.zilla.runtime.binding.openapi.internal.generator.model.Server;
-import io.aklivity.zilla.runtime.binding.openapi.internal.generator.view.OperationView;
-import io.aklivity.zilla.runtime.binding.openapi.internal.generator.view.OperationsView;
-import io.aklivity.zilla.runtime.binding.openapi.internal.generator.view.PathView;
-import io.aklivity.zilla.runtime.binding.openapi.internal.generator.view.SchemaView;
-import io.aklivity.zilla.runtime.binding.openapi.internal.generator.view.ServerView;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.Header;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.MediaType;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenApi;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.Operation;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.Parameter;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.Response;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.ResponseByContentType;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.Schema;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.Server;
+import io.aklivity.zilla.runtime.binding.openapi.internal.view.OperationView;
+import io.aklivity.zilla.runtime.binding.openapi.internal.view.OperationsView;
+import io.aklivity.zilla.runtime.binding.openapi.internal.view.PathView;
+import io.aklivity.zilla.runtime.binding.openapi.internal.view.SchemaView;
+import io.aklivity.zilla.runtime.binding.openapi.internal.view.ServerView;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
+import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
+import io.aklivity.zilla.runtime.catalog.inline.config.InlineSchemaConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.CompositeBindingAdapterSpi;
@@ -61,11 +76,25 @@ import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
 import io.aklivity.zilla.runtime.guard.jwt.config.JwtOptionsConfig;
+import io.aklivity.zilla.runtime.model.core.config.IntegerModelConfig;
+import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
 import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig;
 
-public final class OpenapiCompositeBindingAdapter extends OpenApiConfigGenerator implements CompositeBindingAdapterSpi
+public final class OpenapiCompositeBindingAdapter implements CompositeBindingAdapterSpi
 {
+    private static final String INLINE_CATALOG_NAME = "catalog0";
+    private static final String INLINE_CATALOG_TYPE = "inline";
+    private static final String VERSION_LATEST = "latest";
+    protected static final Pattern JSON_CONTENT_TYPE = Pattern.compile("^application/(?:.+\\+)?json$");
+
+    private final Matcher jsonContentType = JSON_CONTENT_TYPE.matcher("");
+    private final Map<String, ModelConfig> models = Map.of(
+        "string", StringModelConfig.builder().build(),
+        "integer", IntegerModelConfig.builder().build()
+    );
+
+    private OpenApi openApi;
     private int[] allPorts;
     private int[] httpPorts;
     private int[] httpsPorts;
@@ -649,4 +678,87 @@ public final class OpenapiCompositeBindingAdapter extends OpenApiConfigGenerator
     {
         return List.of("TCP_CLIENT_PORT");
     }
+
+    private SchemaView resolveSchemaForJsonContentType(
+        Map<String, MediaType> content)
+    {
+        MediaType mediaType = null;
+        if (content != null)
+        {
+            for (String contentType : content.keySet())
+            {
+                if (jsonContentType.reset(contentType).matches())
+                {
+                    mediaType = content.get(contentType);
+                    break;
+                }
+            }
+        }
+        return mediaType == null ? null : SchemaView.of(openApi.components.schemas, mediaType.schema);
+    }
+
+    private <C> NamespaceConfigBuilder<C> injectCatalog(
+        NamespaceConfigBuilder<C> namespace)
+    {
+        if (openApi.components != null && openApi.components.schemas != null && !openApi.components.schemas.isEmpty())
+        {
+            namespace
+                .catalog()
+                    .name(INLINE_CATALOG_NAME)
+                    .type(INLINE_CATALOG_TYPE)
+                    .options(InlineOptionsConfig::builder)
+                        .subjects()
+                            .inject(this::injectSubjects)
+                            .build()
+                        .build()
+                    .build();
+        }
+        return namespace;
+    }
+
+    private <C> InlineSchemaConfigBuilder<C> injectSubjects(
+        InlineSchemaConfigBuilder<C> subjects)
+    {
+        try (Jsonb jsonb = JsonbBuilder.create())
+        {
+            YAMLMapper yaml = YAMLMapper.builder()
+                .disable(WRITE_DOC_START_MARKER)
+                .enable(MINIMIZE_QUOTES)
+                .build();
+            for (Map.Entry<String, Schema> entry : openApi.components.schemas.entrySet())
+            {
+                SchemaView schema = SchemaView.of(openApi.components.schemas, entry.getValue());
+                subjects
+                    .subject(entry.getKey())
+                        .version(VERSION_LATEST)
+                        .schema(writeSchemaYaml(jsonb, yaml, schema))
+                        .build();
+            }
+        }
+        catch (Exception ex)
+        {
+            rethrowUnchecked(ex);
+        }
+        return subjects;
+    }
+
+    private static String writeSchemaYaml(
+        Jsonb jsonb,
+        YAMLMapper yaml,
+        Object schema)
+    {
+        String result = null;
+        try
+        {
+            String schemaJson = jsonb.toJson(schema);
+            JsonNode json = new ObjectMapper().readTree(schemaJson);
+            result = yaml.writeValueAsString(json);
+        }
+        catch (JsonProcessingException ex)
+        {
+            rethrowUnchecked(ex);
+        }
+        return result;
+    }
+
 }
