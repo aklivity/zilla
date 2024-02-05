@@ -18,6 +18,7 @@ module io.aklivity.zilla.runtime.binding.kafka
     requires io.aklivity.zilla.runtime.engine;
 
     exports io.aklivity.zilla.runtime.binding.kafka.config;
+    exports io.aklivity.zilla.runtime.binding.kafka.identity;
 
     uses io.aklivity.zilla.runtime.binding.kafka.identity.KafkaClientIdSupplierFactorySpi;
 
