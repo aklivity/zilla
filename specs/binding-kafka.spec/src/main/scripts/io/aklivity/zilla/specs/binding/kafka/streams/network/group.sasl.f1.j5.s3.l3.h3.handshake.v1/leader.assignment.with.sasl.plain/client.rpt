@@ -66,46 +66,14 @@ write  22                                # size
        4s "test"                         # "session" coordinator key
        [0x00]                            # coordinator group type
 
-read  35                                 # size
+read  45                                 # size
       (int:newRequestId)
-      0                                  #throttle time
-      0s                                 #no error
-      4s "none"                          #error message none
-      0                                  #coordinator node
-      9s "localhost"                     #host
-      9092                               #port
-
-write 87                                                 # size
-      32s                                                # describe configs
-      0s                                                 # v0
-      ${newRequestId}
-      5s "zilla"                                         # client id
-      1                                                  # resources
-        [0x04]                                           # broker resource
-        1s "0"                                           # "node" topic
-        2                                                # configs
-          28s "group.min.session.timeout.ms"             # name
-          28s "group.max.session.timeout.ms"             # name
-
-read 103                                                # size
-      (int:newRequestId)
-      0
-      1                                                  # resources
-        0s                                               # no error
-        -1s                                              # error message
-        [0x04]                                           # broker resource
-        1s "0"                                           # "0" nodeId
-        2                                                # configs
-          28s "group.min.session.timeout.ms"             # name
-          4s "6000"                                      # value
-          [0x00]                                          # not read only
-          [0x00]                                          # not default
-          [0x00]                                          # not sensitive
-          28s "group.max.session.timeout.ms"             # name
-          5s "30000"                                     # value
-          [0x00]                                          # not read only
-          [0x00]                                          # not default
-          [0x00]                                          # not sensitive
+      0                                  # throttle time
+      0s                                 # no error
+      4s "none"                          # error message none
+      0                                  # coordinator node
+      19s "broker1.example.com"          # host
+      9092                               # port
 
 read notify ROUTED_DESCRIBE_SERVER
 
@@ -145,6 +113,38 @@ read 20                                 # size
      -1
      -1s                                # authentication bytes
      0L                                 # session lifetime
+
+write 87                                                 # size
+      32s                                                # describe configs
+      0s                                                 # v0
+      ${newRequestId}
+      5s "zilla"                                         # client id
+      1                                                  # resources
+        [0x04]                                           # broker resource
+        1s "0"                                           # "node" topic
+        2                                                # configs
+          28s "group.min.session.timeout.ms"             # name
+          28s "group.max.session.timeout.ms"             # name
+
+read 103                                                # size
+      (int:newRequestId)
+      0
+      1                                                  # resources
+        0s                                               # no error
+        -1s                                              # error message
+        [0x04]                                           # broker resource
+        1s "0"                                           # "0" nodeId
+        2                                                # configs
+          28s "group.min.session.timeout.ms"             # name
+          4s "6000"                                      # value
+          [0x00]                                          # not read only
+          [0x00]                                          # not default
+          [0x00]                                          # not sensitive
+          28s "group.max.session.timeout.ms"             # name
+          5s "30000"                                     # value
+          [0x00]                                          # not read only
+          [0x00]                                          # not default
+          [0x00]                                          # not sensitive
 
 write 82                               # size
       11s                               # join group

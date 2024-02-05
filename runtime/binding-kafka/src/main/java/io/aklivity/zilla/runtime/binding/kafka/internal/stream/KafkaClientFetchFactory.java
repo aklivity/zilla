@@ -32,6 +32,7 @@ import org.agrona.collections.LongLongConsumer;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
@@ -246,6 +247,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
         MessageConsumer application)
     {
         final BeginFW begin = beginRO.wrap(buffer, index, index + length);
+        final long affinity = begin.affinity();
         final long originId = begin.originId();
         final long routedId = begin.routedId();
         final long initialId = begin.streamId();
@@ -278,6 +280,9 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                 final KafkaIsolation isolation = kafkaFetchBeginEx.isolation().get();
                 final KafkaSaslConfig sasl = binding.sasl();
 
+                final KafkaClientRoute clientRoute = supplyClientRoute.apply(resolvedId);
+                final KafkaServerConfig server = clientRoute.servers.get(affinity);
+
                 newStream = new KafkaFetchStream(
                     application,
                     originId,
@@ -290,6 +295,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                     leaderId,
                     initialOffset,
                     isolation,
+                    server,
                     sasl)::onApplication;
             }
         }
@@ -1747,6 +1753,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
             long leaderId,
             long initialOffset,
             KafkaIsolation isolation,
+            KafkaServerConfig server,
             KafkaSaslConfig sasl)
         {
             this.application = application;
@@ -1757,7 +1764,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
             this.leaderId = leaderId;
             this.clientRoute = supplyClientRoute.apply(resolvedId);
             this.client = new KafkaFetchClient(routedId, resolvedId, topic, partitionId,
-                    initialOffset, latestOffset, isolation, sasl);
+                    initialOffset, latestOffset, isolation, server, sasl);
         }
 
         private int replyBudget()
@@ -2217,9 +2224,10 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                 long initialOffset,
                 long latestOffset,
                 KafkaIsolation isolation,
+                KafkaServerConfig server,
                 KafkaSaslConfig sasl)
             {
-                super(sasl, originId, routedId);
+                super(server, sasl, originId, routedId);
                 this.stream = KafkaFetchStream.this;
                 this.topic = requireNonNull(topic);
                 this.topicPartitions = clientRoute.supplyPartitions(topic);
@@ -2459,18 +2467,16 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
 
                 Consumer<OctetsFW.Builder> extension = EMPTY_EXTENSION;
 
-                final KafkaClientRoute clientRoute = supplyClientRoute.apply(routedId);
-                final KafkaBrokerInfo broker = clientRoute.brokers.get(affinity);
-                if (broker != null)
+                if (server != null)
                 {
                     extension = e -> e.set((b, o, l) -> proxyBeginExRW.wrap(b, o, l)
                                                                       .typeId(proxyTypeId)
                                                                       .address(a -> a.inet(i -> i.protocol(p -> p.set(STREAM))
                                                                                                  .source("0.0.0.0")
-                                                                                                 .destination(broker.host)
+                                                                                                 .destination(server.host)
                                                                                                  .sourcePort(0)
-                                                                                                 .destinationPort(broker.port)))
-                                                                      .infos(i -> i.item(ii -> ii.authority(broker.host)))
+                                                                                                 .destinationPort(server.port)))
+                                                                      .infos(i -> i.item(ii -> ii.authority(server.host)))
                                                                       .build()
                                                                       .sizeof());
                 }

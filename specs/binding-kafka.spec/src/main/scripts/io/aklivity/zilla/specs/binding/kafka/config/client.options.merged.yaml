@@ -17,10 +17,12 @@
 ---
 name: test
 bindings:
-    app0:
-        type: kafka
-        kind: client
-        options:
-            merged:
-                - test
-        exit: net0
+  app0:
+    type: kafka
+    kind: client
+    options:
+      servers:
+        - localhost:9092
+      merged:
+        - test
+    exit: net0

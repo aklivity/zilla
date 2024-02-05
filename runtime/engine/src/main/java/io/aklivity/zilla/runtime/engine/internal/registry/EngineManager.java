@@ -346,6 +346,8 @@ public class EngineManager
                 register(namespace);
             }
         }
+
+        extensions.forEach(e -> e.onRegistered(context));
     }
 
     private void unregister(
@@ -358,6 +360,8 @@ public class EngineManager
                 unregister(namespace);
             }
         }
+
+        extensions.forEach(e -> e.onUnregistered(context));
     }
 
     private void register(
@@ -367,7 +371,6 @@ public class EngineManager
             .map(d -> d.attach(namespace))
             .reduce(CompletableFuture::allOf)
             .ifPresent(CompletableFuture::join);
-        extensions.forEach(e -> e.onRegistered(context));
     }
 
     private void unregister(
@@ -379,7 +382,6 @@ public class EngineManager
                 .map(d -> d.detach(namespace))
                 .reduce(CompletableFuture::allOf)
                 .ifPresent(CompletableFuture::join);
-            extensions.forEach(e -> e.onUnregistered(context));
         }
     }
 
