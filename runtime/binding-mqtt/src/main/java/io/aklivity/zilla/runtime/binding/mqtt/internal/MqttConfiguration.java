@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.internal;
 
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_VERBOSE;
+
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
@@ -45,6 +47,7 @@ public class MqttConfiguration extends Configuration
     public static final PropertyDef<String> CLIENT_ID;
     public static final PropertyDef<IntSupplier> SUBSCRIPTION_ID;
     public static final int GENERATED_SUBSCRIPTION_ID_MASK = 0x70;
+    public static final BooleanPropertyDef MQTT_VERBOSE;
 
     static
     {
@@ -66,6 +69,7 @@ public class MqttConfiguration extends Configuration
         CLIENT_ID = config.property("client.id");
         SUBSCRIPTION_ID = config.property(IntSupplier.class, "subscription.id",
             MqttConfiguration::decodeIntSupplier, MqttConfiguration::defaultSubscriptionId);
+        MQTT_VERBOSE = config.property("verbose", MqttConfiguration::supplyVerbose);
         MQTT_CONFIG = config;
     }
 
@@ -134,6 +138,17 @@ public class MqttConfiguration extends Configuration
     public IntSupplier subscriptionId()
     {
         return SUBSCRIPTION_ID.get(this);
+    }
+
+    public boolean verbose()
+    {
+        return MQTT_VERBOSE.get(this);
+    }
+
+    private static boolean supplyVerbose(
+        Configuration config)
+    {
+        return ENGINE_VERBOSE.getAsBoolean(config);
     }
 
     private static IntSupplier decodeIntSupplier(

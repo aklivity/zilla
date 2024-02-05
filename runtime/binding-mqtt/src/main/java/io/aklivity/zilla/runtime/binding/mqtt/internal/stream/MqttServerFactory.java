@@ -405,6 +405,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final Map<MqttPacketType, MqttServerDecoder> decodersByPacketTypeV5;
     private final IntSupplier supplySubscriptionId;
     private final EngineContext context;
+    private final boolean verbose;
 
     private int maximumPacketSize = Integer.MAX_VALUE;
 
@@ -527,6 +528,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         this.decodePacketTypeByVersion.put(MQTT_PROTOCOL_VERSION_5, this::decodePacketTypeV5);
         this.unreleasedPacketIdsByClientId = unreleasedPacketIdsByClientId;
         this.supplyValidator = context::supplyValidator;
+        this.verbose = config.verbose();
     }
 
     @Override
@@ -3228,6 +3230,12 @@ public final class MqttServerFactory implements MqttStreamFactory
             if (mqttPublishHelper.payloadFormat.equals(MqttPayloadFormat.TEXT) && invalidUtf8(payload))
             {
                 reasonCode = PAYLOAD_FORMAT_INVALID;
+                if (verbose)
+                {
+                    System.out.printf("%s:%s %s: Skipping invalid message on topic %s, clientId %s\n",
+                        System.currentTimeMillis(), context.supplyNamespace(routedId),
+                        context.supplyLocalName(routedId), mqttPublishHelper.topic, clientId.asString());
+                }
             }
 
             if (model != null && !validContent(model, payload))

@@ -310,6 +310,8 @@ public final class HttpClientFactory implements HttpStreamFactory
     private final Map<String8FW, String16FW> headersMap;
     private final String16FW h2cSettingsPayload;
     private final HttpConfiguration config;
+    private final EngineContext context;
+    private final boolean verbose;
     private final Http2Settings initialSettings;
     private final MutableDirectBuffer frameBuffer;
     private final MutableDirectBuffer writeBuffer;
@@ -344,6 +346,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         HttpConfiguration config,
         EngineContext context)
     {
+        this.context = context;
         this.config = config;
         this.proxyTypeId = context.supplyTypeId("proxy");
         this.writeBuffer = context.writeBuffer();
@@ -377,6 +380,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         this.decodeMax = bufferPool.slotCapacity();
         this.encodeMax = bufferPool.slotCapacity();
         this.supplyValidator = context::supplyValidator;
+        this.verbose = config.verbose();
 
         final byte[] settingsPayload = new byte[12];
         http2SettingsRW.wrap(frameBuffer, 0, frameBuffer.capacity())
@@ -2901,6 +2905,12 @@ public final class HttpClientFactory implements HttpStreamFactory
             }
             else
             {
+                if (verbose)
+                {
+                    System.out.printf("%s:%s %s: Skipping invalid message on requestId %d\n",
+                        System.currentTimeMillis(), context.supplyNamespace(routedId),
+                        context.supplyLocalName(routedId), exchange.requestId);
+                }
                 exchange.cleanup(traceId, authorization);
                 decoder = decodeHttp11Ignore;
             }
@@ -2935,6 +2945,12 @@ public final class HttpClientFactory implements HttpStreamFactory
             }
             else
             {
+                if (verbose)
+                {
+                    System.out.printf("%s:%s %s: Skipping invalid message on requestId %d\n",
+                        System.currentTimeMillis(), context.supplyNamespace(routedId),
+                        context.supplyLocalName(routedId), exchange.requestId);
+                }
                 exchange.doResponseAbort(traceId, authorization, EMPTY_OCTETS);
                 result = limit;
             }
@@ -3376,6 +3392,12 @@ public final class HttpClientFactory implements HttpStreamFactory
                             }
                             else
                             {
+                                if (verbose)
+                                {
+                                    System.out.printf("%s:%s %s: Skipping invalid message on requestId %d\n",
+                                        System.currentTimeMillis(), context.supplyNamespace(routedId),
+                                        context.supplyLocalName(routedId), exchange.requestId);
+                                }
                                 exchange.cleanup(traceId, authorization);
                                 progress += payloadLength;
                             }
@@ -3486,6 +3508,12 @@ public final class HttpClientFactory implements HttpStreamFactory
                 }
                 else
                 {
+                    if (verbose)
+                    {
+                        System.out.printf("%s:%s %s: Skipping invalid message on requestId %d\n",
+                            System.currentTimeMillis(), context.supplyNamespace(routedId),
+                            context.supplyLocalName(routedId), exchange.requestId);
+                    }
                     exchange.doResponseAbort(traceId, authorization, EMPTY_OCTETS);
                     exchange.doRequestReset(traceId, authorization);
                     doEncodeHttp2RstStream(traceId, streamId, Http2ErrorCode.CANCEL);
