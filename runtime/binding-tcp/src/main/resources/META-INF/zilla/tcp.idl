@@ -17,19 +17,19 @@ scope tcp
 {
     scope event
     {
-        enum ProxyEventType (uint8)
+        enum TcpEventType (uint8)
         {
             REMOTE_ACCESS_FAILED (1)
         }
 
-        struct ProxyRemoteAccessFailedEvent extends core::event::BindingEvent
+        struct TcpRemoteAccessFailedEvent extends core::event::BindingEvent
         {
             string16 address;
         }
 
-        union ProxyEvent switch (ProxyEventType)
+        union TcpEvent switch (TcpEventType)
         {
-            case REMOTE_ACCESS_FAILED: ProxyRemoteAccessFailedEvent remoteAccessFailed;
+            case REMOTE_ACCESS_FAILED: TcpRemoteAccessFailedEvent remoteAccessFailed;
         }
     }
 }
