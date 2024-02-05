@@ -19,10 +19,12 @@ import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
+
 public final class KafkaClientRoute
 {
     public final long resolvedId;
-    public final Long2ObjectHashMap<KafkaBrokerInfo> brokers;
+    public final Long2ObjectHashMap<KafkaServerConfig> servers;
     public final Int2ObjectHashMap<Int2IntHashMap> partitions;
 
     public volatile long metaInitialId;
@@ -31,7 +33,7 @@ public final class KafkaClientRoute
         long resolvedId)
     {
         this.resolvedId = resolvedId;
-        this.brokers = new Long2ObjectHashMap<>();
+        this.servers = new Long2ObjectHashMap<>();
         this.partitions = new Int2ObjectHashMap<>();
     }
 

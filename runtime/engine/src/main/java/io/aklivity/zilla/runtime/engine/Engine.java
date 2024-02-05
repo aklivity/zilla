@@ -74,8 +74,7 @@ import io.aklivity.zilla.runtime.engine.internal.registry.WatcherTask;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
-import io.aklivity.zilla.runtime.engine.validator.ValidatorFactory;
-import io.aklivity.zilla.runtime.engine.validator.ValidatorFactorySpi;
+import io.aklivity.zilla.runtime.engine.model.Model;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 
 public final class Engine implements Collector, AutoCloseable
@@ -105,7 +104,7 @@ public final class Engine implements Collector, AutoCloseable
         Collection<MetricGroup> metricGroups,
         Collection<Vault> vaults,
         Collection<Catalog> catalogs,
-        ValidatorFactory validatorFactory,
+        Collection<Model> models,
         ErrorHandler errorHandler,
         Collection<EngineAffinity> affinities,
         boolean readonly)
@@ -160,7 +159,7 @@ public final class Engine implements Collector, AutoCloseable
         {
             EngineWorker worker =
                 new EngineWorker(config, tasks, labels, errorHandler, tuning::affinity,
-                        bindings, exporters, guards, vaults, catalogs, metricGroups, validatorFactory,
+                        bindings, exporters, guards, vaults, catalogs, models, metricGroups,
                     this, coreIndex, readonly);
             workers.add(worker);
         }
@@ -181,7 +180,7 @@ public final class Engine implements Collector, AutoCloseable
         schemaTypes.addAll(metricGroups.stream().map(MetricGroup::type).filter(Objects::nonNull).collect(toList()));
         schemaTypes.addAll(vaults.stream().map(Vault::type).filter(Objects::nonNull).collect(toList()));
         schemaTypes.addAll(catalogs.stream().map(Catalog::type).filter(Objects::nonNull).collect(toList()));
-        schemaTypes.addAll(validatorFactory.validatorSpis().stream().map(ValidatorFactorySpi::schema).collect(toList()));
+        schemaTypes.addAll(models.stream().map(Model::type).filter(Objects::nonNull).collect(toList()));
 
         final Map<String, Binding> bindingsByType = bindings.stream()
             .collect(Collectors.toMap(b -> b.name(), b -> b));

@@ -60,7 +60,6 @@ import java.util.function.LongConsumer;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
-import java.util.function.ToLongFunction;
 
 import org.agrona.DeadlineTimerWheel;
 import org.agrona.DeadlineTimerWheel.TimerHandler;
@@ -95,8 +94,8 @@ import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
-import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 import io.aklivity.zilla.runtime.engine.exporter.Exporter;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterContext;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
@@ -130,10 +129,12 @@ import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
+import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
+import io.aklivity.zilla.runtime.engine.model.Model;
+import io.aklivity.zilla.runtime.engine.model.ModelContext;
+import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
 import io.aklivity.zilla.runtime.engine.util.function.LongLongFunction;
-import io.aklivity.zilla.runtime.engine.validator.Validator;
-import io.aklivity.zilla.runtime.engine.validator.ValidatorFactory;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
@@ -198,6 +199,7 @@ public class EngineWorker implements EngineContext, Agent
     private final ElektronSignaler signaler;
     private final Long2ObjectHashMap<MessageConsumer> correlations;
     private final Long2ObjectHashMap<AgentRunner> exportersById;
+    private final Map<String, ModelContext> modelsByType;
 
     private final EngineRegistry registry;
     private final Deque<Runnable> taskQueue;
@@ -208,7 +210,6 @@ public class EngineWorker implements EngineContext, Agent
     private final ScalarsLayout countersLayout;
     private final ScalarsLayout gaugesLayout;
     private final HistogramsLayout histogramsLayout;
-    private final ValidatorFactory validatorFactory;
     private long initialId;
     private long promiseId;
     private long traceId;
@@ -228,8 +229,8 @@ public class EngineWorker implements EngineContext, Agent
         Collection<Guard> guards,
         Collection<Vault> vaults,
         Collection<Catalog> catalogs,
+        Collection<Model> models,
         Collection<MetricGroup> metricGroups,
-        ValidatorFactory validatorFactory,
         Collector collector,
         int index,
         boolean readonly)
@@ -372,6 +373,14 @@ public class EngineWorker implements EngineContext, Agent
             catalogsByType.put(type, catalog.supply(this));
         }
 
+        Map<String, ModelContext> modelsByType = new LinkedHashMap<>();
+        for (Model model : models)
+        {
+            String type = model.name();
+            modelsByType.put(type, model.supply(this));
+        }
+        this.modelsByType = modelsByType;
+
         Map<String, MetricContext> metricsByName = new LinkedHashMap<>();
         for (MetricGroup metricGroup : metricGroups)
         {
@@ -392,12 +401,12 @@ public class EngineWorker implements EngineContext, Agent
                 bindingsByType::get, guardsByType::get, vaultsByType::get, catalogsByType::get, metricsByName::get,
                 exportersByType::get, labels::supplyLabelId, this::onExporterAttached, this::onExporterDetached,
                 this::supplyMetricWriter, this::detachStreams, collector);
+
         this.taskQueue = new ConcurrentLinkedDeque<>();
         this.correlations = new Long2ObjectHashMap<>();
         this.idleStrategy = idleStrategy;
         this.errorHandler = errorHandler;
         this.exportersById = new Long2ObjectHashMap<>();
-        this.validatorFactory = validatorFactory;
     }
 
     public static int indexOfId(
@@ -655,6 +664,30 @@ public class EngineWorker implements EngineContext, Agent
     }
 
     @Override
+    public ValidatorHandler supplyValidator(
+        ModelConfig config)
+    {
+        ModelContext model = modelsByType.get(config.model);
+        return model != null ? model.supplyValidatorHandler(config) : null;
+    }
+
+    @Override
+    public ConverterHandler supplyReadConverter(
+        ModelConfig config)
+    {
+        ModelContext model = modelsByType.get(config.model);
+        return model != null ? model.supplyReadConverterHandler(config) : null;
+    }
+
+    @Override
+    public ConverterHandler supplyWriteConverter(
+        ModelConfig config)
+    {
+        ModelContext model = modelsByType.get(config.model);
+        return model != null ? model.supplyWriteConverterHandler(config) : null;
+    }
+
+    @Override
     public URL resolvePath(
         String path)
     {
@@ -860,14 +893,6 @@ public class EngineWorker implements EngineContext, Agent
         long metricId)
     {
         return histogramsLayout.supplyWriter(bindingId, metricId);
-    }
-
-    @Override
-    public Validator createValidator(
-        ValidatorConfig validator,
-        ToLongFunction<String> resolveId)
-    {
-        return validatorFactory.create(validator, resolveId, this::supplyCatalog);
     }
 
     @Override

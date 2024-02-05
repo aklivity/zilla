@@ -18,14 +18,14 @@ package io.aklivity.zilla.runtime.binding.http.config;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
+import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 
 public class HttpParamConfigBuilder<T> extends ConfigBuilder<T, HttpParamConfigBuilder<T>>
 {
     private final Function<HttpParamConfig, T> mapper;
 
     private String name;
-    private ValidatorConfig validator;
+    private ModelConfig model;
 
     HttpParamConfigBuilder(
         Function<HttpParamConfig, T> mapper)
@@ -47,22 +47,22 @@ public class HttpParamConfigBuilder<T> extends ConfigBuilder<T, HttpParamConfigB
         return this;
     }
 
-    public HttpParamConfigBuilder<T> validator(
-        ValidatorConfig validator)
+    public HttpParamConfigBuilder<T> model(
+        ModelConfig model)
     {
-        this.validator = validator;
+        this.model = model;
         return this;
     }
 
-    public <C extends ConfigBuilder<HttpParamConfigBuilder<T>, C>> C validator(
-        Function<Function<ValidatorConfig, HttpParamConfigBuilder<T>>, C> validator)
+    public <C extends ConfigBuilder<HttpParamConfigBuilder<T>, C>> C model(
+        Function<Function<ModelConfig, HttpParamConfigBuilder<T>>, C> model)
     {
-        return validator.apply(this::validator);
+        return model.apply(this::model);
     }
 
     @Override
     public T build()
     {
-        return mapper.apply(new HttpParamConfig(name, validator));
+        return mapper.apply(new HttpParamConfig(name, model));
     }
 }

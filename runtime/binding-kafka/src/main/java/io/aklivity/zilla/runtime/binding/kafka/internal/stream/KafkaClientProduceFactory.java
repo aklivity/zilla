@@ -39,6 +39,7 @@ import org.agrona.collections.LongLongConsumer;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaEventContext;
@@ -257,6 +258,9 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 final int partitionId = kafkaProduceBeginEx.partition().partitionId();
                 final KafkaSaslConfig sasl = binding.sasl();
 
+                final KafkaClientRoute clientRoute = supplyClientRoute.apply(resolvedId);
+                final KafkaServerConfig server = clientRoute.servers.get(affinity);
+
                 newStream = new KafkaProduceStream(
                         application,
                         originId,
@@ -266,6 +270,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                         resolvedId,
                         topicName,
                         partitionId,
+                        server,
                         sasl)::onApplication;
             }
         }
@@ -904,6 +909,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
             long resolvedId,
             String topic,
             int partitionId,
+            KafkaServerConfig server,
             KafkaSaslConfig sasl)
         {
             this.application = application;
@@ -912,7 +918,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = affinity;
-            this.client = new KafkaProduceClient(this, resolvedId, topic, partitionId, sasl);
+            this.client = new KafkaProduceClient(this, resolvedId, topic, partitionId, server, sasl);
         }
 
         private void onApplication(
@@ -1188,7 +1194,6 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
             private final KafkaProduceStream stream;
             private final String topic;
             private final int partitionId;
-            private final KafkaClientRoute clientRoute;
 
             private KafkaAckMode encodeableAckMode;
             private KafkaAckMode encodedAckMode;
@@ -1246,14 +1251,14 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 long resolvedId,
                 String topic,
                 int partitionId,
+                KafkaServerConfig server,
                 KafkaSaslConfig sasl)
             {
-                super(sasl, stream.routedId, resolvedId);
+                super(server, sasl, stream.routedId, resolvedId);
                 this.stream = stream;
                 this.topic = requireNonNull(topic);
                 this.partitionId = partitionId;
                 this.flusher = flushRecord;
-                this.clientRoute = supplyClientRoute.apply(resolvedId);
                 this.encodeableRecordBatchTimestamp = TIMESTAMP_NONE;
                 this.encodeableRecordBatchTimestampMax = TIMESTAMP_NONE;
                 this.encodeableAckMode = KafkaAckMode.NONE;
@@ -1476,17 +1481,16 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
                 Consumer<OctetsFW.Builder> extension = EMPTY_EXTENSION;
 
-                final KafkaBrokerInfo broker = clientRoute.brokers.get(affinity);
-                if (broker != null)
+                if (server != null)
                 {
                     extension = e -> e.set((b, o, l) -> proxyBeginExRW.wrap(b, o, l)
                                                                     .typeId(proxyTypeId)
                                                                     .address(a -> a.inet(i -> i.protocol(p -> p.set(STREAM))
                                                                             .source("0.0.0.0")
-                                                                            .destination(broker.host)
+                                                                            .destination(server.host)
                                                                             .sourcePort(0)
-                                                                            .destinationPort(broker.port)))
-                                                                    .infos(i -> i.item(ii -> ii.authority(broker.host)))
+                                                                            .destinationPort(server.port)))
+                                                                    .infos(i -> i.item(ii -> ii.authority(server.host)))
                                                                     .build()
                                                                     .sizeof());
                 }

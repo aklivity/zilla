@@ -33,6 +33,7 @@ import org.agrona.collections.ObjectHashSet;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
@@ -206,6 +207,9 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
             final long resolvedId = resolved.id;
             final KafkaSaslConfig sasl = resolveSasl.apply(binding.sasl());
 
+            // TODO: use affinity (like meta, fetch, produce) instead of host and port
+            final KafkaServerConfig server = new KafkaServerConfig(host, port);
+
             newStream = new KafkaOffsetFetchStream(
                     application,
                     originId,
@@ -214,10 +218,9 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
                     affinity,
                     resolvedId,
                     groupId,
-                    host,
-                    port,
                     topic,
                     partitions,
+                    server,
                     sasl)::onApplication;
         }
 
@@ -778,10 +781,9 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
             long affinity,
             long resolvedId,
             String groupId,
-            String host,
-            int port,
             String topic,
             IntHashSet partitions,
+            KafkaServerConfig server,
             KafkaSaslConfig sasl)
         {
             this.application = application;
@@ -790,8 +792,8 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = affinity;
-            this.client = new KafkaOffsetFetchClient(this, routedId, resolvedId, groupId, host, port,
-                topic, partitions, sasl);
+            this.client = new KafkaOffsetFetchClient(this, routedId, resolvedId, groupId,
+                topic, partitions, server, sasl);
         }
 
         private void onApplication(
@@ -1044,8 +1046,6 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
 
         private final KafkaOffsetFetchStream delegate;
         private final String groupId;
-        private final String host;
-        private final int port;
         private final String topic;
         private final IntHashSet partitions;
         private final ObjectHashSet<KafkaPartitionOffset> topicPartitions;
@@ -1089,17 +1089,14 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
             long originId,
             long routedId,
             String groupId,
-            String host,
-            int port,
             String topic,
             IntHashSet partitions,
+            KafkaServerConfig server,
             KafkaSaslConfig sasl)
         {
-            super(sasl, originId, routedId);
+            super(server, sasl, originId, routedId);
             this.delegate = delegate;
             this.groupId = requireNonNull(groupId);
-            this.host = host;
-            this.port = port;
             this.topic = topic;
             this.partitions = partitions;
             this.topicPartitions = new ObjectHashSet<>();
@@ -1326,10 +1323,10 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
                 .typeId(proxyTypeId)
                 .address(a -> a.inet(i -> i.protocol(p -> p.set(STREAM))
                     .source("0.0.0.0")
-                    .destination(host)
+                    .destination(server.host)
                     .sourcePort(0)
-                    .destinationPort(port)))
-                .infos(i -> i.item(ii -> ii.authority(host)))
+                    .destinationPort(server.port)))
+                .infos(i -> i.item(ii -> ii.authority(server.host)))
                 .build()
                 .sizeof());
 

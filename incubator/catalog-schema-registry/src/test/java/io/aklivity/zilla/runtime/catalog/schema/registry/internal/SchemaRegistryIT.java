@@ -22,6 +22,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.rules.RuleChain.outerRule;
 import static org.mockito.Mockito.mock;
 
+import java.time.Duration;
+
+import org.agrona.DirectBuffer;
+import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -32,6 +36,8 @@ import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.config.SchemaRegistryOptionsConfig;
+import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 
 public class SchemaRegistryIT
@@ -50,7 +56,11 @@ public class SchemaRegistryIT
     @Before
     public void setup()
     {
-        config = new SchemaRegistryOptionsConfig("http://localhost:8081", "default");
+        config = SchemaRegistryOptionsConfig.builder()
+            .url("http://localhost:8081")
+            .context("default")
+            .maxAge(Duration.ofSeconds(1))
+            .build();
     }
 
     @Test
@@ -155,5 +165,61 @@ public class SchemaRegistryIT
         assertEquals(schemaId, 9);
         assertThat(schema, not(nullValue()));
         assertEquals(expected, schema);
+    }
+
+    @Test
+    public void shouldVerifyMaxPadding()
+    {
+        SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config);
+
+        assertEquals(5, catalog.encodePadding());
+    }
+
+    @Test
+    public void shouldVerifyEncodedData()
+    {
+        SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config);
+
+        DirectBuffer data = new UnsafeBuffer();
+
+        byte[] bytes = {0x06, 0x69, 0x64,
+            0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
+        data.wrap(bytes, 0, bytes.length);
+
+        assertEquals(18, catalog.encode(1, data, 0, data.capacity(),
+            ValueConsumer.NOP, CatalogHandler.Encoder.IDENTITY));
+    }
+
+    @Test
+    public void shouldResolveSchemaIdAndProcessData()
+    {
+
+        SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config);
+
+        DirectBuffer data = new UnsafeBuffer();
+
+        byte[] bytes = {0x00, 0x00, 0x00, 0x00, 0x09, 0x06, 0x69, 0x64,
+            0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
+        data.wrap(bytes, 0, bytes.length);
+
+        int valLength = catalog.decode(data, 0, data.capacity(), ValueConsumer.NOP, CatalogHandler.Decoder.IDENTITY);
+
+        assertEquals(data.capacity() - 5, valLength);
+    }
+
+    @Test
+    public void shouldResolveSchemaIdFromData()
+    {
+        SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config);
+
+        DirectBuffer data = new UnsafeBuffer();
+
+        byte[] bytes = {0x00, 0x00, 0x00, 0x00, 0x09, 0x06, 0x69, 0x64,
+            0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
+        data.wrap(bytes, 0, bytes.length);
+
+        int schemaId = catalog.resolve(data, 0, data.capacity());
+
+        assertEquals(9, schemaId);
     }
 }

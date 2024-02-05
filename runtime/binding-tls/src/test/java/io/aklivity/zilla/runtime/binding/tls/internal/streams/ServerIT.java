@@ -94,6 +94,13 @@ public class ServerIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("server.keys.not.found.yaml")
+    public void shouldIgnoreKeysNotFound() throws Exception
+    {
+    }
+
+
     @Ignore("https://github.com/k3po/k3po/issues/454 - Support connect aborted")
     @Test
     @Configuration("server.yaml")

@@ -19,6 +19,8 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
+import java.time.Duration;
+
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
@@ -45,23 +47,28 @@ public class SchemaRegistryOptionsConfigAdapterTest
                 "{" +
                     "\"url\": \"http://localhost:8081\"," +
                     "\"context\": \"default\"," +
-                    "}";
+                "}";
 
         SchemaRegistryOptionsConfig catalog = jsonb.fromJson(text, SchemaRegistryOptionsConfig.class);
 
         assertThat(catalog, not(nullValue()));
         assertThat(catalog.url, equalTo("http://localhost:8081"));
         assertThat(catalog.context, equalTo("default"));
+        assertThat(catalog.maxAge.toSeconds(), equalTo(300L));
     }
 
     @Test
     public void shouldWriteCondition()
     {
-        SchemaRegistryOptionsConfig catalog = new SchemaRegistryOptionsConfig("http://localhost:8081", "default");
+        SchemaRegistryOptionsConfig catalog = SchemaRegistryOptionsConfig.builder()
+            .url("http://localhost:8081")
+            .context("default")
+            .maxAge(Duration.ofSeconds(300))
+            .build();
 
         String text = jsonb.toJson(catalog);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"url\":\"http://localhost:8081\",\"context\":\"default\"}"));
+        assertThat(text, equalTo("{\"url\":\"http://localhost:8081\",\"context\":\"default\",\"max-age\":300}"));
     }
 }

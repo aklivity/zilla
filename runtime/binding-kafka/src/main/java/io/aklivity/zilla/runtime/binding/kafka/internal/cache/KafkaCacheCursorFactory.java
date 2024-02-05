@@ -54,10 +54,14 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaValueMatchFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheDeltaFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCachePaddedValueFW;
 
 public final class KafkaCacheCursorFactory
 {
+    private static final int NO_CONVERTED_POSITION = -1;
+
     private final KafkaCacheDeltaFW deltaRO = new KafkaCacheDeltaFW();
+    private final KafkaCachePaddedValueFW convertedRO = new KafkaCachePaddedValueFW();
     private final KafkaValueMatchFW valueMatchRO = new KafkaValueMatchFW();
     private final KafkaHeaderFW headerRO = new KafkaHeaderFW();
 
@@ -68,9 +72,9 @@ public final class KafkaCacheCursorFactory
     public static final int INDEX_UNSET = -1;
 
     public KafkaCacheCursorFactory(
-        MutableDirectBuffer writeBuffer)
+        int writeCapacity)
     {
-        this.writeBuffer = writeBuffer;
+        this.writeBuffer = new UnsafeBuffer(ByteBuffer.allocate(writeCapacity));
         this.checksum = new CRC32C();
     }
 
@@ -212,9 +216,16 @@ public final class KafkaCacheCursorFactory
                     nextEntry = null;
                 }
 
-                if (nextEntry != null && deltaType != KafkaDeltaType.NONE)
+                if (nextEntry != null)
                 {
-                    nextEntry = markAncestorIfNecessary(cacheEntry, nextEntry);
+                    if (deltaType != KafkaDeltaType.NONE)
+                    {
+                        nextEntry = markAncestorIfNecessary(cacheEntry, nextEntry);
+                    }
+                    else if (nextEntry.convertedPosition() != NO_CONVERTED_POSITION)
+                    {
+                        nextEntry = nextConvertedEntry(cacheEntry, nextEntry);
+                    }
                 }
 
                 if (nextEntry == null)
@@ -287,6 +298,41 @@ public final class KafkaCacheCursorFactory
                 deltaKeyOffsets.add(partitionOffset);
             }
             return nextEntry;
+        }
+
+        private KafkaCacheEntryFW nextConvertedEntry(
+            KafkaCacheEntryFW cacheEntry,
+            KafkaCacheEntryFW nextEntry)
+        {
+            final int convertedAt = nextEntry.convertedPosition();
+            assert convertedAt != NO_CONVERTED_POSITION;
+
+            final KafkaCacheFile convertedFile = segment.convertedFile();
+            final KafkaCachePaddedValueFW converted = convertedFile.readBytes(convertedAt, convertedRO::wrap);
+            final OctetsFW convertedValue = converted.value();
+            final DirectBuffer entryBuffer = nextEntry.buffer();
+            final KafkaKeyFW key = nextEntry.key();
+            final int entryOffset = nextEntry.offset();
+            final ArrayFW<KafkaHeaderFW> headers = nextEntry.headers();
+            final ArrayFW<KafkaHeaderFW> trailers = nextEntry.trailers();
+
+            final int sizeofEntryHeader = key.limit() - nextEntry.offset();
+
+            int writeLimit = 0;
+            writeBuffer.putBytes(writeLimit, entryBuffer, entryOffset, sizeofEntryHeader);
+            writeLimit += sizeofEntryHeader;
+            writeBuffer.putInt(writeLimit, convertedValue.sizeof());
+            writeLimit += Integer.BYTES;
+            writeBuffer.putBytes(writeLimit, convertedValue.buffer(), convertedValue.offset(), convertedValue.sizeof());
+            writeLimit += convertedValue.sizeof();
+            writeBuffer.putBytes(writeLimit, headers.buffer(), headers.offset(), headers.sizeof());
+            writeLimit += headers.sizeof();
+            writeBuffer.putBytes(writeLimit, trailers.buffer(), trailers.offset(), trailers.sizeof());
+            writeLimit += trailers.sizeof();
+            writeBuffer.putInt(writeLimit, 0);
+            writeLimit += Integer.BYTES;
+
+            return cacheEntry.wrap(writeBuffer, 0, writeLimit);
         }
 
         public void advance(

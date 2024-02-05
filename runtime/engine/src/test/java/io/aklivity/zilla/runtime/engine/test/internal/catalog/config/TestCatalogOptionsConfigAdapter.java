@@ -24,7 +24,9 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
 public class TestCatalogOptionsConfigAdapter implements OptionsConfigAdapterSpi
 {
+    private static final String SUBJECT = "subject";
     private static final String SCHEMA = "schema";
+    private static final String ID = "id";
 
     @Override
     public Kind kind()
@@ -58,16 +60,24 @@ public class TestCatalogOptionsConfigAdapter implements OptionsConfigAdapterSpi
     public OptionsConfig adaptFromJson(
         JsonObject object)
     {
-        TestCatalogOptionsConfigBuilder<TestCatalogOptionsConfig> testOptions = TestCatalogOptionsConfig.builder();
+        TestCatalogOptionsConfigBuilder<TestCatalogOptionsConfig> config = TestCatalogOptionsConfig.builder();
 
         if (object != null)
         {
+            if (object.containsKey(SUBJECT))
+            {
+                config.subject(object.getString(SUBJECT));
+            }
+
             if (object.containsKey(SCHEMA))
             {
-                testOptions.schema(object.getString(SCHEMA));
+                config.schema(object.getString(SCHEMA));
             }
-        }
 
-        return testOptions.build();
+            config.id(object.containsKey(ID)
+                ? object.getInt(ID)
+                : 0);
+        }
+        return config.build();
     }
 }

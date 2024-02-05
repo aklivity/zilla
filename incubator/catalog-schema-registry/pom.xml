@@ -92,6 +92,22 @@
         <artifactId>license-maven-plugin</artifactId>
       </plugin>
       <plugin>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>flyweight-maven-plugin</artifactId>
+        <version>${project.version}</version>
+        <configuration>
+          <scopeNames>internal</scopeNames>
+          <packageName>io.aklivity.zilla.runtime.catalog.schema.registry.internal.types</packageName>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
         <artifactId>maven-checkstyle-plugin</artifactId>
       </plugin>
       <plugin>

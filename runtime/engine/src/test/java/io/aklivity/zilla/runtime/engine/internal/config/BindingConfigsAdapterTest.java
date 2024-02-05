@@ -359,6 +359,62 @@ public class BindingConfigsAdapterTest
     }
 
     @Test
+    public void shouldWriteBindingWithCatalog()
+    {
+        BindingConfig[] bindings =
+            {
+                BindingConfig.builder()
+                    .namespace("test")
+                    .name("test")
+                    .type("test")
+                    .kind(SERVER)
+                    .catalog()
+                        .name("catalog0")
+                            .schema()
+                            .subject("echo")
+                            .build()
+                        .build()
+                    .build()
+            };
+
+        String text = jsonb.toJson(bindings);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo("{\"test\":{\"type\":\"test\",\"kind\":\"server\",\"catalog\":" +
+            "[{\"catalog0\":[{\"subject\":\"echo\"}]}]}}"));
+    }
+
+    @Test
+    public void shouldReadBindingWithCatalog()
+    {
+        String text =
+            "{" +
+                "  \"test\":" +
+                " {" +
+                "    \"type\": \"test\"," +
+                "    \"kind\": \"server\"," +
+                "    \"catalog\":" +
+                "     {" +
+                "      \"catalog0\":" +
+                "      [" +
+                "        {" +
+                "          \"subject\": \"echo\"" +
+                "        }" +
+                "      ]" +
+                "    }" +
+                "  }" +
+                "}";
+
+        BindingConfig[] bindings = jsonb.fromJson(text, BindingConfig[].class);
+
+        assertThat(bindings[0], not(nullValue()));
+        assertThat(bindings[0].name, equalTo("test"));
+        assertThat(bindings[0].kind, equalTo(SERVER));
+        assertThat(bindings[0].catalogs, hasSize(1));
+        assertThat(bindings[0].catalogs.stream().findFirst().get().name, equalTo("catalog0"));
+    }
+
+    @Test
     public void shouldWriteBindingWithRemoteServerKind()
     {
         BindingConfig[] bindings =
