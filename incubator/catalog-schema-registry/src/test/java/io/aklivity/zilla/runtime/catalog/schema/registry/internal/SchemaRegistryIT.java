@@ -36,9 +36,9 @@ import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.config.SchemaRegistryOptionsConfig;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
-import io.aklivity.zilla.runtime.engine.EngineContext;
 
 public class SchemaRegistryIT
 {
@@ -170,7 +170,7 @@ public class SchemaRegistryIT
     @Test
     public void shouldVerifyMaxPadding()
     {
-        SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config);
+        SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config, context, 0L);
 
         assertEquals(5, catalog.encodePadding());
     }
@@ -178,7 +178,7 @@ public class SchemaRegistryIT
     @Test
     public void shouldVerifyEncodedData()
     {
-        SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config);
+        SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config, context, 0L);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -194,7 +194,7 @@ public class SchemaRegistryIT
     public void shouldResolveSchemaIdAndProcessData()
     {
 
-        SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config);
+        SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config, context, 0L);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -210,7 +210,7 @@ public class SchemaRegistryIT
     @Test
     public void shouldResolveSchemaIdFromData()
     {
-        SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config);
+        SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config, context, 0L);
 
         DirectBuffer data = new UnsafeBuffer();
 

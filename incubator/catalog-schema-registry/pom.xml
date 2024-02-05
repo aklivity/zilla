@@ -76,7 +76,7 @@
         <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <scopeNames>core schema_registry</scopeNames>
+          <scopeNames>core schema_registry internal</scopeNames>
           <packageName>io.aklivity.zilla.runtime.catalog.schema.registry.internal.types</packageName>
         </configuration>
         <executions>
@@ -90,22 +90,6 @@
       <plugin>
         <groupId>com.mycila</groupId>
         <artifactId>license-maven-plugin</artifactId>
-      </plugin>
-      <plugin>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>flyweight-maven-plugin</artifactId>
-        <version>${project.version}</version>
-        <configuration>
-          <scopeNames>internal</scopeNames>
-          <packageName>io.aklivity.zilla.runtime.catalog.schema.registry.internal.types</packageName>
-        </configuration>
-        <executions>
-          <execution>
-            <goals>
-              <goal>generate</goal>
-            </goals>
-          </execution>
-        </executions>
       </plugin>
       <plugin>
         <artifactId>maven-checkstyle-plugin</artifactId>
