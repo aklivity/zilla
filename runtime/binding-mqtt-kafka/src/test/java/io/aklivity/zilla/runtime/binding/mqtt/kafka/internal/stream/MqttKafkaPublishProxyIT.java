@@ -307,7 +307,7 @@ public class MqttKafkaPublishProxyIT
     @Specification({
         "${mqtt}/publish.qos2.recovery/client",
         "${kafka}/publish.qos2.recovery/server"})
-    public void shouldSendMessageQos2Recover() throws Exception
+    public void shouldSendMessageQos2DuringRecovery() throws Exception
     {
         k3po.finish();
     }

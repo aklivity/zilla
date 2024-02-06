@@ -683,7 +683,7 @@ public class MqttIT
     @Specification({
         "${mqtt}/publish.qos2.recovery/client",
         "${mqtt}/publish.qos2.recovery/server"})
-    public void shouldPublishQoS2MessageRecover() throws Exception
+    public void shouldPublishQoS2MessageDuringRecovery() throws Exception
     {
         k3po.start();
         k3po.finish();
