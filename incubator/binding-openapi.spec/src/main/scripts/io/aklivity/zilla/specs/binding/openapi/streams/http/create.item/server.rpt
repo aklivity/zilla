@@ -14,7 +14,7 @@
 # under the License.
 #
 
-accept "zilla://streams/app0"
+accept "zilla://streams/composite0"
         option zilla:window 12
         option zilla:transmission "half-duplex"
         option zilla:update "handshake"
@@ -27,7 +27,7 @@ read zilla:begin.ext ${http:beginEx()
                              .header(":path", "/items")
                              .header(":authority", "localhost:8080")
                              .header("content-type", "application/json")
-                             .header("content-length", "45")
+                             .header("content-length", "36")
                              .build()}
 
 connected

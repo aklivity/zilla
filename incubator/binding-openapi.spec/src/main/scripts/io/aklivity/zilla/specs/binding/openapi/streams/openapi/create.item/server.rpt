@@ -14,23 +14,22 @@
 # under the License.
 #
 
-accept "zilla://streams/app0"
-        option zilla:window 12
+accept "zilla://streams/openapi0"
+        option zilla:window 8192
         option zilla:transmission "half-duplex"
-        option zilla:update "handshake"
 accepted
 
 read zilla:begin.ext ${openapi:beginEx()
                              .typeId(zilla:id("openapi"))
-                             .transactionId("createItem")
-                             .httpEx(http:beginEx()
+                             .operationId("createItem")
+                             .extension(http:beginEx()
                                   .typeId(zilla:id("http"))
                                   .header(":method", "POST")
                                   .header(":scheme", "http")
                                   .header(":path", "/items")
                                   .header(":authority", "localhost:8080")
                                   .header("content-type", "application/json")
-                                  .header("content-length", "45")
+                                  .header("content-length", "36")
                                   .build())
                              .build()}
 
@@ -41,14 +40,15 @@ read closed
 
 write zilla:begin.ext ${openapi:beginEx()
                              .typeId(zilla:id("openapi"))
-                             .transactionId("createItem")
-                             .httpEx(http:beginEx()
+                             .operationId("createItem")
+                             .extension(http:beginEx()
                               .typeId(zilla:id("http"))
                               .header(":status", "200")
                               .header("content-type", "application/json")
                               .header("content-length", "34")
                               .build())
                              .build()}
+write flush
 
 write "{\"code\": 0,\"message\": \"string\"}"
 write flush

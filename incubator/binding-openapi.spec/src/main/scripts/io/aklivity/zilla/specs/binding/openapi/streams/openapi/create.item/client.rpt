@@ -14,30 +14,38 @@
 # under the License.
 #
 
-connect "zilla://streams/app0"
+connect "zilla://streams/openapi0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
 
 
-write zilla:begin.ext ${http:beginEx()
-                              .typeId(zilla:id("http"))
-                              .header(":method", "POST")
-                              .header(":scheme", "http")
-                              .header(":path", "/items")
-                              .header(":authority", "localhost:8080")
-                              .header("content-type", "application/json")
-                              .header("content-length", "45")
-                              .build()}
+write zilla:begin.ext ${openapi:beginEx()
+                             .typeId(zilla:id("openapi"))
+                             .operationId("createItem")
+                             .extension(http:beginEx()
+                                  .typeId(zilla:id("http"))
+                                  .header(":method", "POST")
+                                  .header(":scheme", "http")
+                                  .header(":path", "/items")
+                                  .header(":authority", "localhost:8080")
+                                  .header("content-type", "application/json")
+                                  .header("content-length", "36")
+                                  .build())
+                             .build()}
 connected
 
 write "{\"greeting\": \"zilla\", \"tag\": \"test\"}"
 write close
 
-read zilla:begin.ext ${http:beginEx()
-                             .typeId(zilla:id("http"))
-                             .header(":status", "200")
-                             .header("content-type", "application/json")
-                             .header("content-length", "34")
+read zilla:begin.ext ${openapi:beginEx()
+                             .typeId(zilla:id("openapi"))
+                             .operationId("createItem")
+                             .extension(http:beginEx()
+                              .typeId(zilla:id("http"))
+                              .header(":status", "200")
+                              .header("content-type", "application/json")
+                              .header("content-length", "34")
+                              .build())
                              .build()}
 
 read "{\"code\": 0,\"message\": \"string\"}"

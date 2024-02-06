@@ -20,6 +20,7 @@ import java.util.Map;
 public class Operation
 {
     public List<Map<String, List<String>>> security;
+    public String operationId;
     public RequestBody requestBody;
     public List<Parameter> parameters;
     public Map<String, ResponseByContentType> responses;
