@@ -54,7 +54,6 @@ public final class EventsLayout implements AutoCloseable
         int index,
         int length)
     {
-        // TODO: Ati - include timestamp
         System.out.printf("%d %s %d %d%n", msgTypeId, buffer, index, length); // TODO: Ati
         if (position + length > buffer.capacity())
         {

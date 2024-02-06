@@ -21,6 +21,7 @@
     <module>catalog-inline.spec</module>
     <module>catalog-schema-registry.spec</module>
     <module>exporter-otlp.spec</module>
+    <module>exporter-stdout.spec</module>
     <module>model-avro.spec</module>
     <module>model-core.spec</module>
     <module>model-json.spec</module>
@@ -37,6 +38,7 @@
     <module>command-tune</module>
 
     <module>exporter-otlp</module>
+    <module>exporter-stdout</module>
 
     <module>model-avro</module>
     <module>model-core</module>
@@ -84,6 +86,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>exporter-otlp</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>exporter-stdout</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
