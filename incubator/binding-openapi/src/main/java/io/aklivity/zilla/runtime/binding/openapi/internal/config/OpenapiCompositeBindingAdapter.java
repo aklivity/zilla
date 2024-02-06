@@ -132,6 +132,8 @@ public final class OpenapiCompositeBindingAdapter implements CompositeBindingAda
 
         switch (binding.kind)
         {
+        case CLIENT:
+            return resolveClientBinding(binding);
         case SERVER:
             return resolveServerBinding(binding);
         default:
@@ -172,6 +174,36 @@ public final class OpenapiCompositeBindingAdapter implements CompositeBindingAda
                         .build()
                     .build()
                 .build();
+    }
+
+    private BindingConfig resolveClientBinding(
+        BindingConfig binding)
+    {
+        return BindingConfig.builder(binding)
+            .composite()
+                .name(String.format(binding.qname, "$composite"))
+                .binding()
+                    .name("http_client0")
+                    .type("http")
+                    .kind(CLIENT)
+                    .inject(this::injectHttpClientOptions)
+                    .exit(isTlsEnabled ? "tls_client0" : "tcp_client0")
+                    .build()
+                .inject(this::injectTlsClient)
+                .binding()
+                    .name("tcp_client0")
+                    .type("tcp")
+                    .kind(CLIENT)
+                    .options(TcpOptionsConfig::builder)
+                        .host("") // env
+                        .ports(new int[]{0}) // env
+                        .build()
+                    .build()
+                .inject(this::injectGuard)
+                .inject(this::injectVaults)
+                .inject(this::injectCatalog)
+                .build()
+            .build();
     }
 
     private int[] resolveAllPorts()

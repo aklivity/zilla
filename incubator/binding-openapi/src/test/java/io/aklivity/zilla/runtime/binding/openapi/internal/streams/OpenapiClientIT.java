@@ -22,6 +22,7 @@ import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
+import org.kaazing.k3po.junit.annotation.ScriptProperty;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 
@@ -40,18 +41,19 @@ public class OpenapiClientIT
         .directory("target/zilla-itests")
         .countersBufferCapacity(4096)
         .configurationRoot("io/aklivity/zilla/specs/binding/openapi/config")
-        .external("openapi0")
+        .external("http0")
         .clean();
 
     @Rule
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("server.yaml")
+    @Configuration("client.yaml")
     @Specification({
-        "${http}/create.item/client",
-        "${openapi}/create.item/server"
+        "${openapi}/create.item/client",
+        "${http}/create.item/server"
     })
+    @ScriptProperty("serverAddress \"zilla://streams/http0\"")
     public void shouldCreateItem() throws Exception
     {
         k3po.finish();
