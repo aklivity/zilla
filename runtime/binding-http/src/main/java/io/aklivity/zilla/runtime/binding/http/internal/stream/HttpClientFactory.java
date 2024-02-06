@@ -310,6 +310,8 @@ public final class HttpClientFactory implements HttpStreamFactory
     private final Map<String8FW, String16FW> headersMap;
     private final String16FW h2cSettingsPayload;
     private final HttpConfiguration config;
+    private final EngineContext context;
+    private final boolean verbose;
     private final Http2Settings initialSettings;
     private final MutableDirectBuffer frameBuffer;
     private final MutableDirectBuffer writeBuffer;
@@ -344,6 +346,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         HttpConfiguration config,
         EngineContext context)
     {
+        this.context = context;
         this.config = config;
         this.proxyTypeId = context.supplyTypeId("proxy");
         this.writeBuffer = context.writeBuffer();
@@ -377,6 +380,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         this.decodeMax = bufferPool.slotCapacity();
         this.encodeMax = bufferPool.slotCapacity();
         this.supplyValidator = context::supplyValidator;
+        this.verbose = config.verbose();
 
         final byte[] settingsPayload = new byte[12];
         http2SettingsRW.wrap(frameBuffer, 0, frameBuffer.capacity())
@@ -2901,7 +2905,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             }
             else
             {
-                exchange.cleanup(traceId, authorization);
+                exchange.onResponseInvalid(traceId, authorization);
                 decoder = decodeHttp11Ignore;
             }
         }
@@ -2935,7 +2939,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             }
             else
             {
-                exchange.doResponseAbort(traceId, authorization, EMPTY_OCTETS);
+                exchange.onResponseInvalid(traceId, authorization);
                 result = limit;
             }
             return result;
@@ -3376,7 +3380,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                             }
                             else
                             {
-                                exchange.cleanup(traceId, authorization);
+                                exchange.onResponseInvalid(traceId, authorization);
                                 progress += payloadLength;
                             }
                         }
@@ -3486,8 +3490,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 }
                 else
                 {
-                    exchange.doResponseAbort(traceId, authorization, EMPTY_OCTETS);
-                    exchange.doRequestReset(traceId, authorization);
+                    exchange.onResponseInvalid(traceId, authorization);
                     doEncodeHttp2RstStream(traceId, streamId, Http2ErrorCode.CANCEL);
                     decoder = decodeHttp2IgnoreAll;
                 }
@@ -5106,6 +5109,19 @@ public final class HttpClientFactory implements HttpStreamFactory
         {
             return contentType == null ||
                 contentType.validate(buffer, index, length, ValueConsumer.NOP);
+        }
+
+        private void onResponseInvalid(
+            long traceId,
+            long authorization)
+        {
+            if (verbose)
+            {
+                System.out.printf("%s:%s %s: Skipping invalid response on method %s, path %s\n",
+                    System.currentTimeMillis(), context.supplyNamespace(routedId),
+                    context.supplyLocalName(routedId), requestType.method, requestType.path);
+            }
+            cleanup(traceId, authorization);
         }
     }
 
