@@ -2905,8 +2905,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             }
             else
             {
-                exchange.onResponseInvalid();
-                exchange.cleanup(traceId, authorization);
+                exchange.onResponseInvalid(traceId, authorization);
                 decoder = decodeHttp11Ignore;
             }
         }
@@ -2940,8 +2939,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             }
             else
             {
-                exchange.onResponseInvalid();
-                exchange.doResponseAbort(traceId, authorization, EMPTY_OCTETS);
+                exchange.onResponseInvalid(traceId, authorization);
                 result = limit;
             }
             return result;
@@ -3382,8 +3380,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                             }
                             else
                             {
-                                exchange.onResponseInvalid();
-                                exchange.cleanup(traceId, authorization);
+                                exchange.onResponseInvalid(traceId, authorization);
                                 progress += payloadLength;
                             }
                         }
@@ -3493,9 +3490,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 }
                 else
                 {
-                    exchange.onResponseInvalid();
-                    exchange.doResponseAbort(traceId, authorization, EMPTY_OCTETS);
-                    exchange.doRequestReset(traceId, authorization);
+                    exchange.onResponseInvalid(traceId, authorization);
                     doEncodeHttp2RstStream(traceId, streamId, Http2ErrorCode.CANCEL);
                     decoder = decodeHttp2IgnoreAll;
                 }
@@ -5116,7 +5111,9 @@ public final class HttpClientFactory implements HttpStreamFactory
                 contentType.validate(buffer, index, length, ValueConsumer.NOP);
         }
 
-        private void onResponseInvalid()
+        private void onResponseInvalid(
+            long traceId,
+            long authorization)
         {
             if (verbose)
             {
@@ -5124,6 +5121,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                     System.currentTimeMillis(), context.supplyNamespace(routedId),
                     context.supplyLocalName(routedId), requestType.method, requestType.path);
             }
+            cleanup(traceId, authorization);
         }
     }
 

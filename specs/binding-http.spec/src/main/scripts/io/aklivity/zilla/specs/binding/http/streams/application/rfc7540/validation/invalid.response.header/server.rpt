@@ -34,4 +34,5 @@ write zilla:begin.ext ${http:beginEx()
                              .header("retry-after", "0")
                             .build()}
 
+read abort
 write close
