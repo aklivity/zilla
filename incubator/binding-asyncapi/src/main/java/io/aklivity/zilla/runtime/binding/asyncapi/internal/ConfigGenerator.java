@@ -46,8 +46,6 @@ public abstract class ConfigGenerator
     );
     protected final Matcher jsonContentType = JSON_CONTENT_TYPE.matcher("");
 
-    public abstract String generate();
-
     protected static String writeSchemaYaml(
         Jsonb jsonb,
         YAMLMapper yaml,
@@ -65,19 +63,5 @@ public abstract class ConfigGenerator
             rethrowUnchecked(ex);
         }
         return result;
-    }
-
-    protected final String unquoteEnvVars(
-        String yaml,
-        List<String> unquotedEnvVars)
-    {
-        for (String envVar : unquotedEnvVars)
-        {
-            yaml = yaml.replaceAll(
-                Pattern.quote(String.format("\"${{env.%s}}\"", envVar)),
-                String.format("\\${{env.%s}}", envVar)
-            );
-        }
-        return yaml;
     }
 }

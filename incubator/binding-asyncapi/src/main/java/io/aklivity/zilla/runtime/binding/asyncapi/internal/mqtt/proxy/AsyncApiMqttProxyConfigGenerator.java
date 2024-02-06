@@ -17,9 +17,7 @@ package io.aklivity.zilla.runtime.binding.asyncapi.internal.mqtt.proxy;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 import static java.util.Objects.requireNonNull;
-import static org.agrona.LangUtil.rethrowUnchecked;
 
-import java.io.InputStream;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
@@ -27,8 +25,6 @@ import java.util.Map;
 import jakarta.json.Json;
 import jakarta.json.JsonPatch;
 import jakarta.json.JsonPatchBuilder;
-import jakarta.json.bind.Jsonb;
-import jakarta.json.bind.JsonbBuilder;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncApiConfigGenerator;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncApi;
@@ -44,7 +40,6 @@ import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.EngineConfig;
-import io.aklivity.zilla.runtime.engine.config.EngineConfigWriter;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 import io.aklivity.zilla.runtime.validator.json.config.JsonValidatorConfig;
 import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig;
@@ -58,37 +53,14 @@ public class AsyncApiMqttProxyConfigGenerator extends AsyncApiConfigGenerator
     private final int[] mqttsPorts;
 
     public AsyncApiMqttProxyConfigGenerator(
-        InputStream input)
+        AsyncApi asyncApi)
     {
-        this.asyncApi = parseAsyncApi(input);
+        this.asyncApi = asyncApi;
         this.allPorts = resolveAllPorts();
         this.mqttPorts = resolvePortsForScheme("mqtt");
         this.mqttsPorts = resolvePortsForScheme("mqtts");
         this.isPlainEnabled = mqttPorts != null;
         this.isTlsEnabled = mqttsPorts != null;
-    }
-
-    @Override
-    public String generate()
-    {
-        EngineConfigWriter configWriter = new EngineConfigWriter(null);
-        String yaml = configWriter.write(createConfig(), createEnvVarsPatch());
-        return unquoteEnvVars(yaml, unquotedEnvVars());
-    }
-
-    private AsyncApi parseAsyncApi(
-        String inputStream)
-    {
-        AsyncApi asyncApi = null;
-        try (Jsonb jsonb = JsonbBuilder.create())
-        {
-            asyncApi = jsonb.fromJson(inputStream, AsyncApi.class);
-        }
-        catch (Exception ex)
-        {
-            rethrowUnchecked(ex);
-        }
-        return asyncApi;
     }
 
     private int[] resolveAllPorts()
@@ -185,52 +157,6 @@ public class AsyncApiMqttProxyConfigGenerator extends AsyncApiConfigGenerator
                         .ports(new int[]{0}) // env
                         .build()
                     .build()
-                .build()
-            .build();
-    }
-
-    public EngineConfig createConfig()
-    {
-        return EngineConfig.builder()
-            .namespace()
-                .name("example")
-                .binding()
-                    .name("tcp_server0")
-                    .type("tcp")
-                    .kind(SERVER)
-                    .options(TcpOptionsConfig::builder)
-                        .host("0.0.0.0")
-                        .ports(allPorts)
-                        .build()
-                    .inject(this::injectPlainTcpRoute)
-                    .inject(this::injectTlsTcpRoute)
-                    .build()
-                .inject(this::injectTlsServer)
-                .binding()
-                    .name("mqtt_server0")
-                    .type("mqtt")
-                    .kind(SERVER)
-                    .inject(this::injectMqttServerOptions)
-                    .inject(this::injectMqttServerRoutes)
-                    .build()
-                .binding()
-                    .name("mqtt_client0")
-                    .type("mqtt")
-                    .kind(CLIENT)
-                    .exit(isTlsEnabled ? "tls_client0" : "tcp_client0")
-                    .build()
-                .inject(this::injectTlsClient)
-                .binding()
-                    .name("tcp_client0")
-                    .type("tcp")
-                    .kind(CLIENT)
-                    .options(TcpOptionsConfig::builder)
-                        .host("") // env
-                        .ports(new int[]{0}) // env
-                        .build()
-                    .build()
-                .inject(this::injectVaults)
-                .inject(this::injectCatalog)
                 .build()
             .build();
     }

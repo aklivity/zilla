@@ -15,8 +15,11 @@
 package io.aklivity.zilla.runtime.binding.asyncapi.internal;
 
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.mockito.ArgumentMatchers.any;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Collections;
@@ -31,47 +34,71 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.mqtt.config.AsyncapiOptionsConfigAdapterTest;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
+import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
+import io.aklivity.zilla.runtime.engine.internal.config.OptionsAdapter;
+
+import jakarta.json.bind.Jsonb;
+import jakarta.json.bind.JsonbBuilder;
+import jakarta.json.bind.JsonbConfig;
 
 public class AsyncapiBingingFactorySpiTest
 {
     @Rule
     public MockitoRule rule = MockitoJUnit.rule();
     @Mock
-    public EngineContext context;
-
+    private ConfigAdapterContext context;
+    private OptionsAdapter adapter;
+    private Jsonb jsonb;
 
     @Before
-    public void init()
+    public void initJson() throws IOException
     {
-        Mockito.doReturn(1).when(context).supplyTypeId(any());
+        String content;
+        try (InputStream resource = AsyncapiOptionsConfigAdapterTest.class
+            .getResourceAsStream("../../../../../../specs/binding/asyncapi/config/files/mqtt/asyncapi.yaml"))
+        {
+            content = new String(resource.readAllBytes(), UTF_8);
+        }
+        Mockito.doReturn(content).when(context).readURL("mqtt/asyncapi.yaml");
+
+        adapter = new OptionsAdapter(OptionsConfigAdapterSpi.Kind.BINDING, context);
+        adapter.adaptType("asyncapi");
+        JsonbConfig config = new JsonbConfig()
+            .withAdapters(adapter);
+        jsonb = JsonbBuilder.create(config);
     }
 
-        //    @Test
-        //    public void shouldAddCompositeBinding() throws URISyntaxException
-        //    {
-        //        String resource = String.format("%s-%s.yaml", getClass().getSimpleName(), "asyncapi");
-        //        URL configURL = getClass().getResource(resource);
-        //        assert configURL != null;
-        //
-        //        AsyncapiBindingFactorySpi factorySpi = new AsyncapiBindingFactorySpi();
-        //        AsyncapiBinding binding = factorySpi.create(new Configuration());
-        //
-        //        AsyncapiBindingContext asyncContext = binding.supply(context);
-        //
-        //        BindingConfig config = BindingConfig.builder()
-        //            .namespace("example")
-        //            .name("asyncapi0")
-        //            .type("asyncapi")
-        //            .kind(KindConfig.SERVER)
-        //            .options(new AsyncapiOptionsConfig(Collections.singletonList(configURL)))
-        //            .build();
-        //
-        //        asyncContext.attach(config);
-        //        Assert.assertNotNull(config.composites);
-        //        Assert.assertEquals(4, config.composites.get(0).bindings.size());
-        //    }
+    @Test
+    public void shouldAddCompositeBinding()
+    {
+        String text =
+            "{" +
+                "\"specs\":" +
+                "[" +
+                    "\"mqtt/asyncapi.yaml\"" +
+                "]" +
+            "}";
+
+        AsyncapiOptionsConfig options = jsonb.fromJson(text, AsyncapiOptionsConfig.class);
+
+        BindingConfig config = BindingConfig.builder()
+            .namespace("example")
+            .name("asyncapi0")
+            .type("asyncapi")
+            .kind(KindConfig.SERVER)
+            .options(options)
+            .build();
+
+        AsyncapiCompositeBindingAdapterSpi asyncapiCompositeSpi = new AsyncapiCompositeBindingAdapterSpi();
+        Assert.assertEquals(0, config.composites.size());
+        BindingConfig newConfig = asyncapiCompositeSpi.adapt(config);
+        Assert.assertEquals(1, newConfig.composites.size());
+        Assert.assertEquals(2, newConfig.composites.get(0).bindings.size());
+    }
 }

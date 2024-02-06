@@ -14,17 +14,18 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.config;
 
-import java.util.List;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncApi;
 
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
-
-public final class AsyncapiOptionsConfig extends OptionsConfig
+public class AsyncapiConfig
 {
-    public final List<AsyncapiConfig> asyncapis;
+    public final String location;
+    public final AsyncApi asyncApi;
 
-    public AsyncapiOptionsConfig(
-        List<AsyncapiConfig> asyncapis)
+    public AsyncapiConfig(
+        String location,
+        AsyncApi asyncApi)
     {
-        this.asyncapis = asyncapis;
+        this.location = location;
+        this.asyncApi = asyncApi;
     }
 }

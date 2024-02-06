@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.config;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
@@ -23,13 +22,21 @@ import jakarta.json.JsonArray;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonString;
+import jakarta.json.JsonValue;
+import jakarta.json.bind.Jsonb;
+import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiBinding;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncApi;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
+import static java.util.stream.Collectors.toList;
+import static org.agrona.LangUtil.rethrowUnchecked;
 
 
 public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
@@ -57,11 +64,11 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
 
         JsonObjectBuilder object = Json.createObjectBuilder();
 
-        if (asyncapiOptions.specs != null)
+        if (asyncapiOptions.asyncapis != null)
         {
-            JsonArrayBuilder topics = Json.createArrayBuilder();
-            asyncapiOptions.specs.forEach(s -> topics.add(s.toString()));
-            object.add(SPECS_NAME, topics);
+            JsonArrayBuilder keys = Json.createArrayBuilder();
+            asyncapiOptions.asyncapis.forEach(p -> keys.add(p.location));
+            object.add(SPECS_NAME, keys);
         }
 
         return object.build();
@@ -71,21 +78,11 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
     public OptionsConfig adaptFromJson(
         JsonObject object)
     {
-        JsonArray specsJson = object.containsKey(SPECS_NAME)
-                ? object.getJsonArray(SPECS_NAME)
-                : null;
+        List<AsyncapiConfig> asyncapis = object.containsKey(SPECS_NAME)
+            ? asListAsyncapis(object.getJsonArray(SPECS_NAME))
+            : null;
 
-        List<String> specs = new ArrayList<>();
-        if (specsJson != null)
-        {
-            for (int i = 0; i < specsJson.size(); i++)
-            {
-                final String spec = readURL.apply(specsJson.getString(i));
-                specs.add(spec);
-            }
-        }
-
-        return new AsyncapiOptionsConfig(specs);
+        return new AsyncapiOptionsConfig(asyncapis);
     }
 
     @Override
@@ -93,5 +90,38 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
         ConfigAdapterContext context)
     {
         this.readURL = context::readURL;
+    }
+
+    private List<AsyncapiConfig> asListAsyncapis(
+        JsonArray array)
+    {
+        return array.stream()
+            .map(this::asAsyncapi)
+            .collect(toList());
+    }
+
+    private AsyncapiConfig asAsyncapi(
+        JsonValue value)
+    {
+        final String location = ((JsonString) value).getString();
+        final String specText = readURL.apply(location);
+        AsyncApi asyncapi = parseAsyncapi(specText);
+
+        return new AsyncapiConfig(location, asyncapi);
+    }
+
+    private AsyncApi parseAsyncapi(
+        String asyncapiText)
+    {
+        AsyncApi asyncapi = null;
+        try (Jsonb jsonb = JsonbBuilder.create())
+        {
+            asyncapi = jsonb.fromJson(asyncapiText, AsyncApi.class);
+        }
+        catch (Exception ex)
+        {
+            rethrowUnchecked(ex);
+        }
+        return asyncapi;
     }
 }

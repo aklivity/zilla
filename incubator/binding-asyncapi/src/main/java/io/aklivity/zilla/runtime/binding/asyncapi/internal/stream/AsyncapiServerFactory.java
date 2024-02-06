@@ -44,14 +44,11 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
 
     private final int asyncapiTypeId;
     private final Long2ObjectHashMap<AsyncapiBindingConfig> bindings;
-    private final URI asyncapiRoot;
-
     public AsyncapiServerFactory(
         AsyncapiConfiguration config,
         EngineContext context)
     {
         this.asyncapiTypeId = context.supplyTypeId(AsyncapiBinding.NAME);
-        this.asyncapiRoot = config.asyncapiRoot();
         this.bindings = new Long2ObjectHashMap<>();
     }
 

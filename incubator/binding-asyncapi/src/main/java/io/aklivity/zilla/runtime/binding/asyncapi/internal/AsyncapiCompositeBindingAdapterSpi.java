@@ -14,15 +14,9 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal;
 
-import static org.agrona.LangUtil.rethrowUnchecked;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URI;
 import java.util.List;
 
+import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.mqtt.proxy.AsyncApiMqttProxyConfigGenerator;
@@ -35,8 +29,6 @@ public class AsyncapiCompositeBindingAdapterSpi implements CompositeBindingAdapt
 {
     private static final String COMPOSITE_MQTT_SERVER_NAMESPACE = "mqtt_server";
     private static final String COMPOSITE_MQTT_CLIENT_NAMESPACE = "mqtt_client";
-
-    private final URI asyncapiRoot = new File(".").toURI();
 
     @Override
     public String type()
@@ -51,34 +43,23 @@ public class AsyncapiCompositeBindingAdapterSpi implements CompositeBindingAdapt
         AsyncapiBindingConfig asyncapiBinding = new AsyncapiBindingConfig(binding);
         BindingConfigBuilder<BindingConfig> builder = BindingConfig.builder(binding);
         final AsyncapiOptionsConfig options = asyncapiBinding.options;
-        final List<String> specs = options.specs;
+        final List<AsyncapiConfig> asyncapis = options.asyncapis;
         switch (binding.kind)
         {
         case SERVER:
-            for (int i = 0; i < specs.size(); i++)
+            for (int i = 0; i < asyncapis.size(); i++)
             {
-                AsyncApiMqttProxyConfigGenerator generator = new AsyncApiMqttProxyConfigGenerator(specs.get(i));
+                AsyncApiMqttProxyConfigGenerator generator = new AsyncApiMqttProxyConfigGenerator(asyncapis.get(i).asyncApi);
                 EngineConfig config = generator.createServerConfig(COMPOSITE_MQTT_SERVER_NAMESPACE + i);
                 config.namespaces.forEach(builder::composite);
-                //builder.vault()
             }
             return builder.build();
         case CLIENT:
-            for (int i = 0; i < specs.size(); i++)
+            for (int i = 0; i < asyncapis.size(); i++)
             {
-                final URI resolved = asyncapiRoot.resolve(specs.get(i).getPath());
-                try (InputStream input = new FileInputStream(resolved.getPath()))
-                {
-                    AsyncApiMqttProxyConfigGenerator generator = new AsyncApiMqttProxyConfigGenerator(input);
-                    EngineConfig config = generator.createClientConfig(COMPOSITE_MQTT_CLIENT_NAMESPACE + i);
-                    config.namespaces.forEach(builder::composite);
-                    //builder.vault()
-                }
-                catch (IOException e)
-                {
-                    e.printStackTrace();
-                    rethrowUnchecked(e);
-                }
+                AsyncApiMqttProxyConfigGenerator generator = new AsyncApiMqttProxyConfigGenerator(asyncapis.get(i).asyncApi);
+                EngineConfig config = generator.createClientConfig(COMPOSITE_MQTT_CLIENT_NAMESPACE + i);
+                config.namespaces.forEach(builder::composite);
             }
             return builder.build();
         default:
