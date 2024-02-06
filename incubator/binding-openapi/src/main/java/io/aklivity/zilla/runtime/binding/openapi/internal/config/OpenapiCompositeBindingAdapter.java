@@ -109,8 +109,19 @@ public final class OpenapiCompositeBindingAdapter implements CompositeBindingAda
         return OpenapiBinding.NAME;
     }
 
-    private OpenapiCompositeBindingAdapter()
+    public OpenapiCompositeBindingAdapter()
     {
+
+    }
+
+    @Override
+    public BindingConfig adapt(
+        BindingConfig binding)
+    {
+        OpenapiOptionsConfig options = (OpenapiOptionsConfig) binding.options;
+        OpenapiConfig openapiConfig = options.openapis.get(0);
+        this.openApi = openapiConfig.openapi;
+
         this.allPorts = resolveAllPorts();
         this.httpPorts = resolvePortsForScheme("http");
         this.httpsPorts = resolvePortsForScheme("https");
@@ -118,12 +129,7 @@ public final class OpenapiCompositeBindingAdapter implements CompositeBindingAda
         this.isTlsEnabled = httpsPorts != null;
         this.securitySchemes = resolveSecuritySchemes();
         this.isJwtEnabled = !securitySchemes.isEmpty();
-    }
 
-    @Override
-    public BindingConfig adapt(
-        BindingConfig binding)
-    {
         switch (binding.kind)
         {
         case SERVER:
@@ -136,10 +142,6 @@ public final class OpenapiCompositeBindingAdapter implements CompositeBindingAda
     private BindingConfig resolveServerBinding(
         BindingConfig binding)
     {
-        OpenapiOptionsConfig options = (OpenapiOptionsConfig) binding.options;
-        OpenapiConfig openapiConfig = options.openapis.get(0);
-        this.openApi = openapiConfig.openapi;
-
         return BindingConfig.builder(binding)
                 .composite()
                     .name(String.format(binding.qname, "$composite"))

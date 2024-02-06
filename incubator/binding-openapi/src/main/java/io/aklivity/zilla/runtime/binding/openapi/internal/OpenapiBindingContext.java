@@ -19,8 +19,8 @@ import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 import java.util.EnumMap;
 import java.util.Map;
 
-import io.aklivity.zilla.runtime.binding.openapi.internal.stream.OpenapiServerFactory;
-import io.aklivity.zilla.runtime.binding.openapi.internal.stream.OpenapiStreamFactory;
+import io.aklivity.zilla.runtime.binding.openapi.internal.streams.OpenapiServerFactory;
+import io.aklivity.zilla.runtime.binding.openapi.internal.streams.OpenapiStreamFactory;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;

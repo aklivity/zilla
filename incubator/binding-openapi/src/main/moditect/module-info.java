@@ -12,33 +12,32 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-module io.aklivity.zilla.runtime.command.generate
+module io.aklivity.zilla.runtime.binding.openapi
 {
-    requires io.aklivity.zilla.runtime.command;
     requires io.aklivity.zilla.runtime.engine;
     requires io.aklivity.zilla.runtime.binding.http;
-    requires io.aklivity.zilla.runtime.binding.mqtt;
     requires io.aklivity.zilla.runtime.binding.tcp;
     requires io.aklivity.zilla.runtime.binding.tls;
     requires io.aklivity.zilla.runtime.catalog.inline;
     requires io.aklivity.zilla.runtime.guard.jwt;
     requires io.aklivity.zilla.runtime.vault.filesystem;
-    requires io.aklivity.zilla.runtime.model.avro;
     requires io.aklivity.zilla.runtime.model.core;
     requires io.aklivity.zilla.runtime.model.json;
-    requires io.aklivity.zilla.runtime.model.protobuf;
 
     requires com.fasterxml.jackson.dataformat.yaml;
     requires com.fasterxml.jackson.databind;
 
-    opens io.aklivity.zilla.runtime.command.generate.internal.airline
-        to com.github.rvesse.airline;
+    exports io.aklivity.zilla.runtime.binding.openapi.config;
 
-    opens io.aklivity.zilla.runtime.command.generate.internal.openapi.model;
-    opens io.aklivity.zilla.runtime.command.generate.internal.openapi.view;
-    opens io.aklivity.zilla.runtime.command.generate.internal.asyncapi.model;
-    opens io.aklivity.zilla.runtime.command.generate.internal.asyncapi.view;
+    opens io.aklivity.zilla.runtime.binding.openapi.internal.model;
+    opens io.aklivity.zilla.runtime.binding.openapi.internal.view;
 
-    provides io.aklivity.zilla.runtime.command.ZillaCommandSpi
-        with io.aklivity.zilla.runtime.command.generate.internal.ZillaConfigCommandSpi;
+    provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
+        with io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiBindingFactorySpi;
+
+    provides io.aklivity.zilla.runtime.engine.config.CompositeBindingAdapterSpi
+        with io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiCompositeBindingAdapter;
+
+    provides io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi
+        with io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiOptionsConfigAdapter;
 }

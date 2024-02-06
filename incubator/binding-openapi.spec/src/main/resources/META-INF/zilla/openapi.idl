@@ -20,7 +20,8 @@ scope openapi
     {
         struct OpenapiBeginEx extends core::stream::Extension
         {
-            string16 operationId;
+            int32 apiId = 0;
+            string16 operationId = null;
             octets extension;
         }
     }

@@ -41,7 +41,7 @@ public final class OpenapiBinding implements Binding
     @Override
     public URL type()
     {
-        return getClass().getResource("schema/open.schema.patch.json");
+        return getClass().getResource("schema/openapi.schema.patch.json");
     }
 
     @Override

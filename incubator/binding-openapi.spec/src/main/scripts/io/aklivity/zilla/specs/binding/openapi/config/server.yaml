@@ -17,10 +17,10 @@
 ---
 name: test
 bindings:
-    app0:
+    composite0:
         type: openapi
         kind: server
         options:
             specs:
                 - openapi/crud-item.yaml
-        exit: net0
+        exit: openapi0

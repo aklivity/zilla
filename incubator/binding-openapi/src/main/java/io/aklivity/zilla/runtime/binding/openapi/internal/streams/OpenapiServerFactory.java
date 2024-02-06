@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.openapi.internal.stream;
+package io.aklivity.zilla.runtime.binding.openapi.internal.streams;
 
 import java.util.function.Consumer;
 import java.util.function.LongSupplier;
@@ -29,8 +29,6 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiBindingC
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiRouteConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.OctetsFW;
-import io.aklivity.zilla.runtime.binding.openapi.internal.types.String16FW;
-import io.aklivity.zilla.runtime.binding.openapi.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.DataFW;
@@ -52,9 +50,6 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
 {
     private static final String HTTP_TYPE_NAME = "http";
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(new byte[0]), 0, 0);
-    private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
-    private static final String16FW HEADER_VALUE_STATUS_404 = new String16FW("404");
-    private static final String8FW HEADER_NAME_STATUS = new String8FW(":status");
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -145,24 +140,14 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
         final BeginFW begin = beginRO.wrap(buffer, index, index + length);
         final long originId = begin.originId();
         final long routedId = begin.routedId();
-        final long traceId = begin.traceId();
-        final long authorization = begin.authorization();
-        final long initialId = begin.streamId();
-        final long sequence = begin.sequence();
-        final long acknowledge = begin.acknowledge();
         final OctetsFW extension = begin.extension();
         final HttpBeginExFW httpBeginEx = extension.get(httpBeginExRO::tryWrap);
 
-        MessageConsumer newStream = (t, b, i, l) -> {};
-
         final OpenapiBindingConfig binding = bindings.get(routedId);
 
+        MessageConsumer newStream = null;
+
         if (binding.isCompositeBinding(originId))
-        {
-            doRejectNet(network, originId, routedId, traceId, authorization, initialId, sequence, acknowledge,
-                HEADER_VALUE_STATUS_404);
-        }
-        else
         {
             final String operationId = binding.resolveOperationId(httpBeginEx);
 
@@ -196,7 +181,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
 
         if (route != null)
         {
-            newStream = new HttpServer(
+            newStream = new HttpStream(
                 receiver,
                 originId,
                 routedId,
@@ -480,7 +465,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
 
     final class OpenapiStream
     {
-        private final HttpServer delegate;
+        private final HttpStream delegate;
         private final String operationId;
         private final long originId;
         private final long routedId;
@@ -503,7 +488,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
         private int replyPad;
 
         private OpenapiStream(
-            HttpServer delegate,
+            HttpStream delegate,
             long originId,
             long routedId,
             long authorization,
@@ -801,7 +786,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
         }
     }
 
-    private final class HttpServer
+    private final class HttpStream
     {
         private final OpenapiStream openapi;
         private final MessageConsumer sender;
@@ -827,7 +812,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
         private long replyBud;
         private int replyCap;
 
-        HttpServer(
+        HttpStream(
             MessageConsumer sender,
             long originId,
             long routedId,
@@ -1133,24 +1118,4 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
         }
     }
 
-    private void doRejectNet(
-        MessageConsumer receiver,
-        long originId,
-        long routedId,
-        long traceId,
-        long authorization,
-        long initialId,
-        long sequence,
-        long acknowledge,
-        String16FW httpStatus)
-    {
-        doWindow(receiver, originId, routedId, initialId, sequence, acknowledge, 0, traceId, 0L, 0, 0);
-        HttpResetExFW resetEx = httpResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
-            .typeId(httpTypeId)
-            .headersItem(h -> h.name(HEADER_NAME_STATUS).value(httpStatus))
-            .build();
-
-
-        doReset(receiver, originId, routedId, initialId, sequence, acknowledge, 0, traceId, authorization, resetEx);
-    }
 }

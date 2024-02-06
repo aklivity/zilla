@@ -20,14 +20,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.agrona.AsciiSequenceView;
 import org.agrona.DirectBuffer;
 import org.agrona.collections.LongHashSet;
+import org.agrona.collections.Object2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenApi;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.PathItem;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.String16FW;
@@ -46,7 +48,7 @@ public final class OpenapiBindingConfig
     public final HttpHeaderHelper helper;
 
     private final LongHashSet httpOrigins;
-
+    private final Object2ObjectHashMap<Pattern, PathItem> paths;
 
     public OpenapiBindingConfig(
         BindingConfig binding)
@@ -55,6 +57,14 @@ public final class OpenapiBindingConfig
         this.name = binding.name;
         this.kind = binding.kind;
         this.options = OpenapiOptionsConfig.class.cast(binding.options);
+        this.paths = new Object2ObjectHashMap<>();
+        options.openapis.forEach(c -> c.openapi.paths.forEach((k, v) ->
+        {
+            String regex = k.replace("{id}", "[^/]+");
+            regex = "^" + regex + "$";
+            paths.put(Pattern.compile(regex), v);
+        }));
+
         this.routes = binding.routes.stream().map(OpenapiRouteConfig::new).collect(toList());
 
         this.httpOrigins = binding.composites.stream()
@@ -69,7 +79,7 @@ public final class OpenapiBindingConfig
     public boolean isCompositeBinding(
         long originId)
     {
-        return httpOrigins.contains(originId);
+        return true; //TODO: httpOrigins.contains(originId);
     }
 
     public String resolveOperationId(
@@ -79,12 +89,60 @@ public final class OpenapiBindingConfig
 
         String operationId = null;
 
-        final OpenApi openapi = options.openapis.get(0).openapi;
         resolve:
-        for (Map.Entry<String, PathItem> item : openapi.paths.entrySet())
+        for (Map.Entry<Pattern, PathItem> item : paths.entrySet())
         {
-            String path = item.getKey();
+            Pattern pattern = item.getKey();
+            Matcher matcher = pattern.matcher(helper.path);
+            if (matcher.find())
+            {
+                PathItem operations = item.getValue();
+                operationId = resolveMethod(operations);
+                break resolve;
+            }
         }
+
+        return operationId;
+    }
+
+    private String resolveMethod(
+        PathItem operations)
+    {
+        String operationId = null;
+
+        if ("POST".contentEquals(helper.method))
+        {
+            operationId = operations.post != null ? operations.post.operationId : null;
+        }
+        else if ("PUT".contentEquals(helper.method))
+        {
+            operationId = operations.put != null ? operations.put.operationId : null;
+        }
+        else if ("GET".contentEquals(helper.method))
+        {
+            operationId = operations.get != null ? operations.get.operationId : null;
+        }
+        else if ("DELETE".contentEquals(helper.method))
+        {
+            operationId = operations.delete != null ? operations.delete.operationId : null;
+        }
+        else if ("OPTIONS".contentEquals(helper.method))
+        {
+            operationId = operations.options != null ? operations.options.operationId : null;
+        }
+        else if ("HEAD".contentEquals(helper.method))
+        {
+            operationId = operations.head != null ? operations.head.operationId : null;
+        }
+        else if ("PATH".contentEquals(helper.method))
+        {
+            operationId = operations.patch != null ? operations.patch.operationId : null;
+        }
+        else if ("TRACE".contentEquals(helper.method))
+        {
+            operationId = operations.trace != null ? operations.trace.operationId : null;
+        }
+
         return operationId;
     }
 

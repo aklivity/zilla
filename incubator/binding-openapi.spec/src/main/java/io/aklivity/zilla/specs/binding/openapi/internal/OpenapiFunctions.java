@@ -15,10 +15,61 @@
  */
 package io.aklivity.zilla.specs.binding.openapi.internal;
 
+import org.agrona.MutableDirectBuffer;
+import org.agrona.concurrent.UnsafeBuffer;
+import org.kaazing.k3po.lang.el.Function;
 import org.kaazing.k3po.lang.el.spi.FunctionMapperSpi;
+
+import io.aklivity.zilla.specs.binding.openapi.internal.types.stream.OpenapiBeginExFW;
 
 public final class OpenapiFunctions
 {
+    @Function
+    public static OpenapiBeginExBuilder beginEx()
+    {
+        return new OpenapiBeginExBuilder();
+    }
+
+    public static final class OpenapiBeginExBuilder
+    {
+        private final OpenapiBeginExFW.Builder beginExRW;
+
+        private OpenapiBeginExBuilder()
+        {
+            MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+            this.beginExRW = new OpenapiBeginExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
+        }
+
+        public OpenapiBeginExBuilder typeId(
+            int typeId)
+        {
+            beginExRW.typeId(typeId);
+            return this;
+        }
+
+        public OpenapiBeginExBuilder operationId(
+            String operationId)
+        {
+            beginExRW.operationId(operationId);
+            return this;
+        }
+
+        public OpenapiBeginExBuilder extension(
+            byte[] extension)
+        {
+            beginExRW.extension(e -> e.set(extension));
+            return this;
+        }
+
+        public byte[] build()
+        {
+            final OpenapiBeginExFW beginEx = beginExRW.build();
+            final byte[] array = new byte[beginEx.sizeof()];
+            beginEx.buffer().getBytes(beginEx.offset(), array);
+            return array;
+        }
+    }
+
     public static class Mapper extends FunctionMapperSpi.Reflective
     {
         public Mapper()

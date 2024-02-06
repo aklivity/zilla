@@ -49,6 +49,58 @@
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
+        <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>engine</artifactId>
+      <type>test-jar</type>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.hamcrest</groupId>
+      <artifactId>hamcrest</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.vtence.hamcrest</groupId>
+      <artifactId>hamcrest-jpa</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.github.npathai</groupId>
+      <artifactId>hamcrest-optional</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.kaazing</groupId>
+      <artifactId>k3po.junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.kaazing</groupId>
+      <artifactId>k3po.lang</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.openjdk.jmh</groupId>
+      <artifactId>jmh-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.openjdk.jmh</groupId>
+      <artifactId>jmh-generator-annprocess</artifactId>
+      <scope>test</scope>
+    </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>binding-http</artifactId>
@@ -81,12 +133,6 @@
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
-      <artifactId>model-avro</artifactId>
-      <version>${project.version}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.aklivity.zilla</groupId>
       <artifactId>model-core</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
@@ -94,12 +140,6 @@
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>model-json</artifactId>
-      <version>${project.version}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.aklivity.zilla</groupId>
-      <artifactId>model-protobuf</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
@@ -245,23 +285,6 @@
               </limits>
             </rule>
           </rules>
-        </configuration>
-      </plugin>
-      <plugin>
-        <groupId>io.gatling</groupId>
-        <artifactId>maven-shade-plugin</artifactId>
-        <configuration>
-          <artifactSet>
-            <includes>
-              <include>org.agrona:agrona</include>
-              <include>io.aklivity.zilla:engine</include>
-              <include>org.openjdk.jmh:jmh-core</include>
-              <include>net.sf.jopt-simple:jopt-simple</include>
-              <include>org.apache.commons:commons-math3</include>
-              <include>commons-cli:commons-cli</include>
-              <include>com.github.biboudis:jmh-profilers</include>
-            </includes>
-          </artifactSet>
         </configuration>
       </plugin>
     </plugins>
