@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.INSTANCE_ID_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.LIFETIME_ID_NAME;
+import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.PUBLISH_MAX_QOS_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.SESSION_ID_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.TIME_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.WILL_AVAILABLE_NAME;
@@ -72,6 +73,7 @@ public class MqttKafkaSessionProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Specification({
         "${mqtt}/session.connect.override.max.session.expiry/client",
         "${kafka}/session.connect.override.max.session.expiry/server"})
@@ -83,6 +85,7 @@ public class MqttKafkaSessionProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Specification({
         "${mqtt}/session.connect.override.min.session.expiry/client",
         "${kafka}/session.connect.override.min.session.expiry/server"})
@@ -94,6 +97,7 @@ public class MqttKafkaSessionProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Specification({
         "${mqtt}/session.abort.reconnect.non.clean.start/client",
         "${kafka}/session.abort.reconnect.non.clean.start/server"})
@@ -105,6 +109,7 @@ public class MqttKafkaSessionProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Specification({
         "${mqtt}/session.client.takeover/client",
         "${kafka}/session.client.takeover/server"})
@@ -116,6 +121,7 @@ public class MqttKafkaSessionProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Specification({
         "${mqtt}/session.exists.clean.start/client",
         "${kafka}/session.exists.clean.start/server"})
@@ -127,6 +133,8 @@ public class MqttKafkaSessionProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "0")
     @Specification({
         "${mqtt}/session.subscribe/client",
         "${kafka}/session.subscribe/server"})
@@ -138,6 +146,7 @@ public class MqttKafkaSessionProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Specification({
         "${mqtt}/session.subscribe.via.session.state/client",
         "${kafka}/session.subscribe.via.session.state/server"})
@@ -149,6 +158,7 @@ public class MqttKafkaSessionProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Specification({
         "${mqtt}/session.unsubscribe.after.subscribe/client",
         "${kafka}/session.unsubscribe.after.subscribe/server"})
@@ -160,6 +170,7 @@ public class MqttKafkaSessionProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Specification({
         "${mqtt}/session.unsubscribe.via.session.state/client",
         "${kafka}/session.unsubscribe.via.session.state/server"})
@@ -171,6 +182,7 @@ public class MqttKafkaSessionProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Specification({
         "${mqtt}/session.client.sent.reset/client",
         "${kafka}/session.client.sent.reset/server"})
@@ -182,6 +194,7 @@ public class MqttKafkaSessionProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Specification({
         "${mqtt}/session.server.sent.reset/client",
         "${kafka}/session.server.sent.reset/server"})
@@ -193,6 +206,7 @@ public class MqttKafkaSessionProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Specification({
         "${mqtt}/session.server.sent.reset/client",
         "${kafka}/session.group.server.sent.reset/server"})
@@ -205,6 +219,7 @@ public class MqttKafkaSessionProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Specification({
         "${mqtt}/session.group.reset.not.authorized/client",
         "${kafka}/session.group.reset.not.authorized/server"})
@@ -217,6 +232,7 @@ public class MqttKafkaSessionProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Specification({
         "${mqtt}/session.group.reset.invalid.session.timeout/client",
         "${kafka}/session.group.reset.invalid.session.timeout/server"})
@@ -229,6 +245,7 @@ public class MqttKafkaSessionProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Specification({
         "${mqtt}/session.group.reset.invalid.describe.config/client",
         "${kafka}/session.group.reset.invalid.describe.config/server"})
@@ -240,6 +257,7 @@ public class MqttKafkaSessionProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Configure(name = SESSION_ID_NAME,
         value = "io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionProxyIT::supplySessionId")
     @Specification({
@@ -252,6 +270,7 @@ public class MqttKafkaSessionProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Specification({
         "${mqtt}/session.close.expire.session.state/client",
         "${kafka}/session.close.expire.session.state/server"})
@@ -262,6 +281,7 @@ public class MqttKafkaSessionProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Specification({
         "${mqtt}/session.abort.expire.session.state/client",
         "${kafka}/session.abort.expire.session.state/server"})
@@ -272,6 +292,7 @@ public class MqttKafkaSessionProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Specification({
         "${kafka}/session.cancel.session.expiry/server"})
     public void shouldCancelSessionExpiry() throws Exception
@@ -281,6 +302,7 @@ public class MqttKafkaSessionProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Specification({
         "${kafka}/session.session.expiry.fragmented/server"})
     public void shouldDecodeSessionExpirySignalFragmented() throws Exception
@@ -290,6 +312,7 @@ public class MqttKafkaSessionProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Specification({
         "${kafka}/session.expiry.after.signal.stream.restart/server"})
     public void shouldExpireSessionAfterSignalStreamRestart() throws Exception
@@ -299,6 +322,7 @@ public class MqttKafkaSessionProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Specification({
         "${mqtt}/session.will.message.normal.disconnect/client",
         "${kafka}/session.will.message.normal.disconnect/server"})
@@ -309,6 +333,7 @@ public class MqttKafkaSessionProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Specification({
         "${mqtt}/session.will.message.clean.start/client",
         "${kafka}/session.will.message.clean.start/server"})
@@ -319,6 +344,7 @@ public class MqttKafkaSessionProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Specification({
         "${mqtt}/session.will.message.abort.deliver.will/client",
         "${kafka}/session.will.message.abort.deliver.will/server"})
@@ -329,6 +355,7 @@ public class MqttKafkaSessionProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Specification({
         "${mqtt}/session.will.message.10k.abort.deliver.will/client",
         "${kafka}/session.will.message.10k.abort.deliver.will/server"})
@@ -339,6 +366,7 @@ public class MqttKafkaSessionProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Specification({
         "${mqtt}/session.will.message.abort.deliver.will/client",
         "${kafka}/session.will.message.will.id.mismatch.skip.delivery/server"})
@@ -349,6 +377,7 @@ public class MqttKafkaSessionProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Specification({
         "${mqtt}/session.will.message.abort.deliver.will.retain/client",
         "${kafka}/session.will.message.abort.deliver.will.retain/server"})
@@ -359,6 +388,7 @@ public class MqttKafkaSessionProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Specification({
         "${mqtt}/session.will.message.takeover.deliver.will/client",
         "${kafka}/session.will.message.takeover.deliver.will/server"})
@@ -369,6 +399,7 @@ public class MqttKafkaSessionProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Specification({
         "${kafka}/session.will.message.cancel.delivery/server"})
     public void shouldCancelWillDelivery() throws Exception
@@ -381,6 +412,7 @@ public class MqttKafkaSessionProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Configure(name = WILL_STREAM_RECONNECT_DELAY_NAME, value = "1")
     @Specification({
         "${kafka}/session.will.stream.end.reconnect/server"})
@@ -391,6 +423,7 @@ public class MqttKafkaSessionProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Configure(name = WILL_STREAM_RECONNECT_DELAY_NAME, value = "1")
     @Specification({
         "${kafka}/session.will.stream.abort.reconnect/server"})
@@ -401,6 +434,7 @@ public class MqttKafkaSessionProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Configure(name = WILL_STREAM_RECONNECT_DELAY_NAME, value = "1")
     @Specification({
         "${kafka}/session.will.stream.reset.reconnect/server"})

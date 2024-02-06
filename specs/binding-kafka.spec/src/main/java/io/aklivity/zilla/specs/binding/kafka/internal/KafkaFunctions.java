@@ -2549,6 +2549,18 @@ public final class KafkaFunctions
             public KafkaOffsetFetchDataExBuilder partition(
                 int partitionId,
                 long partitionOffset,
+                int leaderEpoch)
+            {
+                offsetFetchDataExRW.partitionsItem(o -> o
+                    .partitionId(partitionId)
+                    .partitionOffset(partitionOffset)
+                    .leaderEpoch(leaderEpoch));
+                return this;
+            }
+
+            public KafkaOffsetFetchDataExBuilder partition(
+                int partitionId,
+                long partitionOffset,
                 int leaderEpoch,
                 String metadata)
             {

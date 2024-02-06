@@ -14,19 +14,32 @@
 #
 
 accept "zilla://streams/mqtt0"
-       option zilla:window 8192
-       option zilla:transmission "duplex"
+        option zilla:window 8192
+        option zilla:transmission "duplex"
+
 accepted
 
-read zilla:begin.ext ${mqtt:matchBeginEx()
+read zilla:begin.ext ${mqtt:beginEx()
+                            .typeId(zilla:id("mqtt"))
+                            .session()
+                              .flags("CLEAN_START")
+                              .expiry(1)
+                              .publishQosMax(2)
+                              .capabilities("REDIRECT")
+                              .clientId("client")
+                              .build()
+                            .build()}
+
+write zilla:begin.ext ${mqtt:beginEx()
                               .typeId(zilla:id("mqtt"))
-                              .publish()
+                              .session()
+                                .expiry(1)
+                                .subscribeQosMax(2)
+                                .capabilities("RETAIN", "SUBSCRIPTION_IDS", "WILDCARD")
                                 .clientId("client")
-                                .topic("sensor/one")
-                                .flags("RETAIN")
                                 .build()
                               .build()}
 
 connected
 
-write advise zilla:flush
+write abort

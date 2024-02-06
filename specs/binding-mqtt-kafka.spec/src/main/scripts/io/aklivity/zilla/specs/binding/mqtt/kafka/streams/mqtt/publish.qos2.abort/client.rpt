@@ -13,22 +13,19 @@
 # specific language governing permissions and limitations under the License.
 #
 
-accept "zilla://streams/kafka0"
-    option zilla:window 8192
-    option zilla:transmission "duplex"
+connect "zilla://streams/mqtt0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"
 
-accepted
-
-read zilla:begin.ext ${kafka:beginEx()
-                            .typeId(zilla:id("kafka"))
-                            .merged()
-                                .capabilities("PRODUCE_ONLY")
-                                .topic("mqtt-messages")
-                                .partition(-1, -2)
-                                .ackMode("NONE")
-                                .build()
+write zilla:begin.ext ${mqtt:beginEx()
+                            .typeId(zilla:id("mqtt"))
+                            .session()
+                              .flags("CLEAN_START")
+                              .expiry(1)
+                              .publishQosMax(2)
+                              .capabilities("REDIRECT")
+                              .clientId("client")
+                              .build()
                             .build()}
 
-connected
-
-write advise zilla:flush
+connect aborted

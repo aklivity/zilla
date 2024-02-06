@@ -30,6 +30,8 @@ import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.Kafka
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_KEY;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_OFFSET;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_OWNER_ID;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_PRODUCER_EPOCH;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_PRODUCER_ID;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_SEQUENCE;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_TIMESTAMP;
 import static java.nio.ByteBuffer.allocateDirect;
@@ -650,6 +652,8 @@ public final class KafkaCachePartition
         entryInfo.putLong(FIELD_OFFSET_TIMESTAMP, timestamp);
         entryInfo.putLong(FIELD_OFFSET_OWNER_ID, ownerId);
         entryInfo.putLong(FIELD_OFFSET_ACKNOWLEDGE, NO_ACKNOWLEDGE);
+        entryInfo.putLong(FIELD_OFFSET_PRODUCER_ID, producerId);
+        entryInfo.putShort(FIELD_OFFSET_PRODUCER_EPOCH, producerEpoch);
         entryInfo.putInt(FIELD_OFFSET_SEQUENCE, sequence);
         entryInfo.putLong(FIELD_OFFSET_ANCESTOR, NO_ANCESTOR_OFFSET);
         entryInfo.putLong(FIELD_OFFSET_DESCENDANT, NO_DESCENDANT_OFFSET);

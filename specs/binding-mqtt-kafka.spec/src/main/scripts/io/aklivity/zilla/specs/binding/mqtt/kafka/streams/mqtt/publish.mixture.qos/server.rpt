@@ -21,6 +21,49 @@ accepted
 
 read zilla:begin.ext ${mqtt:matchBeginEx()
                              .typeId(zilla:id("mqtt"))
+                             .session()
+                                .flags("CLEAN_START")
+                                .expiry(1)
+                                .publishQosMax(2)
+                                .capabilities("REDIRECT")
+                                .clientId("client")
+                                .build()
+                             .build()}
+
+write zilla:begin.ext ${mqtt:beginEx()
+                              .typeId(zilla:id("mqtt"))
+                              .session()
+                                .expiry(1)
+                                .subscribeQosMax(2)
+                                .capabilities("RETAIN", "WILDCARD", "SUBSCRIPTION_IDS")
+                                .clientId("client")
+                                .build()
+                              .build()}
+
+connected
+
+write zilla:data.empty
+write flush
+
+read advised zilla:flush ${mqtt:flushEx()
+                                 .typeId(zilla:id("mqtt"))
+                                 .session()
+                                     .packetId(1)
+                                     .build()
+                                 .build()}
+
+write advise zilla:flush ${mqtt:flushEx()
+                                 .typeId(zilla:id("mqtt"))
+                                 .session()
+                                     .packetId(1)
+                                     .build()
+                                 .build()}
+
+
+accepted
+
+read zilla:begin.ext ${mqtt:matchBeginEx()
+                             .typeId(zilla:id("mqtt"))
                              .publish()
                                 .clientId("client")
                                 .topic("sensor/one")
@@ -56,6 +99,7 @@ read zilla:data.ext ${mqtt:matchDataEx()
                             .typeId(zilla:id("mqtt"))
                             .publish()
                                 .qos("EXACTLY_ONCE")
+                                .packetId(1)
                                 .build()
                             .build()}
 read "message2"

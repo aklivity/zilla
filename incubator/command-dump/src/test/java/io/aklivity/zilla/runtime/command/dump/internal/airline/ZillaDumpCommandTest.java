@@ -1272,6 +1272,7 @@ public class ZillaDumpCommandTest
             .publish()
                 .qos("EXACTLY_ONCE")
                 .flags("RETAIN")
+                .packetId(0x42)
                 .expiryInterval(77)
                 .contentType("Content Type")
                 .format("BINARY")
@@ -1493,7 +1494,8 @@ public class ZillaDumpCommandTest
             .session()
                 .flags("CLEAN_START")
                 .expiry(42)
-                .qosMax(2)
+                .subscribeQosMax(2)
+                .publishQosMax(1)
                 .packetSizeMax(42_000)
                 .capabilities("RETAIN")
                 .clientId("client-id")
@@ -1518,7 +1520,8 @@ public class ZillaDumpCommandTest
             .session()
                 .flags("CLEAN_START", "WILL")
                 .expiry(42)
-                .qosMax(2)
+                .subscribeQosMax(1)
+                .publishQosMax(2)
                 .packetSizeMax(42_000)
                 .capabilities("RETAIN", "WILDCARD", "SUBSCRIPTION_IDS", "SHARED_SUBSCRIPTIONS")
                 .clientId("client-id")
@@ -1584,6 +1587,27 @@ public class ZillaDumpCommandTest
             .extension(mqttSessionDataEx2, 0, mqttSessionDataEx2.capacity())
             .build();
         streams[0].write(DataFW.TYPE_ID, data23.buffer(), 0, data23.sizeof());
+
+        DirectBuffer mqttSessionFlushEx1 = new UnsafeBuffer(MqttFunctions.flushEx()
+            .typeId(MQTT_TYPE_ID)
+            .session()
+                .packetId(0x2142)
+                .build()
+            .build());
+        FlushFW flush5 = flushRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0x0000000900000022L) // north_mqtt_server
+            .routedId(0x0000000900000023L) // north_mqtt_kafka_mapping
+            .streamId(0x0000000000000025L) // INI
+            .sequence(401)
+            .acknowledge(402)
+            .maximum(7777)
+            .timestamp(0x0000000000000143L)
+            .traceId(0x0000000000000025L)
+            .budgetId(0x0000000000000000L)
+            .reserved(0x00000000)
+            .extension(mqttSessionFlushEx1, 0, mqttSessionFlushEx1.capacity())
+            .build();
+        streams[0].write(FlushFW.TYPE_ID, flush5.buffer(), 0, flush5.sizeof());
 
         // kafka extension
         // - CONSUMER
@@ -1680,7 +1704,7 @@ public class ZillaDumpCommandTest
                 .correlationId(77)
                 .build()
             .build());
-        FlushFW flush5 = flushRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+        FlushFW flush6 = flushRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000000fL) // north_kafka_cache_client
             .routedId(0x0000000900000010L) // south_kafka_cache_server
             .streamId(0x0000000000000027L) // INI
@@ -1693,7 +1717,7 @@ public class ZillaDumpCommandTest
             .reserved(0x00000000)
             .extension(kafkaConsumerFlushEx1, 0, kafkaConsumerFlushEx1.capacity())
             .build();
-        streams[0].write(FlushFW.TYPE_ID, flush5.buffer(), 0, flush5.sizeof());
+        streams[0].write(FlushFW.TYPE_ID, flush6.buffer(), 0, flush6.sizeof());
 
         DirectBuffer kafkaResetEx1 = new UnsafeBuffer(KafkaFunctions.resetEx()
             .typeId(KAFKA_TYPE_ID)
@@ -1773,7 +1797,7 @@ public class ZillaDumpCommandTest
                 .memberId("member-id")
                 .build()
             .build());
-        FlushFW flush6 = flushRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+        FlushFW flush7 = flushRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000000fL) // north_kafka_cache_client
             .routedId(0x0000000900000010L) // south_kafka_cache_server
             .streamId(0x0000000000000029L) // INI
@@ -1786,7 +1810,7 @@ public class ZillaDumpCommandTest
             .reserved(0x00000000)
             .extension(kafkaGroupFlushEx1, 0, kafkaGroupFlushEx1.capacity())
             .build();
-        streams[0].write(FlushFW.TYPE_ID, flush6.buffer(), 0, flush6.sizeof());
+        streams[0].write(FlushFW.TYPE_ID, flush7.buffer(), 0, flush7.sizeof());
 
         DirectBuffer kafkaGroupFlushEx2 = new UnsafeBuffer(KafkaFunctions.flushEx()
             .typeId(KAFKA_TYPE_ID)
@@ -1799,7 +1823,7 @@ public class ZillaDumpCommandTest
                 .members("member-3")
                 .build()
             .build());
-        FlushFW flush7 = flushRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+        FlushFW flush8 = flushRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000000fL) // north_kafka_cache_client
             .routedId(0x0000000900000010L) // south_kafka_cache_server
             .streamId(0x0000000000000028L) // REP
@@ -1812,7 +1836,7 @@ public class ZillaDumpCommandTest
             .reserved(0x00000000)
             .extension(kafkaGroupFlushEx2, 0, kafkaGroupFlushEx2.capacity())
             .build();
-        streams[0].write(FlushFW.TYPE_ID, flush7.buffer(), 0, flush7.sizeof());
+        streams[0].write(FlushFW.TYPE_ID, flush8.buffer(), 0, flush8.sizeof());
 
         // - BOOTSTRAP
         DirectBuffer kafkaBootstrapBeginEx1 = new UnsafeBuffer(KafkaFunctions.beginEx()
@@ -2062,7 +2086,7 @@ public class ZillaDumpCommandTest
                 .correlationId(77)
                 .build()
             .build());
-        FlushFW flush8 = flushRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+        FlushFW flush9 = flushRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000000fL) // north_kafka_cache_client
             .routedId(0x0000000900000010L) // south_kafka_cache_server
             .streamId(0x0000000000000033L) // INI
@@ -2075,7 +2099,7 @@ public class ZillaDumpCommandTest
             .reserved(0x00000000)
             .extension(kafkaMergedConsumerFlushEx, 0, kafkaMergedConsumerFlushEx.capacity())
             .build();
-        streams[0].write(FlushFW.TYPE_ID, flush8.buffer(), 0, flush8.sizeof());
+        streams[0].write(FlushFW.TYPE_ID, flush9.buffer(), 0, flush9.sizeof());
 
         DirectBuffer kafkaMergedFetchFlushEx = new UnsafeBuffer(KafkaFunctions.flushEx()
             .typeId(KAFKA_TYPE_ID)
@@ -2092,7 +2116,7 @@ public class ZillaDumpCommandTest
                 .key("key")
                 .build()
             .build());
-        FlushFW flush9 = flushRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+        FlushFW flush10 = flushRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000000fL) // north_kafka_cache_client
             .routedId(0x0000000900000010L) // south_kafka_cache_server
             .streamId(0x0000000000000033L) // INI
@@ -2105,7 +2129,7 @@ public class ZillaDumpCommandTest
             .reserved(0x00000000)
             .extension(kafkaMergedFetchFlushEx, 0, kafkaMergedFetchFlushEx.capacity())
             .build();
-        streams[0].write(FlushFW.TYPE_ID, flush9.buffer(), 0, flush9.sizeof());
+        streams[0].write(FlushFW.TYPE_ID, flush10.buffer(), 0, flush10.sizeof());
 
         // - INIT_PRODUCER_ID
         DirectBuffer kafkaInitProducerIdBeginEx1 = new UnsafeBuffer(KafkaFunctions.beginEx()
@@ -2537,7 +2561,7 @@ public class ZillaDumpCommandTest
                     .build()
             .build()
             .build());
-        FlushFW flush10 = flushRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+        FlushFW flush11 = flushRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000000fL) // north_kafka_cache_client
             .routedId(0x0000000900000010L) // south_kafka_cache_server
             .streamId(0x000000000000003dL) // INI
@@ -2550,7 +2574,7 @@ public class ZillaDumpCommandTest
             .reserved(0x00000000)
             .extension(kafkaFetchFlushEx, 0, kafkaFetchFlushEx.capacity())
             .build();
-        streams[0].write(FlushFW.TYPE_ID, flush10.buffer(), 0, flush10.sizeof());
+        streams[0].write(FlushFW.TYPE_ID, flush11.buffer(), 0, flush11.sizeof());
 
         // - PRODUCE
         DirectBuffer kafkaProduceBeginEx1 = new UnsafeBuffer(KafkaFunctions.beginEx()
@@ -2635,7 +2659,7 @@ public class ZillaDumpCommandTest
                 .key("key")
                 .build()
             .build());
-        FlushFW flush11 = flushRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+        FlushFW flush12 = flushRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x000000090000000fL) // north_kafka_cache_client
             .routedId(0x0000000900000010L) // south_kafka_cache_server
             .streamId(0x000000000000003fL) // INI
@@ -2648,7 +2672,7 @@ public class ZillaDumpCommandTest
             .reserved(0x00000000)
             .extension(kafkaProduceFlushEx, 0, kafkaProduceFlushEx.capacity())
             .build();
-        streams[0].write(FlushFW.TYPE_ID, flush11.buffer(), 0, flush11.sizeof());
+        streams[0].write(FlushFW.TYPE_ID, flush12.buffer(), 0, flush12.sizeof());
 
         // amqp extension
         DirectBuffer amqpBeginEx1 = new UnsafeBuffer(AmqpFunctions.beginEx()
@@ -2814,7 +2838,7 @@ public class ZillaDumpCommandTest
             AMQP_TYPE_ID, 0, 0, 0,  // int32 typeId
             3                       // uint8 AmqpCapabilities
         });
-        FlushFW flush12 = flushRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+        FlushFW flush13 = flushRW.wrap(frameBuffer, 0, frameBuffer.capacity())
             .originId(0x0000000900000025L) // north_amqp_server
             .routedId(0x0000000900000026L) // north_fan_server
             .streamId(0x0000000000000041L) // INI
@@ -2827,7 +2851,7 @@ public class ZillaDumpCommandTest
             .reserved(0x00000000)
             .extension(amqpFlushEx, 0, amqpFlushEx.capacity())
             .build();
-        streams[0].write(FlushFW.TYPE_ID, flush12.buffer(), 0, flush12.sizeof());
+        streams[0].write(FlushFW.TYPE_ID, flush13.buffer(), 0, flush13.sizeof());
 
         DirectBuffer amqpAbortEx = new UnsafeBuffer(AmqpFunctions.abortEx()
             .typeId(AMQP_TYPE_ID)

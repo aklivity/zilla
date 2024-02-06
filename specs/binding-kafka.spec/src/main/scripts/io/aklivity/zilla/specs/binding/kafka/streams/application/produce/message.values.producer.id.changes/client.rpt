@@ -77,6 +77,7 @@ write zilla:data.ext ${kafka:dataEx()
                                   .producerId(1)
                                   .producerEpoch(1)
                                   .sequence(0)
+                                  .header("header1", "value1")
                                   .build()
                               .build()}
 write "Hello, world"
@@ -89,6 +90,7 @@ write zilla:data.ext ${kafka:dataEx()
                                   .producerId(2)
                                   .producerEpoch(2)
                                   .sequence(0)
+                                  .header("header1", "value1")
                                   .build()
                               .build()}
 write "Hello, again"

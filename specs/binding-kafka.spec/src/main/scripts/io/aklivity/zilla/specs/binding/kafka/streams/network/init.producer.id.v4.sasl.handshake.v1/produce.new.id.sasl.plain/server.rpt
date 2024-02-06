@@ -56,7 +56,7 @@ write 20                                # size
 
 read  31                                # size
       22s                               # init producer id
-      4s                                # v4
+      1s                                # v1
       (int:newRequestId)
       5s "zilla"                        # client id
       -1s                               # transaction

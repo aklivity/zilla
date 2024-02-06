@@ -433,7 +433,8 @@ local fields = {
     mqtt_ext_topic_length = ProtoField.int16("zilla.mqtt_ext.topic_length", "Length", base.DEC),
     mqtt_ext_topic = ProtoField.string("zilla.mqtt_ext.topic", "Topic", base.NONE),
     mqtt_ext_expiry = ProtoField.int32("zilla.mqtt_ext.expiry", "Expiry", base.DEC),
-    mqtt_ext_qos_max = ProtoField.uint16("zilla.mqtt_ext.qos_max", "QoS Maximum", base.DEC),
+    mqtt_ext_subscribe_qos_max = ProtoField.uint16("zilla.mqtt_ext.subscribe_qos_max", "Subscribe QoS Maximum", base.DEC),
+    mqtt_ext_publish_qos_max = ProtoField.uint16("zilla.mqtt_ext.publish_qos_max", "Publish QoS Maximum", base.DEC),
     mqtt_ext_packet_size_max = ProtoField.uint32("zilla.mqtt_ext.packet_size_max", "Packet Size Maximum", base.DEC),
     --     capabilities
     mqtt_ext_capabilities = ProtoField.uint8("zilla.mqtt_ext.capabilities", "Capabilities", base.HEX),
@@ -1613,8 +1614,12 @@ function handle_mqtt_extension(buffer, offset, ext_subtree, frame_type_id)
             elseif kind == "SESSION" then
                 handle_mqtt_data_session_extension(buffer, offset + kind_length, ext_subtree)
             end
-        elseif frame_type_id == FLUSH_ID and kind == "SUBSCRIBE" then
-            handle_mqtt_flush_subscribe_extension(buffer, offset + kind_length, ext_subtree)
+        elseif frame_type_id == FLUSH_ID then
+            if kind == "SUBSCRIBE" then
+                handle_mqtt_flush_subscribe_extension(buffer, offset + kind_length, ext_subtree)
+            elseif kind == "SESSION" then
+                handle_mqtt_flush_session_extension(buffer, offset + kind_length, ext_subtree)
+            end
         end
     elseif frame_type_id == RESET_ID then
         handle_mqtt_reset_extension(buffer, offset, ext_subtree)
@@ -1720,13 +1725,18 @@ function handle_mqtt_begin_session_extension(buffer, offset, ext_subtree)
     local expiry_length = 4
     local slice_expiry = buffer(expiry_offset, expiry_length)
     ext_subtree:add_le(fields.mqtt_ext_expiry, slice_expiry)
-    -- qos_max
-    local qos_max_offset = expiry_offset + expiry_length
-    local qos_max_length = 2
-    local slice_qos_max = buffer(qos_max_offset, qos_max_length)
-    ext_subtree:add_le(fields.mqtt_ext_qos_max, slice_qos_max)
+    -- subscribe_qos_max
+    local subscribe_qos_max_offset = expiry_offset + expiry_length
+    local subscribe_qos_max_length = 2
+    local slice_subscribe_qos_max = buffer(subscribe_qos_max_offset, subscribe_qos_max_length)
+    ext_subtree:add_le(fields.mqtt_ext_subscribe_qos_max, slice_subscribe_qos_max)
+    -- publish_qos_max
+    local publish_qos_max_offset = subscribe_qos_max_offset + subscribe_qos_max_length
+    local publish_qos_max_length = 2
+    local slice_publish_qos_max = buffer(publish_qos_max_offset, publish_qos_max_length)
+    ext_subtree:add_le(fields.mqtt_ext_publish_qos_max, slice_publish_qos_max)
     -- packet_size_max
-    local packet_size_max_offset = qos_max_offset + qos_max_length
+    local packet_size_max_offset = publish_qos_max_offset + publish_qos_max_length
     local packet_size_max_length = 4
     local slice_packet_size_max = buffer(packet_size_max_offset, packet_size_max_length)
     ext_subtree:add_le(fields.mqtt_ext_packet_size_max, slice_packet_size_max)
@@ -1765,8 +1775,13 @@ function handle_mqtt_data_publish_extension(buffer, offset, ext_subtree)
     local flags_label = string.format("Flags: 0x%02x", slice_flags:le_uint())
     local flags_subtree = ext_subtree:add(zilla_protocol, slice_flags, flags_label)
     flags_subtree:add_le(fields.mqtt_ext_publish_flags_retain, slice_flags)
+    -- packet_id
+    local packet_id_offset = flags_offset + flags_length
+    local packet_id_length = 2
+    local slice_packet_id = buffer(packet_id_offset, packet_id_length)
+    ext_subtree:add_le(fields.mqtt_ext_packet_id, slice_packet_id)
     -- expiry_interval
-    local expiry_interval_offset = flags_offset + flags_length
+    local expiry_interval_offset = packet_id_offset + packet_id_length
     local expiry_interval_length = 4
     local slice_expiry_interval = buffer(expiry_interval_offset, expiry_interval_length)
     ext_subtree:add_le(fields.mqtt_ext_expiry_interval, slice_expiry_interval)
@@ -1943,6 +1958,14 @@ function handle_mqtt_flush_subscribe_extension(buffer, offset, ext_subtree)
     -- topic_filters
     local topic_filters_offset = state_offset + state_length
     dissect_and_add_mqtt_topic_filters(buffer, topic_filters_offset, ext_subtree)
+end
+
+function handle_mqtt_flush_session_extension(buffer, offset, ext_subtree)
+    -- packet_id
+    local packet_id_offset = offset
+    local packet_id_length = 2
+    local slice_packet_id = buffer(packet_id_offset, packet_id_length)
+    ext_subtree:add_le(fields.mqtt_ext_packet_id, slice_packet_id)
 end
 
 function handle_mqtt_reset_extension(buffer, offset, ext_subtree)

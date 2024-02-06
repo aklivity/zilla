@@ -68,7 +68,7 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
 
     private static final short INIT_PRODUCE_ID_API_KEY = 22;
-    private static final short INIT_PRODUCE_ID_API_VERSION = 4;
+    private static final short INIT_PRODUCE_ID_API_VERSION = 1;
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();

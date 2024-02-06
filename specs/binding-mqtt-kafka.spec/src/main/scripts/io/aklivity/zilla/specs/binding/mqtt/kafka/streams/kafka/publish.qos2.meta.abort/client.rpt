@@ -1,0 +1,106 @@
+#
+# Copyright 2021-2023 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+connect "zilla://streams/kafka0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"
+
+write zilla:begin.ext ${kafka:beginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("PRODUCE_AND_FETCH")
+                                .topic("mqtt-sessions")
+                                .groupId("mqtt-clients")
+                                .filter()
+                                    .key("client#migrate")
+                                    .headerNot("sender-id", "sender-1")
+                                    .build()
+                                .build()
+                            .build()}
+
+connected
+
+write zilla:data.ext ${kafka:dataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                             .produce()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client#migrate")
+                               .hashKey("client")
+                               .header("sender-id", "sender-1")
+                               .build()
+                           .build()}
+write zilla:data.empty
+write flush
+write notify SENT_MIGRATE_SIGNAL
+
+
+connect await SENT_MIGRATE_SIGNAL
+        "zilla://streams/kafka0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"
+
+write zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .group()
+                                   .groupId("client-session")
+                                   .protocol("highlander")
+                                   .timeout(1000)
+                                   .build()
+                               .build()}
+
+read zilla:begin.ext ${kafka:matchBeginEx()
+                               .typeId(zilla:id("kafka"))
+                               .group()
+                                   .groupId("client-session")
+                                   .protocol("highlander")
+                                   .instanceId("zilla")
+                                   .host("localhost")
+                                   .port(9092)
+                                   .timeout(1000)
+                                   .build()
+                               .build()}
+
+connected
+
+read advised zilla:flush ${kafka:matchFlushEx()
+                             .typeId(zilla:id("kafka"))
+                             .group()
+                                 .leaderId("consumer-1")
+                                 .memberId("consumer-1")
+                                 .members("consumer-1")
+                                 .build()
+                             .build()}
+read notify RECEIVED_LEADER
+
+write zilla:data.empty
+write flush
+
+
+connect await RECEIVED_LEADER
+        "zilla://streams/kafka0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"
+
+write zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .meta()
+                                   .topic("mqtt-messages")
+                                   .build()
+                               .build()}
+connected
+
+read aborted
