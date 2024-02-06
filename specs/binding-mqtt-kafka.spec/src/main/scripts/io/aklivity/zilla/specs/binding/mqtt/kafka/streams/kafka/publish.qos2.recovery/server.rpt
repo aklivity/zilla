@@ -218,10 +218,9 @@ read zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .offsetCommit()
                                   .topic("mqtt-messages")
-                                  .progress(1, 71, mqtt_kafka:publishMetadata()
-                                                      .producer(12345, 3)
-                                                      .packetId(2)
-                                                      .build())
+                                  .progress(0, 101, mqtt_kafka:publishMetadata()
+                                                              .producer(12345, 3)
+                                                              .build())
                                   .generationId(1)
                                   .leaderEpoch(0)
                                   .build()
@@ -285,92 +284,3 @@ read ${mqtt:sessionSignal()
            .build()}
 
 write advise zilla:flush
-
-
-accepted
-
-read zilla:begin.ext ${kafka:beginEx()
-                               .typeId(zilla:id("kafka"))
-                               .offsetCommit()
-                                   .groupId("client-session")
-                                   .memberId("consumer-1")
-                                   .instanceId("zilla")
-                                   .build()
-                               .build()}
-
-connected
-
-read zilla:data.ext ${kafka:dataEx()
-                              .typeId(zilla:id("kafka"))
-                              .offsetCommit()
-                                  .topic("mqtt-messages")
-                                  .progress(1, 70, mqtt_kafka:publishMetadata()
-                                                      .producer(12345, 3)
-                                                      .packetId(2)
-                                                      .packetId(1)
-                                                      .build())
-                                  .generationId(1)
-                                  .leaderEpoch(0)
-                                  .build()
-                              .build()}
-read zilla:data.empty
-
-
-accepted
-
-read zilla:begin.ext ${kafka:beginEx()
-                            .typeId(zilla:id("kafka"))
-                            .merged()
-                                .capabilities("PRODUCE_ONLY")
-                                .topic("mqtt-messages")
-                                .partition(-1, -2)
-                                .ackMode("IN_SYNC_REPLICAS")
-                                .build()
-                            .build()}
-
-write zilla:begin.ext ${kafka:beginEx()
-                            .typeId(zilla:id("kafka"))
-                            .merged()
-                                .capabilities("PRODUCE_ONLY")
-                                .topic("mqtt-messages")
-                                .partition(0, 100)
-                                .partition(1, 70)
-                                .ackMode("IN_SYNC_REPLICAS")
-                                .build()
-                            .build()}
-
-connected
-
-read advised zilla:flush ${kafka:flushEx()
-                              .typeId(zilla:id("kafka"))
-                              .merged()
-                                .produce()
-                                  .hashKey("sensor/one")
-                                  .build()
-                              .build()}
-
-write advise zilla:flush ${kafka:flushEx()
-                              .typeId(zilla:id("kafka"))
-                              .merged()
-                                .produce()
-                                  .hashKey("sensor/one")
-                                  .partitionId(1)
-                                  .build()
-                              .build()}
-
-read zilla:data.ext ${kafka:matchDataEx()
-                           .typeId(zilla:id("kafka"))
-                           .merged()
-                            .produce()
-                               .deferred(0)
-                               .producerId(12345)
-                               .producerEpoch(3)
-                               .partition(-1, 70)
-                               .key("sensor/one")
-                               .header("zilla:filter", "sensor")
-                               .header("zilla:filter", "one")
-                               .header("zilla:local", "client")
-                               .header("zilla:qos", "2")
-                               .build()
-                           .build()}
-read "message"

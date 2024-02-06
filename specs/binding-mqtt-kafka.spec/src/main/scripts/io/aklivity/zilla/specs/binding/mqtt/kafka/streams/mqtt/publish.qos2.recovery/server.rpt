@@ -62,26 +62,3 @@ write advise zilla:flush ${mqtt:flushEx()
                                      .build()
                                  .build()}
 
-
-accepted
-
-read zilla:begin.ext ${mqtt:matchBeginEx()
-                             .typeId(zilla:id("mqtt"))
-                             .publish()
-                                .clientId("client")
-                                .topic("sensor/one")
-                                .qos(2)
-                                .build()
-                             .build()}
-
-connected
-
-read zilla:data.ext ${mqtt:matchDataEx()
-                            .typeId(zilla:id("mqtt"))
-                            .publish()
-                                .qos("EXACTLY_ONCE")
-                                .packetId(1)
-                                .build()
-                            .build()}
-read "message"
-

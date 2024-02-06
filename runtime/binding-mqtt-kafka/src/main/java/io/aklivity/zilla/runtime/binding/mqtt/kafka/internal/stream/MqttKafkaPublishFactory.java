@@ -19,6 +19,7 @@ import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaA
 import static java.time.Instant.now;
 
 import java.nio.ByteOrder;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
@@ -253,8 +254,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         private int qos;
         private KafkaOffsetCommitStream offsetCommit;
         private Long2ObjectHashMap<KafkaOffsetMetadata> offsets;
-        private Int2ObjectHashMap<KafkaTopicPartition> partitions;
-        private Int2ObjectHashMap<KafkaTopicPartition> retainedPartitions;
+        private Int2ObjectHashMap<List<KafkaTopicPartition>> partitions;
         private Long2LongHashMap leaderEpochs;
         private KafkaGroup group;
 
@@ -401,7 +401,6 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                 final MqttKafkaPublishMetadata clientMetadata = supplyClientMetadata.apply(affinity);
                 this.offsets = clientMetadata.offsets;
                 this.partitions = clientMetadata.partitions;
-                this.retainedPartitions = clientMetadata.retainedPartitions;
                 this.leaderEpochs = clientMetadata.leaderEpochs;
                 this.group = clientMetadata.group;
                 offsetCommit.doKafkaBegin(traceId, authorization, affinity, retainAvailable);
@@ -552,7 +551,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             if ((flags & DATA_FLAG_FIN) != 0x00 && qos == MqttQoS.EXACTLY_ONCE.value())
             {
                 doCommitOffsetIncomplete(traceId, authorization, messages.topicString,
-                    messages.qos2PartitionId, packetId, messages, false);
+                    messages.qos2PartitionId, packetId, messages);
             }
 
             if (retainAvailable)
@@ -592,7 +591,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                     if ((flags & DATA_FLAG_FIN) != 0x00 && qos == MqttQoS.EXACTLY_ONCE.value())
                     {
                         doCommitOffsetIncomplete(traceId, authorization, retained.topicString,
-                            retained.qos2PartitionId, packetId, retained, true);
+                            retained.qos2PartitionId, packetId, retained);
                     }
                 }
                 else
@@ -830,8 +829,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             String topic,
             int partitionId,
             int packetId,
-            KafkaProxy kafka,
-            boolean retained)
+            KafkaProxy kafka)
         {
             final long offsetKey = offsetKey(topic, partitionId);
             final KafkaOffsetMetadata metadata = offsets.get(offsetKey);
@@ -850,14 +848,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                 .build();
 
             offsetCommit.unfinishedKafkas.add(kafka);
-            if (retained)
-            {
-                retainedPartitions.put(packetId, new KafkaTopicPartition(topic, partitionId));
-            }
-            else
-            {
-                partitions.put(packetId, new KafkaTopicPartition(topic, partitionId));
-            }
+            partitions.computeIfAbsent(packetId, ArrayList::new).add(new KafkaTopicPartition(topic, partitionId));
             offsetCommit.doKafkaData(traceId, authorization, 0, DATA_FLAG_COMPLETE, offsetCommitEx);
         }
 

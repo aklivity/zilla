@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream;
 
+import java.util.List;
 import java.util.function.IntConsumer;
 
 import org.agrona.BitUtil;
@@ -30,21 +31,18 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
 public class MqttKafkaPublishMetadata
 {
     final Long2ObjectHashMap<KafkaOffsetMetadata> offsets;
-    final Int2ObjectHashMap<KafkaTopicPartition> partitions;
-    final Int2ObjectHashMap<KafkaTopicPartition> retainedPartitions;
+    final Int2ObjectHashMap<List<KafkaTopicPartition>> partitions;
     final Long2LongHashMap leaderEpochs;
 
     KafkaGroup group;
 
     public MqttKafkaPublishMetadata(
         Long2ObjectHashMap<KafkaOffsetMetadata> offsets,
-        Int2ObjectHashMap<KafkaTopicPartition> partitions,
-        Int2ObjectHashMap<KafkaTopicPartition> retainedPartitions,
+        Int2ObjectHashMap<List<KafkaTopicPartition>> partitions,
         Long2LongHashMap leaderEpochs)
     {
         this.offsets = offsets;
         this.partitions = partitions;
-        this.retainedPartitions = retainedPartitions;
         this.leaderEpochs = leaderEpochs;
     }
 
