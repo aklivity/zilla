@@ -43,7 +43,7 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
-public final class OpenapiServerFactory implements OpenapiStreamFactory
+public final class OpenapiClientFactory implements OpenapiStreamFactory
 {
     private static final String HTTP_TYPE_NAME = "http";
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(new byte[0]), 0, 0);
@@ -64,10 +64,11 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
     private final FlushFW.Builder flushRW = new FlushFW.Builder();
 
-    private final OpenapiBeginExFW openBeginExRO = new OpenapiBeginExFW();
+    private final OpenapiBeginExFW openapiBeginExRO = new OpenapiBeginExFW();
     private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
 
     private final OpenapiBeginExFW.Builder openBeginExRW = new OpenapiBeginExFW.Builder();
+    private final HttpBeginExFW.Builder httpBeginExRW = new HttpBeginExFW.Builder();
 
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer extBuffer;
@@ -81,7 +82,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
     private final int httpTypeId;
 
 
-    public OpenapiServerFactory(
+    public OpenapiClientFactory(
         OpenapiConfiguration config,
         EngineContext context)
     {
@@ -139,7 +140,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
         final long affinity = begin.affinity();
         final long authorization = begin.authorization();
         final OctetsFW extension = begin.extension();
-        final HttpBeginExFW httpBeginEx = extension.get(httpBeginExRO::tryWrap);
+        final OpenapiBeginExFW openapiBeginEx = extension.get(openapiBeginExRO::tryWrap);
 
         final OpenapiBindingConfig binding = bindings.get(routedId);
 
@@ -147,13 +148,13 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
 
         if (binding != null && binding.isCompositeBinding(originId))
         {
-            final String operationId = binding.resolveOperationId(httpBeginEx);
+            final String operationId = openapiBeginEx.operationId().asString();
 
             OpenapiRouteConfig route = binding.resolve(authorization);
 
             if (route != null)
             {
-                newStream = new HttpStream(
+                newStream = new OpenapiStream(
                     receiver,
                     originId,
                     routedId,
@@ -161,7 +162,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
                     affinity,
                     authorization,
                     route.id,
-                    operationId)::onHttpMessage;
+                    operationId)::onOpenapiMessage;
             }
 
         }
@@ -408,10 +409,9 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
         receiver.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
     }
 
-    final class OpenapiStream
+    final class HttpStream
     {
-        private final HttpStream delegate;
-        private final String operationId;
+        private final OpenapiStream delegate;
         private final long originId;
         private final long routedId;
         private final long authorization;
@@ -432,22 +432,20 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
         private int replyMax;
         private int replyPad;
 
-        private OpenapiStream(
-            HttpStream delegate,
+        private HttpStream(
+            OpenapiStream delegate,
             long originId,
             long routedId,
-            long authorization,
-            String operationId)
+            long authorization)
         {
             this.delegate = delegate;
             this.originId = originId;
             this.routedId = routedId;
             this.receiver = MessageConsumer.NOOP;
             this.authorization = authorization;
-            this.operationId = operationId;
         }
 
-        private void doOpenapiInitialBegin(
+        private void doHttpInitialBegin(
             long traceId,
             OctetsFW extension)
         {
@@ -460,23 +458,16 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
             {
                 assert state == 0;
 
-                final OpenapiBeginExFW openBeginEx = openBeginExRW
-                    .wrap(extBuffer, 0, extBuffer.capacity())
-                    .typeId(openapiTypeId)
-                    .operationId(operationId)
-                    .extension(extension)
-                    .build();
-
                 this.initialId = supplyInitialId.applyAsLong(routedId);
                 this.replyId = supplyReplyId.applyAsLong(initialId);
-                this.receiver = newStream(this::onOpenapiMessage,
+                this.receiver = newStream(this::onHttpMessage,
                     originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, authorization, 0L, openBeginEx);
+                    traceId, authorization, 0L, extension);
                 state = OpenapiState.openingInitial(state);
             }
         }
 
-        private void doOpenapiInitialData(
+        private void doHttpInitialData(
             long traceId,
             long authorization,
             long budgetId,
@@ -493,7 +484,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
             assert initialSeq <= initialAck + initialMax;
         }
 
-        private void doOpenapiInitialFlush(
+        private void doHttpInitialFlush(
             long traceId,
             OctetsFW extension)
         {
@@ -501,7 +492,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
                 traceId, authorization, initialBud, 0, extension);
         }
 
-        private void doOpenapiInitialEnd(
+        private void doHttpInitialEnd(
             long traceId,
             OctetsFW extension)
         {
@@ -514,7 +505,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
             }
         }
 
-        private void doOpenapiInitialAbort(
+        private void doHttpInitialAbort(
             long traceId,
             OctetsFW extension)
         {
@@ -527,7 +518,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
             }
         }
 
-        private void onOpenapiInitialReset(
+        private void onHttpInitialReset(
             ResetFW reset)
         {
             final long sequence = reset.sequence();
@@ -546,7 +537,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
         }
 
 
-        private void onOpenapiInitialWindow(
+        private void onHttpInitialWindow(
             WindowFW window)
         {
             final long sequence = window.sequence();
@@ -572,7 +563,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
             delegate.doHttpInitialWindow(authorization, traceId, budgetId, padding);
         }
 
-        private void onOpenapiMessage(
+        private void onHttpMessage(
             int msgTypeId,
             DirectBuffer buffer,
             int index,
@@ -582,38 +573,38 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
             {
             case BeginFW.TYPE_ID:
                 final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-                onOpenapiReplyBegin(begin);
+                onHttpReplyBegin(begin);
                 break;
             case DataFW.TYPE_ID:
                 final DataFW data = dataRO.wrap(buffer, index, index + length);
-                onOpenapiReplyData(data);
+                onHttpReplyData(data);
                 break;
             case FlushFW.TYPE_ID:
                 final FlushFW flush = flushRO.wrap(buffer, index, index + length);
-                onOpenapiReplyFlush(flush);
+                onHttpReplyFlush(flush);
                 break;
             case EndFW.TYPE_ID:
                 final EndFW end = endRO.wrap(buffer, index, index + length);
-                onOpenapiReplyEnd(end);
+                onHttpReplyEnd(end);
                 break;
             case AbortFW.TYPE_ID:
                 final AbortFW abort = abortRO.wrap(buffer, index, index + length);
-                onOpenapiReplyAbort(abort);
+                onHttpReplyAbort(abort);
                 break;
             case ResetFW.TYPE_ID:
                 final ResetFW reset = resetRO.wrap(buffer, index, index + length);
-                onOpenapiInitialReset(reset);
+                onHttpInitialReset(reset);
                 break;
             case WindowFW.TYPE_ID:
                 final WindowFW window = windowRO.wrap(buffer, index, index + length);
-                onOpenapiInitialWindow(window);
+                onHttpInitialWindow(window);
                 break;
             default:
                 break;
             }
         }
 
-        private void onOpenapiReplyBegin(
+        private void onHttpReplyBegin(
             BeginFW begin)
         {
             final long traceId = begin.traceId();
@@ -621,12 +612,10 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
 
             state = OpenapiState.openingReply(state);
 
-            final OpenapiBeginExFW openapiBeginEx = extension.get(openBeginExRO::tryWrap);
-
-            delegate.doHttpReplyBegin(traceId, openapiBeginEx.extension());
+            delegate.doHttpReplyBegin(traceId, extension);
         }
 
-        private void onOpenapiReplyData(
+        private void onHttpReplyData(
             DataFW data)
         {
             final long sequence = data.sequence();
@@ -648,7 +637,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
             delegate.doHttpReplyData(traceId, flags, reserved, payload, extension);
         }
 
-        private void onOpenapiReplyFlush(
+        private void onHttpReplyFlush(
             FlushFW flush)
         {
             final long sequence = flush.sequence();
@@ -665,10 +654,10 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
             assert replyAck <= replySeq;
             assert replySeq <= replyAck + replyMax;
 
-            delegate.doHttpReplyFlush(traceId, extension);
+            delegate.doOpenapiReplyFlush(traceId, extension);
         }
 
-        private void onOpenapiReplyEnd(
+        private void onHttpReplyEnd(
             EndFW end)
         {
             final long sequence = end.sequence();
@@ -687,7 +676,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
             delegate.doHttpReplyEnd(traceId, extension);
         }
 
-        private void onOpenapiReplyAbort(
+        private void onHttpReplyAbort(
             AbortFW abort)
         {
             final long sequence = abort.sequence();
@@ -705,7 +694,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
             delegate.doHttpReplyAbort(traceId);
         }
 
-        private void doOpenapiReplyReset(
+        private void doHttpReplyReset(
             long traceId)
         {
             if (!OpenapiState.replyClosed(state))
@@ -717,7 +706,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
             }
         }
 
-        private void doOpenapiReplyWindow(
+        private void doHttpReplyWindow(
             long traceId,
             long authorization,
             long budgetId,
@@ -731,10 +720,11 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
         }
     }
 
-    private final class HttpStream
+    private final class OpenapiStream
     {
-        private final OpenapiStream openapi;
+        private final HttpStream http;
         private final MessageConsumer sender;
+        private final String operationId;
         private final long originId;
         private final long routedId;
         private final long initialId;
@@ -757,7 +747,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
         private long replyBud;
         private int replyCap;
 
-        HttpStream(
+        OpenapiStream(
             MessageConsumer sender,
             long originId,
             long routedId,
@@ -767,7 +757,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
             long resolvedId,
             String operationId)
         {
-            this.openapi =  new OpenapiStream(this, routedId, resolvedId, authorization, operationId);
+            this.http =  new HttpStream(this, routedId, resolvedId, authorization);
             this.sender = sender;
             this.originId = originId;
             this.routedId = routedId;
@@ -775,9 +765,10 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = affinity;
             this.authorization = authorization;
+            this.operationId = operationId;
         }
 
-        private void onHttpMessage(
+        private void onOpenapiMessage(
             int msgTypeId,
             DirectBuffer buffer,
             int index,
@@ -787,38 +778,38 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
             {
             case BeginFW.TYPE_ID:
                 final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-                onHttpInitialBegin(begin);
+                onOpenapiInitialBegin(begin);
                 break;
             case DataFW.TYPE_ID:
                 final DataFW data = dataRO.wrap(buffer, index, index + length);
-                onHttpInitialData(data);
+                onOpenapiInitialData(data);
                 break;
             case EndFW.TYPE_ID:
                 final EndFW end = endRO.wrap(buffer, index, index + length);
-                onHttpInitialEnd(end);
+                onOpenapiInitialEnd(end);
                 break;
             case FlushFW.TYPE_ID:
                 final FlushFW flush = flushRO.wrap(buffer, index, index + length);
-                onHttpInitialFlush(flush);
+                onOpenapiInitialFlush(flush);
                 break;
             case AbortFW.TYPE_ID:
                 final AbortFW abort = abortRO.wrap(buffer, index, index + length);
-                onHttpInitialAbort(abort);
+                onOpenapiInitialAbort(abort);
                 break;
             case WindowFW.TYPE_ID:
                 final WindowFW window = windowRO.wrap(buffer, index, index + length);
-                onHttpReplyWindow(window);
+                onOpenapiReplyWindow(window);
                 break;
             case ResetFW.TYPE_ID:
                 final ResetFW reset = resetRO.wrap(buffer, index, index + length);
-                onHttpReplyReset(reset);
+                onOpenapiReplyReset(reset);
                 break;
             default:
                 break;
             }
         }
 
-        private void onHttpInitialBegin(
+        private void onOpenapiInitialBegin(
             BeginFW begin)
         {
             final long sequence = begin.sequence();
@@ -827,6 +818,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
             final long authorization = begin.authorization();
             final long affinity = begin.affinity();
             final OctetsFW extension = begin.extension();
+            final OpenapiBeginExFW openapiBeginEx = extension.get(openapiBeginExRO::tryWrap);
 
             assert acknowledge <= sequence;
             assert sequence >= initialSeq;
@@ -838,10 +830,10 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
 
             assert initialAck <= initialSeq;
 
-            openapi.doOpenapiInitialBegin(traceId, extension);
+            http.doHttpInitialBegin(traceId, openapiBeginEx.extension());
         }
 
-        private void onHttpInitialData(
+        private void onOpenapiInitialData(
             DataFW data)
         {
             final long sequence = data.sequence();
@@ -861,10 +853,10 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
 
             assert initialAck <= initialSeq;
 
-            openapi.doOpenapiInitialData(traceId, authorization, budgetId, reserved, flags, payload, extension);
+            http.doHttpInitialData(traceId, authorization, budgetId, reserved, flags, payload, extension);
         }
 
-        private void onHttpInitialEnd(
+        private void onOpenapiInitialEnd(
             EndFW end)
         {
             final long sequence = end.sequence();
@@ -880,10 +872,10 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
 
             assert initialAck <= initialSeq;
 
-            openapi.doOpenapiInitialEnd(traceId, extension);
+            http.doHttpInitialEnd(traceId, extension);
         }
 
-        private void onHttpInitialFlush(
+        private void onOpenapiInitialFlush(
             FlushFW flush)
         {
             final long sequence = flush.sequence();
@@ -898,10 +890,10 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
 
             assert initialAck <= initialSeq;
 
-            openapi.doOpenapiInitialFlush(traceId, extension);
+            http.doHttpInitialFlush(traceId, extension);
         }
 
-        private void onHttpInitialAbort(
+        private void onOpenapiInitialAbort(
             AbortFW abort)
         {
             final long sequence = abort.sequence();
@@ -917,7 +909,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
 
             assert initialAck <= initialSeq;
 
-            openapi.doOpenapiInitialAbort(traceId, extension);
+            http.doHttpInitialAbort(traceId, extension);
         }
 
         private void doHttpInitialReset(
@@ -938,8 +930,8 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
             long budgetId,
             int padding)
         {
-            initialAck = openapi.initialAck;
-            initialMax = openapi.initialMax;
+            initialAck = http.initialAck;
+            initialMax = http.initialMax;
 
             doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, budgetId, padding);
@@ -951,8 +943,15 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
         {
             state = OpenapiState.openingReply(state);
 
+            final OpenapiBeginExFW openBeginEx = openBeginExRW
+                .wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(openapiTypeId)
+                .operationId(operationId)
+                .extension(extension)
+                .build();
+
             doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                traceId, authorization, affinity, extension);
+                traceId, authorization, affinity, openBeginEx);
         }
 
         private void doHttpReplyData(
@@ -969,7 +968,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
             replySeq += reserved;
         }
 
-        private void doHttpReplyFlush(
+        private void doOpenapiReplyFlush(
             long traceId,
             OctetsFW extension)
         {
@@ -1002,7 +1001,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
             state = OpenapiState.closeInitial(state);
         }
 
-        private void onHttpReplyReset(
+        private void onOpenapiReplyReset(
             ResetFW reset)
         {
             final long sequence = reset.sequence();
@@ -1024,7 +1023,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
             cleanup(traceId);
         }
 
-        private void onHttpReplyWindow(
+        private void onOpenapiReplyWindow(
             WindowFW window)
         {
             final long sequence = window.sequence();
@@ -1049,7 +1048,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
 
             assert replyAck <= replySeq;
 
-            openapi.doOpenapiReplyWindow(traceId, acknowledge, budgetId, padding);
+            http.doHttpReplyWindow(traceId, acknowledge, budgetId, padding);
         }
 
         private void cleanup(
@@ -1058,8 +1057,8 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
             doHttpInitialReset(traceId);
             doHttpReplyAbort(traceId);
 
-            openapi.doOpenapiInitialAbort(traceId, EMPTY_OCTETS);
-            openapi.doOpenapiReplyReset(traceId);
+            http.doHttpInitialAbort(traceId, EMPTY_OCTETS);
+            http.doHttpReplyReset(traceId);
         }
     }
 

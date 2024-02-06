@@ -14,11 +14,13 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal;
 
+import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 
 import java.util.EnumMap;
 import java.util.Map;
 
+import io.aklivity.zilla.runtime.binding.openapi.internal.streams.OpenapiClientFactory;
 import io.aklivity.zilla.runtime.binding.openapi.internal.streams.OpenapiServerFactory;
 import io.aklivity.zilla.runtime.binding.openapi.internal.streams.OpenapiStreamFactory;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -37,6 +39,7 @@ final class OpenapiBindingContext implements BindingContext
     {
         Map<KindConfig, OpenapiStreamFactory> factories = new EnumMap<>(KindConfig.class);
         factories.put(SERVER, new OpenapiServerFactory(config, context));
+        factories.put(CLIENT, new OpenapiClientFactory(config, context));
         this.factories = factories;
     }
 
