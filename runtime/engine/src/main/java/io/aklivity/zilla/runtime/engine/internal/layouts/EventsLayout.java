@@ -27,20 +27,20 @@ import org.agrona.CloseHelper;
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.AtomicBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
+import org.agrona.concurrent.ringbuffer.OneToOneRingBuffer;
+import org.agrona.concurrent.ringbuffer.RingBuffer;
+import org.agrona.concurrent.ringbuffer.RingBufferDescriptor;
 
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
 public final class EventsLayout implements AutoCloseable
 {
-    private final AtomicBuffer buffer;
-
-    private int position;
+    private final RingBuffer buffer;
 
     private EventsLayout(
-        AtomicBuffer buffer)
+        RingBuffer buffer)
     {
         this.buffer = buffer;
-        this.position = 0;
     }
 
     public MessageConsumer supplyWriter()
@@ -55,18 +55,13 @@ public final class EventsLayout implements AutoCloseable
         int length)
     {
         System.out.printf("%d %s %d %d%n", msgTypeId, buffer, index, length); // TODO: Ati
-        if (position + length > buffer.capacity())
-        {
-            throw new IllegalStateException("Event buffer is full.");
-        }
-        buffer.putBytes(position, recordBuffer, index, length);
-        position += length;
+        buffer.write(msgTypeId, recordBuffer, index, length);
     }
 
     @Override
     public void close()
     {
-        unmap(buffer.byteBuffer());
+        unmap(buffer.buffer().byteBuffer());
     }
 
     public static final class Builder
@@ -75,10 +70,10 @@ public final class EventsLayout implements AutoCloseable
         private Path path;
         private boolean readonly;
 
-        public Builder streamsCapacity(
-            long streamsCapacity)
+        public Builder capacity(
+            long capacity)
         {
-            this.capacity = streamsCapacity;
+            this.capacity = capacity;
             return this;
         }
 
@@ -101,11 +96,11 @@ public final class EventsLayout implements AutoCloseable
             final File layoutFile = path.toFile();
             if (!readonly)
             {
-                CloseHelper.close(createEmptyFile(layoutFile, capacity));
+                CloseHelper.close(createEmptyFile(layoutFile, capacity + RingBufferDescriptor.TRAILER_LENGTH));
             }
             final MappedByteBuffer mappedBuffer = mapExistingFile(layoutFile, "events");
             final AtomicBuffer atomicBuffer = new UnsafeBuffer(mappedBuffer);
-            return new EventsLayout(atomicBuffer);
+            return new EventsLayout(new OneToOneRingBuffer(atomicBuffer));
         }
     }
 }

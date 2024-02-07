@@ -289,7 +289,7 @@ public class EngineWorker implements EngineContext, Agent
 
         this.eventsLayout = new EventsLayout.Builder()
             .path(config.directory().resolve(String.format("events%d", index)))
-            .streamsCapacity(config.streamsBufferCapacity())
+            .capacity(config.streamsBufferCapacity())
             .readonly(readonly)
             .build();
 
