@@ -372,6 +372,26 @@ public class CacheMergedIT
     }
 
     @Test
+    @Configuration("cache.yaml")
+    @Specification({
+        "${app}/merged.produce.message.values.producer.id/client",
+        "${app}/unmerged.produce.message.values.producer.id/server"})
+    public void shouldProduceMergedMessageValuesWithProducerId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.yaml")
+    @Specification({
+        "${app}/merged.produce.message.value.partition.id/client",
+        "${app}/unmerged.produce.message.value.partition.id/server"})
+    public void shouldProduceMergedMessageValueByGettingPartitionId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("cache.options.merged.yaml")
     @Specification({
         "${app}/merged.produce.message.values.null/client",

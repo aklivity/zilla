@@ -1,0 +1,376 @@
+#
+# Copyright 2021-2023 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+accept "zilla://streams/kafka0"
+    option zilla:window 8192
+    option zilla:transmission "duplex"
+
+accepted
+
+read zilla:begin.ext ${kafka:matchBeginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("PRODUCE_AND_FETCH")
+                                .topic("mqtt-sessions")
+                                .groupId("mqtt-clients")
+                                .filter()
+                                    .key("client#migrate")
+                                    .headerNot("sender-id", "sender-1")
+                                    .build()
+                                .build()
+                            .build()}
+
+connected
+
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                             .produce()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client#migrate")
+                               .hashKey("client")
+                               .header("sender-id", "sender-1")
+                               .build()
+                           .build()}
+read zilla:data.empty
+
+
+accepted
+
+read zilla:begin.ext ${kafka:matchBeginEx()
+                               .typeId(zilla:id("kafka"))
+                               .group()
+                                   .groupId("client-session")
+                                   .protocol("highlander")
+                                   .timeout(1000)
+                                   .build()
+                               .build()}
+
+write zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .group()
+                                   .groupId("client-session")
+                                   .protocol("highlander")
+                                   .instanceId("zilla")
+                                   .host("localhost")
+                                   .port(9092)
+                                   .timeout(1000)
+                                   .build()
+                               .build()}
+
+connected
+
+write advise zilla:flush ${kafka:flushEx()
+                             .typeId(zilla:id("kafka"))
+                             .group()
+                                 .generationId(1)
+                                 .leaderId("consumer-1")
+                                 .memberId("consumer-1")
+                                 .members("consumer-1")
+                                 .build()
+                             .build()}
+write flush
+
+read zilla:data.empty
+
+
+accepted
+
+read zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .meta()
+                                   .topic("mqtt-messages")
+                                   .build()
+                               .build()}
+
+connected
+
+write zilla:data.ext ${kafka:dataEx()
+                             .typeId(zilla:id("kafka"))
+                             .meta()
+                                 .partition(0, -2)
+                                 .partition(1, -2)
+                                 .build()
+                             .build()}
+write flush
+
+read closed
+write close
+
+
+accepted
+
+read zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .meta()
+                                   .topic("mqtt-retained")
+                                   .build()
+                               .build()}
+
+connected
+
+write zilla:data.ext ${kafka:dataEx()
+                             .typeId(zilla:id("kafka"))
+                             .meta()
+                                 .partition(0, -2)
+                                 .build()
+                             .build()}
+write flush
+
+read closed
+write close
+
+
+accepted
+
+read zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .offsetFetch()
+                                   .groupId("client-session")
+                                   .host("localhost")
+                                   .port(9092)
+                                   .topic("mqtt-messages")
+                                   .partition(0)
+                                   .partition(1)
+                                   .build()
+                               .build()}
+
+connected
+
+write zilla:data.ext ${kafka:dataEx()
+                                   .typeId(zilla:id("kafka"))
+                                   .offsetFetch()
+                                       .partition(0, 1, 0)
+                                       .partition(1, 1, 0)
+                                     .build()
+                                   .build()}
+write zilla:data.empty
+write flush
+
+read closed
+write close
+
+
+accepted
+
+read zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .offsetFetch()
+                                   .groupId("client-session")
+                                   .host("localhost")
+                                   .port(9092)
+                                   .topic("mqtt-retained")
+                                   .partition(0)
+                                   .build()
+                               .build()}
+
+connected
+
+write zilla:data.ext ${kafka:dataEx()
+                                   .typeId(zilla:id("kafka"))
+                                   .offsetFetch()
+                                       .partition(0, 1, 0)
+                                     .build()
+                                   .build()}
+write zilla:data.empty
+write flush
+
+read closed
+write close
+
+
+accepted
+
+read zilla:begin.ext ${kafka:beginEx()
+                            .typeId(zilla:id("kafka"))
+                            .initProducerId()
+                                .producerId(0)
+                                .producerEpoch(0)
+                                .build()
+                            .build()}
+
+write zilla:begin.ext ${kafka:beginEx()
+                            .typeId(zilla:id("kafka"))
+                            .initProducerId()
+                                .producerId(1)
+                                .producerEpoch(1)
+                                .build()
+                            .build()}
+
+connected
+
+read closed
+write close
+
+
+accepted
+
+read zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .offsetCommit()
+                                   .groupId("client-session")
+                                   .memberId("consumer-1")
+                                   .instanceId("zilla")
+                                   .build()
+                               .build()}
+
+connected
+
+read zilla:data.ext ${kafka:dataEx()
+                              .typeId(zilla:id("kafka"))
+                              .offsetCommit()
+                                  .topic("mqtt-messages")
+                                  .progress(0, 1, mqtt_kafka:publishMetadata()
+                                                      .producer(1, 1)
+                                                      .build())
+                                  .generationId(1)
+                                  .leaderEpoch(0)
+                                  .build()
+                              .build()}
+read zilla:data.empty
+
+read zilla:data.ext ${kafka:dataEx()
+                              .typeId(zilla:id("kafka"))
+                              .offsetCommit()
+                                  .topic("mqtt-messages")
+                                  .progress(1, 1, mqtt_kafka:publishMetadata()
+                                                      .producer(1, 1)
+                                                      .build())
+                                  .generationId(1)
+                                  .leaderEpoch(0)
+                                  .build()
+                              .build()}
+read zilla:data.empty
+
+read zilla:data.ext ${kafka:dataEx()
+                              .typeId(zilla:id("kafka"))
+                              .offsetCommit()
+                                  .topic("mqtt-retained")
+                                  .progress(0, 1, mqtt_kafka:publishMetadata()
+                                                      .producer(1, 1)
+                                                      .build())
+                                  .generationId(1)
+                                  .leaderEpoch(0)
+                                  .build()
+                              .build()}
+read zilla:data.empty
+
+
+accepted
+
+read zilla:begin.ext ${kafka:matchBeginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("PRODUCE_AND_FETCH")
+                                .topic("mqtt-sessions")
+                                .groupId("mqtt-clients")
+                                .filter()
+                                    .key("client")
+                                    .build()
+                                .filter()
+                                    .key("client#migrate")
+                                    .headerNot("sender-id", "sender-1")
+                                    .build()
+                                .build()
+                            .build()}
+
+connected
+
+# session expiry cancellation signal for client
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                             .produce()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client#expiry-signal")
+                               .hashKey("client")
+                               .header("type", "expiry-signal")
+                               .build()
+                           .build()}
+read zilla:data.null
+
+# session expire later signal for client
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                             .produce()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client#expiry-signal")
+                               .hashKey("client")
+                               .header("type", "expiry-signal")
+                               .build()
+                           .build()}
+read ${mqtt:sessionSignal()
+           .expiry()
+               .instanceId("zilla-1")
+               .clientId("client")
+               .delay(1000)
+               .expireAt(-1)
+               .build()
+           .build()}
+
+write advise zilla:flush
+
+
+accepted
+
+read zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .offsetCommit()
+                                   .groupId("client-session")
+                                   .memberId("consumer-1")
+                                   .instanceId("zilla")
+                                   .build()
+                               .build()}
+
+connected
+
+write await PUBLISH_CONNECTED
+write abort
+
+
+accepted
+
+read zilla:begin.ext ${kafka:beginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("PRODUCE_ONLY")
+                                .topic("mqtt-messages")
+                                .partition(-1, -2)
+                                .ackMode("IN_SYNC_REPLICAS")
+                                .build()
+                            .build()}
+
+connected
+
+read advised zilla:flush ${kafka:flushEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                .produce()
+                                  .hashKey("sensor/one")
+                                  .build()
+                              .build()}
+
+write advise zilla:flush ${kafka:flushEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                .produce()
+                                  .hashKey("sensor/one")
+                                  .partitionId(0)
+                                  .build()
+                              .build()}

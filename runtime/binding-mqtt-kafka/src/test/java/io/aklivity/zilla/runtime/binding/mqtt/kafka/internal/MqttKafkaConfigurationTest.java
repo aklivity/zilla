@@ -35,6 +35,7 @@ public class MqttKafkaConfigurationTest
     public static final String WILL_STREAM_RECONNECT_DELAY_NAME = "zilla.binding.mqtt.kafka.will.stream.reconnect";
     public static final String BOOTSTRAP_AVAILABLE_NAME = "zilla.binding.mqtt.kafka.bootstrap.available";
     public static final String BOOTSTRAP_STREAM_RECONNECT_DELAY_NAME = "zilla.binding.mqtt.kafka.bootstrap.stream.reconnect";
+    public static final String PUBLISH_MAX_QOS_NAME = "zilla.binding.mqtt.kafka.publish.max.qos";
     public static final String SESSION_ID_NAME = "zilla.binding.mqtt.kafka.session.id";
     public static final String WILL_ID_NAME = "zilla.binding.mqtt.kafka.will.id";
     public static final String LIFETIME_ID_NAME = "zilla.binding.mqtt.kafka.lifetime.id";
