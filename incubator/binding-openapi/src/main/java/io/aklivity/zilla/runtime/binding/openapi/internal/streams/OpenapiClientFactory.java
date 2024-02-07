@@ -33,7 +33,6 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.FlushFW;
-import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.OpenapiBeginExFW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.WindowFW;
@@ -65,10 +64,8 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
     private final FlushFW.Builder flushRW = new FlushFW.Builder();
 
     private final OpenapiBeginExFW openapiBeginExRO = new OpenapiBeginExFW();
-    private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
 
     private final OpenapiBeginExFW.Builder openBeginExRW = new OpenapiBeginExFW.Builder();
-    private final HttpBeginExFW.Builder httpBeginExRW = new HttpBeginExFW.Builder();
 
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer extBuffer;
@@ -168,6 +165,656 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
         }
 
         return newStream;
+    }
+
+    private final class OpenapiStream
+    {
+        private final HttpStream http;
+        private final MessageConsumer sender;
+        private final String operationId;
+        private final long originId;
+        private final long routedId;
+        private final long initialId;
+        private final long replyId;
+        private final long affinity;
+        private final long authorization;
+
+        private int state;
+
+        private long replyBudgetId;
+
+        private long initialSeq;
+        private long initialAck;
+        private int initialMax;
+
+        private long replySeq;
+        private long replyAck;
+        private int replyMax;
+        private int replyPad;
+        private long replyBud;
+        private int replyCap;
+
+        OpenapiStream(
+            MessageConsumer sender,
+            long originId,
+            long routedId,
+            long initialId,
+            long affinity,
+            long authorization,
+            long resolvedId,
+            String operationId)
+        {
+            this.http =  new HttpStream(this, routedId, resolvedId, authorization);
+            this.sender = sender;
+            this.originId = originId;
+            this.routedId = routedId;
+            this.initialId = initialId;
+            this.replyId = supplyReplyId.applyAsLong(initialId);
+            this.affinity = affinity;
+            this.authorization = authorization;
+            this.operationId = operationId;
+        }
+
+        private void onOpenapiMessage(
+            int msgTypeId,
+            DirectBuffer buffer,
+            int index,
+            int length)
+        {
+            switch (msgTypeId)
+            {
+            case BeginFW.TYPE_ID:
+                final BeginFW begin = beginRO.wrap(buffer, index, index + length);
+                onOpenapiBegin(begin);
+                break;
+            case DataFW.TYPE_ID:
+                final DataFW data = dataRO.wrap(buffer, index, index + length);
+                onOpenapiData(data);
+                break;
+            case EndFW.TYPE_ID:
+                final EndFW end = endRO.wrap(buffer, index, index + length);
+                onOpenapiEnd(end);
+                break;
+            case FlushFW.TYPE_ID:
+                final FlushFW flush = flushRO.wrap(buffer, index, index + length);
+                onOpenapiFlush(flush);
+                break;
+            case AbortFW.TYPE_ID:
+                final AbortFW abort = abortRO.wrap(buffer, index, index + length);
+                onOpenapiAbort(abort);
+                break;
+            case WindowFW.TYPE_ID:
+                final WindowFW window = windowRO.wrap(buffer, index, index + length);
+                onOpenapiWindow(window);
+                break;
+            case ResetFW.TYPE_ID:
+                final ResetFW reset = resetRO.wrap(buffer, index, index + length);
+                onOpenapiReset(reset);
+                break;
+            default:
+                break;
+            }
+        }
+
+        private void onOpenapiBegin(
+            BeginFW begin)
+        {
+            final long sequence = begin.sequence();
+            final long acknowledge = begin.acknowledge();
+            final long traceId = begin.traceId();
+            final OctetsFW extension = begin.extension();
+            final OpenapiBeginExFW openapiBeginEx = extension.get(openapiBeginExRO::tryWrap);
+
+            assert acknowledge <= sequence;
+            assert sequence >= initialSeq;
+            assert acknowledge >= initialAck;
+
+            initialSeq = sequence;
+            initialAck = acknowledge;
+            state = OpenapiState.openingInitial(state);
+
+            assert initialAck <= initialSeq;
+
+            http.doHttpBegin(traceId, openapiBeginEx.extension());
+        }
+
+        private void onOpenapiData(
+            DataFW data)
+        {
+            final long sequence = data.sequence();
+            final long acknowledge = data.acknowledge();
+            final long traceId = data.traceId();
+            final long authorization = data.authorization();
+            final long budgetId = data.budgetId();
+            final int reserved = data.reserved();
+            final int flags = data.flags();
+            final OctetsFW payload = data.payload();
+            final OctetsFW extension = data.extension();
+
+            assert acknowledge <= sequence;
+            assert sequence >= initialSeq;
+
+            initialSeq = sequence;
+
+            assert initialAck <= initialSeq;
+
+            http.doHttpData(traceId, authorization, budgetId, reserved, flags, payload, extension);
+        }
+
+        private void onOpenapiEnd(
+            EndFW end)
+        {
+            final long sequence = end.sequence();
+            final long acknowledge = end.acknowledge();
+            final long traceId = end.traceId();
+            final OctetsFW extension = end.extension();
+
+            assert acknowledge <= sequence;
+            assert sequence >= initialSeq;
+
+            initialSeq = sequence;
+            state = OpenapiState.closeInitial(state);
+
+            assert initialAck <= initialSeq;
+
+            http.doHttpEnd(traceId, extension);
+        }
+
+        private void onOpenapiFlush(
+            FlushFW flush)
+        {
+            final long sequence = flush.sequence();
+            final long acknowledge = flush.acknowledge();
+            final long traceId = flush.traceId();
+            final OctetsFW extension = flush.extension();
+
+            assert acknowledge <= sequence;
+            assert sequence >= initialSeq;
+
+            initialSeq = sequence;
+
+            assert initialAck <= initialSeq;
+
+            http.doHttpFlush(traceId, extension);
+        }
+
+        private void onOpenapiAbort(
+            AbortFW abort)
+        {
+            final long sequence = abort.sequence();
+            final long acknowledge = abort.acknowledge();
+            final long traceId = abort.traceId();
+            final OctetsFW extension = abort.extension();
+
+            assert acknowledge <= sequence;
+            assert sequence >= initialSeq;
+
+            initialSeq = sequence;
+            state = OpenapiState.closeInitial(state);
+
+            assert initialAck <= initialSeq;
+
+            http.doHttpAbort(traceId, extension);
+        }
+
+        private void onOpenapiReset(
+            ResetFW reset)
+        {
+            final long sequence = reset.sequence();
+            final long acknowledge = reset.acknowledge();
+            final int maximum = reset.maximum();
+            final long traceId = reset.traceId();
+
+            assert acknowledge <= sequence;
+            assert sequence <= replySeq;
+            assert acknowledge >= replyAck;
+            assert maximum >= replyMax;
+
+            replyAck = acknowledge;
+            replyMax = maximum;
+            state = OpenapiState.closeReply(state);
+
+            assert replyAck <= replySeq;
+
+            cleanup(traceId);
+        }
+
+        private void onOpenapiWindow(
+            WindowFW window)
+        {
+            final long sequence = window.sequence();
+            final long acknowledge = window.acknowledge();
+            final int maximum = window.maximum();
+            final long traceId = window.traceId();
+            final long budgetId = window.budgetId();
+            final int padding = window.padding();
+            final int capabilities = window.capabilities();
+
+            assert acknowledge <= sequence;
+            assert sequence <= replySeq;
+            assert acknowledge >= replyAck;
+            assert maximum >= replyMax;
+
+            replyAck = acknowledge;
+            replyMax = maximum;
+            replyBud = budgetId;
+            replyPad = padding;
+            replyCap = capabilities;
+            state = OpenapiState.closingReply(state);
+
+            assert replyAck <= replySeq;
+
+            http.doHttpWindow(traceId, acknowledge, budgetId, padding);
+        }
+
+        private void doOpenapiBegin(
+            long traceId,
+            OctetsFW extension)
+        {
+            state = OpenapiState.openingReply(state);
+
+            final OpenapiBeginExFW openBeginEx = openBeginExRW
+                .wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(openapiTypeId)
+                .operationId(operationId)
+                .extension(extension)
+                .build();
+
+            doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                traceId, authorization, affinity, openBeginEx);
+        }
+
+        private void doOpenapiData(
+            long traceId,
+            int flag,
+            int reserved,
+            OctetsFW payload,
+            Flyweight extension)
+        {
+
+            doData(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                    traceId, authorization, replyBudgetId, flag, reserved, payload, extension);
+
+            replySeq += reserved;
+        }
+
+        private void doOpenapiFlush(
+            long traceId,
+            OctetsFW extension)
+        {
+            doFlush(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                traceId, authorization, replyBudgetId, 0, extension);
+        }
+
+        private void doOpenapiEnd(
+            long traceId,
+            OctetsFW extension)
+        {
+            if (OpenapiState.replyOpening(state) && !OpenapiState.replyClosed(state))
+            {
+                doEnd(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                    traceId, authorization, extension);
+            }
+
+            state = OpenapiState.closeReply(state);
+        }
+
+        private void doOpenapiAbort(
+            long traceId)
+        {
+            if (OpenapiState.replyOpening(state) && !OpenapiState.replyClosed(state))
+            {
+                doAbort(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                    traceId, authorization, EMPTY_OCTETS);
+            }
+
+            state = OpenapiState.closeInitial(state);
+        }
+
+        private void doOpenapiReset(
+            long traceId)
+        {
+            if (!OpenapiState.initialClosed(state))
+            {
+                state = OpenapiState.closeInitial(state);
+
+                doReset(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, authorization, EMPTY_OCTETS);
+            }
+        }
+
+        private void doOpenapiWindow(
+            long authorization,
+            long traceId,
+            long budgetId,
+            int padding)
+        {
+            initialAck = http.initialAck;
+            initialMax = http.initialMax;
+
+            doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                traceId, authorization, budgetId, padding);
+        }
+
+        private void cleanup(
+            long traceId)
+        {
+            doOpenapiReset(traceId);
+            doOpenapiAbort(traceId);
+
+            http.cleanup(traceId);
+        }
+    }
+
+    final class HttpStream
+    {
+        private final OpenapiStream delegate;
+        private final long originId;
+        private final long routedId;
+        private final long authorization;
+
+        private long initialId;
+        private long replyId;
+        private MessageConsumer receiver;
+
+        private int state;
+
+        private long initialSeq;
+        private long initialAck;
+        private int initialMax;
+        private long initialBud;
+
+        private long replySeq;
+        private long replyAck;
+        private int replyMax;
+        private int replyPad;
+
+        private HttpStream(
+            OpenapiStream delegate,
+            long originId,
+            long routedId,
+            long authorization)
+        {
+            this.delegate = delegate;
+            this.originId = originId;
+            this.routedId = routedId;
+            this.receiver = MessageConsumer.NOOP;
+            this.initialId = supplyInitialId.applyAsLong(routedId);
+            this.replyId = supplyReplyId.applyAsLong(initialId);
+            this.authorization = authorization;
+        }
+
+        private void onHttpMessage(
+            int msgTypeId,
+            DirectBuffer buffer,
+            int index,
+            int length)
+        {
+            switch (msgTypeId)
+            {
+            case BeginFW.TYPE_ID:
+                final BeginFW begin = beginRO.wrap(buffer, index, index + length);
+                onHttpBegin(begin);
+                break;
+            case DataFW.TYPE_ID:
+                final DataFW data = dataRO.wrap(buffer, index, index + length);
+                onHttpData(data);
+                break;
+            case FlushFW.TYPE_ID:
+                final FlushFW flush = flushRO.wrap(buffer, index, index + length);
+                onHttpFlush(flush);
+                break;
+            case EndFW.TYPE_ID:
+                final EndFW end = endRO.wrap(buffer, index, index + length);
+                onHttpEnd(end);
+                break;
+            case AbortFW.TYPE_ID:
+                final AbortFW abort = abortRO.wrap(buffer, index, index + length);
+                onHttpAbort(abort);
+                break;
+            case ResetFW.TYPE_ID:
+                final ResetFW reset = resetRO.wrap(buffer, index, index + length);
+                onHttpReset(reset);
+                break;
+            case WindowFW.TYPE_ID:
+                final WindowFW window = windowRO.wrap(buffer, index, index + length);
+                onHttpWindow(window);
+                break;
+            default:
+                break;
+            }
+        }
+
+        private void onHttpBegin(
+            BeginFW begin)
+        {
+            final long traceId = begin.traceId();
+            final OctetsFW extension = begin.extension();
+
+            state = OpenapiState.openingReply(state);
+
+            delegate.doOpenapiBegin(traceId, extension);
+        }
+
+        private void onHttpData(
+            DataFW data)
+        {
+            final long sequence = data.sequence();
+            final long acknowledge = data.acknowledge();
+            final long traceId = data.traceId();
+            final int flags = data.flags();
+            final int reserved = data.reserved();
+            final OctetsFW payload = data.payload();
+            final OctetsFW extension = data.extension();
+
+            assert acknowledge <= sequence;
+            assert sequence >= replySeq;
+
+            replySeq = sequence + reserved;
+
+            assert replyAck <= replySeq;
+            assert replySeq <= replyAck + replyMax;
+
+            delegate.doOpenapiData(traceId, flags, reserved, payload, extension);
+        }
+
+        private void onHttpFlush(
+            FlushFW flush)
+        {
+            final long sequence = flush.sequence();
+            final long acknowledge = flush.acknowledge();
+            final long traceId = flush.traceId();
+            final int reserved = flush.reserved();
+            final OctetsFW extension = flush.extension();
+
+            assert acknowledge <= sequence;
+            assert sequence >= replySeq;
+
+            replySeq = sequence + reserved;
+
+            assert replyAck <= replySeq;
+            assert replySeq <= replyAck + replyMax;
+
+            delegate.doOpenapiFlush(traceId, extension);
+        }
+
+        private void onHttpReset(
+            ResetFW reset)
+        {
+            final long sequence = reset.sequence();
+            final long acknowledge = reset.acknowledge();
+            final long traceId = reset.traceId();
+
+            assert acknowledge <= sequence;
+            assert acknowledge >= delegate.initialAck;
+
+            delegate.initialAck = acknowledge;
+            state = OpenapiState.closeInitial(state);
+
+            assert delegate.initialAck <= delegate.initialSeq;
+
+            delegate.doOpenapiReset(traceId);
+        }
+
+        private void onHttpWindow(
+            WindowFW window)
+        {
+            final long sequence = window.sequence();
+            final long acknowledge = window.acknowledge();
+            final int maximum = window.maximum();
+            final long authorization = window.authorization();
+            final long traceId = window.traceId();
+            final long budgetId = window.budgetId();
+            final int padding = window.padding();
+
+            assert acknowledge <= sequence;
+            assert acknowledge >= delegate.initialAck;
+            assert maximum >= delegate.initialMax;
+
+            initialAck = acknowledge;
+            initialMax = maximum;
+            initialBud = budgetId;
+            state = OpenapiState.openingInitial(state);
+
+            assert initialAck <= initialSeq;
+
+            delegate.doOpenapiWindow(authorization, traceId, budgetId, padding);
+        }
+
+        private void doHttpBegin(
+            long traceId,
+            OctetsFW extension)
+        {
+            if (!OpenapiState.initialOpening(state))
+            {
+                assert state == 0;
+
+                this.receiver = newStream(this::onHttpMessage,
+                    originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, authorization, 0L, extension);
+                state = OpenapiState.openingInitial(state);
+            }
+        }
+
+        private void doHttpData(
+            long traceId,
+            long authorization,
+            long budgetId,
+            int reserved,
+            int flags,
+            OctetsFW payload,
+            Flyweight extension)
+        {
+            doData(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                traceId, authorization, budgetId, flags, reserved, payload, extension);
+
+            initialSeq += reserved;
+
+            assert initialSeq <= initialAck + initialMax;
+        }
+
+        private void doHttpFlush(
+            long traceId,
+            OctetsFW extension)
+        {
+            doFlush(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                traceId, authorization, initialBud, 0, extension);
+        }
+
+        private void doHttpEnd(
+            long traceId,
+            OctetsFW extension)
+        {
+            if (!OpenapiState.initialClosed(state))
+            {
+                doEnd(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, authorization, extension);
+
+                state = OpenapiState.closeInitial(state);
+            }
+        }
+
+        private void doHttpAbort(
+            long traceId,
+            OctetsFW extension)
+        {
+            if (!OpenapiState.initialClosed(state))
+            {
+                doAbort(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, authorization, extension);
+
+                state = OpenapiState.closeInitial(state);
+            }
+        }
+
+        private void onHttpEnd(
+            EndFW end)
+        {
+            final long sequence = end.sequence();
+            final long acknowledge = end.acknowledge();
+            final long traceId = end.traceId();
+            final OctetsFW extension = end.extension();
+
+            assert acknowledge <= sequence;
+            assert sequence >= replySeq;
+
+            replySeq = sequence;
+            state = OpenapiState.closingReply(state);
+
+            assert replyAck <= replySeq;
+
+            delegate.doOpenapiEnd(traceId, extension);
+        }
+
+        private void onHttpAbort(
+            AbortFW abort)
+        {
+            final long sequence = abort.sequence();
+            final long acknowledge = abort.acknowledge();
+            final long traceId = abort.traceId();
+
+            assert acknowledge <= sequence;
+            assert sequence >= replySeq;
+
+            replySeq = sequence;
+            state = OpenapiState.closingReply(state);
+
+            assert replyAck <= replySeq;
+
+            delegate.doOpenapiAbort(traceId);
+        }
+
+        private void doHttpReset(
+            long traceId)
+        {
+            if (!OpenapiState.replyClosed(state))
+            {
+                doReset(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                    traceId, authorization, EMPTY_OCTETS);
+
+                state = OpenapiState.closeReply(state);
+            }
+        }
+
+        private void doHttpWindow(
+            long traceId,
+            long authorization,
+            long budgetId,
+            int padding)
+        {
+            replyAck = Math.max(delegate.replyAck - replyPad, 0);
+            replyMax = delegate.replyMax;
+
+            doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                traceId, authorization, budgetId, padding + replyPad);
+        }
+
+        private void cleanup(
+            long traceId)
+        {
+            doHttpAbort(traceId, EMPTY_OCTETS);
+            doHttpReset(traceId);
+        }
     }
 
     private MessageConsumer newStream(
@@ -408,658 +1055,4 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
 
         receiver.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
     }
-
-    final class HttpStream
-    {
-        private final OpenapiStream delegate;
-        private final long originId;
-        private final long routedId;
-        private final long authorization;
-
-        private long initialId;
-        private long replyId;
-        private MessageConsumer receiver;
-
-        private int state;
-
-        private long initialSeq;
-        private long initialAck;
-        private int initialMax;
-        private long initialBud;
-
-        private long replySeq;
-        private long replyAck;
-        private int replyMax;
-        private int replyPad;
-
-        private HttpStream(
-            OpenapiStream delegate,
-            long originId,
-            long routedId,
-            long authorization)
-        {
-            this.delegate = delegate;
-            this.originId = originId;
-            this.routedId = routedId;
-            this.receiver = MessageConsumer.NOOP;
-            this.authorization = authorization;
-        }
-
-        private void doHttpInitialBegin(
-            long traceId,
-            OctetsFW extension)
-        {
-            if (OpenapiState.closed(state))
-            {
-                state = 0;
-            }
-
-            if (!OpenapiState.initialOpening(state))
-            {
-                assert state == 0;
-
-                this.initialId = supplyInitialId.applyAsLong(routedId);
-                this.replyId = supplyReplyId.applyAsLong(initialId);
-                this.receiver = newStream(this::onHttpMessage,
-                    originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, authorization, 0L, extension);
-                state = OpenapiState.openingInitial(state);
-            }
-        }
-
-        private void doHttpInitialData(
-            long traceId,
-            long authorization,
-            long budgetId,
-            int reserved,
-            int flags,
-            OctetsFW payload,
-            Flyweight extension)
-        {
-            doData(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, authorization, budgetId, flags, reserved, payload, extension);
-
-            initialSeq += reserved;
-
-            assert initialSeq <= initialAck + initialMax;
-        }
-
-        private void doHttpInitialFlush(
-            long traceId,
-            OctetsFW extension)
-        {
-            doFlush(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, authorization, initialBud, 0, extension);
-        }
-
-        private void doHttpInitialEnd(
-            long traceId,
-            OctetsFW extension)
-        {
-            if (!OpenapiState.initialClosed(state))
-            {
-                doEnd(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, authorization, extension);
-
-                state = OpenapiState.closeInitial(state);
-            }
-        }
-
-        private void doHttpInitialAbort(
-            long traceId,
-            OctetsFW extension)
-        {
-            if (!OpenapiState.initialClosed(state))
-            {
-                doAbort(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, authorization, extension);
-
-                state = OpenapiState.closeInitial(state);
-            }
-        }
-
-        private void onHttpInitialReset(
-            ResetFW reset)
-        {
-            final long sequence = reset.sequence();
-            final long acknowledge = reset.acknowledge();
-            final long traceId = reset.traceId();
-
-            assert acknowledge <= sequence;
-            assert acknowledge >= delegate.initialAck;
-
-            delegate.initialAck = acknowledge;
-            state = OpenapiState.closeInitial(state);
-
-            assert delegate.initialAck <= delegate.initialSeq;
-
-            delegate.doHttpInitialReset(traceId);
-        }
-
-
-        private void onHttpInitialWindow(
-            WindowFW window)
-        {
-            final long sequence = window.sequence();
-            final long acknowledge = window.acknowledge();
-            final int maximum = window.maximum();
-            final long authorization = window.authorization();
-            final long traceId = window.traceId();
-            final long budgetId = window.budgetId();
-            final int padding = window.padding();
-            final int capabilities = window.capabilities();
-
-            assert acknowledge <= sequence;
-            assert acknowledge >= delegate.initialAck;
-            assert maximum >= delegate.initialMax;
-
-            initialAck = acknowledge;
-            initialMax = maximum;
-            initialBud = budgetId;
-            state = OpenapiState.openInitial(state);
-
-            assert initialAck <= initialSeq;
-
-            delegate.doHttpInitialWindow(authorization, traceId, budgetId, padding);
-        }
-
-        private void onHttpMessage(
-            int msgTypeId,
-            DirectBuffer buffer,
-            int index,
-            int length)
-        {
-            switch (msgTypeId)
-            {
-            case BeginFW.TYPE_ID:
-                final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-                onHttpReplyBegin(begin);
-                break;
-            case DataFW.TYPE_ID:
-                final DataFW data = dataRO.wrap(buffer, index, index + length);
-                onHttpReplyData(data);
-                break;
-            case FlushFW.TYPE_ID:
-                final FlushFW flush = flushRO.wrap(buffer, index, index + length);
-                onHttpReplyFlush(flush);
-                break;
-            case EndFW.TYPE_ID:
-                final EndFW end = endRO.wrap(buffer, index, index + length);
-                onHttpReplyEnd(end);
-                break;
-            case AbortFW.TYPE_ID:
-                final AbortFW abort = abortRO.wrap(buffer, index, index + length);
-                onHttpReplyAbort(abort);
-                break;
-            case ResetFW.TYPE_ID:
-                final ResetFW reset = resetRO.wrap(buffer, index, index + length);
-                onHttpInitialReset(reset);
-                break;
-            case WindowFW.TYPE_ID:
-                final WindowFW window = windowRO.wrap(buffer, index, index + length);
-                onHttpInitialWindow(window);
-                break;
-            default:
-                break;
-            }
-        }
-
-        private void onHttpReplyBegin(
-            BeginFW begin)
-        {
-            final long traceId = begin.traceId();
-            final OctetsFW extension = begin.extension();
-
-            state = OpenapiState.openingReply(state);
-
-            delegate.doHttpReplyBegin(traceId, extension);
-        }
-
-        private void onHttpReplyData(
-            DataFW data)
-        {
-            final long sequence = data.sequence();
-            final long acknowledge = data.acknowledge();
-            final long traceId = data.traceId();
-            final int flags = data.flags();
-            final int reserved = data.reserved();
-            final OctetsFW payload = data.payload();
-            final OctetsFW extension = data.extension();
-
-            assert acknowledge <= sequence;
-            assert sequence >= replySeq;
-
-            replySeq = sequence + reserved;
-
-            assert replyAck <= replySeq;
-            assert replySeq <= replyAck + replyMax;
-
-            delegate.doHttpReplyData(traceId, flags, reserved, payload, extension);
-        }
-
-        private void onHttpReplyFlush(
-            FlushFW flush)
-        {
-            final long sequence = flush.sequence();
-            final long acknowledge = flush.acknowledge();
-            final long traceId = flush.traceId();
-            final int reserved = flush.reserved();
-            final OctetsFW extension = flush.extension();
-
-            assert acknowledge <= sequence;
-            assert sequence >= replySeq;
-
-            replySeq = sequence + reserved;
-
-            assert replyAck <= replySeq;
-            assert replySeq <= replyAck + replyMax;
-
-            delegate.doOpenapiReplyFlush(traceId, extension);
-        }
-
-        private void onHttpReplyEnd(
-            EndFW end)
-        {
-            final long sequence = end.sequence();
-            final long acknowledge = end.acknowledge();
-            final long traceId = end.traceId();
-            final OctetsFW extension = end.extension();
-
-            assert acknowledge <= sequence;
-            assert sequence >= replySeq;
-
-            replySeq = sequence;
-            state = OpenapiState.closingReply(state);
-
-            assert replyAck <= replySeq;
-
-            delegate.doHttpReplyEnd(traceId, extension);
-        }
-
-        private void onHttpReplyAbort(
-            AbortFW abort)
-        {
-            final long sequence = abort.sequence();
-            final long acknowledge = abort.acknowledge();
-            final long traceId = abort.traceId();
-
-            assert acknowledge <= sequence;
-            assert sequence >= replySeq;
-
-            replySeq = sequence;
-            state = OpenapiState.closingReply(state);
-
-            assert replyAck <= replySeq;
-
-            delegate.doHttpReplyAbort(traceId);
-        }
-
-        private void doHttpReplyReset(
-            long traceId)
-        {
-            if (!OpenapiState.replyClosed(state))
-            {
-                doReset(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, EMPTY_OCTETS);
-
-                state = OpenapiState.closeReply(state);
-            }
-        }
-
-        private void doHttpReplyWindow(
-            long traceId,
-            long authorization,
-            long budgetId,
-            int padding)
-        {
-            replyAck = Math.max(delegate.replyAck - replyPad, 0);
-            replyMax = delegate.replyMax;
-
-            doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                traceId, authorization, budgetId, padding + replyPad);
-        }
-    }
-
-    private final class OpenapiStream
-    {
-        private final HttpStream http;
-        private final MessageConsumer sender;
-        private final String operationId;
-        private final long originId;
-        private final long routedId;
-        private final long initialId;
-        private final long replyId;
-        private final long affinity;
-        private final long authorization;
-
-        private int state;
-
-        private long replyBudgetId;
-
-        private long initialSeq;
-        private long initialAck;
-        private int initialMax;
-
-        private long replySeq;
-        private long replyAck;
-        private int replyMax;
-        private int replyPad;
-        private long replyBud;
-        private int replyCap;
-
-        OpenapiStream(
-            MessageConsumer sender,
-            long originId,
-            long routedId,
-            long initialId,
-            long affinity,
-            long authorization,
-            long resolvedId,
-            String operationId)
-        {
-            this.http =  new HttpStream(this, routedId, resolvedId, authorization);
-            this.sender = sender;
-            this.originId = originId;
-            this.routedId = routedId;
-            this.initialId = initialId;
-            this.replyId = supplyReplyId.applyAsLong(initialId);
-            this.affinity = affinity;
-            this.authorization = authorization;
-            this.operationId = operationId;
-        }
-
-        private void onOpenapiMessage(
-            int msgTypeId,
-            DirectBuffer buffer,
-            int index,
-            int length)
-        {
-            switch (msgTypeId)
-            {
-            case BeginFW.TYPE_ID:
-                final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-                onOpenapiInitialBegin(begin);
-                break;
-            case DataFW.TYPE_ID:
-                final DataFW data = dataRO.wrap(buffer, index, index + length);
-                onOpenapiInitialData(data);
-                break;
-            case EndFW.TYPE_ID:
-                final EndFW end = endRO.wrap(buffer, index, index + length);
-                onOpenapiInitialEnd(end);
-                break;
-            case FlushFW.TYPE_ID:
-                final FlushFW flush = flushRO.wrap(buffer, index, index + length);
-                onOpenapiInitialFlush(flush);
-                break;
-            case AbortFW.TYPE_ID:
-                final AbortFW abort = abortRO.wrap(buffer, index, index + length);
-                onOpenapiInitialAbort(abort);
-                break;
-            case WindowFW.TYPE_ID:
-                final WindowFW window = windowRO.wrap(buffer, index, index + length);
-                onOpenapiReplyWindow(window);
-                break;
-            case ResetFW.TYPE_ID:
-                final ResetFW reset = resetRO.wrap(buffer, index, index + length);
-                onOpenapiReplyReset(reset);
-                break;
-            default:
-                break;
-            }
-        }
-
-        private void onOpenapiInitialBegin(
-            BeginFW begin)
-        {
-            final long sequence = begin.sequence();
-            final long acknowledge = begin.acknowledge();
-            final long traceId = begin.traceId();
-            final long authorization = begin.authorization();
-            final long affinity = begin.affinity();
-            final OctetsFW extension = begin.extension();
-            final OpenapiBeginExFW openapiBeginEx = extension.get(openapiBeginExRO::tryWrap);
-
-            assert acknowledge <= sequence;
-            assert sequence >= initialSeq;
-            assert acknowledge >= initialAck;
-
-            initialSeq = sequence;
-            initialAck = acknowledge;
-            state = OpenapiState.openingInitial(state);
-
-            assert initialAck <= initialSeq;
-
-            http.doHttpInitialBegin(traceId, openapiBeginEx.extension());
-        }
-
-        private void onOpenapiInitialData(
-            DataFW data)
-        {
-            final long sequence = data.sequence();
-            final long acknowledge = data.acknowledge();
-            final long traceId = data.traceId();
-            final long authorization = data.authorization();
-            final long budgetId = data.budgetId();
-            final int reserved = data.reserved();
-            final int flags = data.flags();
-            final OctetsFW payload = data.payload();
-            final OctetsFW extension = data.extension();
-
-            assert acknowledge <= sequence;
-            assert sequence >= initialSeq;
-
-            initialSeq = sequence;
-
-            assert initialAck <= initialSeq;
-
-            http.doHttpInitialData(traceId, authorization, budgetId, reserved, flags, payload, extension);
-        }
-
-        private void onOpenapiInitialEnd(
-            EndFW end)
-        {
-            final long sequence = end.sequence();
-            final long acknowledge = end.acknowledge();
-            final long traceId = end.traceId();
-            final OctetsFW extension = end.extension();
-
-            assert acknowledge <= sequence;
-            assert sequence >= initialSeq;
-
-            initialSeq = sequence;
-            state = OpenapiState.closeInitial(state);
-
-            assert initialAck <= initialSeq;
-
-            http.doHttpInitialEnd(traceId, extension);
-        }
-
-        private void onOpenapiInitialFlush(
-            FlushFW flush)
-        {
-            final long sequence = flush.sequence();
-            final long acknowledge = flush.acknowledge();
-            final long traceId = flush.traceId();
-            final OctetsFW extension = flush.extension();
-
-            assert acknowledge <= sequence;
-            assert sequence >= initialSeq;
-
-            initialSeq = sequence;
-
-            assert initialAck <= initialSeq;
-
-            http.doHttpInitialFlush(traceId, extension);
-        }
-
-        private void onOpenapiInitialAbort(
-            AbortFW abort)
-        {
-            final long sequence = abort.sequence();
-            final long acknowledge = abort.acknowledge();
-            final long traceId = abort.traceId();
-            final OctetsFW extension = abort.extension();
-
-            assert acknowledge <= sequence;
-            assert sequence >= initialSeq;
-
-            initialSeq = sequence;
-            state = OpenapiState.closeInitial(state);
-
-            assert initialAck <= initialSeq;
-
-            http.doHttpInitialAbort(traceId, extension);
-        }
-
-        private void doHttpInitialReset(
-            long traceId)
-        {
-            if (!OpenapiState.initialClosed(state))
-            {
-                state = OpenapiState.closeInitial(state);
-
-                doReset(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, authorization, EMPTY_OCTETS);
-            }
-        }
-
-        private void doHttpInitialWindow(
-            long authorization,
-            long traceId,
-            long budgetId,
-            int padding)
-        {
-            initialAck = http.initialAck;
-            initialMax = http.initialMax;
-
-            doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, authorization, budgetId, padding);
-        }
-
-        private void doHttpReplyBegin(
-            long traceId,
-            OctetsFW extension)
-        {
-            state = OpenapiState.openingReply(state);
-
-            final OpenapiBeginExFW openBeginEx = openBeginExRW
-                .wrap(extBuffer, 0, extBuffer.capacity())
-                .typeId(openapiTypeId)
-                .operationId(operationId)
-                .extension(extension)
-                .build();
-
-            doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                traceId, authorization, affinity, openBeginEx);
-        }
-
-        private void doHttpReplyData(
-            long traceId,
-            int flag,
-            int reserved,
-            OctetsFW payload,
-            Flyweight extension)
-        {
-
-            doData(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, replyBudgetId, flag, reserved, payload, extension);
-
-            replySeq += reserved;
-        }
-
-        private void doOpenapiReplyFlush(
-            long traceId,
-            OctetsFW extension)
-        {
-            doFlush(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                traceId, authorization, replyBudgetId, 0, extension);
-        }
-
-        private void doHttpReplyEnd(
-            long traceId,
-            OctetsFW extension)
-        {
-            if (OpenapiState.replyOpening(state) && !OpenapiState.replyClosed(state))
-            {
-                doEnd(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, extension);
-            }
-
-            state = OpenapiState.closeReply(state);
-        }
-
-        private void doHttpReplyAbort(
-            long traceId)
-        {
-            if (OpenapiState.replyOpening(state) && !OpenapiState.replyClosed(state))
-            {
-                doAbort(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, EMPTY_OCTETS);
-            }
-
-            state = OpenapiState.closeInitial(state);
-        }
-
-        private void onOpenapiReplyReset(
-            ResetFW reset)
-        {
-            final long sequence = reset.sequence();
-            final long acknowledge = reset.acknowledge();
-            final int maximum = reset.maximum();
-            final long traceId = reset.traceId();
-
-            assert acknowledge <= sequence;
-            assert sequence <= replySeq;
-            assert acknowledge >= replyAck;
-            assert maximum >= replyMax;
-
-            replyAck = acknowledge;
-            replyMax = maximum;
-            state = OpenapiState.closeReply(state);
-
-            assert replyAck <= replySeq;
-
-            cleanup(traceId);
-        }
-
-        private void onOpenapiReplyWindow(
-            WindowFW window)
-        {
-            final long sequence = window.sequence();
-            final long acknowledge = window.acknowledge();
-            final int maximum = window.maximum();
-            final long traceId = window.traceId();
-            final long budgetId = window.budgetId();
-            final int padding = window.padding();
-            final int capabilities = window.capabilities();
-
-            assert acknowledge <= sequence;
-            assert sequence <= replySeq;
-            assert acknowledge >= replyAck;
-            assert maximum >= replyMax;
-
-            replyAck = acknowledge;
-            replyMax = maximum;
-            replyBud = budgetId;
-            replyPad = padding;
-            replyCap = capabilities;
-            state = OpenapiState.closingReply(state);
-
-            assert replyAck <= replySeq;
-
-            http.doHttpReplyWindow(traceId, acknowledge, budgetId, padding);
-        }
-
-        private void cleanup(
-            long traceId)
-        {
-            doHttpInitialReset(traceId);
-            doHttpReplyAbort(traceId);
-
-            http.doHttpInitialAbort(traceId, EMPTY_OCTETS);
-            http.doHttpReplyReset(traceId);
-        }
-    }
-
 }

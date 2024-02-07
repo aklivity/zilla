@@ -67,7 +67,7 @@ public final class OperationsView
     }
 
     public static OperationsView of(
-        HashMap<String, PathItem> paths)
+        Map<String, PathItem> paths)
     {
         return new OperationsView(paths);
     }

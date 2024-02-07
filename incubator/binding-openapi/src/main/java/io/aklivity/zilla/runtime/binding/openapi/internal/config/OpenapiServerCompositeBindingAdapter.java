@@ -14,13 +14,9 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.config;
 
-import static com.fasterxml.jackson.dataformat.yaml.YAMLGenerator.Feature.MINIMIZE_QUOTES;
-import static com.fasterxml.jackson.dataformat.yaml.YAMLGenerator.Feature.WRITE_DOC_START_MARKER;
 import static io.aklivity.zilla.runtime.binding.http.config.HttpPolicyConfig.CROSS_ORIGIN;
-import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 import static java.util.Objects.requireNonNull;
-import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.net.URI;
 import java.util.HashMap;
@@ -29,16 +25,6 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import jakarta.json.Json;
-import jakarta.json.JsonPatch;
-import jakarta.json.JsonPatchBuilder;
-import jakarta.json.bind.Jsonb;
-import jakarta.json.bind.JsonbBuilder;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpConditionConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
@@ -56,7 +42,6 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.model.Operation;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.Parameter;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.Response;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.ResponseByContentType;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.Schema;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.Server;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OperationView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OperationsView;
@@ -66,8 +51,6 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.view.ServerView;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
-import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
-import io.aklivity.zilla.runtime.catalog.inline.config.InlineSchemaConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.CompositeBindingAdapterSpi;
@@ -75,18 +58,14 @@ import io.aklivity.zilla.runtime.engine.config.GuardedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
-import io.aklivity.zilla.runtime.guard.jwt.config.JwtOptionsConfig;
 import io.aklivity.zilla.runtime.model.core.config.IntegerModelConfig;
 import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
 import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
-import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig;
 
-public final class OpenapiCompositeBindingAdapter implements CompositeBindingAdapterSpi
+public final class OpenapiServerCompositeBindingAdapter implements CompositeBindingAdapterSpi
 {
     private static final String INLINE_CATALOG_NAME = "catalog0";
-    private static final String INLINE_CATALOG_TYPE = "inline";
-    private static final String VERSION_LATEST = "latest";
-    protected static final Pattern JSON_CONTENT_TYPE = Pattern.compile("^application/(?:.+\\+)?json$");
+    private static final Pattern JSON_CONTENT_TYPE = Pattern.compile("^application/(?:.+\\+)?json$");
 
     private final Matcher jsonContentType = JSON_CONTENT_TYPE.matcher("");
     private final Map<String, ModelConfig> models = Map.of(
@@ -109,9 +88,8 @@ public final class OpenapiCompositeBindingAdapter implements CompositeBindingAda
         return OpenapiBinding.NAME;
     }
 
-    public OpenapiCompositeBindingAdapter()
+    public OpenapiServerCompositeBindingAdapter()
     {
-
     }
 
     @Override
@@ -130,78 +108,34 @@ public final class OpenapiCompositeBindingAdapter implements CompositeBindingAda
         this.securitySchemes = resolveSecuritySchemes();
         this.isJwtEnabled = !securitySchemes.isEmpty();
 
-        switch (binding.kind)
-        {
-        case CLIENT:
-            return resolveClientBinding(binding);
-        case SERVER:
-            return resolveServerBinding(binding);
-        default:
-            return binding;
-        }
-    }
-
-    private BindingConfig resolveServerBinding(
-        BindingConfig binding)
-    {
-        return BindingConfig.builder(binding)
-                .composite()
-                    .name(String.format("%s/http", binding.qname))
-                    .binding()
-                        .name("tcp_server0")
-                        .type("tcp")
-                        .kind(SERVER)
-                        .options(TcpOptionsConfig::builder)
-                            .host("0.0.0.0")
-                            .ports(allPorts)
-                            .build()
-                        .inject(this::injectPlainTcpRoute)
-                        .inject(this::injectTlsTcpRoute)
-                        .build()
-                    .inject(this::injectTlsServer)
-                    .binding()
-                        .name("http_server0")
-                        .type("http")
-                        .kind(SERVER)
-                        .options(HttpOptionsConfig::builder)
-                            .access()
-                                .policy(CROSS_ORIGIN)
-                                .build()
-                            .inject(this::injectHttpServerOptions)
-                            .inject(this::injectHttpServerRequests)
-                            .build()
-                        .inject(this::injectHttpServerRoutes)
-                        .build()
-                    .build()
-                .build();
-    }
-
-    private BindingConfig resolveClientBinding(
-        BindingConfig binding)
-    {
         return BindingConfig.builder(binding)
             .composite()
-                .name(String.format(binding.qname, "$composite"))
+                .name(String.format("%s/http", binding.qname))
                 .binding()
-                    .name("http_client0")
-                    .type("http")
-                    .kind(CLIENT)
-                    .inject(this::injectHttpClientOptions)
-                    .exit(isTlsEnabled ? "tls_client0" : "tcp_client0")
-                    .build()
-                .inject(this::injectTlsClient)
-                .binding()
-                    .name("tcp_client0")
+                    .name("tcp_server0")
                     .type("tcp")
-                    .kind(CLIENT)
+                    .kind(SERVER)
                     .options(TcpOptionsConfig::builder)
-                        .host("") // env
-                        .ports(new int[]{0}) // env
+                        .host("0.0.0.0")
+                        .ports(allPorts)
                         .build()
+                    .inject(this::injectPlainTcpRoute)
+                    .inject(this::injectTlsTcpRoute)
                     .build()
-                .inject(this::injectGuard)
-                .inject(this::injectVaults)
-                .inject(this::injectCatalog)
+                .inject(this::injectTlsServer)
+                .binding()
+                    .name("http_server0")
+                    .type("http")
+                    .kind(SERVER)
+                    .options(HttpOptionsConfig::builder)
+                        .access()
+                            .policy(CROSS_ORIGIN)
+                            .build()
+                        .inject(this::injectHttpServerOptions)
+                        .inject(this::injectHttpServerRequests)
+                        .build()
+                    .inject(this::injectHttpServerRoutes)
+                    .build()
                 .build()
             .build();
     }
@@ -430,20 +364,6 @@ public final class OpenapiCompositeBindingAdapter implements CompositeBindingAda
         return request;
     }
 
-    private <C> BindingConfigBuilder<C> injectHttpClientOptions(
-        BindingConfigBuilder<C> binding)
-    {
-        OperationsView operations = OperationsView.of(openApi.paths);
-        if (operations.hasResponses())
-        {
-            binding.
-                options(HttpOptionsConfig::builder)
-                    .inject(options -> injectHttpClientRequests(operations, options))
-                    .build();
-        }
-        return binding;
-    }
-
     private <C> HttpOptionsConfigBuilder<C> injectHttpClientRequests(
         OperationsView operations,
         HttpOptionsConfigBuilder<C> options)
@@ -587,132 +507,6 @@ public final class OpenapiCompositeBindingAdapter implements CompositeBindingAda
         return guarded;
     }
 
-    private <C> NamespaceConfigBuilder<C> injectTlsClient(
-        NamespaceConfigBuilder<C> namespace)
-    {
-        if (isTlsEnabled)
-        {
-            namespace
-                .binding()
-                    .name("tls_client0")
-                    .type("tls")
-                    .kind(CLIENT)
-                    .options(TlsOptionsConfig::builder)
-                        .trust(List.of("")) // env
-                        .sni(List.of("")) // env
-                        .alpn(List.of("")) // env
-                        .trustcacerts(true)
-                        .build()
-                    .vault("client")
-                    .exit("tcp_client0")
-                    .build();
-        }
-        return namespace;
-    }
-
-    private <C> NamespaceConfigBuilder<C> injectGuard(
-        NamespaceConfigBuilder<C> namespace)
-    {
-        if (isJwtEnabled)
-        {
-            namespace
-                .guard()
-                    .name("jwt0")
-                    .type("jwt")
-                    .options(JwtOptionsConfig::builder)
-                        .issuer("") // env
-                        .audience("") // env
-                        .key()
-                            .alg("").kty("").kid("").use("").n("").e("").crv("").x("").y("") // env
-                            .build()
-                        .build()
-                    .build();
-        }
-        return namespace;
-    }
-
-    private <C> NamespaceConfigBuilder<C> injectVaults(
-        NamespaceConfigBuilder<C> namespace)
-    {
-        if (isTlsEnabled)
-        {
-            namespace
-                .vault()
-                    .name("client")
-                    .type("filesystem")
-                    .options(FileSystemOptionsConfig::builder)
-                        .trust()
-                            .store("") // env
-                            .type("") // env
-                            .password("") // env
-                            .build()
-                        .build()
-                    .build()
-                .vault()
-                    .name("server")
-                    .type("filesystem")
-                    .options(FileSystemOptionsConfig::builder)
-                        .keys()
-                            .store("") // env
-                            .type("") // env
-                            .password("") //env
-                            .build()
-                        .build()
-                    .build();
-        }
-        return namespace;
-    }
-
-    private JsonPatch createEnvVarsPatch()
-    {
-        JsonPatchBuilder patch = Json.createPatchBuilder();
-        patch.replace("/bindings/tcp_client0/options/host", "${{env.TCP_CLIENT_HOST}}");
-        patch.replace("/bindings/tcp_client0/options/port", "${{env.TCP_CLIENT_PORT}}");
-
-        if (isJwtEnabled)
-        {
-            // jwt0 guard
-            patch.replace("/guards/jwt0/options/issuer", "${{env.JWT_ISSUER}}");
-            patch.replace("/guards/jwt0/options/audience", "${{env.JWT_AUDIENCE}}");
-            patch.replace("/guards/jwt0/options/keys/0/alg", "${{env.JWT_ALG}}");
-            patch.replace("/guards/jwt0/options/keys/0/kty", "${{env.JWT_KTY}}");
-            patch.replace("/guards/jwt0/options/keys/0/kid", "${{env.JWT_KID}}");
-            patch.replace("/guards/jwt0/options/keys/0/use", "${{env.JWT_USE}}");
-            patch.replace("/guards/jwt0/options/keys/0/n", "${{env.JWT_N}}");
-            patch.replace("/guards/jwt0/options/keys/0/e", "${{env.JWT_E}}");
-            patch.replace("/guards/jwt0/options/keys/0/crv", "${{env.JWT_CRV}}");
-            patch.replace("/guards/jwt0/options/keys/0/x", "${{env.JWT_X}}");
-            patch.replace("/guards/jwt0/options/keys/0/y", "${{env.JWT_Y}}");
-        }
-
-        if (isTlsEnabled)
-        {
-            // tls_server0 binding
-            patch.replace("/bindings/tls_server0/options/keys/0", "${{env.TLS_SERVER_KEY}}");
-            patch.replace("/bindings/tls_server0/options/sni/0", "${{env.TLS_SERVER_SNI}}");
-            patch.replace("/bindings/tls_server0/options/alpn/0", "${{env.TLS_SERVER_ALPN}}");
-            // tls_client0 binding
-            patch.replace("/bindings/tls_client0/options/trust/0", "${{env.TLS_CLIENT_TRUST}}");
-            patch.replace("/bindings/tls_client0/options/sni/0", "${{env.TLS_CLIENT_SNI}}");
-            patch.replace("/bindings/tls_client0/options/alpn/0", "${{env.TLS_CLIENT_ALPN}}");
-            // client vault
-            patch.replace("/vaults/client/options/trust/store", "${{env.TRUSTSTORE_PATH}}");
-            patch.replace("/vaults/client/options/trust/type", "${{env.TRUSTSTORE_TYPE}}");
-            patch.replace("/vaults/client/options/trust/password", "${{env.TRUSTSTORE_PASSWORD}}");
-            // server vault
-            patch.replace("/vaults/server/options/keys/store", "${{env.KEYSTORE_PATH}}");
-            patch.replace("/vaults/server/options/keys/type", "${{env.KEYSTORE_TYPE}}");
-            patch.replace("/vaults/server/options/keys/password", "${{env.KEYSTORE_PASSWORD}}");
-        }
-
-        return patch.build();
-    }
-
-    private List<String> unquotedEnvVars()
-    {
-        return List.of("TCP_CLIENT_PORT");
-    }
-
     private SchemaView resolveSchemaForJsonContentType(
         Map<String, MediaType> content)
     {
@@ -729,70 +523,6 @@ public final class OpenapiCompositeBindingAdapter implements CompositeBindingAda
             }
         }
         return mediaType == null ? null : SchemaView.of(openApi.components.schemas, mediaType.schema);
-    }
-
-    private <C> NamespaceConfigBuilder<C> injectCatalog(
-        NamespaceConfigBuilder<C> namespace)
-    {
-        if (openApi.components != null && openApi.components.schemas != null && !openApi.components.schemas.isEmpty())
-        {
-            namespace
-                .catalog()
-                    .name(INLINE_CATALOG_NAME)
-                    .type(INLINE_CATALOG_TYPE)
-                    .options(InlineOptionsConfig::builder)
-                        .subjects()
-                            .inject(this::injectSubjects)
-                            .build()
-                        .build()
-                    .build();
-        }
-        return namespace;
-    }
-
-    private <C> InlineSchemaConfigBuilder<C> injectSubjects(
-        InlineSchemaConfigBuilder<C> subjects)
-    {
-        try (Jsonb jsonb = JsonbBuilder.create())
-        {
-            YAMLMapper yaml = YAMLMapper.builder()
-                .disable(WRITE_DOC_START_MARKER)
-                .enable(MINIMIZE_QUOTES)
-                .build();
-            for (Map.Entry<String, Schema> entry : openApi.components.schemas.entrySet())
-            {
-                SchemaView schema = SchemaView.of(openApi.components.schemas, entry.getValue());
-                subjects
-                    .subject(entry.getKey())
-                        .version(VERSION_LATEST)
-                        .schema(writeSchemaYaml(jsonb, yaml, schema))
-                        .build();
-            }
-        }
-        catch (Exception ex)
-        {
-            rethrowUnchecked(ex);
-        }
-        return subjects;
-    }
-
-    private static String writeSchemaYaml(
-        Jsonb jsonb,
-        YAMLMapper yaml,
-        Object schema)
-    {
-        String result = null;
-        try
-        {
-            String schemaJson = jsonb.toJson(schema);
-            JsonNode json = new ObjectMapper().readTree(schemaJson);
-            result = yaml.writeValueAsString(json);
-        }
-        catch (JsonProcessingException ex)
-        {
-            rethrowUnchecked(ex);
-        }
-        return result;
     }
 
 }
