@@ -19,14 +19,14 @@ import java.util.Map;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.Operation;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.ResponseByContentType;
 
-public class OperationView
+public final class OperationView
 {
     public static final String DEFAULT = "default";
 
     private final Operation operation;
     private final boolean hasResponses;
 
-    public OperationView(
+    private OperationView(
         Operation operation)
     {
         this.operation = operation;
