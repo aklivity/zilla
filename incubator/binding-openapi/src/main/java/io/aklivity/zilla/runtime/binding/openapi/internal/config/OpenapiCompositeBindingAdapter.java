@@ -146,7 +146,7 @@ public final class OpenapiCompositeBindingAdapter implements CompositeBindingAda
     {
         return BindingConfig.builder(binding)
                 .composite()
-                    .name(String.format(binding.qname, "$composite"))
+                    .name(String.format("%s/http", binding.qname))
                     .binding()
                         .name("tcp_server0")
                         .type("tcp")

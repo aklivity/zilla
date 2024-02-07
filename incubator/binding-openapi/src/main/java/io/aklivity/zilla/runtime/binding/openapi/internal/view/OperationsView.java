@@ -24,13 +24,13 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.model.PathItem;
 
 public final class OperationsView
 {
-    private final Map<String, Map<String, OperationView>> operationsPerPath;
+    private final Map<String, Map<String, OperationView>> operationsByPath;
     private final boolean hasResponses;
 
     private OperationsView(
-        HashMap<String, PathItem> paths)
+        Map<String, PathItem> paths)
     {
-        this.operationsPerPath = new Object2ObjectHashMap<>();
+        this.operationsByPath = new Object2ObjectHashMap<>();
         boolean hasResponses = false;
         for (String pathName : paths.keySet())
         {
@@ -39,15 +39,15 @@ public final class OperationsView
             {
                 OperationView operation = OperationView.of(path.methods().get(methodName));
                 hasResponses |= operation.hasResponses();
-                if (operationsPerPath.containsKey(pathName))
+                if (operationsByPath.containsKey(pathName))
                 {
-                    operationsPerPath.get(pathName).put(methodName, operation);
+                    operationsByPath.get(pathName).put(methodName, operation);
                 }
                 else
                 {
                     Map<String, OperationView> operationsPerMethod = new LinkedHashMap<>();
                     operationsPerMethod.put(methodName, operation);
-                    operationsPerPath.put(pathName, operationsPerMethod);
+                    operationsByPath.put(pathName, operationsPerMethod);
                 }
             }
         }
@@ -63,7 +63,7 @@ public final class OperationsView
         String pathName,
         String methodName)
     {
-        return operationsPerPath.get(pathName).get(methodName);
+        return operationsByPath.get(pathName).get(methodName);
     }
 
     public static OperationsView of(

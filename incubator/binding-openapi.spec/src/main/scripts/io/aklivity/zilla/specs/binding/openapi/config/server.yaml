@@ -17,10 +17,10 @@
 ---
 name: test
 bindings:
-    composite0:
-        type: openapi
-        kind: server
-        options:
-            specs:
-                - openapi/crud-item.yaml
-        exit: openapi0
+  composite0:
+    type: openapi
+    kind: server
+    options:
+      specs:
+        - openapi/petstore.yaml
+    exit: openapi0

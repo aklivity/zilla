@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.openapi.internal.streams;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 
+import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
@@ -145,7 +146,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
 
         MessageConsumer newStream = null;
 
-        if (binding != null && binding.isCompositeBinding(originId))
+        if (binding != null && binding.isCompositeNamespace(NamespacedId.namespaceId(originId)))
         {
             final String operationId = binding.resolveOperationId(httpBeginEx);
 

@@ -30,6 +30,7 @@ public final class ZillaTypeSystem implements TypeSystemSpi
 {
     public static final String NAME = "zilla";
 
+    public static final TypeInfo<String> OPTION_EPHEMERAL = new TypeInfo<>("ephemeral", String.class);
     public static final TypeInfo<String> OPTION_REPLY_TO = new TypeInfo<>("replyTo", String.class);
     public static final TypeInfo<Integer> OPTION_WINDOW = new TypeInfo<>("window", Integer.class);
     public static final TypeInfo<Integer> OPTION_SHARED_WINDOW = new TypeInfo<>("sharedWindow", Integer.class);
@@ -95,6 +96,7 @@ public final class ZillaTypeSystem implements TypeSystemSpi
         this.acceptOptions = unmodifiableSet(acceptOptions);
 
         Set<TypeInfo<?>> connectOptions = new LinkedHashSet<>();
+        connectOptions.add(OPTION_EPHEMERAL);
         connectOptions.add(OPTION_REPLY_TO);
         connectOptions.add(OPTION_WINDOW);
         connectOptions.add(OPTION_SHARED_WINDOW);

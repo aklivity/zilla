@@ -24,9 +24,6 @@ module io.aklivity.zilla.runtime.binding.openapi
     requires io.aklivity.zilla.runtime.model.core;
     requires io.aklivity.zilla.runtime.model.json;
 
-    requires com.fasterxml.jackson.dataformat.yaml;
-    requires com.fasterxml.jackson.databind;
-
     exports io.aklivity.zilla.runtime.binding.openapi.config;
 
     opens io.aklivity.zilla.runtime.binding.openapi.internal.model;

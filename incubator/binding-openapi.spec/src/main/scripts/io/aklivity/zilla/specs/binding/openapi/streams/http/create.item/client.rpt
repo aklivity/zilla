@@ -17,19 +17,20 @@
 connect "zilla://streams/composite0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
+        option zilla:ephemeral "test:composite0/http"
 
 write zilla:begin.ext ${http:beginEx()
                               .typeId(zilla:id("http"))
                               .header(":method", "POST")
                               .header(":scheme", "http")
-                              .header(":path", "/items")
+                              .header(":path", "/pets")
                               .header(":authority", "localhost:8080")
                               .header("content-type", "application/json")
-                              .header("content-length", "36")
+                              .header("content-length", "39")
                               .build()}
 connected
 
-write "{\"greeting\": \"zilla\", \"tag\": \"test\"}"
+write "{\"id\": 1, \"name\": \"rocky \"tag\": \"test\"}"
 write close
 
 read zilla:begin.ext ${http:beginEx()

@@ -18,6 +18,7 @@ package io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_AUTHORIZATION;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_BUDGET_ID;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_BYTE_ORDER;
+import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_EPHEMERAL;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_PADDING;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_REPLY_TO;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_STREAM_ID;
@@ -72,7 +73,7 @@ public class ZillaChannelAddressFactory extends ChannelAddressFactorySpi
             }
         }
 
-        Collection<TypeInfo<?>> allOptionTypes = asList(OPTION_REPLY_TO, OPTION_WINDOW, OPTION_BUDGET_ID,
+        Collection<TypeInfo<?>> allOptionTypes = asList(OPTION_EPHEMERAL, OPTION_REPLY_TO, OPTION_WINDOW, OPTION_BUDGET_ID,
                 OPTION_STREAM_ID, OPTION_PADDING, OPTION_UPDATE, OPTION_AUTHORIZATION, OPTION_THROTTLE,
                 OPTION_TRANSMISSION, OPTION_BYTE_ORDER);
         for (TypeInfo<?> optionType : allOptionTypes)
@@ -90,7 +91,8 @@ public class ZillaChannelAddressFactory extends ChannelAddressFactorySpi
 
         final long authorization = (Long) options.getOrDefault(OPTION_AUTHORIZATION.getName(), 0L);
         final String replyTo = (String) options.getOrDefault(OPTION_REPLY_TO.getName(), "test");
+        final String ephemeral = (String) options.getOrDefault(OPTION_EPHEMERAL.getName(), "ephemeral");
 
-        return new ZillaChannelAddress(location, authorization, replyTo);
+        return new ZillaChannelAddress(location, authorization, replyTo, ephemeral);
     }
 }

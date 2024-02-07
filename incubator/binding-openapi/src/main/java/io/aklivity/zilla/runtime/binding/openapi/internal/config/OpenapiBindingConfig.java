@@ -14,19 +14,21 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.config;
 
+import static java.util.stream.Collectors.toCollection;
 import static java.util.stream.Collectors.toList;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import org.agrona.AsciiSequenceView;
 import org.agrona.DirectBuffer;
-import org.agrona.collections.LongHashSet;
+import org.agrona.collections.IntHashSet;
 import org.agrona.collections.Object2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
@@ -37,6 +39,7 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
+import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 
 public final class OpenapiBindingConfig
 {
@@ -47,8 +50,9 @@ public final class OpenapiBindingConfig
     public final List<OpenapiRouteConfig> routes;
     public final HttpHeaderHelper helper;
 
-    private final LongHashSet httpOrigins;
-    private final Object2ObjectHashMap<Pattern, PathItem> paths;
+    private final IntHashSet httpOrigins;
+    private final Object2ObjectHashMap<Matcher, PathItem> paths;
+    private final Map<CharSequence, Function<PathItem, String>> resolversByMethod;
 
     public OpenapiBindingConfig(
         BindingConfig binding)
@@ -60,9 +64,10 @@ public final class OpenapiBindingConfig
         this.paths = new Object2ObjectHashMap<>();
         options.openapis.forEach(c -> c.openapi.paths.forEach((k, v) ->
         {
-            String regex = k.replace("{id}", "[^/]+");
+            String regex = k.replaceAll("\\{[^/]+}", "[^/]+");
             regex = "^" + regex + "$";
-            paths.put(Pattern.compile(regex), v);
+            Pattern pattern = Pattern.compile(regex);
+            paths.put(pattern.matcher(""), v);
         }));
 
         this.routes = binding.routes.stream().map(OpenapiRouteConfig::new).collect(toList());
@@ -71,15 +76,25 @@ public final class OpenapiBindingConfig
             .map(c -> c.bindings)
             .flatMap(List::stream)
             .filter(b -> b.type.equals("http"))
-            .map(b -> b.id)
-            .collect(Collectors.toCollection(LongHashSet::new));
+            .map(b -> NamespacedId.namespaceId(b.id))
+            .collect(toCollection(IntHashSet::new));
         this.helper = new HttpHeaderHelper();
+
+        this.resolversByMethod = new TreeMap<>(CharSequence::compare);
+        resolversByMethod.put("POST", o -> o.post != null ? o.post.operationId : null);
+        resolversByMethod.put("PUT", o -> o.put != null ? o.put.operationId : null);
+        resolversByMethod.put("GET", o -> o.get != null ? o.get.operationId : null);
+        resolversByMethod.put("DELETE", o -> o.delete != null ? o.delete.operationId : null);
+        resolversByMethod.put("OPTIONS", o -> o.options != null ? o.options.operationId : null);
+        resolversByMethod.put("HEAD", o -> o.head != null ? o.head.operationId : null);
+        resolversByMethod.put("PATCH", o -> o.patch != null ? o.patch.operationId : null);
+        resolversByMethod.put("TRACE", o -> o.post != null ? o.trace.operationId : null);
     }
 
-    public boolean isCompositeBinding(
-        long originId)
+    public boolean isCompositeNamespace(
+        int namespaceId)
     {
-        return true; //TODO: httpOrigins.contains(originId);
+        return httpOrigins.contains(namespaceId);
     }
 
     public String resolveOperationId(
@@ -90,10 +105,10 @@ public final class OpenapiBindingConfig
         String operationId = null;
 
         resolve:
-        for (Map.Entry<Pattern, PathItem> item : paths.entrySet())
+        for (Map.Entry<Matcher, PathItem> item : paths.entrySet())
         {
-            Pattern pattern = item.getKey();
-            Matcher matcher = pattern.matcher(helper.path);
+            Matcher matcher = item.getKey();
+            matcher.reset(helper.path);
             if (matcher.find())
             {
                 PathItem operations = item.getValue();
@@ -108,42 +123,8 @@ public final class OpenapiBindingConfig
     private String resolveMethod(
         PathItem operations)
     {
-        String operationId = null;
-
-        if ("POST".contentEquals(helper.method))
-        {
-            operationId = operations.post != null ? operations.post.operationId : null;
-        }
-        else if ("PUT".contentEquals(helper.method))
-        {
-            operationId = operations.put != null ? operations.put.operationId : null;
-        }
-        else if ("GET".contentEquals(helper.method))
-        {
-            operationId = operations.get != null ? operations.get.operationId : null;
-        }
-        else if ("DELETE".contentEquals(helper.method))
-        {
-            operationId = operations.delete != null ? operations.delete.operationId : null;
-        }
-        else if ("OPTIONS".contentEquals(helper.method))
-        {
-            operationId = operations.options != null ? operations.options.operationId : null;
-        }
-        else if ("HEAD".contentEquals(helper.method))
-        {
-            operationId = operations.head != null ? operations.head.operationId : null;
-        }
-        else if ("PATH".contentEquals(helper.method))
-        {
-            operationId = operations.patch != null ? operations.patch.operationId : null;
-        }
-        else if ("TRACE".contentEquals(helper.method))
-        {
-            operationId = operations.trace != null ? operations.trace.operationId : null;
-        }
-
-        return operationId;
+        Function<PathItem, String> resolver = resolversByMethod.get(helper.method);
+        return resolver != null ? resolver.apply(operations) : null;
     }
 
     public OpenapiRouteConfig resolve(

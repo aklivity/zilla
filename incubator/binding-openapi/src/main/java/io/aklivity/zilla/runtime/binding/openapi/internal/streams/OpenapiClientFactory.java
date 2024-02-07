@@ -146,7 +146,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
 
         MessageConsumer newStream = null;
 
-        if (binding != null && binding.isCompositeBinding(originId))
+        if (binding != null)
         {
             final String operationId = openapiBeginEx.operationId().asString();
 

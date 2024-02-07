@@ -17,9 +17,9 @@
 ---
 name: test
 bindings:
-    openapi0:
-        type: openapi
-        kind: client
-        options:
-            specs:
-                - openapi/crud-item.yaml
+  openapi0:
+    type: openapi
+    kind: client
+    options:
+      specs:
+        - openapi/petstore.yaml
