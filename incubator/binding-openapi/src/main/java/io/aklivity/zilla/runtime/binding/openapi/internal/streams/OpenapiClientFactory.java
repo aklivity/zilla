@@ -513,10 +513,10 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
         private final long routedId;
         private final long authorization;
 
-        private long initialId;
-        private long replyId;
-        private MessageConsumer receiver;
+        private final long initialId;
+        private final long replyId;
 
+        private  MessageConsumer receiver;
         private int state;
 
         private long initialSeq;
@@ -689,9 +689,8 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
             {
                 assert state == 0;
 
-                this.receiver = newStream(this::onHttpMessage,
-                    originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, authorization, 0L, extension);
+                this.receiver = newStream(this::onHttpMessage, originId, routedId, initialId, initialSeq,
+                    initialAck, initialMax, traceId, authorization, 0L, extension);
                 state = OpenapiState.openingInitial(state);
             }
         }
