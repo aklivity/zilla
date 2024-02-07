@@ -15,10 +15,61 @@
  */
 package io.aklivity.zilla.specs.binding.asyncapi.internal;
 
+import org.agrona.MutableDirectBuffer;
+import org.agrona.concurrent.UnsafeBuffer;
+import org.kaazing.k3po.lang.el.Function;
 import org.kaazing.k3po.lang.el.spi.FunctionMapperSpi;
+
+import io.aklivity.zilla.specs.binding.asyncapi.internal.types.stream.AsyncapiBeginExFW;
 
 public final class AsyncapiFunctions
 {
+
+    @Function
+    public static AsyncapiBeginExBuilder beginEx()
+    {
+        return new AsyncapiBeginExBuilder();
+    }
+
+    public static final class AsyncapiBeginExBuilder
+    {
+        private final AsyncapiBeginExFW.Builder beginExRW;
+
+        private AsyncapiBeginExBuilder()
+        {
+            MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+            this.beginExRW = new AsyncapiBeginExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
+        }
+
+        public AsyncapiBeginExBuilder typeId(
+            int typeId)
+        {
+            beginExRW.typeId(typeId);
+            return this;
+        }
+
+        public AsyncapiBeginExBuilder operationId(
+            String operationId)
+        {
+            beginExRW.operationId(operationId);
+            return this;
+        }
+
+        public AsyncapiBeginExBuilder extension(
+            byte[] extension)
+        {
+            beginExRW.extension(e -> e.set(extension));
+            return this;
+        }
+
+        public byte[] build()
+        {
+            final AsyncapiBeginExFW beginEx = beginExRW.build();
+            final byte[] array = new byte[beginEx.sizeof()];
+            beginEx.buffer().getBytes(beginEx.offset(), array);
+            return array;
+        }
+    }
 
     private AsyncapiFunctions()
     {

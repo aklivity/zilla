@@ -25,9 +25,9 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.CompositeBindingAdapterSpi;
 import io.aklivity.zilla.runtime.engine.config.EngineConfig;
 
-public class AsyncapiCompositeBindingAdapterSpi implements CompositeBindingAdapterSpi
+public class AsyncapiCompositeBindingAdapter implements CompositeBindingAdapterSpi
 {
-    private static final String COMPOSITE_MQTT_SERVER_NAMESPACE = "mqtt_server";
+    private static final String COMPOSITE_MQTT_SERVER_NAMESPACE = "composite";
     private static final String COMPOSITE_MQTT_CLIENT_NAMESPACE = "mqtt_client";
 
     @Override
@@ -50,7 +50,7 @@ public class AsyncapiCompositeBindingAdapterSpi implements CompositeBindingAdapt
             for (int i = 0; i < asyncapis.size(); i++)
             {
                 AsyncApiMqttProxyConfigGenerator generator = new AsyncApiMqttProxyConfigGenerator(asyncapis.get(i).asyncApi);
-                EngineConfig config = generator.createServerConfig(COMPOSITE_MQTT_SERVER_NAMESPACE + i);
+                EngineConfig config = generator.createServerConfig(String.format("%s/mqtt", binding.qname));
                 config.namespaces.forEach(builder::composite);
             }
             return builder.build();

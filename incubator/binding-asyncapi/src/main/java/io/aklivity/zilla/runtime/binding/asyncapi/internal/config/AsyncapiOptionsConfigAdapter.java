@@ -14,6 +14,9 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.config;
 
+import static java.util.stream.Collectors.toList;
+import static org.agrona.LangUtil.rethrowUnchecked;
+
 import java.util.List;
 import java.util.function.Function;
 
@@ -35,9 +38,6 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncApi;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
-import static java.util.stream.Collectors.toList;
-import static org.agrona.LangUtil.rethrowUnchecked;
-
 
 public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {

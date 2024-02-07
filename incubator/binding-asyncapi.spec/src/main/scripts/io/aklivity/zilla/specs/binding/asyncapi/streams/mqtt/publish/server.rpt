@@ -14,9 +14,11 @@
 # under the License.
 #
 
-accept "zilla://streams/app0"
+property serverAddress "zilla://streams/composite0"
+
+accept ${serverAddress}
         option zilla:window 8192
-        option zilla:transmission "duplex"
+        option zilla:transmission "half-duplex"
 
 accepted
 
@@ -43,3 +45,30 @@ connected
 
 write zilla:data.empty
 write flush
+
+
+accepted
+
+read zilla:begin.ext ${mqtt:matchBeginEx()
+                             .typeId(zilla:id("mqtt"))
+                             .publish()
+                                .clientId("client")
+                                .topic("sensor/one")
+                                .build()
+                             .build()}
+
+connected
+
+read zilla:data.ext ${mqtt:matchDataEx()
+                            .typeId(zilla:id("mqtt"))
+                            .publish()
+                                .qos("AT_MOST_ONCE")
+                                .expiryInterval(15)
+                                .contentType("message")
+                                .format("TEXT")
+                                .responseTopic("sensor/one")
+                                .correlation("info")
+                                .build()
+                            .build()}
+
+read "message"

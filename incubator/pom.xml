@@ -17,7 +17,6 @@
   <name>zilla::incubator</name>
 
   <modules>
-    <module>binding-asyncapi</module>
     <module>binding-asyncapi.spec</module>
     <module>binding-amqp.spec</module>
     <module>catalog-inline.spec</module>
@@ -27,6 +26,7 @@
     <module>validator-core.spec</module>
     <module>validator-json.spec</module>
 
+    <module>binding-asyncapi</module>
     <module>binding-amqp</module>
 
     <module>catalog-inline</module>

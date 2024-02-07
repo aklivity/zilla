@@ -16,7 +16,6 @@ package io.aklivity.zilla.runtime.binding.asyncapi.internal;
 
 import static org.agrona.LangUtil.rethrowUnchecked;
 
-import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;

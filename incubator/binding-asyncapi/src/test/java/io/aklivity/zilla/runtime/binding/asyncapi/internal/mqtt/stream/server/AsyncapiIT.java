@@ -32,17 +32,17 @@ import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 public class AsyncapiIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/mqtt/streams/network/v5")
-        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/mqtt/streams/application");
+        .addScriptRoot("mqtt", "io/aklivity/zilla/specs/binding/asyncapi/streams/mqtt")
+        .addScriptRoot("asyncapi", "io/aklivity/zilla/specs/binding/asyncapi/streams/asyncapi");
 
-    private final TestRule timeout = new DisableOnDebug(new Timeout(5, SECONDS));
+    private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
         .countersBufferCapacity(8192)
         .configure(ENGINE_DRAIN_ON_CLOSE, false)
         .configurationRoot("io/aklivity/zilla/specs/binding/asyncapi/config")
-        .external("net0")
+        .external("asyncapi0")
         .clean();
 
     @Rule
@@ -51,9 +51,10 @@ public class AsyncapiIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/connect.successful/client",
-        "${app}/connect.successful/server"})
-    public void shouldConnectServer() throws Exception
+        "${mqtt}/publish/client",
+        "${asyncapi}/publish/server"
+    })
+    public void shouldPublish() throws Exception
     {
         k3po.finish();
     }

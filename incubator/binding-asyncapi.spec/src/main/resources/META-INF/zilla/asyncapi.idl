@@ -15,10 +15,13 @@
  */
 scope asyncapi
 {
-    option byteorder network;
-
     scope stream
     {
-
+        struct AsyncapiBeginEx extends core::stream::Extension
+        {
+            int32 apiId = 0;
+            string16 operationId = null;
+            octets extension;
+        }
     }
 }

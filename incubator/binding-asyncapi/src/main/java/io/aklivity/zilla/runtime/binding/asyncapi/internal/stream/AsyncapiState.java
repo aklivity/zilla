@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.stream;
 
-public final class AsynapiState
+public final class AsyncapiState
 {
     private static final int INITIAL_OPENING = 0x10;
     private static final int INITIAL_OPENED = 0x20;
@@ -127,7 +127,7 @@ public final class AsynapiState
         return initialClosed(state) && replyClosed(state);
     }
 
-    private AsynapiState()
+    private AsyncapiState()
     {
         // utility
     }

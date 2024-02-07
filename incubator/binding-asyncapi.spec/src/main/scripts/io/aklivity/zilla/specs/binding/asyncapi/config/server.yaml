@@ -17,10 +17,10 @@
 ---
 name: test
 bindings:
-    asyncapi_server0:
+    composite0:
         type: asyncapi
         kind: server
         options:
             specs:
                 - mqtt/asyncapi.yaml
-        exit: app0
+        exit: asyncapi0

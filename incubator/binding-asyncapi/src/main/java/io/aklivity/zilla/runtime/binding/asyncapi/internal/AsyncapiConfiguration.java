@@ -14,9 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal;
 
-import java.io.File;
-import java.net.URI;
-
 import io.aklivity.zilla.runtime.engine.Configuration;
 
 public class AsyncapiConfiguration extends Configuration

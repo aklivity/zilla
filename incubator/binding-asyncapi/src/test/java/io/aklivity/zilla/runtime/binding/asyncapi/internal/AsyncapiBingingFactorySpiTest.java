@@ -14,15 +14,14 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal;
 
-
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.mockito.ArgumentMatchers.any;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.util.Collections;
+
+import jakarta.json.bind.Jsonb;
+import jakarta.json.bind.JsonbBuilder;
+import jakarta.json.bind.JsonbConfig;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -35,17 +34,11 @@ import org.mockito.junit.MockitoRule;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.mqtt.config.AsyncapiOptionsConfigAdapterTest;
-import io.aklivity.zilla.runtime.engine.Configuration;
-import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.runtime.engine.internal.config.OptionsAdapter;
-
-import jakarta.json.bind.Jsonb;
-import jakarta.json.bind.JsonbBuilder;
-import jakarta.json.bind.JsonbConfig;
 
 public class AsyncapiBingingFactorySpiTest
 {
@@ -95,7 +88,7 @@ public class AsyncapiBingingFactorySpiTest
             .options(options)
             .build();
 
-        AsyncapiCompositeBindingAdapterSpi asyncapiCompositeSpi = new AsyncapiCompositeBindingAdapterSpi();
+        AsyncapiCompositeBindingAdapter asyncapiCompositeSpi = new AsyncapiCompositeBindingAdapter();
         Assert.assertEquals(0, config.composites.size());
         BindingConfig newConfig = asyncapiCompositeSpi.adapt(config);
         Assert.assertEquals(1, newConfig.composites.size());

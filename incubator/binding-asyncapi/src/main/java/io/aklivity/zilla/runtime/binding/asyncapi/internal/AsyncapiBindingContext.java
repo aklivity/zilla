@@ -14,11 +14,13 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal;
 
+import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 
 import java.util.EnumMap;
 import java.util.Map;
 
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.stream.AsyncapiClientFactory;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.stream.AsyncapiServerFactory;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.stream.AsyncapiStreamFactory;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -37,6 +39,7 @@ final class AsyncapiBindingContext implements BindingContext
     {
         Map<KindConfig, AsyncapiStreamFactory> factories = new EnumMap<>(KindConfig.class);
         factories.put(SERVER, new AsyncapiServerFactory(config, context));
+        factories.put(CLIENT, new AsyncapiClientFactory(config, context));
         this.factories = factories;
     }
 
