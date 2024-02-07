@@ -14,9 +14,9 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.model;
 
-import java.util.LinkedHashMap;
+import java.util.Map;
 
 public class RequestBody
 {
-    public LinkedHashMap<String, MediaType> content;
+    public Map<String, MediaType> content;
 }

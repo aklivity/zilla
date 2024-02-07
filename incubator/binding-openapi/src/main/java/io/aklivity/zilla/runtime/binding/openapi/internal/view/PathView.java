@@ -22,7 +22,7 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.model.PathItem;
 
 public class PathView
 {
-    private final LinkedHashMap<String, Operation> methods;
+    private final Map<String, Operation> methods;
 
     public PathView(
         PathItem pathItem)

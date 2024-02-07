@@ -26,15 +26,15 @@ read zilla:begin.ext ${http:beginEx()
                              .typeId(zilla:id("http"))
                              .header(":method", "POST")
                              .header(":scheme", "http")
-                             .header(":path", "/items")
+                             .header(":path", "/pets")
                              .header(":authority", "localhost:8080")
                              .header("content-type", "application/json")
-                             .header("content-length", "36")
+                             .header("content-length", "39")
                              .build()}
 
 connected
 
-read "{\"greeting\": \"zilla\", \"tag\": \"test\"}"
+read "{\"id\": 1, \"name\": \"rocky \"tag\": \"test\"}"
 read closed
 
 write zilla:begin.ext ${http:beginEx()

@@ -18,23 +18,22 @@ connect "zilla://streams/openapi0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
 
-
 write zilla:begin.ext ${openapi:beginEx()
                              .typeId(zilla:id("openapi"))
-                             .operationId("createItem")
+                             .operationId("createPets")
                              .extension(http:beginEx()
                                   .typeId(zilla:id("http"))
                                   .header(":method", "POST")
                                   .header(":scheme", "http")
-                                  .header(":path", "/items")
+                                  .header(":path", "/pets")
                                   .header(":authority", "localhost:8080")
                                   .header("content-type", "application/json")
-                                  .header("content-length", "36")
+                                  .header("content-length", "39")
                                   .build())
                              .build()}
 connected
 
-write "{\"greeting\": \"zilla\", \"tag\": \"test\"}"
+write "{\"id\": 1, \"name\": \"rocky \"tag\": \"test\"}"
 write close
 
 read zilla:begin.ext ${openapi:beginEx()
