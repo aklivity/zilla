@@ -59,7 +59,6 @@ public class StdoutExporterHandler implements ExporterHandler
     @Override
     public void start()
     {
-        //System.out.println("Hello, I am StdoutExporterHandler.start!"); // TODO: Ati
         try (Stream<Path> files = Files.walk(directory, 3))
         {
             this.printables = files.filter(this::isEventsFile)
@@ -81,7 +80,6 @@ public class StdoutExporterHandler implements ExporterHandler
         {
             for (int i = 0; i < printables.length; i++)
             {
-                // TODO: Ati
                 workCount += printables[i].process();
             }
         }
@@ -109,18 +107,11 @@ public class StdoutExporterHandler implements ExporterHandler
     private PrintableEventsStream newPrintable(
         Path path)
     {
-        //final String filename = path.getFileName().toString();
-        //final Matcher matcher = EVENTS_PATTERN.matcher(filename);
-        //matcher.matches();
-        //final int index = parseInt(matcher.group(1));
-
         EventsLayout layout = new EventsLayout.Builder()
             .path(path)
             .readonly(true)
             .spyAt(SpyPosition.ZERO)
             .build();
-
-        //System.out.printf("hello this is a new PrintableEventsStream: %d%n", index);
-        return new PrintableEventsStream(labels, layout, out); // TODO: Ati
+        return new PrintableEventsStream(labels, layout, out);
     }
 }

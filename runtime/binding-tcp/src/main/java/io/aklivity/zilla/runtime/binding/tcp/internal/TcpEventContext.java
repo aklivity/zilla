@@ -58,7 +58,6 @@ public class TcpEventContext
                 .address(address)
             )
             .build();
-        System.out.println(event); // TODO: Ati
         logEvent.accept(typeId, event.buffer(), event.offset(), event.limit());
     }
 }

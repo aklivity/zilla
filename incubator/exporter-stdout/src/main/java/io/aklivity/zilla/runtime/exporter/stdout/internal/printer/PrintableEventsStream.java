@@ -36,7 +36,7 @@ import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.TlsEventFW
 public class PrintableEventsStream
 {
     private static final String TCP_REMOTE_ACCESS_FAILED_FORMAT =
-        "ERROR: Remote Access Failed [timestamp = %d] [traceId = 0x%016x] [bindingId = 0x%016x] [address = %s]%n";
+        "ERROR: Remote Access Failed [timestamp = %d] [traceId = 0x%016x] [binding = %s] [address = %s]%n";
 
     private final EventFW eventRO = new EventFW();
     private final HttpEventFW httpEventRO = new HttpEventFW();
@@ -92,10 +92,6 @@ public class PrintableEventsStream
         int index,
         int length)
     {
-        final EventFW event = eventRO.wrap(buffer, index, index + length);
-        final long timestamp = event.timestamp();
-        // TODO: Ati - chk timestamp ?
-
         final MessageConsumer handler = eventHandlers.get(msgTypeId);
         if (handler != null)
         {
@@ -115,7 +111,8 @@ public class PrintableEventsStream
         {
         case REMOTE_ACCESS_FAILED:
             TcpRemoteAccessFailedEventFW e = event.remoteAccessFailed();
-            out.printf(TCP_REMOTE_ACCESS_FAILED_FORMAT, e.timestamp(), e.traceId(), e.bindingId(), asString(e.address()));
+            out.printf(TCP_REMOTE_ACCESS_FAILED_FORMAT, e.timestamp(), e.traceId(), asBinding(e.bindingId()),
+                asString(e.address()));
             break;
         }
     }
@@ -129,10 +126,30 @@ public class PrintableEventsStream
         // TODO: Ati
     }
 
-    private String asString(
+    private String asBinding(
+        long bindingId)
+    {
+        String namespace = labels.lookupLabel(namespaceId(bindingId));
+        String binding = labels.lookupLabel(localId(bindingId));
+        return String.format("%s.%s", namespace, binding);
+    }
+
+    private static String asString(
         StringFW stringFW)
     {
         String s = stringFW.asString();
         return s == null ? "" : s;
+    }
+
+    public static int namespaceId(
+        long bindingId)
+    {
+        return (int)(bindingId >> Integer.SIZE) & 0xffff_ffff;
+    }
+
+    private static int localId(
+        long bindingId)
+    {
+        return (int)(bindingId >> 0) & 0xffff_ffff;
     }
 }
