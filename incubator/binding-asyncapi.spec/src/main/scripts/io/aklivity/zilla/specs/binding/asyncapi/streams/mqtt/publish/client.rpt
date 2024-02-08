@@ -16,7 +16,7 @@
 
 connect "zilla://streams/composite0"
          option zilla:window 8192
-         option zilla:transmission "half-duplex"
+         option zilla:transmission "duplex"
          option zilla:ephemeral "test:composite0/mqtt"
 
 write zilla:begin.ext ${mqtt:beginEx()
@@ -73,3 +73,4 @@ write zilla:data.ext ${mqtt:dataEx()
                              .build()}
 
 write "message"
+write flush

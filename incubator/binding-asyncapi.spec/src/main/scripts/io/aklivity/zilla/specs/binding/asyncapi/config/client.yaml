@@ -17,10 +17,10 @@
 ---
 name: test
 bindings:
-    asyncapi_client0:
+    asyncapi0:
         type: asyncapi
         kind: client
         options:
             specs:
                 - mqtt/asyncapi.yaml
-        exit: app0
+        exit: mqtt0

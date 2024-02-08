@@ -849,7 +849,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
             assert acknowledge <= sequence;
             assert sequence >= initialSeq;
 
-            initialSeq = sequence;
+            initialSeq = sequence + reserved;
 
             assert initialAck <= initialSeq;
 

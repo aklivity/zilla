@@ -153,10 +153,12 @@ public class AsyncApiMqttProxyConfigGenerator extends AsyncApiConfigGenerator
                     .type("tcp")
                     .kind(CLIENT)
                     .options(TcpOptionsConfig::builder)
-                        .host("${{env.TCP_CLIENT_HOST}}") // env
+                        .host("") // env
                         .ports(new int[]{0}) // env
                         .build()
                     .build()
+                .inject(this::injectVaults)
+                .inject(this::injectCatalog)
                 .build()
             .build();
     }

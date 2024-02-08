@@ -18,7 +18,7 @@ property serverAddress "zilla://streams/composite0"
 
 accept ${serverAddress}
         option zilla:window 8192
-        option zilla:transmission "half-duplex"
+        option zilla:transmission "duplex"
 
 accepted
 

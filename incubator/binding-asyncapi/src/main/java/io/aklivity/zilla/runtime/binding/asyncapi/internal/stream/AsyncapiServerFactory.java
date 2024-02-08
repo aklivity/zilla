@@ -469,27 +469,27 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
                 break;
             case DataFW.TYPE_ID:
                 final DataFW data = dataRO.wrap(buffer, index, index + length);
-                onMqttInitialData(data);
+                onMqttData(data);
                 break;
             case EndFW.TYPE_ID:
                 final EndFW end = endRO.wrap(buffer, index, index + length);
-                onMqttInitialEnd(end);
+                onMqttEnd(end);
                 break;
             case FlushFW.TYPE_ID:
                 final FlushFW flush = flushRO.wrap(buffer, index, index + length);
-                onMqttInitialFlush(flush);
+                onMqttFlush(flush);
                 break;
             case AbortFW.TYPE_ID:
                 final AbortFW abort = abortRO.wrap(buffer, index, index + length);
-                onMqttInitialAbort(abort);
+                onMqttAbort(abort);
                 break;
             case WindowFW.TYPE_ID:
                 final WindowFW window = windowRO.wrap(buffer, index, index + length);
-                onMqttReplyWindow(window);
+                onMqttWindow(window);
                 break;
             case ResetFW.TYPE_ID:
                 final ResetFW reset = resetRO.wrap(buffer, index, index + length);
-                onMqttReplyReset(reset);
+                onMqttReset(reset);
                 break;
             default:
                 break;
@@ -519,7 +519,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             asyncapi.doAsyncapiBegin(traceId, extension);
         }
 
-        private void onMqttInitialData(
+        private void onMqttData(
             DataFW data)
         {
             final long sequence = data.sequence();
@@ -535,14 +535,14 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             assert acknowledge <= sequence;
             assert sequence >= initialSeq;
 
-            initialSeq = sequence;
+            initialSeq = sequence + reserved;
 
             assert initialAck <= initialSeq;
 
             asyncapi.doAsyncapiData(traceId, authorization, budgetId, reserved, flags, payload, extension);
         }
 
-        private void onMqttInitialEnd(
+        private void onMqttEnd(
             EndFW end)
         {
             final long sequence = end.sequence();
@@ -561,7 +561,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             asyncapi.doAsyncapiEnd(traceId, extension);
         }
 
-        private void onMqttInitialFlush(
+        private void onMqttFlush(
             FlushFW flush)
         {
             final long sequence = flush.sequence();
@@ -579,7 +579,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             asyncapi.doAsyncapiFlush(traceId, extension);
         }
 
-        private void onMqttInitialAbort(
+        private void onMqttAbort(
             AbortFW abort)
         {
             final long sequence = abort.sequence();
@@ -680,7 +680,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             state = AsyncapiState.closeInitial(state);
         }
 
-        private void onMqttReplyReset(
+        private void onMqttReset(
             ResetFW reset)
         {
             final long sequence = reset.sequence();
@@ -702,7 +702,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             cleanup(traceId);
         }
 
-        private void onMqttReplyWindow(
+        private void onMqttWindow(
             WindowFW window)
         {
             final long sequence = window.sequence();
@@ -829,8 +829,9 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             state = AsyncapiState.openingReply(state);
 
             final AsyncapiBeginExFW asyncapiBeginEx = extension.get(asyncapiBeginExRO::tryWrap);
+            final OctetsFW asyncapiExtension = asyncapiBeginEx != null ? asyncapiBeginEx.extension() : EMPTY_OCTETS;
 
-            delegate.doMqttBegin(traceId, asyncapiBeginEx.extension());
+            delegate.doMqttBegin(traceId, asyncapiExtension);
         }
 
         private void onAsyncapiData(
