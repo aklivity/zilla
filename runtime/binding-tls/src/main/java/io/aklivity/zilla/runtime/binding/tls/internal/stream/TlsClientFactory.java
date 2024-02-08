@@ -171,7 +171,7 @@ public final class TlsClientFactory implements TlsStreamFactory
         this.initialPadAdjust = Math.max(context.bufferPool().slotCapacity() >> 14, 1) * MAXIMUM_HEADER_SIZE;
 
         this.bindings = new Long2ObjectHashMap<>();
-        this.event = new TlsEventContext(proxyTypeId, context);
+        this.event = new TlsEventContext(context.supplyTypeId("tls"), context);
         this.inNetByteBuffer = ByteBuffer.allocate(writeBuffer.capacity());
         this.inNetBuffer = new UnsafeBuffer(inNetByteBuffer);
         this.outNetByteBuffer = ByteBuffer.allocate(writeBuffer.capacity() << 1);

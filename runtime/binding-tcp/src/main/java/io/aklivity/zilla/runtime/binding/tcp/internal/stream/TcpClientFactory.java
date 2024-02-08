@@ -117,7 +117,7 @@ public class TcpClientFactory implements TcpStreamFactory
 
         this.initialMax = bufferPool.slotCapacity();
         this.windowThreshold = (bufferPool.slotCapacity() * config.windowThreshold()) / 100;
-        this.event = new TcpEventContext(proxyTypeId, context);
+        this.event = new TcpEventContext(context.supplyTypeId("tcp"), context);
     }
 
     @Override

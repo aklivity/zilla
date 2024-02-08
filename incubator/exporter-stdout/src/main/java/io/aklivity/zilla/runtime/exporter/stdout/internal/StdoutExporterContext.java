@@ -48,7 +48,7 @@ public class StdoutExporterContext implements ExporterContext
         LongFunction<KindConfig> resolveKind)
     {
         StdoutExporterConfig stdoutExporter = new StdoutExporterConfig(exporter);
-        return new StdoutExporterHandler(config, context, stdoutExporter);
+        return new StdoutExporterHandler(config, context, stdoutExporter, System.out);
     }
 
     @Override

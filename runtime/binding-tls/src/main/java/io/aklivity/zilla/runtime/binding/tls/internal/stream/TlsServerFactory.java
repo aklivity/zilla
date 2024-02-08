@@ -186,7 +186,7 @@ public final class TlsServerFactory implements TlsStreamFactory
         this.handshakeMax = Math.min(config.handshakeWindowBytes(), decodeMax);
         this.handshakeTimeoutMillis = SECONDS.toMillis(config.handshakeTimeout());
         this.bindings = new Long2ObjectHashMap<>();
-        this.event = new TlsEventContext(proxyTypeId, context);
+        this.event = new TlsEventContext(context.supplyTypeId("tls"), context);
 
         this.inNetByteBuffer = ByteBuffer.allocate(writeBuffer.capacity());
         this.inNetBuffer = new UnsafeBuffer(inNetByteBuffer);
