@@ -56,11 +56,6 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.junit.jupiter</groupId>
-      <artifactId>junit-jupiter-engine</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>org.hamcrest</groupId>
       <artifactId>hamcrest</artifactId>
       <scope>test</scope>
@@ -199,6 +194,24 @@
               <outputDirectory>${project.build.directory}/classes</outputDirectory>
             </configuration>
           </execution>
+          <execution>
+            <id>unpack-openapi</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>unpack</goal>
+            </goals>
+            <configuration>
+              <artifactItems>
+                <artifactItem>
+                  <groupId>${project.groupId}</groupId>
+                  <artifactId>binding-openapi.spec</artifactId>
+                  <version>${project.version}</version>
+                  <outputDirectory>${basedir}/target/test-classes</outputDirectory>
+                  <includes>**\/*.yaml</includes>
+                </artifactItem>
+              </artifactItems>
+            </configuration>
+          </execution>
         </executions>
       </plugin>
       <plugin>
@@ -251,7 +264,7 @@
         <configuration>
           <excludes>
             <exclude>io/aklivity/zilla/runtime/binding/openapi/internal/types/**/*.class</exclude>
-            <exclude>io/aklivity/zilla/runtime/binding/openapi/internal/model/*</exclude>
+            <exclude>io/aklivity/zilla/runtime/binding/openapi/internal/model/**/*.class</exclude>
           </excludes>
           <rules>
             <rule>

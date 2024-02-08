@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.openapi.internal.config;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Arrays.asList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
@@ -22,7 +23,6 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Arrays;
 
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
@@ -92,7 +92,7 @@ public class OpenapiOptionsConfigAdapterTest
     @Test
     public void shouldWriteOptions()
     {
-        OpenapiOptionsConfig options = new OpenapiOptionsConfig(Arrays.asList(
+        OpenapiOptionsConfig options = new OpenapiOptionsConfig(asList(
             new OpenapiConfig("openapi/petstore.yaml", new OpenApi())));
 
         String text = jsonb.toJson(options);
