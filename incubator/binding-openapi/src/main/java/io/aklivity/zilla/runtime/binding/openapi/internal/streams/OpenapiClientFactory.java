@@ -25,7 +25,6 @@ import org.agrona.concurrent.UnsafeBuffer;
 import io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiBinding;
 import io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiConfiguration;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiBindingConfig;
-import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiRouteConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.AbortFW;
@@ -67,6 +66,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
 
     private final OpenapiBeginExFW.Builder openBeginExRW = new OpenapiBeginExFW.Builder();
 
+    private final OpenapiConfiguration config;
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer extBuffer;
     private final BufferPool bufferPool;
@@ -83,6 +83,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
         OpenapiConfiguration config,
         EngineContext context)
     {
+        this.config = config;
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.bufferPool = context.bufferPool();
@@ -111,7 +112,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        OpenapiBindingConfig openapiBinding = new OpenapiBindingConfig(binding);
+        OpenapiBindingConfig openapiBinding = new OpenapiBindingConfig(binding, config.k3poRouteId());
         bindings.put(binding.id, openapiBinding);
     }
 
@@ -145,11 +146,12 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
 
         if (binding != null)
         {
+            final long apiId = openapiBeginEx.apiId();
             final String operationId = openapiBeginEx.operationId().asString();
 
-            OpenapiRouteConfig route = binding.resolve(authorization);
+            final long resolvedId = binding.resolveResolvedId(apiId);
 
-            if (route != null)
+            if (resolvedId != -1)
             {
                 newStream = new OpenapiStream(
                     receiver,
@@ -158,7 +160,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
                     initialId,
                     affinity,
                     authorization,
-                    route.id,
+                    resolvedId,
                     operationId)::onOpenapiMessage;
             }
 

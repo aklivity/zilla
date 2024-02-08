@@ -19,32 +19,26 @@ import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 import static java.util.Objects.requireNonNull;
 
 import java.net.URI;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.agrona.collections.Object2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpConditionConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfigBuilder;
-import io.aklivity.zilla.runtime.binding.http.config.HttpResponseConfigBuilder;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiBinding;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.Header;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.MediaType;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenApi;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.Operation;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.Parameter;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.Response;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.ResponseByContentType;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.Server;
-import io.aklivity.zilla.runtime.binding.openapi.internal.view.OperationView;
-import io.aklivity.zilla.runtime.binding.openapi.internal.view.OperationsView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.PathView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.SchemaView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.ServerView;
@@ -185,7 +179,7 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
     private Map<String, String> resolveSecuritySchemes()
     {
         requireNonNull(openApi);
-        Map<String, String> result = new HashMap<>();
+        Map<String, String> result = new Object2ObjectHashMap<>();
         if (openApi.components != null && openApi.components.securitySchemes != null)
         {
             for (String securitySchemeName : openApi.components.securitySchemes.keySet())
@@ -362,90 +356,6 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
             }
         }
         return request;
-    }
-
-    private <C> HttpOptionsConfigBuilder<C> injectHttpClientRequests(
-        OperationsView operations,
-        HttpOptionsConfigBuilder<C> options)
-    {
-        for (String pathName : openApi.paths.keySet())
-        {
-            PathView path = PathView.of(openApi.paths.get(pathName));
-            for (String methodName : path.methods().keySet())
-            {
-                OperationView operation = operations.operation(pathName, methodName);
-                if (operation.hasResponses())
-                {
-                    options
-                        .request()
-                            .path(pathName)
-                            .method(HttpRequestConfig.Method.valueOf(methodName))
-                            .inject(request -> injectResponses(request, operation))
-                            .build()
-                        .build();
-                }
-            }
-        }
-        return options;
-    }
-
-    private <C> HttpRequestConfigBuilder<C> injectResponses(
-        HttpRequestConfigBuilder<C> request,
-        OperationView operation)
-    {
-        if (operation != null && operation.responsesByStatus() != null)
-        {
-            for (Map.Entry<String, ResponseByContentType> responses0 : operation.responsesByStatus().entrySet())
-            {
-                String status = responses0.getKey();
-                ResponseByContentType responses1 = responses0.getValue();
-                if (!(OperationView.DEFAULT.equals(status)) && responses1.content != null)
-                {
-                    for (Map.Entry<String, Response> response2 : responses1.content.entrySet())
-                    {
-                        SchemaView schema = SchemaView.of(openApi.components.schemas, response2.getValue().schema);
-                        request
-                            .response()
-                                .status(Integer.parseInt(status))
-                                .contentType(response2.getKey())
-                                .inject(response -> injectResponseHeaders(responses1, response))
-                                .content(JsonModelConfig::builder)
-                                    .catalog()
-                                    .name(INLINE_CATALOG_NAME)
-                                    .schema()
-                                        .subject(schema.refKey())
-                                        .build()
-                                    .build()
-                                .build()
-                            .build();
-                    }
-                }
-            }
-        }
-        return request;
-    }
-
-    private <C> HttpResponseConfigBuilder<C> injectResponseHeaders(
-        ResponseByContentType responses,
-        HttpResponseConfigBuilder<C> response)
-    {
-        if (responses.headers != null && !responses.headers.isEmpty())
-        {
-            for (Map.Entry<String, Header> header : responses.headers.entrySet())
-            {
-                String name = header.getKey();
-                ModelConfig model = models.get(header.getValue().schema.type);
-                if (model != null)
-                {
-                    response
-                        .header()
-                            .name(name)
-                            .model(model)
-                            .build();
-                }
-            }
-        }
-        return response;
     }
 
     private <C> BindingConfigBuilder<C> injectHttpServerRoutes(

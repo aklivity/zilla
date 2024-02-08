@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.config;
 
+import static java.util.stream.Collector.of;
+import static java.util.stream.Collector.Characteristics.IDENTITY_FINISH;
 import static java.util.stream.Collectors.toCollection;
 import static java.util.stream.Collectors.toList;
 
@@ -29,6 +31,7 @@ import java.util.regex.Pattern;
 import org.agrona.AsciiSequenceView;
 import org.agrona.DirectBuffer;
 import org.agrona.collections.IntHashSet;
+import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
@@ -50,16 +53,20 @@ public final class OpenapiBindingConfig
     public final List<OpenapiRouteConfig> routes;
     public final HttpHeaderHelper helper;
 
+    private final long defaultRouteId;
     private final IntHashSet httpOrigins;
+    private final Long2LongHashMap resolvedIds;
     private final Object2ObjectHashMap<Matcher, PathItem> paths;
     private final Map<CharSequence, Function<PathItem, String>> resolversByMethod;
 
     public OpenapiBindingConfig(
-        BindingConfig binding)
+        BindingConfig binding,
+        long defaultRouteId)
     {
         this.id = binding.id;
         this.name = binding.name;
         this.kind = binding.kind;
+        this.defaultRouteId = defaultRouteId;
         this.options = OpenapiOptionsConfig.class.cast(binding.options);
         this.paths = new Object2ObjectHashMap<>();
         options.openapis.forEach(c -> c.openapi.paths.forEach((k, v) ->
@@ -71,6 +78,17 @@ public final class OpenapiBindingConfig
         }));
 
         this.routes = binding.routes.stream().map(OpenapiRouteConfig::new).collect(toList());
+
+        this.resolvedIds = binding.composites.stream()
+            .map(c -> c.bindings)
+            .flatMap(List::stream)
+            .filter(b -> b.type.equals("http"))
+            .collect(of(
+                () -> new Long2LongHashMap(-1),
+                (m, r) -> m.put(0L, r.id), //TODO: populate proper apiId
+                (m, r) -> m,
+                IDENTITY_FINISH
+            ));
 
         this.httpOrigins = binding.composites.stream()
             .map(c -> c.bindings)
@@ -95,6 +113,12 @@ public final class OpenapiBindingConfig
         int namespaceId)
     {
         return httpOrigins.contains(namespaceId);
+    }
+
+    public long resolveResolvedId(
+        long apiId)
+    {
+        return defaultRouteId != -1 ? defaultRouteId : resolvedIds.get(apiId);
     }
 
     public String resolveOperationId(

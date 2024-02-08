@@ -14,28 +14,18 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal;
 
-import io.aklivity.zilla.runtime.engine.Configuration;
+import static io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiConfiguration.OPENAPI_K3PO_ROUTE_ID;
+import static org.junit.Assert.assertEquals;
 
-public class OpenapiConfiguration extends Configuration
+import org.junit.Test;
+
+public class OpenapiConfigurationTest
 {
-    public static final LongPropertyDef OPENAPI_K3PO_ROUTE_ID;
-    private static final ConfigurationDef OPENAPI_CONFIG;
+    public static final String OPENAPI_K3PO_ROUTE_ID_NAME = "zilla.binding.openapi.k3po.route.id";
 
-    static
+    @Test
+    public void shouldVerifyConstants() throws Exception
     {
-        final ConfigurationDef config = new ConfigurationDef("zilla.binding.openapi");
-        OPENAPI_K3PO_ROUTE_ID = config.property("k3po.route.id", -1L);
-        OPENAPI_CONFIG = config;
-    }
-
-    public OpenapiConfiguration(
-        Configuration config)
-    {
-        super(OPENAPI_CONFIG, config);
-    }
-
-    public long k3poRouteId()
-    {
-        return OPENAPI_K3PO_ROUTE_ID.getAsLong(this);
+        assertEquals(OPENAPI_K3PO_ROUTE_ID.name(), OPENAPI_K3PO_ROUTE_ID_NAME);
     }
 }

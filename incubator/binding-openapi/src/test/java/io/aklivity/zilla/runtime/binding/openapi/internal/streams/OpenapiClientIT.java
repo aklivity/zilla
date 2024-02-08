@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.streams;
 
+import static io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiConfigurationTest.OPENAPI_K3PO_ROUTE_ID_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -28,6 +29,7 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class OpenapiClientIT
 {
@@ -54,6 +56,7 @@ public class OpenapiClientIT
         "${http}/create.item/server"
     })
     @ScriptProperty("serverAddress \"zilla://streams/http0\"")
+    @Configure(name = OPENAPI_K3PO_ROUTE_ID_NAME, value = "4294967298")
     public void shouldCreateItem() throws Exception
     {
         k3po.finish();

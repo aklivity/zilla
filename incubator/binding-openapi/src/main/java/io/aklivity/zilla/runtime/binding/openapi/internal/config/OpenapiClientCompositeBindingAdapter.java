@@ -24,7 +24,6 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Pattern;
 
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
@@ -73,7 +72,6 @@ public final class OpenapiClientCompositeBindingAdapter implements CompositeBind
     private static final String INLINE_CATALOG_NAME = "catalog0";
     private static final String INLINE_CATALOG_TYPE = "inline";
     private static final String VERSION_LATEST = "latest";
-    private static final Pattern JSON_CONTENT_TYPE = Pattern.compile("^application/(?:.+\\+)?json$");
 
     private final Map<String, ModelConfig> models = Map.of(
         "string", StringModelConfig.builder().build(),

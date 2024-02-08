@@ -38,7 +38,7 @@ write close
 
 read zilla:begin.ext ${openapi:beginEx()
                              .typeId(zilla:id("openapi"))
-                             .operationId("createItem")
+                             .operationId("createPets")
                              .extension(http:beginEx()
                               .typeId(zilla:id("http"))
                               .header(":status", "200")

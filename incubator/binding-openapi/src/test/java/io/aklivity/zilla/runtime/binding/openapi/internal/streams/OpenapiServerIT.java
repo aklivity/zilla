@@ -57,4 +57,14 @@ public class OpenapiServerIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${http}/reject.incorrect.origin/client"
+    })
+    public void shouldRejectIncorrectOrigin() throws Exception
+    {
+        k3po.finish();
+    }
+
 }

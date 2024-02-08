@@ -70,6 +70,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
 
     private final OpenapiBeginExFW.Builder openapiBeginExRW = new OpenapiBeginExFW.Builder();
 
+    private final OpenapiConfiguration config;
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer extBuffer;
     private final BufferPool bufferPool;
@@ -85,6 +86,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
         OpenapiConfiguration config,
         EngineContext context)
     {
+        this.config = config;
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.bufferPool = context.bufferPool();
@@ -113,7 +115,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        OpenapiBindingConfig openapiBinding = new OpenapiBindingConfig(binding);
+        OpenapiBindingConfig openapiBinding = new OpenapiBindingConfig(binding, config.k3poRouteId());
         bindings.put(binding.id, openapiBinding);
     }
 
