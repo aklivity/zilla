@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.openapi.internal.config;
 
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
+import static java.util.function.UnaryOperator.identity;
 
 import java.util.EnumMap;
 import java.util.Map;
@@ -36,7 +37,7 @@ final class OpenapiCompositeBindingAdapter implements CompositeBindingAdapterSpi
         composites.put(SERVER, new OpenapiServerCompositeBindingAdapter()::adapt);
         composites.put(CLIENT, new OpenapiClientCompositeBindingAdapter()::adapt);
         UnaryOperator<BindingConfig> composite = binding -> composites
-            .getOrDefault(binding.kind, UnaryOperator.identity()).apply(binding);
+            .getOrDefault(binding.kind, identity()).apply(binding);
         this.composite = composite;
     }
 
