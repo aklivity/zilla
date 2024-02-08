@@ -1596,6 +1596,20 @@ public final class KafkaFunctions
                 return this;
             }
 
+            public KafkaOffsetCommitBeginExBuilder host(
+                String host)
+            {
+                offsetCommitBeginExRW.host(host);
+                return this;
+            }
+
+            public KafkaOffsetCommitBeginExBuilder port(
+                int port)
+            {
+                offsetCommitBeginExRW.port(port);
+                return this;
+            }
+
             public KafkaBeginExBuilder build()
             {
                 final KafkaOffsetCommitBeginExFW offsetCommitBeginEx = offsetCommitBeginExRW.build();

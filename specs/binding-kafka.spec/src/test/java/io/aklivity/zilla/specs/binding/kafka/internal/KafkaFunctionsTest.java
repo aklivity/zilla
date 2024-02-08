@@ -4300,6 +4300,8 @@ public class KafkaFunctionsTest
                 .groupId("test")
                 .memberId("member-1")
                 .instanceId("zilla")
+                .host("broker1.example.com")
+                .port(9092)
                 .build()
             .build();
 
