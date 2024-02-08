@@ -62,6 +62,7 @@ public class StdoutExporterHandler implements ExporterHandler
         try (Stream<Path> files = Files.walk(directory, 3))
         {
             this.printables = files.filter(this::isEventsFile)
+                 .sorted()
                  .map(this::newPrintable)
                  .toArray(PrintableEventsStream[]::new);
         }
