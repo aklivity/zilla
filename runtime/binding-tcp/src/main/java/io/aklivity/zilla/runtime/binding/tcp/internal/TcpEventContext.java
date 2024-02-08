@@ -59,6 +59,6 @@ public class TcpEventContext
             )
             .build();
         System.out.println(event); // TODO: Ati
-        logEvent.accept(typeId, event.buffer(), event.offset(), event.limit()); // TODO: Ati - typeId: proxy -> tcp|tls
+        logEvent.accept(typeId, event.buffer(), event.offset(), event.limit());
     }
 }
