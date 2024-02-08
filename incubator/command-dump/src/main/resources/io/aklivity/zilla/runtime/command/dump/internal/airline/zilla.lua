@@ -142,6 +142,7 @@ local kafka_ext_apis = {
     [253] = "GROUP",
     [254] = "BOOTSTRAP",
     [255] = "MERGED",
+    [22]  = "INIT_PRODUCER_ID",
     [3]   = "META",
     [8]   = "OFFSET_COMMIT",
     [9]   = "OFFSET_FETCH",
@@ -432,7 +433,8 @@ local fields = {
     mqtt_ext_topic_length = ProtoField.int16("zilla.mqtt_ext.topic_length", "Length", base.DEC),
     mqtt_ext_topic = ProtoField.string("zilla.mqtt_ext.topic", "Topic", base.NONE),
     mqtt_ext_expiry = ProtoField.int32("zilla.mqtt_ext.expiry", "Expiry", base.DEC),
-    mqtt_ext_qos_max = ProtoField.uint16("zilla.mqtt_ext.qos_max", "QoS Maximum", base.DEC),
+    mqtt_ext_subscribe_qos_max = ProtoField.uint16("zilla.mqtt_ext.subscribe_qos_max", "Subscribe QoS Maximum", base.DEC),
+    mqtt_ext_publish_qos_max = ProtoField.uint16("zilla.mqtt_ext.publish_qos_max", "Publish QoS Maximum", base.DEC),
     mqtt_ext_packet_size_max = ProtoField.uint32("zilla.mqtt_ext.packet_size_max", "Packet Size Maximum", base.DEC),
     --     capabilities
     mqtt_ext_capabilities = ProtoField.uint8("zilla.mqtt_ext.capabilities", "Capabilities", base.HEX),
@@ -584,6 +586,8 @@ local fields = {
     kafka_ext_ancestor_offset = ProtoField.int64("zilla.kafka_ext.ancestor_offset", "Ancestor Offset", base.DEC),
     kafka_ext_headers_array_length = ProtoField.int8("zilla.kafka_ext.headers_array_length", "Length", base.DEC),
     kafka_ext_headers_array_size = ProtoField.int8("zilla.kafka_ext.headers_array_size", "Size", base.DEC),
+    kafka_ext_producer_id = ProtoField.uint64("zilla.kafka_ext.producer_id", "Producer ID", base.HEX),
+    kafka_ext_producer_epoch = ProtoField.uint16("zilla.kafka_ext.producer_epoch", "Producer Epoch", base.HEX),
     -- meta
     kafka_ext_partition_leader_id = ProtoField.int32("zilla.kafka_ext.partition_leader_id", "Leader ID", base.DEC),
     -- offset_fetch
@@ -600,7 +604,6 @@ local fields = {
     kafka_ext_config = ProtoField.string("zilla.kafka_ext.config", "Config", base.NONE),
     -- fetch
     kafka_ext_header_size_max = ProtoField.int32("zilla.kafka_ext.header_size_max", "Header Size Maximum", base.DEC),
-    kafka_ext_producer_id = ProtoField.uint64("zilla.kafka_ext.producer_id", "Producer ID", base.HEX),
     kafka_ext_transactions_array_length = ProtoField.int8("zilla.kafka_ext.transactions_array_length", "Length", base.DEC),
     kafka_ext_transactions_array_size = ProtoField.int8("zilla.kafka_ext.transactions_array_size", "Size", base.DEC),
     kafka_ext_transaction_result = ProtoField.int8("zilla.kafka_ext.transaction_result", "Result", base.DEC,
@@ -1611,8 +1614,12 @@ function handle_mqtt_extension(buffer, offset, ext_subtree, frame_type_id)
             elseif kind == "SESSION" then
                 handle_mqtt_data_session_extension(buffer, offset + kind_length, ext_subtree)
             end
-        elseif frame_type_id == FLUSH_ID and kind == "SUBSCRIBE" then
-            handle_mqtt_flush_subscribe_extension(buffer, offset + kind_length, ext_subtree)
+        elseif frame_type_id == FLUSH_ID then
+            if kind == "SUBSCRIBE" then
+                handle_mqtt_flush_subscribe_extension(buffer, offset + kind_length, ext_subtree)
+            elseif kind == "SESSION" then
+                handle_mqtt_flush_session_extension(buffer, offset + kind_length, ext_subtree)
+            end
         end
     elseif frame_type_id == RESET_ID then
         handle_mqtt_reset_extension(buffer, offset, ext_subtree)
@@ -1718,13 +1725,18 @@ function handle_mqtt_begin_session_extension(buffer, offset, ext_subtree)
     local expiry_length = 4
     local slice_expiry = buffer(expiry_offset, expiry_length)
     ext_subtree:add_le(fields.mqtt_ext_expiry, slice_expiry)
-    -- qos_max
-    local qos_max_offset = expiry_offset + expiry_length
-    local qos_max_length = 2
-    local slice_qos_max = buffer(qos_max_offset, qos_max_length)
-    ext_subtree:add_le(fields.mqtt_ext_qos_max, slice_qos_max)
+    -- subscribe_qos_max
+    local subscribe_qos_max_offset = expiry_offset + expiry_length
+    local subscribe_qos_max_length = 2
+    local slice_subscribe_qos_max = buffer(subscribe_qos_max_offset, subscribe_qos_max_length)
+    ext_subtree:add_le(fields.mqtt_ext_subscribe_qos_max, slice_subscribe_qos_max)
+    -- publish_qos_max
+    local publish_qos_max_offset = subscribe_qos_max_offset + subscribe_qos_max_length
+    local publish_qos_max_length = 2
+    local slice_publish_qos_max = buffer(publish_qos_max_offset, publish_qos_max_length)
+    ext_subtree:add_le(fields.mqtt_ext_publish_qos_max, slice_publish_qos_max)
     -- packet_size_max
-    local packet_size_max_offset = qos_max_offset + qos_max_length
+    local packet_size_max_offset = publish_qos_max_offset + publish_qos_max_length
     local packet_size_max_length = 4
     local slice_packet_size_max = buffer(packet_size_max_offset, packet_size_max_length)
     ext_subtree:add_le(fields.mqtt_ext_packet_size_max, slice_packet_size_max)
@@ -1763,8 +1775,13 @@ function handle_mqtt_data_publish_extension(buffer, offset, ext_subtree)
     local flags_label = string.format("Flags: 0x%02x", slice_flags:le_uint())
     local flags_subtree = ext_subtree:add(zilla_protocol, slice_flags, flags_label)
     flags_subtree:add_le(fields.mqtt_ext_publish_flags_retain, slice_flags)
+    -- packet_id
+    local packet_id_offset = flags_offset + flags_length
+    local packet_id_length = 2
+    local slice_packet_id = buffer(packet_id_offset, packet_id_length)
+    ext_subtree:add_le(fields.mqtt_ext_packet_id, slice_packet_id)
     -- expiry_interval
-    local expiry_interval_offset = flags_offset + flags_length
+    local expiry_interval_offset = packet_id_offset + packet_id_length
     local expiry_interval_length = 4
     local slice_expiry_interval = buffer(expiry_interval_offset, expiry_interval_length)
     ext_subtree:add_le(fields.mqtt_ext_expiry_interval, slice_expiry_interval)
@@ -1943,6 +1960,14 @@ function handle_mqtt_flush_subscribe_extension(buffer, offset, ext_subtree)
     dissect_and_add_mqtt_topic_filters(buffer, topic_filters_offset, ext_subtree)
 end
 
+function handle_mqtt_flush_session_extension(buffer, offset, ext_subtree)
+    -- packet_id
+    local packet_id_offset = offset
+    local packet_id_length = 2
+    local slice_packet_id = buffer(packet_id_offset, packet_id_length)
+    ext_subtree:add_le(fields.mqtt_ext_packet_id, slice_packet_id)
+end
+
 function handle_mqtt_reset_extension(buffer, offset, ext_subtree)
     -- server_ref
     local server_ref_offset = offset
@@ -1976,6 +2001,8 @@ function handle_kafka_extension(buffer, offset, ext_subtree, frame_type_id)
                 handle_kafka_begin_bootstrap_extension(buffer, offset + api_length, ext_subtree)
             elseif api == "MERGED" then
                 handle_kafka_begin_merged_extension(buffer, offset + api_length, ext_subtree)
+            elseif api == "INIT_PRODUCER_ID" then
+                handle_kafka_begin_init_producer_id_extension(buffer, offset + api_length, ext_subtree)
             elseif api == "META" then
                 handle_kafka_begin_meta_extension(buffer, offset + api_length, ext_subtree)
             elseif api == "OFFSET_COMMIT" then
@@ -2364,6 +2391,19 @@ function handle_kafka_begin_merged_extension(buffer, offset, ext_subtree)
     local ack_mode = kafka_ext_ack_modes[slice_ack_mode_id:le_int()]
     ext_subtree:add_le(fields.kafka_ext_ack_mode_id, slice_ack_mode_id)
     ext_subtree:add(fields.kafka_ext_ack_mode, ack_mode)
+end
+
+function handle_kafka_begin_init_producer_id_extension(buffer, offset, ext_subtree)
+    -- producer_id
+    local producer_id_offset = offset
+    local producer_id_length = 8
+    local slice_producer_id = buffer(producer_id_offset, producer_id_length)
+    ext_subtree:add_le(fields.kafka_ext_producer_id, slice_producer_id)
+    -- producer_epoch
+    local producer_epoch_offset = producer_id_offset + producer_id_length
+    local producer_epoch_length = 2
+    local slice_producer_epoch = buffer(producer_epoch_offset, producer_epoch_length)
+    ext_subtree:add_le(fields.kafka_ext_producer_epoch, slice_producer_epoch)
 end
 
 function dissect_and_add_kafka_filters_array(buffer, offset, tree, field_array_length, field_array_size)
@@ -2791,8 +2831,18 @@ function handle_kafka_data_merged_produce_extension(buffer, offset, ext_subtree)
     local timestamp_length = 8
     local slice_timestamp = buffer(timestamp_offset, timestamp_length)
     ext_subtree:add_le(fields.sse_ext_timestamp, slice_timestamp)
+    -- producer_id
+    local producer_id_offset = timestamp_offset + timestamp_length
+    local producer_id_length = 8
+    local slice_producer_id = buffer(producer_id_offset, producer_id_length)
+    ext_subtree:add_le(fields.kafka_ext_producer_id, slice_producer_id)
+    -- producer_epoch
+    local producer_epoch_offset = producer_id_offset + producer_id_length
+    local producer_epoch_length = 2
+    local slice_producer_epoch = buffer(producer_epoch_offset, producer_epoch_length)
+    ext_subtree:add_le(fields.kafka_ext_producer_epoch, slice_producer_epoch)
     -- partition
-    local partition_offset = timestamp_offset + timestamp_length
+    local partition_offset = producer_epoch_offset + producer_epoch_length
     local partition_length = resolve_length_of_kafka_offset(buffer, partition_offset)
     dissect_and_add_kafka_offset(buffer, partition_offset, ext_subtree, "Partition: %d [%d]")
     -- key
@@ -2909,13 +2959,8 @@ function dissect_and_add_kafka_partition_array(buffer, offset, tree, field_array
 end
 
 function handle_kafka_begin_offset_commit_extension(buffer, offset, ext_subtree)
-    -- topic
-    local topic_offset = offset
-    local topic_length, slice_topic_length, slice_topic_text = dissect_length_value(buffer, topic_offset, 2)
-    add_string_as_subtree(buffer(topic_offset, topic_length), ext_subtree, "Topic: %s",
-        slice_topic_length, slice_topic_text, fields.mqtt_ext_topic_length, fields.mqtt_ext_topic)
     -- group_id
-    local group_id_offset = topic_offset + topic_length
+    local group_id_offset = offset
     local group_id_length, slice_group_id_length, slice_group_id_text = dissect_length_value(buffer, group_id_offset, 2)
     add_string_as_subtree(buffer(group_id_offset, group_id_length), ext_subtree, "Group ID: %s",
         slice_group_id_length, slice_group_id_text, fields.kafka_ext_group_id_length, fields.kafka_ext_group_id)
@@ -2932,8 +2977,13 @@ function handle_kafka_begin_offset_commit_extension(buffer, offset, ext_subtree)
 end
 
 function handle_kafka_data_offset_commit_extension(buffer, offset, ext_subtree)
+    -- topic
+    local topic_offset = offset
+    local topic_lentgh, slice_topic_length, slice_topic_text = dissect_length_value(buffer, topic_offset, 2)
+    add_string_as_subtree(buffer(topic_offset, topic_length), ext_subtree, "Topic: %s",
+        slice_topic_length, slice_topic_text, fields.mqtt_ext_topic_length, fields.mqtt_ext_topic)
     -- progress
-    local progress_offset = offset
+    local progress_offset = topic_offset + topic_lentgh
     local progress_length = resolve_length_of_kafka_offset(buffer, progress_offset)
     dissect_and_add_kafka_offset(buffer, progress_offset, ext_subtree, "Progress: %d [%d]")
     -- generation_id
@@ -3285,13 +3335,8 @@ function handle_kafka_begin_produce_extension(buffer, offset, ext_subtree)
     local transaction_length, slice_transaction_length, slice_transaction_text = dissect_length_value(buffer, transaction_offset, 1)
     add_string_as_subtree(buffer(transaction_offset, transaction_length), ext_subtree, "Transaction: %s", slice_transaction_length,
         slice_transaction_text, fields.kafka_ext_transaction_length, fields.kafka_ext_transaction)
-    -- producer_id
-    local producer_id_offset = transaction_offset + transaction_length
-    local producer_id_length = 8
-    local slice_producer_id = buffer(producer_id_offset, producer_id_length)
-    ext_subtree:add_le(fields.kafka_ext_producer_id, slice_producer_id)
     -- topic
-    local topic_offset = producer_id_offset + producer_id_length
+    local topic_offset = transaction_offset + transaction_length
     local topic_length, slice_topic_length, slice_topic_text = dissect_length_value(buffer, topic_offset, 2)
     add_string_as_subtree(buffer(topic_offset, topic_length), ext_subtree, "Topic: %s",
         slice_topic_length, slice_topic_text, fields.mqtt_ext_topic_length, fields.mqtt_ext_topic)
@@ -3312,8 +3357,18 @@ function handle_kafka_data_produce_extension(buffer, offset, ext_subtree)
     local timestamp_length = 8
     local slice_timestamp = buffer(timestamp_offset, timestamp_length)
     ext_subtree:add_le(fields.sse_ext_timestamp, slice_timestamp)
+    -- producer_id
+    local producer_id_offset = timestamp_offset + timestamp_length
+    local producer_id_length = 8
+    local slice_producer_id = buffer(producer_id_offset, producer_id_length)
+    ext_subtree:add_le(fields.kafka_ext_producer_id, slice_producer_id)
+    -- producer_epoch
+    local producer_epoch_offset = producer_id_offset + producer_id_length
+    local producer_epoch_length = 2
+    local slice_producer_epoch = buffer(producer_epoch_offset, producer_epoch_length)
+    ext_subtree:add_le(fields.kafka_ext_producer_epoch, slice_producer_epoch)
     -- sequence
-    local sequence_offset = timestamp_offset + timestamp_length
+    local sequence_offset = producer_epoch_offset + producer_epoch_length
     local sequence_length = 4
     local slice_sequence = buffer(sequence_offset, sequence_length)
     ext_subtree:add_le(fields.kafka_ext_sequence, slice_sequence)

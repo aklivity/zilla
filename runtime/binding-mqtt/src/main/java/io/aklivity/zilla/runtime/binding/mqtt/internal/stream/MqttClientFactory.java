@@ -1567,7 +1567,7 @@ public final class MqttClientFactory implements MqttStreamFactory
                     .session(sessionBuilder -> sessionBuilder
                         .flags(flags)
                         .expiry((int) TimeUnit.MILLISECONDS.toSeconds(sessionExpiry))
-                        .qosMax(maximumQos)
+                        .subscribeQosMax(maximumQos)
                         .packetSizeMax(maximumPacketSize)
                         .capabilities(capabilities)
                         .clientId(clientId))
@@ -1593,7 +1593,7 @@ public final class MqttClientFactory implements MqttStreamFactory
                 .session(sessionBuilder -> sessionBuilder
                     .flags(flags)
                     .expiry(sessionExpiry)
-                    .qosMax(maximumQos)
+                    .subscribeQosMax(maximumQos)
                     .packetSizeMax(maximumPacketSize)
                     .capabilities(capabilities)
                     .clientId(clientId))

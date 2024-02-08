@@ -1,0 +1,93 @@
+#
+# Copyright 2021-2023 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+connect "zilla://streams/mqtt0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"
+
+write zilla:begin.ext ${mqtt:beginEx()
+                            .typeId(zilla:id("mqtt"))
+                            .session()
+                              .flags("CLEAN_START")
+                              .expiry(1)
+                              .publishQosMax(2)
+                              .capabilities("REDIRECT")
+                              .clientId("client")
+                              .build()
+                            .build()}
+
+read zilla:begin.ext ${mqtt:matchBeginEx()
+                              .typeId(zilla:id("mqtt"))
+                              .session()
+                                .expiry(1)
+                                .subscribeQosMax(2)
+                                .capabilities("RETAIN", "SUBSCRIPTION_IDS", "WILDCARD")
+                                .clientId("client")
+                                .build()
+                              .build()}
+
+connected
+
+read zilla:data.empty
+read notify RECEIVED_SESSION_STATE
+
+write await SENT_DATA_ONE
+# Triggered by PUBREL
+write advise zilla:flush ${mqtt:flushEx()
+                                 .typeId(zilla:id("mqtt"))
+                                 .session()
+                                     .packetId(1)
+                                     .build()
+                                 .build()}
+
+read advised zilla:flush ${mqtt:flushEx()
+                                 .typeId(zilla:id("mqtt"))
+                                 .session()
+                                     .packetId(1)
+                                     .build()
+                                 .build()}
+
+
+connect await RECEIVED_SESSION_STATE
+        "zilla://streams/mqtt0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"
+
+write zilla:begin.ext ${mqtt:beginEx()
+                              .typeId(zilla:id("mqtt"))
+                              .publish()
+                                .clientId("client")
+                                .topic("sensor/one")
+                                .flags("RETAIN")
+                                .qos(2)
+                                .build()
+                              .build()}
+
+connected
+
+write zilla:data.ext ${mqtt:dataEx()
+                            .typeId(zilla:id("mqtt"))
+                            .publish()
+                                .qos("EXACTLY_ONCE")
+                                .flags("RETAIN")
+                                .packetId(1)
+                                .build()
+                            .build()}
+write "message"
+write flush
+write notify SENT_DATA_ONE
+
+
+

@@ -228,6 +228,15 @@ public class PublishIT
 
     @Test
     @Specification({
+        "${app}/publish.qos2.recovery/client",
+        "${app}/publish.qos2.recovery/server"})
+    public void shouldReleaseQos2PacketIdDuringRecovery() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/publish.mixture.qos/client",
         "${app}/publish.mixture.qos/server"})
     public void shouldPublishMixtureQos() throws Exception

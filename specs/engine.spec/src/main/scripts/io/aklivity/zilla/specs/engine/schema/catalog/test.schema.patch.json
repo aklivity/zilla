@@ -31,6 +31,10 @@
                     {
                         "properties":
                         {
+                            "subject":
+                            {
+                                "type": "string"
+                            },
                             "schema":
                             {
                                 "type": "string"

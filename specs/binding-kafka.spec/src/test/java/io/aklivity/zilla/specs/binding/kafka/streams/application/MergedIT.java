@@ -155,6 +155,15 @@ public class MergedIT
 
     @Test
     @Specification({
+        "${app}/merged.fetch.message.value.invalid/client",
+        "${app}/merged.fetch.message.value.invalid/server"})
+    public void shouldFetchMergedMessageValueInvalid() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/merged.fetch.message.values/client",
         "${app}/merged.fetch.message.values/server"})
     public void shouldFetchMergedMessageValues() throws Exception
@@ -590,6 +599,15 @@ public class MergedIT
 
     @Test
     @Specification({
+        "${app}/unmerged.fetch.message.value.invalid/client",
+        "${app}/unmerged.fetch.message.value.invalid/server"})
+    public void shouldFetchUnmergedMessageValueInvalid() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/unmerged.fetch.server.sent.close/client",
         "${app}/unmerged.fetch.server.sent.close/server"})
     public void shouldUnmergedFetchServerSentClose() throws Exception
@@ -782,4 +800,41 @@ public class MergedIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/merged.produce.message.values.producer.id/client",
+        "${app}/merged.produce.message.values.producer.id/server"})
+    public void shouldProduceMergedMessageValuesWithProducerId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/unmerged.produce.message.values.producer.id/client",
+        "${app}/unmerged.produce.message.values.producer.id/server"})
+    public void shouldProduceUnmergedMessageValuesWithProducerId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/merged.produce.message.value.partition.id/client",
+        "${app}/merged.produce.message.value.partition.id/server"})
+    public void shouldProduceMergedMessageValueByGettingPartitionId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/unmerged.produce.message.value.partition.id/client",
+        "${app}/unmerged.produce.message.value.partition.id/server"})
+    public void shouldProduceUnmergedMessageValueByGettingPartitionId() throws Exception
+    {
+        k3po.finish();
+    }
+
 }
