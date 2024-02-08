@@ -17,10 +17,7 @@ package io.aklivity.zilla.runtime.engine.config;
 
 public interface CompositeBindingAdapterSpi
 {
-    default String type()
-    {
-        return null;
-    };
+    String type();
 
     BindingConfig adapt(
         BindingConfig binding);
