@@ -696,12 +696,12 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             int capabilities)
         {
             final boolean retainedFlag = hasPublishFlagRetained(publishFlags);
-            final boolean streamsOpened = MqttKafkaState.initialOpened(messages.state) &&
-                MqttKafkaState.initialOpened(retained.state);
             final long newInitialAck = retainedFlag ? Math.min(messages.initialAck, retained.initialAck) : messages.initialAck;
             final int newInitialMax = retainedFlag ? Math.max(messages.initialMax, retained.initialMax) : messages.initialMax;
 
-            if (streamsOpened && (initialAck != newInitialAck || initialMax != newInitialMax))
+            if (MqttKafkaState.initialOpened(messages.state) &&
+                (!retainedFlag || MqttKafkaState.initialOpened(retained.state)) &&
+                (initialAck != newInitialAck || initialMax != newInitialMax))
             {
                 initialAck = newInitialAck;
                 initialMax = newInitialMax;
