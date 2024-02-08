@@ -28,8 +28,8 @@ import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.config.StdoutExporterConfig;
-import io.aklivity.zilla.runtime.exporter.stdout.internal.labels.LabelManager;
-import io.aklivity.zilla.runtime.exporter.stdout.internal.layouts.EventsLayout;
+import io.aklivity.zilla.runtime.exporter.stdout.internal.labels.LabelReader;
+import io.aklivity.zilla.runtime.exporter.stdout.internal.layouts.EventsLayoutReader;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.printer.PrintableEventsStream;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.spy.RingBufferSpy.SpyPosition;
 
@@ -39,7 +39,7 @@ public class StdoutExporterHandler implements ExporterHandler
 
     private final EngineContext context;
     private final Path directory;
-    private final LabelManager labels;
+    private final LabelReader labels;
     private final PrintStream out;
 
     private PrintableEventsStream[] printables;
@@ -52,7 +52,7 @@ public class StdoutExporterHandler implements ExporterHandler
     {
         this.context = context;
         this.directory = config.directory();
-        this.labels = new LabelManager(directory);
+        this.labels = new LabelReader(directory);
         this.out = out;
     }
 
@@ -108,7 +108,7 @@ public class StdoutExporterHandler implements ExporterHandler
     private PrintableEventsStream newPrintable(
         Path path)
     {
-        EventsLayout layout = new EventsLayout.Builder()
+        EventsLayoutReader layout = new EventsLayoutReader.Builder()
             .path(path)
             .readonly(true)
             .spyAt(SpyPosition.ZERO)

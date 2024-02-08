@@ -14,31 +14,42 @@
  */
 package io.aklivity.zilla.runtime.exporter.stdout.internal.layouts;
 
-import static org.agrona.IoUtil.createEmptyFile;
 import static org.agrona.IoUtil.mapExistingFile;
 import static org.agrona.IoUtil.unmap;
+import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.File;
 import java.nio.MappedByteBuffer;
+import java.nio.file.FileSystems;
 import java.nio.file.Path;
+import java.nio.file.StandardWatchEventKinds;
+import java.nio.file.WatchEvent;
+import java.nio.file.WatchKey;
+import java.nio.file.WatchService;
 
-import org.agrona.CloseHelper;
 import org.agrona.concurrent.AtomicBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
-import org.agrona.concurrent.ringbuffer.RingBufferDescriptor;
 
 import io.aklivity.zilla.runtime.exporter.stdout.internal.spy.OneToOneRingBufferSpy;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.spy.RingBufferSpy;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.spy.RingBufferSpy.SpyPosition;
 
-public final class EventsLayout implements AutoCloseable
+public final class EventsLayoutReader implements AutoCloseable
 {
-    private final RingBufferSpy buffer;
+    private final Path path;
+    private final SpyPosition position;
+    private RingBufferSpy buffer;
 
-    private EventsLayout(
+    private EventsLayoutReader(
+        Path path,
+        SpyPosition position,
         RingBufferSpy buffer)
     {
+        this.path = path;
+        this.position = position;
         this.buffer = buffer;
+        Thread watcher = new Thread(this::watch);
+        watcher.start();
     }
 
     public RingBufferSpy eventsBuffer()
@@ -50,6 +61,49 @@ public final class EventsLayout implements AutoCloseable
     public void close()
     {
         unmap(buffer.buffer().byteBuffer());
+    }
+
+    private void watch()
+    {
+        try
+        {
+            WatchService watchService = FileSystems.getDefault().newWatchService();
+            path.getParent().register(watchService, StandardWatchEventKinds.ENTRY_MODIFY);
+            while (true)
+            {
+                WatchKey key = watchService.take();
+                for (WatchEvent<?> event : key.pollEvents())
+                {
+                    Path changedPath = (Path) event.context();
+                    if (path.getFileName().equals(changedPath.getFileName()))
+                    {
+                        close();
+                        buffer = createRingBufferSpy(path, position);
+                    }
+                }
+                key.reset();
+            }
+        }
+        catch (Exception ex)
+        {
+            ex.printStackTrace();
+            rethrowUnchecked(ex);
+        }
+    }
+
+    private static RingBufferSpy createRingBufferSpy(
+        Path path,
+        SpyPosition position)
+    {
+        final File layoutFile = path.toFile();
+        final MappedByteBuffer mappedBuffer = mapExistingFile(layoutFile, "events");
+        final AtomicBuffer atomicBuffer = new UnsafeBuffer(mappedBuffer);
+        final OneToOneRingBufferSpy spy = new OneToOneRingBufferSpy(atomicBuffer);
+        if (position != null)
+        {
+            spy.spyAt(position);
+        }
+        return spy;
     }
 
     public static final class Builder
@@ -87,21 +141,10 @@ public final class EventsLayout implements AutoCloseable
             return this;
         }
 
-        public EventsLayout build()
+        public EventsLayoutReader build()
         {
-            final File layoutFile = path.toFile();
-            if (!readonly)
-            {
-                CloseHelper.close(createEmptyFile(layoutFile, capacity + RingBufferDescriptor.TRAILER_LENGTH));
-            }
-            final MappedByteBuffer mappedBuffer = mapExistingFile(layoutFile, "events");
-            final AtomicBuffer atomicBuffer = new UnsafeBuffer(mappedBuffer);
-            final OneToOneRingBufferSpy spy = new OneToOneRingBufferSpy(atomicBuffer);
-            if (position != null)
-            {
-                spy.spyAt(position);
-            }
-            return new EventsLayout(spy);
+            RingBufferSpy spy = createRingBufferSpy(path, position);
+            return new EventsLayoutReader(path, position, spy);
         }
     }
 }

@@ -20,9 +20,8 @@ import org.agrona.DirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
-import io.aklivity.zilla.runtime.exporter.stdout.internal.labels.LabelManager;
-import io.aklivity.zilla.runtime.exporter.stdout.internal.layouts.EventsLayout;
-import io.aklivity.zilla.runtime.exporter.stdout.internal.spy.RingBufferSpy;
+import io.aklivity.zilla.runtime.exporter.stdout.internal.labels.LabelReader;
+import io.aklivity.zilla.runtime.exporter.stdout.internal.layouts.EventsLayoutReader;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.StringFW;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.HttpEventFW;
@@ -47,18 +46,18 @@ public class PrintableEventsStream
     private final TcpRemoteAccessFailedEventFW tcpRemoteAccessFailedEventRO = new TcpRemoteAccessFailedEventFW();
     private final TlsEventFW tlsEventRO = new TlsEventFW();
 
-    private final LabelManager labels;
-    private final RingBufferSpy eventsBuffer;
+    private final LabelReader labels;
+    private final EventsLayoutReader layout;
     private final PrintStream out;
     private final Int2ObjectHashMap<MessageConsumer> eventHandlers;
 
     public PrintableEventsStream(
-        LabelManager labels,
-        EventsLayout layout,
+        LabelReader labels,
+        EventsLayoutReader layout,
         PrintStream out)
     {
         this.labels = labels;
-        this.eventsBuffer = layout.eventsBuffer();
+        this.layout = layout;
         this.out = out;
 
         final Int2ObjectHashMap<MessageConsumer> eventHandlers = new Int2ObjectHashMap<>();
@@ -69,7 +68,7 @@ public class PrintableEventsStream
     }
 
     private void addEventHandler(
-        LabelManager labels,
+        LabelReader labels,
         Int2ObjectHashMap<MessageConsumer> eventHandlers,
         String type,
         MessageConsumer consumer)
@@ -83,7 +82,7 @@ public class PrintableEventsStream
 
     public int process()
     {
-        return eventsBuffer.spy(this::handleEvent, 1);
+        return layout.eventsBuffer().spy(this::handleEvent, 1);
     }
 
     private boolean handleEvent(

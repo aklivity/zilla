@@ -18,10 +18,16 @@ package io.aklivity.zilla.runtime.engine.internal.layouts;
 import static org.agrona.IoUtil.createEmptyFile;
 import static org.agrona.IoUtil.mapExistingFile;
 import static org.agrona.IoUtil.unmap;
+import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.MappedByteBuffer;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 import org.agrona.CloseHelper;
 import org.agrona.DirectBuffer;
@@ -35,17 +41,29 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
 public final class EventsLayout implements AutoCloseable
 {
-    private final RingBuffer buffer;
+    private final Path path;
+    private final long capacity;
+    private RingBuffer buffer;
 
     private EventsLayout(
+        Path path,
+        long capacity,
         RingBuffer buffer)
     {
         this.buffer = buffer;
+        this.capacity = capacity;
+        this.path = path;
     }
 
     public MessageConsumer supplyWriter()
     {
         return this::writeEvent;
+    }
+
+    @Override
+    public void close()
+    {
+        unmap(buffer.buffer().byteBuffer());
     }
 
     private void writeEvent(
@@ -54,13 +72,44 @@ public final class EventsLayout implements AutoCloseable
         int index,
         int length)
     {
-        buffer.write(msgTypeId, recordBuffer, index, length);
+        boolean success = buffer.write(msgTypeId, recordBuffer, index, length);
+        if (!success)
+        {
+            rotateFile();
+            buffer.write(msgTypeId, recordBuffer, index, length);
+        }
     }
 
-    @Override
-    public void close()
+    private void rotateFile()
     {
-        unmap(buffer.buffer().byteBuffer());
+        close();
+        String timestamp = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
+        Path newPath = Path.of(String.format("%s_%s", path, timestamp));
+        try
+        {
+            Files.move(path, newPath, StandardCopyOption.REPLACE_EXISTING);
+        }
+        catch (IOException ex)
+        {
+            ex.printStackTrace();
+            rethrowUnchecked(ex);
+        }
+        buffer = createRingBuffer(path, capacity, false);
+    }
+
+    private static RingBuffer createRingBuffer(
+        Path path,
+        long capacity,
+        boolean readonly)
+    {
+        final File layoutFile = path.toFile();
+        if (!readonly)
+        {
+            CloseHelper.close(createEmptyFile(layoutFile, capacity + RingBufferDescriptor.TRAILER_LENGTH));
+        }
+        final MappedByteBuffer mappedBuffer = mapExistingFile(layoutFile, "events");
+        final AtomicBuffer atomicBuffer = new UnsafeBuffer(mappedBuffer);
+        return new OneToOneRingBuffer(atomicBuffer);
     }
 
     public static final class Builder
@@ -92,14 +141,8 @@ public final class EventsLayout implements AutoCloseable
 
         public EventsLayout build()
         {
-            final File layoutFile = path.toFile();
-            if (!readonly)
-            {
-                CloseHelper.close(createEmptyFile(layoutFile, capacity + RingBufferDescriptor.TRAILER_LENGTH));
-            }
-            final MappedByteBuffer mappedBuffer = mapExistingFile(layoutFile, "events");
-            final AtomicBuffer atomicBuffer = new UnsafeBuffer(mappedBuffer);
-            return new EventsLayout(new OneToOneRingBuffer(atomicBuffer));
+            RingBuffer ringBuffer = createRingBuffer(path, capacity, readonly);
+            return new EventsLayout(path, capacity, ringBuffer);
         }
     }
 }

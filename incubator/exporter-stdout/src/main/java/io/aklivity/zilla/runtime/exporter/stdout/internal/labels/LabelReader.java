@@ -32,7 +32,7 @@ import java.util.Map;
 
 import org.agrona.LangUtil;
 
-public final class LabelManager
+public final class LabelReader
 {
     private final List<String> labels;
     private final Map<String, Integer> labelIds;
@@ -40,10 +40,10 @@ public final class LabelManager
 
     private long sizeInBytes;
 
-    public LabelManager(
+    public LabelReader(
         Path directory)
     {
-        this.labels =  new ArrayList<>();
+        this.labels = new ArrayList<>();
         this.labelIds = new HashMap<>();
 
         this.labelsPath = directory.resolve("labels");
