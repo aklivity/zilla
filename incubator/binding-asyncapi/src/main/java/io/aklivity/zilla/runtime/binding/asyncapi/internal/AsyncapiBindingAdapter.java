@@ -14,10 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal;
 
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.CompositeBindingAdapterSpi;
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
-
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 
@@ -25,11 +21,15 @@ import java.util.EnumMap;
 import java.util.Map;
 import java.util.function.UnaryOperator;
 
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.CompositeBindingAdapterSpi;
+import io.aklivity.zilla.runtime.engine.config.KindConfig;
+
 public class AsyncapiBindingAdapter implements CompositeBindingAdapterSpi
 {
     private final UnaryOperator<BindingConfig> composite;
 
-    AsyncapiBindingAdapter()
+    public AsyncapiBindingAdapter()
     {
         Map<KindConfig, UnaryOperator<BindingConfig>> composites = new EnumMap<>(KindConfig.class);
         composites.put(SERVER, new AsyncapiServerCompositeBindingAdapter()::adapt);

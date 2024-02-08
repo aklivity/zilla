@@ -15,24 +15,40 @@
  */
 package io.aklivity.zilla.specs.binding.asyncapi.internal;
 
-import static org.kaazing.k3po.lang.internal.el.ExpressionFactoryUtils.newExpressionFactory;
+import static org.junit.Assert.assertEquals;
 
-import javax.el.ELContext;
-import javax.el.ExpressionFactory;
+import org.agrona.DirectBuffer;
+import org.agrona.MutableDirectBuffer;
+import org.agrona.concurrent.UnsafeBuffer;
+import org.junit.Test;
 
-import org.junit.Before;
-import org.kaazing.k3po.lang.internal.el.ExpressionContext;
+import io.aklivity.zilla.specs.binding.asyncapi.internal.types.OctetsFW;
+import io.aklivity.zilla.specs.binding.asyncapi.internal.types.stream.AsyncapiBeginExFW;
 
 public class AsyncapiFunctionsTest
 {
-    private ExpressionFactory factory;
-    private ELContext ctx;
-
-    @Before
-    public void setUp() throws Exception
+    @Test
+    public void shouldGetMapper()
     {
-        factory = newExpressionFactory();
-        ctx = new ExpressionContext();
+        AsyncapiFunctions.Mapper mapper = new AsyncapiFunctions.Mapper();
+        assertEquals("asyncapi", mapper.getPrefixName());
     }
 
+    @Test
+    public void shouldEncodeAsyncapiBeginExt()
+    {
+        final byte[] array = AsyncapiFunctions.beginEx()
+            .typeId(0)
+            .operationId("operationId")
+            .extension(new byte[] {1})
+            .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(array);
+        AsyncapiBeginExFW asyncapiBeginEx = new AsyncapiBeginExFW().wrap(buffer, 0, buffer.capacity());
+        MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1]);
+
+        assertEquals("operationId", asyncapiBeginEx.operationId().asString());
+        assertEquals(new OctetsFW.Builder().wrap(writeBuffer, 0, 1).set(new byte[] {1}).build(),
+            asyncapiBeginEx.extension());
+    }
 }

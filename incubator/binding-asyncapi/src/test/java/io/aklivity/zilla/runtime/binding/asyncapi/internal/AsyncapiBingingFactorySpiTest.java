@@ -33,7 +33,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.mqtt.config.AsyncapiOptionsConfigAdapterTest;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiOptionsConfigAdapterTest;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
@@ -46,7 +46,6 @@ public class AsyncapiBingingFactorySpiTest
     public MockitoRule rule = MockitoJUnit.rule();
     @Mock
     private ConfigAdapterContext context;
-    private OptionsAdapter adapter;
     private Jsonb jsonb;
 
     @Before
@@ -54,13 +53,13 @@ public class AsyncapiBingingFactorySpiTest
     {
         String content;
         try (InputStream resource = AsyncapiOptionsConfigAdapterTest.class
-            .getResourceAsStream("../../../../../../specs/binding/asyncapi/config/files/mqtt/asyncapi.yaml"))
+            .getResourceAsStream("../../../../../specs/binding/asyncapi/config/mqtt/asyncapi.yaml"))
         {
             content = new String(resource.readAllBytes(), UTF_8);
         }
         Mockito.doReturn(content).when(context).readURL("mqtt/asyncapi.yaml");
 
-        adapter = new OptionsAdapter(OptionsConfigAdapterSpi.Kind.BINDING, context);
+        OptionsAdapter adapter = new OptionsAdapter(OptionsConfigAdapterSpi.Kind.BINDING, context);
         adapter.adaptType("asyncapi");
         JsonbConfig config = new JsonbConfig()
             .withAdapters(adapter);
@@ -88,7 +87,7 @@ public class AsyncapiBingingFactorySpiTest
             .options(options)
             .build();
 
-        AsyncapiCompositeBindingAdapter asyncapiCompositeSpi = new AsyncapiCompositeBindingAdapter();
+        AsyncapiServerCompositeBindingAdapter asyncapiCompositeSpi = new AsyncapiServerCompositeBindingAdapter();
         Assert.assertEquals(0, config.composites.size());
         BindingConfig newConfig = asyncapiCompositeSpi.adapt(config);
         Assert.assertEquals(1, newConfig.composites.size());

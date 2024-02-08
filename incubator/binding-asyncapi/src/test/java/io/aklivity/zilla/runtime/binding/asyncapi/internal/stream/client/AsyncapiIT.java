@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.asyncapi.internal.mqtt.stream.server;
+package io.aklivity.zilla.runtime.binding.asyncapi.internal.stream.client;
 
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -23,6 +23,7 @@ import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
+import org.kaazing.k3po.junit.annotation.ScriptProperty;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 
@@ -42,18 +43,19 @@ public class AsyncapiIT
         .countersBufferCapacity(8192)
         .configure(ENGINE_DRAIN_ON_CLOSE, false)
         .configurationRoot("io/aklivity/zilla/specs/binding/asyncapi/config")
-        .external("asyncapi0")
+        .external("mqtt0")
         .clean();
 
     @Rule
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("server.yaml")
+    @Configuration("client.yaml")
     @Specification({
-        "${mqtt}/publish/client",
-        "${asyncapi}/publish/server"
+        "${asyncapi}/publish/client",
+        "${mqtt}/publish/server"
     })
+    @ScriptProperty("serverAddress \"zilla://streams/mqtt0\"")
     public void shouldPublish() throws Exception
     {
         k3po.finish();

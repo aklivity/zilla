@@ -24,7 +24,6 @@ import io.aklivity.zilla.specs.binding.asyncapi.internal.types.stream.AsyncapiBe
 
 public final class AsyncapiFunctions
 {
-
     @Function
     public static AsyncapiBeginExBuilder beginEx()
     {

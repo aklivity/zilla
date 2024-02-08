@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.asyncapi.internal.mqtt.config;
+package io.aklivity.zilla.runtime.binding.asyncapi.internal.config;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -59,7 +59,7 @@ public class AsyncapiOptionsConfigAdapterTest
     {
         String content;
         try (InputStream resource = AsyncapiOptionsConfigAdapterTest.class
-            .getResourceAsStream("../../../../../../specs/binding/asyncapi/config/files/mqtt/asyncapi.yaml"))
+            .getResourceAsStream("../../../../../specs/binding/asyncapi/config/mqtt/asyncapi.yaml"))
         {
             content = new String(resource.readAllBytes(), UTF_8);
         }

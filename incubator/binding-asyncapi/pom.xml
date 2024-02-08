@@ -57,6 +57,51 @@
       <scope>test</scope>
     </dependency>
     <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.hamcrest</groupId>
+      <artifactId>hamcrest</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.vtence.hamcrest</groupId>
+      <artifactId>hamcrest-jpa</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.github.npathai</groupId>
+      <artifactId>hamcrest-optional</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.kaazing</groupId>
+      <artifactId>k3po.junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.kaazing</groupId>
+      <artifactId>k3po.lang</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.openjdk.jmh</groupId>
+      <artifactId>jmh-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.openjdk.jmh</groupId>
+      <artifactId>jmh-generator-annprocess</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>binding-mqtt</artifactId>
       <version>${project.version}</version>
@@ -127,26 +172,6 @@
       <artifactId>jackson-dataformat-yaml</artifactId>
       <version>2.16.1</version>
     </dependency>
-    <dependency>
-      <groupId>org.junit.jupiter</groupId>
-      <artifactId>junit-jupiter-engine</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.mockito</groupId>
-      <artifactId>mockito-core</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.kaazing</groupId>
-      <artifactId>k3po.junit</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.kaazing</groupId>
-      <artifactId>k3po.lang</artifactId>
-      <scope>test</scope>
-    </dependency>
   </dependencies>
 
   <build>
@@ -203,16 +228,11 @@
                 <artifactItem>
                   <groupId>${project.groupId}</groupId>
                   <artifactId>binding-asyncapi.spec</artifactId>
-                  <fileMappers>
-                    <org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
-                      <pattern>^\Qio/aklivity/zilla/specs/binding/asyncapi/config/files\E</pattern>
-                      <replacement>files</replacement>
-                    </org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
-                  </fileMappers>
+                  <version>${project.version}</version>
+                  <outputDirectory>${basedir}/target/test-classes</outputDirectory>
+                  <includes>**\/*.yaml</includes>
                 </artifactItem>
               </artifactItems>
-              <includes>io/aklivity/zilla/specs/binding/asyncapi/config/files/**/*</includes>
-              <outputDirectory>${project.build.directory}</outputDirectory>
             </configuration>
           </execution>
         </executions>
@@ -283,8 +303,8 @@
         <configuration>
           <excludes>
             <exclude>io/aklivity/zilla/runtime/binding/asyncapi/internal/types/**/*.class</exclude>
-            <exclude>io/aklivity/zilla/runtime/binding/asyncapi/internal/asyncapi/model/*.class</exclude>
-            <exclude>io/aklivity/zilla/runtime/binding/asyncapi/internal/asyncapi/model2/*.class</exclude>
+            <exclude>io/aklivity/zilla/runtime/binding/asyncapi/internal/model/*.class</exclude>
+            <exclude>io/aklivity/zilla/runtime/binding/asyncapi/internal/model2/*.class</exclude>
           </excludes>
           <rules>
             <rule>

@@ -14,53 +14,70 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal;
 
-import java.util.List;
+import static java.util.Objects.requireNonNull;
 
-import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiConfig;
-import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiBindingConfig;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.mqtt.proxy.AsyncApiMqttProxyConfigGenerator;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.CompositeBindingAdapterSpi;
-import io.aklivity.zilla.runtime.engine.config.EngineConfig;
+import java.net.URI;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-public class AsyncapiCompositeBindingAdapter implements CompositeBindingAdapterSpi
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncApi;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.ServerView;
+
+public class AsyncapiCompositeBindingAdapter
 {
-    @Override
-    public String type()
+    protected static final String INLINE_CATALOG_NAME = "catalog0";
+    protected static final String INLINE_CATALOG_TYPE = "inline";
+    protected static final String APPLICATION_JSON = "application/json";
+    protected static final String VERSION_LATEST = "latest";
+    protected static final Pattern JSON_CONTENT_TYPE = Pattern.compile("^application/(?:.+\\+)?json$");
+    protected final Matcher jsonContentType = JSON_CONTENT_TYPE.matcher("");
+
+    protected AsyncApi asyncApi;
+    protected boolean isPlainEnabled;
+    protected boolean isTlsEnabled;
+    protected int[] allPorts;
+
+
+    protected int[] resolveAllPorts()
     {
-        return AsyncapiBinding.NAME;
+        int[] ports = new int[asyncApi.servers.size()];
+        String[] keys = asyncApi.servers.keySet().toArray(String[]::new);
+        for (int i = 0; i < asyncApi.servers.size(); i++)
+        {
+            ServerView server = ServerView.of(asyncApi.servers.get(keys[i]));
+            URI url = server.url();
+            ports[i] = url.getPort();
+        }
+        return ports;
     }
 
-    @Override
-    public BindingConfig adapt(
-        BindingConfig binding)
+    protected int[] resolvePortsForScheme(
+        String scheme)
     {
-        AsyncapiBindingConfig asyncapiBinding = new AsyncapiBindingConfig(binding);
-        BindingConfigBuilder<BindingConfig> builder = BindingConfig.builder(binding);
-        final AsyncapiOptionsConfig options = asyncapiBinding.options;
-        final List<AsyncapiConfig> asyncapis = options.asyncapis;
-        switch (binding.kind)
+        requireNonNull(scheme);
+        int[] ports = null;
+        URI url = findFirstServerUrlWithScheme(scheme);
+        if (url != null)
         {
-        case SERVER:
-            for (int i = 0; i < asyncapis.size(); i++)
-            {
-                AsyncApiMqttProxyConfigGenerator generator = new AsyncApiMqttProxyConfigGenerator(asyncapis.get(i).asyncApi);
-                EngineConfig config = generator.createServerConfig(String.format("%s/mqtt", binding.qname));
-                config.namespaces.forEach(builder::composite);
-            }
-            return builder.build();
-        case CLIENT:
-            for (int i = 0; i < asyncapis.size(); i++)
-            {
-                AsyncApiMqttProxyConfigGenerator generator = new AsyncApiMqttProxyConfigGenerator(asyncapis.get(i).asyncApi);
-                EngineConfig config = generator.createClientConfig(String.format(binding.qname, "$composite"));
-                config.namespaces.forEach(builder::composite);
-            }
-            return builder.build();
-        default:
-            return binding;
+            ports = new int[] {url.getPort()};
         }
+        return ports;
+    }
+
+    protected URI findFirstServerUrlWithScheme(
+        String scheme)
+    {
+        requireNonNull(scheme);
+        URI result = null;
+        for (String key : asyncApi.servers.keySet())
+        {
+            ServerView server = ServerView.of(asyncApi.servers.get(key));
+            if (scheme.equals(server.url().getScheme()))
+            {
+                result = server.url();
+                break;
+            }
+        }
+        return result;
     }
 }
