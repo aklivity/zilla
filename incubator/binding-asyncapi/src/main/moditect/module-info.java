@@ -12,24 +12,24 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-module io.aklivity.zilla.runtime.command.generate
+module io.aklivity.zilla.runtime.binding.asyncapi
 {
     requires io.aklivity.zilla.runtime.engine;
+    requires io.aklivity.zilla.runtime.binding.mqtt;
+    requires io.aklivity.zilla.runtime.binding.tcp;
+    requires io.aklivity.zilla.runtime.binding.tls;
 
-    opens io.aklivity.zilla.runtime.binding.asyncapi.internal.asyncapi.model;
-    opens io.aklivity.zilla.runtime.binding.asyncapi.internal.asyncapi.view;
+    opens io.aklivity.zilla.runtime.binding.asyncapi.internal.model;
+    opens io.aklivity.zilla.runtime.binding.asyncapi.internal.view;
 
     exports io.aklivity.zilla.runtime.binding.asyncapi.config;
 
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
         with io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiBindingFactorySpi;
 
-    provides io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi
-        with io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiConditionConfigAdapter;
-
     provides io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi
         with io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiOptionsConfigAdapter;
 
     provides io.aklivity.zilla.runtime.engine.config.CompositeBindingAdapterSpi
-        with io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiCompositeBindingAdapter;
+        with io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiBindingAdapter;
 }

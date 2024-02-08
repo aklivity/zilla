@@ -23,4 +23,3 @@ bindings:
         options:
             specs:
                 - mqtt/asyncapi.yaml
-        exit: mqtt0

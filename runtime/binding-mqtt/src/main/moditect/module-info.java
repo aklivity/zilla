@@ -18,6 +18,7 @@ module io.aklivity.zilla.runtime.binding.mqtt
     requires io.aklivity.zilla.runtime.engine;
 
     exports io.aklivity.zilla.runtime.binding.mqtt.config;
+    exports io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream;
 
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
         with io.aklivity.zilla.runtime.binding.mqtt.internal.MqttBindingFactorySpi;
