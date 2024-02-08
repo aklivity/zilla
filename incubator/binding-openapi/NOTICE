@@ -10,9 +10,17 @@ WARRANTIES OF ANY KIND, either express or implied.  See the License for the
 specific language governing permissions and limitations under the License.
 
 This project includes:
-  Jackson-annotations under The Apache Software License, Version 2.0
-  Jackson-core under The Apache Software License, Version 2.0
-  jackson-databind under The Apache Software License, Version 2.0
-  Jackson-dataformat-YAML under The Apache Software License, Version 2.0
-  SnakeYAML under Apache License, Version 2.0
+  ICU4J under Unicode/ICU License
+  Jakarta JSON Processing API under Eclipse Public License 2.0 or GNU General Public License, version 2 with the GNU Classpath Exception
+  jose4j under The Apache Software License, Version 2.0
+  org.leadpony.justify under The Apache Software License, Version 2.0
+  SLF4J API Module under MIT License
+  zilla::incubator::catalog-inline under Aklivity Community License Agreement
+  zilla::incubator::model-core under Aklivity Community License Agreement
+  zilla::incubator::model-json under Aklivity Community License Agreement
+  zilla::runtime::binding-http under The Apache Software License, Version 2.0
+  zilla::runtime::binding-tcp under The Apache Software License, Version 2.0
+  zilla::runtime::binding-tls under The Apache Software License, Version 2.0
+  zilla::runtime::guard-jwt under Aklivity Community License Agreement
+  zilla::runtime::vault-filesystem under The Apache Software License, Version 2.0
 
