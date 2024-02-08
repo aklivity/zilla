@@ -33,12 +33,6 @@
   <dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>engine.spec</artifactId>
-      <version>${project.version}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
       <artifactId>engine</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
@@ -105,7 +99,6 @@
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>binding-http</artifactId>
       <version>${project.version}</version>
-      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
@@ -117,37 +110,31 @@
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>binding-tls</artifactId>
       <version>${project.version}</version>
-      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>guard-jwt</artifactId>
       <version>${project.version}</version>
-      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>catalog-inline</artifactId>
       <version>${project.version}</version>
-      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>model-core</artifactId>
       <version>${project.version}</version>
-      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>model-json</artifactId>
       <version>${project.version}</version>
-      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>vault-filesystem</artifactId>
       <version>${project.version}</version>
-      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>com.fasterxml.jackson.dataformat</groupId>
@@ -166,6 +153,9 @@
       <plugin>
         <groupId>org.jasig.maven</groupId>
         <artifactId>maven-notice-plugin</artifactId>
+        <configuration>
+          <licenseMapping>src/conf/notice/license-mappings.xml</licenseMapping>
+        </configuration>
       </plugin>
       <plugin>
         <groupId>${project.groupId}</groupId>
@@ -267,7 +257,6 @@
         <configuration>
           <excludes>
             <exclude>io/aklivity/zilla/runtime/binding/openapi/internal/types/**/*.class</exclude>
-            <exclude>io/aklivity/zilla/runtime/binding/openapi/internal/view/*</exclude>
             <exclude>io/aklivity/zilla/runtime/binding/openapi/internal/model/*</exclude>
           </excludes>
           <rules>
