@@ -244,6 +244,14 @@ public class EngineManager
                 binding.vaultId = resolver.resolve(binding.vault);
             }
 
+            if (binding.catalogs != null)
+            {
+                for (CatalogedConfig cataloged : binding.catalogs)
+                {
+                    cataloged.id = resolver.resolve(cataloged.name);
+                }
+            }
+
             if (binding.options != null)
             {
                 for (ModelConfig model : binding.options.models)
@@ -338,6 +346,8 @@ public class EngineManager
                 register(namespace);
             }
         }
+
+        extensions.forEach(e -> e.onRegistered(context));
     }
 
     private void unregister(
@@ -350,6 +360,8 @@ public class EngineManager
                 unregister(namespace);
             }
         }
+
+        extensions.forEach(e -> e.onUnregistered(context));
     }
 
     private void register(
@@ -359,7 +371,6 @@ public class EngineManager
             .map(d -> d.attach(namespace))
             .reduce(CompletableFuture::allOf)
             .ifPresent(CompletableFuture::join);
-        extensions.forEach(e -> e.onRegistered(context));
     }
 
     private void unregister(
@@ -371,7 +382,6 @@ public class EngineManager
                 .map(d -> d.detach(namespace))
                 .reduce(CompletableFuture::allOf)
                 .ifPresent(CompletableFuture::join);
-            extensions.forEach(e -> e.onUnregistered(context));
         }
     }
 

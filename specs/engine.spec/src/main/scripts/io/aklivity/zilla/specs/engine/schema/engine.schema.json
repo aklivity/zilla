@@ -222,6 +222,87 @@
             [
             ]
         },
+        "cataloged":
+        {
+            "oneOf":
+            [
+                {
+                    "type": "object",
+                    "properties":
+                    {
+                        "id":
+                        {
+                            "type": "integer"
+                        }
+                    },
+                    "required":
+                    [
+                        "id"
+                    ],
+                    "additionalProperties": false
+                },
+                {
+                    "type": "object",
+                    "properties":
+                    {
+                        "schema":
+                        {
+                            "type": "string"
+                        },
+                        "version":
+                        {
+                            "type": "string",
+                            "default": "latest"
+                        }
+                    },
+                    "required":
+                    [
+                        "schema"
+                    ],
+                    "additionalProperties": false
+                },
+                {
+                    "type": "object",
+                    "properties":
+                    {
+                        "strategy":
+                        {
+                            "type": "string"
+                        },
+                        "version":
+                        {
+                            "type": "string",
+                            "default": "latest"
+                        }
+                    },
+                    "required":
+                    [
+                        "strategy"
+                    ],
+                    "additionalProperties": false
+                },
+                {
+                    "type": "object",
+                    "properties":
+                    {
+                        "subject":
+                        {
+                            "type": "string"
+                        },
+                        "version":
+                        {
+                            "type": "string",
+                            "default": "latest"
+                        }
+                    },
+                    "required":
+                    [
+                        "subject"
+                    ],
+                    "additionalProperties": false
+                }
+            ]
+        },
         "binding":
         {
             "title": "Binding",
@@ -232,6 +313,22 @@
                 {
                     "title": "Vault",
                     "type": "string"
+                },
+                "catalog":
+                {
+                    "type": "object",
+                    "patternProperties":
+                    {
+                        "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                        {
+                            "type": "array",
+                            "items":
+                            {
+                                "$ref": "#/$defs/cataloged"
+                            }
+                        }
+                    },
+                    "maxProperties": 1
                 },
                 "type":
                 {

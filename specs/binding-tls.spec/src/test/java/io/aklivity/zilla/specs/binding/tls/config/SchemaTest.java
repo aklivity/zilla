@@ -132,6 +132,14 @@ public class SchemaTest
     }
 
     @Test
+    public void shouldValidateServerKeysNotFound()
+    {
+        JsonObject config = schema.validate("server.keys.not.found.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
     public void shouldValidateServerMutual()
     {
         JsonObject config = schema.validate("server.mutual.yaml");

@@ -30,6 +30,8 @@ import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.Kafka
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_KEY;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_OFFSET;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_OWNER_ID;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_PRODUCER_EPOCH;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_PRODUCER_ID;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_SEQUENCE;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_TIMESTAMP;
 import static java.nio.ByteBuffer.allocateDirect;
@@ -73,6 +75,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Varint32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheDeltaFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 
@@ -82,6 +85,8 @@ public final class KafkaCachePartition
     private static final long NO_ANCESTOR_OFFSET = -1L;
     private static final long NO_DESCENDANT_OFFSET = -1L;
     private static final int NO_SEQUENCE = -1;
+    private static final short NO_PRODUCER_ID = -1;
+    private static final short NO_PRODUCER_EPOCH = -1;
     private static final int NO_ACKNOWLEDGE = 0;
     private static final int NO_CONVERTED_POSITION = -1;
     private static final int NO_DELTA_POSITION = -1;
@@ -328,6 +333,8 @@ public final class KafkaCachePartition
     }
 
     public void writeEntry(
+        EngineContext context,
+        long bindingId,
         long offset,
         MutableInteger entryMark,
         MutableInteger valueMark,
@@ -340,17 +347,20 @@ public final class KafkaCachePartition
         int entryFlags,
         KafkaDeltaType deltaType,
         ConverterHandler convertKey,
-        ConverterHandler convertValue)
+        ConverterHandler convertValue,
+        boolean verbose)
     {
         final long keyHash = computeHash(key);
         final int valueLength = value != null ? value.sizeof() : -1;
-        writeEntryStart(offset, entryMark, valueMark, timestamp, producerId, key,
-            keyHash, valueLength, ancestor, entryFlags, deltaType, value, convertKey, convertValue);
-        writeEntryContinue(FLAGS_COMPLETE, entryMark, valueMark, value, convertValue);
+        writeEntryStart(context, bindingId, offset, entryMark, valueMark, timestamp, producerId, key,
+            keyHash, valueLength, ancestor, entryFlags, deltaType, value, convertKey, convertValue, verbose);
+        writeEntryContinue(context, bindingId, FLAGS_COMPLETE, offset, entryMark, valueMark, value, convertValue, verbose);
         writeEntryFinish(headers, deltaType);
     }
 
     public void writeEntryStart(
+        EngineContext context,
+        long bindingId,
         long offset,
         MutableInteger entryMark,
         MutableInteger valueMark,
@@ -364,7 +374,8 @@ public final class KafkaCachePartition
         KafkaDeltaType deltaType,
         OctetsFW payload,
         ConverterHandler convertKey,
-        ConverterHandler convertValue)
+        ConverterHandler convertValue,
+        boolean verbose)
     {
         assert offset > this.progress : String.format("%d > %d", offset, this.progress);
         this.progress = offset;
@@ -440,9 +451,13 @@ public final class KafkaCachePartition
             int converted = convertKey.convert(value.buffer(), value.offset(), value.sizeof(), writeKey);
             if (converted == -1)
             {
-                // For Fetch Validation failure, we still push the event to Cache
-                logFile.appendBytes(key);
-                // TODO: Placeholder to log fetch validation failure
+                logFile.writeInt(entryMark.value + FIELD_OFFSET_FLAGS, CACHE_ENTRY_FLAGS_ABORTED);
+                if (verbose)
+                {
+                    System.out.printf("%s:%s %s: Skipping invalid message on topic %s, partition %d, offset %d\n",
+                        System.currentTimeMillis(), context.supplyNamespace(bindingId),
+                        context.supplyLocalName(bindingId), topic, id, offset);
+                }
             }
         }
         logFile.appendInt(valueLength);
@@ -465,11 +480,15 @@ public final class KafkaCachePartition
     }
 
     public void writeEntryContinue(
+        EngineContext context,
+        long bindingId,
         int flags,
+        long offset,
         MutableInteger entryMark,
         MutableInteger valueMark,
         OctetsFW payload,
-        ConverterHandler convertValue)
+        ConverterHandler convertValue,
+        boolean verbose)
     {
         final Node head = sentinel.previous;
         assert head != sentinel;
@@ -503,13 +522,20 @@ public final class KafkaCachePartition
             };
 
             final int valueLength = logFile.capacity() - valueMark.value;
-            // TODO: log if invalid
-            if ((flags & FLAGS_FIN) != 0x00)
+            int entryFlags = logFile.readInt(entryMark.value + FIELD_OFFSET_FLAGS);
+
+            if ((flags & FLAGS_FIN) != 0x00 && (entryFlags & CACHE_ENTRY_FLAGS_ABORTED) == 0x00)
             {
                 int converted = convertValue.convert(logFile.buffer(), valueMark.value, valueLength, consumeConverted);
                 if (converted == -1)
                 {
-                    logFile.writeInt(entryMark.value + FIELD_OFFSET_CONVERTED_POSITION, NO_CONVERTED_POSITION);
+                    logFile.writeInt(entryMark.value + FIELD_OFFSET_FLAGS, CACHE_ENTRY_FLAGS_ABORTED);
+                    if (verbose)
+                    {
+                        System.out.printf("%s:%s %s: Skipping invalid message on topic %s, partition %d, offset %d\n",
+                            System.currentTimeMillis(), context.supplyNamespace(bindingId),
+                            context.supplyLocalName(bindingId), topic, id, offset);
+                    }
                 }
             }
         }
@@ -604,6 +630,8 @@ public final class KafkaCachePartition
         MutableInteger valueLimit,
         long timestamp,
         long ownerId,
+        long producerId,
+        short producerEpoch,
         int sequence,
         KafkaAckMode ackMode,
         KafkaKeyFW key,
@@ -646,6 +674,8 @@ public final class KafkaCachePartition
         entryInfo.putLong(FIELD_OFFSET_TIMESTAMP, timestamp);
         entryInfo.putLong(FIELD_OFFSET_OWNER_ID, ownerId);
         entryInfo.putLong(FIELD_OFFSET_ACKNOWLEDGE, NO_ACKNOWLEDGE);
+        entryInfo.putLong(FIELD_OFFSET_PRODUCER_ID, producerId);
+        entryInfo.putShort(FIELD_OFFSET_PRODUCER_EPOCH, producerEpoch);
         entryInfo.putInt(FIELD_OFFSET_SEQUENCE, sequence);
         entryInfo.putLong(FIELD_OFFSET_ANCESTOR, NO_ANCESTOR_OFFSET);
         entryInfo.putLong(FIELD_OFFSET_DESCENDANT, NO_DESCENDANT_OFFSET);

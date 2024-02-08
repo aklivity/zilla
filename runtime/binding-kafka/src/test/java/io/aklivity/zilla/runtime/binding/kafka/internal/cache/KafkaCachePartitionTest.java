@@ -227,14 +227,14 @@ public class KafkaCachePartitionTest
             Node head10 = partition.append(10L);
             KafkaCacheSegment head10s = head10.segment();
 
-            partition.writeEntry(11L, entryMark, valueMark, 0L, -1L,
-                key, headers, value, null, 0x00, KafkaDeltaType.NONE, null, null);
+            partition.writeEntry(null, 1L, 11L, entryMark, valueMark, 0L, -1L,
+                key, headers, value, null, 0x00, KafkaDeltaType.NONE, null, null, false);
 
             long keyHash = partition.computeKeyHash(key);
             KafkaCacheEntryFW ancestor = head10.findAndMarkAncestor(key, keyHash, 11L, ancestorRO);
 
-            partition.writeEntry(12L, entryMark, valueMark, 0L, -1L,
-                key, headers, value, ancestor, 0x00, KafkaDeltaType.NONE, null, null);
+            partition.writeEntry(null, 1L, 12L, entryMark, valueMark, 0L, -1L,
+                key, headers, value, ancestor, 0x00, KafkaDeltaType.NONE, null, null, false);
 
             Node head15 = partition.append(15L);
             KafkaCacheSegment head15s = head15.segment();
@@ -283,14 +283,14 @@ public class KafkaCachePartitionTest
             KafkaCachePartition partition = new KafkaCachePartition(location, config, "cache", "test", 0, 65536, long[]::new);
             Node head10 = partition.append(10L);
 
-            partition.writeEntry(11L, entryMark, valueMark, 0L, -1L,
-                key, headers, value, null, 0x00, KafkaDeltaType.NONE, null, null);
+            partition.writeEntry(null, 1L, 11L, entryMark, valueMark, 0L, -1L,
+                key, headers, value, null, 0x00, KafkaDeltaType.NONE, null, null, false);
 
             long keyHash = partition.computeKeyHash(key);
             KafkaCacheEntryFW ancestor = head10.findAndMarkAncestor(key, keyHash, 11L, ancestorRO);
 
-            partition.writeEntry(12L, entryMark, valueMark, 0L, -1L,
-                key, headers, value, ancestor, 0x00, KafkaDeltaType.NONE, null, null);
+            partition.writeEntry(null, 1L, 12L, entryMark, valueMark, 0L, -1L,
+                key, headers, value, ancestor, 0x00, KafkaDeltaType.NONE, null, null, false);
 
             Node head15 = partition.append(15L);
             Node tail10 = head15.previous();
