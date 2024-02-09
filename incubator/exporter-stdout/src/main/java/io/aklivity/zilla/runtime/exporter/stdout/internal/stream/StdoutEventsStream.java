@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.exporter.stdout.internal.printer;
+package io.aklivity.zilla.runtime.exporter.stdout.internal.stream;
 
 import java.io.PrintStream;
 
@@ -32,7 +32,7 @@ import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.TcpEventFW
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.TcpRemoteAccessFailedEventFW;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.TlsEventFW;
 
-public class PrintableEventsStream
+public class StdoutEventsStream
 {
     private static final String TCP_REMOTE_ACCESS_FAILED_FORMAT =
         "ERROR: Remote Access Failed [timestamp = %d] [traceId = 0x%016x] [binding = %s] [address = %s]%n";
@@ -51,7 +51,7 @@ public class PrintableEventsStream
     private final PrintStream out;
     private final Int2ObjectHashMap<MessageConsumer> eventHandlers;
 
-    public PrintableEventsStream(
+    public StdoutEventsStream(
         LabelReader labels,
         EventsLayoutReader layout,
         PrintStream out)

@@ -30,8 +30,8 @@ import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.config.StdoutExporterConfig;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.labels.LabelReader;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.layouts.EventsLayoutReader;
-import io.aklivity.zilla.runtime.exporter.stdout.internal.printer.PrintableEventsStream;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.spy.RingBufferSpy.SpyPosition;
+import io.aklivity.zilla.runtime.exporter.stdout.internal.stream.StdoutEventsStream;
 
 public class StdoutExporterHandler implements ExporterHandler
 {
@@ -42,7 +42,7 @@ public class StdoutExporterHandler implements ExporterHandler
     private final LabelReader labels;
     private final PrintStream out;
 
-    private PrintableEventsStream[] printables;
+    private StdoutEventsStream[] stdoutEventStreams;
 
     public StdoutExporterHandler(
         EngineConfiguration config,
@@ -61,10 +61,10 @@ public class StdoutExporterHandler implements ExporterHandler
     {
         try (Stream<Path> files = Files.walk(directory, 3))
         {
-            this.printables = files.filter(this::isEventsFile)
+            this.stdoutEventStreams = files.filter(this::isEventsFile)
                  .sorted()
-                 .map(this::newPrintable)
-                 .toArray(PrintableEventsStream[]::new);
+                 .map(this::newStdoutEventsStream)
+                 .toArray(StdoutEventsStream[]::new);
         }
         catch (IOException ex)
         {
@@ -77,11 +77,11 @@ public class StdoutExporterHandler implements ExporterHandler
     public int export()
     {
         int workCount = 0;
-        if (printables != null)
+        if (stdoutEventStreams != null)
         {
-            for (int i = 0; i < printables.length; i++)
+            for (int i = 0; i < stdoutEventStreams.length; i++)
             {
-                workCount += printables[i].process();
+                workCount += stdoutEventStreams[i].process();
             }
         }
         return workCount;
@@ -105,7 +105,7 @@ public class StdoutExporterHandler implements ExporterHandler
         return matcher.matches();
     }
 
-    private PrintableEventsStream newPrintable(
+    private StdoutEventsStream newStdoutEventsStream(
         Path path)
     {
         EventsLayoutReader layout = new EventsLayoutReader.Builder()
@@ -113,6 +113,6 @@ public class StdoutExporterHandler implements ExporterHandler
             .readonly(true)
             .spyAt(SpyPosition.ZERO)
             .build();
-        return new PrintableEventsStream(labels, layout, out);
+        return new StdoutEventsStream(labels, layout, out);
     }
 }
