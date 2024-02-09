@@ -15,7 +15,6 @@
  */
 package io.aklivity.zilla.runtime.binding.tls.internal.streams;
 
-import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -42,7 +41,6 @@ public class BridgeIT
             .countersBufferCapacity(8192)
             .configurationRoot("io/aklivity/zilla/specs/binding/tls/config")
             .external("app1")
-            .configure(ENGINE_DRAIN_ON_CLOSE, false)
             .clean();
 
     @Rule
