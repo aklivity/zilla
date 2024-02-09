@@ -26,23 +26,6 @@
                     "type":
                     {
                         "const": "stdout"
-                    },
-                    "options":
-                    {
-                        "properties":
-                        {
-                            "level":
-                            {
-                                "enum":
-                                [
-                                    "info",
-                                    "warning",
-                                    "error"
-                                ],
-                                "default": "info"
-                            }
-                        },
-                        "additionalProperties": false
                     }
                 }
             }
