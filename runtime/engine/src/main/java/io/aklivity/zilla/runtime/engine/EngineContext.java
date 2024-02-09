@@ -37,6 +37,8 @@ import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
+import io.aklivity.zilla.runtime.engine.reader.RingBufferSpy;
+import io.aklivity.zilla.runtime.engine.reader.RingBufferSpy.SpyPosition;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
 public interface EngineContext
@@ -65,6 +67,9 @@ public interface EngineContext
     long supplyBudgetId();
 
     long supplyTraceId();
+
+    RingBufferSpy[] supplyEventSpies(
+        SpyPosition position);
 
     MessageConsumer supplySender(
         long streamId);

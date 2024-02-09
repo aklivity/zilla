@@ -38,12 +38,18 @@ import org.agrona.concurrent.ringbuffer.RingBuffer;
 import org.agrona.concurrent.ringbuffer.RingBufferDescriptor;
 
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.reader.OneToOneRingBufferSpy;
+import io.aklivity.zilla.runtime.engine.reader.RingBufferSpy;
+import io.aklivity.zilla.runtime.engine.reader.RingBufferSpy.SpyPosition;
 
 public final class EventsLayout implements AutoCloseable
 {
     private final Path path;
     private final long capacity;
+
     private RingBuffer buffer;
+    private RingBufferSpy bufferSpy;
+    private SpyPosition position;
 
     private EventsLayout(
         Path path,
@@ -58,6 +64,18 @@ public final class EventsLayout implements AutoCloseable
     public MessageConsumer supplyWriter()
     {
         return this::writeEvent;
+    }
+
+    public void spyAt(
+        SpyPosition position)
+    {
+        this.position = position;
+        bufferSpy = createRingBufferSpy(path, position);
+    }
+
+    public RingBufferSpy bufferSpy()
+    {
+        return bufferSpy;
     }
 
     @Override
@@ -95,6 +113,10 @@ public final class EventsLayout implements AutoCloseable
             rethrowUnchecked(ex);
         }
         buffer = createRingBuffer(path, capacity, false);
+        if (position != null)
+        {
+            bufferSpy = createRingBufferSpy(path, position);
+        }
     }
 
     private static RingBuffer createRingBuffer(
@@ -110,6 +132,21 @@ public final class EventsLayout implements AutoCloseable
         final MappedByteBuffer mappedBuffer = mapExistingFile(layoutFile, "events");
         final AtomicBuffer atomicBuffer = new UnsafeBuffer(mappedBuffer);
         return new OneToOneRingBuffer(atomicBuffer);
+    }
+
+    private static RingBufferSpy createRingBufferSpy(
+        Path path,
+        SpyPosition position)
+    {
+        final File layoutFile = path.toFile();
+        final MappedByteBuffer mappedBuffer = mapExistingFile(layoutFile, "events");
+        final AtomicBuffer atomicBuffer = new UnsafeBuffer(mappedBuffer);
+        final OneToOneRingBufferSpy spy = new OneToOneRingBufferSpy(atomicBuffer);
+        if (position != null)
+        {
+            spy.spyAt(position);
+        }
+        return spy;
     }
 
     public static final class Builder

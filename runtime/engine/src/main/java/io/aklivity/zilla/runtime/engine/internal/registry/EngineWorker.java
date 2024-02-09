@@ -135,6 +135,8 @@ import io.aklivity.zilla.runtime.engine.model.Model;
 import io.aklivity.zilla.runtime.engine.model.ModelContext;
 import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
+import io.aklivity.zilla.runtime.engine.reader.RingBufferSpy;
+import io.aklivity.zilla.runtime.engine.reader.RingBufferSpy.SpyPosition;
 import io.aklivity.zilla.runtime.engine.util.function.LongLongFunction;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
@@ -212,6 +214,7 @@ public class EngineWorker implements EngineContext, Agent
     private final ScalarsLayout gaugesLayout;
     private final HistogramsLayout histogramsLayout;
     private final EventsLayout eventsLayout;
+    private final Function<SpyPosition, RingBufferSpy[]> supplyEventSpies;
     private long initialId;
     private long promiseId;
     private long traceId;
@@ -234,6 +237,7 @@ public class EngineWorker implements EngineContext, Agent
         Collection<Model> models,
         Collection<MetricGroup> metricGroups,
         Collector collector,
+        Function<SpyPosition, RingBufferSpy[]> supplyEventSpies,
         int index,
         boolean readonly)
     {
@@ -415,6 +419,7 @@ public class EngineWorker implements EngineContext, Agent
         this.idleStrategy = idleStrategy;
         this.errorHandler = errorHandler;
         this.exportersById = new Long2ObjectHashMap<>();
+        this.supplyEventSpies = supplyEventSpies;
     }
 
     public static int indexOfId(
@@ -1582,6 +1587,19 @@ public class EngineWorker implements EngineContext, Agent
     {
         final int remoteIndex = serverIndex(streamId);
         return writersByIndex.computeIfAbsent(remoteIndex, supplyWriter);
+    }
+
+    public RingBufferSpy supplyEventSpy(
+        SpyPosition position)
+    {
+        eventsLayout.spyAt(position);
+        return eventsLayout.bufferSpy();
+    }
+
+    public RingBufferSpy[] supplyEventSpies(
+        SpyPosition position)
+    {
+        return supplyEventSpies.apply(position);
     }
 
     private MessageConsumer supplyWriter(

@@ -14,30 +14,20 @@
  */
 package io.aklivity.zilla.runtime.exporter.stdout.internal;
 
-import java.io.IOException;
 import java.io.PrintStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Stream;
-
-import org.agrona.LangUtil;
+import java.util.Arrays;
 
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
-import io.aklivity.zilla.runtime.engine.reader.EventsLayoutReader;
+import io.aklivity.zilla.runtime.engine.reader.RingBufferSpy;
 import io.aklivity.zilla.runtime.engine.reader.RingBufferSpy.SpyPosition;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.config.StdoutExporterConfig;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.stream.StdoutEventsStream;
 
 public class StdoutExporterHandler implements ExporterHandler
 {
-    private static final Pattern EVENTS_PATTERN = Pattern.compile("events(\\d+)");
-
     private final EngineContext context;
-    private final Path directory;
     private final PrintStream out;
 
     private StdoutEventsStream[] stdoutEventStreams;
@@ -49,25 +39,15 @@ public class StdoutExporterHandler implements ExporterHandler
         PrintStream out)
     {
         this.context = context;
-        this.directory = config.directory();
         this.out = out;
     }
 
     @Override
     public void start()
     {
-        try (Stream<Path> files = Files.walk(directory, 3))
-        {
-            this.stdoutEventStreams = files.filter(this::isEventsFile)
-                 .sorted()
-                 .map(this::newStdoutEventsStream)
-                 .toArray(StdoutEventsStream[]::new);
-        }
-        catch (IOException ex)
-        {
-            LangUtil.rethrowUnchecked(ex);
-        }
-
+        this.stdoutEventStreams = Arrays.stream(context.supplyEventSpies(SpyPosition.ZERO))
+                .map(this::newStdoutEventsStream)
+                .toArray(StdoutEventsStream[]::new);
     }
 
     @Override
@@ -89,27 +69,9 @@ public class StdoutExporterHandler implements ExporterHandler
     {
     }
 
-    private boolean isEventsFile(
-        Path path)
-    {
-        final int depth = path.getNameCount() - directory.getNameCount();
-        if (depth != 1 || !Files.isRegularFile(path))
-        {
-            return false;
-        }
-
-        final Matcher matcher = EVENTS_PATTERN.matcher(path.getName(path.getNameCount() - 1).toString());
-        return matcher.matches();
-    }
-
     private StdoutEventsStream newStdoutEventsStream(
-        Path path)
+        RingBufferSpy eventSpy)
     {
-        EventsLayoutReader layout = new EventsLayoutReader.Builder()
-            .path(path)
-            .readonly(true)
-            .spyAt(SpyPosition.ZERO)
-            .build();
-        return new StdoutEventsStream(layout, context::supplyNamespace, context::supplyLocalName, context::lookupLabelId, out);
+        return new StdoutEventsStream(eventSpy, context::supplyNamespace, context::supplyLocalName, context::lookupLabelId, out);
     }
 }

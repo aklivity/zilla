@@ -75,6 +75,8 @@ import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
 import io.aklivity.zilla.runtime.engine.model.Model;
+import io.aklivity.zilla.runtime.engine.reader.RingBufferSpy;
+import io.aklivity.zilla.runtime.engine.reader.RingBufferSpy.SpyPosition;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 
 public final class Engine implements Collector, AutoCloseable
@@ -160,7 +162,7 @@ public final class Engine implements Collector, AutoCloseable
             EngineWorker worker =
                 new EngineWorker(config, tasks, labels, errorHandler, tuning::affinity,
                         bindings, exporters, guards, vaults, catalogs, models, metricGroups,
-                    this, coreIndex, readonly);
+                    this, this::supplyEventSpies, coreIndex, readonly);
             workers.add(worker);
         }
         this.workers = workers;
@@ -479,6 +481,17 @@ public final class Engine implements Collector, AutoCloseable
         // the list of histogram ids are expected to be identical in all cores
         EngineWorker worker = workers.get(0);
         return worker.histogramIds();
+    }
+
+    public RingBufferSpy[] supplyEventSpies(
+        SpyPosition position)
+    {
+        RingBufferSpy[] spies = new RingBufferSpy[workers.size()];
+        for (int i = 0; i < workers.size(); i++)
+        {
+            spies[i] = workers.get(i).supplyEventSpy(position);
+        }
+        return spies;
     }
 
     public String supplyLocalName(

@@ -22,7 +22,7 @@ import org.agrona.DirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.reader.EventsLayoutReader;
+import io.aklivity.zilla.runtime.engine.reader.RingBufferSpy;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.StringFW;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.HttpEventFW;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.KafkaEventFW;
@@ -44,7 +44,7 @@ public class StdoutEventsStream
     private final TcpEventFW tcpEventRO = new TcpEventFW();
     private final TlsEventFW tlsEventRO = new TlsEventFW();
 
-    private final EventsLayoutReader layout;
+    private final RingBufferSpy eventSpy;
     private final LongFunction<String> supplyNamespace;
     private final LongFunction<String> supplyLocalName;
     private final ToIntFunction<String> lookupLabelId;
@@ -52,13 +52,13 @@ public class StdoutEventsStream
     private final Int2ObjectHashMap<MessageConsumer> eventHandlers;
 
     public StdoutEventsStream(
-        EventsLayoutReader layout,
+        RingBufferSpy eventSpy,
         LongFunction<String> supplyNamespace,
         LongFunction<String> supplyLocalName,
         ToIntFunction<String> lookupLabelId,
         PrintStream out)
     {
-        this.layout = layout;
+        this.eventSpy = eventSpy;
         this.supplyNamespace = supplyNamespace;
         this.supplyLocalName = supplyLocalName;
         this.lookupLabelId = lookupLabelId;
@@ -88,7 +88,7 @@ public class StdoutEventsStream
 
     public int process()
     {
-        return layout.eventsBuffer().spy(this::handleEvent, 1);
+        return eventSpy.spy(this::handleEvent, 1);
     }
 
     private boolean handleEvent(
