@@ -39,7 +39,7 @@ public class TcpEventContext
         EngineContext context)
     {
         this.tcpTypeId = context.supplyTypeId(TcpBinding.NAME);
-        this.logEvent = context.logEvent();
+        this.logEvent = context.logger();
         this.timestamp = context.timestamp();
     }
 

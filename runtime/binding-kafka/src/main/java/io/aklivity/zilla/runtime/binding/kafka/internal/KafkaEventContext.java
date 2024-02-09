@@ -40,7 +40,7 @@ public class KafkaEventContext
         EngineContext context)
     {
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
-        this.logEvent = context.logEvent();
+        this.logEvent = context.logger();
         this.timestamp = context.timestamp();
     }
 

@@ -40,7 +40,7 @@ public class MqttEventContext
         EngineContext context)
     {
         this.mqttTypeId = context.supplyTypeId(MqttBinding.NAME);
-        this.logEvent = context.logEvent();
+        this.logEvent = context.logger();
         this.timestamp = context.timestamp();
     }
 

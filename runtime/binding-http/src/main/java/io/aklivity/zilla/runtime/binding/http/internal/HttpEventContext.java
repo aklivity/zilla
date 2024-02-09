@@ -40,7 +40,7 @@ public class HttpEventContext
         EngineContext context)
     {
         this.httpTypeId = context.supplyTypeId(HttpBinding.NAME);
-        this.logEvent = context.logEvent();
+        this.logEvent = context.logger();
         this.timestamp = context.timestamp();
     }
 

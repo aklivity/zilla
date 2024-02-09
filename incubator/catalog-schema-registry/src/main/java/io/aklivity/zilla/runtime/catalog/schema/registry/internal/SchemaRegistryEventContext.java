@@ -38,7 +38,7 @@ public class SchemaRegistryEventContext
         EngineContext context)
     {
         this.schemaRegistryTypeId = context.supplyTypeId(SchemaRegistryCatalog.NAME);
-        this.logEvent = context.logEvent();
+        this.logEvent = context.logger();
         this.timestamp = context.timestamp();
     }
 

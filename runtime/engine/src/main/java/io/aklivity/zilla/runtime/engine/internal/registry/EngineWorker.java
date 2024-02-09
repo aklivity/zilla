@@ -904,7 +904,7 @@ public class EngineWorker implements EngineContext, Agent
     }
 
     @Override
-    public MessageConsumer logEvent()
+    public MessageConsumer logger()
     {
         return this.eventsLayout.supplyWriter();
     }

@@ -149,7 +149,7 @@ public interface EngineContext
     void onExporterDetached(
         long exporterId);
 
-    MessageConsumer logEvent();
+    MessageConsumer logger();
 
     LongSupplier timestamp();
 }

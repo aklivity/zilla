@@ -45,7 +45,7 @@ public class TlsEventContext
         EngineContext context)
     {
         this.tlsTypeId = context.supplyTypeId(TlsBinding.NAME);
-        this.logEvent = context.logEvent();
+        this.logEvent = context.logger();
         this.timestamp = context.timestamp();
     }
 
