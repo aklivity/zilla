@@ -272,7 +272,7 @@ scope mqtt
             FAILURE (1)
         }
 
-        struct MqttAuthorizationEvent extends core::event::BindingEvent
+        struct MqttAuthorizationEvent extends core::event::Event
         {
             Result result;
             string8 identity;

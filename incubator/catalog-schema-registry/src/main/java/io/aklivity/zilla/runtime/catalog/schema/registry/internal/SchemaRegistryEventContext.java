@@ -52,7 +52,7 @@ public class SchemaRegistryEventContext
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .remoteAccessRejected(e -> e
                 .timestamp(timestamp.getAsLong())
-                .catalogId(catalogId)
+                .namespacedId(catalogId)
                 .url(url)
                 .method(method)
                 .status((short) status)

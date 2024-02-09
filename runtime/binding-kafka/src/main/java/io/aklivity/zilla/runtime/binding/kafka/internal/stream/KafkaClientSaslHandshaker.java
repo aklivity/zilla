@@ -42,7 +42,6 @@ import org.agrona.concurrent.UnsafeBuffer;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
 import io.aklivity.zilla.runtime.binding.kafka.identity.KafkaClientIdSupplier;
-import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaEventContext;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaScramMechanism;
@@ -54,7 +53,6 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.sasl.SaslAut
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.sasl.SaslHandshakeMechanismResponseFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.sasl.SaslHandshakeRequestFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.sasl.SaslHandshakeResponseFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.Result;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 

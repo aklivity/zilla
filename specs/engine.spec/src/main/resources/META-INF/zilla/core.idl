@@ -107,16 +107,7 @@ scope core
         {
             int64 timestamp = 0;
             int64 traceId = 0;
-        }
-
-        struct BindingEvent extends Event
-        {
-            int64 bindingId = 0;
-        }
-
-        struct CatalogEvent extends Event
-        {
-            int64 catalogId = 0;
+            int64 namespacedId = 0;
         }
     }
 }

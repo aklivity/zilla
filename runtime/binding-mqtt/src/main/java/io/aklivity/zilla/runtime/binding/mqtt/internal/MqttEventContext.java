@@ -56,7 +56,7 @@ public class MqttEventContext
             .authorization(e -> e
                 .timestamp(timestamp.getAsLong())
                 .traceId(traceId)
-                .bindingId(routedId)
+                .namespacedId(routedId)
                 .result(r -> r.set(result))
                 .identity(identity)
             )

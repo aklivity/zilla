@@ -64,7 +64,7 @@ scope http
             FAILURE (1)
         }
 
-        struct HttpAuthorizationEvent extends core::event::BindingEvent
+        struct HttpAuthorizationEvent extends core::event::Event
         {
             Result result;
             string8 identity;
@@ -73,7 +73,7 @@ scope http
         union HttpEvent switch (HttpEventType)
         {
             case AUTHORIZATION: HttpAuthorizationEvent authorization;
-            case ACCESS_DENIED: core::event::BindingEvent accessDenied;
+            case ACCESS_DENIED: core::event::Event accessDenied;
         }
     }
 }

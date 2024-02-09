@@ -22,7 +22,7 @@ scope tcp
             REMOTE_ACCESS_FAILED (1)
         }
 
-        struct TcpRemoteAccessFailedEvent extends core::event::BindingEvent
+        struct TcpRemoteAccessFailedEvent extends core::event::Event
         {
             string16 address;
         }

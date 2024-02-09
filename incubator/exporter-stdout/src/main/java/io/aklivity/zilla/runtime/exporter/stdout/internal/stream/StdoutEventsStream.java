@@ -110,7 +110,7 @@ public class StdoutEventsStream
         {
         case REMOTE_ACCESS_FAILED:
             TcpRemoteAccessFailedEventFW e = event.remoteAccessFailed();
-            out.printf(TCP_REMOTE_ACCESS_FAILED_FORMAT, e.timestamp(), e.traceId(), asBinding(e.bindingId()),
+            out.printf(TCP_REMOTE_ACCESS_FAILED_FORMAT, e.timestamp(), e.traceId(), asBinding(e.namespacedId()),
                 asString(e.address()));
             break;
         }

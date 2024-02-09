@@ -53,7 +53,7 @@ public class TcpEventContext
             .remoteAccessFailed(e -> e
                 .timestamp(timestamp.getAsLong())
                 .traceId(traceId)
-                .bindingId(routedId)
+                .namespacedId(routedId)
                 .address(address)
             )
             .build();

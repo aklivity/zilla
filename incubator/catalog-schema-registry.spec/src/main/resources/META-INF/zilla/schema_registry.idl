@@ -21,7 +21,7 @@ scope schema_registry
             REMOTE_ACCESS_REJECTED (1)
         }
 
-        struct SchemaRegistryRemoteAccessRejectedEvent extends core::event::CatalogEvent
+        struct SchemaRegistryRemoteAccessRejectedEvent extends core::event::Event
         {
             string16 url;
             string8 method;

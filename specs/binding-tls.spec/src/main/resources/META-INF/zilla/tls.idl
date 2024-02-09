@@ -31,7 +31,7 @@ scope tls
             UNSPECIFIED_ERROR (5)
         }
 
-        struct TlsFailedEvent extends core::event::BindingEvent
+        struct TlsFailedEvent extends core::event::Event
         {
             TlsError error;
         }
