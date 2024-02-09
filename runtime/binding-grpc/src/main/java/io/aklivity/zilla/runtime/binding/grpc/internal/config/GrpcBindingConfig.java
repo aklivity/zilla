@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.grpc.internal.config;
 
 import static io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcType.BASE64;
 import static io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcType.TEXT;
+import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
 
@@ -28,15 +29,19 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.function.LongFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import org.agrona.AsciiSequenceView;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
+import org.agrona.collections.ObjectHashSet;
 
 import io.aklivity.zilla.runtime.binding.grpc.config.GrpcMethodConfig;
 import io.aklivity.zilla.runtime.binding.grpc.config.GrpcOptionsConfig;
+import io.aklivity.zilla.runtime.binding.grpc.config.GrpcProtobufConfig;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.String16FW;
@@ -44,8 +49,11 @@ import io.aklivity.zilla.runtime.binding.grpc.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcMetadataFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcType;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.HttpBeginExFW;
+import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
+import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 
 public final class GrpcBindingConfig
 {
@@ -56,7 +64,6 @@ public final class GrpcBindingConfig
     private static final byte[] HEADER_BIN_SUFFIX = new byte[4];
     private static final byte[] GRPC_PREFIX = "grpc-".getBytes();
     private static final byte[] BIN_SUFFIX = "-bin".getBytes();
-    private final HttpGrpcHeaderHelper helper;
 
     public final long id;
     public final String name;
@@ -64,19 +71,33 @@ public final class GrpcBindingConfig
     public final GrpcOptionsConfig options;
     public final List<GrpcRouteConfig> routes;
 
+    private final GrpcProtobufParser parser;
+    private final HttpGrpcHeaderHelper helper;
+    private final Set<GrpcCatalogSchema> catalogs;
 
     public GrpcBindingConfig(
         BindingConfig binding,
-        MutableDirectBuffer metadataBuffer)
+        MutableDirectBuffer metadataBuffer,
+        LongFunction<CatalogHandler> supplyCatalog)
     {
         this.id = binding.id;
         this.name = binding.name;
         this.kind = binding.kind;
         this.options = GrpcOptionsConfig.class.cast(binding.options);
         this.routes = binding.routes.stream().map(GrpcRouteConfig::new).collect(toList());
+        this.parser = new GrpcProtobufParser();
         this.helper = new HttpGrpcHeaderHelper(metadataBuffer);
+        Set<GrpcCatalogSchema> catalogs = new ObjectHashSet<>();
+        for (CatalogedConfig catalog : binding.catalogs)
+        {
+            CatalogHandler handler = supplyCatalog.apply(catalog.id);
+            for (SchemaConfig schema : catalog.schemas)
+            {
+                catalogs.add(new GrpcCatalogSchema(handler, schema.subject, schema.version));
+            }
+        }
+        this.catalogs = catalogs;
     }
-
 
     public GrpcRouteConfig resolve(
         long authorization,
@@ -107,13 +128,12 @@ public final class GrpcBindingConfig
             final CharSequence serviceName = serviceNameHeader != null ? serviceNameHeader : matcher.group(SERVICE_NAME);
             final String methodName = matcher.group(METHOD);
 
-            final GrpcMethodConfig method = options.protobufs.stream()
-                .map(p -> p.services.stream().filter(s -> s.service.equals(serviceName)).findFirst().orElse(null))
-                .filter(Objects::nonNull)
-                .map(s -> s.methods.stream().filter(m -> m.method.equals(methodName)).findFirst().orElse(null))
-                .filter(Objects::nonNull)
-                .findFirst()
-                .orElse(null);
+            GrpcMethodConfig method = resolveMethod(catalogs, serviceName, methodName);
+
+            if (method == null && options != null)
+            {
+                method = resolveMethod(options.protobufs, serviceName, methodName);
+            }
 
             if (method != null)
             {
@@ -131,6 +151,36 @@ public final class GrpcBindingConfig
         }
 
         return methodResolver;
+    }
+
+    private GrpcMethodConfig resolveMethod(
+        Set<GrpcCatalogSchema> catalogs,
+        CharSequence serviceName,
+        String methodName)
+    {
+        return resolveMethod(catalogs.stream().map(GrpcCatalogSchema::resolveProtobuf), serviceName, methodName);
+    }
+
+    private GrpcMethodConfig resolveMethod(
+        List<GrpcProtobufConfig> protobufs,
+        CharSequence serviceName,
+        String methodName)
+    {
+        return resolveMethod(protobufs.stream(), serviceName, methodName);
+    }
+
+    private GrpcMethodConfig resolveMethod(
+        Stream<GrpcProtobufConfig> protobufs,
+        CharSequence serviceName,
+        String methodName)
+    {
+        return protobufs
+            .map(p -> p.services.stream().filter(s -> s.service.equals(serviceName)).findFirst().orElse(null))
+            .filter(Objects::nonNull)
+            .map(s -> s.methods.stream().filter(m -> m.method.equals(methodName)).findFirst().orElse(null))
+            .filter(Objects::nonNull)
+            .findFirst()
+            .orElse(null);
     }
 
     private static final class HttpGrpcHeaderHelper
@@ -186,7 +236,6 @@ public final class GrpcBindingConfig
         public String16FW scheme;
         public String16FW authority;
         public String16FW te;
-
 
         HttpGrpcHeaderHelper(
             MutableDirectBuffer metadataBuffer)
@@ -348,6 +397,41 @@ public final class GrpcBindingConfig
                 }
             }
             return milliseconds;
+        }
+    }
+
+    final class GrpcCatalogSchema
+    {
+        final CatalogHandler handler;
+        final String subject;
+        final String version;
+
+        GrpcProtobufConfig protobuf;
+
+        int schemaId = NO_SCHEMA_ID;
+
+        GrpcCatalogSchema(
+            CatalogHandler handler,
+            String subject,
+            String version)
+        {
+            this.handler = handler;
+            this.subject = subject;
+            this.version = version;
+        }
+
+        private GrpcProtobufConfig resolveProtobuf()
+        {
+            final int newSchemaId = handler.resolve(subject, version);
+
+            if (schemaId != newSchemaId)
+            {
+                schemaId = newSchemaId;
+                String schema = handler.resolve(schemaId);
+                protobuf = parser.parse(null, schema);
+            }
+
+            return protobuf;
         }
     }
 }

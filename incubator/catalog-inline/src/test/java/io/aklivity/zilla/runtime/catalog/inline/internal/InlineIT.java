@@ -20,11 +20,15 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
 
+import org.agrona.DirectBuffer;
+import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineSchemaConfig;
+import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 
 public class InlineIT
 {
@@ -54,5 +58,40 @@ public class InlineIT
 
         assertThat(schema, not(nullValue()));
         assertEquals(expected, schema);
+    }
+
+    @Test
+    public void shouldResolveSchemaIdAndProcessData()
+    {
+        InlineCatalogHandler catalog = new InlineCatalogHandler(config);
+
+        DirectBuffer data = new UnsafeBuffer();
+
+        String payload =
+                "{" +
+                    "\"id\": \"123\"," +
+                    "\"status\": \"OK\"" +
+                "}";
+        byte[] bytes = payload.getBytes();
+        data.wrap(bytes, 0, bytes.length);
+
+        int valLength = catalog.decode(data, 0, data.capacity(), ValueConsumer.NOP, CatalogHandler.Decoder.IDENTITY);
+
+        assertEquals(data.capacity(), valLength);
+    }
+
+    @Test
+    public void shouldVerifyEncodedData()
+    {
+        InlineCatalogHandler catalog = new InlineCatalogHandler(config);
+
+        DirectBuffer data = new UnsafeBuffer();
+
+        byte[] bytes = {0x06, 0x69, 0x64,
+            0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
+        data.wrap(bytes, 0, bytes.length);
+
+        assertEquals(13, catalog.encode(1, data, 0, data.capacity(),
+                ValueConsumer.NOP, CatalogHandler.Encoder.IDENTITY));
     }
 }

@@ -21,3 +21,4 @@ catalogs:
     options:
       url: http://localhost:8081
       context: default
+      max-age: 30

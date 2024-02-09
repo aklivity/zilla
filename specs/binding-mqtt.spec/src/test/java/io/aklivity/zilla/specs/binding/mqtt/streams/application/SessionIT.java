@@ -48,6 +48,15 @@ public class SessionIT
 
     @Test
     @Specification({
+        "${app}/session.connect.redirect.support/client",
+        "${app}/session.connect.redirect.support/server"})
+    public void shouldConnectSupportSharding() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/session.connect.authorization/client",
         "${app}/session.connect.authorization/server"})
     public void shouldConnectAndAuthorize() throws Exception

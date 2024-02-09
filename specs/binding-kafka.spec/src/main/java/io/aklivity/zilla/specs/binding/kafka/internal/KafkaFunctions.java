@@ -81,6 +81,7 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupFlu
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupMemberFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupMemberMetadataFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupTopicMetadataFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaInitProducerIdBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedConsumerFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedDataExFW;
@@ -88,6 +89,7 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedFe
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedFetchFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedProduceDataExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedProduceFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMetaBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMetaDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaOffsetCommitBeginExFW;
@@ -974,6 +976,13 @@ public final class KafkaFunctions
             return new KafkaOffsetCommitBeginExBuilder();
         }
 
+        public KafkaInitProducerIdBeginExBuilder initProducerId()
+        {
+            beginExRW.kind(KafkaApi.INIT_PRODUCER_ID.value());
+
+            return new KafkaInitProducerIdBeginExBuilder();
+        }
+
         public byte[] build()
         {
             final KafkaBeginExFW beginEx = beginExRO;
@@ -1328,14 +1337,6 @@ public final class KafkaFunctions
                 return this;
             }
 
-            public KafkaProduceBeginExBuilder producerId(
-                long producerId)
-            {
-                ensureTransactionSet();
-                produceBeginExRW.producerId(producerId);
-                return this;
-            }
-
             public KafkaProduceBeginExBuilder topic(
                 String topic)
             {
@@ -1574,13 +1575,6 @@ public final class KafkaFunctions
                 offsetCommitBeginExRW.wrap(writeBuffer, KafkaBeginExFW.FIELD_OFFSET_OFFSET_COMMIT, writeBuffer.capacity());
             }
 
-            public KafkaOffsetCommitBeginExBuilder topic(
-                String topic)
-            {
-                offsetCommitBeginExRW.topic(topic);
-                return this;
-            }
-
             public KafkaOffsetCommitBeginExBuilder groupId(
                 String groupId)
             {
@@ -1606,6 +1600,39 @@ public final class KafkaFunctions
             {
                 final KafkaOffsetCommitBeginExFW offsetCommitBeginEx = offsetCommitBeginExRW.build();
                 beginExRO.wrap(writeBuffer, 0, offsetCommitBeginEx.limit());
+                return KafkaBeginExBuilder.this;
+            }
+        }
+
+        public final class KafkaInitProducerIdBeginExBuilder
+        {
+            private final KafkaInitProducerIdBeginExFW.Builder initProduceIdBeginExRW =
+                new KafkaInitProducerIdBeginExFW.Builder();
+
+            private KafkaInitProducerIdBeginExBuilder()
+            {
+                initProduceIdBeginExRW.wrap(writeBuffer, KafkaDataExFW.FIELD_OFFSET_OFFSET_FETCH, writeBuffer.capacity());
+            }
+
+
+            public KafkaInitProducerIdBeginExBuilder producerId(
+                long producerId)
+            {
+                initProduceIdBeginExRW.producerId(producerId);
+                return this;
+            }
+
+            public KafkaInitProducerIdBeginExBuilder producerEpoch(
+                short producerEpoch)
+            {
+                initProduceIdBeginExRW.producerEpoch(producerEpoch);
+                return this;
+            }
+
+            public KafkaBeginExBuilder build()
+            {
+                KafkaInitProducerIdBeginExFW initProduceIdBeginEx = initProduceIdBeginExRW.build();
+                beginExRO.wrap(writeBuffer, 0, initProduceIdBeginEx.limit());
                 return KafkaBeginExBuilder.this;
             }
         }
@@ -2102,6 +2129,20 @@ public final class KafkaFunctions
                     return this;
                 }
 
+                public KafkaMergedProduceDataExBuilder producerId(
+                    long producerId)
+                {
+                    mergedProduceDataExRW.producerId(producerId);
+                    return this;
+                }
+
+                public KafkaMergedProduceDataExBuilder producerEpoch(
+                    short producerEpoch)
+                {
+                    mergedProduceDataExRW.producerEpoch(producerEpoch);
+                    return this;
+                }
+
 
                 public KafkaMergedProduceDataExBuilder partition(
                     int partitionId,
@@ -2354,6 +2395,20 @@ public final class KafkaFunctions
                 return this;
             }
 
+            public KafkaProduceDataExBuilder producerId(
+                long producerId)
+            {
+                produceDataExRW.producerId(producerId);
+                return this;
+            }
+
+            public KafkaProduceDataExBuilder producerEpoch(
+                short producerEpoch)
+            {
+                produceDataExRW.producerEpoch(producerEpoch);
+                return this;
+            }
+
             public KafkaProduceDataExBuilder sequence(
                 int sequence)
             {
@@ -2494,6 +2549,18 @@ public final class KafkaFunctions
             public KafkaOffsetFetchDataExBuilder partition(
                 int partitionId,
                 long partitionOffset,
+                int leaderEpoch)
+            {
+                offsetFetchDataExRW.partitionsItem(o -> o
+                    .partitionId(partitionId)
+                    .partitionOffset(partitionOffset)
+                    .leaderEpoch(leaderEpoch));
+                return this;
+            }
+
+            public KafkaOffsetFetchDataExBuilder partition(
+                int partitionId,
+                long partitionOffset,
                 int leaderEpoch,
                 String metadata)
             {
@@ -2520,6 +2587,13 @@ public final class KafkaFunctions
             private KafkaOffsetCommitDataExBuilder()
             {
                 offsetCommitDataExRW.wrap(writeBuffer, KafkaDataExFW.FIELD_OFFSET_OFFSET_COMMIT, writeBuffer.capacity());
+            }
+
+            public KafkaOffsetCommitDataExBuilder topic(
+                String topic)
+            {
+                offsetCommitDataExRW.topic(topic);
+                return this;
             }
 
             public KafkaOffsetCommitDataExBuilder progress(
@@ -2628,6 +2702,13 @@ public final class KafkaFunctions
             private KafkaMergedFlushExBuilder()
             {
                 mergedFlushExRW.wrap(writeBuffer, KafkaFlushExFW.FIELD_OFFSET_MERGED, writeBuffer.capacity());
+            }
+
+            public KafkaMergedProduceFlushExBuilder produce()
+            {
+                mergedFlushExRW.kind(KafkaApi.PRODUCE.value());
+
+                return new KafkaMergedProduceFlushExBuilder();
             }
 
             public KafkaMergedFetchFlushExBuilder fetch()
@@ -2761,6 +2842,50 @@ public final class KafkaFunctions
                 {
                     final KafkaMergedFetchFlushExFW mergedFetchFlushEx = mergedFetchFlushExRW.build();
                     flushExRO.wrap(writeBuffer, 0, mergedFetchFlushEx.limit());
+                    return KafkaFlushExBuilder.this;
+                }
+            }
+
+            public final class KafkaMergedProduceFlushExBuilder
+            {
+                private final KafkaMergedProduceFlushExFW.Builder mergedProduceFlushExRW =
+                    new KafkaMergedProduceFlushExFW.Builder();
+
+                private KafkaMergedProduceFlushExBuilder()
+                {
+                    mergedProduceFlushExRW.wrap(writeBuffer,
+                        KafkaFlushExFW.FIELD_OFFSET_MERGED + KafkaMergedFlushExFW.FIELD_OFFSET_PRODUCE,
+                        writeBuffer.capacity());
+                }
+
+                public KafkaMergedProduceFlushExBuilder hashKey(
+                    String hashKey)
+                {
+                    if (hashKey == null)
+                    {
+                        mergedProduceFlushExRW.hashKey(m -> m.length(-1)
+                            .value((OctetsFW) null));
+                    }
+                    else
+                    {
+                        keyRO.wrap(hashKey.getBytes(UTF_8));
+                        mergedProduceFlushExRW.hashKey(k -> k.length(keyRO.capacity())
+                            .value(keyRO, 0, keyRO.capacity()));
+                    }
+                    return this;
+                }
+
+                public KafkaMergedProduceFlushExBuilder partitionId(
+                    int partitionId)
+                {
+                    mergedProduceFlushExRW.partitionId(partitionId);
+                    return this;
+                }
+
+                public KafkaFlushExBuilder build()
+                {
+                    final KafkaMergedProduceFlushExFW mergedProduceFlushEx = mergedProduceFlushExRW.build();
+                    flushExRO.wrap(writeBuffer, 0, mergedProduceFlushEx.limit());
                     return KafkaFlushExBuilder.this;
                 }
             }
@@ -3415,6 +3540,8 @@ public final class KafkaFunctions
         {
             private Integer deferred;
             private Long timestamp;
+            private Long producerId;
+            private Short producerEpoch;
             private Integer sequence;
             private KafkaAckMode ackMode;
             private KafkaKeyFW.Builder keyRW;
@@ -3435,6 +3562,20 @@ public final class KafkaFunctions
                 long timestamp)
             {
                 this.timestamp = timestamp;
+                return this;
+            }
+
+            public KafkaProduceDataExMatcherBuilder producerId(
+                long producerId)
+            {
+                this.producerId = producerId;
+                return this;
+            }
+
+            public KafkaProduceDataExMatcherBuilder producerEpoch(
+                short producerEpoch)
+            {
+                this.producerEpoch = producerEpoch;
                 return this;
             }
 
@@ -3534,6 +3675,18 @@ public final class KafkaFunctions
                 return timestamp == null || timestamp == produceDataEx.timestamp();
             }
 
+            private boolean matchProducerId(
+                final KafkaProduceDataExFW produceDataEx)
+            {
+                return producerId == null || producerId == produceDataEx.producerId();
+            }
+
+            private boolean matchProducerEpoch(
+                final KafkaProduceDataExFW produceDataEx)
+            {
+                return producerEpoch == null || producerEpoch == produceDataEx.producerEpoch();
+            }
+
             private boolean matchSequence(
                 final KafkaProduceDataExFW produceDataEx)
             {
@@ -3588,6 +3741,8 @@ public final class KafkaFunctions
             {
                 private Integer deferred;
                 private Long timestamp;
+                private Long producerId;
+                private Short producerEpoch;
                 private Long filters;
                 private KafkaOffsetFW.Builder partitionRW;
                 private Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW> progressRW;
@@ -3611,6 +3766,20 @@ public final class KafkaFunctions
                     long timestamp)
                 {
                     this.timestamp = timestamp;
+                    return this;
+                }
+
+                public KafkaMergedFetchDataExMatcherBuilder producerId(
+                    long producerId)
+                {
+                    this.producerId = producerId;
+                    return this;
+                }
+
+                public KafkaMergedFetchDataExMatcherBuilder producerEpoch(
+                    short producerEpoch)
+                {
+                    this.producerEpoch = producerEpoch;
                     return this;
                 }
 
@@ -3920,6 +4089,8 @@ public final class KafkaFunctions
             {
                 private Integer deferred;
                 private Long timestamp;
+                private Long producerId;
+                private Short producerEpoch;
                 private Long filters;
                 private KafkaOffsetFW.Builder partitionRW;
                 private Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW> progressRW;
@@ -3943,6 +4114,20 @@ public final class KafkaFunctions
                     long timestamp)
                 {
                     this.timestamp = timestamp;
+                    return this;
+                }
+
+                public KafkaMergedProduceDataExMatcherBuilder producerId(
+                    long producerId)
+                {
+                    this.producerId = producerId;
+                    return this;
+                }
+
+                public KafkaMergedProduceDataExMatcherBuilder producerEpoch(
+                    short producerEpoch)
+                {
+                    this.producerEpoch = producerEpoch;
                     return this;
                 }
 
@@ -4213,6 +4398,8 @@ public final class KafkaFunctions
                     return matchPartition(produce) &&
                         matchDeferred(produce) &&
                         matchTimestamp(produce) &&
+                        matchProducerId(produce) &&
+                        matchProducerEpoch(produce) &&
                         matchKey(produce) &&
                         matchHashKey(produce) &&
                         matchHeaders(produce);
@@ -4234,6 +4421,18 @@ public final class KafkaFunctions
                     final KafkaMergedProduceDataExFW mergedProduceDataEx)
                 {
                     return timestamp == null || timestamp == mergedProduceDataEx.timestamp();
+                }
+
+                private boolean matchProducerId(
+                    final KafkaMergedProduceDataExFW mergedProduceDataEx)
+                {
+                    return producerId == null || producerId == mergedProduceDataEx.producerId();
+                }
+
+                private boolean matchProducerEpoch(
+                    final KafkaMergedProduceDataExFW mergedProduceDataEx)
+                {
+                    return producerEpoch == null || producerEpoch == mergedProduceDataEx.producerEpoch();
                 }
 
                 private boolean matchKey(
@@ -5349,7 +5548,6 @@ public final class KafkaFunctions
             {
                 final KafkaProduceBeginExFW produceBeginEx = beginEx.produce();
                 return matchTransaction(produceBeginEx) &&
-                    matchProducerId(produceBeginEx) &&
                     matchTopic(produceBeginEx) &&
                     matchPartition(produceBeginEx);
             }
@@ -5358,12 +5556,6 @@ public final class KafkaFunctions
                 final KafkaProduceBeginExFW produceBeginEx)
             {
                 return transaction == null || transaction.equals(produceBeginEx.transaction());
-            }
-
-            private boolean matchProducerId(
-                final KafkaProduceBeginExFW produceBeginEx)
-            {
-                return producerId == null || producerId == produceBeginEx.producerId();
             }
 
             private boolean matchTopic(

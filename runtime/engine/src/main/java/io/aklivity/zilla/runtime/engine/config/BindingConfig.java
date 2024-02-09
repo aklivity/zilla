@@ -40,6 +40,7 @@ public class BindingConfig
     public final String entry;
     public final String vault;
     public final OptionsConfig options;
+    public final List<CatalogedConfig> catalogs;
     public final List<RouteConfig> routes;
     public final TelemetryRefConfig telemetryRef;
     public final List<NamespaceConfig> composites;
@@ -66,6 +67,7 @@ public class BindingConfig
             .kind(binding.kind)
             .entry(binding.entry)
             .options(binding.options)
+            .catalogs(binding.catalogs)
             .routes(binding.routes)
             .telemetry(binding.telemetryRef)
             .composites(binding.composites);
@@ -79,6 +81,7 @@ public class BindingConfig
         String entry,
         String vault,
         OptionsConfig options,
+        List<CatalogedConfig> catalogs,
         List<RouteConfig> routes,
         TelemetryRefConfig telemetryRef,
         List<NamespaceConfig> namespaces)
@@ -92,6 +95,7 @@ public class BindingConfig
         this.vault = vault;
         this.options = options;
         this.routes = routes;
+        this.catalogs = catalogs;
         this.telemetryRef = telemetryRef;
         this.composites = namespaces;
     }

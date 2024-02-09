@@ -26,7 +26,8 @@ import java.util.function.Function;
 public final class BindingConfigBuilder<T> extends ConfigBuilder<T, BindingConfigBuilder<T>>
 {
     public static final List<RouteConfig> ROUTES_DEFAULT = emptyList();
-    public static final List<NamespaceConfig> COMPOSITES_DEFAULT = new ArrayList<>();
+    public static final List<CatalogedConfig> CATALOGS_DEFAULT = emptyList();
+    public static final List<NamespaceConfig> COMPOSITES_DEFAULT = emptyList();
 
     private final Function<BindingConfig, T> mapper;
 
@@ -39,6 +40,7 @@ public final class BindingConfigBuilder<T> extends ConfigBuilder<T, BindingConfi
     private String exit;
     private OptionsConfig options;
     private List<RouteConfig> routes;
+    private List<CatalogedConfig> catalogs;
     private TelemetryRefConfig telemetryRef;
     private List<NamespaceConfig> composites;
 
@@ -114,6 +116,30 @@ public final class BindingConfigBuilder<T> extends ConfigBuilder<T, BindingConfi
         OptionsConfig options)
     {
         this.options = options;
+        return this;
+    }
+
+    public BindingConfigBuilder<T> catalogs(
+        List<CatalogedConfig> catalogs)
+    {
+        this.catalogs = catalogs;
+        return this;
+    }
+
+    public CatalogedConfigBuilder<BindingConfigBuilder<T>> catalog()
+    {
+        return new CatalogedConfigBuilder<>(this::catalog);
+    }
+
+    public BindingConfigBuilder<T> catalog(
+        CatalogedConfig catalog)
+    {
+        if (catalogs == null)
+        {
+            catalogs = new LinkedList<>();
+        }
+
+        catalogs.add(catalog);
         return this;
     }
 
@@ -197,6 +223,7 @@ public final class BindingConfigBuilder<T> extends ConfigBuilder<T, BindingConfi
             entry,
             vault,
             options,
+            Optional.ofNullable(catalogs).orElse(CATALOGS_DEFAULT),
             Optional.ofNullable(routes).orElse(ROUTES_DEFAULT),
             telemetryRef,
             Optional.ofNullable(composites).orElse(COMPOSITES_DEFAULT)));

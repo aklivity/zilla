@@ -31,8 +31,8 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpParamConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpResponseConfig;
-import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
-import io.aklivity.zilla.runtime.engine.config.ValidatorConfigAdapter;
+import io.aklivity.zilla.runtime.engine.config.ModelConfig;
+import io.aklivity.zilla.runtime.engine.config.ModelConfigAdapter;
 
 public class HttpResponseConfigAdapter implements JsonbAdapter<HttpResponseConfig, JsonObject>
 {
@@ -41,7 +41,7 @@ public class HttpResponseConfigAdapter implements JsonbAdapter<HttpResponseConfi
     private static final String HEADERS_NAME = "headers";
     private static final String CONTENT_NAME = "content";
 
-    private final ValidatorConfigAdapter validator  = new ValidatorConfigAdapter();
+    private final ModelConfigAdapter model = new ModelConfigAdapter();
 
     @Override
     public JsonObject adaptToJson(
@@ -72,15 +72,15 @@ public class HttpResponseConfigAdapter implements JsonbAdapter<HttpResponseConfi
             JsonObjectBuilder headers = Json.createObjectBuilder();
             for (HttpParamConfig header : response.headers)
             {
-                validator.adaptType(header.validator.type);
-                headers.add(header.name, validator.adaptToJson(header.validator));
+                model.adaptType(header.model.model);
+                headers.add(header.name, model.adaptToJson(header.model));
             }
             object.add(HEADERS_NAME, headers);
         }
         if (response.content != null)
         {
-            validator.adaptType(response.content.type);
-            JsonValue content = validator.adaptToJson(response.content);
+            model.adaptType(response.content.model);
+            JsonValue content = model.adaptToJson(response.content);
             object.add(CONTENT_NAME, content);
         }
         return object.build();
@@ -124,16 +124,16 @@ public class HttpResponseConfigAdapter implements JsonbAdapter<HttpResponseConfi
             {
                 HttpParamConfig header = HttpParamConfig.builder()
                     .name(entry.getKey())
-                    .validator(validator.adaptFromJson(entry.getValue()))
+                    .model(model.adaptFromJson(entry.getValue()))
                     .build();
                 headers.add(header);
             }
         }
-        ValidatorConfig content = null;
+        ModelConfig content = null;
         if (object.containsKey(CONTENT_NAME))
         {
             JsonValue contentJson = object.get(CONTENT_NAME);
-            content = validator.adaptFromJson(contentJson);
+            content = model.adaptFromJson(contentJson);
         }
         return new HttpResponseConfig(status, contentType, headers, content);
     }

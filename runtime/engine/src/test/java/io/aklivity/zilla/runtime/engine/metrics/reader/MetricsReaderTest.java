@@ -26,8 +26,8 @@ import java.util.function.LongSupplier;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 import io.aklivity.zilla.runtime.engine.metrics.Collector;
+import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 
 public class MetricsReaderTest
 {

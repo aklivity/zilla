@@ -33,7 +33,7 @@ public class SchemaTest
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/exporter/test.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/guard/test.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/metrics/test.schema.patch.json")
-        .schemaPatch("io/aklivity/zilla/specs/engine/schema/validator/test.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/specs/engine/schema/model/test.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/vault/test.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/catalog/test.schema.patch.json")
         .configurationRoot("io/aklivity/zilla/specs/engine/config");

@@ -291,30 +291,6 @@ public class CacheFetchIT
     }
 
     @Test
-    @Configuration("cache.options.validate.yaml")
-    @Specification({
-        "${app}/message.value.valid/client",
-        "${app}/message.value.valid/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    public void shouldReceiveMessageValueTest() throws Exception
-    {
-        partition.append(10L);
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("cache.options.validate.yaml")
-    @Specification({
-        "${app}/message.value.invalid/client",
-        "${app}/message.value.invalid/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    public void shouldReceiveMessageValueTestInvalid() throws Exception
-    {
-        partition.append(10L);
-        k3po.finish();
-    }
-
-    @Test
     @Configuration("cache.yaml")
     @Specification({
         "${app}/message.value.empty/client",

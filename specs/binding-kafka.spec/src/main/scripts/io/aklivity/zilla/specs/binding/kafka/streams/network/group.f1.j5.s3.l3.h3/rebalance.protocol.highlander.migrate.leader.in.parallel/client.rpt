@@ -37,15 +37,24 @@ write  22                                # size
        4s "test"                         # "session" coordinator key
        [0x00]                            # coordinator group type
 
-read  35                                 # size
+read  45                                 # size
       (int:newRequestId)
       0                                  # throttle time
       0s                                 # no error
       4s "none"                          # error message none
       0                                  # coordinator node
-      9s "localhost"                  # host
-      9092                            # port
+      19s "broker1.example.com"          # host
+      9092                               # port
 
+read notify ROUTED_DESCRIBE_SERVER_FIRST
+
+connect await ROUTED_DESCRIBE_SERVER_FIRST
+        "zilla://streams/net0"
+  option zilla:window ${networkConnectWindow}
+  option zilla:transmission "duplex"
+  option zilla:byteorder "network"
+
+connected
 
 write 87                                                 # size
       32s                                                # describe configs
@@ -78,16 +87,6 @@ read 103                                                # size
           [0x00]                                          # not read only
           [0x00]                                          # not default
           [0x00]                                          # not sensitive
-
-read notify ROUTED_DESCRIBE_SERVER_FIRST
-
-connect await ROUTED_DESCRIBE_SERVER_FIRST
-        "zilla://streams/net0"
-  option zilla:window ${networkConnectWindow}
-  option zilla:transmission "duplex"
-  option zilla:byteorder "network"
-
-connected
 
 write 82                               # size
       11s                               # join group

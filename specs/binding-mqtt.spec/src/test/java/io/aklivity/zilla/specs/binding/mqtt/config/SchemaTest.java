@@ -34,7 +34,7 @@ public class SchemaTest
         .schemaPatch("io/aklivity/zilla/specs/binding/mqtt/schema/mqtt.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/guard/test.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/catalog/test.schema.patch.json")
-        .schemaPatch("io/aklivity/zilla/specs/engine/schema/validator/test.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/specs/engine/schema/model/test.schema.patch.json")
         .configurationRoot("io/aklivity/zilla/specs/binding/mqtt/config");
 
     @Ignore("TODO")
@@ -86,6 +86,14 @@ public class SchemaTest
     public void shouldValidateServer()
     {
         JsonObject config = schema.validate("server.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateServerProtocolVersion()
+    {
+        JsonObject config = schema.validate("server.protocol.version.yaml");
 
         assertThat(config, not(nullValue()));
     }

@@ -27,6 +27,7 @@ public class SchemaConfigAdapter implements JsonbAdapter<SchemaConfig, JsonObjec
     private static final String VERSION_NAME = "version";
     private static final String VERSION_DEFAULT = "latest";
     private static final String ID_NAME = "id";
+    private static final String RECORD_NAME = "record";
 
     @Override
     public JsonObject adaptToJson(
@@ -48,6 +49,10 @@ public class SchemaConfigAdapter implements JsonbAdapter<SchemaConfig, JsonObjec
         if (schema.id != 0)
         {
             object.add(ID_NAME, schema.id);
+        }
+        if (schema.record != null)
+        {
+            object.add(RECORD_NAME, schema.record);
         }
         return object.build();
     }
@@ -80,6 +85,11 @@ public class SchemaConfigAdapter implements JsonbAdapter<SchemaConfig, JsonObjec
         if (object.containsKey(ID_NAME))
         {
             builder.id(object.getInt(ID_NAME));
+        }
+
+        if (object.containsKey(RECORD_NAME))
+        {
+            builder.record(object.getString(RECORD_NAME));
         }
 
         return builder.build();

@@ -34,7 +34,7 @@ import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfig;
-import io.aklivity.zilla.runtime.engine.test.internal.validator.config.TestValidatorConfig;
+import io.aklivity.zilla.runtime.engine.test.internal.model.config.TestModelConfig;
 
 public class KafkaOptionsConfigAdapterTest
 {
@@ -88,7 +88,7 @@ public class KafkaOptionsConfigAdapterTest
     {
         KafkaOptionsConfig options = new KafkaOptionsConfig(
                 singletonList("test"),
-                singletonList(new KafkaTopicConfig("test", LIVE, JSON_PATCH, null, TestValidatorConfig.builder().build())),
+                singletonList(new KafkaTopicConfig("test", LIVE, JSON_PATCH, null, TestModelConfig.builder().build())),
                 singletonList(new KafkaServerConfig("localhost", 9092)),
                 new KafkaSaslConfig("plain", "username", "password"));
 
@@ -161,7 +161,10 @@ public class KafkaOptionsConfigAdapterTest
     {
         KafkaOptionsConfig options = new KafkaOptionsConfig(
                 singletonList("test"),
-                singletonList(new KafkaTopicConfig("test", LIVE, JSON_PATCH, null, new TestValidatorConfig())),
+                singletonList(new KafkaTopicConfig("test", LIVE, JSON_PATCH, null,
+                    TestModelConfig.builder()
+                        .length(0)
+                        .build())),
                 singletonList(new KafkaServerConfig("localhost", 9092)),
                 new KafkaSaslConfig("plain", "username", "password"));
 

@@ -44,6 +44,7 @@ bindings:
       topics:
         - name: sensor/one
           content:
-            type: test
+            model: test
+            length: 13
     routes:
       - exit: app0
