@@ -42,14 +42,13 @@ public class StdoutEventsStream
     private final MqttEventFW mqttEventRO = new MqttEventFW();
     private final SchemaRegistryEventFW schemaRegistryEventRO = new SchemaRegistryEventFW();
     private final TcpEventFW tcpEventRO = new TcpEventFW();
-    private final TcpRemoteAccessFailedEventFW tcpRemoteAccessFailedEventRO = new TcpRemoteAccessFailedEventFW();
     private final TlsEventFW tlsEventRO = new TlsEventFW();
 
     private final EventsLayoutReader layout;
-    private final PrintStream out;
-    private final Int2ObjectHashMap<MessageConsumer> eventHandlers;
     private final LongFunction<String> supplyNamespace;
     private final LongFunction<String> supplyLocalName;
+    private final PrintStream out;
+    private final Int2ObjectHashMap<MessageConsumer> eventHandlers;
 
     public StdoutEventsStream(
         LabelReader labels,
@@ -134,17 +133,5 @@ public class StdoutEventsStream
     {
         String s = stringFW.asString();
         return s == null ? "" : s;
-    }
-
-    public static int namespaceId(
-        long bindingId)
-    {
-        return (int)(bindingId >> Integer.SIZE) & 0xffff_ffff;
-    }
-
-    private static int localId(
-        long bindingId)
-    {
-        return (int)(bindingId >> 0) & 0xffff_ffff;
     }
 }
