@@ -656,6 +656,10 @@ public final class TlsServerFactory implements TlsStreamFactory
                 }
             }
         }
+        else if (!TlsState.initialOpening(server.state))
+        {
+            server.decoder = decodeHandshakeFinished;
+        }
 
         return progress;
     }
@@ -2139,7 +2143,8 @@ public final class TlsServerFactory implements TlsStreamFactory
             private void doAppEnd(
                 long traceId)
             {
-                if (TlsState.initialOpened(state))
+                if (TlsState.initialOpening(state) &&
+                    !TlsState.initialClosing(state))
                 {
                     state = TlsState.closeInitial(state);
                     stream = nullIfClosed(state, stream);
