@@ -627,6 +627,10 @@ public final class TlsClientFactory implements TlsStreamFactory
                 }
             }
         }
+        else if (!client.stream.isPresent())
+        {
+            client.decoder = decodeHandshakeFinished;
+        }
 
         return progress;
     }
