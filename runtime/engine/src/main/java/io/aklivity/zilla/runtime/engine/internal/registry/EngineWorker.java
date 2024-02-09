@@ -60,6 +60,7 @@ import java.util.function.LongConsumer;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
+import java.util.function.Supplier;
 
 import org.agrona.DeadlineTimerWheel;
 import org.agrona.DeadlineTimerWheel.TimerHandler;
@@ -214,7 +215,7 @@ public class EngineWorker implements EngineContext, Agent
     private final ScalarsLayout gaugesLayout;
     private final HistogramsLayout histogramsLayout;
     private final EventsLayout eventsLayout;
-    private final Function<SpyPosition, RingBufferSpy[]> supplyEventSpies;
+    private final Function<SpyPosition, Supplier<RingBufferSpy>[]> supplyEventSpies;
     private long initialId;
     private long promiseId;
     private long traceId;
@@ -237,7 +238,7 @@ public class EngineWorker implements EngineContext, Agent
         Collection<Model> models,
         Collection<MetricGroup> metricGroups,
         Collector collector,
-        Function<SpyPosition, RingBufferSpy[]> supplyEventSpies,
+        Function<SpyPosition, Supplier<RingBufferSpy>[]> supplyEventSpies,
         int index,
         boolean readonly)
     {
@@ -1589,14 +1590,14 @@ public class EngineWorker implements EngineContext, Agent
         return writersByIndex.computeIfAbsent(remoteIndex, supplyWriter);
     }
 
-    public RingBufferSpy supplyEventSpy(
+    public Supplier<RingBufferSpy> supplyEventSpy(
         SpyPosition position)
     {
         eventsLayout.spyAt(position);
-        return eventsLayout.bufferSpy();
+        return eventsLayout::bufferSpy;
     }
 
-    public RingBufferSpy[] supplyEventSpies(
+    public Supplier<RingBufferSpy>[] supplyEventSpies(
         SpyPosition position)
     {
         return supplyEventSpies.apply(position);

@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.exporter.stdout.internal;
 
 import java.io.PrintStream;
 import java.util.Arrays;
+import java.util.function.Supplier;
 
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -70,8 +71,9 @@ public class StdoutExporterHandler implements ExporterHandler
     }
 
     private StdoutEventsStream newStdoutEventsStream(
-        RingBufferSpy eventSpy)
+        Supplier<RingBufferSpy> supplyEventSpy)
     {
-        return new StdoutEventsStream(eventSpy, context::supplyNamespace, context::supplyLocalName, context::lookupLabelId, out);
+        return new StdoutEventsStream(supplyEventSpy, context::supplyNamespace, context::supplyLocalName,
+            context::lookupLabelId, out);
     }
 }

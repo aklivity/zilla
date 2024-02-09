@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.exporter.stdout.internal.stream;
 
 import java.io.PrintStream;
 import java.util.function.LongFunction;
+import java.util.function.Supplier;
 import java.util.function.ToIntFunction;
 
 import org.agrona.DirectBuffer;
@@ -44,7 +45,7 @@ public class StdoutEventsStream
     private final TcpEventFW tcpEventRO = new TcpEventFW();
     private final TlsEventFW tlsEventRO = new TlsEventFW();
 
-    private final RingBufferSpy eventSpy;
+    private final Supplier<RingBufferSpy> supplyEventSpy;
     private final LongFunction<String> supplyNamespace;
     private final LongFunction<String> supplyLocalName;
     private final ToIntFunction<String> lookupLabelId;
@@ -52,13 +53,13 @@ public class StdoutEventsStream
     private final Int2ObjectHashMap<MessageConsumer> eventHandlers;
 
     public StdoutEventsStream(
-        RingBufferSpy eventSpy,
+        Supplier<RingBufferSpy> supplyEventSpy,
         LongFunction<String> supplyNamespace,
         LongFunction<String> supplyLocalName,
         ToIntFunction<String> lookupLabelId,
         PrintStream out)
     {
-        this.eventSpy = eventSpy;
+        this.supplyEventSpy = supplyEventSpy;
         this.supplyNamespace = supplyNamespace;
         this.supplyLocalName = supplyLocalName;
         this.lookupLabelId = lookupLabelId;
@@ -88,7 +89,7 @@ public class StdoutEventsStream
 
     public int process()
     {
-        return eventSpy.spy(this::handleEvent, 1);
+        return supplyEventSpy.get().spy(this::handleEvent, 1);
     }
 
     private boolean handleEvent(

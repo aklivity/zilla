@@ -48,6 +48,7 @@ import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.function.LongConsumer;
 import java.util.function.LongSupplier;
+import java.util.function.Supplier;
 import java.util.function.ToIntFunction;
 import java.util.stream.Collectors;
 
@@ -483,10 +484,11 @@ public final class Engine implements Collector, AutoCloseable
         return worker.histogramIds();
     }
 
-    public RingBufferSpy[] supplyEventSpies(
+    public Supplier<RingBufferSpy>[] supplyEventSpies(
         SpyPosition position)
     {
-        RingBufferSpy[] spies = new RingBufferSpy[workers.size()];
+        @SuppressWarnings("unchecked")
+        Supplier<RingBufferSpy>[] spies = new Supplier[workers.size()];
         for (int i = 0; i < workers.size(); i++)
         {
             spies[i] = workers.get(i).supplyEventSpy(position);
