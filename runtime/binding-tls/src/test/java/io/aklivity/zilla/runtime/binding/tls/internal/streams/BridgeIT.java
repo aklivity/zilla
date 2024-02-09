@@ -49,10 +49,20 @@ public class BridgeIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
+    @Configuration("bridge.tls1.2.yaml")
+    @Specification({
+        "${bridge}/handshake/client",
+        "${bridge}/handshake/server"})
+    public void shouldHandshakeWithTls12() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("bridge.tls1.3.yaml")
     @Specification({
-        "${bridge}/handshake.tls1.3/client",
-        "${bridge}/handshake.tls1.3/server"})
+        "${bridge}/handshake/client",
+        "${bridge}/handshake/server"})
     public void shouldHandshakeWithTls13() throws Exception
     {
         k3po.finish();

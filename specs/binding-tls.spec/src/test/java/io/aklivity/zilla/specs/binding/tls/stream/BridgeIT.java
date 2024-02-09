@@ -39,10 +39,10 @@ public class BridgeIT
 
     @Test
     @Specification({
-        "${bridge}/handshake.tls1.3/client",
-        "${bridge}/handshake.tls1.3/server"})
+        "${bridge}/handshake/client",
+        "${bridge}/handshake/server"})
     @ScriptProperty("address \"zilla://streams/app0\"")
-    public void shouldHandshakeWithTls13() throws Exception
+    public void shouldHandshake() throws Exception
     {
         k3po.finish();
     }
