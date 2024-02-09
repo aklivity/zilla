@@ -27,9 +27,9 @@ import org.agrona.LangUtil;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
+import io.aklivity.zilla.runtime.engine.reader.EventsLayoutReader;
+import io.aklivity.zilla.runtime.engine.reader.RingBufferSpy.SpyPosition;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.config.StdoutExporterConfig;
-import io.aklivity.zilla.runtime.exporter.stdout.internal.layouts.EventsLayoutReader;
-import io.aklivity.zilla.runtime.exporter.stdout.internal.spy.RingBufferSpy.SpyPosition;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.stream.StdoutEventsStream;
 
 public class StdoutExporterHandler implements ExporterHandler
