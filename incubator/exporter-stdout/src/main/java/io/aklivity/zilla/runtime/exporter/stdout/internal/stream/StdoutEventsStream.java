@@ -15,8 +15,8 @@
 package io.aklivity.zilla.runtime.exporter.stdout.internal.stream;
 
 import java.io.PrintStream;
-import java.util.function.Function;
 import java.util.function.LongFunction;
+import java.util.function.ToIntFunction;
 
 import org.agrona.DirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
@@ -47,7 +47,7 @@ public class StdoutEventsStream
     private final EventsLayoutReader layout;
     private final LongFunction<String> supplyNamespace;
     private final LongFunction<String> supplyLocalName;
-    private final Function<String, Integer> lookupLabelId;
+    private final ToIntFunction<String> lookupLabelId;
     private final PrintStream out;
     private final Int2ObjectHashMap<MessageConsumer> eventHandlers;
 
@@ -55,7 +55,7 @@ public class StdoutEventsStream
         EventsLayoutReader layout,
         LongFunction<String> supplyNamespace,
         LongFunction<String> supplyLocalName,
-        Function<String, Integer> lookupLabelId,
+        ToIntFunction<String> lookupLabelId,
         PrintStream out)
     {
         this.layout = layout;
@@ -79,7 +79,7 @@ public class StdoutEventsStream
         String type,
         MessageConsumer consumer)
     {
-        int labelId = lookupLabelId.apply(type);
+        int labelId = lookupLabelId.applyAsInt(type);
         if (labelId != 0)
         {
             eventHandlers.put(labelId, consumer);
