@@ -28,7 +28,6 @@ import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.config.StdoutExporterConfig;
-import io.aklivity.zilla.runtime.exporter.stdout.internal.labels.LabelReader;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.layouts.EventsLayoutReader;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.spy.RingBufferSpy.SpyPosition;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.stream.StdoutEventsStream;
@@ -39,7 +38,6 @@ public class StdoutExporterHandler implements ExporterHandler
 
     private final EngineContext context;
     private final Path directory;
-    private final LabelReader labels;
     private final PrintStream out;
 
     private StdoutEventsStream[] stdoutEventStreams;
@@ -52,7 +50,6 @@ public class StdoutExporterHandler implements ExporterHandler
     {
         this.context = context;
         this.directory = config.directory();
-        this.labels = new LabelReader(directory);
         this.out = out;
     }
 
@@ -113,6 +110,6 @@ public class StdoutExporterHandler implements ExporterHandler
             .readonly(true)
             .spyAt(SpyPosition.ZERO)
             .build();
-        return new StdoutEventsStream(labels, layout, context::supplyNamespace, context::supplyLocalName, out);
+        return new StdoutEventsStream(layout, context::supplyNamespace, context::supplyLocalName, context::lookupLabelId, out);
     }
 }

@@ -61,6 +61,13 @@ public final class LabelManager
         return labelIds.computeIfAbsent(label, this::nextLabelId);
     }
 
+    public synchronized int lookupLabelId(
+        String label)
+    {
+        checkSnapshot();
+        return labelIds.getOrDefault(label, 0);
+    }
+
     public synchronized String lookupLabel(
         int labelId)
     {

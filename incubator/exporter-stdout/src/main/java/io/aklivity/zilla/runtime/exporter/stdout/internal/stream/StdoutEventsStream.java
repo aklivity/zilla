@@ -15,13 +15,13 @@
 package io.aklivity.zilla.runtime.exporter.stdout.internal.stream;
 
 import java.io.PrintStream;
+import java.util.function.Function;
 import java.util.function.LongFunction;
 
 import org.agrona.DirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
-import io.aklivity.zilla.runtime.exporter.stdout.internal.labels.LabelReader;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.layouts.EventsLayoutReader;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.StringFW;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.HttpEventFW;
@@ -47,35 +47,39 @@ public class StdoutEventsStream
     private final EventsLayoutReader layout;
     private final LongFunction<String> supplyNamespace;
     private final LongFunction<String> supplyLocalName;
+    private final Function<String, Integer> lookupLabelId;
     private final PrintStream out;
     private final Int2ObjectHashMap<MessageConsumer> eventHandlers;
 
     public StdoutEventsStream(
-        LabelReader labels,
         EventsLayoutReader layout,
         LongFunction<String> supplyNamespace,
         LongFunction<String> supplyLocalName,
+        Function<String, Integer> lookupLabelId,
         PrintStream out)
     {
         this.layout = layout;
         this.supplyNamespace = supplyNamespace;
         this.supplyLocalName = supplyLocalName;
+        this.lookupLabelId = lookupLabelId;
         this.out = out;
 
         final Int2ObjectHashMap<MessageConsumer> eventHandlers = new Int2ObjectHashMap<>();
-        addEventHandler(labels, eventHandlers, "tcp", this::handleTcpEvent);
-        addEventHandler(labels, eventHandlers, "http", this::handleHttpEvent);
-        // TODO: Ati - add more
+        addEventHandler(eventHandlers, "http", this::handleHttpEvent);
+        addEventHandler(eventHandlers, "kafka", this::handleKafkaEvent);
+        addEventHandler(eventHandlers, "mqtt", this::handleMqttEvent);
+        addEventHandler(eventHandlers, "schema-registry", this::handleSchemaRegistryEvent);
+        addEventHandler(eventHandlers, "tcp", this::handleTcpEvent);
+        addEventHandler(eventHandlers, "tls", this::handleTlsEvent);
         this.eventHandlers = eventHandlers;
     }
 
     private void addEventHandler(
-        LabelReader labels,
         Int2ObjectHashMap<MessageConsumer> eventHandlers,
         String type,
         MessageConsumer consumer)
     {
-        int labelId = labels.lookupLabelId(type);
+        int labelId = lookupLabelId.apply(type);
         if (labelId != 0)
         {
             eventHandlers.put(labelId, consumer);
@@ -101,6 +105,42 @@ public class StdoutEventsStream
         return true;
     }
 
+    private void handleHttpEvent(
+        int msgTypeId,
+        DirectBuffer buffer,
+        int index,
+        int length)
+    {
+        // TODO: Ati
+    }
+
+    private void handleKafkaEvent(
+        int msgTypeId,
+        DirectBuffer buffer,
+        int index,
+        int length)
+    {
+        // TODO: Ati
+    }
+
+    private void handleMqttEvent(
+        int msgTypeId,
+        DirectBuffer buffer,
+        int index,
+        int length)
+    {
+        // TODO: Ati
+    }
+
+    private void handleSchemaRegistryEvent(
+        int msgTypeId,
+        DirectBuffer buffer,
+        int index,
+        int length)
+    {
+        // TODO: Ati
+    }
+
     private void handleTcpEvent(
         int msgTypeId,
         DirectBuffer buffer,
@@ -119,7 +159,7 @@ public class StdoutEventsStream
         }
     }
 
-    private void handleHttpEvent(
+    private void handleTlsEvent(
         int msgTypeId,
         DirectBuffer buffer,
         int index,

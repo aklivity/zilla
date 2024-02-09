@@ -457,6 +457,13 @@ public class EngineWorker implements EngineContext, Agent
     }
 
     @Override
+    public int lookupLabelId(
+        String name)
+    {
+        return labels.lookupLabelId(name);
+    }
+
+    @Override
     public long supplyInitialId(
         long bindingId)
     {

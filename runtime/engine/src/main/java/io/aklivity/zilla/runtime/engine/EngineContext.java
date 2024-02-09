@@ -48,6 +48,9 @@ public interface EngineContext
     int supplyTypeId(
         String name);
 
+    int lookupLabelId(
+        String name);
+
     long supplyInitialId(
         long bindingId);
 
