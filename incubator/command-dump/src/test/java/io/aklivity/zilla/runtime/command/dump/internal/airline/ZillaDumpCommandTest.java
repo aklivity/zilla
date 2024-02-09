@@ -2247,6 +2247,8 @@ public class ZillaDumpCommandTest
                 .groupId("group")
                 .memberId("member")
                 .instanceId("instance")
+                .host("host")
+                .port(4242)
                 .build()
             .build());
         BeginFW begin38 = beginRW.wrap(frameBuffer, 0, frameBuffer.capacity())
@@ -2269,6 +2271,8 @@ public class ZillaDumpCommandTest
                 .groupId("group")
                 .memberId("member")
                 .instanceId("instance")
+                .host("host")
+                .port(4242)
                 .build()
             .build());
         BeginFW begin39 = beginRW.wrap(frameBuffer, 0, frameBuffer.capacity())
