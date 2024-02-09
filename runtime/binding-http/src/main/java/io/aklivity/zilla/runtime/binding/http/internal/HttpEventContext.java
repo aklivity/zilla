@@ -33,14 +33,14 @@ public class HttpEventContext
     private final HttpEventFW.Builder httpEventRW = new HttpEventFW.Builder();
     private final MutableDirectBuffer eventBuffer = new UnsafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
     private final int httpTypeId;
-    private final MessageConsumer logEvent;
+    private final MessageConsumer logger;
     private final LongSupplier timestamp;
 
     public HttpEventContext(
         EngineContext context)
     {
         this.httpTypeId = context.supplyTypeId(HttpBinding.NAME);
-        this.logEvent = context.logger();
+        this.logger = context.logger();
         this.timestamp = context.timestamp();
     }
 
@@ -57,7 +57,7 @@ public class HttpEventContext
             )
             .build();
         System.out.println(event); // TODO: Ati
-        logEvent.accept(httpTypeId, event.buffer(), event.offset(), event.limit());
+        logger.accept(httpTypeId, event.buffer(), event.offset(), event.limit());
     }
 
     public void authorization(
@@ -78,6 +78,6 @@ public class HttpEventContext
             )
             .build();
         System.out.println(event); // TODO: Ati
-        logEvent.accept(httpTypeId, event.buffer(), event.offset(), event.limit());
+        logger.accept(httpTypeId, event.buffer(), event.offset(), event.limit());
     }
 }

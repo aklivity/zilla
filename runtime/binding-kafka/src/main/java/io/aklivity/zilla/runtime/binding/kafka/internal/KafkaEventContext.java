@@ -34,14 +34,14 @@ public class KafkaEventContext
     private final KafkaEventFW.Builder kafkaEventRW = new KafkaEventFW.Builder();
     private final MutableDirectBuffer eventBuffer = new UnsafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
     private final int kafkaTypeId;
-    private final MessageConsumer logEvent;
+    private final MessageConsumer logger;
     private final LongSupplier timestamp;
 
     public KafkaEventContext(
         EngineContext context)
     {
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
-        this.logEvent = context.logger();
+        this.logger = context.logger();
         this.timestamp = context.timestamp();
     }
 
@@ -61,7 +61,7 @@ public class KafkaEventContext
             )
             .build();
         System.out.println(event); // TODO: Ati
-        logEvent.accept(kafkaTypeId, event.buffer(), event.offset(), event.limit());
+        logger.accept(kafkaTypeId, event.buffer(), event.offset(), event.limit());
     }
 
     public void apiVersionRejected(
@@ -75,6 +75,6 @@ public class KafkaEventContext
             )
             .build();
         System.out.println(event); // TODO: Ati
-        logEvent.accept(kafkaTypeId, event.buffer(), event.offset(), event.limit());
+        logger.accept(kafkaTypeId, event.buffer(), event.offset(), event.limit());
     }
 }
