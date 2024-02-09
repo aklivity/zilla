@@ -37,10 +37,9 @@ public class HttpEventContext
     private final LongSupplier timestamp;
 
     public HttpEventContext(
-        int httpTypeId,
         EngineContext context)
     {
-        this.httpTypeId = httpTypeId;
+        this.httpTypeId = context.supplyTypeId(HttpBinding.NAME);
         this.logEvent = context.logEvent();
         this.timestamp = context.timestamp();
     }

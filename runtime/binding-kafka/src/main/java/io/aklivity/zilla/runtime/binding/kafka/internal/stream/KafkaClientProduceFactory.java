@@ -219,7 +219,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
         this.encodeMaxBytes = Math.min(config.clientProduceMaxBytes(),
                 encodePool.slotCapacity() - PRODUCE_REQUEST_RECORDS_OFFSET_MAX);
         this.crc32c = new CRC32C();
-        this.event = new KafkaEventContext(kafkaTypeId, context);
+        this.event = new KafkaEventContext(context);
     }
 
     @Override

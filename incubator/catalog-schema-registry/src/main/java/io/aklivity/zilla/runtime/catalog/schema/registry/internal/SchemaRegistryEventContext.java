@@ -30,14 +30,14 @@ public class SchemaRegistryEventContext
 
     private final SchemaRegistryEventFW.Builder schemaRegistryEventRW = new SchemaRegistryEventFW.Builder();
     private final MutableDirectBuffer eventBuffer = new UnsafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
-    private final int typeId;
+    private final int schemaRegistryTypeId;
     private final MessageConsumer logEvent;
     private final LongSupplier timestamp;
 
     public SchemaRegistryEventContext(
         EngineContext context)
     {
-        this.typeId = context.supplyTypeId(SchemaRegistryCatalog.NAME);
+        this.schemaRegistryTypeId = context.supplyTypeId(SchemaRegistryCatalog.NAME);
         this.logEvent = context.logEvent();
         this.timestamp = context.timestamp();
     }
@@ -59,6 +59,6 @@ public class SchemaRegistryEventContext
             )
             .build();
         System.out.println(event); // TODO: Ati
-        logEvent.accept(typeId, event.buffer(), event.offset(), event.limit());
+        logEvent.accept(schemaRegistryTypeId, event.buffer(), event.offset(), event.limit());
     }
 }

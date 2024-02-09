@@ -130,7 +130,7 @@ public abstract class KafkaClientSaslHandshaker
         this.writeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.nonceSupplier = config.nonceSupplier();
         this.clientIdsByServer = new Object2ObjectHashMap<>();
-        this.event = new KafkaEventContext(context.supplyTypeId(KafkaBinding.NAME), context);
+        this.event = new KafkaEventContext(context);
     }
 
     public abstract class KafkaSaslClient

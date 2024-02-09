@@ -37,10 +37,9 @@ public class MqttEventContext
     private final LongSupplier timestamp;
 
     public MqttEventContext(
-        int mqttTypeId,
         EngineContext context)
     {
-        this.mqttTypeId = mqttTypeId;
+        this.mqttTypeId = context.supplyTypeId(MqttBinding.NAME);
         this.logEvent = context.logEvent();
         this.timestamp = context.timestamp();
     }

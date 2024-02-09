@@ -37,10 +37,9 @@ public class KafkaEventContext
     private final LongSupplier timestamp;
 
     public KafkaEventContext(
-        int kafkaTypeId,
         EngineContext context)
     {
-        this.kafkaTypeId = kafkaTypeId;
+        this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.logEvent = context.logEvent();
         this.timestamp = context.timestamp();
     }
