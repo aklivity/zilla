@@ -113,6 +113,6 @@ public class StdoutExporterHandler implements ExporterHandler
             .readonly(true)
             .spyAt(SpyPosition.ZERO)
             .build();
-        return new StdoutEventsStream(labels, layout, out);
+        return new StdoutEventsStream(labels, layout, context::supplyNamespace, context::supplyLocalName, out);
     }
 }

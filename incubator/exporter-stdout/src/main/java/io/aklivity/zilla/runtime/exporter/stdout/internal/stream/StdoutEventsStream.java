@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.exporter.stdout.internal.stream;
 
 import java.io.PrintStream;
+import java.util.function.LongFunction;
 
 import org.agrona.DirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
@@ -46,18 +47,22 @@ public class StdoutEventsStream
     private final TcpRemoteAccessFailedEventFW tcpRemoteAccessFailedEventRO = new TcpRemoteAccessFailedEventFW();
     private final TlsEventFW tlsEventRO = new TlsEventFW();
 
-    private final LabelReader labels;
     private final EventsLayoutReader layout;
     private final PrintStream out;
     private final Int2ObjectHashMap<MessageConsumer> eventHandlers;
+    private final LongFunction<String> supplyNamespace;
+    private final LongFunction<String> supplyLocalName;
 
     public StdoutEventsStream(
         LabelReader labels,
         EventsLayoutReader layout,
+        LongFunction<String> supplyNamespace,
+        LongFunction<String> supplyLocalName,
         PrintStream out)
     {
-        this.labels = labels;
         this.layout = layout;
+        this.supplyNamespace = supplyNamespace;
+        this.supplyLocalName = supplyLocalName;
         this.out = out;
 
         final Int2ObjectHashMap<MessageConsumer> eventHandlers = new Int2ObjectHashMap<>();
@@ -128,8 +133,8 @@ public class StdoutEventsStream
     private String asBinding(
         long bindingId)
     {
-        String namespace = labels.lookupLabel(namespaceId(bindingId));
-        String binding = labels.lookupLabel(localId(bindingId));
+        String namespace = supplyNamespace.apply(bindingId);
+        String binding = supplyLocalName.apply(bindingId);
         return String.format("%s.%s", namespace, binding);
     }
 

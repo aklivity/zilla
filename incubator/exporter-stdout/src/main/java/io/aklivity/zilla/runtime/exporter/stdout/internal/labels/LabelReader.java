@@ -57,17 +57,6 @@ public final class LabelReader
         return labelIds.getOrDefault(label, 0);
     }
 
-    public synchronized String lookupLabel(
-        int labelId)
-    {
-        if (labelId < 1 || labelId > labels.size())
-        {
-            checkSnapshot();
-        }
-
-        return labels.get(labelId - 1);
-    }
-
     private void checkSnapshot()
     {
         try
