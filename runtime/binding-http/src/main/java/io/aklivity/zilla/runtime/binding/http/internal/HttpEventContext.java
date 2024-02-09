@@ -61,11 +61,12 @@ public class HttpEventContext
     }
 
     public void authorization(
-        Result result,
+        long sessionId,
         long traceId,
         long routedId,
         String identity)
     {
+        Result result = sessionId == 0 ? Result.FAILURE : Result.SUCCESS;
         HttpEventFW event = httpEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .authorization(e -> e

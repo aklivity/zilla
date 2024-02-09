@@ -695,9 +695,7 @@ public abstract class KafkaClientSaslHandshaker
             if (authenticateResponse != null)
             {
                 final int errorCode = authenticateResponse.errorCode();
-                event.authorization(
-                    errorCode == ERROR_NONE ? Result.SUCCESS : Result.FAILURE,
-                    traceId, client.routedId);
+                event.authorization(errorCode, traceId, client.routedId);
 
                 progress = authenticateResponse.limit();
 
@@ -732,6 +730,7 @@ public abstract class KafkaClientSaslHandshaker
             if (authenticateResponse != null)
             {
                 final int errorCode = authenticateResponse.errorCode();
+                event.authorization(errorCode, traceId, client.routedId);
 
                 progress = authenticateResponse.limit();
 
@@ -756,13 +755,11 @@ public abstract class KafkaClientSaslHandshaker
                     client.decodeSaslAuthenticate = decodeSaslScramAuthenticateFinal;
                     client.onDecodeSaslResponse(traceId);
                     client.onDecodeSaslHandshakeResponse(traceId, authorization, ERROR_NONE);
-                    event.authorization(Result.SUCCESS, traceId, client.routedId);
                 }
                 else
                 {
                     client.onDecodeSaslResponse(traceId);
                     client.onDecodeSaslAuthenticateResponse(traceId, authorization, ERROR_SASL_AUTHENTICATION_FAILED);
-                    event.authorization(Result.FAILURE, traceId, client.routedId);
                 }
             }
         }

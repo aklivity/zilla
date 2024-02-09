@@ -116,7 +116,6 @@ import io.aklivity.zilla.runtime.binding.http.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.ProxyInfoFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
-import io.aklivity.zilla.runtime.binding.http.internal.types.event.Result;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.Capability;
@@ -1061,9 +1060,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                             if (credentialsMatch != null)
                             {
                                 exchangeAuth = guard.reauthorize(server.initialId, credentialsMatch);
-                                event.authorization(
-                                    exchangeAuth == 0 ? Result.FAILURE : Result.SUCCESS,
-                                    traceId, server.routedId, guard.identity(authorization));
+                                event.authorization(exchangeAuth, traceId, server.routedId, guard.identity(authorization));
                             }
                         }
 
@@ -4978,9 +4975,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                             if (credentialsMatch != null)
                             {
                                 exchangeAuth = guard.reauthorize(initialId, credentialsMatch);
-                                event.authorization(
-                                    exchangeAuth == 0 ? Result.FAILURE : Result.SUCCESS,
-                                    traceId, routedId, guard.identity(authorization));
+                                event.authorization(exchangeAuth, traceId, routedId, guard.identity(authorization));
                             }
                         }
 

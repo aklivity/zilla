@@ -45,11 +45,12 @@ public class MqttEventContext
     }
 
     public void authorization(
-        Result result,
+        long sessionId,
         long traceId,
         long routedId,
         String identity)
     {
+        Result result = sessionId == 0 ? Result.FAILURE : Result.SUCCESS;
         MqttEventFW event = mqttEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .authorization(e -> e

@@ -29,6 +29,7 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 public class KafkaEventContext
 {
     private static final int EVENT_BUFFER_CAPACITY = 1024;
+    private static final int ERROR_NONE = 0;
 
     private final KafkaEventFW.Builder kafkaEventRW = new KafkaEventFW.Builder();
     private final MutableDirectBuffer eventBuffer = new UnsafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
@@ -45,10 +46,11 @@ public class KafkaEventContext
     }
 
     public void authorization(
-        Result result,
+        int errorCode,
         long traceId,
         long routedId)
     {
+        Result result = errorCode == ERROR_NONE ? Result.SUCCESS : Result.FAILURE;
         KafkaEventFW event = kafkaEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .authorization(e -> e
