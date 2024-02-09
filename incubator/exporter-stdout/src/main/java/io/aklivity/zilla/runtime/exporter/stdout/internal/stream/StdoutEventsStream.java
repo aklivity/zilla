@@ -24,7 +24,6 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.labels.LabelReader;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.layouts.EventsLayoutReader;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.StringFW;
-import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.HttpEventFW;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.KafkaEventFW;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.MqttEventFW;
@@ -36,9 +35,8 @@ import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.TlsEventFW
 public class StdoutEventsStream
 {
     private static final String TCP_REMOTE_ACCESS_FAILED_FORMAT =
-        "ERROR: Remote Access Failed [timestamp = %d] [traceId = 0x%016x] [binding = %s] [address = %s]%n";
+        "ERROR: Remote Access Failed [timestamp = %d] [traceId = 0x%016x] [binding = %s.%s] [address = %s]%n";
 
-    private final EventFW eventRO = new EventFW();
     private final HttpEventFW httpEventRO = new HttpEventFW();
     private final KafkaEventFW kafkaEventRO = new KafkaEventFW();
     private final MqttEventFW mqttEventRO = new MqttEventFW();
@@ -115,8 +113,9 @@ public class StdoutEventsStream
         {
         case REMOTE_ACCESS_FAILED:
             TcpRemoteAccessFailedEventFW e = event.remoteAccessFailed();
-            out.printf(TCP_REMOTE_ACCESS_FAILED_FORMAT, e.timestamp(), e.traceId(), asBinding(e.namespacedId()),
-                asString(e.address()));
+            String namespace = supplyNamespace.apply(e.namespacedId());
+            String binding = supplyLocalName.apply(e.namespacedId());
+            out.printf(TCP_REMOTE_ACCESS_FAILED_FORMAT, e.timestamp(), e.traceId(), namespace, binding, asString(e.address()));
             break;
         }
     }
@@ -128,14 +127,6 @@ public class StdoutEventsStream
         int length)
     {
         // TODO: Ati
-    }
-
-    private String asBinding(
-        long bindingId)
-    {
-        String namespace = supplyNamespace.apply(bindingId);
-        String binding = supplyLocalName.apply(bindingId);
-        return String.format("%s.%s", namespace, binding);
     }
 
     private static String asString(
