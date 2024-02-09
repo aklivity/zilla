@@ -51,17 +51,23 @@ public class MqttKafkaPublishMetadata
         public final String instanceId;
         public final String groupId;
         public final String memberId;
+        public final String host;
+        public final int port;
         public final int generationId;
 
         KafkaGroup(
             String instanceId,
             String groupId,
             String memberId,
+            String host,
+            int port,
             int generationId)
         {
             this.instanceId = instanceId;
             this.groupId = groupId;
             this.memberId = memberId;
+            this.host = host;
+            this.port = port;
             this.generationId = generationId;
         }
     }

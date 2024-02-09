@@ -15,13 +15,13 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.kafka.internal.types.ProxyAddressProtocol.STREAM;
 import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_BUDGET_ID;
 import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_INDEX;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static java.util.Objects.requireNonNull;
 
 import java.util.ArrayDeque;
-import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.LongFunction;
 import java.util.function.UnaryOperator;
@@ -58,6 +58,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaDataEx
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaOffsetCommitBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaOffsetCommitDataExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaResetExFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ProxyBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.WindowFW;
@@ -102,6 +103,7 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
     private final KafkaResetExFW.Builder kafkaResetExRW = new KafkaResetExFW.Builder();
+    private final ProxyBeginExFW.Builder proxyBeginExRW = new ProxyBeginExFW.Builder();
 
     private final RequestHeaderFW.Builder requestHeaderRW = new RequestHeaderFW.Builder();
     private final OffsetCommitRequestFW.Builder offsetCommitRequestRW = new OffsetCommitRequestFW.Builder();
@@ -129,6 +131,7 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
     private final KafkaOffsetCommitClientDecoder decodeReject = this::decodeReject;
 
     private final int kafkaTypeId;
+    private final int proxyTypeId;
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer extBuffer;
     private final BufferPool decodePool;
@@ -152,6 +155,7 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
     {
         super(config, context);
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
+        this.proxyTypeId = context.supplyTypeId("proxy");
         this.signaler = signaler;
         this.streamFactory = streamFactory;
         this.resolveSasl = resolveSasl;
@@ -189,6 +193,8 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
         final String groupId = kafkaOffsetCommitBeginEx.groupId().asString();
         final String memberId = kafkaOffsetCommitBeginEx.memberId().asString();
         final String instanceId = kafkaOffsetCommitBeginEx.instanceId().asString();
+        final String host = kafkaOffsetCommitBeginEx.host().asString();
+        final int port = kafkaOffsetCommitBeginEx.port();
 
         MessageConsumer newStream = null;
 
@@ -199,8 +205,10 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
         if (resolved != null)
         {
             final long resolvedId = resolved.id;
-            final List<KafkaServerConfig> servers = binding.servers();
             final KafkaSaslConfig sasl = resolveSasl.apply(binding.sasl());
+
+            // TODO: use affinity (like meta, fetch, produce) instead of host and port
+            final KafkaServerConfig server = new KafkaServerConfig(host, port);
 
             newStream = new KafkaOffsetCommitStream(
                     application,
@@ -212,7 +220,7 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
                     groupId,
                     memberId,
                     instanceId,
-                    servers,
+                    server,
                     sasl)::onApplication;
         }
 
@@ -651,7 +659,7 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
             String groupId,
             String memberId,
             String instanceId,
-            List<KafkaServerConfig> servers,
+            KafkaServerConfig server,
             KafkaSaslConfig sasl)
         {
             this.application = application;
@@ -662,7 +670,7 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
             this.affinity = affinity;
             this.initialMax = encodeMaxBytes;
             this.client = new KafkaOffsetCommitClient(this, routedId, resolvedId, groupId,
-                memberId, instanceId, servers, sasl);
+                memberId, instanceId, server, sasl);
         }
 
         private void onApplication(
@@ -977,10 +985,10 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
             String groupId,
             String memberId,
             String instanceId,
-            List<KafkaServerConfig> servers,
+            KafkaServerConfig server,
             KafkaSaslConfig sasl)
         {
-            super(servers, sasl, originId, routedId);
+            super(server, sasl, originId, routedId);
             this.delegate = delegate;
             this.groupId = requireNonNull(groupId);
             this.memberId = requireNonNull(memberId);
@@ -1206,8 +1214,24 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
         {
             state = KafkaState.openingInitial(state);
 
+            Consumer<OctetsFW.Builder> extension = EMPTY_EXTENSION;
+
+            if (server != null)
+            {
+                extension = e -> e.set((b, o, l) -> proxyBeginExRW.wrap(b, o, l)
+                                                                .typeId(proxyTypeId)
+                                                                .address(a -> a.inet(i -> i.protocol(p -> p.set(STREAM))
+                                                                        .source("0.0.0.0")
+                                                                        .destination(server.host)
+                                                                        .sourcePort(0)
+                                                                        .destinationPort(server.port)))
+                                                                .infos(i -> i.item(ii -> ii.authority(server.host)))
+                                                                .build()
+                                                                .sizeof());
+            }
+
             network = newStream(this::onNetwork, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, authorization, affinity, EMPTY_EXTENSION);
+                    traceId, authorization, affinity, extension);
         }
 
         @Override

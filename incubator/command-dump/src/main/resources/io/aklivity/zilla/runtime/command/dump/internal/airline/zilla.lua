@@ -2974,6 +2974,16 @@ function handle_kafka_begin_offset_commit_extension(buffer, offset, ext_subtree)
     local instance_id_length, slice_instance_id_length, slice_instance_id_text = dissect_length_value(buffer, instance_id_offset, 2)
     add_string_as_subtree(buffer(instance_id_offset, instance_id_length), ext_subtree, "Instance ID: %s",
         slice_instance_id_length, slice_instance_id_text, fields.kafka_ext_instance_id_length, fields.kafka_ext_instance_id)
+    -- host
+    local host_offset = instance_id_offset + instance_id_length
+    local host_length, slice_host_length, slice_host_text = dissect_length_value(buffer, host_offset, 2)
+    add_string_as_subtree(buffer(host_offset, host_length), ext_subtree, "Host: %s",
+        slice_host_length, slice_host_text, fields.kafka_ext_host_length, fields.kafka_ext_host)
+    -- port
+    local port_offset = host_offset + host_length
+    local port_length = 4
+    local slice_port = buffer(port_offset, port_length)
+    ext_subtree:add_le(fields.kafka_ext_port, slice_port)
 end
 
 function handle_kafka_data_offset_commit_extension(buffer, offset, ext_subtree)
