@@ -27,11 +27,17 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.CompositeBindingAdapterSpi;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
-final class OpenapiCompositeBindingAdapter implements CompositeBindingAdapterSpi
+public final class OpenapiCompositeBindingAdapter implements CompositeBindingAdapterSpi
 {
     private final UnaryOperator<BindingConfig> composite;
 
-    OpenapiCompositeBindingAdapter()
+    @Override
+    public String type()
+    {
+        return OpenapiBinding.NAME;
+    }
+
+    public OpenapiCompositeBindingAdapter()
     {
         Map<KindConfig, UnaryOperator<BindingConfig>> composites = new EnumMap<>(KindConfig.class);
         composites.put(SERVER, new OpenapiServerCompositeBindingAdapter()::adapt);
@@ -39,12 +45,6 @@ final class OpenapiCompositeBindingAdapter implements CompositeBindingAdapterSpi
         UnaryOperator<BindingConfig> composite = binding -> composites
             .getOrDefault(binding.kind, identity()).apply(binding);
         this.composite = composite;
-    }
-
-    @Override
-    public String type()
-    {
-        return OpenapiBinding.NAME;
     }
 
     @Override

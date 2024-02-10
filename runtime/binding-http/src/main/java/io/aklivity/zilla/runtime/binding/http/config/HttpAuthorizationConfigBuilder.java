@@ -26,7 +26,7 @@ public final class HttpAuthorizationConfigBuilder<T> extends ConfigBuilder<T, Ht
     private String name;
     private HttpCredentialsConfig credentials;
 
-    HttpAuthorizationConfigBuilder(
+    public HttpAuthorizationConfigBuilder(
         Function<HttpAuthorizationConfig, T> mapper)
     {
         this.mapper = mapper;

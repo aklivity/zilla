@@ -21,8 +21,6 @@ import static java.util.Objects.requireNonNull;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.net.URI;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import jakarta.json.bind.Jsonb;
@@ -61,11 +59,9 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.CompositeBindingAdapterSpi;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
-import io.aklivity.zilla.runtime.guard.jwt.config.JwtOptionsConfig;
 import io.aklivity.zilla.runtime.model.core.config.IntegerModelConfig;
 import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
 import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
-import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig;
 
 public final class OpenapiClientCompositeBindingAdapter implements CompositeBindingAdapterSpi
 {
@@ -78,11 +74,6 @@ public final class OpenapiClientCompositeBindingAdapter implements CompositeBind
         "integer", IntegerModelConfig.builder().build()
     );
 
-    private OpenApi openApi;
-    private int[] httpsPorts;
-    private boolean isTlsEnabled;
-    private Map<String, String> securitySchemes;
-    private boolean isJwtEnabled;
 
     @Override
     public String type()
@@ -101,11 +92,9 @@ public final class OpenapiClientCompositeBindingAdapter implements CompositeBind
         OpenapiOptionsConfig options = (OpenapiOptionsConfig) binding.options;
         OpenapiConfig openapiConfig = options.openapis.get(0);
 
-        this.openApi = openapiConfig.openapi;
-        this.httpsPorts = resolvePortsForScheme("https");
-        this.isTlsEnabled = httpsPorts != null;
-        this.securitySchemes = resolveSecuritySchemes();
-        this.isJwtEnabled = !securitySchemes.isEmpty();
+        final OpenApi openApi = openapiConfig.openapi;
+        final int[] httpsPorts = resolvePortsForScheme(openApi, "https");
+        final boolean secure = httpsPorts != null;
 
         return BindingConfig.builder(binding)
             .composite()
@@ -114,10 +103,10 @@ public final class OpenapiClientCompositeBindingAdapter implements CompositeBind
                     .name("http_client0")
                     .type("http")
                     .kind(CLIENT)
-                    .inject(this::injectHttpClientOptions)
-                    .exit(isTlsEnabled ? "tls_client0" : "tcp_client0")
+                    .inject(b -> this.injectHttpClientOptions(b, openApi))
+                    .exit(secure ? "tls_client0" : "tcp_client0")
                     .build()
-                .inject(this::injectTlsClient)
+                .inject(b -> this.injectTlsClient(b, options.tls, secure))
                 .binding()
                     .name("tcp_client0")
                     .type("tcp")
@@ -127,19 +116,18 @@ public final class OpenapiClientCompositeBindingAdapter implements CompositeBind
                         .ports(new int[]{0}) // env
                         .build()
                     .build()
-                .inject(this::injectGuard)
-                .inject(this::injectVaults)
-                .inject(this::injectCatalog)
+                .inject(n -> this.injectCatalog(n, openApi))
                 .build()
             .build();
     }
 
     private int[] resolvePortsForScheme(
+        OpenApi openApi,
         String scheme)
     {
         requireNonNull(scheme);
         int[] ports = null;
-        URI url = findFirstServerUrlWithScheme(scheme);
+        URI url = findFirstServerUrlWithScheme(openApi, scheme);
         if (url != null)
         {
             ports = new int[] {url.getPort()};
@@ -148,6 +136,7 @@ public final class OpenapiClientCompositeBindingAdapter implements CompositeBind
     }
 
     private URI findFirstServerUrlWithScheme(
+        OpenApi openApi,
         String scheme)
     {
         requireNonNull(scheme);
@@ -164,33 +153,16 @@ public final class OpenapiClientCompositeBindingAdapter implements CompositeBind
         return result;
     }
 
-    private Map<String, String> resolveSecuritySchemes()
-    {
-        requireNonNull(openApi);
-        Map<String, String> result = new HashMap<>();
-        if (openApi.components != null && openApi.components.securitySchemes != null)
-        {
-            for (String securitySchemeName : openApi.components.securitySchemes.keySet())
-            {
-                String guardType = openApi.components.securitySchemes.get(securitySchemeName).bearerFormat;
-                if ("jwt".equals(guardType))
-                {
-                    result.put(securitySchemeName, guardType);
-                }
-            }
-        }
-        return result;
-    }
-
     private <C> BindingConfigBuilder<C> injectHttpClientOptions(
-        BindingConfigBuilder<C> binding)
+        BindingConfigBuilder<C> binding,
+        OpenApi openApi)
     {
         OperationsView operations = OperationsView.of(openApi.paths);
         if (operations.hasResponses())
         {
             binding.
                 options(HttpOptionsConfig::builder)
-                    .inject(options -> injectHttpClientRequests(operations, options))
+                    .inject(options -> injectHttpClientRequests(operations, options, openApi))
                     .build();
         }
         return binding;
@@ -198,7 +170,8 @@ public final class OpenapiClientCompositeBindingAdapter implements CompositeBind
 
     private <C> HttpOptionsConfigBuilder<C> injectHttpClientRequests(
         OperationsView operations,
-        HttpOptionsConfigBuilder<C> options)
+        HttpOptionsConfigBuilder<C> options,
+        OpenApi openApi)
     {
         for (String pathName : openApi.paths.keySet())
         {
@@ -212,7 +185,7 @@ public final class OpenapiClientCompositeBindingAdapter implements CompositeBind
                         .request()
                             .path(pathName)
                             .method(HttpRequestConfig.Method.valueOf(methodName))
-                            .inject(request -> injectResponses(request, operation))
+                            .inject(request -> injectResponses(request, operation, openApi))
                             .build()
                         .build();
                 }
@@ -223,7 +196,8 @@ public final class OpenapiClientCompositeBindingAdapter implements CompositeBind
 
     private <C> HttpRequestConfigBuilder<C> injectResponses(
         HttpRequestConfigBuilder<C> request,
-        OperationView operation)
+        OperationView operation,
+        OpenApi openApi)
     {
         if (operation != null && operation.responsesByStatus() != null)
         {
@@ -281,21 +255,18 @@ public final class OpenapiClientCompositeBindingAdapter implements CompositeBind
     }
 
     private <C> NamespaceConfigBuilder<C> injectTlsClient(
-        NamespaceConfigBuilder<C> namespace)
+        NamespaceConfigBuilder<C> namespace,
+        TlsOptionsConfig tlsConfig,
+        boolean secure)
     {
-        if (isTlsEnabled)
+        if (secure)
         {
             namespace
                 .binding()
                     .name("tls_client0")
                     .type("tls")
                     .kind(CLIENT)
-                    .options(TlsOptionsConfig::builder)
-                        .trust(List.of("")) // env
-                        .sni(List.of("")) // env
-                        .alpn(List.of("")) // env
-                        .trustcacerts(true)
-                        .build()
+                    .options(tlsConfig)
                     .vault("client")
                     .exit("tcp_client0")
                     .build();
@@ -303,63 +274,13 @@ public final class OpenapiClientCompositeBindingAdapter implements CompositeBind
         return namespace;
     }
 
-    private <C> NamespaceConfigBuilder<C> injectGuard(
-        NamespaceConfigBuilder<C> namespace)
-    {
-        if (isJwtEnabled)
-        {
-            namespace
-                .guard()
-                    .name("jwt0")
-                    .type("jwt")
-                    .options(JwtOptionsConfig::builder)
-                        .issuer("") // env
-                        .audience("") // env
-                        .key()
-                            .alg("").kty("").kid("").use("").n("").e("").crv("").x("").y("") // env
-                            .build()
-                        .build()
-                    .build();
-        }
-        return namespace;
-    }
-
-    private <C> NamespaceConfigBuilder<C> injectVaults(
-        NamespaceConfigBuilder<C> namespace)
-    {
-        if (isTlsEnabled)
-        {
-            namespace
-                .vault()
-                    .name("client")
-                    .type("filesystem")
-                    .options(FileSystemOptionsConfig::builder)
-                        .trust()
-                            .store("") // env
-                            .type("") // env
-                            .password("") // env
-                            .build()
-                        .build()
-                    .build()
-                .vault()
-                    .name("server")
-                    .type("filesystem")
-                    .options(FileSystemOptionsConfig::builder)
-                        .keys()
-                            .store("") // env
-                            .type("") // env
-                            .password("") //env
-                            .build()
-                        .build()
-                    .build();
-        }
-        return namespace;
-    }
-
     private <C> NamespaceConfigBuilder<C> injectCatalog(
-        NamespaceConfigBuilder<C> namespace)
+        NamespaceConfigBuilder<C> namespace,
+        OpenApi openApi)
     {
-        if (openApi.components != null && openApi.components.schemas != null && !openApi.components.schemas.isEmpty())
+        if (openApi.components != null &&
+            openApi.components.schemas != null &&
+            !openApi.components.schemas.isEmpty())
         {
             namespace
                 .catalog()
@@ -367,7 +288,7 @@ public final class OpenapiClientCompositeBindingAdapter implements CompositeBind
                     .type(INLINE_CATALOG_TYPE)
                     .options(InlineOptionsConfig::builder)
                         .subjects()
-                            .inject(this::injectSubjects)
+                            .inject(s -> this.injectSubjects(s, openApi))
                             .build()
                         .build()
                     .build();
@@ -376,7 +297,8 @@ public final class OpenapiClientCompositeBindingAdapter implements CompositeBind
     }
 
     private <C> InlineSchemaConfigBuilder<C> injectSubjects(
-        InlineSchemaConfigBuilder<C> subjects)
+        InlineSchemaConfigBuilder<C> subjects,
+        OpenApi openApi)
     {
         try (Jsonb jsonb = JsonbBuilder.create())
         {

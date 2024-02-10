@@ -26,6 +26,7 @@ import java.util.regex.Pattern;
 
 import org.agrona.collections.Object2ObjectHashMap;
 
+import io.aklivity.zilla.runtime.binding.http.config.HttpAuthorizationConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpConditionConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfigBuilder;
@@ -67,15 +68,6 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
         "integer", IntegerModelConfig.builder().build()
     );
 
-    private OpenApi openApi;
-    private int[] allPorts;
-    private int[] httpPorts;
-    private int[] httpsPorts;
-    private boolean isPlainEnabled;
-    private boolean isTlsEnabled;
-    private Map<String, String> securitySchemes;
-    private boolean isJwtEnabled;
-
     @Override
     public String type()
     {
@@ -92,15 +84,15 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
     {
         OpenapiOptionsConfig options = (OpenapiOptionsConfig) binding.options;
         OpenapiConfig openapiConfig = options.openapis.get(0);
-        this.openApi = openapiConfig.openapi;
 
-        this.allPorts = resolveAllPorts();
-        this.httpPorts = resolvePortsForScheme("http");
-        this.httpsPorts = resolvePortsForScheme("https");
-        this.isPlainEnabled = httpPorts != null;
-        this.isTlsEnabled = httpsPorts != null;
-        this.securitySchemes = resolveSecuritySchemes();
-        this.isJwtEnabled = !securitySchemes.isEmpty();
+        final OpenApi openApi = openapiConfig.openapi;
+        final String guardName = options.authorization.name;
+        final int[] allPorts = resolveAllPorts(openApi);
+        final int[] httpPorts = resolvePortsForScheme(openApi, "http");
+        final int[] httpsPorts = resolvePortsForScheme(openApi, "https");
+        final boolean secure = httpsPorts != null;
+        final Map<String, String> securitySchemes = resolveSecuritySchemes(openApi);
+        final boolean hasJwt = !securitySchemes.isEmpty();
 
         return BindingConfig.builder(binding)
             .composite()
@@ -113,10 +105,10 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
                         .host("0.0.0.0")
                         .ports(allPorts)
                         .build()
-                    .inject(this::injectPlainTcpRoute)
-                    .inject(this::injectTlsTcpRoute)
+                    .inject(b -> this.injectPlainTcpRoute(b, httpPorts, secure))
+                    .inject(b -> this.injectTlsTcpRoute(b, httpsPorts, secure))
                     .build()
-                .inject(this::injectTlsServer)
+                .inject(n -> this.injectTlsServer(n, options.tls, secure))
                 .binding()
                     .name("http_server0")
                     .type("http")
@@ -125,16 +117,17 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
                         .access()
                             .policy(CROSS_ORIGIN)
                             .build()
-                        .inject(this::injectHttpServerOptions)
-                        .inject(this::injectHttpServerRequests)
+                        .inject(o -> this.injectHttpServerOptions(o, options.authorization, hasJwt))
+                        .inject(r -> this.injectHttpServerRequests(r, openApi))
                         .build()
-                    .inject(this::injectHttpServerRoutes)
+                    .inject(b -> this.injectHttpServerRoutes(b, openApi, guardName, securitySchemes))
                     .build()
                 .build()
             .build();
     }
 
-    private int[] resolveAllPorts()
+    private int[] resolveAllPorts(
+        OpenApi openApi)
     {
         int[] ports = new int[openApi.servers.size()];
         for (int i = 0; i < openApi.servers.size(); i++)
@@ -147,11 +140,12 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
     }
 
     private int[] resolvePortsForScheme(
+        OpenApi openApi,
         String scheme)
     {
         requireNonNull(scheme);
         int[] ports = null;
-        URI url = findFirstServerUrlWithScheme(scheme);
+        URI url = findFirstServerUrlWithScheme(openApi, scheme);
         if (url != null)
         {
             ports = new int[] {url.getPort()};
@@ -160,6 +154,7 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
     }
 
     private URI findFirstServerUrlWithScheme(
+        OpenApi openApi,
         String scheme)
     {
         requireNonNull(scheme);
@@ -176,11 +171,13 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
         return result;
     }
 
-    private Map<String, String> resolveSecuritySchemes()
+    private Map<String, String> resolveSecuritySchemes(
+        OpenApi openApi)
     {
         requireNonNull(openApi);
         Map<String, String> result = new Object2ObjectHashMap<>();
-        if (openApi.components != null && openApi.components.securitySchemes != null)
+        if (openApi.components != null &&
+            openApi.components.securitySchemes != null)
         {
             for (String securitySchemeName : openApi.components.securitySchemes.keySet())
             {
@@ -195,9 +192,11 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
     }
 
     private <C> BindingConfigBuilder<C> injectPlainTcpRoute(
-        BindingConfigBuilder<C> binding)
+        BindingConfigBuilder<C> binding,
+        int[] httpPorts,
+        boolean secure)
     {
-        if (isPlainEnabled)
+        if (secure)
         {
             binding
                 .route()
@@ -211,9 +210,11 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
     }
 
     private <C> BindingConfigBuilder<C> injectTlsTcpRoute(
-        BindingConfigBuilder<C> binding)
+        BindingConfigBuilder<C> binding,
+        int[] httpsPorts,
+        boolean secure)
     {
-        if (isTlsEnabled)
+        if (secure)
         {
             binding
                 .route()
@@ -227,20 +228,18 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
     }
 
     private <C> NamespaceConfigBuilder<C> injectTlsServer(
-        NamespaceConfigBuilder<C> namespace)
+        NamespaceConfigBuilder<C> namespace,
+        TlsOptionsConfig tls,
+        boolean secure)
     {
-        if (isTlsEnabled)
+        if (secure)
         {
             namespace
                 .binding()
                     .name("tls_server0")
                     .type("tls")
                     .kind(SERVER)
-                    .options(TlsOptionsConfig::builder)
-                        .keys(List.of("")) // env
-                        .sni(List.of("")) // env
-                        .alpn(List.of("")) // env
-                        .build()
+                    .options(tls)
                     .vault("server")
                     .exit("http_server0")
                     .build();
@@ -249,26 +248,20 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
     }
 
     private <C> HttpOptionsConfigBuilder<C> injectHttpServerOptions(
-        HttpOptionsConfigBuilder<C> options)
+        HttpOptionsConfigBuilder<C> options,
+        HttpAuthorizationConfig authorization,
+        boolean hasJwt)
     {
-        if (isJwtEnabled)
+        if (hasJwt)
         {
-            options
-                .authorization()
-                    .name("jwt0")
-                    .credentials()
-                        .header()
-                            .name("authorization")
-                            .pattern("Bearer {credentials}")
-                            .build()
-                    .build()
-                .build();
+            options.authorization(authorization).build();
         }
         return options;
     }
 
     private <C> HttpOptionsConfigBuilder<C> injectHttpServerRequests(
-        HttpOptionsConfigBuilder<C> options)
+        HttpOptionsConfigBuilder<C> options,
+        OpenApi openApi)
     {
         for (String pathName : openApi.paths.keySet())
         {
@@ -282,7 +275,7 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
                         .request()
                             .path(pathName)
                             .method(HttpRequestConfig.Method.valueOf(methodName))
-                            .inject(request -> injectContent(request, operation))
+                            .inject(request -> injectContent(request, operation, openApi))
                             .inject(request -> injectParams(request, operation))
                             .build();
                 }
@@ -293,11 +286,12 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
 
     private <C> HttpRequestConfigBuilder<C> injectContent(
         HttpRequestConfigBuilder<C> request,
-        Operation operation)
+        Operation operation,
+        OpenApi openApi)
     {
         if (operation.requestBody != null && operation.requestBody.content != null && !operation.requestBody.content.isEmpty())
         {
-            SchemaView schema = resolveSchemaForJsonContentType(operation.requestBody.content);
+            SchemaView schema = resolveSchemaForJsonContentType(operation.requestBody.content, openApi);
             if (schema != null)
             {
                 request.
@@ -359,7 +353,10 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
     }
 
     private <C> BindingConfigBuilder<C> injectHttpServerRoutes(
-        BindingConfigBuilder<C> binding)
+        BindingConfigBuilder<C> binding,
+        OpenApi openApi,
+        String guardName,
+        Map<String, String> securitySchemes)
     {
         for (String item : openApi.paths.keySet())
         {
@@ -373,7 +370,7 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
                             .header(":path", item.replaceAll("\\{[^}]+\\}", "*"))
                             .header(":method", method)
                             .build()
-                        .inject(route -> injectHttpServerRouteGuarded(route, path, method))
+                        .inject(route -> injectHttpServerRouteGuarded(route, path, method, guardName, securitySchemes))
                         .build();
             }
         }
@@ -383,20 +380,24 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
     private <C> RouteConfigBuilder<C> injectHttpServerRouteGuarded(
         RouteConfigBuilder<C> route,
         PathView path,
-        String method)
+        String method,
+        String guardName,
+        Map<String, String> securitySchemes)
     {
-        List<Map<String, List<String>>> security = path.methods().get(method).security;
+        final List<Map<String, List<String>>> security = path.methods().get(method).security;
+        final boolean hasJwt = securitySchemes.isEmpty();
+
         if (security != null)
         {
             for (Map<String, List<String>> securityItem : security)
             {
                 for (String securityItemLabel : securityItem.keySet())
                 {
-                    if (isJwtEnabled && "jwt".equals(securitySchemes.get(securityItemLabel)))
+                    if (hasJwt && "jwt".equals(securitySchemes.get(securityItemLabel)))
                     {
                         route
                             .guarded()
-                                .name("jwt0")
+                                .name(guardName)
                                 .inject(guarded -> injectGuardedRoles(guarded, securityItem.get(securityItemLabel)))
                                 .build();
                     }
@@ -418,7 +419,8 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
     }
 
     private SchemaView resolveSchemaForJsonContentType(
-        Map<String, MediaType> content)
+        Map<String, MediaType> content,
+        OpenApi openApi)
     {
         MediaType mediaType = null;
         if (content != null)

@@ -78,8 +78,35 @@ public class OpenapiOptionsConfigAdapterTest
     {
         String text =
             "{" +
-                "\"specs\": [\"openapi/petstore.yaml\"]" +
-            "}";
+            "    \"tls\": {" +
+            "      \"keys\": [" +
+            "        \"localhost\"" +
+            "      ]," +
+            "      \"alpn\": [" +
+            "        \"localhost\"" +
+            "      ]" +
+            "    }," +
+            "    \"http\": {" +
+            "      \"authorization\": {" +
+            "        \"test0\": {" +
+            "          \"credentials\": {" +
+            "            \"cookies\": {" +
+            "              \"access_token\": \"{credentials}\"" +
+            "            }," +
+            "            \"headers\": {" +
+            "              \"authorization\": \"Bearer {credentials}\"" +
+            "            }," +
+            "            \"query\": {" +
+            "              \"access_token\": \"{credentials}\"" +
+            "            }" +
+            "          }" +
+            "        }" +
+            "      }" +
+            "    }," +
+            "    \"specs\": [" +
+            "      \"openapi/petstore.yaml\"" +
+            "    ]" +
+            "  }";
 
         OpenapiOptionsConfig options = jsonb.fromJson(text, OpenapiOptionsConfig.class);
         OpenapiConfig openapi = options.openapis.stream().findFirst().get();
@@ -87,12 +114,14 @@ public class OpenapiOptionsConfigAdapterTest
 
         assertThat(options, not(nullValue()));
         assertThat(path.post, not(nullValue()));
+        assertThat(options.tls, not(nullValue()));
+        assertThat(options.authorization, not(nullValue()));
     }
 
     @Test
     public void shouldWriteOptions()
     {
-        OpenapiOptionsConfig options = new OpenapiOptionsConfig(asList(
+        OpenapiOptionsConfig options = new OpenapiOptionsConfig(null, null, asList(
             new OpenapiConfig("openapi/petstore.yaml", new OpenApi())));
 
         String text = jsonb.toJson(options);

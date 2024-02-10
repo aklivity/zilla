@@ -15,16 +15,36 @@
 package io.aklivity.zilla.runtime.binding.openapi.config;
 
 import java.util.List;
+import java.util.function.Function;
 
+import io.aklivity.zilla.runtime.binding.http.config.HttpAuthorizationConfig;
+import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public final class OpenapiOptionsConfig extends OptionsConfig
 {
+    public final TlsOptionsConfig tls;
+    public final HttpAuthorizationConfig authorization;
     public final List<OpenapiConfig> openapis;
 
+    public static OpenpaiOptionsConfigBuilder<OpenapiOptionsConfig> builder()
+    {
+        return new OpenpaiOptionsConfigBuilder<>(OpenapiOptionsConfig.class::cast);
+    }
+
+    public static <T> OpenpaiOptionsConfigBuilder<T> builder(
+        Function<OptionsConfig, T> mapper)
+    {
+        return new OpenpaiOptionsConfigBuilder<>(mapper);
+    }
+
     public OpenapiOptionsConfig(
+        TlsOptionsConfig tls,
+        HttpAuthorizationConfig authorization,
         List<OpenapiConfig> openapis)
     {
+        this.tls = tls;
+        this.authorization = authorization;
         this.openapis = openapis;
     }
 }

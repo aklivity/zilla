@@ -21,6 +21,21 @@ bindings:
     type: openapi
     kind: server
     options:
+      tls:
+        keys:
+          - localhost
+        alpn:
+          - localhost
+      http:
+        authorization:
+          test0:
+            credentials:
+              cookies:
+                access_token: "{credentials}"
+              headers:
+                authorization: Bearer {credentials}
+              query:
+                access_token: "{credentials}"
       specs:
         - openapi/petstore.yaml
     exit: openapi0
