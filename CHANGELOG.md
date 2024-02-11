@@ -1,18 +1,38 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.66...HEAD)
+
+**Implemented enhancements:**
+
+- Use `model` and `view` when describing the message type [\#750](https://github.com/aklivity/zilla/issues/750)
+- Support obtaining `protobuf` schemas from `schema registry` for `grpc` services [\#697](https://github.com/aklivity/zilla/issues/697)
+- Support idempotent `mqtt` `qos 2` publish to `kafka` [\#677](https://github.com/aklivity/zilla/issues/677)
+- Detect and inspect invalid messages received [\#676](https://github.com/aklivity/zilla/issues/676)
+- Support incremental validation of fragmented messages sent by client [\#671](https://github.com/aklivity/zilla/issues/671)
+
+**Fixed bugs:**
+
+- TLSv1.3 client handshake stall [\#791](https://github.com/aklivity/zilla/issues/791)
+- Zilla crashes when it tries to send flush on retain stream [\#770](https://github.com/aklivity/zilla/issues/770)
+- Running emqtt\_bench triggers exception in connection pool [\#716](https://github.com/aklivity/zilla/issues/716)
+- `mqtt-kafka` does not limit client sharding to `mqtt v5` [\#708](https://github.com/aklivity/zilla/issues/708)
+- `tls binding` should handle `null` key returned from `vault` [\#395](https://github.com/aklivity/zilla/issues/395)
+
 ## [0.9.66](https://github.com/aklivity/zilla/tree/0.9.66) (2024-01-24)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.65...0.9.66)
 
-**Fixed bugs:**
-
-- Schema validation fails before the `${{env.*}}` parameters have been removed [\#583](https://github.com/aklivity/zilla/issues/583)
-
-**Closed issues:**
+**Implemented enhancements:**
 
 - Support `openapi` `http` response validation [\#684](https://github.com/aklivity/zilla/issues/684)
 - Support `protobuf` conversion to and from `json` for `kafka` messages [\#682](https://github.com/aklivity/zilla/issues/682)
 - Support incubator features preview in zilla release docker image [\#670](https://github.com/aklivity/zilla/issues/670)
+
+**Fixed bugs:**
+
+- Schema validation fails before the `${{env.*}}` parameters have been removed [\#583](https://github.com/aklivity/zilla/issues/583)
 
 **Merged pull requests:**
 
@@ -29,6 +49,10 @@
 
 **Implemented enhancements:**
 
+- Support `avro` conversion to and from `json` for `kafka` messages [\#681](https://github.com/aklivity/zilla/issues/681)
+- Support observability of zilla engine internal streams [\#678](https://github.com/aklivity/zilla/issues/678)
+- Simplify configuration of multiple protocols on different tcp ports [\#669](https://github.com/aklivity/zilla/issues/669)
+- Simplify kafka client bootstrap server names and ports config [\#619](https://github.com/aklivity/zilla/issues/619)
 - MQTT publish QoS 2 as Kafka produce with acks in\_sync\_replicas and idempotent `producerId` [\#605](https://github.com/aklivity/zilla/issues/605)
 - Add the option to route by `port` in the `tls` binding [\#564](https://github.com/aklivity/zilla/issues/564)
 - Support outbound message transformation from `protobuf` to `json` [\#458](https://github.com/aklivity/zilla/issues/458)
@@ -59,10 +83,6 @@
 **Closed issues:**
 
 - Prototype composite binding support with nested namespaces [\#685](https://github.com/aklivity/zilla/issues/685)
-- Support `avro` conversion to and from `json` for `kafka` messages [\#681](https://github.com/aklivity/zilla/issues/681)
-- Support observability of zilla engine internal streams [\#678](https://github.com/aklivity/zilla/issues/678)
-- Simplify configuration of multiple protocols on different tcp ports [\#669](https://github.com/aklivity/zilla/issues/669)
-- Simplify kafka client bootstrap server names and ports config [\#619](https://github.com/aklivity/zilla/issues/619)
 - Build has been failed in local [\#229](https://github.com/aklivity/zilla/issues/229)
 
 **Merged pull requests:**
