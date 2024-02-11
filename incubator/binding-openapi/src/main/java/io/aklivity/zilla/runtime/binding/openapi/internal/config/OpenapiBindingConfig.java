@@ -98,7 +98,7 @@ public final class OpenapiBindingConfig
             .collect(toCollection(IntHashSet::new));
         this.helper = new HttpHeaderHelper();
 
-        this.resolversByMethod = new TreeMap<>(CharSequence::compare);
+        Map<CharSequence, Function<PathItem, String>> resolversByMethod = new TreeMap<>(CharSequence::compare);
         resolversByMethod.put("POST", o -> o.post != null ? o.post.operationId : null);
         resolversByMethod.put("PUT", o -> o.put != null ? o.put.operationId : null);
         resolversByMethod.put("GET", o -> o.get != null ? o.get.operationId : null);
@@ -107,6 +107,7 @@ public final class OpenapiBindingConfig
         resolversByMethod.put("HEAD", o -> o.head != null ? o.head.operationId : null);
         resolversByMethod.put("PATCH", o -> o.patch != null ? o.patch.operationId : null);
         resolversByMethod.put("TRACE", o -> o.post != null ? o.trace.operationId : null);
+        this.resolversByMethod = Collections.unmodifiableMap(resolversByMethod);
     }
 
     public boolean isCompositeNamespace(
