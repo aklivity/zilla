@@ -1013,7 +1013,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.topic = topic;
-            this.topicString = topic.asString();
+            this.topicString = topic.asString().intern();
         }
 
         abstract void doKafkaData(
