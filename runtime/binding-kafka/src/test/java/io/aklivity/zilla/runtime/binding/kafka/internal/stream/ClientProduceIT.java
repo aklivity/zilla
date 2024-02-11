@@ -155,6 +155,47 @@ public class ClientProduceIT
     @Test
     @Configuration("client.when.topic.yaml")
     @Specification({
+        "${app}/message.producer.id/client",
+        "${net}/message.producer.id/server"})
+    public void shouldSendMessageValueWithProducerId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.when.topic.yaml")
+    @Specification({
+        "${app}/message.values.producer.id/client",
+        "${net}/message.values.producer.id/server"})
+    @Configure(name = KafkaConfigurationTest.KAFKA_CLIENT_PRODUCE_MAX_REQUEST_MILLIS_NAME, value = "200")
+    public void shouldSendMessageValuesWithProducerId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.when.topic.yaml")
+    @Specification({
+        "${app}/message.values.producer.id.replay/client",
+        "${net}/message.values.producer.id.replay/server"})
+    public void shouldReplyMessageValuesWithProducerId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.when.topic.yaml")
+    @Specification({
+        "${app}/message.values.producer.id.changes/client",
+        "${net}/message.values.producer.id.changes/server"})
+    public void shouldReplyMessageValuesWithProducerIdThatChanges() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.when.topic.yaml")
+    @Specification({
         "${app}/message.value/client",
         "${net}/message.value/server"})
     public void shouldSendMessageValue() throws Exception

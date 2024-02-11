@@ -247,6 +247,16 @@ public class SessionIT
     }
 
     @Test
+    @Configuration("server.protocol.version.yaml")
+    @Specification({
+        "${net}/connect.successful/client",
+        "${app}/session.connect.redirect.support/server"})
+    public void shouldConnectSupportSharding() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.route.non.default.yaml")
     @Specification({
         "${net}/session.subscribe.publish.routing/client",

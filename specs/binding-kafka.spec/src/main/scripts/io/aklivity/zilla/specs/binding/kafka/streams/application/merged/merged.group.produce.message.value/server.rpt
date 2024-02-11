@@ -36,6 +36,17 @@ read zilla:begin.ext ${kafka:beginEx()
 
 connected
 
+write zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .merged()
+                                   .capabilities("PRODUCE_ONLY")
+                                   .topic("test")
+                                   .partition(0, -1)
+                                   .partition(1, -1)
+                                   .build()
+                              .build()}
+write flush
+
 read zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .merged()

@@ -1543,7 +1543,6 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
                     traceId, this.authorization, affinity, ex -> ex.set((b, o, l) -> kafkaBeginExRW.wrap(b, o, l)
                         .typeId(kafkaTypeId)
                         .offsetCommit(oc -> oc
-                            .topic(delegate.topic)
                             .groupId(delegate.fanout.groupId)
                             .memberId(delegate.fanout.memberId)
                             .instanceId(delegate.fanout.instanceId))
@@ -1749,6 +1748,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
             doOffsetCommitInitialBegin(traceId, 0);
 
             commitRequests.add(new KafkaPartitionOffset(
+                delegate.topic,
                 partition.partitionId(),
                 partition.partitionOffset(),
                 delegate.fanout.generationId,
@@ -1795,6 +1795,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
                         .set((b, o, l) -> kafkaDataExRW.wrap(b, o, l)
                         .typeId(kafkaTypeId)
                         .offsetCommit(oc -> oc
+                            .topic(delegate.topic)
                             .progress(p -> p.partitionId(commit.partitionId)
                                 .partitionOffset(commit.partitionOffset)
                                 .metadata(commit.metadata))

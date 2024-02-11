@@ -58,11 +58,11 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.EngineConfig;
 import io.aklivity.zilla.runtime.engine.config.EngineConfigWriter;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfigBuilder;
+import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
 import io.aklivity.zilla.runtime.guard.jwt.config.JwtOptionsConfig;
-import io.aklivity.zilla.runtime.validator.json.config.JsonValidatorConfig;
+import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig;
 
 public class OpenApiHttpProxyConfigGenerator extends OpenApiConfigGenerator
@@ -335,7 +335,7 @@ public class OpenApiHttpProxyConfigGenerator extends OpenApiConfigGenerator
             if (schema != null)
             {
                 request.
-                    content(JsonValidatorConfig::builder)
+                    content(JsonModelConfig::builder)
                     .catalog()
                         .name(INLINE_CATALOG_NAME)
                         .schema()
@@ -358,8 +358,8 @@ public class OpenApiHttpProxyConfigGenerator extends OpenApiConfigGenerator
             {
                 if (parameter.schema != null && parameter.schema.type != null)
                 {
-                    ValidatorConfig validator = validators.get(parameter.schema.type);
-                    if (validator != null)
+                    ModelConfig model = models.get(parameter.schema.type);
+                    if (model != null)
                     {
                         switch (parameter.in)
                         {
@@ -367,21 +367,21 @@ public class OpenApiHttpProxyConfigGenerator extends OpenApiConfigGenerator
                             request.
                                 pathParam()
                                     .name(parameter.name)
-                                    .validator(validator)
+                                    .model(model)
                                     .build();
                             break;
                         case "query":
                             request.
                                 queryParam()
                                     .name(parameter.name)
-                                    .validator(validator)
+                                    .model(model)
                                     .build();
                             break;
                         case "header":
                             request.
                                 header()
                                     .name(parameter.name)
-                                    .validator(validator)
+                                    .model(model)
                                     .build();
                             break;
                         }
@@ -451,7 +451,7 @@ public class OpenApiHttpProxyConfigGenerator extends OpenApiConfigGenerator
                                 .status(Integer.parseInt(status))
                                 .contentType(response2.getKey())
                                 .inject(response -> injectResponseHeaders(responses1, response))
-                                .content(JsonValidatorConfig::builder)
+                                .content(JsonModelConfig::builder)
                                     .catalog()
                                     .name(INLINE_CATALOG_NAME)
                                     .schema()
@@ -476,13 +476,13 @@ public class OpenApiHttpProxyConfigGenerator extends OpenApiConfigGenerator
             for (Map.Entry<String, Header> header : responses.headers.entrySet())
             {
                 String name = header.getKey();
-                ValidatorConfig validator = validators.get(header.getValue().schema.type);
-                if (validator != null)
+                ModelConfig model = models.get(header.getValue().schema.type);
+                if (model != null)
                 {
                     response
                         .header()
                             .name(name)
-                            .validator(validator)
+                            .model(model)
                             .build();
                 }
             }

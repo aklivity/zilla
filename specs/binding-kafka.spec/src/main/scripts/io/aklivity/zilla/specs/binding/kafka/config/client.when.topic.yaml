@@ -20,6 +20,9 @@ bindings:
   app0:
     type: kafka
     kind: client
+    options:
+      servers:
+        - localhost:9092
     routes:
       - exit: net0
         when:

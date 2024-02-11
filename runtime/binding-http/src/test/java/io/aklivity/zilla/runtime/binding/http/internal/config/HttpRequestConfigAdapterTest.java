@@ -29,7 +29,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfig;
-import io.aklivity.zilla.runtime.engine.test.internal.validator.config.TestValidatorConfig;
+import io.aklivity.zilla.runtime.engine.test.internal.model.config.TestModelConfig;
 
 public class HttpRequestConfigAdapterTest
 {
@@ -104,24 +104,24 @@ public class HttpRequestConfigAdapterTest
         assertThat(request.method, equalTo(HttpRequestConfig.Method.GET));
         assertThat(request.contentType.get(0), equalTo("application/json"));
         assertThat(request.headers.get(0).name, equalTo("content-type"));
-        assertThat(request.headers.get(0).validator, instanceOf(TestValidatorConfig.class));
-        assertThat(request.headers.get(0).validator.type, equalTo("test"));
+        assertThat(request.headers.get(0).model, instanceOf(TestModelConfig.class));
+        assertThat(request.headers.get(0).model.model, equalTo("test"));
         assertThat(request.pathParams.get(0).name, equalTo("id"));
-        assertThat(request.pathParams.get(0).validator, instanceOf(TestValidatorConfig.class));
-        assertThat(request.pathParams.get(0).validator.type, equalTo("test"));
+        assertThat(request.pathParams.get(0).model, instanceOf(TestModelConfig.class));
+        assertThat(request.pathParams.get(0).model.model, equalTo("test"));
         assertThat(request.queryParams.get(0).name, equalTo("index"));
-        assertThat(request.queryParams.get(0).validator, instanceOf(TestValidatorConfig.class));
-        assertThat(request.queryParams.get(0).validator.type, equalTo("test"));
-        assertThat(request.content, instanceOf(TestValidatorConfig.class));
-        assertThat(request.content.type, equalTo("test"));
+        assertThat(request.queryParams.get(0).model, instanceOf(TestModelConfig.class));
+        assertThat(request.queryParams.get(0).model.model, equalTo("test"));
+        assertThat(request.content, instanceOf(TestModelConfig.class));
+        assertThat(request.content.model, equalTo("test"));
         assertThat(request.responses.get(0).status.get(0), equalTo("200"));
         assertThat(request.responses.get(0).contentType.get(0), equalTo("application/json"));
         assertThat(request.responses.get(0).headers.get(0).name, equalTo("content-type"));
-        assertThat(request.responses.get(0).headers.get(0).validator.type, equalTo("test"));
-        assertThat(request.responses.get(0).content.type, equalTo("test"));
+        assertThat(request.responses.get(0).headers.get(0).model.model, equalTo("test"));
+        assertThat(request.responses.get(0).content.model, equalTo("test"));
         assertThat(request.responses.get(1).status.get(0), equalTo("401"));
         assertThat(request.responses.get(1).status.get(1), equalTo("404"));
-        assertThat(request.responses.get(1).content.type, equalTo("test"));
+        assertThat(request.responses.get(1).content.model, equalTo("test"));
     }
 
     @Test
@@ -182,36 +182,36 @@ public class HttpRequestConfigAdapterTest
             .contentType("application/json")
             .header()
                 .name("content-type")
-                .validator(TestValidatorConfig::builder)
+                .model(TestModelConfig::builder)
                     .build()
                 .build()
             .pathParam()
                 .name("id")
-                .validator(TestValidatorConfig::builder)
+                .model(TestModelConfig::builder)
                     .build()
                 .build()
             .queryParam()
                 .name("index")
-                .validator(TestValidatorConfig::builder)
+                .model(TestModelConfig::builder)
                     .build()
                 .build()
-            .content(TestValidatorConfig::builder)
+            .content(TestModelConfig::builder)
                 .build()
             .response()
                 .status(200)
                 .contentType("application/json")
                 .header()
                     .name("content-type")
-                    .validator(TestValidatorConfig::builder)
+                    .model(TestModelConfig::builder)
                         .build()
                     .build()
-                .content(TestValidatorConfig::builder)
+                .content(TestModelConfig::builder)
                     .build()
                 .build()
             .response()
                 .status(401)
                 .status(404)
-                .content(TestValidatorConfig::builder)
+                .content(TestModelConfig::builder)
                     .build()
                 .build()
             .build();

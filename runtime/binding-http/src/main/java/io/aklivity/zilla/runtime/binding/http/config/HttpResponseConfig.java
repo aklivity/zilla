@@ -19,20 +19,20 @@ import static java.util.function.Function.identity;
 
 import java.util.List;
 
-import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
+import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 
 public class HttpResponseConfig
 {
     public final List<String> status;
     public final List<String> contentType;
     public final List<HttpParamConfig> headers;
-    public final ValidatorConfig content;
+    public final ModelConfig content;
 
     public HttpResponseConfig(
         List<String> status,
         List<String> contentType,
         List<HttpParamConfig> headers,
-        ValidatorConfig content)
+        ModelConfig content)
     {
         this.status = status;
         this.contentType = contentType;

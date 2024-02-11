@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
+import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 
 public class HttpResponseConfigBuilder<T> extends ConfigBuilder<T, HttpResponseConfigBuilder<T>>
 {
@@ -29,7 +29,7 @@ public class HttpResponseConfigBuilder<T> extends ConfigBuilder<T, HttpResponseC
     private List<String> status;
     private List<String> contentType;
     private List<HttpParamConfig> headers;
-    private ValidatorConfig content;
+    private ModelConfig content;
 
     HttpResponseConfigBuilder(
         Function<HttpResponseConfig, T> mapper)
@@ -91,14 +91,14 @@ public class HttpResponseConfigBuilder<T> extends ConfigBuilder<T, HttpResponseC
 
 
     public HttpResponseConfigBuilder<T> content(
-        ValidatorConfig content)
+        ModelConfig content)
     {
         this.content = content;
         return this;
     }
 
     public <C extends ConfigBuilder<HttpResponseConfigBuilder<T>, C>> C content(
-        Function<Function<ValidatorConfig, HttpResponseConfigBuilder<T>>, C> content)
+        Function<Function<ModelConfig, HttpResponseConfigBuilder<T>>, C> content)
     {
         return content.apply(this::content);
     }

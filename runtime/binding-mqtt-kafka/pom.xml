@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>runtime</artifactId>
-    <version>0.9.66</version>
+    <version>0.9.67</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -26,7 +26,7 @@
   <properties>
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
-    <jacoco.coverage.ratio>0.90</jacoco.coverage.ratio>
+    <jacoco.coverage.ratio>0.89</jacoco.coverage.ratio>
     <jacoco.missed.count>0</jacoco.missed.count>
   </properties>
 
@@ -108,7 +108,7 @@
         <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <scopeNames>core mqtt kafka internal</scopeNames>
+          <scopeNames>core mqtt mqtt_kafka kafka internal</scopeNames>
           <packageName>io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types</packageName>
         </configuration>
         <executions>

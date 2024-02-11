@@ -627,6 +627,10 @@ public final class TlsClientFactory implements TlsStreamFactory
                 }
             }
         }
+        else if (client.handshakeTimeoutFutureId != NO_CANCEL_ID)
+        {
+            client.decoder = decodeHandshakeFinished;
+        }
 
         return progress;
     }
@@ -1151,15 +1155,20 @@ public final class TlsClientFactory implements TlsStreamFactory
         private void doAppEnd(
             long traceId)
         {
-            state = TlsState.closeReply(state);
-            client.stream = nullIfClosed(state, client.stream);
-            doEnd(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, client.replyAuth, EMPTY_EXTENSION);
+            if (TlsState.replyOpening(state) &&
+                !TlsState.replyClosed(state))
+            {
+                state = TlsState.closeReply(state);
+                client.stream = nullIfClosed(state, client.stream);
+                doEnd(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, client.replyAuth, EMPTY_EXTENSION);
+            }
         }
 
         private void doAppAbort(
             long traceId)
         {
-            if (TlsState.replyOpening(state) && !TlsState.replyClosed(state))
+            if (TlsState.replyOpening(state) &&
+                !TlsState.replyClosed(state))
             {
                 state = TlsState.closeReply(state);
                 client.stream = nullIfClosed(state, client.stream);
@@ -1181,7 +1190,7 @@ public final class TlsClientFactory implements TlsStreamFactory
         private void doAppReset(
             long traceId)
         {
-            if (TlsState.initialOpening(state) && !TlsState.initialClosed(state))
+            if (!TlsState.initialClosed(state))
             {
                 state = TlsState.closeInitial(state);
                 client.stream = nullIfClosed(state, client.stream);
@@ -2103,6 +2112,6 @@ public final class TlsClientFactory implements TlsStreamFactory
         int state,
         Optional<TlsStream> stream)
     {
-        return TlsState.initialClosed(state) && TlsState.replyClosed(state) ? NULL_STREAM : stream;
+        return TlsState.closed(state) ? NULL_STREAM : stream;
     }
 }

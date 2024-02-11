@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>cloud</artifactId>
-    <version>0.9.66</version>
+    <version>0.9.67</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -249,19 +249,25 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>validator-avro</artifactId>
+      <artifactId>model-avro</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>validator-core</artifactId>
+      <artifactId>model-core</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>validator-json</artifactId>
+      <artifactId>model-json</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>model-protobuf</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>
     </dependency>

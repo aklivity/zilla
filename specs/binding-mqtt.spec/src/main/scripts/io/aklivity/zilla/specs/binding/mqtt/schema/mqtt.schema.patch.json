@@ -36,6 +36,16 @@
                     {
                         "properties":
                         {
+                            "versions":
+                            {
+                                "title": "Versions",
+                                "type": "array",
+                                "items":
+                                {
+                                    "type": "string",
+                                    "enum": [ "v3.1.1", "v5" ]
+                                }
+                            },
                             "authorization":
                             {
                                 "title": "Authorizations",
@@ -125,7 +135,7 @@
                                         },
                                         "content":
                                         {
-                                            "$ref": "#/$defs/validator/type"
+                                            "$ref": "#/$defs/validator"
                                         }
                                     }
                                 }

@@ -44,12 +44,11 @@ import java.util.Map;
 import java.util.SortedSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
-import java.util.function.ToLongFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -118,9 +117,9 @@ import io.aklivity.zilla.runtime.engine.budget.BudgetCreditor;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
-import io.aklivity.zilla.runtime.engine.validator.Validator;
-
+import io.aklivity.zilla.runtime.engine.config.ModelConfig;
+import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
+import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 
 public final class HttpClientFactory implements HttpStreamFactory
 {
@@ -290,7 +289,7 @@ public final class HttpClientFactory implements HttpStreamFactory
     private final HpackHeaderBlockFW headerBlockRO = new HpackHeaderBlockFW();
     private final MutableInteger payloadRemaining = new MutableInteger(0);
 
-    private final BiFunction<ValidatorConfig, ToLongFunction<String>, Validator> createValidator;
+    private final Function<ModelConfig, ValidatorHandler> supplyValidator;
 
     private final EnumMap<Http2FrameType, HttpClientDecoder> decodersByFrameType;
     {
@@ -311,6 +310,8 @@ public final class HttpClientFactory implements HttpStreamFactory
     private final Map<String8FW, String16FW> headersMap;
     private final String16FW h2cSettingsPayload;
     private final HttpConfiguration config;
+    private final EngineContext context;
+    private final boolean verbose;
     private final Http2Settings initialSettings;
     private final MutableDirectBuffer frameBuffer;
     private final MutableDirectBuffer writeBuffer;
@@ -345,6 +346,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         HttpConfiguration config,
         EngineContext context)
     {
+        this.context = context;
         this.config = config;
         this.proxyTypeId = context.supplyTypeId("proxy");
         this.writeBuffer = context.writeBuffer();
@@ -377,7 +379,8 @@ public final class HttpClientFactory implements HttpStreamFactory
         this.maximumPushPromiseListSize = config.maxPushPromiseListSize();
         this.decodeMax = bufferPool.slotCapacity();
         this.encodeMax = bufferPool.slotCapacity();
-        this.createValidator = context::createValidator;
+        this.supplyValidator = context::supplyValidator;
+        this.verbose = config.verbose();
 
         final byte[] settingsPayload = new byte[12];
         http2SettingsRW.wrap(frameBuffer, 0, frameBuffer.capacity())
@@ -398,7 +401,7 @@ public final class HttpClientFactory implements HttpStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        HttpBindingConfig httpBinding = new HttpBindingConfig(binding, createValidator);
+        HttpBindingConfig httpBinding = new HttpBindingConfig(binding, supplyValidator);
         bindings.put(binding.id, httpBinding);
     }
 
@@ -2902,7 +2905,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             }
             else
             {
-                exchange.cleanup(traceId, authorization);
+                exchange.onResponseInvalid(traceId, authorization);
                 decoder = decodeHttp11Ignore;
             }
         }
@@ -2928,7 +2931,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             boolean valid = true;
             if (exchange.response != null && exchange.response.content != null)
             {
-                valid = exchange.response.content.read(buffer, offset, limit - offset);
+                valid = exchange.validateResponseContent(buffer, offset, limit - offset);
             }
             if (valid)
             {
@@ -2936,7 +2939,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             }
             else
             {
-                exchange.doResponseAbort(traceId, authorization, EMPTY_OCTETS);
+                exchange.onResponseInvalid(traceId, authorization);
                 result = limit;
             }
             return result;
@@ -3364,7 +3367,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                             boolean valid = true;
                             if (exchange.response != null && exchange.response.content != null)
                             {
-                                valid = exchange.response.content.read(payload, 0, payloadLength);
+                                valid = exchange.validateResponseContent(payload, 0, payloadLength);
                             }
                             if (valid)
                             {
@@ -3377,7 +3380,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                             }
                             else
                             {
-                                exchange.cleanup(traceId, authorization);
+                                exchange.onResponseInvalid(traceId, authorization);
                                 progress += payloadLength;
                             }
                         }
@@ -3487,8 +3490,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 }
                 else
                 {
-                    exchange.doResponseAbort(traceId, authorization, EMPTY_OCTETS);
-                    exchange.doRequestReset(traceId, authorization);
+                    exchange.onResponseInvalid(traceId, authorization);
                     doEncodeHttp2RstStream(traceId, streamId, Http2ErrorCode.CANCEL);
                     decoder = decodeHttp2IgnoreAll;
                 }
@@ -4516,6 +4518,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         private final HttpBindingConfig binding;
         private HttpRequestType requestType;
         private HttpRequestType.Response response;
+        private ValidatorHandler contentType;
 
         private HttpExchange(
             HttpClient client,
@@ -5071,12 +5074,54 @@ public final class HttpClientFactory implements HttpStreamFactory
             HttpBeginExFW beginEx)
         {
             this.response = binding.resolveResponse(requestType, beginEx);
+            this.contentType = response != null && response.content != null
+                ? supplyValidator.apply(response.content)
+                : null;
         }
 
         public boolean validateResponseHeaders(
             HttpBeginExFW beginEx)
         {
-            return binding.validateResponseHeaders(response, beginEx);
+            MutableBoolean valid = new MutableBoolean(true);
+            if (response != null && response.headers != null)
+            {
+                beginEx.headers().forEach(header ->
+                {
+                    if (valid.value)
+                    {
+                        ValidatorHandler validator = response.headers.get(header.name());
+                        if (validator != null)
+                        {
+                            String16FW value = header.value();
+                            valid.value &=
+                                validator.validate(value.value(), value.offset(), value.length(), ValueConsumer.NOP);
+                        }
+                    }
+                });
+            }
+            return valid.value;
+        }
+
+        private boolean validateResponseContent(
+            DirectBuffer buffer,
+            int index,
+            int length)
+        {
+            return contentType == null ||
+                contentType.validate(buffer, index, length, ValueConsumer.NOP);
+        }
+
+        private void onResponseInvalid(
+            long traceId,
+            long authorization)
+        {
+            if (verbose)
+            {
+                System.out.printf("%s:%s %s: Skipping invalid response on method %s, path %s\n",
+                    System.currentTimeMillis(), context.supplyNamespace(routedId),
+                    context.supplyLocalName(routedId), requestType.method, requestType.path);
+            }
+            cleanup(traceId, authorization);
         }
     }
 
