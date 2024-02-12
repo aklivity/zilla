@@ -112,11 +112,6 @@
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
-      <artifactId>guard-jwt</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>io.aklivity.zilla</groupId>
       <artifactId>catalog-inline</artifactId>
       <version>${project.version}</version>
     </dependency>
@@ -130,22 +125,10 @@
       <artifactId>model-json</artifactId>
       <version>${project.version}</version>
     </dependency>
-    <dependency>
-      <groupId>io.aklivity.zilla</groupId>
-      <artifactId>vault-filesystem</artifactId>
-      <version>${project.version}</version>
-    </dependency>
   </dependencies>
 
   <build>
     <plugins>
-      <plugin>
-        <groupId>org.jasig.maven</groupId>
-        <artifactId>maven-notice-plugin</artifactId>
-        <configuration>
-          <licenseMapping>src/conf/notice/license-mappings.xml</licenseMapping>
-        </configuration>
-      </plugin>
       <plugin>
         <groupId>${project.groupId}</groupId>
         <artifactId>flyweight-maven-plugin</artifactId>

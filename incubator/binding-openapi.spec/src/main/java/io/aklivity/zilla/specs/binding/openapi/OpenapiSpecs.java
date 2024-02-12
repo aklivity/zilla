@@ -15,13 +15,6 @@
  */
 package io.aklivity.zilla.specs.binding.openapi;
 
-import org.junit.Before;
-
-public class OpenapiFunctionsTest
+public class OpenapiSpecs
 {
-
-    @Before
-    public void setUp() throws Exception
-    {
-    }
 }

@@ -38,10 +38,10 @@ public class OpenapiIT
 
     @Test
     @Specification({
-        "${openapi}/create.item/client",
-        "${openapi}/create.item/server"
+        "${openapi}/create.pet/client",
+        "${openapi}/create.pet/server"
     })
-    public void shouldCreateItem() throws Exception
+    public void shouldCreatePet() throws Exception
     {
         k3po.finish();
     }

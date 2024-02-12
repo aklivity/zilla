@@ -115,7 +115,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        OpenapiBindingConfig openapiBinding = new OpenapiBindingConfig(binding, config.k3poRouteId());
+        OpenapiBindingConfig openapiBinding = new OpenapiBindingConfig(binding, config.targetRouteId());
         bindings.put(binding.id, openapiBinding);
     }
 
@@ -195,10 +195,8 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
         private long replyAck;
         private int replyMax;
         private int replyPad;
-        private long replyBud;
-        private int replyCap;
 
-        HttpStream(
+        private HttpStream(
             MessageConsumer sender,
             long originId,
             long routedId,
@@ -330,6 +328,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
             final long sequence = flush.sequence();
             final long acknowledge = flush.acknowledge();
             final long traceId = flush.traceId();
+            final int reserved = flush.reserved();
             final OctetsFW extension = flush.extension();
 
             assert acknowledge <= sequence;
@@ -339,7 +338,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
 
             assert initialAck <= initialSeq;
 
-            openapi.doOpenapiFlush(traceId, extension);
+            openapi.doOpenapiFlush(traceId, reserved, extension);
         }
 
         private void onHttpAbort(
@@ -414,8 +413,12 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
             long traceId,
             OctetsFW extension)
         {
+            final int reserved = replyPad;
+
             doFlush(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                traceId, authorization, replyBudgetId, 0, extension);
+                traceId, authorization, replyBudgetId, reserved, extension);
+
+            replySeq += reserved;
         }
 
         private void doHttpEnd(
@@ -474,7 +477,6 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
             final long traceId = window.traceId();
             final long budgetId = window.budgetId();
             final int padding = window.padding();
-            final int capabilities = window.capabilities();
 
             assert acknowledge <= sequence;
             assert sequence <= replySeq;
@@ -483,9 +485,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
 
             replyAck = acknowledge;
             replyMax = maximum;
-            replyBud = budgetId;
             replyPad = padding;
-            replyCap = capabilities;
             state = OpenapiState.closingReply(state);
 
             assert replyAck <= replySeq;
@@ -503,7 +503,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
         }
     }
 
-    final class OpenapiStream
+    private final class OpenapiStream
     {
         private final HttpStream delegate;
         private final String operationId;
@@ -761,10 +761,11 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
 
         private void doOpenapiFlush(
             long traceId,
+            int reserved,
             OctetsFW extension)
         {
             doFlush(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, authorization, initialBud, 0, extension);
+                traceId, authorization, initialBud, reserved, extension);
         }
 
         private void doOpenapiEnd(

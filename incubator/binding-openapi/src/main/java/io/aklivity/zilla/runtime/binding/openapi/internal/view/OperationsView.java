@@ -26,6 +26,24 @@ public final class OperationsView
     private final Map<String, Map<String, OperationView>> operationsByPath;
     private final boolean hasResponses;
 
+    public boolean hasResponses()
+    {
+        return this.hasResponses;
+    }
+
+    public OperationView operation(
+        String pathName,
+        String methodName)
+    {
+        return operationsByPath.get(pathName).get(methodName);
+    }
+
+    public static OperationsView of(
+        Map<String, PathItem> paths)
+    {
+        return new OperationsView(paths);
+    }
+
     private OperationsView(
         Map<String, PathItem> paths)
     {
@@ -51,23 +69,5 @@ public final class OperationsView
             }
         }
         this.hasResponses = hasResponses;
-    }
-
-    public boolean hasResponses()
-    {
-        return this.hasResponses;
-    }
-
-    public OperationView operation(
-        String pathName,
-        String methodName)
-    {
-        return operationsByPath.get(pathName).get(methodName);
-    }
-
-    public static OperationsView of(
-        Map<String, PathItem> paths)
-    {
-        return new OperationsView(paths);
     }
 }

@@ -53,7 +53,7 @@ public final class OpenapiBindingConfig
     public final List<OpenapiRouteConfig> routes;
     public final HttpHeaderHelper helper;
 
-    private final long defaultRouteId;
+    private final long overrideRouteId;
     private final IntHashSet httpOrigins;
     private final Long2LongHashMap resolvedIds;
     private final Object2ObjectHashMap<Matcher, PathItem> paths;
@@ -61,12 +61,12 @@ public final class OpenapiBindingConfig
 
     public OpenapiBindingConfig(
         BindingConfig binding,
-        long defaultRouteId)
+        long overrideRouteId)
     {
         this.id = binding.id;
         this.name = binding.name;
         this.kind = binding.kind;
-        this.defaultRouteId = defaultRouteId;
+        this.overrideRouteId = overrideRouteId;
         this.options = OpenapiOptionsConfig.class.cast(binding.options);
         this.paths = new Object2ObjectHashMap<>();
         options.openapis.forEach(c -> c.openapi.paths.forEach((k, v) ->
@@ -118,7 +118,7 @@ public final class OpenapiBindingConfig
     public long resolveResolvedId(
         long apiId)
     {
-        return defaultRouteId != -1 ? defaultRouteId : resolvedIds.get(apiId);
+        return overrideRouteId != -1 ? overrideRouteId : resolvedIds.get(apiId);
     }
 
     public String resolveOperationId(

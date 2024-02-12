@@ -74,10 +74,6 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
         return OpenapiBinding.NAME;
     }
 
-    public OpenapiServerCompositeBindingAdapter()
-    {
-    }
-
     @Override
     public BindingConfig adapt(
         BindingConfig binding)

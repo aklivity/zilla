@@ -43,6 +43,7 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.model.PathItem;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.runtime.engine.internal.config.OptionsAdapter;
+import io.aklivity.zilla.specs.binding.openapi.OpenapiSpecs;
 
 public class OpenapiOptionsConfigAdapterTest
 {
@@ -51,26 +52,21 @@ public class OpenapiOptionsConfigAdapterTest
     @Mock
     private ConfigAdapterContext context;
 
-    private OptionsAdapter adapter;
-
     private Jsonb jsonb;
-
 
     @Before
     public void initJson() throws IOException
     {
-        String content = null;
-        try (InputStream resource = OpenapiOptionsConfigAdapterTest.class
-            .getResourceAsStream("../../../../../specs/binding/openapi/config/openapi/petstore.yaml"))
+        try (InputStream resource = OpenapiSpecs.class.getResourceAsStream("config/openapi/petstore.yaml"))
         {
-            content = new String(resource.readAllBytes(), UTF_8);
+            String content = new String(resource.readAllBytes(), UTF_8);
+            Mockito.doReturn(content).when(context).readURL("openapi/petstore.yaml");
+            OptionsAdapter adapter = new OptionsAdapter(OptionsConfigAdapterSpi.Kind.BINDING, context);
+            adapter.adaptType("openapi");
+            JsonbConfig config = new JsonbConfig()
+                .withAdapters(adapter);
+            jsonb = JsonbBuilder.create(config);
         }
-        Mockito.doReturn(content).when(context).readURL("openapi/petstore.yaml");
-        adapter = new OptionsAdapter(OptionsConfigAdapterSpi.Kind.BINDING, context);
-        adapter.adaptType("openapi");
-        JsonbConfig config = new JsonbConfig()
-            .withAdapters(adapter);
-        jsonb = JsonbBuilder.create(config);
     }
 
     @Test

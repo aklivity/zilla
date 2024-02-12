@@ -26,17 +26,10 @@ public final class HttpAuthorizationConfigBuilder<T> extends ConfigBuilder<T, Ht
     private String name;
     private HttpCredentialsConfig credentials;
 
-    public HttpAuthorizationConfigBuilder(
+    public static HttpAuthorizationConfigBuilder<HttpAuthorizationConfig> builder(
         Function<HttpAuthorizationConfig, T> mapper)
     {
-        this.mapper = mapper;
-    }
-
-    @Override
-    @SuppressWarnings("unchecked")
-    protected Class<HttpAuthorizationConfigBuilder<T>> thisType()
-    {
-        return (Class<HttpAuthorizationConfigBuilder<T>>) getClass();
+        return new HttpAuthorizationConfigBuilder(mapper);
     }
 
     public HttpAuthorizationConfigBuilder<T> name(
@@ -55,6 +48,20 @@ public final class HttpAuthorizationConfigBuilder<T> extends ConfigBuilder<T, Ht
     public T build()
     {
         return mapper.apply(new HttpAuthorizationConfig(name, credentials));
+    }
+
+
+    HttpAuthorizationConfigBuilder(
+        Function<HttpAuthorizationConfig, T> mapper)
+    {
+        this.mapper = mapper;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Class<HttpAuthorizationConfigBuilder<T>> thisType()
+    {
+        return (Class<HttpAuthorizationConfigBuilder<T>>) getClass();
     }
 
     private HttpAuthorizationConfigBuilder<T> credentials(

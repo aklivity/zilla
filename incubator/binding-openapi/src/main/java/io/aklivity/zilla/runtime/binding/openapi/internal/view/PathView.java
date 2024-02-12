@@ -14,29 +14,17 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.view;
 
+import static java.util.Collections.unmodifiableMap;
+
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.Operation;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.PathItem;
 
-public class PathView
+public final class PathView
 {
     private final Map<String, Operation> methods;
-
-    public PathView(
-        PathItem pathItem)
-    {
-        this.methods = new LinkedHashMap<>();
-        putIfNotNull(methods, "GET", pathItem.get);
-        putIfNotNull(methods, "PUT", pathItem.put);
-        putIfNotNull(methods, "POST", pathItem.post);
-        putIfNotNull(methods, "DELETE", pathItem.delete);
-        putIfNotNull(methods, "OPTIONS", pathItem.options);
-        putIfNotNull(methods, "HEAD", pathItem.head);
-        putIfNotNull(methods, "PATCH", pathItem.patch);
-        putIfNotNull(methods, "TRACE", pathItem.trace);
-    }
 
     public Map<String, Operation> methods()
     {
@@ -47,6 +35,21 @@ public class PathView
         PathItem pathItem)
     {
         return new PathView(pathItem);
+    }
+
+    private PathView(
+        PathItem pathItem)
+    {
+        Map<String, Operation> methods = new LinkedHashMap<>();
+        putIfNotNull(methods, "GET", pathItem.get);
+        putIfNotNull(methods, "PUT", pathItem.put);
+        putIfNotNull(methods, "POST", pathItem.post);
+        putIfNotNull(methods, "DELETE", pathItem.delete);
+        putIfNotNull(methods, "OPTIONS", pathItem.options);
+        putIfNotNull(methods, "HEAD", pathItem.head);
+        putIfNotNull(methods, "PATCH", pathItem.patch);
+        putIfNotNull(methods, "TRACE", pathItem.trace);
+        this.methods = unmodifiableMap(methods);
     }
 
     private static void putIfNotNull(

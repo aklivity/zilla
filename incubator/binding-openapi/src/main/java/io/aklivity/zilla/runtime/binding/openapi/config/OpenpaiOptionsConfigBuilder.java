@@ -63,21 +63,21 @@ public final class OpenpaiOptionsConfigBuilder<T> extends ConfigBuilder<T, Openp
         return this;
     }
 
-    private OpenpaiOptionsConfigBuilder<T> authorization(
-        HttpAuthorizationConfig authorization)
+    public HttpAuthorizationConfigBuilder<HttpAuthorizationConfig> authorization()
     {
-        this.authorization = authorization;
-        return this;
-    }
-
-    public HttpAuthorizationConfigBuilder<OpenpaiOptionsConfigBuilder<T>> authorization()
-    {
-        return new HttpAuthorizationConfigBuilder<>(this::authorization);
+        return HttpAuthorizationConfigBuilder.builder(this::authorization);
     }
 
     @Override
     public T build()
     {
         return mapper.apply(new OpenapiOptionsConfig(tls, authorization, openapis));
+    }
+
+    private OpenpaiOptionsConfigBuilder<T> authorization(
+        HttpAuthorizationConfig authorization)
+    {
+        this.authorization = authorization;
+        return this;
     }
 }

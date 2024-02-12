@@ -38,10 +38,10 @@ public class HttpIT
 
     @Test
     @Specification({
-        "${http}/create.item/client",
-        "${http}/create.item/server"
+        "${http}/create.pet/client",
+        "${http}/create.pet/server"
     })
-    public void shouldCreateItem() throws Exception
+    public void shouldCreatePet() throws Exception
     {
         k3po.finish();
     }

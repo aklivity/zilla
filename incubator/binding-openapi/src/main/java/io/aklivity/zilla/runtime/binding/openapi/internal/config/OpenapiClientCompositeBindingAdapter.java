@@ -50,7 +50,6 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.view.OperationsView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.PathView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.SchemaView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.ServerView;
-import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineSchemaConfigBuilder;
@@ -111,10 +110,6 @@ public final class OpenapiClientCompositeBindingAdapter implements CompositeBind
                     .name("tcp_client0")
                     .type("tcp")
                     .kind(CLIENT)
-                    .options(TcpOptionsConfig::builder)
-                        .host("") // env
-                        .ports(new int[]{0}) // env
-                        .build()
                     .build()
                 .inject(n -> this.injectCatalog(n, openApi))
                 .build()
