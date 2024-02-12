@@ -52,12 +52,12 @@ public class OpenapiClientIT
     @Test
     @Configuration("client.yaml")
     @Specification({
-        "${openapi}/create.item/client",
-        "${http}/create.item/server"
+        "${openapi}/create.pet/client",
+        "${http}/create.pet/server"
     })
     @ScriptProperty("serverAddress \"zilla://streams/http0\"")
     @Configure(name = OPENAPI_TARGET_ROUTE_ID_NAME, value = "4294967298")
-    public void shouldCreateItem() throws Exception
+    public void shouldCreatePet() throws Exception
     {
         k3po.finish();
     }
