@@ -35,7 +35,7 @@ public class EventsLayoutTest
     private int msgTypeId;
 
     @Test
-    public void shouldWorkInGenericCase() throws Exception
+    public void shouldSpy()
     {
         // GIVEN
         EventsLayout eventsWriter = new EventsLayout.Builder()
