@@ -21,8 +21,8 @@ import java.util.function.Supplier;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
-import io.aklivity.zilla.runtime.engine.reader.RingBufferSpy;
-import io.aklivity.zilla.runtime.engine.reader.RingBufferSpy.SpyPosition;
+import io.aklivity.zilla.runtime.engine.spy.RingBufferSpy;
+import io.aklivity.zilla.runtime.engine.spy.RingBufferSpy.SpyPosition;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.config.StdoutExporterConfig;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.stream.StdoutEventsStream;
 

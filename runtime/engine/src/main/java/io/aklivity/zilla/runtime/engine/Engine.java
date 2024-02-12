@@ -76,8 +76,8 @@ import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
 import io.aklivity.zilla.runtime.engine.model.Model;
-import io.aklivity.zilla.runtime.engine.reader.RingBufferSpy;
-import io.aklivity.zilla.runtime.engine.reader.RingBufferSpy.SpyPosition;
+import io.aklivity.zilla.runtime.engine.spy.RingBufferSpy;
+import io.aklivity.zilla.runtime.engine.spy.RingBufferSpy.SpyPosition;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 
 public final class Engine implements Collector, AutoCloseable

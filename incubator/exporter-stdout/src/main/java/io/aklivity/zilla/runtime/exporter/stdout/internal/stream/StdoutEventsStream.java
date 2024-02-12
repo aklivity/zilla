@@ -23,7 +23,7 @@ import org.agrona.DirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.reader.RingBufferSpy;
+import io.aklivity.zilla.runtime.engine.spy.RingBufferSpy;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.StringFW;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.HttpEventFW;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.KafkaEventFW;

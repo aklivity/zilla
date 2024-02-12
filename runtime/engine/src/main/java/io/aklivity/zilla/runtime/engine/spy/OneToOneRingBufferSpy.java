@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.reader;
+package io.aklivity.zilla.runtime.engine.spy;
 
 import static org.agrona.BitUtil.align;
 import static org.agrona.concurrent.ringbuffer.RecordDescriptor.ALIGNMENT;
