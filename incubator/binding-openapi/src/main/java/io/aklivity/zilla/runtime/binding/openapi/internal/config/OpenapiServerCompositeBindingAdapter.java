@@ -17,12 +17,16 @@ package io.aklivity.zilla.runtime.binding.openapi.internal.config;
 import static io.aklivity.zilla.runtime.binding.http.config.HttpPolicyConfig.CROSS_ORIGIN;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 import static java.util.Objects.requireNonNull;
+import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import jakarta.json.bind.Jsonb;
+import jakarta.json.bind.JsonbBuilder;
 
 import org.agrona.collections.Object2ObjectHashMap;
 
@@ -39,6 +43,7 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.model.MediaType;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenApi;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.Operation;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.Parameter;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.Schema;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.Server;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.PathView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.SchemaView;
@@ -46,6 +51,8 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.view.ServerView;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
+import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
+import io.aklivity.zilla.runtime.catalog.inline.config.InlineSchemaConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.CompositeBindingAdapterSpi;
@@ -60,6 +67,8 @@ import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 public final class OpenapiServerCompositeBindingAdapter implements CompositeBindingAdapterSpi
 {
     private static final String INLINE_CATALOG_NAME = "catalog0";
+    private static final String INLINE_CATALOG_TYPE = "inline";
+    private static final String VERSION_LATEST = "latest";
     private static final Pattern JSON_CONTENT_TYPE = Pattern.compile("^application/(?:.+\\+)?json$");
 
     private final Matcher jsonContentType = JSON_CONTENT_TYPE.matcher("");
@@ -93,6 +102,7 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
         return BindingConfig.builder(binding)
             .composite()
                 .name(String.format("%s/http", binding.qname))
+                .inject(n -> this.injectCatalog(n, openApi))
                 .binding()
                     .name("tcp_server0")
                     .type("tcp")
@@ -433,4 +443,48 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
         return mediaType == null ? null : SchemaView.of(openApi.components.schemas, mediaType.schema);
     }
 
+    private <C> NamespaceConfigBuilder<C> injectCatalog(
+        NamespaceConfigBuilder<C> namespace,
+        OpenApi openApi)
+    {
+        if (openApi.components != null &&
+            openApi.components.schemas != null &&
+            !openApi.components.schemas.isEmpty())
+        {
+            namespace
+                .catalog()
+                    .name(INLINE_CATALOG_NAME)
+                    .type(INLINE_CATALOG_TYPE)
+                    .options(InlineOptionsConfig::builder)
+                        .subjects()
+                            .inject(s -> this.injectSubjects(s, openApi))
+                            .build()
+                        .build()
+                    .build();
+        }
+        return namespace;
+    }
+
+    private <C> InlineSchemaConfigBuilder<C> injectSubjects(
+        InlineSchemaConfigBuilder<C> subjects,
+        OpenApi openApi)
+    {
+        try (Jsonb jsonb = JsonbBuilder.create())
+        {
+            for (Map.Entry<String, Schema> entry : openApi.components.schemas.entrySet())
+            {
+                SchemaView schema = SchemaView.of(openApi.components.schemas, entry.getValue());
+                subjects
+                    .subject(entry.getKey())
+                        .version(VERSION_LATEST)
+                        .schema(jsonb.toJson(schema))
+                        .build();
+            }
+        }
+        catch (Exception ex)
+        {
+            rethrowUnchecked(ex);
+        }
+        return subjects;
+    }
 }

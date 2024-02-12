@@ -63,9 +63,9 @@ public final class OpenpaiOptionsConfigBuilder<T> extends ConfigBuilder<T, Openp
         return this;
     }
 
-    public HttpAuthorizationConfigBuilder<HttpAuthorizationConfig> authorization()
+    public HttpAuthorizationConfigBuilder<OpenpaiOptionsConfigBuilder<T>> authorization()
     {
-        return HttpAuthorizationConfigBuilder.builder(this::authorization);
+        return HttpAuthorizationConfig.builder(this::authorization);
     }
 
     @Override

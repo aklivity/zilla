@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.config;
 
-import static io.aklivity.zilla.runtime.binding.http.internal.config.HttpOptionsConfigAdapter.adaptAuthorization;
-import static io.aklivity.zilla.runtime.binding.http.internal.config.HttpOptionsConfigAdapter.adaptAuthorizationFromObject;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.util.function.Function;

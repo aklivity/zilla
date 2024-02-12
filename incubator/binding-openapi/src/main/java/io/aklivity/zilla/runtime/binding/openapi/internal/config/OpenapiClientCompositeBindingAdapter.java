@@ -14,22 +14,11 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.config;
 
-import static com.fasterxml.jackson.dataformat.yaml.YAMLGenerator.Feature.MINIMIZE_QUOTES;
-import static com.fasterxml.jackson.dataformat.yaml.YAMLGenerator.Feature.WRITE_DOC_START_MARKER;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
 import static java.util.Objects.requireNonNull;
-import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.net.URI;
 import java.util.Map;
-
-import jakarta.json.bind.Jsonb;
-import jakarta.json.bind.JsonbBuilder;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfigBuilder;
@@ -43,7 +32,6 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.model.Header;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenApi;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.Response;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.ResponseByContentType;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.Schema;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.Server;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OperationView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OperationsView;
@@ -51,8 +39,6 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.view.PathView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.SchemaView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.ServerView;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
-import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
-import io.aklivity.zilla.runtime.catalog.inline.config.InlineSchemaConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.CompositeBindingAdapterSpi;
@@ -65,14 +51,11 @@ import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 public final class OpenapiClientCompositeBindingAdapter implements CompositeBindingAdapterSpi
 {
     private static final String INLINE_CATALOG_NAME = "catalog0";
-    private static final String INLINE_CATALOG_TYPE = "inline";
-    private static final String VERSION_LATEST = "latest";
 
     private final Map<String, ModelConfig> models = Map.of(
         "string", StringModelConfig.builder().build(),
         "integer", IntegerModelConfig.builder().build()
     );
-
 
     @Override
     public String type()
@@ -111,7 +94,6 @@ public final class OpenapiClientCompositeBindingAdapter implements CompositeBind
                     .type("tcp")
                     .kind(CLIENT)
                     .build()
-                .inject(n -> this.injectCatalog(n, openApi))
                 .build()
             .build();
     }
@@ -267,74 +249,6 @@ public final class OpenapiClientCompositeBindingAdapter implements CompositeBind
                     .build();
         }
         return namespace;
-    }
-
-    private <C> NamespaceConfigBuilder<C> injectCatalog(
-        NamespaceConfigBuilder<C> namespace,
-        OpenApi openApi)
-    {
-        if (openApi.components != null &&
-            openApi.components.schemas != null &&
-            !openApi.components.schemas.isEmpty())
-        {
-            namespace
-                .catalog()
-                    .name(INLINE_CATALOG_NAME)
-                    .type(INLINE_CATALOG_TYPE)
-                    .options(InlineOptionsConfig::builder)
-                        .subjects()
-                            .inject(s -> this.injectSubjects(s, openApi))
-                            .build()
-                        .build()
-                    .build();
-        }
-        return namespace;
-    }
-
-    private <C> InlineSchemaConfigBuilder<C> injectSubjects(
-        InlineSchemaConfigBuilder<C> subjects,
-        OpenApi openApi)
-    {
-        try (Jsonb jsonb = JsonbBuilder.create())
-        {
-            YAMLMapper yaml = YAMLMapper.builder()
-                .disable(WRITE_DOC_START_MARKER)
-                .enable(MINIMIZE_QUOTES)
-                .build();
-            for (Map.Entry<String, Schema> entry : openApi.components.schemas.entrySet())
-            {
-                SchemaView schema = SchemaView.of(openApi.components.schemas, entry.getValue());
-                subjects
-                    .subject(entry.getKey())
-                        .version(VERSION_LATEST)
-                        .schema(writeSchemaYaml(jsonb, yaml, schema))
-                        .build();
-            }
-        }
-        catch (Exception ex)
-        {
-            rethrowUnchecked(ex);
-        }
-        return subjects;
-    }
-
-    private static String writeSchemaYaml(
-        Jsonb jsonb,
-        YAMLMapper yaml,
-        Object schema)
-    {
-        String result = null;
-        try
-        {
-            String schemaJson = jsonb.toJson(schema);
-            JsonNode json = new ObjectMapper().readTree(schemaJson);
-            result = yaml.writeValueAsString(json);
-        }
-        catch (JsonProcessingException ex)
-        {
-            rethrowUnchecked(ex);
-        }
-        return result;
     }
 
 }

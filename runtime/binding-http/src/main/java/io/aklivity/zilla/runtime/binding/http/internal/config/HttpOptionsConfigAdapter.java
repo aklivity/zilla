@@ -179,7 +179,48 @@ public final class HttpOptionsConfigAdapter implements OptionsConfigAdapterSpi, 
         HttpAuthorizationConfig httpAuthorization = httpOptions.authorization;
         if (httpAuthorization != null)
         {
-            adaptAuthorizationFromObject(httpAuthorization, object);
+            JsonObjectBuilder authorizations = Json.createObjectBuilder();
+
+            JsonObjectBuilder authorization = Json.createObjectBuilder();
+
+            HttpCredentialsConfig httpCredentials = httpAuthorization.credentials;
+            if (httpCredentials != null)
+            {
+                JsonObjectBuilder credentials = Json.createObjectBuilder();
+
+                if (httpCredentials.headers != null)
+                {
+                    JsonObjectBuilder headers = Json.createObjectBuilder();
+
+                    httpCredentials.headers.forEach(p -> headers.add(p.name, p.pattern));
+
+                    credentials.add(AUTHORIZATION_CREDENTIALS_HEADERS_NAME, headers);
+                }
+
+                if (httpCredentials.parameters != null)
+                {
+                    JsonObjectBuilder parameters = Json.createObjectBuilder();
+
+                    httpCredentials.parameters.forEach(p -> parameters.add(p.name, p.pattern));
+
+                    credentials.add(AUTHORIZATION_CREDENTIALS_QUERY_NAME, parameters);
+                }
+
+                if (httpCredentials.cookies != null)
+                {
+                    JsonObjectBuilder cookies = Json.createObjectBuilder();
+
+                    httpCredentials.cookies.forEach(p -> cookies.add(p.name, p.pattern));
+
+                    credentials.add(AUTHORIZATION_CREDENTIALS_COOKIES_NAME, cookies);
+                }
+
+                authorization.add(AUTHORIZATION_CREDENTIALS_NAME, credentials);
+
+                authorizations.add(httpAuthorization.name, authorization);
+            }
+
+            object.add(AUTHORIZATION_NAME, authorizations);
         }
 
         if (httpOptions.overrides != null &&
@@ -220,7 +261,47 @@ public final class HttpOptionsConfigAdapter implements OptionsConfigAdapterSpi, 
             HttpAuthorizationConfigBuilder<?> httpAuthorization = httpOptions.authorization();
 
             JsonObject authorizations = object.getJsonObject(AUTHORIZATION_NAME);
-            adaptAuthorization(authorizations, httpAuthorization);
+            for (String name : authorizations.keySet())
+            {
+                JsonObject authorization = authorizations.getJsonObject(name);
+                JsonObject credentials = authorization.getJsonObject(AUTHORIZATION_CREDENTIALS_NAME);
+
+                if (credentials != null)
+                {
+                    HttpCredentialsConfigBuilder<?> httpCredentials = httpAuthorization
+                        .name(name)
+                        .credentials();
+
+                    if (credentials.containsKey(AUTHORIZATION_CREDENTIALS_HEADERS_NAME))
+                    {
+                        credentials.getJsonObject(AUTHORIZATION_CREDENTIALS_HEADERS_NAME)
+                            .forEach((n, v) -> httpCredentials.header()
+                                .name(n)
+                                .pattern(JsonString.class.cast(v).getString())
+                                .build());
+                    }
+
+                    if (credentials.containsKey(AUTHORIZATION_CREDENTIALS_QUERY_NAME))
+                    {
+                        credentials.getJsonObject(AUTHORIZATION_CREDENTIALS_QUERY_NAME)
+                            .forEach((n, v) -> httpCredentials.parameter()
+                                .name(n)
+                                .pattern(JsonString.class.cast(v).getString())
+                                .build());
+                    }
+
+                    if (credentials.containsKey(AUTHORIZATION_CREDENTIALS_COOKIES_NAME))
+                    {
+                        credentials.getJsonObject(AUTHORIZATION_CREDENTIALS_COOKIES_NAME)
+                            .forEach((n, v) -> httpCredentials.cookie()
+                                .name(n)
+                                .pattern(JsonString.class.cast(v).getString())
+                                .build());
+                    }
+
+                    httpCredentials.build();
+                }
+            }
 
             httpAuthorization.build();
         }
@@ -314,100 +395,5 @@ public final class HttpOptionsConfigAdapter implements OptionsConfigAdapterSpi, 
         }
 
         return httpOptions.build();
-    }
-
-    public static void adaptAuthorizationFromObject(
-        HttpAuthorizationConfig httpAuthorization,
-        JsonObjectBuilder object)
-    {
-        JsonObjectBuilder authorizations = Json.createObjectBuilder();
-
-        JsonObjectBuilder authorization = Json.createObjectBuilder();
-
-        HttpCredentialsConfig httpCredentials = httpAuthorization.credentials;
-        if (httpCredentials != null)
-        {
-            JsonObjectBuilder credentials = Json.createObjectBuilder();
-
-            if (httpCredentials.headers != null)
-            {
-                JsonObjectBuilder headers = Json.createObjectBuilder();
-
-                httpCredentials.headers.forEach(p -> headers.add(p.name, p.pattern));
-
-                credentials.add(AUTHORIZATION_CREDENTIALS_HEADERS_NAME, headers);
-            }
-
-            if (httpCredentials.parameters != null)
-            {
-                JsonObjectBuilder parameters = Json.createObjectBuilder();
-
-                httpCredentials.parameters.forEach(p -> parameters.add(p.name, p.pattern));
-
-                credentials.add(AUTHORIZATION_CREDENTIALS_QUERY_NAME, parameters);
-            }
-
-            if (httpCredentials.cookies != null)
-            {
-                JsonObjectBuilder cookies = Json.createObjectBuilder();
-
-                httpCredentials.cookies.forEach(p -> cookies.add(p.name, p.pattern));
-
-                credentials.add(AUTHORIZATION_CREDENTIALS_COOKIES_NAME, cookies);
-            }
-
-            authorization.add(AUTHORIZATION_CREDENTIALS_NAME, credentials);
-
-            authorizations.add(httpAuthorization.name, authorization);
-        }
-
-        object.add(AUTHORIZATION_NAME, authorizations);
-    }
-
-    public static void adaptAuthorization(
-        JsonObject authorizations,
-        HttpAuthorizationConfigBuilder<?> httpAuthorization)
-    {
-        for (String name : authorizations.keySet())
-        {
-            JsonObject authorization = authorizations.getJsonObject(name);
-            JsonObject credentials = authorization.getJsonObject(AUTHORIZATION_CREDENTIALS_NAME);
-
-            if (credentials != null)
-            {
-                HttpCredentialsConfigBuilder<?> httpCredentials = httpAuthorization
-                    .name(name)
-                    .credentials();
-
-                if (credentials.containsKey(AUTHORIZATION_CREDENTIALS_HEADERS_NAME))
-                {
-                    credentials.getJsonObject(AUTHORIZATION_CREDENTIALS_HEADERS_NAME)
-                        .forEach((n, v) -> httpCredentials.header()
-                            .name(n)
-                            .pattern(JsonString.class.cast(v).getString())
-                            .build());
-                }
-
-                if (credentials.containsKey(AUTHORIZATION_CREDENTIALS_QUERY_NAME))
-                {
-                    credentials.getJsonObject(AUTHORIZATION_CREDENTIALS_QUERY_NAME)
-                        .forEach((n, v) -> httpCredentials.parameter()
-                            .name(n)
-                            .pattern(JsonString.class.cast(v).getString())
-                            .build());
-                }
-
-                if (credentials.containsKey(AUTHORIZATION_CREDENTIALS_COOKIES_NAME))
-                {
-                    credentials.getJsonObject(AUTHORIZATION_CREDENTIALS_COOKIES_NAME)
-                        .forEach((n, v) -> httpCredentials.cookie()
-                            .name(n)
-                            .pattern(JsonString.class.cast(v).getString())
-                            .build());
-                }
-
-                httpCredentials.build();
-            }
-        }
     }
 }
