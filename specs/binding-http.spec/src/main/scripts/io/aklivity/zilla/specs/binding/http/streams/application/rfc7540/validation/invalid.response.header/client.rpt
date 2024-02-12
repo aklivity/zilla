@@ -33,4 +33,5 @@ read zilla:begin.ext ${http:matchBeginEx()
                              .header("retry-after", "0")
                              .build()}
 
+write aborted
 read closed

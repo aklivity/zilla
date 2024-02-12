@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.metrics.reader;
 
-import static io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId.namespaceId;
+import static io.aklivity.zilla.runtime.engine.namespace.NamespacedId.namespaceId;
 
 import java.util.Objects;
 import java.util.function.LongFunction;

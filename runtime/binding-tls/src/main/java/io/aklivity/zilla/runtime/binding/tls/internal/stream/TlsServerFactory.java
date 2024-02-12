@@ -662,6 +662,10 @@ public final class TlsServerFactory implements TlsStreamFactory
                 }
             }
         }
+        else if (server.handshakeTimeoutFutureId != NO_CANCEL_ID)
+        {
+            server.decoder = decodeHandshakeFinished;
+        }
 
         return progress;
     }
@@ -2148,7 +2152,8 @@ public final class TlsServerFactory implements TlsStreamFactory
             private void doAppEnd(
                 long traceId)
             {
-                if (TlsState.initialOpened(state))
+                if (TlsState.initialOpening(state) &&
+                    !TlsState.initialClosing(state))
                 {
                     state = TlsState.closeInitial(state);
                     stream = nullIfClosed(state, stream);
@@ -2289,7 +2294,7 @@ public final class TlsServerFactory implements TlsStreamFactory
         int state,
         Optional<TlsServer.TlsStream> stream)
     {
-        return TlsState.initialClosed(state) && TlsState.replyClosed(state) ? NULL_STREAM : stream;
+        return TlsState.closed(state) ? NULL_STREAM : stream;
     }
 
     private String getCommonName(

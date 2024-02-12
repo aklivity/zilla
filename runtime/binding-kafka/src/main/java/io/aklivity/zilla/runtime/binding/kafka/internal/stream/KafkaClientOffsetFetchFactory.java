@@ -1735,6 +1735,7 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
             OffsetFetchPartitionResponseFW partition)
         {
             topicPartitions.add(new KafkaPartitionOffset(
+                topic,
                 partition.partitionIndex(),
                 partition.committedOffset(),
                 0,

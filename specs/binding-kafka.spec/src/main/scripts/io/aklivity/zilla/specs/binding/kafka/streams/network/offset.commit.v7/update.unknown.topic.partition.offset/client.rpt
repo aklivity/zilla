@@ -26,6 +26,19 @@ connect "zilla://streams/net0"
   option zilla:transmission "duplex"
   option zilla:byteorder "network"
 
+write zilla:begin.ext ${proxy:beginEx()
+                               .typeId(zilla:id("proxy"))
+                               .addressInet()
+                                 .protocol("stream")
+                                 .source("0.0.0.0")
+                                 .destination("broker1.example.com")
+                                 .sourcePort(0)
+                                 .destinationPort(9092)
+                                 .build()
+                               .info()
+                                 .authority("broker1.example.com")
+                                 .build()
+                               .build()}
 connected
 
 write 89                                # size

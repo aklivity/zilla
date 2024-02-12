@@ -21,10 +21,11 @@ connect "zilla://streams/app0"
 write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
                                .offsetCommit()
-                                   .topic("test")
                                    .groupId("client-1")
                                    .memberId("memberId-1")
                                    .instanceId("zilla")
+                                   .host("broker1.example.com")
+                                   .port(9092)
                                    .build()
                                .build()}
 
@@ -33,6 +34,7 @@ connected
 write zilla:data.ext ${kafka:dataEx()
                              .typeId(zilla:id("kafka"))
                              .offsetCommit()
+                                 .topic("test")
                                  .progress(0, 2, "test-meta")
                                  .generationId(0)
                                  .leaderEpoch(0)

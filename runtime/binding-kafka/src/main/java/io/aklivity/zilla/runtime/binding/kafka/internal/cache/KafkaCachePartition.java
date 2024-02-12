@@ -30,6 +30,8 @@ import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.Kafka
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_KEY;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_OFFSET;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_OWNER_ID;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_PRODUCER_EPOCH;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_PRODUCER_ID;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_SEQUENCE;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_TIMESTAMP;
 import static java.nio.ByteBuffer.allocateDirect;
@@ -83,6 +85,8 @@ public final class KafkaCachePartition
     private static final long NO_ANCESTOR_OFFSET = -1L;
     private static final long NO_DESCENDANT_OFFSET = -1L;
     private static final int NO_SEQUENCE = -1;
+    private static final short NO_PRODUCER_ID = -1;
+    private static final short NO_PRODUCER_EPOCH = -1;
     private static final int NO_ACKNOWLEDGE = 0;
     private static final int NO_CONVERTED_POSITION = -1;
     private static final int NO_DELTA_POSITION = -1;
@@ -626,6 +630,8 @@ public final class KafkaCachePartition
         MutableInteger valueLimit,
         long timestamp,
         long ownerId,
+        long producerId,
+        short producerEpoch,
         int sequence,
         KafkaAckMode ackMode,
         KafkaKeyFW key,
@@ -668,6 +674,8 @@ public final class KafkaCachePartition
         entryInfo.putLong(FIELD_OFFSET_TIMESTAMP, timestamp);
         entryInfo.putLong(FIELD_OFFSET_OWNER_ID, ownerId);
         entryInfo.putLong(FIELD_OFFSET_ACKNOWLEDGE, NO_ACKNOWLEDGE);
+        entryInfo.putLong(FIELD_OFFSET_PRODUCER_ID, producerId);
+        entryInfo.putShort(FIELD_OFFSET_PRODUCER_EPOCH, producerEpoch);
         entryInfo.putInt(FIELD_OFFSET_SEQUENCE, sequence);
         entryInfo.putLong(FIELD_OFFSET_ANCESTOR, NO_ANCESTOR_OFFSET);
         entryInfo.putLong(FIELD_OFFSET_DESCENDANT, NO_DESCENDANT_OFFSET);
