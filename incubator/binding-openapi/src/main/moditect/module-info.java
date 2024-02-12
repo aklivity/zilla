@@ -29,7 +29,6 @@ module io.aklivity.zilla.runtime.binding.openapi
     exports io.aklivity.zilla.runtime.binding.openapi.config;
 
     opens io.aklivity.zilla.runtime.binding.openapi.internal.model;
-    opens io.aklivity.zilla.runtime.binding.openapi.internal.view;
 
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
         with io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiBindingFactorySpi;
