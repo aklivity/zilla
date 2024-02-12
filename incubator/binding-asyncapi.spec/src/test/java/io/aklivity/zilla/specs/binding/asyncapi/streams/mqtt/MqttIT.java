@@ -39,10 +39,10 @@ public class MqttIT
 
     @Test
     @Specification({
-        "${mqtt}/publish/client",
-        "${mqtt}/publish/server"
+        "${mqtt}/publish.and.subscribe/client",
+        "${mqtt}/publish.and.subscribe/server"
     })
-    public void shouldPublish() throws Exception
+    public void shouldPublishAndSubscribe() throws Exception
     {
         k3po.finish();
     }

@@ -27,16 +27,14 @@ import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 public class AsyncapiBindingAdapter implements CompositeBindingAdapterSpi
 {
-    private final UnaryOperator<BindingConfig> composite;
+    private final Map<KindConfig, UnaryOperator<BindingConfig>> composites;
 
     public AsyncapiBindingAdapter()
     {
         Map<KindConfig, UnaryOperator<BindingConfig>> composites = new EnumMap<>(KindConfig.class);
         composites.put(SERVER, new AsyncapiServerCompositeBindingAdapter()::adapt);
         composites.put(CLIENT, new AsyncapiClientCompositeBindingAdapter()::adapt);
-        UnaryOperator<BindingConfig> composite = binding -> composites
-            .getOrDefault(binding.kind, UnaryOperator.identity()).apply(binding);
-        this.composite = composite;
+        this.composites = composites;
     }
 
     @Override
@@ -49,6 +47,6 @@ public class AsyncapiBindingAdapter implements CompositeBindingAdapterSpi
     public BindingConfig adapt(
         BindingConfig binding)
     {
-        return composite.apply(binding);
+        return composites.get(binding.kind).apply(binding);
     }
 }

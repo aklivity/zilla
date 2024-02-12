@@ -12,20 +12,12 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.asyncapi.config;
+package io.aklivity.zilla.runtime.binding.asyncapi.internal.model;
 
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
+import java.util.Map;
 
-public class AsyncapiConfig
+public class AsyncapiOperation
 {
-    public final String location;
-    public final Asyncapi asyncApi;
-
-    public AsyncapiConfig(
-        String location,
-        Asyncapi asyncApi)
-    {
-        this.location = location;
-        this.asyncApi = asyncApi;
-    }
+    public Map<String, AsyncapiBinding> bindings;
+    public AsyncapiChannel asyncapiChannel;
 }

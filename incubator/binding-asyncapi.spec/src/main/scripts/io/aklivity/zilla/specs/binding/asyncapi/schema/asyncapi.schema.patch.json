@@ -44,6 +44,82 @@
                                 {
                                     "type": "string"
                                 }
+                            },
+                            "host":
+                            {
+                                "title": "Host",
+                                "type": "string"
+                            },
+                            "port":
+                            {
+                                "title": "Port",
+                                "oneOf":
+                                [
+                                    {
+                                        "type": "integer"
+                                    },
+                                    {
+                                        "type": "string",
+                                        "pattern": "^\\d+(-\\d+)?$"
+                                    },
+                                    {
+                                        "type": "array",
+                                        "items":
+                                        {
+                                            "oneOf":
+                                            [
+                                                {
+                                                    "type": "integer"
+                                                },
+                                                {
+                                                    "type": "string",
+                                                    "pattern": "^\\d+(-\\d+)?$"
+                                                }
+                                            ]
+                                        }
+                                    }
+                                ]
+                            },
+                            "keys":
+                            {
+                                "title": "Vault Keys",
+                                "type": "array",
+                                "items":
+                                {
+                                    "type": "string"
+                                }
+                            },
+                            "trust":
+                            {
+                                "title": "Vault Certificates",
+                                "type": "array",
+                                "items":
+                                {
+                                    "type": "string"
+                                }
+                            },
+                            "trustcacerts":
+                            {
+                                "title": "Trust CA Certificates",
+                                "type": "boolean"
+                            },
+                            "sni":
+                            {
+                                "title": "Server Names",
+                                "type": "array",
+                                "items":
+                                {
+                                    "type": "string"
+                                }
+                            },
+                            "alpn":
+                            {
+                                "title": "Application Protocols",
+                                "type": "array",
+                                "items":
+                                {
+                                    "type": [ "string", "null" ]
+                                }
                             }
                         },
                         "additionalProperties": false

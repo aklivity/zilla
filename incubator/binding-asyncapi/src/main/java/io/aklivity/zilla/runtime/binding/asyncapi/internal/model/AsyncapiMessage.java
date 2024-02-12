@@ -12,20 +12,15 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.asyncapi.config;
+package io.aklivity.zilla.runtime.binding.asyncapi.internal.model;
 
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
+import jakarta.json.bind.annotation.JsonbProperty;
 
-public class AsyncapiConfig
+public class AsyncapiMessage
 {
-    public final String location;
-    public final Asyncapi asyncApi;
+    public AsyncapiSchema headers;
+    public String contentType;
 
-    public AsyncapiConfig(
-        String location,
-        Asyncapi asyncApi)
-    {
-        this.location = location;
-        this.asyncApi = asyncApi;
-    }
+    @JsonbProperty("$ref")
+    public String ref;
 }

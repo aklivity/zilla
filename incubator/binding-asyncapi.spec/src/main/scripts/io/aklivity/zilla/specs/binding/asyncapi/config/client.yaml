@@ -17,9 +17,13 @@
 ---
 name: test
 bindings:
-    asyncapi0:
-        type: asyncapi
-        kind: client
-        options:
-            specs:
-                - mqtt/asyncapi.yaml
+  asyncapi0:
+    type: asyncapi
+    kind: client
+    options:
+      specs:
+        - mqtt/asyncapi.yaml
+      host: localhost
+      port:
+        - 7183
+

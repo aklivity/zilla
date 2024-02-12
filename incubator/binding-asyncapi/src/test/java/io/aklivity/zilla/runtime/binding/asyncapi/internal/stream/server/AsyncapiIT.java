@@ -51,10 +51,10 @@ public class AsyncapiIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${mqtt}/publish/client",
-        "${asyncapi}/publish/server"
+        "${mqtt}/publish.and.subscribe/client",
+        "${asyncapi}/publish.and.subscribe/server"
     })
-    public void shouldPublish() throws Exception
+    public void shouldPublishAndSubscribe() throws Exception
     {
         k3po.finish();
     }

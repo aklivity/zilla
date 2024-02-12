@@ -42,9 +42,25 @@ public class SchemaTest
     }
 
     @Test
+    public void shouldValidateClientTls()
+    {
+        JsonObject config = schema.validate("client.tls.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
     public void shouldValidateServer()
     {
         JsonObject config = schema.validate("server.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateServerTls()
+    {
+        JsonObject config = schema.validate("server.tls.yaml");
 
         assertThat(config, not(nullValue()));
     }

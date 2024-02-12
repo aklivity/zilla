@@ -15,16 +15,49 @@
 package io.aklivity.zilla.runtime.binding.asyncapi.config;
 
 import java.util.List;
+import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public final class AsyncapiOptionsConfig extends OptionsConfig
 {
-    public final List<AsyncapiConfig> asyncapis;
+    public final List<AsyncapiConfig> specs;
+    public final String host;
+    public final int[] ports;
+    public final List<String> keys;
+    public final List<String> trust;
+    public final List<String> sni;
+    public final List<String> alpn;
+    public final boolean trustcacerts;
+
+    public static AsyncapiOptionsConfigBuilder<AsyncapiOptionsConfig> builder()
+    {
+        return new AsyncapiOptionsConfigBuilder<>(AsyncapiOptionsConfig.class::cast);
+    }
+
+    public static <T> AsyncapiOptionsConfigBuilder<T> builder(
+        Function<OptionsConfig, T> mapper)
+    {
+        return new AsyncapiOptionsConfigBuilder<>(mapper);
+    }
 
     public AsyncapiOptionsConfig(
-        List<AsyncapiConfig> asyncapis)
+        List<AsyncapiConfig> specs,
+        String host,
+        int[] ports,
+        List<String> keys,
+        List<String> trust,
+        List<String> sni,
+        List<String> alpn,
+        boolean trustcacerts)
     {
-        this.asyncapis = asyncapis;
+        this.specs = specs;
+        this.host = host;
+        this.ports = ports;
+        this.keys = keys;
+        this.trust = trust;
+        this.sni = sni;
+        this.alpn = alpn;
+        this.trustcacerts = trustcacerts;
     }
 }

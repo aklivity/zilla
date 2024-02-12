@@ -14,17 +14,20 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.config;
 
+import static java.util.stream.Collector.of;
+import static java.util.stream.Collector.Characteristics.IDENTITY_FINISH;
 import static java.util.stream.Collectors.toCollection;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
 
 import org.agrona.collections.IntHashSet;
+import org.agrona.collections.Long2LongHashMap;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
-import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
+import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 
 public final class AsyncapiBindingConfig
 {
@@ -33,17 +36,31 @@ public final class AsyncapiBindingConfig
     public final KindConfig kind;
     public final AsyncapiOptionsConfig options;
     public final List<AsyncapiRouteConfig> routes;
-    private final IntHashSet mqttOrigins;
+    private final IntHashSet composites;
+    private final long defaultRouteId;
+    private final Long2LongHashMap resolvedIds;
 
     public AsyncapiBindingConfig(
-        BindingConfig binding)
+        BindingConfig binding,
+        long defaultRouteId)
     {
         this.id = binding.id;
         this.name = binding.name;
         this.kind = binding.kind;
+        this.defaultRouteId = defaultRouteId;
         this.options = AsyncapiOptionsConfig.class.cast(binding.options);
         this.routes = binding.routes.stream().map(AsyncapiRouteConfig::new).collect(toList());
-        this.mqttOrigins = binding.composites.stream()
+        this.resolvedIds = binding.composites.stream()
+            .map(c -> c.bindings)
+            .flatMap(List::stream)
+            .filter(b -> b.type.equals("mqtt"))
+            .collect(of(
+                () -> new Long2LongHashMap(-1),
+                (m, r) -> m.put(0L, r.id), //TODO: populate proper apiId
+                (m, r) -> m,
+                IDENTITY_FINISH
+            ));
+        this.composites = binding.composites.stream()
             .map(c -> c.bindings)
             .flatMap(List::stream)
             .filter(b -> b.type.equals("mqtt"))
@@ -51,10 +68,16 @@ public final class AsyncapiBindingConfig
             .collect(toCollection(IntHashSet::new));
     }
 
-    public boolean isCompositeNamespace(
-        int namespaceId)
+    public boolean isCompositeOriginId(
+        long originId)
     {
-        return mqttOrigins.contains(namespaceId);
+        return composites.contains(NamespacedId.namespaceId(originId));
+    }
+
+    public long resolveResolvedId(
+        long apiId)
+    {
+        return defaultRouteId != -1 ? defaultRouteId : resolvedIds.get(apiId);
     }
 
     public AsyncapiRouteConfig resolve(

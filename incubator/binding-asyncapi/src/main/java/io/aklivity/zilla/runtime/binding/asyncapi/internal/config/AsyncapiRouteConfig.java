@@ -26,17 +26,12 @@ public final class AsyncapiRouteConfig
 {
     public final long id;
 
-    private final List<AsyncapiConditionMatcher> when;
     private final LongPredicate authorized;
 
     public AsyncapiRouteConfig(
         RouteConfig route)
     {
         this.id = route.id;
-        this.when = route.when.stream()
-            .map(AsyncapiOptionsConfig.class::cast)
-            .map(AsyncapiConditionMatcher::new)
-            .collect(toList());
         this.authorized = route.authorized;
     }
 
@@ -44,10 +39,5 @@ public final class AsyncapiRouteConfig
         long authorization)
     {
         return authorized.test(authorization);
-    }
-
-    boolean matches()
-    {
-        return when.isEmpty();
     }
 }

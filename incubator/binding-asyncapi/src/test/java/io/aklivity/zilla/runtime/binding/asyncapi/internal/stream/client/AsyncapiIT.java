@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.stream.client;
 
+import static io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiConfigurationTest.ASYNCAPI_K3PO_ROUTE_ID_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -29,6 +30,7 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class AsyncapiIT
 {
@@ -52,11 +54,12 @@ public class AsyncapiIT
     @Test
     @Configuration("client.yaml")
     @Specification({
-        "${asyncapi}/publish/client",
-        "${mqtt}/publish/server"
+        "${asyncapi}/publish.and.subscribe/client",
+        "${mqtt}/publish.and.subscribe/server"
     })
+    @Configure(name = ASYNCAPI_K3PO_ROUTE_ID_NAME, value = "4294967298")
     @ScriptProperty("serverAddress \"zilla://streams/mqtt0\"")
-    public void shouldPublish() throws Exception
+    public void shouldPublishAndSubscribe() throws Exception
     {
         k3po.finish();
     }

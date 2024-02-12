@@ -32,8 +32,8 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Schema;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.SchemaView;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiSchema;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiSchemaView;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
@@ -41,7 +41,6 @@ import io.aklivity.zilla.runtime.catalog.inline.config.InlineSchemaConfigBuilder
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.CompositeBindingAdapterSpi;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
-import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig;
 
 public class AsyncapiClientCompositeBindingAdapter extends AsyncapiCompositeBindingAdapter implements CompositeBindingAdapterSpi
 {
@@ -59,7 +58,7 @@ public class AsyncapiClientCompositeBindingAdapter extends AsyncapiCompositeBind
         BindingConfig binding)
     {
         AsyncapiOptionsConfig options = (AsyncapiOptionsConfig) binding.options;
-        AsyncapiConfig asyncapiConfig = options.asyncapis.get(0);
+        AsyncapiConfig asyncapiConfig = options.specs.get(0);
         this.asyncApi = asyncapiConfig.asyncApi;
 
         this.allPorts = resolveAllPorts();
@@ -79,24 +78,24 @@ public class AsyncapiClientCompositeBindingAdapter extends AsyncapiCompositeBind
                     .kind(CLIENT)
                     .exit(isTlsEnabled ? "tls_client0" : "tcp_client0")
                     .build()
-                .inject(this::injectTlsClient)
+                .inject(n -> injectTlsClient(n, options))
                 .binding()
                     .name("tcp_client0")
                     .type("tcp")
                     .kind(CLIENT)
                     .options(TcpOptionsConfig::builder)
-                        .host("") // env
-                        .ports(new int[]{0}) // env
+                        .host(options.host)
+                        .ports(options.ports)
                         .build()
                     .build()
-                .inject(this::injectVaults)
                 .inject(this::injectCatalog)
                 .build()
             .build();
     }
 
     private <C> NamespaceConfigBuilder<C> injectTlsClient(
-        NamespaceConfigBuilder<C> namespace)
+        NamespaceConfigBuilder<C> namespace,
+        AsyncapiOptionsConfig options)
     {
         if (isTlsEnabled)
         {
@@ -106,10 +105,10 @@ public class AsyncapiClientCompositeBindingAdapter extends AsyncapiCompositeBind
                     .type("tls")
                     .kind(CLIENT)
                     .options(TlsOptionsConfig::builder)
-                        .trust(List.of("")) // env
-                        .sni(List.of("")) // env
-                        .alpn(List.of("")) // env
-                        .trustcacerts(true)
+                        .trust(options.trust)
+                        .sni(options.sni)
+                        .alpn(options.alpn)
+                        .trustcacerts(options.trustcacerts)
                         .build()
                     .vault("client")
                     .exit("tcp_client0")
@@ -118,42 +117,10 @@ public class AsyncapiClientCompositeBindingAdapter extends AsyncapiCompositeBind
         return namespace;
     }
 
-    public <C> NamespaceConfigBuilder<C> injectVaults(
-        NamespaceConfigBuilder<C> namespace)
-    {
-        if (isTlsEnabled)
-        {
-            namespace
-                .vault()
-                    .name("client")
-                    .type("filesystem")
-                    .options(FileSystemOptionsConfig::builder)
-                        .trust()
-                            .store("") // env
-                            .type("") // env
-                            .password("") // env
-                            .build()
-                        .build()
-                    .build()
-                .vault()
-                    .name("server")
-                    .type("filesystem")
-                    .options(FileSystemOptionsConfig::builder)
-                        .keys()
-                            .store("") // env
-                            .type("") // env
-                            .password("") //env
-                            .build()
-                        .build()
-                    .build();
-        }
-        return namespace;
-    }
-
     private <C> NamespaceConfigBuilder<C> injectCatalog(
         NamespaceConfigBuilder<C> namespace)
     {
-        if (asyncApi.components != null && asyncApi.components.schemas != null && !asyncApi.components.schemas.isEmpty())
+        if (asyncApi.asyncapiComponents != null && asyncApi.asyncapiComponents.schemas != null && !asyncApi.asyncapiComponents.schemas.isEmpty())
         {
             namespace
                 .catalog()
@@ -179,9 +146,9 @@ public class AsyncapiClientCompositeBindingAdapter extends AsyncapiCompositeBind
                 .disable(WRITE_DOC_START_MARKER)
                 .enable(MINIMIZE_QUOTES)
                 .build();
-            for (Map.Entry<String, Schema> entry : asyncApi.components.schemas.entrySet())
+            for (Map.Entry<String, AsyncapiSchema> entry : asyncApi.asyncapiComponents.schemas.entrySet())
             {
-                SchemaView schema = SchemaView.of(asyncApi.components.schemas, entry.getValue());
+                AsyncapiSchemaView schema = AsyncapiSchemaView.of(asyncApi.asyncapiComponents.schemas, entry.getValue());
                 subjects
                     .subject(entry.getKey())
                         .version(VERSION_LATEST)

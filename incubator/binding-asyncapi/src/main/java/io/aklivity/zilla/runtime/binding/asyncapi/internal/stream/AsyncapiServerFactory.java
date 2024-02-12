@@ -34,16 +34,14 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.FlushFW;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.MqttBeginExFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.WindowFW;
-import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttBeginExFW;
-import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttResetExFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 
 public final class AsyncapiServerFactory implements AsyncapiStreamFactory
 {
@@ -69,7 +67,6 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
     private final MqttBeginExFW mqttBeginExRO = new MqttBeginExFW();
 
     private final AsyncapiBeginExFW.Builder asyncapiBeginExRW = new AsyncapiBeginExFW.Builder();
-    private final MqttResetExFW.Builder mqttResetExRW = new MqttResetExFW.Builder();
 
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer extBuffer;
@@ -81,11 +78,13 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
     private final Long2ObjectHashMap<AsyncapiBindingConfig> bindings;
     private final int asyncapiTypeId;
     private final int mqttTypeId;
+    private final AsyncapiConfiguration config;
 
     public AsyncapiServerFactory(
         AsyncapiConfiguration config,
         EngineContext context)
     {
+        this.config = config;
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.bufferPool = context.bufferPool();
@@ -114,7 +113,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        AsyncapiBindingConfig asyncapiBinding = new AsyncapiBindingConfig(binding);
+        AsyncapiBindingConfig asyncapiBinding = new AsyncapiBindingConfig(binding, config.k3poRouteId());
         bindings.put(binding.id, asyncapiBinding);
     }
 
@@ -146,14 +145,14 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
 
         MessageConsumer newStream = null;
 
-        if (binding != null && binding.isCompositeNamespace(NamespacedId.namespaceId(originId)))
+        if (binding != null && binding.isCompositeOriginId(originId))
         {
             final AsyncapiRouteConfig route = binding.resolve(authorization);
 
             if (route != null)
             {
                 final String operationId = null;
-                newStream = new MqttStream(
+                newStream = new CompositeStream(
                     receiver,
                     originId,
                     routedId,
@@ -169,249 +168,9 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
         return newStream;
     }
 
-
-    private MessageConsumer doCreateNewStream(
-        MessageConsumer sender,
-        long originId,
-        long routedId,
-        long streamId,
-        long sequence,
-        long acknowledge,
-        int maximum,
-        long traceId,
-        long authorization,
-        long affinity,
-        Flyweight extension)
+    private final class CompositeStream
     {
-        final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-            .originId(originId)
-            .routedId(routedId)
-            .streamId(streamId)
-            .sequence(sequence)
-            .acknowledge(acknowledge)
-            .maximum(maximum)
-            .traceId(traceId)
-            .authorization(authorization)
-            .affinity(affinity)
-            .extension(extension.buffer(), extension.offset(), extension.sizeof())
-            .build();
-
-        final MessageConsumer receiver =
-            streamFactory.newStream(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof(), sender);
-
-        receiver.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
-
-        return receiver;
-    }
-
-    private void doBegin(
-        MessageConsumer receiver,
-        long originId,
-        long routedId,
-        long streamId,
-        long sequence,
-        long acknowledge,
-        int maximum,
-        long traceId,
-        long authorization,
-        long affinity,
-        Flyweight extension)
-    {
-        final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-            .originId(originId)
-            .routedId(routedId)
-            .streamId(streamId)
-            .sequence(sequence)
-            .acknowledge(acknowledge)
-            .maximum(maximum)
-            .traceId(traceId)
-            .authorization(authorization)
-            .affinity(affinity)
-            .extension(extension.buffer(), extension.offset(), extension.sizeof())
-            .build();
-
-        receiver.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
-    }
-
-    private void doData(
-        MessageConsumer receiver,
-        long originId,
-        long routedId,
-        long streamId,
-        long sequence,
-        long acknowledge,
-        int maximum,
-        long traceId,
-        long authorization,
-        long budgetId,
-        int flags,
-        int reserved,
-        OctetsFW payload,
-        Flyweight extension)
-    {
-        final DataFW frame = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-            .originId(originId)
-            .routedId(routedId)
-            .streamId(streamId)
-            .sequence(sequence)
-            .acknowledge(acknowledge)
-            .maximum(maximum)
-            .traceId(traceId)
-            .authorization(authorization)
-            .flags(flags)
-            .budgetId(budgetId)
-            .reserved(reserved)
-            .payload(payload)
-            .extension(extension.buffer(), extension.offset(), extension.sizeof())
-            .build();
-
-        receiver.accept(frame.typeId(), frame.buffer(), frame.offset(), frame.sizeof());
-    }
-
-    private void doFlush(
-        MessageConsumer receiver,
-        long originId,
-        long routedId,
-        long streamId,
-        long sequence,
-        long acknowledge,
-        int maximum,
-        long traceId,
-        long authorization,
-        long budgetId,
-        int reserved,
-        OctetsFW extension)
-    {
-        final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-            .originId(originId)
-            .routedId(routedId)
-            .streamId(streamId)
-            .sequence(sequence)
-            .acknowledge(acknowledge)
-            .maximum(maximum)
-            .traceId(traceId)
-            .authorization(authorization)
-            .budgetId(budgetId)
-            .reserved(reserved)
-            .extension(extension)
-            .build();
-
-        receiver.accept(flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
-    }
-
-    private void doEnd(
-        MessageConsumer receiver,
-        long originId,
-        long routedId,
-        long streamId,
-        long sequence,
-        long acknowledge,
-        int maximum,
-        long traceId,
-        long authorization,
-        OctetsFW extension)
-    {
-        final EndFW end = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-            .originId(originId)
-            .routedId(routedId)
-            .streamId(streamId)
-            .sequence(sequence)
-            .acknowledge(acknowledge)
-            .maximum(maximum)
-            .traceId(traceId)
-            .authorization(authorization)
-            .extension(extension)
-            .build();
-
-        receiver.accept(end.typeId(), end.buffer(), end.offset(), end.sizeof());
-    }
-
-    private void doAbort(
-        MessageConsumer receiver,
-        long originId,
-        long routedId,
-        long streamId,
-        long sequence,
-        long acknowledge,
-        int maximum,
-        long traceId,
-        long authorization,
-        OctetsFW extension)
-    {
-        final AbortFW abort = abortRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-            .originId(originId)
-            .routedId(routedId)
-            .streamId(streamId)
-            .sequence(sequence)
-            .acknowledge(acknowledge)
-            .maximum(maximum)
-            .traceId(traceId)
-            .authorization(authorization)
-            .extension(extension)
-            .build();
-
-        receiver.accept(abort.typeId(), abort.buffer(), abort.offset(), abort.sizeof());
-    }
-
-    private void doWindow(
-        MessageConsumer sender,
-        long originId,
-        long routedId,
-        long streamId,
-        long sequence,
-        long acknowledge,
-        int maximum,
-        long traceId,
-        long authorization,
-        long budgetId,
-        int padding)
-    {
-        final WindowFW window = windowRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-            .originId(originId)
-            .routedId(routedId)
-            .streamId(streamId)
-            .sequence(sequence)
-            .acknowledge(acknowledge)
-            .maximum(maximum)
-            .traceId(traceId)
-            .authorization(authorization)
-            .budgetId(budgetId)
-            .padding(padding)
-            .build();
-
-        sender.accept(window.typeId(), window.buffer(), window.offset(), window.sizeof());
-    }
-
-    private void doReset(
-        MessageConsumer receiver,
-        long originId,
-        long routedId,
-        long streamId,
-        long sequence,
-        long acknowledge,
-        int maximum,
-        long traceId,
-        long authorization,
-        Flyweight extension)
-    {
-        final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-            .originId(originId)
-            .routedId(routedId)
-            .streamId(streamId)
-            .sequence(sequence)
-            .acknowledge(acknowledge)
-            .maximum(maximum)
-            .traceId(traceId)
-            .authorization(authorization)
-            .extension(extension.buffer(), extension.offset(), extension.sizeof())
-            .build();
-
-        receiver.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
-    }
-
-    private final class MqttStream
-    {
-        private final AsyncapiStream asyncapi;
+        private final AsyncapiStream delegate;
         private final MessageConsumer sender;
         private final long originId;
         private final long routedId;
@@ -421,8 +180,6 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
         private final long authorization;
 
         private int state;
-
-        private long replyBudgetId;
 
         private long initialSeq;
         private long initialAck;
@@ -435,7 +192,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
         private long replyBud;
         private int replyCap;
 
-        MqttStream(
+        CompositeStream(
             MessageConsumer sender,
             long originId,
             long routedId,
@@ -445,7 +202,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             long resolvedId,
             String operationId)
         {
-            this.asyncapi = new AsyncapiStream(this, routedId, resolvedId, authorization, operationId);
+            this.delegate = new AsyncapiStream(this, routedId, resolvedId, authorization, operationId);
             this.sender = sender;
             this.originId = originId;
             this.routedId = routedId;
@@ -516,7 +273,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
 
             assert initialAck <= initialSeq;
 
-            asyncapi.doAsyncapiBegin(traceId, extension);
+            delegate.doAsyncapiBegin(traceId, extension);
         }
 
         private void onMqttData(
@@ -539,7 +296,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
 
             assert initialAck <= initialSeq;
 
-            asyncapi.doAsyncapiData(traceId, authorization, budgetId, reserved, flags, payload, extension);
+            delegate.doAsyncapiData(traceId, authorization, budgetId, reserved, flags, payload, extension);
         }
 
         private void onMqttEnd(
@@ -558,7 +315,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
 
             assert initialAck <= initialSeq;
 
-            asyncapi.doAsyncapiEnd(traceId, extension);
+            delegate.doAsyncapiEnd(traceId, extension);
         }
 
         private void onMqttFlush(
@@ -576,7 +333,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
 
             assert initialAck <= initialSeq;
 
-            asyncapi.doAsyncapiFlush(traceId, extension);
+            delegate.doAsyncapiFlush(traceId, extension);
         }
 
         private void onMqttAbort(
@@ -595,7 +352,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
 
             assert initialAck <= initialSeq;
 
-            asyncapi.doAsyncapiAbort(traceId, extension);
+            delegate.doAsyncapiAbort(traceId, extension);
         }
 
         private void doMqttReset(
@@ -616,8 +373,8 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             long budgetId,
             int padding)
         {
-            initialAck = asyncapi.initialAck;
-            initialMax = asyncapi.initialMax;
+            initialAck = delegate.initialAck;
+            initialMax = delegate.initialMax;
 
             doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, budgetId, padding);
@@ -642,7 +399,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
         {
 
             doData(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                traceId, authorization, replyBudgetId, flag, reserved, payload, extension);
+                traceId, authorization, replyBud, flag, reserved, payload, extension);
 
             replySeq += reserved;
         }
@@ -652,7 +409,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             OctetsFW extension)
         {
             doFlush(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                traceId, authorization, replyBudgetId, 0, extension);
+                traceId, authorization, replyBud, 0, extension);
         }
 
         private void doMqttEnd(
@@ -727,7 +484,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
 
             assert replyAck <= replySeq;
 
-            asyncapi.doAsyncapiWindow(traceId, acknowledge, budgetId, padding);
+            delegate.doAsyncapiWindow(traceId, acknowledge, budgetId, padding);
         }
 
         private void cleanup(
@@ -736,13 +493,13 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             doMqttReset(traceId);
             doMqttAbort(traceId);
 
-            asyncapi.cleanup(traceId);
+            delegate.cleanup(traceId);
         }
     }
 
     final class AsyncapiStream
     {
-        private final MqttStream delegate;
+        private final CompositeStream delegate;
         private final String operationId;
         private final long originId;
         private final long routedId;
@@ -765,7 +522,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
         private int replyPad;
 
         private AsyncapiStream(
-            MqttStream delegate,
+            CompositeStream delegate,
             long originId,
             long routedId,
             long authorization,
@@ -1005,7 +762,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
 
                 this.initialId = supplyInitialId.applyAsLong(routedId);
                 this.replyId = supplyReplyId.applyAsLong(initialId);
-                this.receiver = doCreateNewStream(this::onAsyncapiMessage,
+                this.receiver = newStream(this::onAsyncapiMessage,
                     originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, 0L, asyncapiBeginEx);
                 state = AsyncapiState.openingInitial(state);
@@ -1069,5 +826,244 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             doAsyncapiAbort(traceId, EMPTY_OCTETS);
             doAsyncapiReset(traceId);
         }
+    }
+
+    private MessageConsumer newStream(
+        MessageConsumer sender,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        long affinity,
+        Flyweight extension)
+    {
+        final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+            .originId(originId)
+            .routedId(routedId)
+            .streamId(streamId)
+            .sequence(sequence)
+            .acknowledge(acknowledge)
+            .maximum(maximum)
+            .traceId(traceId)
+            .authorization(authorization)
+            .affinity(affinity)
+            .extension(extension.buffer(), extension.offset(), extension.sizeof())
+            .build();
+
+        final MessageConsumer receiver =
+            streamFactory.newStream(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof(), sender);
+
+        receiver.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
+
+        return receiver;
+    }
+
+    private void doBegin(
+        MessageConsumer receiver,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        long affinity,
+        Flyweight extension)
+    {
+        final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+            .originId(originId)
+            .routedId(routedId)
+            .streamId(streamId)
+            .sequence(sequence)
+            .acknowledge(acknowledge)
+            .maximum(maximum)
+            .traceId(traceId)
+            .authorization(authorization)
+            .affinity(affinity)
+            .extension(extension.buffer(), extension.offset(), extension.sizeof())
+            .build();
+
+        receiver.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
+    }
+
+    private void doData(
+        MessageConsumer receiver,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int flags,
+        int reserved,
+        OctetsFW payload,
+        Flyweight extension)
+    {
+        final DataFW frame = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+            .originId(originId)
+            .routedId(routedId)
+            .streamId(streamId)
+            .sequence(sequence)
+            .acknowledge(acknowledge)
+            .maximum(maximum)
+            .traceId(traceId)
+            .authorization(authorization)
+            .flags(flags)
+            .budgetId(budgetId)
+            .reserved(reserved)
+            .payload(payload)
+            .extension(extension.buffer(), extension.offset(), extension.sizeof())
+            .build();
+
+        receiver.accept(frame.typeId(), frame.buffer(), frame.offset(), frame.sizeof());
+    }
+
+    private void doFlush(
+        MessageConsumer receiver,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        OctetsFW extension)
+    {
+        final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+            .originId(originId)
+            .routedId(routedId)
+            .streamId(streamId)
+            .sequence(sequence)
+            .acknowledge(acknowledge)
+            .maximum(maximum)
+            .traceId(traceId)
+            .authorization(authorization)
+            .budgetId(budgetId)
+            .reserved(reserved)
+            .extension(extension)
+            .build();
+
+        receiver.accept(flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
+    }
+
+    private void doEnd(
+        MessageConsumer receiver,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        OctetsFW extension)
+    {
+        final EndFW end = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+            .originId(originId)
+            .routedId(routedId)
+            .streamId(streamId)
+            .sequence(sequence)
+            .acknowledge(acknowledge)
+            .maximum(maximum)
+            .traceId(traceId)
+            .authorization(authorization)
+            .extension(extension)
+            .build();
+
+        receiver.accept(end.typeId(), end.buffer(), end.offset(), end.sizeof());
+    }
+
+    private void doAbort(
+        MessageConsumer receiver,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        OctetsFW extension)
+    {
+        final AbortFW abort = abortRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+            .originId(originId)
+            .routedId(routedId)
+            .streamId(streamId)
+            .sequence(sequence)
+            .acknowledge(acknowledge)
+            .maximum(maximum)
+            .traceId(traceId)
+            .authorization(authorization)
+            .extension(extension)
+            .build();
+
+        receiver.accept(abort.typeId(), abort.buffer(), abort.offset(), abort.sizeof());
+    }
+
+    private void doWindow(
+        MessageConsumer sender,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int padding)
+    {
+        final WindowFW window = windowRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+            .originId(originId)
+            .routedId(routedId)
+            .streamId(streamId)
+            .sequence(sequence)
+            .acknowledge(acknowledge)
+            .maximum(maximum)
+            .traceId(traceId)
+            .authorization(authorization)
+            .budgetId(budgetId)
+            .padding(padding)
+            .build();
+
+        sender.accept(window.typeId(), window.buffer(), window.offset(), window.sizeof());
+    }
+
+    private void doReset(
+        MessageConsumer receiver,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        Flyweight extension)
+    {
+        final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+            .originId(originId)
+            .routedId(routedId)
+            .streamId(streamId)
+            .sequence(sequence)
+            .acknowledge(acknowledge)
+            .maximum(maximum)
+            .traceId(traceId)
+            .authorization(authorization)
+            .extension(extension.buffer(), extension.offset(), extension.sizeof())
+            .build();
+
+        receiver.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
     }
 }

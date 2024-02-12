@@ -38,10 +38,10 @@ public class AsyncapiIT
 
     @Test
     @Specification({
-        "${asyncapi}/publish/client",
-        "${asyncapi}/publish/server"
+        "${asyncapi}/publish.and.subscribe/client",
+        "${asyncapi}/publish.and.subscribe/server"
     })
-    public void shouldPublish() throws Exception
+    public void shouldPublishAndSubscribe() throws Exception
     {
         k3po.finish();
     }

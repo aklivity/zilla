@@ -15,12 +15,18 @@
  */
 package io.aklivity.zilla.specs.binding.asyncapi.internal;
 
+import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
+import org.kaazing.k3po.lang.el.BytesMatcher;
 import org.kaazing.k3po.lang.el.Function;
 import org.kaazing.k3po.lang.el.spi.FunctionMapperSpi;
 
+import io.aklivity.zilla.specs.binding.asyncapi.internal.types.OctetsFW;
 import io.aklivity.zilla.specs.binding.asyncapi.internal.types.stream.AsyncapiBeginExFW;
+
+import java.nio.ByteBuffer;
+import java.util.Objects;
 
 public final class AsyncapiFunctions
 {
@@ -28,6 +34,12 @@ public final class AsyncapiFunctions
     public static AsyncapiBeginExBuilder beginEx()
     {
         return new AsyncapiBeginExBuilder();
+    }
+
+    @Function
+    public static AsyncapiBeginExMatcherBuilder matchBeginEx()
+    {
+        return new AsyncapiBeginExMatcherBuilder();
     }
 
     public static final class AsyncapiBeginExBuilder
@@ -67,6 +79,103 @@ public final class AsyncapiFunctions
             final byte[] array = new byte[beginEx.sizeof()];
             beginEx.buffer().getBytes(beginEx.offset(), array);
             return array;
+        }
+    }
+
+    public static final class AsyncapiBeginExMatcherBuilder
+    {
+        private final DirectBuffer bufferRO = new UnsafeBuffer();
+
+        private final AsyncapiBeginExFW beginExRO = new AsyncapiBeginExFW();
+
+        private Integer typeId;
+        private int apiId;
+        private String operationId;
+        private OctetsFW.Builder extensionRW;
+
+        public AsyncapiBeginExMatcherBuilder typeId(
+            int typeId)
+        {
+            this.typeId = typeId;
+            return this;
+        }
+
+        public AsyncapiBeginExMatcherBuilder operationId(
+            String operationId)
+        {
+            this.operationId = operationId;
+            return this;
+        }
+
+        public AsyncapiBeginExMatcherBuilder apiId(
+            int apiId)
+        {
+            this.apiId = apiId;
+            return this;
+        }
+
+        public AsyncapiBeginExMatcherBuilder extension(
+            byte[] extension)
+        {
+            assert extensionRW == null;
+            extensionRW = new OctetsFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+
+            extensionRW.set(Objects.requireNonNullElseGet(extension, () -> new byte[] {}));
+
+            return this;
+        }
+
+        public BytesMatcher build()
+        {
+            return typeId != null ? this::match : buf -> null;
+        }
+
+        private AsyncapiBeginExFW match(
+            ByteBuffer byteBuf) throws Exception
+        {
+            if (!byteBuf.hasRemaining())
+            {
+                return null;
+            }
+
+            bufferRO.wrap(byteBuf);
+            final AsyncapiBeginExFW beginEx = beginExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.limit());
+
+            if (beginEx != null &&
+                matchTypeId(beginEx) &&
+                matchApiId(beginEx) &&
+                matchOperationId(beginEx) &&
+                matchExtension(beginEx))
+            {
+                byteBuf.position(byteBuf.position() + beginEx.sizeof());
+                return beginEx;
+            }
+
+            throw new Exception(beginEx.toString());
+        }
+
+        private boolean matchTypeId(
+            AsyncapiBeginExFW beginEx)
+        {
+            return typeId == beginEx.typeId();
+        }
+
+        private boolean matchApiId(
+            AsyncapiBeginExFW beginEx)
+        {
+            return apiId == beginEx.apiId();
+        }
+
+        private boolean matchOperationId(
+            AsyncapiBeginExFW beginEx)
+        {
+            return operationId == null || operationId.equals(beginEx.operationId().asString());
+        }
+
+        private boolean matchExtension(
+            final AsyncapiBeginExFW beginEx)
+        {
+            return extensionRW == null || extensionRW.build().equals(beginEx.extension());
         }
     }
 

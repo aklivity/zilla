@@ -26,4 +26,10 @@ bindings:
       host: localhost
       port:
         - 7183
+      keys:
+        - localhost
+      sni:
+        - example.net
+      alpn:
+        - echo
     exit: asyncapi0

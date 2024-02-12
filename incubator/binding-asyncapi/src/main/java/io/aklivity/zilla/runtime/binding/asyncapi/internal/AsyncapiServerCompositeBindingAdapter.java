@@ -21,9 +21,9 @@ import java.util.Map;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Channel;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Message;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.MessageView;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiChannel;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiMessage;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiMessageView;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttConditionConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
@@ -34,7 +34,7 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.CompositeBindingAdapterSpi;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
-import io.aklivity.zilla.runtime.validator.json.config.JsonValidatorConfig;
+import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
 public class AsyncapiServerCompositeBindingAdapter extends AsyncapiCompositeBindingAdapter implements CompositeBindingAdapterSpi
 {
@@ -52,7 +52,7 @@ public class AsyncapiServerCompositeBindingAdapter extends AsyncapiCompositeBind
         BindingConfig binding)
     {
         AsyncapiOptionsConfig options = (AsyncapiOptionsConfig) binding.options;
-        AsyncapiConfig asyncapiConfig = options.asyncapis.get(0);
+        AsyncapiConfig asyncapiConfig = options.specs.get(0);
         this.asyncApi = asyncapiConfig.asyncApi;
 
         this.allPorts = resolveAllPorts();
@@ -74,7 +74,7 @@ public class AsyncapiServerCompositeBindingAdapter extends AsyncapiCompositeBind
                     .inject(this::injectPlainTcpRoute)
                     .inject(this::injectTlsTcpRoute)
                     .build()
-                .inject(this::injectTlsServer)
+                .inject(n -> injectTlsServer(n, options))
                 .binding()
                     .name("mqtt_server0")
                     .type("mqtt")
@@ -119,7 +119,8 @@ public class AsyncapiServerCompositeBindingAdapter extends AsyncapiCompositeBind
     }
 
     private <C> NamespaceConfigBuilder<C> injectTlsServer(
-        NamespaceConfigBuilder<C> namespace)
+        NamespaceConfigBuilder<C> namespace,
+        AsyncapiOptionsConfig options)
     {
         if (isTlsEnabled)
         {
@@ -129,9 +130,9 @@ public class AsyncapiServerCompositeBindingAdapter extends AsyncapiCompositeBind
                     .type("tls")
                     .kind(SERVER)
                     .options(TlsOptionsConfig::builder)
-                        .keys(List.of("")) // env
-                        .sni(List.of("")) // env
-                        .alpn(List.of("")) // env
+                        .keys(options.keys)
+                        .sni(options.sni)
+                        .alpn(options.alpn)
                         .build()
                     .vault("server")
                     .exit("mqtt_server0")
@@ -143,17 +144,17 @@ public class AsyncapiServerCompositeBindingAdapter extends AsyncapiCompositeBind
     private <C> BindingConfigBuilder<C> injectMqttServerOptions(
         BindingConfigBuilder<C> binding)
     {
-        for (Map.Entry<String, Channel> channelEntry : asyncApi.channels.entrySet())
+        for (Map.Entry<String, AsyncapiChannel> channelEntry : asyncApi.channels.entrySet())
         {
             String topic = channelEntry.getValue().address.replaceAll("\\{[^}]+\\}", "*");
-            Map<String, Message> messages = channelEntry.getValue().messages;
+            Map<String, AsyncapiMessage> messages = channelEntry.getValue().messages;
             if (hasJsonContentType())
             {
                 binding
                     .options(MqttOptionsConfig::builder)
                         .topic()
                             .name(topic)
-                            .content(JsonValidatorConfig::builder)
+                            .content(JsonModelConfig::builder)
                                 .catalog()
                                     .name(INLINE_CATALOG_NAME)
                                     .inject(cataloged -> injectJsonSchemas(cataloged, messages, APPLICATION_JSON))
@@ -169,12 +170,12 @@ public class AsyncapiServerCompositeBindingAdapter extends AsyncapiCompositeBind
 
     private <C> CatalogedConfigBuilder<C> injectJsonSchemas(
         CatalogedConfigBuilder<C> cataloged,
-        Map<String, Message> messages,
+        Map<String, AsyncapiMessage> messages,
         String contentType)
     {
-        for (Map.Entry<String, Message> messageEntry : messages.entrySet())
+        for (Map.Entry<String, AsyncapiMessage> messageEntry : messages.entrySet())
         {
-            MessageView message = MessageView.of(asyncApi.components.messages, messageEntry.getValue());
+            AsyncapiMessageView message = AsyncapiMessageView.of(asyncApi.asyncapiComponents.messages, messageEntry.getValue());
             String schema = messageEntry.getKey();
             if (message.contentType().equals(contentType))
             {
@@ -195,7 +196,7 @@ public class AsyncapiServerCompositeBindingAdapter extends AsyncapiCompositeBind
     private <C> BindingConfigBuilder<C> injectMqttServerRoutes(
         BindingConfigBuilder<C> binding)
     {
-        for (Map.Entry<String, Channel> entry : asyncApi.channels.entrySet())
+        for (Map.Entry<String, AsyncapiChannel> entry : asyncApi.channels.entrySet())
         {
             String topic = entry.getValue().address.replaceAll("\\{[^}]+\\}", "*");
             binding
@@ -219,10 +220,10 @@ public class AsyncapiServerCompositeBindingAdapter extends AsyncapiCompositeBind
     private boolean hasJsonContentType()
     {
         String contentType = null;
-        if (asyncApi.components != null && asyncApi.components.messages != null && !asyncApi.components.messages.isEmpty())
+        if (asyncApi.asyncapiComponents != null && asyncApi.asyncapiComponents.messages != null && !asyncApi.asyncapiComponents.messages.isEmpty())
         {
-            Message firstMessage = asyncApi.components.messages.entrySet().stream().findFirst().get().getValue();
-            contentType = MessageView.of(asyncApi.components.messages, firstMessage).contentType();
+            AsyncapiMessage firstAsyncapiMessage = asyncApi.asyncapiComponents.messages.entrySet().stream().findFirst().get().getValue();
+            contentType = AsyncapiMessageView.of(asyncApi.asyncapiComponents.messages, firstAsyncapiMessage).contentType();
         }
         return contentType != null && jsonContentType.reset(contentType).matches();
     }

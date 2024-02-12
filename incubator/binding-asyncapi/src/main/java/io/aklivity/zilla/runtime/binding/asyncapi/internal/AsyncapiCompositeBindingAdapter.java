@@ -20,8 +20,8 @@ import java.net.URI;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncApi;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.ServerView;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiServerView;
 
 public class AsyncapiCompositeBindingAdapter
 {
@@ -32,7 +32,7 @@ public class AsyncapiCompositeBindingAdapter
     protected static final Pattern JSON_CONTENT_TYPE = Pattern.compile("^application/(?:.+\\+)?json$");
     protected final Matcher jsonContentType = JSON_CONTENT_TYPE.matcher("");
 
-    protected AsyncApi asyncApi;
+    protected Asyncapi asyncApi;
     protected boolean isPlainEnabled;
     protected boolean isTlsEnabled;
     protected int[] allPorts;
@@ -44,7 +44,7 @@ public class AsyncapiCompositeBindingAdapter
         String[] keys = asyncApi.servers.keySet().toArray(String[]::new);
         for (int i = 0; i < asyncApi.servers.size(); i++)
         {
-            ServerView server = ServerView.of(asyncApi.servers.get(keys[i]));
+            AsyncapiServerView server = AsyncapiServerView.of(asyncApi.servers.get(keys[i]));
             URI url = server.url();
             ports[i] = url.getPort();
         }
@@ -71,7 +71,7 @@ public class AsyncapiCompositeBindingAdapter
         URI result = null;
         for (String key : asyncApi.servers.keySet())
         {
-            ServerView server = ServerView.of(asyncApi.servers.get(key));
+            AsyncapiServerView server = AsyncapiServerView.of(asyncApi.servers.get(key));
             if (scheme.equals(server.url().getScheme()))
             {
                 result = server.url();

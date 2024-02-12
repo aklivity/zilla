@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.engine.config;
 
 import static java.util.Collections.emptyList;
 
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;

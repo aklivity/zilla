@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.config;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Arrays.asList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
@@ -25,6 +26,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
@@ -40,7 +42,7 @@ import org.mockito.junit.MockitoRule;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncApi;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.runtime.engine.internal.config.OptionsAdapter;
@@ -80,25 +82,62 @@ public class AsyncapiOptionsConfigAdapterTest
                     "\"specs\":" +
                     "[" +
                         "\"mqtt/asyncapi.yaml\"" +
+                    "]," +
+                    "\"host\": \"localhost\"," +
+                    "\"port\": 7183," +
+                    "\"keys\":" +
+                    "[" +
+                        "\"localhost\"" +
+                    "]," +
+                    "\"trust\":" +
+                    "[" +
+                        "\"serverca\"" +
+                    "]," +
+                    "\"trustcacerts\":true," +
+                    "\"sni\":" +
+                    "[" +
+                        "\"example.net\"" +
+                    "]," +
+                    "\"alpn\":" +
+                    "[" +
+                        "\"echo\"" +
                     "]" +
                 "}";
 
         AsyncapiOptionsConfig options = jsonb.fromJson(text, AsyncapiOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
-
-        AsyncapiConfig asyncapi = options.asyncapis.get(0);
+        AsyncapiConfig asyncapi = options.specs.get(0);
         assertThat(asyncapi.location, equalTo("mqtt/asyncapi.yaml"));
-        assertThat(asyncapi.asyncApi, instanceOf(AsyncApi.class));
+        assertThat(asyncapi.asyncApi, instanceOf(Asyncapi.class));
+        assertThat(options.host, equalTo("localhost"));
+        assertThat(options.ports.length, equalTo(1));
+        assertThat(options.ports[0], equalTo(7183));
+        assertThat(options.keys, equalTo(asList("localhost")));
+        assertThat(options.trust, equalTo(asList("serverca")));
+        assertThat(options.trustcacerts, equalTo(true));
+        assertThat(options.sni, equalTo(asList("example.net")));
+        assertThat(options.alpn, equalTo(asList("echo")));
     }
 
     @Test
     public void shouldWriteOptions()
     {
-        List<AsyncapiConfig> asyncapis = new ArrayList<>();
-        asyncapis.add(new AsyncapiConfig("mqtt/asyncapi.yaml", new AsyncApi()));
+        List<AsyncapiConfig> specs = new ArrayList<>();
+        specs.add(new AsyncapiConfig("mqtt/asyncapi.yaml", new Asyncapi()));
 
-        AsyncapiOptionsConfig options = new AsyncapiOptionsConfig(asyncapis);
+
+        AsyncapiOptionsConfig options = AsyncapiOptionsConfig.builder()
+            .inject(Function.identity())
+            .specs(specs)
+            .host("localhost")
+            .ports(new int[] { 7183 })
+            .keys(asList("localhost"))
+            .trust(asList("serverca"))
+            .sni(asList("example.net"))
+            .alpn(asList("echo"))
+            .trustcacerts(true)
+            .build();
 
         String text = jsonb.toJson(options);
 
@@ -108,6 +147,25 @@ public class AsyncapiOptionsConfigAdapterTest
                 "\"specs\":" +
                     "[" +
                         "\"mqtt/asyncapi.yaml\"" +
+                    "]," +
+                    "\"host\":\"localhost\"," +
+                    "\"port\":7183," +
+                    "\"keys\":" +
+                    "[" +
+                        "\"localhost\"" +
+                    "]," +
+                    "\"trust\":" +
+                    "[" +
+                        "\"serverca\"" +
+                    "]," +
+                    "\"trustcacerts\":true," +
+                    "\"sni\":" +
+                    "[" +
+                        "\"example.net\"" +
+                    "]," +
+                    "\"alpn\":" +
+                    "[" +
+                        "\"echo\"" +
                     "]" +
                 "}"));
     }
