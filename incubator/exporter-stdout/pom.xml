@@ -13,7 +13,7 @@
   </parent>
 
   <artifactId>exporter-stdout</artifactId>
-  <name>zilla::runtime::exporter-stdout</name>
+  <name>zilla::incubator::exporter-stdout</name>
 
   <licenses>
     <license>
