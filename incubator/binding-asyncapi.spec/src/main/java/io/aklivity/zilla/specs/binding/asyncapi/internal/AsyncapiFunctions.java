@@ -15,6 +15,9 @@
  */
 package io.aklivity.zilla.specs.binding.asyncapi.internal;
 
+import java.nio.ByteBuffer;
+import java.util.Objects;
+
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -24,9 +27,6 @@ import org.kaazing.k3po.lang.el.spi.FunctionMapperSpi;
 
 import io.aklivity.zilla.specs.binding.asyncapi.internal.types.OctetsFW;
 import io.aklivity.zilla.specs.binding.asyncapi.internal.types.stream.AsyncapiBeginExFW;
-
-import java.nio.ByteBuffer;
-import java.util.Objects;
 
 public final class AsyncapiFunctions
 {
@@ -150,7 +150,6 @@ public final class AsyncapiFunctions
                 byteBuf.position(byteBuf.position() + beginEx.sizeof());
                 return beginEx;
             }
-
             throw new Exception(beginEx.toString());
         }
 

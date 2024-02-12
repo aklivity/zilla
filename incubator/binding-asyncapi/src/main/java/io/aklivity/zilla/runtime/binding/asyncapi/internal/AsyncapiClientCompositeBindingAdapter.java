@@ -19,7 +19,6 @@ import static com.fasterxml.jackson.dataformat.yaml.YAMLGenerator.Feature.WRITE_
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
-import java.util.List;
 import java.util.Map;
 
 import jakarta.json.bind.Jsonb;
@@ -120,7 +119,8 @@ public class AsyncapiClientCompositeBindingAdapter extends AsyncapiCompositeBind
     private <C> NamespaceConfigBuilder<C> injectCatalog(
         NamespaceConfigBuilder<C> namespace)
     {
-        if (asyncApi.asyncapiComponents != null && asyncApi.asyncapiComponents.schemas != null && !asyncApi.asyncapiComponents.schemas.isEmpty())
+        if (asyncApi.asyncapiComponents != null && asyncApi.asyncapiComponents.schemas != null &&
+            !asyncApi.asyncapiComponents.schemas.isEmpty())
         {
             namespace
                 .catalog()

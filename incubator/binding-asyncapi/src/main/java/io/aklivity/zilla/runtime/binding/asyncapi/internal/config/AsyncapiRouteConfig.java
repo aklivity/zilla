@@ -14,12 +14,9 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.config;
 
-import static java.util.stream.Collectors.toList;
 
-import java.util.List;
 import java.util.function.LongPredicate;
 
-import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 
 public final class AsyncapiRouteConfig

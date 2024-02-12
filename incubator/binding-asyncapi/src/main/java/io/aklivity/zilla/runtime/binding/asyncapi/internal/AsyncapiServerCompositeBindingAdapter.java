@@ -16,7 +16,6 @@ package io.aklivity.zilla.runtime.binding.asyncapi.internal;
 
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 
-import java.util.List;
 import java.util.Map;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiConfig;
@@ -220,9 +219,11 @@ public class AsyncapiServerCompositeBindingAdapter extends AsyncapiCompositeBind
     private boolean hasJsonContentType()
     {
         String contentType = null;
-        if (asyncApi.asyncapiComponents != null && asyncApi.asyncapiComponents.messages != null && !asyncApi.asyncapiComponents.messages.isEmpty())
+        if (asyncApi.asyncapiComponents != null && asyncApi.asyncapiComponents.messages != null &&
+            !asyncApi.asyncapiComponents.messages.isEmpty())
         {
-            AsyncapiMessage firstAsyncapiMessage = asyncApi.asyncapiComponents.messages.entrySet().stream().findFirst().get().getValue();
+            AsyncapiMessage firstAsyncapiMessage = asyncApi.asyncapiComponents.messages.entrySet().stream()
+                .findFirst().get().getValue();
             contentType = AsyncapiMessageView.of(asyncApi.asyncapiComponents.messages, firstAsyncapiMessage).contentType();
         }
         return contentType != null && jsonContentType.reset(contentType).matches();

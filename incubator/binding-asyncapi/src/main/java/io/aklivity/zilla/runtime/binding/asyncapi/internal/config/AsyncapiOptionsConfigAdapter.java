@@ -33,20 +33,17 @@ import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import org.agrona.collections.IntHashSet;
+import org.agrona.collections.MutableInteger;
+
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiBinding;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
-import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
-import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfigBuilder;
-import io.aklivity.zilla.runtime.binding.tls.internal.config.TlsOptionsConfigAdapter;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
-
-import org.agrona.collections.IntHashSet;
-import org.agrona.collections.MutableInteger;
 
 public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {

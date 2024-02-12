@@ -74,7 +74,9 @@ public class AsyncapiBingingFactorySpiTest
                 "\"specs\":" +
                 "[" +
                     "\"mqtt/asyncapi.yaml\"" +
-                "]" +
+                "]," +
+                "\"host\": \"localhost\"," +
+                "\"port\": 7183" +
             "}";
 
         AsyncapiOptionsConfig options = jsonb.fromJson(text, AsyncapiOptionsConfig.class);

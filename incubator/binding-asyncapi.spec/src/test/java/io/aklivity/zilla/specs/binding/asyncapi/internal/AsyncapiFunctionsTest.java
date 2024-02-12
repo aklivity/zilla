@@ -18,6 +18,8 @@ package io.aklivity.zilla.specs.binding.asyncapi.internal;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
+import java.nio.ByteBuffer;
+
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -26,8 +28,6 @@ import org.kaazing.k3po.lang.el.BytesMatcher;
 
 import io.aklivity.zilla.specs.binding.asyncapi.internal.types.OctetsFW;
 import io.aklivity.zilla.specs.binding.asyncapi.internal.types.stream.AsyncapiBeginExFW;
-
-import java.nio.ByteBuffer;
 
 public class AsyncapiFunctionsTest
 {
@@ -57,6 +57,25 @@ public class AsyncapiFunctionsTest
     }
 
     @Test
+    public void shouldMatchAsyncapiBeginExtensionOnly() throws Exception
+    {
+        BytesMatcher matcher = AsyncapiFunctions.matchBeginEx()
+            .typeId(0x00)
+            .extension(new byte[] {1})
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(11);
+        MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1]);
+
+        new AsyncapiBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x00)
+            .extension(new OctetsFW.Builder().wrap(writeBuffer, 0, 1).set(new byte[] {1}).build())
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
     public void shouldMatchAsyncapiBeginExtension() throws Exception
     {
         BytesMatcher matcher = AsyncapiFunctions.matchBeginEx()
@@ -66,7 +85,7 @@ public class AsyncapiFunctionsTest
             .extension(new byte[] {1})
             .build();
 
-        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+        ByteBuffer byteBuf = ByteBuffer.allocate(22);
         MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1]);
 
         new AsyncapiBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
