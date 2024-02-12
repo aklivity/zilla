@@ -119,7 +119,7 @@ public final class EventsLayout implements AutoCloseable
         }
     }
 
-    private static RingBuffer createRingBuffer(
+    private static AtomicBuffer createAtomicBuffer(
         Path path,
         long capacity,
         boolean readonly)
@@ -130,7 +130,15 @@ public final class EventsLayout implements AutoCloseable
             CloseHelper.close(createEmptyFile(layoutFile, capacity + RingBufferDescriptor.TRAILER_LENGTH));
         }
         final MappedByteBuffer mappedBuffer = mapExistingFile(layoutFile, "events");
-        final AtomicBuffer atomicBuffer = new UnsafeBuffer(mappedBuffer);
+        return new UnsafeBuffer(mappedBuffer);
+    }
+
+    private static RingBuffer createRingBuffer(
+        Path path,
+        long capacity,
+        boolean readonly)
+    {
+        AtomicBuffer atomicBuffer = createAtomicBuffer(path, capacity, readonly);
         return new OneToOneRingBuffer(atomicBuffer);
     }
 
@@ -138,9 +146,7 @@ public final class EventsLayout implements AutoCloseable
         Path path,
         SpyPosition position)
     {
-        final File layoutFile = path.toFile();
-        final MappedByteBuffer mappedBuffer = mapExistingFile(layoutFile, "events");
-        final AtomicBuffer atomicBuffer = new UnsafeBuffer(mappedBuffer);
+        AtomicBuffer atomicBuffer = createAtomicBuffer(path, 0, true);
         final OneToOneRingBufferSpy spy = new OneToOneRingBufferSpy(atomicBuffer);
         if (position != null)
         {
