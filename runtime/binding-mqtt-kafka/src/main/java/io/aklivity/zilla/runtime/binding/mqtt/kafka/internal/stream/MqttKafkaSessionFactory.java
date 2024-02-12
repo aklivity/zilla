@@ -413,8 +413,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         private String16FW clientIdMigrate;
         private String memberId;
         private String groupInstanceId;
-        private String host;
-        private int port;
+        private String groupHost;
+        private int groupPort;
         private int generationId;
 
         private int sessionExpiryMillis;
@@ -1175,7 +1175,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                     this.generationId = generationId;
                     final String groupId = String.format("%s-%s", clientId.asString(), GROUPID_SESSION_SUFFIX);
                     this.metadata.group = new KafkaGroup(groupInstanceId, groupId,
-                        memberId, generationId);
+                        memberId, groupHost, groupPort, generationId);
                     openMetaStreams(traceId, authorization);
                 }
             }
@@ -1251,8 +1251,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             int sessionExpiryMillisInRange)
         {
             this.groupInstanceId = instanceId;
-            this.host = host;
-            this.port = port;
+            this.groupHost = host;
+            this.groupPort = port;
             if (this.sessionExpiryMillis != sessionExpiryMillisInRange)
             {
                 this.sessionExpiryMillis = sessionExpiryMillisInRange;
@@ -1276,7 +1276,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             long authorization)
         {
             final long routedId = session.routedId;
-            offsetCommit = new KafkaOffsetCommitStream(originId, routedId, this);
+            offsetCommit = new KafkaOffsetCommitStream(originId, routedId, this, groupHost, groupPort);
             offsetCommit.doKafkaBegin(traceId, authorization, 0);
         }
 
@@ -1355,7 +1355,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             final String topic0 = topic.asString();
 
             final KafkaOffsetFetchStream offsetFetch =
-                new KafkaOffsetFetchStream(originId, resolvedId, this, host, port, topic0, partitions);
+                new KafkaOffsetFetchStream(originId, resolvedId, this, groupHost, groupPort, topic0, partitions);
             offsetFetches.add(offsetFetch);
             offsetFetch.doKafkaBegin(traceId, authorization, 0);
         }
@@ -4673,6 +4673,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         private final long routedId;
         private final long initialId;
         private final long replyId;
+        private final String groupHost;
+        private final int groupPort;
         private final MqttSessionProxy delegate;
 
         private int state;
@@ -4689,13 +4691,17 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         private KafkaOffsetCommitStream(
             long originId,
             long routedId,
-            MqttSessionProxy delegate)
+            MqttSessionProxy delegate,
+            String groupHost,
+            int groupPort)
         {
             this.originId = originId;
             this.routedId = routedId;
             this.delegate = delegate;
             this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
+            this.groupHost = groupHost;
+            this.groupPort = groupPort;
         }
 
         private void onOffsetCommitMessage(
@@ -4880,7 +4886,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             state = MqttKafkaState.openingInitial(state);
 
             kafka = newOffsetCommitStream(this::onOffsetCommitMessage, originId, routedId, initialId, initialSeq, initialAck,
-                initialMax, traceId, authorization, affinity, delegate.clientId, delegate.memberId, delegate.groupInstanceId);
+                initialMax, traceId, authorization, affinity, delegate.clientId, delegate.memberId, delegate.groupInstanceId,
+                delegate.groupHost, delegate.groupPort);
         }
 
         private void doKafkaEnd(
@@ -5574,7 +5581,9 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         long affinity,
         String16FW clientId,
         String memberId,
-        String instanceId)
+        String instanceId,
+        String host,
+        int port)
     {
         final String groupId = String.format("%s-%s", clientId.asString(), GROUPID_SESSION_SUFFIX);
 
@@ -5584,7 +5593,9 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 .offsetCommit(o -> o
                     .groupId(groupId)
                     .memberId(memberId)
-                    .instanceId(instanceId))
+                    .instanceId(instanceId)
+                    .host(host)
+                    .port(port))
                 .build();
 
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())

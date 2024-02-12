@@ -1013,7 +1013,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.topic = topic;
-            this.topicString = topic.asString();
+            this.topicString = topic.asString().intern();
         }
 
         abstract void doKafkaData(
@@ -2222,7 +2222,9 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                 .offsetCommit(o -> o
                     .groupId(group.groupId)
                     .memberId(group.memberId)
-                    .instanceId(group.instanceId))
+                    .instanceId(group.instanceId)
+                    .host(group.host)
+                    .port(group.port))
                 .build();
 
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
