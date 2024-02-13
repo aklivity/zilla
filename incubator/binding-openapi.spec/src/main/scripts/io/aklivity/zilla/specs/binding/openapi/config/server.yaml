@@ -16,30 +16,12 @@
 
 ---
 name: test
-vaults:
-  server:
-    type: test
 bindings:
   composite0:
     type: openapi
     kind: server
     vault: server
     options:
-      tls:
-        keys:
-          - localhost
-        alpn:
-          - protocol2
-      http:
-        authorization:
-          test0:
-            credentials:
-              cookies:
-                access_token: "{credentials}"
-              headers:
-                authorization: Bearer {credentials}
-              query:
-                access_token: "{credentials}"
       specs:
         - openapi/petstore.yaml
     exit: openapi0
