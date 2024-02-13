@@ -1,5 +1,13 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.67...HEAD)
+
+**Fixed bugs:**
+
+- Zilla crashes when a large number of MQTT clients connect [\#793](https://github.com/aklivity/zilla/issues/793)
+
 ## [0.9.67](https://github.com/aklivity/zilla/tree/0.9.67) (2024-02-11)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.66...0.9.67)
