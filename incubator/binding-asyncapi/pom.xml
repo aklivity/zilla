@@ -50,6 +50,65 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>binding-mqtt</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>binding-tcp</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>binding-tls</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>catalog-inline</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>validator-avro</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>validator-core</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>validator-json</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>model-core</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>model-json</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.dataformat</groupId>
+      <artifactId>jackson-dataformat-yaml</artifactId>
+      <version>2.16.1</version>
+    </dependency>
+    <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>engine</artifactId>
       <type>test-jar</type>
@@ -100,77 +159,6 @@
       <groupId>org.openjdk.jmh</groupId>
       <artifactId>jmh-generator-annprocess</artifactId>
       <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.aklivity.zilla</groupId>
-      <artifactId>binding-mqtt</artifactId>
-      <version>${project.version}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.aklivity.zilla</groupId>
-      <artifactId>binding-tcp</artifactId>
-      <version>${project.version}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.aklivity.zilla</groupId>
-      <artifactId>binding-tls</artifactId>
-      <version>${project.version}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.aklivity.zilla</groupId>
-      <artifactId>guard-jwt</artifactId>
-      <version>${project.version}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.aklivity.zilla</groupId>
-      <artifactId>catalog-inline</artifactId>
-      <version>${project.version}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.aklivity.zilla</groupId>
-      <artifactId>validator-avro</artifactId>
-      <version>${project.version}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.aklivity.zilla</groupId>
-      <artifactId>validator-core</artifactId>
-      <version>${project.version}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.aklivity.zilla</groupId>
-      <artifactId>validator-json</artifactId>
-      <version>${project.version}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.aklivity.zilla</groupId>
-      <artifactId>vault-filesystem</artifactId>
-      <version>${project.version}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.aklivity.zilla</groupId>
-      <artifactId>model-core</artifactId>
-      <version>${project.version}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.aklivity.zilla</groupId>
-      <artifactId>model-json</artifactId>
-      <version>${project.version}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.fasterxml.jackson.dataformat</groupId>
-      <artifactId>jackson-dataformat-yaml</artifactId>
-      <version>2.16.1</version>
     </dependency>
   </dependencies>
 

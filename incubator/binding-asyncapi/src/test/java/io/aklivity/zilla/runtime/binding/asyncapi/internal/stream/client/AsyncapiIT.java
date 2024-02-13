@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.stream.client;
 
-import static io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiConfigurationTest.ASYNCAPI_K3PO_ROUTE_ID_NAME;
+import static io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiConfigurationTest.ASYNCAPI_TARGET_ROUTE_ID_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -57,7 +57,7 @@ public class AsyncapiIT
         "${asyncapi}/publish.and.subscribe/client",
         "${mqtt}/publish.and.subscribe/server"
     })
-    @Configure(name = ASYNCAPI_K3PO_ROUTE_ID_NAME, value = "4294967298")
+    @Configure(name = ASYNCAPI_TARGET_ROUTE_ID_NAME, value = "4294967298")
     @ScriptProperty("serverAddress \"zilla://streams/mqtt0\"")
     public void shouldPublishAndSubscribe() throws Exception
     {

@@ -43,9 +43,11 @@ import org.mockito.junit.MockitoRule;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
+import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
+import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapter;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
-import io.aklivity.zilla.runtime.engine.internal.config.OptionsAdapter;
+import io.aklivity.zilla.specs.binding.asyncapi.AsyncapiSpecs;
 
 public class AsyncapiOptionsConfigAdapterTest
 {
@@ -53,25 +55,23 @@ public class AsyncapiOptionsConfigAdapterTest
     public MockitoRule rule = MockitoJUnit.rule();
     @Mock
     private ConfigAdapterContext context;
-    private OptionsAdapter adapter;
     private Jsonb jsonb;
 
     @Before
     public void initJson() throws IOException
     {
-        String content;
-        try (InputStream resource = AsyncapiOptionsConfigAdapterTest.class
-            .getResourceAsStream("../../../../../specs/binding/asyncapi/config/mqtt/asyncapi.yaml"))
+        try (InputStream resource = AsyncapiSpecs.class
+            .getResourceAsStream("config/mqtt/asyncapi.yaml"))
         {
-            content = new String(resource.readAllBytes(), UTF_8);
-        }
-        Mockito.doReturn(content).when(context).readURL("mqtt/asyncapi.yaml");
+            String content = new String(resource.readAllBytes(), UTF_8);
+            Mockito.doReturn(content).when(context).readURL("mqtt/asyncapi.yaml");
 
-        adapter = new OptionsAdapter(OptionsConfigAdapterSpi.Kind.BINDING, context);
-        adapter.adaptType("asyncapi");
-        JsonbConfig config = new JsonbConfig()
-            .withAdapters(adapter);
-        jsonb = JsonbBuilder.create(config);
+            OptionsConfigAdapter adapter = new OptionsConfigAdapter(OptionsConfigAdapterSpi.Kind.BINDING, context);
+            adapter.adaptType("asyncapi");
+            JsonbConfig config = new JsonbConfig()
+                .withAdapters(adapter);
+            jsonb = JsonbBuilder.create(config);
+        }
     }
 
     @Test
@@ -83,25 +83,26 @@ public class AsyncapiOptionsConfigAdapterTest
                     "[" +
                         "\"mqtt/asyncapi.yaml\"" +
                     "]," +
-                    "\"host\": \"localhost\"," +
-                    "\"port\": 7183," +
-                    "\"keys\":" +
-                    "[" +
-                        "\"localhost\"" +
-                    "]," +
-                    "\"trust\":" +
-                    "[" +
-                        "\"serverca\"" +
-                    "]," +
-                    "\"trustcacerts\":true," +
-                    "\"sni\":" +
-                    "[" +
-                        "\"example.net\"" +
-                    "]," +
-                    "\"alpn\":" +
-                    "[" +
-                        "\"echo\"" +
-                    "]" +
+                    "\"tls\":" +
+                    "{" +
+                        "\"keys\":" +
+                        "[" +
+                            "\"localhost\"" +
+                        "]," +
+                        "\"trust\":" +
+                        "[" +
+                            "\"serverca\"" +
+                        "]," +
+                        "\"trustcacerts\":true," +
+                        "\"sni\":" +
+                        "[" +
+                            "\"example.net\"" +
+                        "]," +
+                        "\"alpn\":" +
+                        "[" +
+                            "\"echo\"" +
+                        "]" +
+                    "}" +
                 "}";
 
         AsyncapiOptionsConfig options = jsonb.fromJson(text, AsyncapiOptionsConfig.class);
@@ -110,14 +111,11 @@ public class AsyncapiOptionsConfigAdapterTest
         AsyncapiConfig asyncapi = options.specs.get(0);
         assertThat(asyncapi.location, equalTo("mqtt/asyncapi.yaml"));
         assertThat(asyncapi.asyncApi, instanceOf(Asyncapi.class));
-        assertThat(options.host, equalTo("localhost"));
-        assertThat(options.ports.length, equalTo(1));
-        assertThat(options.ports[0], equalTo(7183));
-        assertThat(options.keys, equalTo(asList("localhost")));
-        assertThat(options.trust, equalTo(asList("serverca")));
-        assertThat(options.trustcacerts, equalTo(true));
-        assertThat(options.sni, equalTo(asList("example.net")));
-        assertThat(options.alpn, equalTo(asList("echo")));
+        assertThat(options.tls.keys, equalTo(asList("localhost")));
+        assertThat(options.tls.trust, equalTo(asList("serverca")));
+        assertThat(options.tls.trustcacerts, equalTo(true));
+        assertThat(options.tls.sni, equalTo(asList("example.net")));
+        assertThat(options.tls.alpn, equalTo(asList("echo")));
     }
 
     @Test
@@ -130,13 +128,13 @@ public class AsyncapiOptionsConfigAdapterTest
         AsyncapiOptionsConfig options = AsyncapiOptionsConfig.builder()
             .inject(Function.identity())
             .specs(specs)
-            .host("localhost")
-            .ports(new int[] { 7183 })
-            .keys(asList("localhost"))
-            .trust(asList("serverca"))
-            .sni(asList("example.net"))
-            .alpn(asList("echo"))
-            .trustcacerts(true)
+            .tls(TlsOptionsConfig.builder()
+                .keys(asList("localhost"))
+                .trust(asList("serverca"))
+                .sni(asList("example.net"))
+                .alpn(asList("echo"))
+                .trustcacerts(true)
+                .build())
             .build();
 
         String text = jsonb.toJson(options);
@@ -148,8 +146,8 @@ public class AsyncapiOptionsConfigAdapterTest
                     "[" +
                         "\"mqtt/asyncapi.yaml\"" +
                     "]," +
-                    "\"host\":\"localhost\"," +
-                    "\"port\":7183," +
+                "\"tls\":" +
+                "{" +
                     "\"keys\":" +
                     "[" +
                         "\"localhost\"" +
@@ -167,6 +165,7 @@ public class AsyncapiOptionsConfigAdapterTest
                     "[" +
                         "\"echo\"" +
                     "]" +
-                "}"));
+                "}" +
+            "}"));
     }
 }

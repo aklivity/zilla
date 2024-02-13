@@ -26,9 +26,7 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiServerVi
 public class AsyncapiCompositeBindingAdapter
 {
     protected static final String INLINE_CATALOG_NAME = "catalog0";
-    protected static final String INLINE_CATALOG_TYPE = "inline";
     protected static final String APPLICATION_JSON = "application/json";
-    protected static final String VERSION_LATEST = "latest";
     protected static final Pattern JSON_CONTENT_TYPE = Pattern.compile("^application/(?:.+\\+)?json$");
     protected final Matcher jsonContentType = JSON_CONTENT_TYPE.matcher("");
 

@@ -23,13 +23,11 @@ bindings:
     options:
       specs:
         - mqtt/asyncapi.yaml
-      host: localhost
-      port:
-        - 7183
-      keys:
-        - localhost
-      sni:
-        - example.net
-      alpn:
-        - echo
+      tls:
+        keys:
+          - localhost
+        sni:
+          - example.net
+        alpn:
+          - echo
     exit: asyncapi0

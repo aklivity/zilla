@@ -14,29 +14,11 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal;
 
-import static com.fasterxml.jackson.dataformat.yaml.YAMLGenerator.Feature.MINIMIZE_QUOTES;
-import static com.fasterxml.jackson.dataformat.yaml.YAMLGenerator.Feature.WRITE_DOC_START_MARKER;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
-import static org.agrona.LangUtil.rethrowUnchecked;
-
-import java.util.Map;
-
-import jakarta.json.bind.Jsonb;
-import jakarta.json.bind.JsonbBuilder;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiSchema;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiSchemaView;
-import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
-import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
-import io.aklivity.zilla.runtime.catalog.inline.config.InlineSchemaConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.CompositeBindingAdapterSpi;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
@@ -82,12 +64,7 @@ public class AsyncapiClientCompositeBindingAdapter extends AsyncapiCompositeBind
                     .name("tcp_client0")
                     .type("tcp")
                     .kind(CLIENT)
-                    .options(TcpOptionsConfig::builder)
-                        .host(options.host)
-                        .ports(options.ports)
-                        .build()
                     .build()
-                .inject(this::injectCatalog)
                 .build()
             .build();
     }
@@ -104,81 +81,15 @@ public class AsyncapiClientCompositeBindingAdapter extends AsyncapiCompositeBind
                     .type("tls")
                     .kind(CLIENT)
                     .options(TlsOptionsConfig::builder)
-                        .trust(options.trust)
-                        .sni(options.sni)
-                        .alpn(options.alpn)
-                        .trustcacerts(options.trustcacerts)
+                        .trust(options.tls.trust)
+                        .sni(options.tls.sni)
+                        .alpn(options.tls.alpn)
+                        .trustcacerts(options.tls.trustcacerts)
                         .build()
                     .vault("client")
                     .exit("tcp_client0")
                     .build();
         }
         return namespace;
-    }
-
-    private <C> NamespaceConfigBuilder<C> injectCatalog(
-        NamespaceConfigBuilder<C> namespace)
-    {
-        if (asyncApi.asyncapiComponents != null && asyncApi.asyncapiComponents.schemas != null &&
-            !asyncApi.asyncapiComponents.schemas.isEmpty())
-        {
-            namespace
-                .catalog()
-                    .name(INLINE_CATALOG_NAME)
-                    .type(INLINE_CATALOG_TYPE)
-                    .options(InlineOptionsConfig::builder)
-                        .subjects()
-                            .inject(this::injectSubjects)
-                            .build()
-                        .build()
-                    .build();
-
-        }
-        return namespace;
-    }
-
-    private <C> InlineSchemaConfigBuilder<C> injectSubjects(
-        InlineSchemaConfigBuilder<C> subjects)
-    {
-        try (Jsonb jsonb = JsonbBuilder.create())
-        {
-            YAMLMapper yaml = YAMLMapper.builder()
-                .disable(WRITE_DOC_START_MARKER)
-                .enable(MINIMIZE_QUOTES)
-                .build();
-            for (Map.Entry<String, AsyncapiSchema> entry : asyncApi.asyncapiComponents.schemas.entrySet())
-            {
-                AsyncapiSchemaView schema = AsyncapiSchemaView.of(asyncApi.asyncapiComponents.schemas, entry.getValue());
-                subjects
-                    .subject(entry.getKey())
-                        .version(VERSION_LATEST)
-                        .schema(writeSchemaYaml(jsonb, yaml, schema))
-                        .build();
-            }
-        }
-        catch (Exception ex)
-        {
-            rethrowUnchecked(ex);
-        }
-        return subjects;
-    }
-
-    private static String writeSchemaYaml(
-        Jsonb jsonb,
-        YAMLMapper yaml,
-        Object schema)
-    {
-        String result = null;
-        try
-        {
-            String schemaJson = jsonb.toJson(schema);
-            JsonNode json = new ObjectMapper().readTree(schemaJson);
-            result = yaml.writeValueAsString(json);
-        }
-        catch (JsonProcessingException ex)
-        {
-            rethrowUnchecked(ex);
-        }
-        return result;
     }
 }

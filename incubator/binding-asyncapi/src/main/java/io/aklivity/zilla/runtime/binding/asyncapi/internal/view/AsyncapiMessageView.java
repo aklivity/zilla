@@ -23,14 +23,6 @@ public final class AsyncapiMessageView extends AsyncapiResolvable<AsyncapiMessag
 {
     private final AsyncapiMessage asyncapiMessage;
 
-    private AsyncapiMessageView(
-        Map<String, AsyncapiMessage> messages,
-        AsyncapiMessage asyncapiMessage)
-    {
-        super(messages, "#/components/messages/(\\w+)");
-        this.asyncapiMessage = asyncapiMessage.ref == null ? asyncapiMessage : resolveRef(asyncapiMessage.ref);
-    }
-
     public String refKey()
     {
         return key;
@@ -51,5 +43,13 @@ public final class AsyncapiMessageView extends AsyncapiResolvable<AsyncapiMessag
         AsyncapiMessage asyncapiMessage)
     {
         return new AsyncapiMessageView(messages, asyncapiMessage);
+    }
+
+    private AsyncapiMessageView(
+        Map<String, AsyncapiMessage> messages,
+        AsyncapiMessage asyncapiMessage)
+    {
+        super(messages, "#/components/messages/(\\w+)");
+        this.asyncapiMessage = asyncapiMessage.ref == null ? asyncapiMessage : resolveRef(asyncapiMessage.ref);
     }
 }

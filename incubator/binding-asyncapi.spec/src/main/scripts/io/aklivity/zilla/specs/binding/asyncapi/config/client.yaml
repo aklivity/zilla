@@ -23,7 +23,4 @@ bindings:
     options:
       specs:
         - mqtt/asyncapi.yaml
-      host: localhost
-      port:
-        - 7183
 

@@ -35,23 +35,6 @@ public final class AsyncapiSchemaView extends AsyncapiResolvable<AsyncapiSchema>
     private final AsyncapiSchema asyncapiSchema;
     private final Map<String, AsyncapiSchema> schemas;
 
-    private AsyncapiSchemaView(
-        Map<String, AsyncapiSchema> schemas,
-        AsyncapiSchema asyncapiSchema)
-    {
-        super(schemas, "#/components/schemas/(\\w+)");
-        if (asyncapiSchema.ref != null)
-        {
-            asyncapiSchema = resolveRef(asyncapiSchema.ref);
-        }
-        else if (ARRAY_TYPE.equals(asyncapiSchema.type) && asyncapiSchema.items != null && asyncapiSchema.items.ref != null)
-        {
-            asyncapiSchema.items = resolveRef(asyncapiSchema.items.ref);
-        }
-        this.schemas = schemas;
-        this.asyncapiSchema = asyncapiSchema;
-    }
-
     public String getType()
     {
         return asyncapiSchema.type;
@@ -77,5 +60,22 @@ public final class AsyncapiSchemaView extends AsyncapiResolvable<AsyncapiSchema>
         AsyncapiSchema asyncapiSchema)
     {
         return new AsyncapiSchemaView(schemas, asyncapiSchema);
+    }
+
+    private AsyncapiSchemaView(
+        Map<String, AsyncapiSchema> schemas,
+        AsyncapiSchema asyncapiSchema)
+    {
+        super(schemas, "#/components/schemas/(\\w+)");
+        if (asyncapiSchema.ref != null)
+        {
+            asyncapiSchema = resolveRef(asyncapiSchema.ref);
+        }
+        else if (ARRAY_TYPE.equals(asyncapiSchema.type) && asyncapiSchema.items != null && asyncapiSchema.items.ref != null)
+        {
+            asyncapiSchema.items = resolveRef(asyncapiSchema.items.ref);
+        }
+        this.schemas = schemas;
+        this.asyncapiSchema = asyncapiSchema;
     }
 }

@@ -37,8 +37,8 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiOption
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
+import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapter;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
-import io.aklivity.zilla.runtime.engine.internal.config.OptionsAdapter;
 
 public class AsyncapiBingingFactorySpiTest
 {
@@ -59,7 +59,7 @@ public class AsyncapiBingingFactorySpiTest
         }
         Mockito.doReturn(content).when(context).readURL("mqtt/asyncapi.yaml");
 
-        OptionsAdapter adapter = new OptionsAdapter(OptionsConfigAdapterSpi.Kind.BINDING, context);
+        OptionsConfigAdapter adapter = new OptionsConfigAdapter(OptionsConfigAdapterSpi.Kind.BINDING, context);
         adapter.adaptType("asyncapi");
         JsonbConfig config = new JsonbConfig()
             .withAdapters(adapter);
@@ -74,9 +74,7 @@ public class AsyncapiBingingFactorySpiTest
                 "\"specs\":" +
                 "[" +
                     "\"mqtt/asyncapi.yaml\"" +
-                "]," +
-                "\"host\": \"localhost\"," +
-                "\"port\": 7183" +
+                "]" +
             "}";
 
         AsyncapiOptionsConfig options = jsonb.fromJson(text, AsyncapiOptionsConfig.class);

@@ -39,6 +39,7 @@ public class AsyncapiServerCompositeBindingAdapter extends AsyncapiCompositeBind
 {
     private int[] mqttPorts;
     private int[] mqttsPorts;
+    private String qname;
 
     @Override
     public String type()
@@ -59,9 +60,10 @@ public class AsyncapiServerCompositeBindingAdapter extends AsyncapiCompositeBind
         this.mqttsPorts = resolvePortsForScheme("mqtts");
         this.isPlainEnabled = mqttPorts != null;
         this.isTlsEnabled = mqttsPorts != null;
+        this.qname = binding.qname;
         return BindingConfig.builder(binding)
             .composite()
-                .name(String.format("%s/mqtt", binding.qname))
+                .name(String.format("%s/mqtt", qname))
                 .binding()
                     .name("tcp_server0")
                     .type("tcp")
@@ -129,9 +131,9 @@ public class AsyncapiServerCompositeBindingAdapter extends AsyncapiCompositeBind
                     .type("tls")
                     .kind(SERVER)
                     .options(TlsOptionsConfig::builder)
-                        .keys(options.keys)
-                        .sni(options.sni)
-                        .alpn(options.alpn)
+                        .keys(options.tls.keys)
+                        .sni(options.tls.sni)
+                        .alpn(options.tls.alpn)
                         .build()
                     .vault("server")
                     .exit("mqtt_server0")
@@ -145,7 +147,7 @@ public class AsyncapiServerCompositeBindingAdapter extends AsyncapiCompositeBind
     {
         for (Map.Entry<String, AsyncapiChannel> channelEntry : asyncApi.channels.entrySet())
         {
-            String topic = channelEntry.getValue().address.replaceAll("\\{[^}]+\\}", "*");
+            String topic = channelEntry.getValue().address.replaceAll("\\{[^}]+\\}", "#");
             Map<String, AsyncapiMessage> messages = channelEntry.getValue().messages;
             if (hasJsonContentType())
             {
@@ -197,7 +199,7 @@ public class AsyncapiServerCompositeBindingAdapter extends AsyncapiCompositeBind
     {
         for (Map.Entry<String, AsyncapiChannel> entry : asyncApi.channels.entrySet())
         {
-            String topic = entry.getValue().address.replaceAll("\\{[^}]+\\}", "*");
+            String topic = entry.getValue().address.replaceAll("\\{[^}]+\\}", "#");
             binding
                 .route()
                     .when(MqttConditionConfig::builder)
@@ -210,7 +212,7 @@ public class AsyncapiServerCompositeBindingAdapter extends AsyncapiCompositeBind
                             .topic(topic)
                             .build()
                         .build()
-                    .exit("mqtt_client0")
+                    .exit(qname)
                 .build();
         }
         return binding;

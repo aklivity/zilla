@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.asyncapi.config;
 import java.util.List;
 import java.util.function.Function;
 
+import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
@@ -25,13 +26,7 @@ public final class AsyncapiOptionsConfigBuilder<T> extends ConfigBuilder<T, Asyn
     private final Function<OptionsConfig, T> mapper;
 
     public List<AsyncapiConfig> specs;
-    private String host;
-    private int[] ports;
-    private List<String> keys;
-    private List<String> trust;
-    private List<String> sni;
-    private List<String> alpn;
-    private Boolean trustcacerts;
+    private TlsOptionsConfig tls;
 
     AsyncapiOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
@@ -53,59 +48,17 @@ public final class AsyncapiOptionsConfigBuilder<T> extends ConfigBuilder<T, Asyn
         return this;
     }
 
-    public AsyncapiOptionsConfigBuilder<T> host(
-        String host)
+    public AsyncapiOptionsConfigBuilder<T> tls(
+        TlsOptionsConfig tls)
     {
-        this.host = host;
+        this.tls = tls;
         return this;
     }
 
-    public AsyncapiOptionsConfigBuilder<T> ports(
-        int[] ports)
-    {
-        this.ports = ports;
-        return this;
-    }
-
-    public AsyncapiOptionsConfigBuilder<T> keys(
-        List<String> keys)
-    {
-        this.keys = keys;
-        return this;
-    }
-
-    public AsyncapiOptionsConfigBuilder<T> trust(
-        List<String> trust)
-    {
-        this.trust = trust;
-        return this;
-    }
-
-    public AsyncapiOptionsConfigBuilder<T> sni(
-        List<String> sni)
-    {
-        this.sni = sni;
-        return this;
-    }
-
-    public AsyncapiOptionsConfigBuilder<T> alpn(
-        List<String> alpn)
-    {
-        this.alpn = alpn;
-        return this;
-    }
-
-    public AsyncapiOptionsConfigBuilder<T> trustcacerts(
-        boolean trustcacerts)
-    {
-        this.trustcacerts = trustcacerts;
-        return this;
-    }
 
     @Override
     public T build()
     {
-        final boolean trustcacerts = this.trustcacerts == null ? this.trust == null : this.trustcacerts;
-        return mapper.apply(new AsyncapiOptionsConfig(specs, host, ports, keys, trust, sni, alpn, trustcacerts));
+        return mapper.apply(new AsyncapiOptionsConfig(specs, tls));
     }
 }

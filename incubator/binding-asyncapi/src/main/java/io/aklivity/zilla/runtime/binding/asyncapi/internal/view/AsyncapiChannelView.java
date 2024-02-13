@@ -24,14 +24,6 @@ public final class AsyncapiChannelView extends AsyncapiResolvable<AsyncapiChanne
 {
     private final AsyncapiChannel asyncapiChannel;
 
-    private AsyncapiChannelView(
-        Map<String, AsyncapiChannel> channels,
-        AsyncapiChannel asyncapiChannel)
-    {
-        super(channels, "#/channels/(\\w+)");
-        this.asyncapiChannel = asyncapiChannel.ref == null ? asyncapiChannel : resolveRef(asyncapiChannel.ref);
-    }
-
     public String address()
     {
         return asyncapiChannel.address;
@@ -52,5 +44,13 @@ public final class AsyncapiChannelView extends AsyncapiResolvable<AsyncapiChanne
         AsyncapiChannel asyncapiChannel)
     {
         return new AsyncapiChannelView(channels, asyncapiChannel);
+    }
+
+    private AsyncapiChannelView(
+        Map<String, AsyncapiChannel> channels,
+        AsyncapiChannel asyncapiChannel)
+    {
+        super(channels, "#/channels/(\\w+)");
+        this.asyncapiChannel = asyncapiChannel.ref == null ? asyncapiChannel : resolveRef(asyncapiChannel.ref);
     }
 }

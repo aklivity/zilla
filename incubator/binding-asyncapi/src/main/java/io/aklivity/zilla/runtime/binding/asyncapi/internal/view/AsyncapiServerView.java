@@ -24,12 +24,6 @@ public final class AsyncapiServerView
 {
     private final AsyncapiServer asyncapiServer;
 
-    private AsyncapiServerView(
-        AsyncapiServer asyncapiServer)
-    {
-        this.asyncapiServer = asyncapiServer;
-    }
-
     public URI url()
     {
         return URI.create(asyncapiServer.host);
@@ -54,5 +48,11 @@ public final class AsyncapiServerView
         AsyncapiServer asyncapiServer)
     {
         return new AsyncapiServerView(asyncapiServer);
+    }
+
+    private AsyncapiServerView(
+        AsyncapiServer asyncapiServer)
+    {
+        this.asyncapiServer = asyncapiServer;
     }
 }

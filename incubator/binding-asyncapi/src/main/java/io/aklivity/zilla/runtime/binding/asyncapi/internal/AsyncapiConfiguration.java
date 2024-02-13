@@ -18,13 +18,13 @@ import io.aklivity.zilla.runtime.engine.Configuration;
 
 public class AsyncapiConfiguration extends Configuration
 {
-    public static final LongPropertyDef ASYNCAPI_K3PO_ROUTE_ID;
+    public static final LongPropertyDef ASYNCAPI_TARGET_ROUTE_ID;
     private static final ConfigurationDef ASYNCAPI_CONFIG;
 
     static
     {
         final ConfigurationDef config = new ConfigurationDef("zilla.binding.asyncapi");
-        ASYNCAPI_K3PO_ROUTE_ID = config.property("k3po.route.id", -1L);
+        ASYNCAPI_TARGET_ROUTE_ID = config.property("target.route.id", -1L);
         ASYNCAPI_CONFIG = config;
     }
 
@@ -34,8 +34,8 @@ public class AsyncapiConfiguration extends Configuration
         super(ASYNCAPI_CONFIG, config);
     }
 
-    public long k3poRouteId()
+    public long targetRouteId()
     {
-        return ASYNCAPI_K3PO_ROUTE_ID.getAsLong(this);
+        return ASYNCAPI_TARGET_ROUTE_ID.getAsLong(this);
     }
 }

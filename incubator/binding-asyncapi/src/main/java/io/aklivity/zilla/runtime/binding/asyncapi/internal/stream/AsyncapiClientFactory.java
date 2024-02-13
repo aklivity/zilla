@@ -44,7 +44,7 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 public final class AsyncapiClientFactory implements AsyncapiStreamFactory
 {
     private static final String MQTT_TYPE_NAME = "mqtt";
-    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(new byte[0]), 0, 0);
+    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(), 0, 0);
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -112,7 +112,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        AsyncapiBindingConfig asyncapiBinding = new AsyncapiBindingConfig(binding, config.k3poRouteId());
+        AsyncapiBindingConfig asyncapiBinding = new AsyncapiBindingConfig(binding, config.targetRouteId());
         bindings.put(binding.id, asyncapiBinding);
     }
 
@@ -205,29 +205,24 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
             this.authorization = authorization;
         }
 
-        private void doMqttBegin(
+        private void doCompositeBegin(
             long traceId,
             OctetsFW extension)
         {
-            if (AsyncapiState.closed(state))
-            {
-                state = 0;
-            }
-
             if (!AsyncapiState.initialOpening(state))
             {
                 assert state == 0;
 
                 this.initialId = supplyInitialId.applyAsLong(routedId);
                 this.replyId = supplyReplyId.applyAsLong(initialId);
-                this.receiver = newStream(this::onMqttMessage,
+                this.receiver = newStream(this::onCompositeMessage,
                     originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, 0L, extension);
                 state = AsyncapiState.openingInitial(state);
             }
         }
 
-        private void doMqttData(
+        private void doCompositeData(
             long traceId,
             long authorization,
             long budgetId,
@@ -244,15 +239,16 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
             assert initialSeq <= initialAck + initialMax;
         }
 
-        private void doMqttFlush(
+        private void doCompositeFlush(
             long traceId,
+            int reserved,
             OctetsFW extension)
         {
             doFlush(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, authorization, initialBud, 0, extension);
+                traceId, authorization, initialBud, reserved, extension);
         }
 
-        private void doMqttEnd(
+        private void doCompositeEnd(
             long traceId,
             OctetsFW extension)
         {
@@ -265,7 +261,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
             }
         }
 
-        private void doMqttAbort(
+        private void doCompositeAbort(
             long traceId,
             OctetsFW extension)
         {
@@ -278,7 +274,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
             }
         }
 
-        private void onMqttReset(
+        private void onCompositeReset(
             ResetFW reset)
         {
             final long sequence = reset.sequence();
@@ -293,11 +289,11 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
 
             assert delegate.initialAck <= delegate.initialSeq;
 
-            delegate.doMqttReset(traceId);
+            delegate.doCompositeReset(traceId);
         }
 
 
-        private void onMqttWindow(
+        private void onCompositeWindow(
             WindowFW window)
         {
             final long sequence = window.sequence();
@@ -320,10 +316,10 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
 
             assert initialAck <= initialSeq;
 
-            delegate.doMqttWindow(authorization, traceId, budgetId, padding);
+            delegate.doCompositeWindow(authorization, traceId, budgetId, padding);
         }
 
-        private void onMqttMessage(
+        private void onCompositeMessage(
             int msgTypeId,
             DirectBuffer buffer,
             int index,
@@ -333,38 +329,38 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
             {
             case BeginFW.TYPE_ID:
                 final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-                onMqttBegin(begin);
+                onCompositeBegin(begin);
                 break;
             case DataFW.TYPE_ID:
                 final DataFW data = dataRO.wrap(buffer, index, index + length);
-                onMqttData(data);
+                onCompositeData(data);
                 break;
             case FlushFW.TYPE_ID:
                 final FlushFW flush = flushRO.wrap(buffer, index, index + length);
-                onMqttFlush(flush);
+                onCompositeFlush(flush);
                 break;
             case EndFW.TYPE_ID:
                 final EndFW end = endRO.wrap(buffer, index, index + length);
-                onMqttEnd(end);
+                onCompositeEnd(end);
                 break;
             case AbortFW.TYPE_ID:
                 final AbortFW abort = abortRO.wrap(buffer, index, index + length);
-                onMqttAbort(abort);
+                onCompositeAbort(abort);
                 break;
             case ResetFW.TYPE_ID:
                 final ResetFW reset = resetRO.wrap(buffer, index, index + length);
-                onMqttReset(reset);
+                onCompositeReset(reset);
                 break;
             case WindowFW.TYPE_ID:
                 final WindowFW window = windowRO.wrap(buffer, index, index + length);
-                onMqttWindow(window);
+                onCompositeWindow(window);
                 break;
             default:
                 break;
             }
         }
 
-        private void onMqttBegin(
+        private void onCompositeBegin(
             BeginFW begin)
         {
             final long traceId = begin.traceId();
@@ -372,10 +368,10 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
 
             state = AsyncapiState.openingReply(state);
 
-            delegate.doMqttBegin(traceId, extension);
+            delegate.doCompositeBegin(traceId, extension);
         }
 
-        private void onMqttData(
+        private void onCompositeData(
             DataFW data)
         {
             final long sequence = data.sequence();
@@ -394,10 +390,10 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
             assert replyAck <= replySeq;
             assert replySeq <= replyAck + replyMax;
 
-            delegate.doMqttData(traceId, flags, reserved, payload, extension);
+            delegate.doCompositeData(traceId, flags, reserved, payload, extension);
         }
 
-        private void onMqttFlush(
+        private void onCompositeFlush(
             FlushFW flush)
         {
             final long sequence = flush.sequence();
@@ -414,10 +410,10 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
             assert replyAck <= replySeq;
             assert replySeq <= replyAck + replyMax;
 
-            delegate.doAsyncapiFlush(traceId, extension);
+            delegate.doAsyncapiFlush(traceId, reserved, extension);
         }
 
-        private void onMqttEnd(
+        private void onCompositeEnd(
             EndFW end)
         {
             final long sequence = end.sequence();
@@ -433,10 +429,10 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
 
             assert replyAck <= replySeq;
 
-            delegate.doMqttEnd(traceId, extension);
+            delegate.doCompositeEnd(traceId, extension);
         }
 
-        private void onMqttAbort(
+        private void onCompositeAbort(
             AbortFW abort)
         {
             final long sequence = abort.sequence();
@@ -451,10 +447,10 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
 
             assert replyAck <= replySeq;
 
-            delegate.doMqttAbort(traceId);
+            delegate.doCompositeAbort(traceId);
         }
 
-        private void doMqttReset(
+        private void doCompositeReset(
             long traceId)
         {
             if (!AsyncapiState.replyClosed(state))
@@ -466,7 +462,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
             }
         }
 
-        private void doMqttWindow(
+        private void doCompositeWindow(
             long traceId,
             long authorization,
             long budgetId,
@@ -477,6 +473,13 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
 
             doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, authorization, budgetId, padding + replyPad);
+        }
+
+        private void cleanup(
+            long traceId)
+        {
+            doCompositeAbort(traceId, EMPTY_OCTETS);
+            doCompositeReset(traceId);
         }
     }
 
@@ -507,7 +510,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
         private long replyBud;
         private int replyCap;
 
-        AsyncapiStream(
+        private AsyncapiStream(
             MessageConsumer sender,
             long originId,
             long routedId,
@@ -590,7 +593,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
 
             assert initialAck <= initialSeq;
 
-            composite.doMqttBegin(traceId, asyncapiBeginEx.extension());
+            composite.doCompositeBegin(traceId, asyncapiBeginEx.extension());
         }
 
         private void onAsyncapiData(
@@ -613,7 +616,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
 
             assert initialAck <= initialSeq;
 
-            composite.doMqttData(traceId, authorization, budgetId, reserved, flags, payload, extension);
+            composite.doCompositeData(traceId, authorization, budgetId, reserved, flags, payload, extension);
         }
 
         private void onAsyncapiEnd(
@@ -632,7 +635,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
 
             assert initialAck <= initialSeq;
 
-            composite.doMqttEnd(traceId, extension);
+            composite.doCompositeEnd(traceId, extension);
         }
 
         private void onAsyncapiFlush(
@@ -641,6 +644,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
             final long sequence = flush.sequence();
             final long acknowledge = flush.acknowledge();
             final long traceId = flush.traceId();
+            final int reserved = flush.reserved();
             final OctetsFW extension = flush.extension();
 
             assert acknowledge <= sequence;
@@ -650,7 +654,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
 
             assert initialAck <= initialSeq;
 
-            composite.doMqttFlush(traceId, extension);
+            composite.doCompositeFlush(traceId, reserved, extension);
         }
 
         private void onAsyncapiAbort(
@@ -669,7 +673,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
 
             assert initialAck <= initialSeq;
 
-            composite.doMqttAbort(traceId, extension);
+            composite.doCompositeAbort(traceId, extension);
         }
 
         private void onAsyncapiReset(
@@ -719,10 +723,10 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
 
             assert replyAck <= replySeq;
 
-            composite.doMqttWindow(traceId, acknowledge, budgetId, padding);
+            composite.doCompositeWindow(traceId, acknowledge, budgetId, padding);
         }
 
-        private void doMqttBegin(
+        private void doCompositeBegin(
             long traceId,
             OctetsFW extension)
         {
@@ -739,7 +743,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
                 traceId, authorization, affinity, asyncapiBeginEx);
         }
 
-        private void doMqttReset(
+        private void doCompositeReset(
             long traceId)
         {
             if (!AsyncapiState.initialClosed(state))
@@ -751,7 +755,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
             }
         }
 
-        private void doMqttWindow(
+        private void doCompositeWindow(
             long authorization,
             long traceId,
             long budgetId,
@@ -764,7 +768,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
                 traceId, authorization, budgetId, padding);
         }
 
-        private void doMqttData(
+        private void doCompositeData(
             long traceId,
             int flag,
             int reserved,
@@ -778,7 +782,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
             replySeq += reserved;
         }
 
-        private void doMqttEnd(
+        private void doCompositeEnd(
             long traceId,
             OctetsFW extension)
         {
@@ -791,7 +795,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
             state = AsyncapiState.closeReply(state);
         }
 
-        private void doMqttAbort(
+        private void doCompositeAbort(
             long traceId)
         {
             if (AsyncapiState.replyOpening(state) && !AsyncapiState.replyClosed(state))
@@ -805,20 +809,20 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
 
         private void doAsyncapiFlush(
             long traceId,
+            int reserved,
             OctetsFW extension)
         {
             doFlush(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                traceId, authorization, replyBudgetId, 0, extension);
+                traceId, authorization, replyBudgetId, reserved, extension);
         }
 
         private void cleanup(
             long traceId)
         {
-            doMqttReset(traceId);
-            doMqttAbort(traceId);
+            doCompositeReset(traceId);
+            doCompositeAbort(traceId);
 
-            composite.doMqttAbort(traceId, EMPTY_OCTETS);
-            composite.doMqttReset(traceId);
+            composite.cleanup(traceId);
         }
     }
 

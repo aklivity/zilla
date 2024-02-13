@@ -37,17 +37,17 @@ public final class AsyncapiBindingConfig
     public final AsyncapiOptionsConfig options;
     public final List<AsyncapiRouteConfig> routes;
     private final IntHashSet composites;
-    private final long defaultRouteId;
+    private final long overrideRouteId;
     private final Long2LongHashMap resolvedIds;
 
     public AsyncapiBindingConfig(
         BindingConfig binding,
-        long defaultRouteId)
+        long overrideRouteId)
     {
         this.id = binding.id;
         this.name = binding.name;
         this.kind = binding.kind;
-        this.defaultRouteId = defaultRouteId;
+        this.overrideRouteId = overrideRouteId;
         this.options = AsyncapiOptionsConfig.class.cast(binding.options);
         this.routes = binding.routes.stream().map(AsyncapiRouteConfig::new).collect(toList());
         this.resolvedIds = binding.composites.stream()
@@ -77,7 +77,7 @@ public final class AsyncapiBindingConfig
     public long resolveResolvedId(
         long apiId)
     {
-        return defaultRouteId != -1 ? defaultRouteId : resolvedIds.get(apiId);
+        return overrideRouteId != -1 ? overrideRouteId : resolvedIds.get(apiId);
     }
 
     public AsyncapiRouteConfig resolve(

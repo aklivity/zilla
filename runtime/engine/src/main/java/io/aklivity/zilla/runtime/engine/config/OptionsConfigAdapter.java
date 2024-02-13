@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.internal.config;
+package io.aklivity.zilla.runtime.engine.config;
 
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
@@ -25,18 +25,14 @@ import java.util.function.Supplier;
 import jakarta.json.JsonObject;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
-
-public class OptionsAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
+public class OptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
 {
     private final Map<String, OptionsConfigAdapterSpi> delegatesByName;
     private ConfigAdapterContext context;
 
     private OptionsConfigAdapterSpi delegate;
 
-    public OptionsAdapter(
+    public OptionsConfigAdapter(
         OptionsConfigAdapterSpi.Kind kind,
         ConfigAdapterContext context)
     {

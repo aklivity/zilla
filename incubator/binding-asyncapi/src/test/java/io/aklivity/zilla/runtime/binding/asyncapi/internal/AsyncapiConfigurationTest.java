@@ -14,18 +14,18 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal;
 
-import static io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiConfiguration.ASYNCAPI_K3PO_ROUTE_ID;
+import static io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiConfiguration.ASYNCAPI_TARGET_ROUTE_ID;
 import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
 public class AsyncapiConfigurationTest
 {
-    public static final String ASYNCAPI_K3PO_ROUTE_ID_NAME = "zilla.binding.asyncapi.k3po.route.id";
+    public static final String ASYNCAPI_TARGET_ROUTE_ID_NAME = "zilla.binding.asyncapi.target.route.id";
 
     @Test
     public void shouldVerifyConstants() throws Exception
     {
-        assertEquals(ASYNCAPI_K3PO_ROUTE_ID.name(), ASYNCAPI_K3PO_ROUTE_ID_NAME);
+        assertEquals(ASYNCAPI_TARGET_ROUTE_ID.name(), ASYNCAPI_TARGET_ROUTE_ID_NAME);
     }
 }

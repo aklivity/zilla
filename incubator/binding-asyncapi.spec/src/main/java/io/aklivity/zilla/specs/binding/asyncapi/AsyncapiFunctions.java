@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.specs.binding.asyncapi.internal;
+package io.aklivity.zilla.specs.binding.asyncapi;
 
 import java.nio.ByteBuffer;
 import java.util.Objects;
