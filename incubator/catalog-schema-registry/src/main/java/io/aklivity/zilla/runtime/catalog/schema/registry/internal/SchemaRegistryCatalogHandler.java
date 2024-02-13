@@ -224,14 +224,13 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
             }
             else
             {
-                event.remoteAccessRejected(catalogId, httpRequest.uri().toString(), httpRequest.method(), response.statusCode());
+                event.remoteAccessRejected(catalogId, httpRequest, response.statusCode());
             }
             return responseBody;
         }
         catch (Exception ex)
         {
-            event.remoteAccessRejected(catalogId, httpRequest.uri().toString(), httpRequest.method(), -1);
-            ex.printStackTrace(System.out);
+            event.remoteAccessRejected(catalogId, httpRequest, 0);
         }
         return null;
     }
