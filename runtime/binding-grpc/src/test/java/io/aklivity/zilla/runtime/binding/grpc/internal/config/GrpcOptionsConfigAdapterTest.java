@@ -42,8 +42,8 @@ import io.aklivity.zilla.runtime.binding.grpc.config.GrpcOptionsConfig;
 import io.aklivity.zilla.runtime.binding.grpc.config.GrpcProtobufConfig;
 import io.aklivity.zilla.runtime.binding.grpc.config.GrpcServiceConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapter;
+import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
 public class GrpcOptionsConfigAdapterTest
 {
