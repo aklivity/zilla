@@ -216,15 +216,12 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
 
         try
         {
-            HttpResponse<String> response = client.send(httpRequest, HttpResponse.BodyHandlers.ofString());
-            String responseBody = null;
-            if (response.statusCode() == 200)
+            HttpResponse<String> httpResponse = client.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+            boolean success = httpResponse.statusCode() == 200;
+            String responseBody = success ? httpResponse.body() : null;
+            if (!success)
             {
-                responseBody = response.body();
-            }
-            else
-            {
-                event.remoteAccessRejected(catalogId, httpRequest, response.statusCode());
+                event.remoteAccessRejected(catalogId, httpRequest, httpResponse.statusCode());
             }
             return responseBody;
         }
