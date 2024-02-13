@@ -467,8 +467,8 @@ scope kafka
         struct KafkaOffsetFetchBeginEx
         {
             string16 groupId;
-            string16 host = null;
-            int32 port = 0;
+            string16 host;
+            int32 port;
             string16 topic;
             KafkaTopicPartition[] partitions;
         }
@@ -483,8 +483,8 @@ scope kafka
             string16 groupId;
             string16 memberId;
             string16 instanceId;
-            string16 host = null;
-            int32 port = 0;
+            string16 host;
+            int32 port;
         }
 
         struct KafkaOffsetCommitDataEx
