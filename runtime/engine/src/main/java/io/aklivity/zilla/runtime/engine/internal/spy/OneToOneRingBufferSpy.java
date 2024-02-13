@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.spy;
+package io.aklivity.zilla.runtime.engine.internal.spy;
 
 import static org.agrona.BitUtil.align;
 import static org.agrona.concurrent.ringbuffer.RecordDescriptor.ALIGNMENT;
@@ -32,6 +32,7 @@ import org.agrona.DirectBuffer;
 import org.agrona.concurrent.AtomicBuffer;
 
 import io.aklivity.zilla.runtime.engine.binding.function.MessagePredicate;
+import io.aklivity.zilla.runtime.engine.spy.RingBufferSpy;
 
 public class OneToOneRingBufferSpy implements RingBufferSpy
 {
