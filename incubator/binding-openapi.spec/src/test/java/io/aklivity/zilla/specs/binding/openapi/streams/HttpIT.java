@@ -48,8 +48,8 @@ public class HttpIT
 
     @Test
     @Specification({
-        "${http}/reject.incorrect.origin/client",
-        "${http}/reject.incorrect.origin/server"
+        "${http}/reject.non.composite.origin/client",
+        "${http}/reject.non.composite.origin/server"
     })
     public void shouldRejectNonCompositeOrigin() throws Exception
     {
