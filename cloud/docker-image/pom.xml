@@ -45,7 +45,7 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>binding-openapi</artifactId>
+      <artifactId>binding-asyncapi</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>
     </dependency>
