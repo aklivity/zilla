@@ -16,16 +16,20 @@
 
 ---
 name: test
+vaults:
+  server:
+    type: test
 bindings:
   composite0:
     type: openapi
     kind: server
+    vault: server
     options:
       tls:
         keys:
           - localhost
         alpn:
-          - localhost
+          - protocol2
       http:
         authorization:
           test0:
