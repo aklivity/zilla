@@ -296,7 +296,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
             assert acknowledge <= sequence;
             assert sequence >= initialSeq;
 
-            initialSeq = sequence;
+            initialSeq = sequence + reserved;
 
             assert initialAck <= initialSeq;
 

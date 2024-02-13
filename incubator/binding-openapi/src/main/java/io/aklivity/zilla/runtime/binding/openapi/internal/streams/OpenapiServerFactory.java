@@ -296,7 +296,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
             assert acknowledge <= sequence;
             assert sequence >= initialSeq;
 
-            initialSeq = sequence;
+            initialSeq = sequence + reserved;
 
             assert initialAck <= initialSeq;
 
@@ -424,7 +424,6 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
             OctetsFW payload,
             Flyweight extension)
         {
-
             doData(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, replyBudgetId, flag, reserved, payload, extension);
 
