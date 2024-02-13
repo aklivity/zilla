@@ -91,7 +91,11 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
         OpenapiConfig openapiConfig = options.openapis.get(0);
 
         final OpenApi openApi = openapiConfig.openapi;
-        final String guardName = options.http.authorization.name;
+        final TlsOptionsConfig tlsOption = options.tls != null ? options.tls : null;
+        final HttpOptionsConfig httpOptions = options.http;
+        final String guardName = httpOptions != null ? httpOptions.authorization.name : null;
+        final HttpAuthorizationConfig authorization = httpOptions != null ?  httpOptions.authorization : null;
+
         final int[] allPorts = resolveAllPorts(openApi);
         final int[] httpPorts = resolvePortsForScheme(openApi, "http");
         final int[] httpsPorts = resolvePortsForScheme(openApi, "https");
@@ -114,7 +118,7 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
                     .inject(b -> this.injectPlainTcpRoute(b, httpPorts, secure))
                     .inject(b -> this.injectTlsTcpRoute(b, httpsPorts, secure))
                     .build()
-                .inject(n -> this.injectTlsServer(n, options.tls, secure))
+                .inject(n -> this.injectTlsServer(n, tlsOption, secure))
                 .binding()
                     .name("http_server0")
                     .type("http")
@@ -123,7 +127,7 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
                         .access()
                             .policy(CROSS_ORIGIN)
                             .build()
-                        .inject(o -> this.injectHttpServerOptions(o, options.http.authorization, hasJwt))
+                        .inject(o -> this.injectHttpServerOptions(o, authorization, hasJwt))
                         .inject(r -> this.injectHttpServerRequests(r, openApi))
                         .build()
                     .inject(b -> this.injectHttpServerRoutes(b, openApi, guardName, securitySchemes))

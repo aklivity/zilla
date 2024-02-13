@@ -58,6 +58,17 @@ public class OpenapiServerIT
     }
 
     @Test
+    @Configuration("server-secure.yaml")
+    @Specification({
+        "${http}/create.pet/client",
+        "${openapi}/create.pet/server"
+    })
+    public void shouldCreateSecurePet() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.yaml")
     @Specification({
         "${http}/reject.incorrect.origin/client"
