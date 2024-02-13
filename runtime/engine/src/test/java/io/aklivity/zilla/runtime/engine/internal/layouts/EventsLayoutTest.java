@@ -25,48 +25,38 @@ import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.spy.RingBufferSpy;
-
 public class EventsLayoutTest
 {
     private static final Path EVENTS0_PATH = Paths.get("target/zilla-itests/events0");
+    private static final int CAPACITY = 1024;
 
     private int msgTypeId;
 
     @Test
-    public void shouldSpy()
+    public void shouldWriteAndReadEvents()
     {
         // GIVEN
-        EventsLayout eventsWriter = new EventsLayout.Builder()
+        EventsLayout layout = new EventsLayout.Builder()
             .path(EVENTS0_PATH)
-            .capacity(1024)
-            .readonly(false)
+            .capacity(CAPACITY)
             .build();
-        MessageConsumer eventWriter = eventsWriter.supplyWriter();
-        eventWriter.accept(42, new UnsafeBuffer(), 0, 0);
-        EventsLayout eventReader = new EventsLayout.Builder()
-            .path(EVENTS0_PATH)
-            .readonly(true)
-            .build();
-        eventReader.spyAt(RingBufferSpy.SpyPosition.ZERO);
-        RingBufferSpy spy = eventReader.bufferSpy();
+        layout.writeEvent(42, new UnsafeBuffer(), 0, 0);
         msgTypeId = 0;
 
         // WHEN
-        spy.spy(this::readEvent);
+        int count = layout.readEvent(this::readEvent, 1);
 
         // THEN
+        assertThat(count, equalTo(1));
         assertThat(msgTypeId, equalTo(42));
     }
 
-    private boolean readEvent(
+    private void readEvent(
         int msgTypeId,
         DirectBuffer buffer,
         int index,
         int length)
     {
         this.msgTypeId = msgTypeId;
-        return true;
     }
 }

@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.layouts;
 
+import static io.aklivity.zilla.runtime.engine.internal.spy.RingBufferSpy.SpyPosition.ZERO;
 import static org.agrona.IoUtil.createEmptyFile;
 import static org.agrona.IoUtil.mapExistingFile;
 import static org.agrona.IoUtil.unmap;
@@ -39,8 +40,7 @@ import org.agrona.concurrent.ringbuffer.RingBufferDescriptor;
 
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.internal.spy.OneToOneRingBufferSpy;
-import io.aklivity.zilla.runtime.engine.spy.RingBufferSpy;
-import io.aklivity.zilla.runtime.engine.spy.RingBufferSpy.SpyPosition;
+import io.aklivity.zilla.runtime.engine.internal.spy.RingBufferSpy;
 
 public final class EventsLayout implements AutoCloseable
 {
@@ -49,33 +49,17 @@ public final class EventsLayout implements AutoCloseable
 
     private RingBuffer buffer;
     private RingBufferSpy bufferSpy;
-    private SpyPosition position;
 
     private EventsLayout(
         Path path,
         long capacity,
-        RingBuffer buffer)
+        RingBuffer buffer,
+        RingBufferSpy bufferSpy)
     {
-        this.buffer = buffer;
-        this.capacity = capacity;
         this.path = path;
-    }
-
-    public MessageConsumer supplyWriter()
-    {
-        return this::writeEvent;
-    }
-
-    public void spyAt(
-        SpyPosition position)
-    {
-        this.position = position;
-        bufferSpy = createRingBufferSpy(path, position);
-    }
-
-    public RingBufferSpy bufferSpy()
-    {
-        return bufferSpy;
+        this.capacity = capacity;
+        this.buffer = buffer;
+        this.bufferSpy = bufferSpy;
     }
 
     @Override
@@ -84,7 +68,7 @@ public final class EventsLayout implements AutoCloseable
         unmap(buffer.buffer().byteBuffer());
     }
 
-    private void writeEvent(
+    public void writeEvent(
         int msgTypeId,
         DirectBuffer recordBuffer,
         int index,
@@ -96,6 +80,13 @@ public final class EventsLayout implements AutoCloseable
             rotateFile();
             buffer.write(msgTypeId, recordBuffer, index, length);
         }
+    }
+
+    public int readEvent(
+        MessageConsumer handler,
+        int messageCountLimit)
+    {
+        return bufferSpy.spy(handler, messageCountLimit);
     }
 
     private void rotateFile()
@@ -112,20 +103,17 @@ public final class EventsLayout implements AutoCloseable
             ex.printStackTrace();
             rethrowUnchecked(ex);
         }
-        buffer = createRingBuffer(path, capacity, false);
-        if (position != null)
-        {
-            bufferSpy = createRingBufferSpy(path, position);
-        }
+        buffer = createRingBuffer(path, capacity);
+        bufferSpy = createRingBufferSpy(path);
     }
 
     private static AtomicBuffer createAtomicBuffer(
         Path path,
         long capacity,
-        boolean readonly)
+        boolean createFile)
     {
         final File layoutFile = path.toFile();
-        if (!readonly)
+        if (createFile)
         {
             CloseHelper.close(createEmptyFile(layoutFile, capacity + RingBufferDescriptor.TRAILER_LENGTH));
         }
@@ -135,23 +123,18 @@ public final class EventsLayout implements AutoCloseable
 
     private static RingBuffer createRingBuffer(
         Path path,
-        long capacity,
-        boolean readonly)
+        long capacity)
     {
-        AtomicBuffer atomicBuffer = createAtomicBuffer(path, capacity, readonly);
+        AtomicBuffer atomicBuffer = createAtomicBuffer(path, capacity, true);
         return new OneToOneRingBuffer(atomicBuffer);
     }
 
     private static RingBufferSpy createRingBufferSpy(
-        Path path,
-        SpyPosition position)
+        Path path)
     {
-        AtomicBuffer atomicBuffer = createAtomicBuffer(path, 0, true);
-        final OneToOneRingBufferSpy spy = new OneToOneRingBufferSpy(atomicBuffer);
-        if (position != null)
-        {
-            spy.spyAt(position);
-        }
+        AtomicBuffer atomicBuffer = createAtomicBuffer(path, 0, false);
+        OneToOneRingBufferSpy spy = new OneToOneRingBufferSpy(atomicBuffer);
+        spy.spyAt(ZERO);
         return spy;
     }
 
@@ -159,7 +142,6 @@ public final class EventsLayout implements AutoCloseable
     {
         private long capacity;
         private Path path;
-        private boolean readonly;
 
         public Builder capacity(
             long capacity)
@@ -175,17 +157,11 @@ public final class EventsLayout implements AutoCloseable
             return this;
         }
 
-        public Builder readonly(
-            boolean readonly)
-        {
-            this.readonly = readonly;
-            return this;
-        }
-
         public EventsLayout build()
         {
-            RingBuffer ringBuffer = createRingBuffer(path, capacity, readonly);
-            return new EventsLayout(path, capacity, ringBuffer);
+            RingBuffer ringBuffer = createRingBuffer(path, capacity);
+            RingBufferSpy ringBufferSpy = createRingBufferSpy(path);
+            return new EventsLayout(path, capacity, ringBuffer, ringBufferSpy);
         }
     }
 }

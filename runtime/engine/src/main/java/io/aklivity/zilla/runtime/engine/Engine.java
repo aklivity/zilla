@@ -48,7 +48,6 @@ import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.function.LongConsumer;
 import java.util.function.LongSupplier;
-import java.util.function.Supplier;
 import java.util.function.ToIntFunction;
 import java.util.stream.Collectors;
 
@@ -76,8 +75,7 @@ import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
 import io.aklivity.zilla.runtime.engine.model.Model;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
-import io.aklivity.zilla.runtime.engine.spy.RingBufferSpy;
-import io.aklivity.zilla.runtime.engine.spy.RingBufferSpy.SpyPosition;
+import io.aklivity.zilla.runtime.engine.util.function.EventReader;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 
 public final class Engine implements Collector, AutoCloseable
@@ -163,7 +161,7 @@ public final class Engine implements Collector, AutoCloseable
             EngineWorker worker =
                 new EngineWorker(config, tasks, labels, errorHandler, tuning::affinity,
                         bindings, exporters, guards, vaults, catalogs, models, metricGroups,
-                    this, this::supplyEventSpies, coreIndex, readonly);
+                    this, this::supplyEventReaders, coreIndex, readonly);
             workers.add(worker);
         }
         this.workers = workers;
@@ -484,16 +482,14 @@ public final class Engine implements Collector, AutoCloseable
         return worker.histogramIds();
     }
 
-    public Supplier<RingBufferSpy>[] supplyEventSpies(
-        SpyPosition position)
+    public EventReader[] supplyEventReaders()
     {
-        @SuppressWarnings("unchecked")
-        Supplier<RingBufferSpy>[] spies = new Supplier[workers.size()];
+        EventReader[] readers = new EventReader[workers.size()];
         for (int i = 0; i < workers.size(); i++)
         {
-            spies[i] = workers.get(i).supplyEventSpy(position);
+            readers[i] = workers.get(i)::readEvent;
         }
-        return spies;
+        return readers;
     }
 
     public String supplyLocalName(

@@ -136,8 +136,7 @@ import io.aklivity.zilla.runtime.engine.model.ModelContext;
 import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
-import io.aklivity.zilla.runtime.engine.spy.RingBufferSpy;
-import io.aklivity.zilla.runtime.engine.spy.RingBufferSpy.SpyPosition;
+import io.aklivity.zilla.runtime.engine.util.function.EventReader;
 import io.aklivity.zilla.runtime.engine.util.function.LongLongFunction;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
@@ -215,7 +214,7 @@ public class EngineWorker implements EngineContext, Agent
     private final ScalarsLayout gaugesLayout;
     private final HistogramsLayout histogramsLayout;
     private final EventsLayout eventsLayout;
-    private final Function<SpyPosition, Supplier<RingBufferSpy>[]> supplyEventSpies;
+    private final Supplier<EventReader[]> supplyEventReaders;
     private long initialId;
     private long promiseId;
     private long traceId;
@@ -238,7 +237,7 @@ public class EngineWorker implements EngineContext, Agent
         Collection<Model> models,
         Collection<MetricGroup> metricGroups,
         Collector collector,
-        Function<SpyPosition, Supplier<RingBufferSpy>[]> supplyEventSpies,
+        Supplier<EventReader[]> supplyEventReaders,
         int index,
         boolean readonly)
     {
@@ -295,7 +294,6 @@ public class EngineWorker implements EngineContext, Agent
         this.eventsLayout = new EventsLayout.Builder()
             .path(config.directory().resolve(String.format("events%d", index)))
             .capacity(config.eventsBufferCapacity())
-            .readonly(readonly)
             .build();
 
         this.agentName = String.format("engine/data#%d", index);
@@ -420,7 +418,7 @@ public class EngineWorker implements EngineContext, Agent
         this.idleStrategy = idleStrategy;
         this.errorHandler = errorHandler;
         this.exportersById = new Long2ObjectHashMap<>();
-        this.supplyEventSpies = supplyEventSpies;
+        this.supplyEventReaders = supplyEventReaders;
     }
 
     public static int indexOfId(
@@ -919,7 +917,7 @@ public class EngineWorker implements EngineContext, Agent
     @Override
     public MessageConsumer logger()
     {
-        return this.eventsLayout.supplyWriter();
+        return this.eventsLayout::writeEvent;
     }
 
     @Override
@@ -1590,17 +1588,16 @@ public class EngineWorker implements EngineContext, Agent
         return writersByIndex.computeIfAbsent(remoteIndex, supplyWriter);
     }
 
-    public Supplier<RingBufferSpy> supplyEventSpy(
-        SpyPosition position)
+    public int readEvent(
+        MessageConsumer handler,
+        int messageCountLimit)
     {
-        eventsLayout.spyAt(position);
-        return eventsLayout::bufferSpy;
+        return eventsLayout.readEvent(handler, messageCountLimit);
     }
 
-    public Supplier<RingBufferSpy>[] supplyEventSpies(
-        SpyPosition position)
+    public Supplier<EventReader[]> supplyEventReaders()
     {
-        return supplyEventSpies.apply(position);
+        return supplyEventReaders;
     }
 
     private MessageConsumer supplyWriter(

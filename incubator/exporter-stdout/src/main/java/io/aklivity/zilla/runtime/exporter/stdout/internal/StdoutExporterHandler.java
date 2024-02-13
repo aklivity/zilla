@@ -16,13 +16,11 @@ package io.aklivity.zilla.runtime.exporter.stdout.internal;
 
 import java.io.PrintStream;
 import java.util.Arrays;
-import java.util.function.Supplier;
 
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
-import io.aklivity.zilla.runtime.engine.spy.RingBufferSpy;
-import io.aklivity.zilla.runtime.engine.spy.RingBufferSpy.SpyPosition;
+import io.aklivity.zilla.runtime.engine.util.function.EventReader;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.config.StdoutExporterConfig;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.stream.StdoutEventsStream;
 
@@ -46,7 +44,7 @@ public class StdoutExporterHandler implements ExporterHandler
     @Override
     public void start()
     {
-        this.stdoutEventStreams = Arrays.stream(context.supplyEventSpies(SpyPosition.ZERO))
+        this.stdoutEventStreams = Arrays.stream(context.supplyEventReaders().get())
                 .map(this::newStdoutEventsStream)
                 .toArray(StdoutEventsStream[]::new);
     }
@@ -71,9 +69,9 @@ public class StdoutExporterHandler implements ExporterHandler
     }
 
     private StdoutEventsStream newStdoutEventsStream(
-        Supplier<RingBufferSpy> supplyEventSpy)
+        EventReader eventReader)
     {
-        return new StdoutEventsStream(supplyEventSpy, context::supplyNamespace, context::supplyLocalName,
+        return new StdoutEventsStream(eventReader, context::supplyNamespace, context::supplyLocalName,
             context::lookupLabelId, out);
     }
 }

@@ -23,7 +23,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.function.Supplier;
 
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -31,10 +30,9 @@ import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
 import io.aklivity.zilla.runtime.engine.internal.layouts.EventsLayout;
-import io.aklivity.zilla.runtime.engine.spy.RingBufferSpy;
+import io.aklivity.zilla.runtime.engine.util.function.EventReader;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.config.StdoutExporterConfig;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.TcpEventFW;
 
@@ -42,6 +40,7 @@ public class StdoutExporterHandlerTest
 {
     private static final Path ENGINE_PATH = Paths.get("target/zilla-itests");
     private static final Path EVENTS_PATH = ENGINE_PATH.resolve("events");
+    private static final int CAPACITY = 1024;
     private static final int TCP_TYPE_ID = 1;
     private static final String EXPECTED_OUTPUT = "ERROR: TCP Remote Access Failed [timestamp = 77] " +
         "[traceId = 0x0000000000000042] [binding = ns.binding] [address = address]\n";
@@ -51,12 +50,10 @@ public class StdoutExporterHandlerTest
     public void shouldStart()
     {
         // GIVEN
-        EventsLayout eventsWriter = new EventsLayout.Builder()
+        EventsLayout layout = new EventsLayout.Builder()
             .path(EVENTS_PATH)
-            .capacity(1024)
-            .readonly(false)
+            .capacity(CAPACITY)
             .build();
-        MessageConsumer eventWriter = eventsWriter.supplyWriter();
         MutableDirectBuffer eventBuffer = new UnsafeBuffer(new byte[64]);
         TcpEventFW event = new TcpEventFW.Builder()
             .wrap(eventBuffer, 0, eventBuffer.capacity())
@@ -65,12 +62,7 @@ public class StdoutExporterHandlerTest
                 .namespacedId(0x0000000200000007L)
                 .address("address")
             ).build();
-        eventWriter.accept(TCP_TYPE_ID, event.buffer(), 0, event.sizeof());
-        EventsLayout eventReader = new EventsLayout.Builder()
-            .path(EVENTS_PATH)
-            .readonly(true)
-            .build();
-        eventReader.spyAt(RingBufferSpy.SpyPosition.ZERO);
+        layout.writeEvent(TCP_TYPE_ID, event.buffer(), 0, event.sizeof());
 
         EngineConfiguration config = mock(EngineConfiguration.class);
         EngineContext context = mock(EngineContext.class);
@@ -80,9 +72,7 @@ public class StdoutExporterHandlerTest
         when(context.lookupLabelId("tcp")).thenReturn(TCP_TYPE_ID);
         when(context.supplyNamespace(0x0000000200000007L)).thenReturn("ns");
         when(context.supplyLocalName(0x0000000200000007L)).thenReturn("binding");
-        when(context.supplyEventSpies(RingBufferSpy.SpyPosition.ZERO)).thenReturn(
-            new Supplier[] {eventReader::bufferSpy}
-        );
+        when(context.supplyEventReaders()).thenReturn(() -> new EventReader[]{layout::readEvent});
         StdoutExporterHandler handler = new StdoutExporterHandler(config, context, exporter, ps);
 
         // WHEN

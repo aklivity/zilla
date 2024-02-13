@@ -16,14 +16,13 @@ package io.aklivity.zilla.runtime.exporter.stdout.internal.stream;
 
 import java.io.PrintStream;
 import java.util.function.LongFunction;
-import java.util.function.Supplier;
 import java.util.function.ToIntFunction;
 
 import org.agrona.DirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.spy.RingBufferSpy;
+import io.aklivity.zilla.runtime.engine.util.function.EventReader;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.StringFW;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.HttpAuthorizationEventFW;
@@ -67,7 +66,7 @@ public class StdoutEventsStream
     private final TcpEventFW tcpEventRO = new TcpEventFW();
     private final TlsEventFW tlsEventRO = new TlsEventFW();
 
-    private final Supplier<RingBufferSpy> supplyEventSpy;
+    private final EventReader readEvent;
     private final LongFunction<String> supplyNamespace;
     private final LongFunction<String> supplyLocalName;
     private final ToIntFunction<String> lookupLabelId;
@@ -75,13 +74,13 @@ public class StdoutEventsStream
     private final Int2ObjectHashMap<MessageConsumer> eventHandlers;
 
     public StdoutEventsStream(
-        Supplier<RingBufferSpy> supplyEventSpy,
+        EventReader readEvent,
         LongFunction<String> supplyNamespace,
         LongFunction<String> supplyLocalName,
         ToIntFunction<String> lookupLabelId,
         PrintStream out)
     {
-        this.supplyEventSpy = supplyEventSpy;
+        this.readEvent = readEvent;
         this.supplyNamespace = supplyNamespace;
         this.supplyLocalName = supplyLocalName;
         this.lookupLabelId = lookupLabelId;
@@ -111,10 +110,10 @@ public class StdoutEventsStream
 
     public int process()
     {
-        return supplyEventSpy.get().spy(this::handleEvent, 1);
+        return readEvent.applyAsInt(this::handleEvent, 1);
     }
 
-    private boolean handleEvent(
+    private void handleEvent(
         int msgTypeId,
         DirectBuffer buffer,
         int index,
@@ -125,7 +124,6 @@ public class StdoutEventsStream
         {
             handler.accept(msgTypeId, buffer, index, length);
         }
-        return true;
     }
 
     private void handleHttpEvent(

@@ -31,8 +31,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.AtomicBuffer;
 
-import io.aklivity.zilla.runtime.engine.binding.function.MessagePredicate;
-import io.aklivity.zilla.runtime.engine.spy.RingBufferSpy;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
 public class OneToOneRingBufferSpy implements RingBufferSpy
 {
@@ -90,14 +89,14 @@ public class OneToOneRingBufferSpy implements RingBufferSpy
 
     @Override
     public int spy(
-        final MessagePredicate handler)
+        final MessageConsumer handler)
     {
         return spy(handler, Integer.MAX_VALUE);
     }
 
     @Override
     public int spy(
-        final MessagePredicate handler,
+        final MessageConsumer handler,
         final int messageCountLimit)
     {
         int messagesRead = 0;
@@ -131,11 +130,7 @@ public class OneToOneRingBufferSpy implements RingBufferSpy
                 }
 
                 ++messagesRead;
-                if (!handler.test(messageTypeId, buffer, recordIndex + HEADER_LENGTH, recordLength - HEADER_LENGTH))
-                {
-                    bytesRead -= align(recordLength, ALIGNMENT);
-                    break;
-                }
+                handler.accept(messageTypeId, buffer, recordIndex + HEADER_LENGTH, recordLength - HEADER_LENGTH);
             }
         }
         finally
