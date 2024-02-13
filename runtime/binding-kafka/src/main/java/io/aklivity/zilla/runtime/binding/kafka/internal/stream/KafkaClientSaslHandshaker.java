@@ -834,7 +834,7 @@ public abstract class KafkaClientSaslHandshaker
         return clientId != null ? new String16FW(clientId) : KAFKA_CLIENT_ID_DEFAULT_VALUE;
     }
 
-    protected void checkUnsupportedVersionError(
+    protected void onDecodeResponseErrorCode(
         int errorCode,
         long traceId)
     {

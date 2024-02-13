@@ -661,7 +661,7 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
                 client.decoder = decodeOffsetFetchPartitions;
                 break;
             default:
-                checkUnsupportedVersionError(errorCode, traceId);
+                onDecodeResponseErrorCode(errorCode, traceId);
                 client.errorCode = errorCode;
                 client.decoder = decodeReject;
                 break;

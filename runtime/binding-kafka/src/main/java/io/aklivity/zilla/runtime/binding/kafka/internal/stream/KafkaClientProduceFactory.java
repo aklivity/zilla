@@ -816,7 +816,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
             final int partitionId = partition.partitionId();
             final int errorCode = partition.errorCode();
-            checkUnsupportedVersionError(errorCode, traceId);
+            onDecodeResponseErrorCode(errorCode, traceId);
 
             progress = partition.limit();
 

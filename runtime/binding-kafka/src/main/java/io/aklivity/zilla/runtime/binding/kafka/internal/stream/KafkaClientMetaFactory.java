@@ -698,7 +698,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
 
             final String topic = topicMetadata.topic().asString();
             final int topicError = topicMetadata.errorCode();
-            checkUnsupportedVersionError(topicError, traceId);
+            onDecodeResponseErrorCode(topicError, traceId);
 
             client.onDecodeTopic(traceId, authorization, topicError, topic);
 
@@ -763,7 +763,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
             }
 
             final int partitionError = partition.errorCode();
-            checkUnsupportedVersionError(partitionError, traceId);
+            onDecodeResponseErrorCode(partitionError, traceId);
             final int partitionId = partition.partitionId();
             final int leaderId = partition.leader();
 

@@ -762,7 +762,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
 
             final int partitionId = partition.partitionId();
             final int errorCode = partition.errorCode();
-            checkUnsupportedVersionError(errorCode, traceId);
+            onDecodeResponseErrorCode(errorCode, traceId);
             final long partitionOffset = partition.offset$();
 
             progress = partition.limit();
@@ -908,7 +908,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
             {
                 final int partitionId = partition.partitionId();
                 final int errorCode = partition.errorCode();
-                checkUnsupportedVersionError(errorCode, traceId);
+                onDecodeResponseErrorCode(errorCode, traceId);
 
                 client.stableOffset = partition.lastStableOffset() - 1;
                 client.latestOffset = partition.highWatermark() - 1;
