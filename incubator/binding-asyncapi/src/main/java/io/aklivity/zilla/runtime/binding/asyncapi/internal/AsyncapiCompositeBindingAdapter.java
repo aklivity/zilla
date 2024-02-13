@@ -25,18 +25,42 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiServerVi
 
 public class AsyncapiCompositeBindingAdapter
 {
-    protected static final String INLINE_CATALOG_NAME = "catalog0";
     protected static final String APPLICATION_JSON = "application/json";
-    protected static final Pattern JSON_CONTENT_TYPE = Pattern.compile("^application/(?:.+\\+)?json$");
-    protected final Matcher jsonContentType = JSON_CONTENT_TYPE.matcher("");
 
     protected Asyncapi asyncApi;
     protected boolean isPlainEnabled;
     protected boolean isTlsEnabled;
     protected int[] allPorts;
+    protected AsyncapiProtocol protocol;
     protected String qname;
     protected String qvault;
 
+
+    protected AsyncapiProtocol resolveProtocol(
+        String protocol)
+    {
+        Pattern pattern = Pattern.compile("(http|mqtt)");
+        Matcher matcher = pattern.matcher(protocol);
+        AsyncapiProtocol asyncapiProtocol = null;
+        if (matcher.find())
+        {
+            switch (matcher.group())
+            {
+            case "http":
+                asyncapiProtocol = null; //TODO: add asyncapiProtocol
+                break;
+            case "mqtt":
+                asyncapiProtocol = new AyncapiMqttProtocol(asyncApi, "mqtt", "mqtts");
+                break;
+            }
+            return asyncapiProtocol;
+        }
+        else
+        {
+            // TODO: should we do something?
+        }
+        return asyncapiProtocol;
+    }
 
     protected int[] resolveAllPorts()
     {

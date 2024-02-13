@@ -34,6 +34,11 @@ public final class AsyncapiServerView
         return asyncapiServer.security;
     }
 
+    public String protocol()
+    {
+        return asyncapiServer.protocol;
+    }
+
     public String scheme()
     {
         return url().getScheme();
