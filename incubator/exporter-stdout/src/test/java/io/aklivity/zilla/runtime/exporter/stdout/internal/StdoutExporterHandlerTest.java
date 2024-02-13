@@ -46,7 +46,6 @@ public class StdoutExporterHandlerTest
         "[traceId = 0x0000000000000042] [binding = ns.binding] [address = address]\n";
 
     @Test
-    @SuppressWarnings("unchecked")
     public void shouldStart()
     {
         // GIVEN
@@ -78,9 +77,9 @@ public class StdoutExporterHandlerTest
         // WHEN
         handler.start();
         handler.export();
+        handler.stop();
 
         // THEN
         assertThat(os.toString(), equalTo(EXPECTED_OUTPUT));
-        handler.stop();
     }
 }

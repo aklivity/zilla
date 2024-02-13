@@ -43,8 +43,6 @@ public class StdoutEventsStream
 {
     private static final String HTTP_AUTHORIZATION_FORMAT =
         "%s: HTTP Authorization %s [timestamp = %d] [traceId = 0x%016x] [binding = %s.%s] [identity = %s]%n";
-    private static final String HTTP_ACCESS_DENIED =
-        "WARNING: HTTP Access Denied [timestamp = %d] [traceId = 0x%016x] [binding = %s.%s]%n";
     private static final String KAFKA_AUTHORIZATION_FORMAT =
         "%s: Kafka Authorization %s [timestamp = %d] [traceId = 0x%016x] [binding = %s.%s]%n";
     private static final String KAFKA_API_VERSION_REJECTED =
