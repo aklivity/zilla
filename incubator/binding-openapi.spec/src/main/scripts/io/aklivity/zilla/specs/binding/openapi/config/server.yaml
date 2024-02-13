@@ -20,7 +20,6 @@ bindings:
   composite0:
     type: openapi
     kind: server
-    vault: server
     options:
       specs:
         - openapi/petstore.yaml
