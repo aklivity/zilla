@@ -71,10 +71,10 @@ import io.aklivity.zilla.runtime.engine.internal.registry.EngineWorker;
 import io.aklivity.zilla.runtime.engine.internal.registry.FileWatcherTask;
 import io.aklivity.zilla.runtime.engine.internal.registry.HttpWatcherTask;
 import io.aklivity.zilla.runtime.engine.internal.registry.WatcherTask;
-import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
 import io.aklivity.zilla.runtime.engine.model.Model;
+import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 
 public final class Engine implements Collector, AutoCloseable

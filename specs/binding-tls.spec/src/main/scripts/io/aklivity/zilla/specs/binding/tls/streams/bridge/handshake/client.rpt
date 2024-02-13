@@ -16,19 +16,9 @@
 
 connect "zilla://streams/app0"
     option zilla:window 8192
-    option zilla:transmission "half-duplex"
-
-write zilla:begin.ext ${kafka:beginEx()
-                               .typeId(zilla:id("kafka"))
-                               .offsetFetch()
-                                   .groupId("client-1")
-                                   .host("broker1.example.com")
-                                   .port(9092)
-                                   .topic("test")
-                                   .partition(0)
-                                   .build()
-                               .build()}
+    option zilla:transmission "duplex"
 
 connected
 
-write abort
+write close
+read closed

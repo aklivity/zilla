@@ -483,6 +483,8 @@ scope kafka
             string16 groupId;
             string16 memberId;
             string16 instanceId;
+            string16 host = null;
+            int32 port = 0;
         }
 
         struct KafkaOffsetCommitDataEx

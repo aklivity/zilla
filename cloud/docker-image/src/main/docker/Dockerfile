@@ -15,14 +15,12 @@
 
 FROM eclipse-temurin:21-jdk AS build
 
-RUN apt update && apt install -y gettext
-
 COPY maven /root/.m2/repository
 
 COPY zpmw zpmw
 COPY zpm.json.template zpm.json.template
 
-RUN cat zpm.json.template | env VERSION=${project.version} envsubst > zpm.json
+RUN cat zpm.json.template | sed "s/\${VERSION}/${project.version}/g" | tee zpm.json
 
 RUN ./zpmw install --debug --exclude-remote-repositories
 RUN ./zpmw clean --keep-image

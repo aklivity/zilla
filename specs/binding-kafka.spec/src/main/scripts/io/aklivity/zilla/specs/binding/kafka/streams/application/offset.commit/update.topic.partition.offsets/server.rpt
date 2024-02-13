@@ -28,6 +28,8 @@ read zilla:begin.ext ${kafka:beginEx()
                                    .groupId("client-1")
                                    .memberId("memberId-1")
                                    .instanceId("zilla")
+                                   .host("broker1.example.com")
+                                   .port(9092)
                                    .build()
                                .build()}
 
