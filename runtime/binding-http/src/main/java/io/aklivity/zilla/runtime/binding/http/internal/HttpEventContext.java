@@ -61,7 +61,6 @@ public class HttpEventContext
                 .identity(identity)
             )
             .build();
-        System.out.println(event); // TODO: Ati
         logger.accept(httpTypeId, event.buffer(), event.offset(), event.limit());
     }
 }

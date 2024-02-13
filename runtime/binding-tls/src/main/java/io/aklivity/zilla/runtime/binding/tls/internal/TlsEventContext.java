@@ -61,7 +61,6 @@ public class TlsEventContext
                 .error(r -> r.set(error))
             )
             .build();
-        System.out.println(event); // TODO: Ati
         logger.accept(tlsTypeId, event.buffer(), event.offset(), event.limit());
     }
 

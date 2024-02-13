@@ -60,7 +60,6 @@ public class KafkaEventContext
                 .result(r -> r.set(result))
             )
             .build();
-        System.out.println(event); // TODO: Ati
         logger.accept(kafkaTypeId, event.buffer(), event.offset(), event.limit());
     }
 
@@ -74,7 +73,6 @@ public class KafkaEventContext
                 .traceId(traceId)
             )
             .build();
-        System.out.println(event); // TODO: Ati
         logger.accept(kafkaTypeId, event.buffer(), event.offset(), event.limit());
     }
 }

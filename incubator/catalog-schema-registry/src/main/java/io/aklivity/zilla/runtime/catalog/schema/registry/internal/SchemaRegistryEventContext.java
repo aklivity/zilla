@@ -58,7 +58,6 @@ public class SchemaRegistryEventContext
                 .status((short) status)
             )
             .build();
-        System.out.println(event); // TODO: Ati
         logger.accept(schemaRegistryTypeId, event.buffer(), event.offset(), event.limit());
     }
 }

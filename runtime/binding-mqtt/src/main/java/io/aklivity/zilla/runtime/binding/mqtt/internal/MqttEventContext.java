@@ -61,7 +61,6 @@ public class MqttEventContext
                 .identity(identity)
             )
             .build();
-        System.out.println(event); // TODO: Ati
         logger.accept(mqttTypeId, event.buffer(), event.offset(), event.limit());
     }
 }
