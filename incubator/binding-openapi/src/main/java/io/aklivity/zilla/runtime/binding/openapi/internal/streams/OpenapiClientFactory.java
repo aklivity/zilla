@@ -334,7 +334,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
             assert acknowledge <= sequence;
             assert sequence >= initialSeq;
 
-            initialSeq = sequence;
+            initialSeq = sequence + reserved;
 
             assert initialAck <= initialSeq;
 
@@ -642,6 +642,43 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
             delegate.doOpenapiFlush(traceId, reserved, extension);
         }
 
+        private void onHttpEnd(
+            EndFW end)
+        {
+            final long sequence = end.sequence();
+            final long acknowledge = end.acknowledge();
+            final long traceId = end.traceId();
+            final OctetsFW extension = end.extension();
+
+            assert acknowledge <= sequence;
+            assert sequence >= replySeq;
+
+            replySeq = sequence;
+            state = OpenapiState.closingReply(state);
+
+            assert replyAck <= replySeq;
+
+            delegate.doOpenapiEnd(traceId, extension);
+        }
+
+        private void onHttpAbort(
+            AbortFW abort)
+        {
+            final long sequence = abort.sequence();
+            final long acknowledge = abort.acknowledge();
+            final long traceId = abort.traceId();
+
+            assert acknowledge <= sequence;
+            assert sequence >= replySeq;
+
+            replySeq = sequence;
+            state = OpenapiState.closingReply(state);
+
+            assert replyAck <= replySeq;
+
+            delegate.doOpenapiAbort(traceId);
+        }
+
         private void onHttpReset(
             ResetFW reset)
         {
@@ -753,43 +790,6 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
 
                 state = OpenapiState.closeInitial(state);
             }
-        }
-
-        private void onHttpEnd(
-            EndFW end)
-        {
-            final long sequence = end.sequence();
-            final long acknowledge = end.acknowledge();
-            final long traceId = end.traceId();
-            final OctetsFW extension = end.extension();
-
-            assert acknowledge <= sequence;
-            assert sequence >= replySeq;
-
-            replySeq = sequence;
-            state = OpenapiState.closingReply(state);
-
-            assert replyAck <= replySeq;
-
-            delegate.doOpenapiEnd(traceId, extension);
-        }
-
-        private void onHttpAbort(
-            AbortFW abort)
-        {
-            final long sequence = abort.sequence();
-            final long acknowledge = abort.acknowledge();
-            final long traceId = abort.traceId();
-
-            assert acknowledge <= sequence;
-            assert sequence >= replySeq;
-
-            replySeq = sequence;
-            state = OpenapiState.closingReply(state);
-
-            assert replyAck <= replySeq;
-
-            delegate.doOpenapiAbort(traceId);
         }
 
         private void doHttpReset(
