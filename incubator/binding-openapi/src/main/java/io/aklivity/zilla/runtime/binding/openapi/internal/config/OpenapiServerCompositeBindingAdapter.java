@@ -477,11 +477,10 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
         {
             for (Map.Entry<String, Schema> entry : openApi.components.schemas.entrySet())
             {
-                SchemaView schema = SchemaView.of(openApi.components.schemas, entry.getValue());
                 subjects
                     .subject(entry.getKey())
                         .version(VERSION_LATEST)
-                        .schema(jsonb.toJson(schema))
+                        .schema(jsonb.toJson(openApi.components.schemas))
                         .build();
             }
         }
