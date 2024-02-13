@@ -43,7 +43,7 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
-import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
+import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 
 public final class OpenapiBindingConfig
 {
