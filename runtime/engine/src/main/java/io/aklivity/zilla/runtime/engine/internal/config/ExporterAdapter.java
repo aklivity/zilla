@@ -25,6 +25,7 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
+import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapter;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
 public class ExporterAdapter implements JsonbAdapter<ExporterConfig[], JsonObject>
@@ -32,14 +33,14 @@ public class ExporterAdapter implements JsonbAdapter<ExporterConfig[], JsonObjec
     private static final String TYPE_NAME = "type";
     private static final String OPTIONS_NAME = "options";
 
-    private final OptionsAdapter options;
+    private final OptionsConfigAdapter options;
 
     private String namespace;
 
     public ExporterAdapter(
         ConfigAdapterContext context)
     {
-        this.options = new OptionsAdapter(OptionsConfigAdapterSpi.Kind.EXPORTER, context);
+        this.options = new OptionsConfigAdapter(OptionsConfigAdapterSpi.Kind.EXPORTER, context);
     }
 
     public void adaptNamespace(

@@ -41,8 +41,8 @@ import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenApi;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.PathItem;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
+import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapter;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
-import io.aklivity.zilla.runtime.engine.internal.config.OptionsAdapter;
 import io.aklivity.zilla.specs.binding.openapi.OpenapiSpecs;
 
 public class OpenapiOptionsConfigAdapterTest
@@ -61,7 +61,7 @@ public class OpenapiOptionsConfigAdapterTest
         {
             String content = new String(resource.readAllBytes(), UTF_8);
             Mockito.doReturn(content).when(context).readURL("openapi/petstore.yaml");
-            OptionsAdapter adapter = new OptionsAdapter(OptionsConfigAdapterSpi.Kind.BINDING, context);
+            OptionsConfigAdapter adapter = new OptionsConfigAdapter(OptionsConfigAdapterSpi.Kind.BINDING, context);
             adapter.adaptType("openapi");
             JsonbConfig config = new JsonbConfig()
                 .withAdapters(adapter);
@@ -111,7 +111,7 @@ public class OpenapiOptionsConfigAdapterTest
         assertThat(options, not(nullValue()));
         assertThat(path.post, not(nullValue()));
         assertThat(options.tls, not(nullValue()));
-        assertThat(options.authorization, not(nullValue()));
+        assertThat(options.http, not(nullValue()));
     }
 
     @Test

@@ -91,7 +91,7 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
         OpenapiConfig openapiConfig = options.openapis.get(0);
 
         final OpenApi openApi = openapiConfig.openapi;
-        final String guardName = options.authorization.name;
+        final String guardName = options.http.authorization.name;
         final int[] allPorts = resolveAllPorts(openApi);
         final int[] httpPorts = resolvePortsForScheme(openApi, "http");
         final int[] httpsPorts = resolvePortsForScheme(openApi, "https");
@@ -123,7 +123,7 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
                         .access()
                             .policy(CROSS_ORIGIN)
                             .build()
-                        .inject(o -> this.injectHttpServerOptions(o, options.authorization, hasJwt))
+                        .inject(o -> this.injectHttpServerOptions(o, options.http.authorization, hasJwt))
                         .inject(r -> this.injectHttpServerRequests(r, openApi))
                         .build()
                     .inject(b -> this.injectHttpServerRoutes(b, openApi, guardName, securitySchemes))

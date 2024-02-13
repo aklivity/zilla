@@ -18,8 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.binding.http.config.HttpAuthorizationConfig;
-import io.aklivity.zilla.runtime.binding.http.config.HttpAuthorizationConfigBuilder;
+import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
@@ -28,9 +27,9 @@ public final class OpenpaiOptionsConfigBuilder<T> extends ConfigBuilder<T, Openp
 {
     private final Function<OptionsConfig, T> mapper;
 
-    private HttpAuthorizationConfig authorization;
-    private List<OpenapiConfig> openapis;
     private TlsOptionsConfig tls;
+    private HttpOptionsConfig http;
+    private List<OpenapiConfig> openapis;
 
     OpenpaiOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
@@ -52,6 +51,13 @@ public final class OpenpaiOptionsConfigBuilder<T> extends ConfigBuilder<T, Openp
         return this;
     }
 
+    public OpenpaiOptionsConfigBuilder<T> http(
+        HttpOptionsConfig http)
+    {
+        this.http = http;
+        return this;
+    }
+
     public OpenpaiOptionsConfigBuilder<T> openapi(
         OpenapiConfig openapi)
     {
@@ -63,21 +69,9 @@ public final class OpenpaiOptionsConfigBuilder<T> extends ConfigBuilder<T, Openp
         return this;
     }
 
-    public HttpAuthorizationConfigBuilder<OpenpaiOptionsConfigBuilder<T>> authorization()
-    {
-        return HttpAuthorizationConfig.builder(this::authorization);
-    }
-
     @Override
     public T build()
     {
-        return mapper.apply(new OpenapiOptionsConfig(tls, authorization, openapis));
-    }
-
-    private OpenpaiOptionsConfigBuilder<T> authorization(
-        HttpAuthorizationConfig authorization)
-    {
-        this.authorization = authorization;
-        return this;
+        return mapper.apply(new OpenapiOptionsConfig(tls, http, openapis));
     }
 }

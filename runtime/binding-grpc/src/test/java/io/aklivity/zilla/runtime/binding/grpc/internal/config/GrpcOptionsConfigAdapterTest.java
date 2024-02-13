@@ -43,7 +43,7 @@ import io.aklivity.zilla.runtime.binding.grpc.config.GrpcProtobufConfig;
 import io.aklivity.zilla.runtime.binding.grpc.config.GrpcServiceConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
-import io.aklivity.zilla.runtime.engine.internal.config.OptionsAdapter;
+import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapter;
 
 public class GrpcOptionsConfigAdapterTest
 {
@@ -52,7 +52,7 @@ public class GrpcOptionsConfigAdapterTest
     @Mock
     private ConfigAdapterContext context;
 
-    private OptionsAdapter adapter;
+    private OptionsConfigAdapter adapter;
 
     private Jsonb jsonb;
 
@@ -67,7 +67,7 @@ public class GrpcOptionsConfigAdapterTest
             content = new String(resource.readAllBytes(), UTF_8);
         }
         Mockito.doReturn(content).when(context).readURL("protobuf/echo.proto");
-        adapter = new OptionsAdapter(OptionsConfigAdapterSpi.Kind.BINDING, context);
+        adapter = new OptionsConfigAdapter(OptionsConfigAdapterSpi.Kind.BINDING, context);
         adapter.adaptType("grpc");
         JsonbConfig config = new JsonbConfig()
             .withAdapters(adapter);

@@ -28,26 +28,24 @@ import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.runtime.binding.http.config.HttpAuthorizationConfig;
-import io.aklivity.zilla.runtime.binding.http.config.HttpAuthorizationConfigBuilder;
+import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenpaiOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiBinding;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenApi;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
-import io.aklivity.zilla.runtime.binding.tls.internal.config.TlsOptionsConfigAdapter;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
+import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapter;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
 public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
     private static final String TLS_NAME = "tls";
     private static final String HTTP_NAME = "http";
-    private static final String AUTHORIZATION_NAME = "authorization";
     private static final String SPECS_NAME = "specs";
-    private final TlsOptionsConfigAdapter tlsOptionsConfigAdapter = new TlsOptionsConfigAdapter();
+    private OptionsConfigAdapter optionsAdapter;
     private Function<String, String> readURL;
 
     @Override
@@ -72,20 +70,16 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
 
         if (openOptions.tls != null)
         {
-            object.add(SPECS_NAME, tlsOptionsConfigAdapter
-                .adaptToJson(((OpenapiOptionsConfig) options).tls));
+            optionsAdapter.adaptType("tls");
+            final TlsOptionsConfig tls = ((OpenapiOptionsConfig) options).tls;
+            object.add(SPECS_NAME, optionsAdapter.adaptToJson(tls));
         }
 
-        HttpAuthorizationConfig httpAuthorization = openOptions.authorization;
-        if (httpAuthorization != null)
+        HttpOptionsConfig http = openOptions.http;
+        if (http != null)
         {
-            JsonObjectBuilder http = Json.createObjectBuilder();
-            JsonObjectBuilder authorization = Json.createObjectBuilder();
-
-            adaptAuthorizationFromObject(httpAuthorization, authorization);
-
-            http.add(AUTHORIZATION_NAME, authorization.build());
-            object.add(HTTP_NAME, http.build());
+            optionsAdapter.adaptType("http");
+            object.add(HTTP_NAME, optionsAdapter.adaptToJson(http));
         }
 
         if (openOptions.openapis != null)
@@ -106,19 +100,19 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
 
         if (object.containsKey(TLS_NAME))
         {
-            openapiOptions.tls((TlsOptionsConfig) tlsOptionsConfigAdapter
-                .adaptFromJson(object.getJsonObject(TLS_NAME)));
+            optionsAdapter.adaptType("tls");
+            final JsonObject tls = object.getJsonObject(TLS_NAME);
+            final TlsOptionsConfig tlsOptions = (TlsOptionsConfig) optionsAdapter.adaptFromJson(tls);
+            openapiOptions.tls(tlsOptions);
         }
 
         if (object.containsKey(HTTP_NAME))
         {
-            HttpAuthorizationConfigBuilder<?> httpAuthorization = openapiOptions.authorization();
             JsonObject http = object.getJsonObject(HTTP_NAME);
-            JsonObject authorizations = http.getJsonObject(AUTHORIZATION_NAME);
 
-            adaptAuthorization(authorizations, httpAuthorization);
-
-            httpAuthorization.build();
+            optionsAdapter.adaptType("http");
+            final HttpOptionsConfig httpOptions = (HttpOptionsConfig) optionsAdapter.adaptFromJson(http);
+            openapiOptions.http(httpOptions);
         }
 
         if (object.containsKey(SPECS_NAME))
@@ -134,6 +128,7 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
         ConfigAdapterContext context)
     {
         this.readURL = context::readURL;
+        this.optionsAdapter = new OptionsConfigAdapter(Kind.BINDING, context);
     }
 
     private OpenapiConfig asOpenapi(

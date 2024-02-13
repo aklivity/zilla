@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.config;
 
+import static java.util.Collections.unmodifiableMap;
 import static java.util.stream.Collector.of;
 import static java.util.stream.Collector.Characteristics.IDENTITY_FINISH;
 import static java.util.stream.Collectors.toCollection;
@@ -107,7 +108,7 @@ public final class OpenapiBindingConfig
         resolversByMethod.put("HEAD", o -> o.head != null ? o.head.operationId : null);
         resolversByMethod.put("PATCH", o -> o.patch != null ? o.patch.operationId : null);
         resolversByMethod.put("TRACE", o -> o.post != null ? o.trace.operationId : null);
-        this.resolversByMethod = Collections.unmodifiableMap(resolversByMethod);
+        this.resolversByMethod = unmodifiableMap(resolversByMethod);
     }
 
     public boolean isCompositeNamespace(
