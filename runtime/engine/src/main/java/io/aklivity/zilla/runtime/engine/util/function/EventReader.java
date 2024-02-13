@@ -19,7 +19,7 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
 public interface EventReader
 {
-    int applyAsInt(
+    int read(
         MessageConsumer handler,
         int messageCountLimit);
 }

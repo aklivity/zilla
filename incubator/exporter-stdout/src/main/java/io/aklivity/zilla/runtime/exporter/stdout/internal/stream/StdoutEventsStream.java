@@ -59,7 +59,7 @@ public class StdoutEventsStream
 
     public int process()
     {
-        return readEvent.applyAsInt(this::handleEvent, 1);
+        return readEvent.read(this::handleEvent, 1);
     }
 
     private void addEventHandler(
