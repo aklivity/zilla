@@ -138,7 +138,6 @@ public class StdoutEventsStream
         switch (event.kind())
         {
         case AUTHORIZATION:
-        {
             HttpAuthorizationEventFW e = event.authorization();
             String namespace = supplyNamespace.apply(e.namespacedId());
             String binding = supplyLocalName.apply(e.namespacedId());
@@ -147,15 +146,6 @@ public class StdoutEventsStream
             out.printf(HTTP_AUTHORIZATION_FORMAT, level, result, e.timestamp(), e.traceId(), namespace, binding,
                 asString(e.identity()));
             break;
-        }
-        case ACCESS_DENIED:
-        {
-            EventFW e = event.accessDenied();
-            String namespace = supplyNamespace.apply(e.namespacedId());
-            String binding = supplyLocalName.apply(e.namespacedId());
-            out.printf(HTTP_ACCESS_DENIED, e.timestamp(), e.traceId(), namespace, binding);
-            break;
-        }
         }
     }
 

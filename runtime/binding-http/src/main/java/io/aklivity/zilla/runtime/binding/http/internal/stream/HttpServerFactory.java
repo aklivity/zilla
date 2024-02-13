@@ -1031,7 +1031,6 @@ public final class HttpServerFactory implements HttpStreamFactory
                 }
                 else if (!isCorsRequestAllowed(server.binding, headers))
                 {
-                    event.accessDenied(traceId, server.routedId);
                     server.onDecodeHeadersError(traceId, authorization, response403);
                     server.decoder = decodeIgnore;
                 }
@@ -4942,7 +4941,6 @@ public final class HttpServerFactory implements HttpStreamFactory
                 }
                 else if (!isCorsRequestAllowed(binding, headers))
                 {
-                    event.accessDenied(traceId, routedId);
                     doEncodeHeaders(traceId, authorization, streamId, headers403, true);
                 }
                 else

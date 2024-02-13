@@ -44,22 +44,6 @@ public class HttpEventContext
         this.timestamp = context.timestamp();
     }
 
-    public void accessDenied(
-        long traceId,
-        long routedId)
-    {
-        HttpEventFW event = httpEventRW
-            .wrap(eventBuffer, 0, eventBuffer.capacity())
-            .accessDenied(e -> e
-                .timestamp(timestamp.getAsLong())
-                .traceId(traceId)
-                .namespacedId(routedId)
-            )
-            .build();
-        System.out.println(event); // TODO: Ati
-        logger.accept(httpTypeId, event.buffer(), event.offset(), event.limit());
-    }
-
     public void authorization(
         long sessionId,
         long traceId,
