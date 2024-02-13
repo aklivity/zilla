@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.kafka.internal.types.ProxyAddressProtocol.STREAM;
 import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_BUDGET_ID;
 import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_INDEX;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
@@ -49,6 +50,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ExtensionFW
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaInitProducerIdBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaResetExFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ProxyBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.WindowFW;
@@ -90,6 +92,7 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
     private final KafkaBeginExFW.Builder kafkaBeginExRW = new KafkaBeginExFW.Builder();
     private final KafkaResetExFW.Builder kafkaResetExRW = new KafkaResetExFW.Builder();
+    private final ProxyBeginExFW.Builder proxyBeginExRW = new ProxyBeginExFW.Builder();
 
     private final RequestHeaderFW.Builder requestHeaderRW = new RequestHeaderFW.Builder();
     private final InitProducerIdRequestFW.Builder initProducerIdRequestRW = new InitProducerIdRequestFW.Builder();
@@ -109,6 +112,7 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
     private final KafkaInitProducerIdClientDecoder decodeReject = this::decodeReject;
 
     private final int kafkaTypeId;
+    private final int proxyTypeId;
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer extBuffer;
     private final BufferPool decodePool;
@@ -130,6 +134,7 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
     {
         super(config, context);
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
+        this.proxyTypeId = context.supplyTypeId("proxy");
         this.signaler = signaler;
         this.streamFactory = streamFactory;
         this.resolveSasl = resolveSasl;
@@ -1066,8 +1071,24 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
         {
             state = KafkaState.openingInitial(state);
 
+            Consumer<OctetsFW.Builder> extension = EMPTY_EXTENSION;
+
+            if (server != null)
+            {
+                extension = e -> e.set((b, o, l) -> proxyBeginExRW.wrap(b, o, l)
+                                                                  .typeId(proxyTypeId)
+                                                                  .address(a -> a.inet(i -> i.protocol(p -> p.set(STREAM))
+                                                                                             .source("0.0.0.0")
+                                                                                             .destination(server.host)
+                                                                                             .sourcePort(0)
+                                                                                             .destinationPort(server.port)))
+                                                                  .infos(i -> i.item(ii -> ii.authority(server.host)))
+                                                                  .build()
+                                                                  .sizeof());
+            }
+
             network = newStream(this::onNetwork, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, authorization, affinity, EMPTY_EXTENSION);
+                    traceId, authorization, affinity, extension);
         }
 
         @Override

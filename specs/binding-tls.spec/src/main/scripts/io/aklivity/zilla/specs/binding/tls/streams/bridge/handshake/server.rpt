@@ -14,21 +14,14 @@
 # under the License.
 #
 
-connect "zilla://streams/app0"
-    option zilla:window 8192
-    option zilla:transmission "half-duplex"
+property address "zilla://streams/app1"
 
-write zilla:begin.ext ${kafka:beginEx()
-                               .typeId(zilla:id("kafka"))
-                               .offsetFetch()
-                                   .groupId("client-1")
-                                   .host("broker1.example.com")
-                                   .port(9092)
-                                   .topic("test")
-                                   .partition(0)
-                                   .build()
-                               .build()}
+accept ${address}
+       option zilla:window 8192
+       option zilla:transmission "duplex"
+accepted
 
 connected
 
-write abort
+read closed
+write close

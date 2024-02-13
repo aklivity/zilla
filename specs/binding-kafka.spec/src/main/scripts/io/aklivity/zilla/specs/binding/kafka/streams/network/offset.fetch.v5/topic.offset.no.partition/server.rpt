@@ -23,6 +23,19 @@ accept "zilla://streams/net0"
 
 accepted
 
+read zilla:begin.ext ${proxy:matchBeginEx()
+                              .typeId(zilla:id("proxy"))
+                              .addressInet()
+                                .protocol("stream")
+                                .source("0.0.0.0")
+                                .destination("broker1.example.com")
+                                .sourcePort(0)
+                                .destinationPort(9092)
+                                .build()
+                              .info()
+                                .authority("broker1.example.com")
+                                .build()
+                              .build()}
 connected
 
 read  43                                # size
