@@ -19,17 +19,17 @@ scope tcp
     {
         enum TcpEventType (uint8)
         {
-            REMOTE_ACCESS_FAILED (1)
+            DNS_RESOLUTION_FAILED (1)
         }
 
-        struct TcpRemoteAccessFailedEvent extends core::event::Event
+        struct TcpDnsResolutionFailedEvent extends core::event::Event
         {
             string16 address;
         }
 
         union TcpEvent switch (TcpEventType)
         {
-            case REMOTE_ACCESS_FAILED: TcpRemoteAccessFailedEvent remoteAccessFailed;
+            case DNS_RESOLUTION_FAILED: TcpDnsResolutionFailedEvent dnsResolutionFailed;
         }
     }
 }

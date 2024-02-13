@@ -19,13 +19,13 @@ import java.util.function.LongFunction;
 
 import org.agrona.DirectBuffer;
 
+import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.TcpDnsResolutionFailedEventFW;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.TcpEventFW;
-import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.TcpRemoteAccessFailedEventFW;
 
 public class TcpEventHandler extends EventHandler
 {
-    private static final String TCP_REMOTE_ACCESS_FAILED_FORMAT =
-        "ERROR: TCP Remote Access Failed [timestamp = %d] [traceId = 0x%016x] [binding = %s.%s] [address = %s]%n";
+    private static final String TCP_DNS_RESOLUTION_FAILED_FORMAT =
+        "ERROR: TCP DNS Resolution Failed [timestamp = %d] [traceId = 0x%016x] [binding = %s.%s] [address = %s]%n";
 
     private final TcpEventFW tcpEventRO = new TcpEventFW();
 
@@ -46,11 +46,11 @@ public class TcpEventHandler extends EventHandler
         final TcpEventFW event = tcpEventRO.wrap(buffer, index, index + length);
         switch (event.kind())
         {
-        case REMOTE_ACCESS_FAILED:
-            TcpRemoteAccessFailedEventFW e = event.remoteAccessFailed();
+        case DNS_RESOLUTION_FAILED:
+            TcpDnsResolutionFailedEventFW e = event.dnsResolutionFailed();
             String namespace = supplyNamespace.apply(e.namespacedId());
             String binding = supplyLocalName.apply(e.namespacedId());
-            out.printf(TCP_REMOTE_ACCESS_FAILED_FORMAT, e.timestamp(), e.traceId(), namespace, binding, asString(e.address()));
+            out.printf(TCP_DNS_RESOLUTION_FAILED_FORMAT, e.timestamp(), e.traceId(), namespace, binding, asString(e.address()));
             break;
         }
     }

@@ -43,14 +43,14 @@ public class TcpEventContext
         this.timestamp = context.timestamp();
     }
 
-    public void remoteAccessFailed(
+    public void dnsResolutionFailed(
         long traceId,
         long routedId,
         String address)
     {
         TcpEventFW event = tcpEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
-            .remoteAccessFailed(e -> e
+            .dnsResolutionFailed(e -> e
                 .timestamp(timestamp.getAsLong())
                 .traceId(traceId)
                 .namespacedId(routedId)

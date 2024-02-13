@@ -42,7 +42,7 @@ public class StdoutExporterHandlerTest
     private static final Path EVENTS_PATH = ENGINE_PATH.resolve("events");
     private static final int CAPACITY = 1024;
     private static final int TCP_TYPE_ID = 1;
-    private static final String EXPECTED_OUTPUT = "ERROR: TCP Remote Access Failed [timestamp = 77] " +
+    private static final String EXPECTED_OUTPUT = "ERROR: TCP DNS Resolution Failed [timestamp = 77] " +
         "[traceId = 0x0000000000000042] [binding = ns.binding] [address = address]\n";
 
     @Test
@@ -56,7 +56,7 @@ public class StdoutExporterHandlerTest
         MutableDirectBuffer eventBuffer = new UnsafeBuffer(new byte[64]);
         TcpEventFW event = new TcpEventFW.Builder()
             .wrap(eventBuffer, 0, eventBuffer.capacity())
-            .remoteAccessFailed(e -> e.timestamp(77)
+            .dnsResolutionFailed(e -> e.timestamp(77)
                 .traceId(0x0000000000000042L)
                 .namespacedId(0x0000000200000007L)
                 .address("address")
