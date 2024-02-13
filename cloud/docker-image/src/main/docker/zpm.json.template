@@ -14,7 +14,6 @@
   "dependencies":
   [
     "io.aklivity.zilla:binding-amqp",
-    "io.aklivity.zilla:binding-openapi",
     "io.aklivity.zilla:binding-echo",
     "io.aklivity.zilla:binding-fan",
     "io.aklivity.zilla:binding-filesystem",
@@ -27,6 +26,7 @@
     "io.aklivity.zilla:binding-kafka",
     "io.aklivity.zilla:binding-mqtt",
     "io.aklivity.zilla:binding-mqtt-kafka",
+    "io.aklivity.zilla:binding-openapi",
     "io.aklivity.zilla:binding-proxy",
     "io.aklivity.zilla:binding-sse",
     "io.aklivity.zilla:binding-sse-kafka",

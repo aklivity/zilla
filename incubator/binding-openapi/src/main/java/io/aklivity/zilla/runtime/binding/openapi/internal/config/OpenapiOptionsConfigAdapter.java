@@ -45,7 +45,8 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
     private static final String TLS_NAME = "tls";
     private static final String HTTP_NAME = "http";
     private static final String SPECS_NAME = "specs";
-    private OptionsConfigAdapter optionsAdapter;
+    private OptionsConfigAdapter tlsOptions;
+    private OptionsConfigAdapter httpOptions;
     private Function<String, String> readURL;
 
     @Override
@@ -70,16 +71,14 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
 
         if (openOptions.tls != null)
         {
-            optionsAdapter.adaptType("tls");
             final TlsOptionsConfig tls = ((OpenapiOptionsConfig) options).tls;
-            object.add(SPECS_NAME, optionsAdapter.adaptToJson(tls));
+            object.add(SPECS_NAME, tlsOptions.adaptToJson(tls));
         }
 
         HttpOptionsConfig http = openOptions.http;
         if (http != null)
         {
-            optionsAdapter.adaptType("http");
-            object.add(HTTP_NAME, optionsAdapter.adaptToJson(http));
+            object.add(HTTP_NAME, httpOptions.adaptToJson(http));
         }
 
         if (openOptions.openapis != null)
@@ -100,9 +99,8 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
 
         if (object.containsKey(TLS_NAME))
         {
-            optionsAdapter.adaptType("tls");
             final JsonObject tls = object.getJsonObject(TLS_NAME);
-            final TlsOptionsConfig tlsOptions = (TlsOptionsConfig) optionsAdapter.adaptFromJson(tls);
+            final TlsOptionsConfig tlsOptions = (TlsOptionsConfig) this.tlsOptions.adaptFromJson(tls);
             openapiOptions.tls(tlsOptions);
         }
 
@@ -110,8 +108,7 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
         {
             JsonObject http = object.getJsonObject(HTTP_NAME);
 
-            optionsAdapter.adaptType("http");
-            final HttpOptionsConfig httpOptions = (HttpOptionsConfig) optionsAdapter.adaptFromJson(http);
+            final HttpOptionsConfig httpOptions = (HttpOptionsConfig) this.httpOptions.adaptFromJson(http);
             openapiOptions.http(httpOptions);
         }
 
@@ -128,7 +125,10 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
         ConfigAdapterContext context)
     {
         this.readURL = context::readURL;
-        this.optionsAdapter = new OptionsConfigAdapter(Kind.BINDING, context);
+        this.tlsOptions = new OptionsConfigAdapter(Kind.BINDING, context);
+        this.tlsOptions.adaptType("tls");
+        this.httpOptions = new OptionsConfigAdapter(Kind.BINDING, context);
+        this.httpOptions.adaptType("http");
     }
 
     private OpenapiConfig asOpenapi(

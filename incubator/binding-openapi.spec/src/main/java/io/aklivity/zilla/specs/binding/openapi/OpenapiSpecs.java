@@ -15,6 +15,9 @@
  */
 package io.aklivity.zilla.specs.binding.openapi;
 
-public class OpenapiSpecs
+public final class OpenapiSpecs
 {
+    private OpenapiSpecs()
+    {
+    }
 }

@@ -51,7 +51,7 @@ public class HttpIT
         "${http}/reject.incorrect.origin/client",
         "${http}/reject.incorrect.origin/server"
     })
-    public void shouldRejectIncorrectOrigin() throws Exception
+    public void shouldRejectNonCompositeOrigin() throws Exception
     {
         k3po.finish();
     }

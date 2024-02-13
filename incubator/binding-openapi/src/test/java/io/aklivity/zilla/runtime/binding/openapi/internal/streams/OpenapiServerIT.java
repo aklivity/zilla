@@ -71,9 +71,9 @@ public class OpenapiServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${http}/reject.incorrect.origin/client"
+        "${http}/reject.non.composite.origin/client"
     })
-    public void shouldRejectIncorrectOrigin() throws Exception
+    public void shouldRejectNonCompositeOrigin() throws Exception
     {
         k3po.finish();
     }

@@ -136,71 +136,6 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
             .build();
     }
 
-    private int[] resolveAllPorts(
-        OpenApi openApi)
-    {
-        int[] ports = new int[openApi.servers.size()];
-        for (int i = 0; i < openApi.servers.size(); i++)
-        {
-            ServerView server = ServerView.of(openApi.servers.get(i));
-            URI url = server.url();
-            ports[i] = url.getPort();
-        }
-        return ports;
-    }
-
-    private int[] resolvePortsForScheme(
-        OpenApi openApi,
-        String scheme)
-    {
-        requireNonNull(scheme);
-        int[] ports = null;
-        URI url = findFirstServerUrlWithScheme(openApi, scheme);
-        if (url != null)
-        {
-            ports = new int[] {url.getPort()};
-        }
-        return ports;
-    }
-
-    private URI findFirstServerUrlWithScheme(
-        OpenApi openApi,
-        String scheme)
-    {
-        requireNonNull(scheme);
-        URI result = null;
-        for (Server item : openApi.servers)
-        {
-            ServerView server = ServerView.of(item);
-            if (scheme.equals(server.url().getScheme()))
-            {
-                result = server.url();
-                break;
-            }
-        }
-        return result;
-    }
-
-    private Map<String, String> resolveSecuritySchemes(
-        OpenApi openApi)
-    {
-        requireNonNull(openApi);
-        Map<String, String> result = new Object2ObjectHashMap<>();
-        if (openApi.components != null &&
-            openApi.components.securitySchemes != null)
-        {
-            for (String securitySchemeName : openApi.components.securitySchemes.keySet())
-            {
-                String guardType = openApi.components.securitySchemes.get(securitySchemeName).bearerFormat;
-                if ("jwt".equals(guardType))
-                {
-                    result.put(securitySchemeName, guardType);
-                }
-            }
-        }
-        return result;
-    }
-
     private <C> BindingConfigBuilder<C> injectPlainTcpRoute(
         BindingConfigBuilder<C> binding,
         int[] httpPorts,
@@ -428,25 +363,6 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
         return guarded;
     }
 
-    private SchemaView resolveSchemaForJsonContentType(
-        Map<String, MediaType> content,
-        OpenApi openApi)
-    {
-        MediaType mediaType = null;
-        if (content != null)
-        {
-            for (String contentType : content.keySet())
-            {
-                if (jsonContentType.reset(contentType).matches())
-                {
-                    mediaType = content.get(contentType);
-                    break;
-                }
-            }
-        }
-        return mediaType == null ? null : SchemaView.of(openApi.components.schemas, mediaType.schema);
-    }
-
     private <C> NamespaceConfigBuilder<C> injectCatalog(
         NamespaceConfigBuilder<C> namespace,
         OpenApi openApi)
@@ -489,5 +405,90 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
             rethrowUnchecked(ex);
         }
         return subjects;
+    }
+
+    private int[] resolveAllPorts(
+        OpenApi openApi)
+    {
+        int[] ports = new int[openApi.servers.size()];
+        for (int i = 0; i < openApi.servers.size(); i++)
+        {
+            ServerView server = ServerView.of(openApi.servers.get(i));
+            URI url = server.url();
+            ports[i] = url.getPort();
+        }
+        return ports;
+    }
+
+    private int[] resolvePortsForScheme(
+        OpenApi openApi,
+        String scheme)
+    {
+        requireNonNull(scheme);
+        int[] ports = null;
+        URI url = findFirstServerUrlWithScheme(openApi, scheme);
+        if (url != null)
+        {
+            ports = new int[] {url.getPort()};
+        }
+        return ports;
+    }
+
+    private URI findFirstServerUrlWithScheme(
+        OpenApi openApi,
+        String scheme)
+    {
+        requireNonNull(scheme);
+        URI result = null;
+        for (Server item : openApi.servers)
+        {
+            ServerView server = ServerView.of(item);
+            if (scheme.equals(server.url().getScheme()))
+            {
+                result = server.url();
+                break;
+            }
+        }
+        return result;
+    }
+
+    private Map<String, String> resolveSecuritySchemes(
+        OpenApi openApi)
+    {
+        requireNonNull(openApi);
+        Map<String, String> result = new Object2ObjectHashMap<>();
+        if (openApi.components != null &&
+            openApi.components.securitySchemes != null)
+        {
+            for (String securitySchemeName : openApi.components.securitySchemes.keySet())
+            {
+                String guardType = openApi.components.securitySchemes.get(securitySchemeName).bearerFormat;
+                if ("jwt".equals(guardType))
+                {
+                    result.put(securitySchemeName, guardType);
+                }
+            }
+        }
+        return result;
+    }
+
+    private SchemaView resolveSchemaForJsonContentType(
+        Map<String, MediaType> content,
+        OpenApi openApi)
+    {
+        MediaType mediaType = null;
+        if (content != null)
+        {
+            for (String contentType : content.keySet())
+            {
+                if (jsonContentType.reset(contentType).matches())
+                {
+                    mediaType = content.get(contentType);
+                    break;
+                }
+            }
+        }
+
+        return mediaType == null ? null : SchemaView.of(openApi.components.schemas, mediaType.schema);
     }
 }
