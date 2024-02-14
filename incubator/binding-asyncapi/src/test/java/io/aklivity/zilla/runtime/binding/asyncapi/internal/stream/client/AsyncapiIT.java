@@ -52,7 +52,7 @@ public class AsyncapiIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("client.yaml")
+    @Configuration("client.mqtt.yaml")
     @Specification({
         "${asyncapi}/publish.and.subscribe/client",
         "${mqtt}/publish.and.subscribe/server"

@@ -20,6 +20,7 @@ import java.net.URI;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiServerView;
 
@@ -31,13 +32,16 @@ public class AsyncapiCompositeBindingAdapter
     protected boolean isPlainEnabled;
     protected boolean isTlsEnabled;
     protected int[] allPorts;
+    protected int[] compositePorts;
+    protected int[] compositeSecurePorts;
     protected AsyncapiProtocol protocol;
     protected String qname;
     protected String qvault;
 
 
     protected AsyncapiProtocol resolveProtocol(
-        String protocol)
+        String protocol,
+        AsyncapiOptionsConfig options)
     {
         Pattern pattern = Pattern.compile("(http|mqtt)");
         Matcher matcher = pattern.matcher(protocol);
@@ -47,10 +51,10 @@ public class AsyncapiCompositeBindingAdapter
             switch (matcher.group())
             {
             case "http":
-                asyncapiProtocol = null; //TODO: add asyncapiProtocol
+                asyncapiProtocol = new AsyncapiHttpProtocol(qname, asyncApi, options);
                 break;
             case "mqtt":
-                asyncapiProtocol = new AyncapiMqttProtocol(asyncApi, "mqtt", "mqtts");
+                asyncapiProtocol = new AyncapiMqttProtocol(qname, asyncApi, options);
                 break;
             }
             return asyncapiProtocol;

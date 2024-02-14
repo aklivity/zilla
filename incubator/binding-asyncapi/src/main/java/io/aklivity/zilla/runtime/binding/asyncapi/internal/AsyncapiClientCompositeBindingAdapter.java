@@ -18,6 +18,7 @@ import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiServerView;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
@@ -26,9 +27,6 @@ import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 
 public class AsyncapiClientCompositeBindingAdapter extends AsyncapiCompositeBindingAdapter implements CompositeBindingAdapterSpi
 {
-    private int[] mqttPorts;
-    private int[] mqttsPorts;
-
     @Override
     public String type()
     {
@@ -43,20 +41,24 @@ public class AsyncapiClientCompositeBindingAdapter extends AsyncapiCompositeBind
         AsyncapiConfig asyncapiConfig = options.specs.get(0);
         this.asyncApi = asyncapiConfig.asyncApi;
 
-        this.allPorts = resolveAllPorts();
-        this.mqttPorts = resolvePortsForScheme("mqtt");
-        this.mqttsPorts = resolvePortsForScheme("mqtts");
-        this.isPlainEnabled = mqttPorts != null;
-        this.isTlsEnabled = mqttsPorts != null;
+        //TODO: add composite for all servers
+        AsyncapiServerView firstServer = AsyncapiServerView.of(asyncApi.servers.entrySet().iterator().next().getValue());
+
         this.qname = binding.qname;
         this.qvault = String.format("%s:%s", binding.namespace, binding.vault);
+        this.protocol = resolveProtocol(firstServer.protocol());
+        this.allPorts = resolveAllPorts();
+        this.compositePorts = resolvePortsForScheme(protocol.scheme);
+        this.compositeSecurePorts = resolvePortsForScheme(protocol.secureScheme);
+        this.isPlainEnabled = compositePorts != null;
+        this.isTlsEnabled = compositeSecurePorts != null;
 
         return BindingConfig.builder(binding)
             .composite()
                 .name(String.format(qname, "$composite"))
                 .binding()
-                    .name("mqtt_client0")
-                    .type("mqtt")
+                    .name(String.format("%s_client0", protocol.scheme))
+                    .type(protocol.scheme)
                     .kind(CLIENT)
                     .exit(isTlsEnabled ? "tls_client0" : "tcp_client0")
                     .build()

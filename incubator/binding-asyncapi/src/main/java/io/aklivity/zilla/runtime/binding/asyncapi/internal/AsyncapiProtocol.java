@@ -1,14 +1,28 @@
+/*
+ * Copyright 2021-2023 Aklivity Inc
+ *
+ * Licensed under the Aklivity Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ *   https://www.aklivity.io/aklivity-community-license/
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal;
+
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiMessage;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiMessageView;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfigBuilder;
-
-import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public abstract class AsyncapiProtocol
 {
@@ -18,23 +32,23 @@ public abstract class AsyncapiProtocol
     protected final Matcher jsonContentType = JSON_CONTENT_TYPE.matcher("");
 
     protected Asyncapi asyncApi;
+    protected String qname;
     public final String scheme;
     public final String secureScheme;
 
     protected AsyncapiProtocol(
+        String qname,
         Asyncapi asyncApi,
         String scheme,
         String secureScheme)
     {
+        this.qname = qname;
         this.asyncApi = asyncApi;
         this.scheme = scheme;
         this.secureScheme = secureScheme;
     }
 
     public abstract <C>BindingConfigBuilder<C> injectProtocolServerOptions(
-        BindingConfigBuilder<C> binding);
-
-    public abstract <C>BindingConfigBuilder<C> injectProtocolClientOptions(
         BindingConfigBuilder<C> binding);
 
     public abstract <C> BindingConfigBuilder<C> injectProtocolServerRoutes(

@@ -16,33 +16,21 @@ package io.aklivity.zilla.runtime.binding.asyncapi.internal;
 
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 
-import java.util.Map;
-
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiChannel;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiMessage;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiMessageView;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiServerView;
-import io.aklivity.zilla.runtime.binding.mqtt.config.MqttConditionConfig;
-import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfig;
+import io.aklivity.zilla.runtime.binding.http.config.HttpAuthorizationConfig;
+import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.CatalogedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.CompositeBindingAdapterSpi;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
-import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
 public class AsyncapiServerCompositeBindingAdapter extends AsyncapiCompositeBindingAdapter implements CompositeBindingAdapterSpi
 {
-    private AsyncapiProtocol protocol;
-    private int[] compositePorts;
-    private int[] compositeSecurePorts;
-    private String qname;
-
     @Override
     public String type()
     {
@@ -60,14 +48,14 @@ public class AsyncapiServerCompositeBindingAdapter extends AsyncapiCompositeBind
         //TODO: add composite for all servers
         AsyncapiServerView firstServer = AsyncapiServerView.of(asyncApi.servers.entrySet().iterator().next().getValue());
 
-        this.protocol = resolveProtocol(firstServer.protocol());
+        this.qname = binding.qname;
+        this.qvault = String.format("%s:%s", binding.namespace, binding.vault);
+        this.protocol = resolveProtocol(firstServer.protocol(), options);
         this.allPorts = resolveAllPorts();
         this.compositePorts = resolvePortsForScheme(protocol.scheme);
         this.compositeSecurePorts = resolvePortsForScheme(protocol.secureScheme);
         this.isPlainEnabled = compositePorts != null;
         this.isTlsEnabled = compositeSecurePorts != null;
-        this.qname = binding.qname;
-        this.qvault = String.format("%s:%s", binding.namespace, binding.vault);
 
         return BindingConfig.builder(binding)
             .composite()
@@ -89,7 +77,7 @@ public class AsyncapiServerCompositeBindingAdapter extends AsyncapiCompositeBind
                     .type(protocol.scheme)
                     .kind(SERVER)
                     .inject(protocol::injectProtocolServerOptions)
-                    .inject(this::injectMqttServerRoutes)
+                    .inject(protocol::injectProtocolServerRoutes)
                     .build()
                 .build()
            .build();
@@ -105,7 +93,7 @@ public class AsyncapiServerCompositeBindingAdapter extends AsyncapiCompositeBind
                     .when(TcpConditionConfig::builder)
                         .ports(compositePorts)
                         .build()
-                    .exit("mqtt_server0")
+                    .exit(String.format("%s_server0", protocol.scheme))
                     .build();
         }
         return binding;
@@ -144,33 +132,9 @@ public class AsyncapiServerCompositeBindingAdapter extends AsyncapiCompositeBind
                         .alpn(options.tls.alpn)
                         .build()
                     .vault(qvault)
-                    .exit("mqtt_server0")
+                    .exit(String.format("%s_server0", protocol.scheme))
                     .build();
         }
         return namespace;
-    }
-
-    private <C> BindingConfigBuilder<C> injectMqttServerRoutes(
-        BindingConfigBuilder<C> binding)
-    {
-        for (Map.Entry<String, AsyncapiChannel> entry : asyncApi.channels.entrySet())
-        {
-            String topic = entry.getValue().address.replaceAll("\\{[^}]+\\}", "#");
-            binding
-                .route()
-                    .when(MqttConditionConfig::builder)
-                        .publish()
-                            .topic(topic)
-                            .build()
-                        .build()
-                    .when(MqttConditionConfig::builder)
-                        .subscribe()
-                            .topic(topic)
-                            .build()
-                        .build()
-                    .exit(qname)
-                .build();
-        }
-        return binding;
     }
 }
