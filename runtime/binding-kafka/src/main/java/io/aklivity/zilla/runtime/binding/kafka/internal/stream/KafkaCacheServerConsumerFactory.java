@@ -651,11 +651,11 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
 
                 this.receiver = newStream(this::onConsumerMessage,
                     originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, authorization, 0L,
-                    ex -> ex.set((b, o, l) -> kafkaBeginExRW.wrap(b, o, l)
+                    traceId, authorization, 0L, ex -> ex
+                        .set((b, o, l) -> kafkaBeginExRW.wrap(b, o, l)
                         .typeId(kafkaTypeId)
-                        .group(g ->
-                            g.groupId(groupId)
+                        .group(g -> g
+                            .groupId(groupId)
                             .protocol("rebalance")
                             .timeout(timeout)
                             .metadataLen(metadata.sizeof())
@@ -1545,7 +1545,9 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
                         .offsetCommit(oc -> oc
                             .groupId(delegate.fanout.groupId)
                             .memberId(delegate.fanout.memberId)
-                            .instanceId(delegate.fanout.instanceId))
+                            .instanceId(delegate.fanout.instanceId)
+                            .host(delegate.fanout.host)
+                            .port(delegate.fanout.port))
                         .build().sizeof()));
                 state = KafkaState.openingInitial(state);
             }
