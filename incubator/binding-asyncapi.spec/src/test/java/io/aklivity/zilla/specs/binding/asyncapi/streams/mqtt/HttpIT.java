@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.specs.binding.asyncapi.streams.asyncapi;
+package io.aklivity.zilla.specs.binding.asyncapi.streams.mqtt;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -26,30 +26,21 @@ import org.junit.rules.Timeout;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 
-public class AsyncapiIT
+public class HttpIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("asyncapi", "io/aklivity/zilla/specs/binding/asyncapi/streams/asyncapi");
+        .addScriptRoot("http", "io/aklivity/zilla/specs/binding/asyncapi/streams/http");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(5, SECONDS));
 
     @Rule
     public final TestRule chain = outerRule(k3po).around(timeout);
 
-    @Test
-    @Specification({
-        "${asyncapi}/publish.and.subscribe/client",
-        "${asyncapi}/publish.and.subscribe/server"
-    })
-    public void shouldPublishAndSubscribe() throws Exception
-    {
-        k3po.finish();
-    }
 
     @Test
     @Specification({
-        "${asyncapi}/create.item/client",
-        "${asyncapi}/create.item/server"
+        "${http}/create.item/client",
+        "${http}/create.item/server"
     })
     public void shouldCreateItem() throws Exception
     {

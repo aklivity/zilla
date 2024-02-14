@@ -19,8 +19,6 @@ import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiServerView;
-import io.aklivity.zilla.runtime.binding.http.config.HttpAuthorizationConfig;
-import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;

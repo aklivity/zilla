@@ -59,4 +59,15 @@ public class AsyncapiIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.http.yaml")
+    @Specification({
+        "${http}/create.item/client",
+        "${asyncapi}/create.item/server"
+    })
+    public void shouldCreateItem() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -46,7 +46,16 @@
                             },
                             "tcp": "#/$defs/binding/tcp/options",
                             "tls": "#/$defs/binding/tls/options",
-                            "http": "#/$defs/binding/http/options"
+                            "http":
+                            {
+                                "title": "Http",
+                                "type": "object",
+                                "properties":
+                                {
+                                    "authorization": "$defs/options/binding/http/authorization"
+                                },
+                                "additionalProperties": false
+                            }
                         },
                         "additionalProperties": false
                     },

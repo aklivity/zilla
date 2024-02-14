@@ -88,7 +88,7 @@
         <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <scopeNames>core asyncapi</scopeNames>
+          <scopeNames>core http mqtt asyncapi</scopeNames>
           <packageName>io.aklivity.zilla.specs.binding.asyncapi.internal.types</packageName>
         </configuration>
         <executions>

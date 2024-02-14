@@ -101,7 +101,7 @@ public final class HttpOptionsConfigBuilder<T> extends ConfigBuilder<T, HttpOpti
         return new HttpRequestConfigBuilder<>(this::request);
     }
 
-    private HttpOptionsConfigBuilder<T> authorization(
+    public HttpOptionsConfigBuilder<T> authorization(
         HttpAuthorizationConfig authorization)
     {
         this.authorization = authorization;

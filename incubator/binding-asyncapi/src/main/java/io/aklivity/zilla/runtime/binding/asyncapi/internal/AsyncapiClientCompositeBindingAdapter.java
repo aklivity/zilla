@@ -46,7 +46,7 @@ public class AsyncapiClientCompositeBindingAdapter extends AsyncapiCompositeBind
 
         this.qname = binding.qname;
         this.qvault = String.format("%s:%s", binding.namespace, binding.vault);
-        this.protocol = resolveProtocol(firstServer.protocol());
+        this.protocol = resolveProtocol(firstServer.protocol(), options);
         this.allPorts = resolveAllPorts();
         this.compositePorts = resolvePortsForScheme(protocol.scheme);
         this.compositeSecurePorts = resolvePortsForScheme(protocol.secureScheme);
