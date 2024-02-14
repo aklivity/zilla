@@ -256,6 +256,7 @@ public final class EngineConfigReader
 
         jsonObject.forEach((key, value) ->
         {
+            parse:
             if ("expression".equals(key))
             {
                 builder.add(key, value);
@@ -266,16 +267,23 @@ public final class EngineConfigReader
             }
             else if (value.getValueType() == JsonValue.ValueType.ARRAY)
             {
+                if (jsonObject.containsKey("type") && key.equals("enum"))
+                {
+                    break parse;
+                }
                 builder.add(key, annotateJsonArray(value.asJsonArray()));
             }
-            else if (key.equals("type") &&
-                isPrimitiveType(value.toString().replaceAll("\"", "")))
+            else if (key.equals("type") && isPrimitiveType(value))
             {
-                JsonValue pattern = jsonObject.get("pattern");
-                builder.add(key, value);
-                builder.add("anyOf", createOneOfTypes(value.toString().replaceAll("\"", ""), pattern));
+                builder.add("anyOf", createAnyOfTypes(jsonObject));
             }
-            else if (!"pattern".equals(key))
+            else if (jsonObject.containsKey("type") &&
+                isPrimitiveType(jsonObject.get("type")) &&
+                key.equals("title") || key.equals("description"))
+            {
+                builder.add(key, value);
+            }
+            else
             {
                 builder.add(key, value);
             }
@@ -305,31 +313,33 @@ public final class EngineConfigReader
     }
 
     private boolean isPrimitiveType(
-        String type)
+        JsonValue type)
     {
-        return "string".equals(type) ||
-            "integer".equals(type) ||
-            "boolean".equals(type) ||
-            "number".equals(type);
+        String typeText = type.toString().replaceAll("\"", "");
+        return "string".equals(typeText) ||
+                    "integer".equals(typeText) ||
+                    "boolean".equals(typeText) ||
+                    "number".equals(typeText);
     }
 
-    private JsonArray createOneOfTypes(
-        String originalType,
-        JsonValue pattern)
+    private JsonArray createAnyOfTypes(
+        JsonObject properties)
     {
-        JsonArrayBuilder oneOfArrayBuilder = Json.createArrayBuilder();
+        JsonArrayBuilder anyOfArrayBuilder = Json.createArrayBuilder();
         JsonObjectBuilder objectBuilder = Json.createObjectBuilder();
-        objectBuilder.add("type", originalType);
-        if (pattern != null)
+        properties.forEach((key, value) ->
         {
-            objectBuilder.add("pattern", pattern);
-        }
-        oneOfArrayBuilder.add(objectBuilder);
+            if (!"title".equals(key) && !"description".equals(key))
+            {
+                objectBuilder.add(key, value);
+            }
+        });
+        anyOfArrayBuilder.add(objectBuilder);
 
-        oneOfArrayBuilder.add(Json.createObjectBuilder()
+        anyOfArrayBuilder.add(Json.createObjectBuilder()
             .add("$ref", "#/$defs/expression")
         );
 
-        return oneOfArrayBuilder.build();
+        return anyOfArrayBuilder.build();
     }
 }
