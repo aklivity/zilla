@@ -34,33 +34,65 @@ public class SchemaTest
         .configurationRoot("io/aklivity/zilla/specs/binding/asyncapi/config");
 
     @Test
-    public void shouldValidateClient()
+    public void shouldValidateMqttClient()
     {
-        JsonObject config = schema.validate("client.yaml");
+        JsonObject config = schema.validate("client.mqtt.yaml");
 
         assertThat(config, not(nullValue()));
     }
 
     @Test
-    public void shouldValidateClientTls()
+    public void shouldValidateMqttClientTls()
     {
-        JsonObject config = schema.validate("client.tls.yaml");
+        JsonObject config = schema.validate("client.mqtt.tls.yaml");
 
         assertThat(config, not(nullValue()));
     }
 
     @Test
-    public void shouldValidateServer()
+    public void shouldValidateMqttServer()
     {
-        JsonObject config = schema.validate("server.yaml");
+        JsonObject config = schema.validate("server.mqtt.yaml");
 
         assertThat(config, not(nullValue()));
     }
 
     @Test
-    public void shouldValidateServerTls()
+    public void shouldValidateMqttServerTls()
     {
-        JsonObject config = schema.validate("server.tls.yaml");
+        JsonObject config = schema.validate("server.mqtt.tls.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateHttpClient()
+    {
+        JsonObject config = schema.validate("client.http.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateHttpClientTls()
+    {
+        JsonObject config = schema.validate("client.http.tls.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateHttpServer()
+    {
+        JsonObject config = schema.validate("server.http.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateHttpServerTls()
+    {
+        JsonObject config = schema.validate("server.http.tls.yaml");
 
         assertThat(config, not(nullValue()));
     }

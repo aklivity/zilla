@@ -14,6 +14,13 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal;
 
+import static io.aklivity.zilla.runtime.binding.http.config.HttpPolicyConfig.CROSS_ORIGIN;
+import static java.util.Objects.requireNonNull;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiItem;
@@ -38,12 +45,6 @@ import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
 import io.aklivity.zilla.runtime.model.core.config.IntegerModelConfig;
 import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
 import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
-import static io.aklivity.zilla.runtime.binding.http.config.HttpPolicyConfig.CROSS_ORIGIN;
-import static java.util.Objects.requireNonNull;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 public class AsyncapiHttpProtocol extends AsyncapiProtocol
 {
@@ -103,7 +104,7 @@ public class AsyncapiHttpProtocol extends AsyncapiProtocol
                 String method = operation.bindings.get("http").method;
                 binding
                     .route()
-                        .exit("http_client0")
+                        .exit(qname)
                         .when(HttpConditionConfig::builder)
                             .header(":scheme", server.scheme())
                             .header(":authority", server.authority())
