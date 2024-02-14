@@ -45,7 +45,8 @@
                                 }
                             },
                             "tcp": "#/$defs/binding/tcp/options",
-                            "tls": "#/$defs/binding/tls/options"
+                            "tls": "#/$defs/binding/tls/options",
+                            "http": "#/$defs/binding/http/options"
                         },
                         "additionalProperties": false
                     },
