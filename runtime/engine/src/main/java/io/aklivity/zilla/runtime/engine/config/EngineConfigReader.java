@@ -57,7 +57,6 @@ public final class EngineConfigReader
     private final Resolver expressions;
     private final Collection<URL> schemaTypes;
     private final Consumer<String> logger;
-    private final EngineConfigAnnotator annotator;
 
 
     public EngineConfigReader(
@@ -70,7 +69,6 @@ public final class EngineConfigReader
         this.expressions = expressions;
         this.schemaTypes = schemaTypes;
         this.logger = logger;
-        this.annotator = new EngineConfigAnnotator();
     }
 
     public EngineConfig read(
@@ -189,6 +187,7 @@ public final class EngineConfigReader
         validate:
         try
         {
+            final EngineConfigAnnotator annotator = new EngineConfigAnnotator();
             final JsonObject annotatedSchemaObject = annotator.annotate(schemaObject);
 
             if (logger != null)
