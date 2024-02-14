@@ -37,6 +37,7 @@ import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiBinding;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
+import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
@@ -46,8 +47,10 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
     private static final String SPECS_NAME = "specs";
+    private static final String TCP_NAME = "tcp";
     private static final String TLS_NAME = "tls";
 
+    private OptionsConfigAdapter tcpOptions;
     private OptionsConfigAdapter tlsOptions;
     private Function<String, String> readURL;
 
@@ -77,6 +80,12 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
             object.add(SPECS_NAME, keys);
         }
 
+        if (asyncapiOptions.tcp != null)
+        {
+            final TcpOptionsConfig tcp = asyncapiOptions.tcp;
+            object.add(TCP_NAME, tcpOptions.adaptToJson(tcp));
+        }
+
         if (asyncapiOptions.tls != null)
         {
             final TlsOptionsConfig tls = asyncapiOptions.tls;
@@ -97,6 +106,13 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
             : null;
         asyncapiOptions.specs(specs);
 
+        if (object.containsKey(TCP_NAME))
+        {
+            final JsonObject tcp = object.getJsonObject(TCP_NAME);
+            final TcpOptionsConfig tcpOptions = (TcpOptionsConfig) this.tcpOptions.adaptFromJson(tcp);
+            asyncapiOptions.tcp(tcpOptions);
+        }
+
         if (object.containsKey(TLS_NAME))
         {
             final JsonObject tls = object.getJsonObject(TLS_NAME);
@@ -112,6 +128,8 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
         ConfigAdapterContext context)
     {
         this.readURL = context::readURL;
+        this.tcpOptions = new OptionsConfigAdapter(Kind.BINDING, context);
+        this.tcpOptions.adaptType("tcp");
         this.tlsOptions = new OptionsConfigAdapter(Kind.BINDING, context);
         this.tlsOptions.adaptType("tls");
     }

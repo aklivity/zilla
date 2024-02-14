@@ -39,7 +39,6 @@ public class AsyncapiServerCompositeBindingAdapter extends AsyncapiCompositeBind
 {
     private int[] mqttPorts;
     private int[] mqttsPorts;
-    private String qname;
 
     @Override
     public String type()
@@ -61,6 +60,8 @@ public class AsyncapiServerCompositeBindingAdapter extends AsyncapiCompositeBind
         this.isPlainEnabled = mqttPorts != null;
         this.isTlsEnabled = mqttsPorts != null;
         this.qname = binding.qname;
+        this.qvault = String.format("%s:%s", binding.namespace, binding.vault);
+
         return BindingConfig.builder(binding)
             .composite()
                 .name(String.format("%s/mqtt", qname))
@@ -135,7 +136,7 @@ public class AsyncapiServerCompositeBindingAdapter extends AsyncapiCompositeBind
                         .sni(options.tls.sni)
                         .alpn(options.tls.alpn)
                         .build()
-                    .vault("server")
+                    .vault(qvault)
                     .exit("mqtt_server0")
                     .build();
         }

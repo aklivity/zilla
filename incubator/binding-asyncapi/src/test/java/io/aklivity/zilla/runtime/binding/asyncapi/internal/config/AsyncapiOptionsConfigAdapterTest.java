@@ -43,6 +43,7 @@ import org.mockito.junit.MockitoRule;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
+import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapter;
@@ -83,6 +84,11 @@ public class AsyncapiOptionsConfigAdapterTest
                     "[" +
                         "\"mqtt/asyncapi.yaml\"" +
                     "]," +
+                    "\"tcp\":" +
+                    "{" +
+                        "\"host\":\"localhost\"," +
+                        "\"port\":7183" +
+                    "}," +
                     "\"tls\":" +
                     "{" +
                         "\"keys\":" +
@@ -111,6 +117,8 @@ public class AsyncapiOptionsConfigAdapterTest
         AsyncapiConfig asyncapi = options.specs.get(0);
         assertThat(asyncapi.location, equalTo("mqtt/asyncapi.yaml"));
         assertThat(asyncapi.asyncApi, instanceOf(Asyncapi.class));
+        assertThat(options.tcp.host, equalTo("localhost"));
+        assertThat(options.tcp.ports, equalTo(new int[] { 7183 }));
         assertThat(options.tls.keys, equalTo(asList("localhost")));
         assertThat(options.tls.trust, equalTo(asList("serverca")));
         assertThat(options.tls.trustcacerts, equalTo(true));
@@ -128,6 +136,10 @@ public class AsyncapiOptionsConfigAdapterTest
         AsyncapiOptionsConfig options = AsyncapiOptionsConfig.builder()
             .inject(Function.identity())
             .specs(specs)
+            .tcp(TcpOptionsConfig.builder()
+                .host("localhost")
+                .ports(new int[] { 7183 })
+                .build())
             .tls(TlsOptionsConfig.builder()
                 .keys(asList("localhost"))
                 .trust(asList("serverca"))
@@ -143,9 +155,14 @@ public class AsyncapiOptionsConfigAdapterTest
         assertThat(text, equalTo(
             "{" +
                 "\"specs\":" +
-                    "[" +
-                        "\"mqtt/asyncapi.yaml\"" +
-                    "]," +
+                "[" +
+                    "\"mqtt/asyncapi.yaml\"" +
+                "]," +
+                "\"tcp\":" +
+                "{" +
+                    "\"host\":\"localhost\"," +
+                    "\"port\":7183" +
+                "}," +
                 "\"tls\":" +
                 "{" +
                     "\"keys\":" +

@@ -18,6 +18,7 @@ import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
+import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.CompositeBindingAdapterSpi;
@@ -47,12 +48,12 @@ public class AsyncapiClientCompositeBindingAdapter extends AsyncapiCompositeBind
         this.mqttsPorts = resolvePortsForScheme("mqtts");
         this.isPlainEnabled = mqttPorts != null;
         this.isTlsEnabled = mqttsPorts != null;
-
-
+        this.qname = binding.qname;
+        this.qvault = String.format("%s:%s", binding.namespace, binding.vault);
 
         return BindingConfig.builder(binding)
             .composite()
-                .name(String.format(binding.qname, "$composite"))
+                .name(String.format(qname, "$composite"))
                 .binding()
                     .name("mqtt_client0")
                     .type("mqtt")
@@ -64,6 +65,10 @@ public class AsyncapiClientCompositeBindingAdapter extends AsyncapiCompositeBind
                     .name("tcp_client0")
                     .type("tcp")
                     .kind(CLIENT)
+                    .options(TcpOptionsConfig::builder)
+                        .host(options.tcp.host)
+                        .ports(options.tcp.ports)
+                        .build()
                     .build()
                 .build()
             .build();
@@ -86,7 +91,7 @@ public class AsyncapiClientCompositeBindingAdapter extends AsyncapiCompositeBind
                         .alpn(options.tls.alpn)
                         .trustcacerts(options.tls.trustcacerts)
                         .build()
-                    .vault("client")
+                    .vault(qvault)
                     .exit("tcp_client0")
                     .build();
         }

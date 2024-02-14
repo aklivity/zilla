@@ -34,6 +34,8 @@ public class AsyncapiCompositeBindingAdapter
     protected boolean isPlainEnabled;
     protected boolean isTlsEnabled;
     protected int[] allPorts;
+    protected String qname;
+    protected String qvault;
 
 
     protected int[] resolveAllPorts()
