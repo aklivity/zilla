@@ -29,15 +29,12 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.UnaryOperator;
 
-import jakarta.json.Json;
 import jakarta.json.JsonArray;
-import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
-import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonPatch;
 import jakarta.json.JsonReader;
-import jakarta.json.JsonValue;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
@@ -61,6 +58,8 @@ public final class EngineConfigReader
     private final Resolver expressions;
     private final Collection<URL> schemaTypes;
     private final Consumer<String> logger;
+    private final UnaryOperator<JsonObject> jsonAnnotator;
+
 
     public EngineConfigReader(
         ConfigAdapterContext context,
@@ -72,6 +71,7 @@ public final class EngineConfigReader
         this.expressions = expressions;
         this.schemaTypes = schemaTypes;
         this.logger = logger;
+        this.jsonAnnotator = new EngineConfigAnnotator()::annotateJson;
     }
 
     public EngineConfig read(
@@ -190,7 +190,7 @@ public final class EngineConfigReader
         validate:
         try
         {
-            final JsonObject annotatedSchemaObject = (JsonObject) annotateJsonObject(schemaObject);
+            final JsonObject annotatedSchemaObject = jsonAnnotator.apply(schemaObject);
 
             if (logger != null)
             {
@@ -249,97 +249,5 @@ public final class EngineConfigReader
 
     }
 
-    private JsonValue annotateJsonObject(
-        JsonObject jsonObject)
-    {
-        JsonObjectBuilder builder = Json.createObjectBuilder();
 
-        jsonObject.forEach((key, value) ->
-        {
-            parse:
-            if ("expression".equals(key))
-            {
-                builder.add(key, value);
-            }
-            else if (value.getValueType() == JsonValue.ValueType.OBJECT)
-            {
-                builder.add(key, annotateJsonObject(value.asJsonObject()));
-            }
-            else if (value.getValueType() == JsonValue.ValueType.ARRAY)
-            {
-                if (jsonObject.containsKey("type") && key.equals("enum"))
-                {
-                    break parse;
-                }
-                builder.add(key, annotateJsonArray(value.asJsonArray()));
-            }
-            else if (key.equals("type") && isPrimitiveType(value))
-            {
-                builder.add("anyOf", createAnyOfTypes(jsonObject));
-            }
-            else if (jsonObject.containsKey("type") &&
-                isPrimitiveType(jsonObject.get("type")) &&
-                key.equals("title") || key.equals("description"))
-            {
-                builder.add(key, value);
-            }
-            else
-            {
-                builder.add(key, value);
-            }
-        });
-
-        return builder.build();
-    }
-
-    private JsonValue annotateJsonArray(
-        JsonArray jsonArray)
-    {
-        JsonArrayBuilder arrayBuilder = Json.createArrayBuilder();
-
-        jsonArray.forEach(item ->
-        {
-            if (item.getValueType() == JsonValue.ValueType.OBJECT)
-            {
-                arrayBuilder.add(annotateJsonObject(item.asJsonObject()));
-            }
-            else
-            {
-                arrayBuilder.add(item);
-            }
-        });
-
-        return arrayBuilder.build();
-    }
-
-    private boolean isPrimitiveType(
-        JsonValue type)
-    {
-        String typeText = type.toString().replaceAll("\"", "");
-        return "string".equals(typeText) ||
-                    "integer".equals(typeText) ||
-                    "boolean".equals(typeText) ||
-                    "number".equals(typeText);
-    }
-
-    private JsonArray createAnyOfTypes(
-        JsonObject properties)
-    {
-        JsonArrayBuilder anyOfArrayBuilder = Json.createArrayBuilder();
-        JsonObjectBuilder objectBuilder = Json.createObjectBuilder();
-        properties.forEach((key, value) ->
-        {
-            if (!"title".equals(key) && !"description".equals(key))
-            {
-                objectBuilder.add(key, value);
-            }
-        });
-        anyOfArrayBuilder.add(objectBuilder);
-
-        anyOfArrayBuilder.add(Json.createObjectBuilder()
-            .add("$ref", "#/$defs/expression")
-        );
-
-        return anyOfArrayBuilder.build();
-    }
 }
