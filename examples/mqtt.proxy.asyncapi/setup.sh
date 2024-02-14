@@ -1,9 +1,6 @@
 #!/bin/bash
 set -ex
 
-# Verify zilla:develop-SNAPSHOT image already available locally
-docker image inspect ghcr.io/aklivity/zilla:develop-SNAPSHOT --format 'Image Found {{.RepoTags}}'
-
 # Install Zilla to the Kubernetes cluster with helm and wait for the pod to start up
 ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
 NAMESPACE=mqtt-proxy-asyncapi

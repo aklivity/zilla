@@ -6,7 +6,6 @@ Listens on amqps port `7171` and will echo back whatever is sent to the server, 
 ### Requirements
 
 - bash, jq, nc
-- Zilla docker image local incubator build, `develop-SNAPSHOT` version
 - Kubernetes (e.g. Docker Desktop with Kubernetes enabled)
 - kubectl
 - helm 3.0+

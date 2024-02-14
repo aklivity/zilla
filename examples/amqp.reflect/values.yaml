@@ -1,9 +1,8 @@
-image:
-  tag: develop-SNAPSHOT
-
 extraEnv:
   - name: KEYSTORE_PASSWORD
     value: generated
+  - name: JAVA_OPTIONS
+    value: "-Dzilla.incubator.enabled=true"
 
 livenessProbePort: 7171
 readinessProbePort: 7171

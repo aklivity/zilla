@@ -8,7 +8,7 @@ For example:
 
 ```bash
 cat asyncapi.yaml | \
-  docker run -i ghcr.io/aklivity/zilla:develop-SNAPSHOT \
+  docker run --rm -e JAVA_OPTIONS='-Dzilla.incubator.enabled=true' -i ghcr.io/aklivity/zilla \
     generate --template asyncapi.mqtt.proxy --input /dev/stdin --output /dev/stdout | \
   tee zilla.yaml
 ```
@@ -16,7 +16,6 @@ cat asyncapi.yaml | \
 ### Requirements
 
 - bash, jq, nc
-- Zilla docker image local incubator build, `develop-SNAPSHOT` version
 - Kubernetes (e.g. Docker Desktop with Kubernetes enabled)
 - kubectl
 - helm 3.0+
