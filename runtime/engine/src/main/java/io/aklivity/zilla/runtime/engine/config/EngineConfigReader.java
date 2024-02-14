@@ -29,7 +29,6 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Consumer;
-import java.util.function.UnaryOperator;
 
 import jakarta.json.JsonArray;
 import jakarta.json.JsonObject;
@@ -58,7 +57,7 @@ public final class EngineConfigReader
     private final Resolver expressions;
     private final Collection<URL> schemaTypes;
     private final Consumer<String> logger;
-    private final UnaryOperator<JsonObject> jsonAnnotator;
+    private final EngineConfigAnnotator annotator;
 
 
     public EngineConfigReader(
@@ -71,7 +70,7 @@ public final class EngineConfigReader
         this.expressions = expressions;
         this.schemaTypes = schemaTypes;
         this.logger = logger;
-        this.jsonAnnotator = new EngineConfigAnnotator()::annotateJson;
+        this.annotator = new EngineConfigAnnotator();
     }
 
     public EngineConfig read(
@@ -190,7 +189,7 @@ public final class EngineConfigReader
         validate:
         try
         {
-            final JsonObject annotatedSchemaObject = jsonAnnotator.apply(schemaObject);
+            final JsonObject annotatedSchemaObject = annotator.annotate(schemaObject);
 
             if (logger != null)
             {

@@ -15,7 +15,6 @@
  */
 package io.aklivity.zilla.runtime.engine.config;
 
-import java.util.Deque;
 import java.util.LinkedList;
 
 import jakarta.json.Json;
@@ -29,8 +28,8 @@ import org.agrona.collections.MutableInteger;
 
 public final class EngineConfigAnnotator
 {
-    private final Deque<String> schemaKeys;
-    private final Deque<Integer> schemaIndexes;
+    private final LinkedList<String> schemaKeys;
+    private final LinkedList<Integer> schemaIndexes;
 
     public EngineConfigAnnotator()
     {
@@ -38,7 +37,7 @@ public final class EngineConfigAnnotator
         this.schemaIndexes = new LinkedList<>();
     }
 
-    public JsonObject annotateJson(
+    public JsonObject annotate(
         JsonObject jsonObject)
     {
         schemaKeys.clear();
@@ -89,6 +88,7 @@ public final class EngineConfigAnnotator
             {
                 builder.add(key, value);
             }
+
             schemaKeys.pop();
         });
 
@@ -145,8 +145,9 @@ public final class EngineConfigAnnotator
 
         anyOfArrayBuilder.add(objectBuilder);
 
-        if (!"oneOf".equals(schemaKeys.peek()) ||
-            schemaIndexes.isEmpty() ||
+        if (!(!schemaKeys.isEmpty() &&
+            schemaKeys.size() > 1 &&
+            "oneOf".equals(schemaKeys.get(1))) ||
             schemaIndexes.peek() == 0)
         {
             anyOfArrayBuilder.add(Json.createObjectBuilder()
