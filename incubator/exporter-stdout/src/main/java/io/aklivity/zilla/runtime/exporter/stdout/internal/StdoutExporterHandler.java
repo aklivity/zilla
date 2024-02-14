@@ -66,6 +66,7 @@ public class StdoutExporterHandler implements ExporterHandler
     @Override
     public void stop()
     {
+        this.stdoutEventStreams = null;
     }
 
     private StdoutEventsStream newStdoutEventsStream(

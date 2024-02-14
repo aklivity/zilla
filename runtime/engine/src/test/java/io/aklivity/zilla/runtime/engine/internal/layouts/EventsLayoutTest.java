@@ -27,7 +27,7 @@ import org.junit.Test;
 
 public class EventsLayoutTest
 {
-    private static final Path EVENTS0_PATH = Paths.get("target/zilla-itests/events0");
+    private static final Path PATH = Paths.get("target/zilla-itests/events0");
     private static final int CAPACITY = 1024;
 
     private int msgTypeId;
@@ -37,7 +37,7 @@ public class EventsLayoutTest
     {
         // GIVEN
         EventsLayout layout = new EventsLayout.Builder()
-            .path(EVENTS0_PATH)
+            .path(PATH)
             .capacity(CAPACITY)
             .build();
         layout.writeEvent(42, new UnsafeBuffer(), 0, 0);
