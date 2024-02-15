@@ -34,6 +34,7 @@ import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenpaiOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiBinding;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenApi;
+import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
@@ -42,9 +43,11 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
 public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
+    private static final String TCP_NAME = "tcp";
     private static final String TLS_NAME = "tls";
     private static final String HTTP_NAME = "http";
     private static final String SPECS_NAME = "specs";
+    private OptionsConfigAdapter tcpOptions;
     private OptionsConfigAdapter tlsOptions;
     private OptionsConfigAdapter httpOptions;
     private Function<String, String> readURL;
@@ -69,10 +72,16 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
 
         JsonObjectBuilder object = Json.createObjectBuilder();
 
+        if (openOptions.tcp != null)
+        {
+            final TcpOptionsConfig tcp = ((OpenapiOptionsConfig) options).tcp;
+            object.add(TCP_NAME, tcpOptions.adaptToJson(tcp));
+        }
+
         if (openOptions.tls != null)
         {
             final TlsOptionsConfig tls = ((OpenapiOptionsConfig) options).tls;
-            object.add(SPECS_NAME, tlsOptions.adaptToJson(tls));
+            object.add(TLS_NAME, tlsOptions.adaptToJson(tls));
         }
 
         HttpOptionsConfig http = openOptions.http;
@@ -96,6 +105,13 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
         JsonObject object)
     {
         OpenpaiOptionsConfigBuilder<OpenapiOptionsConfig> openapiOptions = OpenapiOptionsConfig.builder();
+
+        if (object.containsKey(TCP_NAME))
+        {
+            final JsonObject tcp = object.getJsonObject(TCP_NAME);
+            final TcpOptionsConfig tcpOptions = (TcpOptionsConfig) this.tcpOptions.adaptFromJson(tcp);
+            openapiOptions.tcp(tcpOptions);
+        }
 
         if (object.containsKey(TLS_NAME))
         {
@@ -125,6 +141,8 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
         ConfigAdapterContext context)
     {
         this.readURL = context::readURL;
+        this.tcpOptions = new OptionsConfigAdapter(Kind.BINDING, context);
+        this.tcpOptions.adaptType("tcp");
         this.tlsOptions = new OptionsConfigAdapter(Kind.BINDING, context);
         this.tlsOptions.adaptType("tls");
         this.httpOptions = new OptionsConfigAdapter(Kind.BINDING, context);

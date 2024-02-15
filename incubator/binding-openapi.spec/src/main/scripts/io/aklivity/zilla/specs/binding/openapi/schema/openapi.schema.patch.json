@@ -35,6 +35,7 @@
                     {
                         "properties":
                         {
+                            "tcp": "#/$defs/binding/tcp/options",
                             "tls": "#/$defs/binding/tls/options",
                             "http":
                             {

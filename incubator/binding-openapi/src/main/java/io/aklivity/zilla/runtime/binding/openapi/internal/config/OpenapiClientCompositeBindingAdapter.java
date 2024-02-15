@@ -93,6 +93,7 @@ public final class OpenapiClientCompositeBindingAdapter implements CompositeBind
                     .name("tcp_client0")
                     .type("tcp")
                     .kind(CLIENT)
+                    .options(options.tcp)
                     .build()
                 .build()
             .build();

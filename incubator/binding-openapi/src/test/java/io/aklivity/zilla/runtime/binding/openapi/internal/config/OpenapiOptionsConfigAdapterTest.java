@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.openapi.internal.config;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
+import static java.util.function.Function.identity;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
@@ -40,6 +41,8 @@ import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenApi;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.PathItem;
+import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
+import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapter;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
@@ -117,12 +120,26 @@ public class OpenapiOptionsConfigAdapterTest
     @Test
     public void shouldWriteOptions()
     {
-        OpenapiOptionsConfig options = new OpenapiOptionsConfig(null, null, asList(
+        String expected = "{\"tcp\":{\"host\":\"localhost\",\"port\":8080},\"tls\":{\"sni\":[\"example.net\"]}," +
+            "\"specs\":[\"openapi/petstore.yaml\"]}";
+
+        TcpOptionsConfig tcp = TcpOptionsConfig.builder()
+            .inject(identity())
+            .host("localhost")
+            .ports(new int[] { 8080 })
+            .build();
+
+        TlsOptionsConfig tls = TlsOptionsConfig.builder()
+            .inject(identity())
+            .sni(asList("example.net"))
+            .build();
+
+        OpenapiOptionsConfig options = new OpenapiOptionsConfig(tcp, tls, null, asList(
             new OpenapiConfig("openapi/petstore.yaml", new OpenApi())));
 
         String text = jsonb.toJson(options);
 
         assertThat(text, not(nullValue()));
-        assertEquals("{\"specs\":[\"openapi/petstore.yaml\"]}", text);
+        assertEquals(expected, text);
     }
 }

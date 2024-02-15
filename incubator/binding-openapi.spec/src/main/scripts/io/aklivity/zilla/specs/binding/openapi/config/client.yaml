@@ -21,5 +21,8 @@ bindings:
     type: openapi
     kind: client
     options:
+      tcp:
+        host: localhost
+        port: 8080
       specs:
         - openapi/petstore.yaml
