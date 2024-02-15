@@ -20,8 +20,8 @@ accept "zilla://streams/asyncapi0"
 
 accepted
 
-read zilla:begin.ext ${asyncapi:beginEx()
-                             .typeId(zilla:id("openapi"))
+read zilla:begin.ext ${asyncapi:matchBeginEx()
+                             .typeId(zilla:id("asyncapi"))
                              .operationId("postEvents")
                              .extension(http:beginEx()
                                   .typeId(zilla:id("http"))
@@ -39,7 +39,7 @@ read "{\"test\"}"
 read closed
 
 write zilla:begin.ext ${asyncapi:beginEx()
-                             .typeId(zilla:id("openapi"))
+                             .typeId(zilla:id("asyncapi"))
                              .operationId("postEvents")
                              .extension(http:beginEx()
                                  .typeId(zilla:id("http"))

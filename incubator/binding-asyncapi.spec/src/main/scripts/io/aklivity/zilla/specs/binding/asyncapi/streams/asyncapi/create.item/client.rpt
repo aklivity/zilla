@@ -19,7 +19,7 @@ connect "zilla://streams/asyncapi0"
         option zilla:transmission "half-duplex"
 
 write zilla:begin.ext ${asyncapi:beginEx()
-                             .typeId(zilla:id("openapi"))
+                             .typeId(zilla:id("asyncapi"))
                              .operationId("postEvents")
                              .extension(http:beginEx()
                                   .typeId(zilla:id("http"))
@@ -36,8 +36,8 @@ connected
 write "{\"test\"}"
 write close
 
-read zilla:begin.ext ${asyncapi:beginEx()
-                             .typeId(zilla:id("openapi"))
+read zilla:begin.ext ${asyncapi:matchBeginEx()
+                             .typeId(zilla:id("asyncapi"))
                              .operationId("postEvents")
                              .extension(http:beginEx()
                                  .typeId(zilla:id("http"))
