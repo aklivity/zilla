@@ -62,7 +62,7 @@ public abstract class AsyncapiProtocol
         for (Map.Entry<String, AsyncapiMessage> messageEntry : messages.entrySet())
         {
             AsyncapiMessageView message =
-                AsyncapiMessageView.of(asyncApi.asyncapiComponents.messages, messageEntry.getValue());
+                AsyncapiMessageView.of(asyncApi.components.messages, messageEntry.getValue());
             String schema = messageEntry.getKey();
             if (message.contentType().equals(contentType))
             {
@@ -83,12 +83,12 @@ public abstract class AsyncapiProtocol
     protected boolean hasJsonContentType()
     {
         String contentType = null;
-        if (asyncApi.asyncapiComponents != null && asyncApi.asyncapiComponents.messages != null &&
-            !asyncApi.asyncapiComponents.messages.isEmpty())
+        if (asyncApi.components != null && asyncApi.components.messages != null &&
+            !asyncApi.components.messages.isEmpty())
         {
-            AsyncapiMessage firstAsyncapiMessage = asyncApi.asyncapiComponents.messages.entrySet().stream()
+            AsyncapiMessage firstAsyncapiMessage = asyncApi.components.messages.entrySet().stream()
                 .findFirst().get().getValue();
-            contentType = AsyncapiMessageView.of(asyncApi.asyncapiComponents.messages, firstAsyncapiMessage).contentType();
+            contentType = AsyncapiMessageView.of(asyncApi.components.messages, firstAsyncapiMessage).contentType();
         }
         return contentType != null && jsonContentType.reset(contentType).matches();
     }

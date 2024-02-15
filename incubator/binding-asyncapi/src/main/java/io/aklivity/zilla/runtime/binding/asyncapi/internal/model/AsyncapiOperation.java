@@ -19,5 +19,5 @@ import java.util.Map;
 public class AsyncapiOperation
 {
     public Map<String, AsyncapiBinding> bindings;
-    public AsyncapiChannel asyncapiChannel;
+    public AsyncapiChannel channel;
 }

@@ -99,7 +99,7 @@ public class AsyncapiHttpProtocol extends AsyncapiProtocol
             for (String name : asyncApi.operations.keySet())
             {
                 AsyncapiOperation operation = asyncApi.operations.get(name);
-                AsyncapiChannelView channel = AsyncapiChannelView.of(asyncApi.channels, operation.asyncapiChannel);
+                AsyncapiChannelView channel = AsyncapiChannelView.of(asyncApi.channels, operation.channel);
                 String path = channel.address().replaceAll("\\{[^}]+\\}", "*");
                 String method = operation.bindings.get("http").method;
                 binding
@@ -134,7 +134,7 @@ public class AsyncapiHttpProtocol extends AsyncapiProtocol
         for (String name : asyncApi.operations.keySet())
         {
             AsyncapiOperation operation = asyncApi.operations.get(name);
-            AsyncapiChannelView channel = AsyncapiChannelView.of(asyncApi.channels, operation.asyncapiChannel);
+            AsyncapiChannelView channel = AsyncapiChannelView.of(asyncApi.channels, operation.channel);
             String path = channel.address();
             Method method = Method.valueOf(operation.bindings.get("http").method);
             if (channel.messages() != null && !channel.messages().isEmpty() ||
@@ -178,7 +178,7 @@ public class AsyncapiHttpProtocol extends AsyncapiProtocol
     {
         for (String name : messages.keySet())
         {
-            AsyncapiMessageView message = AsyncapiMessageView.of(asyncApi.asyncapiComponents.messages, messages.get(name));
+            AsyncapiMessageView message = AsyncapiMessageView.of(asyncApi.components.messages, messages.get(name));
             String subject = message.refKey() != null ? message.refKey() : name;
             catalog
                 .schema()
@@ -198,9 +198,9 @@ public class AsyncapiHttpProtocol extends AsyncapiProtocol
             for (String name : parameters.keySet())
             {
                 AsyncapiParameter parameter = parameters.get(name);
-                if (parameter.asyncapiSchema != null && parameter.asyncapiSchema.type != null)
+                if (parameter.schema != null && parameter.schema.type != null)
                 {
-                    ModelConfig model = MODELS.get(parameter.asyncapiSchema.type);
+                    ModelConfig model = MODELS.get(parameter.schema.type);
                     if (model != null)
                     {
                         request
@@ -255,11 +255,11 @@ public class AsyncapiHttpProtocol extends AsyncapiProtocol
     {
         requireNonNull(asyncApi);
         Map<String, String> result = new HashMap<>();
-        if (asyncApi.asyncapiComponents != null && asyncApi.asyncapiComponents.securitySchemes != null)
+        if (asyncApi.components != null && asyncApi.components.securitySchemes != null)
         {
-            for (String securitySchemeName : asyncApi.asyncapiComponents.securitySchemes.keySet())
+            for (String securitySchemeName : asyncApi.components.securitySchemes.keySet())
             {
-                String guardType = asyncApi.asyncapiComponents.securitySchemes.get(securitySchemeName).bearerFormat;
+                String guardType = asyncApi.components.securitySchemes.get(securitySchemeName).bearerFormat;
                 if ("jwt".equals(guardType))
                 {
                     result.put(securitySchemeName, guardType);
@@ -272,11 +272,11 @@ public class AsyncapiHttpProtocol extends AsyncapiProtocol
     private String resolveAuthorizationHeader()
     {
         requireNonNull(asyncApi);
-        requireNonNull(asyncApi.asyncapiComponents);
+        requireNonNull(asyncApi.components);
         String result = null;
-        if (asyncApi.asyncapiComponents.messages != null)
+        if (asyncApi.components.messages != null)
         {
-            for (Map.Entry<String, AsyncapiMessage> entry : asyncApi.asyncapiComponents.messages.entrySet())
+            for (Map.Entry<String, AsyncapiMessage> entry : asyncApi.components.messages.entrySet())
             {
                 AsyncapiMessage message = entry.getValue();
                 if (message.headers != null && message.headers.properties != null)

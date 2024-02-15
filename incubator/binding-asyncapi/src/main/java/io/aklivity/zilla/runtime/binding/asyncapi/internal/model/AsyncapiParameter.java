@@ -16,5 +16,5 @@ package io.aklivity.zilla.runtime.binding.asyncapi.internal.model;
 
 public class AsyncapiParameter
 {
-    public AsyncapiSchema asyncapiSchema;
+    public AsyncapiSchema schema;
 }
