@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.binding.asyncapi.internal.config;
 import static java.util.Collections.unmodifiableMap;
 import static java.util.stream.Collector.of;
 import static java.util.stream.Collector.Characteristics.IDENTITY_FINISH;
-import static java.util.stream.Collectors.toCollection;
 import static java.util.stream.Collectors.toList;
 
 import java.util.HashMap;
@@ -31,7 +30,6 @@ import java.util.regex.Pattern;
 import org.agrona.AsciiSequenceView;
 import org.agrona.DirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
-import org.agrona.collections.IntHashSet;
 import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
 

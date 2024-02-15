@@ -26,7 +26,7 @@ bindings:
       tcp:
         host: localhost
         port:
-          - 7183
+          - 7080
       tls:
         trust:
           - serverca
