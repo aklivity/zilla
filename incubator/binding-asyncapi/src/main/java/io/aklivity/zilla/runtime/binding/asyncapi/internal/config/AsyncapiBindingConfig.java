@@ -34,10 +34,10 @@ import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
-import io.aklivity.zilla.runtime.binding.http.internal.types.HttpHeaderFW;
-import io.aklivity.zilla.runtime.binding.http.internal.types.String16FW;
-import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
-import io.aklivity.zilla.runtime.binding.http.internal.types.stream.HttpBeginExFW;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.HttpHeaderFW;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.String16FW;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.String8FW;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
