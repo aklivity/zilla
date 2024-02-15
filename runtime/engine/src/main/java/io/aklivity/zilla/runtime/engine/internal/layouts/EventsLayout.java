@@ -15,7 +15,6 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.layouts;
 
-import static io.aklivity.zilla.runtime.engine.internal.spy.RingBufferSpy.SpyPosition.ZERO;
 import static org.agrona.IoUtil.createEmptyFile;
 import static org.agrona.IoUtil.mapExistingFile;
 import static org.agrona.IoUtil.unmap;
@@ -133,9 +132,7 @@ public final class EventsLayout implements AutoCloseable
         Path path)
     {
         AtomicBuffer atomicBuffer = createAtomicBuffer(path, 0, false);
-        OneToOneRingBufferSpy spy = new OneToOneRingBufferSpy(atomicBuffer);
-        spy.spyAt(ZERO);
-        return spy;
+        return new OneToOneRingBufferSpy(atomicBuffer);
     }
 
     public static final class Builder
