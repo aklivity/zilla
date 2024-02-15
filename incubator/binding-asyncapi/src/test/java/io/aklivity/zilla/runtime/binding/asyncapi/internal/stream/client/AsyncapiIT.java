@@ -36,6 +36,7 @@ public class AsyncapiIT
 {
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("mqtt", "io/aklivity/zilla/specs/binding/asyncapi/streams/mqtt")
+        .addScriptRoot("http", "io/aklivity/zilla/specs/binding/asyncapi/streams/http")
         .addScriptRoot("asyncapi", "io/aklivity/zilla/specs/binding/asyncapi/streams/asyncapi");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
@@ -46,6 +47,7 @@ public class AsyncapiIT
         .configure(ENGINE_DRAIN_ON_CLOSE, false)
         .configurationRoot("io/aklivity/zilla/specs/binding/asyncapi/config")
         .external("mqtt0")
+        .external("http0")
         .clean();
 
     @Rule
@@ -60,6 +62,19 @@ public class AsyncapiIT
     @Configure(name = ASYNCAPI_TARGET_ROUTE_ID_NAME, value = "4294967298")
     @ScriptProperty("serverAddress \"zilla://streams/mqtt0\"")
     public void shouldPublishAndSubscribe() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.http.yaml")
+    @Specification({
+        "${asyncapi}/create.item/client",
+        "${http}/create.item/server"
+    })
+    @Configure(name = ASYNCAPI_TARGET_ROUTE_ID_NAME, value = "4294967299")
+    @ScriptProperty("serverAddress \"zilla://streams/http0\"")
+    public void shouldCreateItem() throws Exception
     {
         k3po.finish();
     }

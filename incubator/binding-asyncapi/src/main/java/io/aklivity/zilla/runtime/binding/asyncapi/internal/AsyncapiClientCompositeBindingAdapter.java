@@ -55,7 +55,7 @@ public class AsyncapiClientCompositeBindingAdapter extends AsyncapiCompositeBind
 
         return BindingConfig.builder(binding)
             .composite()
-                .name(String.format(qname, "$composite"))
+                .name(String.format("%s.%s", qname, "$composite"))
                 .binding()
                     .name(String.format("%s_client0", protocol.scheme))
                     .type(protocol.scheme)
