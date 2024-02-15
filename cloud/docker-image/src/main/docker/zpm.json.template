@@ -13,8 +13,8 @@
 
   "dependencies":
   [
-    "io.aklivity.zilla:binding-asyncapi",
     "io.aklivity.zilla:binding-amqp",
+    "io.aklivity.zilla:binding-asyncapi",
     "io.aklivity.zilla:binding-echo",
     "io.aklivity.zilla:binding-fan",
     "io.aklivity.zilla:binding-filesystem",
