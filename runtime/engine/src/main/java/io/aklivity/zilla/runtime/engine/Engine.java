@@ -33,9 +33,11 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.PriorityQueue;
 import java.util.ServiceLoader;
 import java.util.ServiceLoader.Provider;
 import java.util.concurrent.ExecutorService;
@@ -53,10 +55,13 @@ import java.util.stream.Collectors;
 
 import org.agrona.CloseHelper;
 import org.agrona.ErrorHandler;
+import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.concurrent.AgentRunner;
+import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.engine.binding.Binding;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.catalog.Catalog;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.exporter.Exporter;
@@ -71,6 +76,7 @@ import io.aklivity.zilla.runtime.engine.internal.registry.EngineWorker;
 import io.aklivity.zilla.runtime.engine.internal.registry.FileWatcherTask;
 import io.aklivity.zilla.runtime.engine.internal.registry.HttpWatcherTask;
 import io.aklivity.zilla.runtime.engine.internal.registry.WatcherTask;
+import io.aklivity.zilla.runtime.engine.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
 import io.aklivity.zilla.runtime.engine.model.Model;
@@ -96,6 +102,9 @@ public final class Engine implements Collector, AutoCloseable
     private final boolean readonly;
     private final EngineConfiguration config;
     private Future<Void> watcherTaskRef;
+
+    private final PriorityQueue<EventRecord> eventReadingQueue;
+    private final EventFW eventRO = new EventFW();
 
     Engine(
         EngineConfiguration config,
@@ -161,7 +170,7 @@ public final class Engine implements Collector, AutoCloseable
             EngineWorker worker =
                 new EngineWorker(config, tasks, labels, errorHandler, tuning::affinity,
                         bindings, exporters, guards, vaults, catalogs, models, metricGroups,
-                    this, this::supplyEventReaders, coreIndex, readonly);
+                    this, this::supplyEventReader, coreIndex, readonly);
             workers.add(worker);
         }
         this.workers = workers;
@@ -216,6 +225,7 @@ public final class Engine implements Collector, AutoCloseable
         this.context = context;
         this.runners = runners;
         this.readonly = readonly;
+        this.eventReadingQueue = new PriorityQueue<>(Comparator.comparing(EventRecord::timestamp));
     }
 
     public <T> T binding(
@@ -482,14 +492,36 @@ public final class Engine implements Collector, AutoCloseable
         return worker.histogramIds();
     }
 
-    public EventReader[] supplyEventReaders()
+    public int readEvent(
+        MessageConsumer handler,
+        int messageCountLimit)
     {
-        EventReader[] readers = new EventReader[workers.size()];
-        for (int i = 0; i < workers.size(); i++)
+        int messagesRead = 0;
+        boolean queueEmpty = false;
+        while (!queueEmpty && messagesRead < messageCountLimit)
         {
-            readers[i] = workers.get(i)::readEvent;
+            for (EngineWorker worker : workers)
+            {
+                worker.readEvent((m, b, i, l) ->
+                {
+                    eventRO.wrap(b, i, i + l);
+                    eventReadingQueue.add(new EventRecord(m, eventRO.timestamp(), new UnsafeBuffer(b, i, i + l)));
+                }, 1);
+            }
+            queueEmpty = eventReadingQueue.isEmpty();
+            if (!queueEmpty)
+            {
+                EventRecord event = eventReadingQueue.poll();
+                handler.accept(event.msgTypeId, event.buffer, 0, event.buffer.capacity());
+                messagesRead++;
+            }
         }
-        return readers;
+        return messagesRead;
+    }
+
+    public EventReader supplyEventReader()
+    {
+        return this::readEvent;
     }
 
     public String supplyLocalName(
@@ -504,6 +536,28 @@ public final class Engine implements Collector, AutoCloseable
     {
         EngineWorker worker = workers.get(0);
         return worker.supplyTypeId(label);
+    }
+
+    private static final class EventRecord
+    {
+        public int msgTypeId;
+        public long timestamp;
+        public MutableDirectBuffer buffer;
+
+        private EventRecord(
+            int msgTypeId,
+            long timestamp,
+            MutableDirectBuffer buffer)
+        {
+            this.msgTypeId = msgTypeId;
+            this.timestamp = timestamp;
+            this.buffer = buffer;
+        }
+
+        public long timestamp()
+        {
+            return timestamp;
+        }
     }
 
     // visible for testing

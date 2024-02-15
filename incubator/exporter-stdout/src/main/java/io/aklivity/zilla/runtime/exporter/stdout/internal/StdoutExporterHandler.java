@@ -15,12 +15,10 @@
 package io.aklivity.zilla.runtime.exporter.stdout.internal;
 
 import java.io.PrintStream;
-import java.util.Arrays;
 
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
-import io.aklivity.zilla.runtime.engine.util.function.EventReader;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.config.StdoutExporterConfig;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.stream.StdoutEventsStream;
 
@@ -29,7 +27,7 @@ public class StdoutExporterHandler implements ExporterHandler
     private final EngineContext context;
     private final PrintStream out;
 
-    private StdoutEventsStream[] stdoutEventStreams;
+    private StdoutEventsStream stdoutEventsStream;
 
     public StdoutExporterHandler(
         EngineConfiguration config,
@@ -44,35 +42,19 @@ public class StdoutExporterHandler implements ExporterHandler
     @Override
     public void start()
     {
-        this.stdoutEventStreams = Arrays.stream(context.supplyEventReaders().get())
-                .map(this::newStdoutEventsStream)
-                .toArray(StdoutEventsStream[]::new);
+        stdoutEventsStream = new StdoutEventsStream(context.supplyEventReader().get(), context::supplyNamespace,
+            context::supplyLocalName, context::lookupLabelId, out);
     }
 
     @Override
     public int export()
     {
-        int workCount = 0;
-        if (stdoutEventStreams != null)
-        {
-            for (int i = 0; i < stdoutEventStreams.length; i++)
-            {
-                workCount += stdoutEventStreams[i].process();
-            }
-        }
-        return workCount;
+        return stdoutEventsStream.process();
     }
 
     @Override
     public void stop()
     {
-        this.stdoutEventStreams = null;
-    }
-
-    private StdoutEventsStream newStdoutEventsStream(
-        EventReader eventReader)
-    {
-        return new StdoutEventsStream(eventReader, context::supplyNamespace, context::supplyLocalName,
-            context::lookupLabelId, out);
+        this.stdoutEventsStream = null;
     }
 }

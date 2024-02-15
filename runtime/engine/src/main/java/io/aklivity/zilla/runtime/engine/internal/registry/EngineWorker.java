@@ -214,7 +214,7 @@ public class EngineWorker implements EngineContext, Agent
     private final ScalarsLayout gaugesLayout;
     private final HistogramsLayout histogramsLayout;
     private final EventsLayout eventsLayout;
-    private final Supplier<EventReader[]> supplyEventReaders;
+    private final Supplier<EventReader> supplyEventReader;
     private long initialId;
     private long promiseId;
     private long traceId;
@@ -237,7 +237,7 @@ public class EngineWorker implements EngineContext, Agent
         Collection<Model> models,
         Collection<MetricGroup> metricGroups,
         Collector collector,
-        Supplier<EventReader[]> supplyEventReaders,
+        Supplier<EventReader> supplyEventReader,
         int index,
         boolean readonly)
     {
@@ -418,7 +418,7 @@ public class EngineWorker implements EngineContext, Agent
         this.idleStrategy = idleStrategy;
         this.errorHandler = errorHandler;
         this.exportersById = new Long2ObjectHashMap<>();
-        this.supplyEventReaders = supplyEventReaders;
+        this.supplyEventReader = supplyEventReader;
     }
 
     public static int indexOfId(
@@ -1595,9 +1595,9 @@ public class EngineWorker implements EngineContext, Agent
         return eventsLayout.readEvent(handler, messageCountLimit);
     }
 
-    public Supplier<EventReader[]> supplyEventReaders()
+    public Supplier<EventReader> supplyEventReader()
     {
-        return supplyEventReaders;
+        return supplyEventReader;
     }
 
     private MessageConsumer supplyWriter(

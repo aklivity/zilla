@@ -32,7 +32,6 @@ import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
 import io.aklivity.zilla.runtime.engine.internal.layouts.EventsLayout;
-import io.aklivity.zilla.runtime.engine.util.function.EventReader;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.config.StdoutExporterConfig;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.TcpEventFW;
 
@@ -71,7 +70,7 @@ public class StdoutExporterHandlerTest
         when(context.lookupLabelId("tcp")).thenReturn(TCP_TYPE_ID);
         when(context.supplyNamespace(0x0000000200000007L)).thenReturn("ns");
         when(context.supplyLocalName(0x0000000200000007L)).thenReturn("binding");
-        when(context.supplyEventReaders()).thenReturn(() -> new EventReader[]{layout::readEvent});
+        when(context.supplyEventReader()).thenReturn(() -> layout::readEvent);
         StdoutExporterHandler handler = new StdoutExporterHandler(config, context, exporter, ps);
 
         // WHEN

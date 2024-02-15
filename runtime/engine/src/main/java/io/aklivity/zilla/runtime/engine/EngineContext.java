@@ -72,7 +72,7 @@ public interface EngineContext
         MessageConsumer handler,
         int messageCountLimit);
 
-    Supplier<EventReader[]> supplyEventReaders();
+    Supplier<EventReader> supplyEventReader();
 
     MessageConsumer supplySender(
         long streamId);
