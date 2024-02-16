@@ -183,7 +183,7 @@
                   </fileMappers>
                 </artifactItem>
               </artifactItems>
-              <includes>io/aklivity/zilla/specs/binding/asyncapi/schema/asyncapi.schema.patch.json</includes>
+              <includes>io/aklivity/zilla/specs/binding/asyncapi/schema/*.json</includes>
               <outputDirectory>${project.build.directory}/classes</outputDirectory>
             </configuration>
           </execution>

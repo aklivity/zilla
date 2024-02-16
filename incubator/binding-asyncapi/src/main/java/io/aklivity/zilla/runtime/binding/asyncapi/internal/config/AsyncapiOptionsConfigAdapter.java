@@ -17,6 +17,10 @@ package io.aklivity.zilla.runtime.binding.asyncapi.internal.config;
 import static java.util.stream.Collectors.toList;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
+import java.io.InputStream;
+import java.io.Reader;
+import java.io.StringReader;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Function;
 
@@ -25,12 +29,17 @@ import jakarta.json.JsonArray;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonReader;
 import jakarta.json.JsonString;
+import jakarta.json.JsonStructure;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import org.leadpony.justify.api.JsonSchema;
+import org.leadpony.justify.api.JsonValidationService;
+import org.leadpony.justify.api.ProblemHandler;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
@@ -40,6 +49,7 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
+import io.aklivity.zilla.runtime.engine.config.ConfigException;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapter;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
@@ -156,14 +166,88 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
         String asyncapiText)
     {
         Asyncapi asyncapi = null;
-        try (Jsonb jsonb = JsonbBuilder.create())
+        if (validateAsyncapiSchema(asyncapiText))
         {
-            asyncapi = jsonb.fromJson(asyncapiText, Asyncapi.class);
+            try (Jsonb jsonb = JsonbBuilder.create())
+            {
+                asyncapi = jsonb.fromJson(asyncapiText, Asyncapi.class);
+            }
+            catch (Exception ex)
+            {
+                rethrowUnchecked(ex);
+            }
+        }
+        return asyncapi;
+    }
+
+    private boolean validateAsyncapiSchema(
+        String asyncapiText)
+    {
+        List<Exception> errors = new LinkedList<>();
+
+        boolean valid = false;
+
+        try
+        {
+            JsonValidationService service = JsonValidationService.newInstance();
+
+            String version = detectAsyncapiVersion(asyncapiText);
+            InputStream schemaInput = selectSchemaPathForVersion(version);
+
+            JsonSchema schema = service.readSchema(schemaInput);
+            ProblemHandler handler = service.createProblemPrinter(msg -> errors.add(new ConfigException(msg)));
+
+            String readable = asyncapiText.stripTrailing();
+            Reader asyncapiReader = new StringReader(readable);
+
+            JsonReader reader = service.createReader(asyncapiReader, schema, handler);
+
+            JsonStructure json = reader.read();
+            valid = json != null;
         }
         catch (Exception ex)
         {
-            rethrowUnchecked(ex);
+            errors.add(ex);
         }
-        return asyncapi;
+
+        return valid;
+    }
+
+    private String detectAsyncapiVersion(
+        String asyncapiText)
+    {
+        try (JsonReader reader = Json.createReader(new StringReader(asyncapiText)))
+        {
+            JsonObject json = reader.readObject();
+            if (json.containsKey("asyncapi"))
+            {
+                return json.getString("asyncapi");
+            }
+            else
+            {
+                throw new IllegalArgumentException("Unable to determine AsyncAPI version.");
+            }
+        }
+        catch (Exception e)
+        {
+            throw new RuntimeException("Error reading AsyncAPI document.", e);
+        }
+    }
+
+    private InputStream selectSchemaPathForVersion(
+        String version)
+    {
+        if (version.startsWith("3.0"))
+        {
+            return AsyncapiBinding.class.getResourceAsStream("schema/asyncapi.3.0.schema.json");
+        }
+        else if (version.startsWith("2.6"))
+        {
+            return AsyncapiBinding.class.getResourceAsStream("schema/asyncapi.2.6.schema.json");
+        }
+        else
+        {
+            throw new IllegalArgumentException("Unsupported AsyncAPI version: " + version);
+        }
     }
 }
