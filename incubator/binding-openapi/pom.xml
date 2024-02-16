@@ -173,7 +173,7 @@
                   </fileMappers>
                 </artifactItem>
               </artifactItems>
-              <includes>io/aklivity/zilla/specs/binding/openapi/schema/openapi.schema.patch.json</includes>
+              <includes>io/aklivity/zilla/specs/binding/openapi/schema/*.json</includes>
               <outputDirectory>${project.build.directory}/classes</outputDirectory>
             </configuration>
           </execution>

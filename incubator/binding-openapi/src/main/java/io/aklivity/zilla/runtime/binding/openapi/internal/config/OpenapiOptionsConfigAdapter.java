@@ -14,19 +14,33 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.config;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Reader;
+import java.io.StringReader;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.function.Function;
 
 import jakarta.json.Json;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonReader;
 import jakarta.json.JsonString;
+import jakarta.json.JsonStructure;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
+
+import org.leadpony.justify.api.JsonSchema;
+import org.leadpony.justify.api.JsonValidationService;
+import org.leadpony.justify.api.ProblemHandler;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiConfig;
@@ -37,6 +51,7 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenApi;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
+import io.aklivity.zilla.runtime.engine.config.ConfigException;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapter;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
@@ -163,14 +178,88 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
         String openapiText)
     {
         OpenApi openApi = null;
-        try (Jsonb jsonb = JsonbBuilder.create())
+        if (validateOpenapiSchema(openapiText))
         {
-            openApi = jsonb.fromJson(openapiText, OpenApi.class);
+            try (Jsonb jsonb = JsonbBuilder.create())
+            {
+                openApi = jsonb.fromJson(openapiText, OpenApi.class);
+            }
+            catch (Exception ex)
+            {
+                rethrowUnchecked(ex);
+            }
+        }
+        return openApi;
+    }
+
+    private boolean validateOpenapiSchema(
+        String openapiText)
+    {
+        List<Exception> errors = new LinkedList<>();
+
+        boolean valid = false;
+
+        try
+        {
+            JsonValidationService service = JsonValidationService.newInstance();
+
+            String openApiVersion = detectOpenApiVersion(openapiText);
+            InputStream schemaInput = selectSchemaPathForVersion(openApiVersion);
+
+            JsonSchema schema = service.readSchema(schemaInput);
+            ProblemHandler handler = service.createProblemPrinter(msg -> errors.add(new ConfigException(msg)));
+
+            String readable = openapiText.stripTrailing();
+            Reader openapiReader = new StringReader(readable);
+
+            JsonReader reader = service.createReader(openapiReader, schema, handler);
+
+            JsonStructure json = reader.read();
+            valid = json != null;
         }
         catch (Exception ex)
         {
-            rethrowUnchecked(ex);
+            errors.add(ex);
         }
-        return openApi;
+
+        return valid;
+    }
+
+    private String detectOpenApiVersion(
+        String openapiText)
+    {
+        try (JsonReader reader = Json.createReader(new StringReader(openapiText)))
+        {
+            JsonObject json = reader.readObject();
+            if (json.containsKey("openapi"))
+            {
+                return json.getString("openapi");
+            }
+            else
+            {
+                throw new IllegalArgumentException("Unable to determine OpenAPI version.");
+            }
+        }
+        catch (Exception e)
+        {
+            throw new RuntimeException("Error reading OpenAPI document.", e);
+        }
+    }
+
+    private InputStream selectSchemaPathForVersion(
+        String version)
+    {
+        if (version.startsWith("3.0"))
+        {
+            return OpenapiBinding.class.getResourceAsStream("schema/openapi.3.0.schema.json");
+        }
+        else if (version.startsWith("3.1"))
+        {
+            return OpenapiBinding.class.getResourceAsStream("schema/openapi.3.1.schema.json");
+        }
+        else
+        {
+            throw new IllegalArgumentException("Unsupported OpenAPI version: " + version);
+        }
     }
 }
