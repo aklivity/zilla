@@ -14,11 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.config;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.io.StringReader;
