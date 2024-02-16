@@ -27,16 +27,21 @@ import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
-public class AyncapiMqttProtocol extends AsyncapiProtocol
+public class AyncapiKafkaProtocol extends AsyncapiProtocol
 {
-    private static final String SCHEME = "mqtt";
-    private static final String SECURE_SCHEME = "mqtts";
+    private static final String SCHEME = "kafka";
+    private static final String SECURE_SCHEME = "";
+    private static final String SECURE_PROTOCOL = "kafka-secure";
+    private final String protocol;
 
-    public AyncapiMqttProtocol(
+    public AyncapiKafkaProtocol(
         String qname,
-        Asyncapi asyncApi)
+        Asyncapi asyncApi,
+        AsyncapiOptionsConfig options,
+        String protocol)
     {
         super(qname, asyncApi, SCHEME, SECURE_SCHEME);
+        this.protocol = protocol;
     }
 
     @Override
@@ -95,6 +100,6 @@ public class AyncapiMqttProtocol extends AsyncapiProtocol
     @Override
     protected boolean isSecure()
     {
-        return scheme.equals(SECURE_SCHEME);
+        return protocol.equals(SECURE_PROTOCOL);
     }
 }

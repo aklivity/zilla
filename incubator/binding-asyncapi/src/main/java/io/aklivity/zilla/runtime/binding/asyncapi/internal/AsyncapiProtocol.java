@@ -14,6 +14,9 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal;
 
+import static java.util.Objects.requireNonNull;
+
+import java.net.URI;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -21,8 +24,10 @@ import java.util.regex.Pattern;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiMessage;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiMessageView;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiServerView;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfigBuilder;
+import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 
 public abstract class AsyncapiProtocol
 {
@@ -53,6 +58,18 @@ public abstract class AsyncapiProtocol
 
     public abstract <C> BindingConfigBuilder<C> injectProtocolServerRoutes(
         BindingConfigBuilder<C> binding);
+
+    public <C> NamespaceConfigBuilder<C> injectProtocolClientCache(
+        NamespaceConfigBuilder<C> namespace)
+    {
+        return namespace;
+    }
+
+    public <C>BindingConfigBuilder<C> injectProtocolClientOptions(
+        BindingConfigBuilder<C> binding)
+    {
+        return binding;
+    }
 
     protected <C> CatalogedConfigBuilder<C> injectJsonSchemas(
         CatalogedConfigBuilder<C> cataloged,
@@ -91,5 +108,36 @@ public abstract class AsyncapiProtocol
             contentType = AsyncapiMessageView.of(asyncApi.components.messages, firstAsyncapiMessage).contentType();
         }
         return contentType != null && jsonContentType.reset(contentType).matches();
+    }
+
+    protected abstract boolean isSecure();
+
+    protected int[] resolvePorts()
+    {
+        requireNonNull(scheme);
+        int[] ports = null;
+        URI url = findFirstServerUrlWithScheme(scheme);
+        if (url != null)
+        {
+            ports = new int[] {url.getPort()};
+        }
+        return ports;
+    }
+
+    protected URI findFirstServerUrlWithScheme(
+        String scheme)
+    {
+        requireNonNull(scheme);
+        URI result = null;
+        for (String key : asyncApi.servers.keySet())
+        {
+            AsyncapiServerView server = AsyncapiServerView.of(asyncApi.servers.get(key));
+            if (scheme.equals(server.url().getScheme()))
+            {
+                result = server.url();
+                break;
+            }
+        }
+        return result;
     }
 }

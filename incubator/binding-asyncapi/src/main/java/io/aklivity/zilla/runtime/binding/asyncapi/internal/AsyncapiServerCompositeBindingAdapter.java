@@ -56,10 +56,8 @@ public class AsyncapiServerCompositeBindingAdapter extends AsyncapiCompositeBind
         this.qvault = binding.qvault;
         this.protocol = resolveProtocol(firstServer.protocol(), options);
         int[] allPorts = asyncapiView.resolveAllPorts();
-        this.compositePorts = asyncapiView.resolvePortsForScheme(protocol.scheme);
-        this.compositeSecurePorts = asyncapiView.resolvePortsForScheme(protocol.secureScheme);
-        this.isPlainEnabled = compositePorts != null;
-        this.isTlsEnabled = compositeSecurePorts != null;
+        this.compositePorts = protocol.resolvePorts();
+        this.isTlsEnabled = protocol.isSecure();
 
         return BindingConfig.builder(binding)
             .composite()
@@ -90,7 +88,7 @@ public class AsyncapiServerCompositeBindingAdapter extends AsyncapiCompositeBind
     private <C> BindingConfigBuilder<C> injectPlainTcpRoute(
         BindingConfigBuilder<C> binding)
     {
-        if (isPlainEnabled)
+        if (!isTlsEnabled)
         {
             binding
                 .route()
@@ -111,7 +109,7 @@ public class AsyncapiServerCompositeBindingAdapter extends AsyncapiCompositeBind
             binding
                 .route()
                     .when(TcpConditionConfig::builder)
-                        .ports(compositeSecurePorts)
+                        .ports(compositePorts)
                         .build()
                     .exit("tls_server0")
                     .build();

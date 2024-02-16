@@ -26,6 +26,8 @@ public class AsyncapiCompositeBindingAdapter
 
     protected Asyncapi asyncApi;
     protected boolean isTlsEnabled;
+    protected int[] allPorts;
+    protected int[] compositePorts;
     protected AsyncapiProtocol protocol;
     protected String qname;
     protected String qvault;
@@ -46,7 +48,11 @@ public class AsyncapiCompositeBindingAdapter
                 asyncapiProtocol = new AsyncapiHttpProtocol(qname, asyncApi, options);
                 break;
             case "mqtt":
-                asyncapiProtocol = new AyncapiMqttProtocol(qname, asyncApi, options);
+                asyncapiProtocol = new AyncapiMqttProtocol(qname, asyncApi);
+                break;
+            case "kafka":
+            case "kafka-secure":
+                asyncapiProtocol = new AyncapiKafkaProtocol(qname, asyncApi, options, protocol);
                 break;
             }
         }
