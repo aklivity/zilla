@@ -33,16 +33,38 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
 import io.aklivity.zilla.runtime.engine.internal.layouts.EventsLayout;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.config.StdoutExporterConfig;
+import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.HttpEventFW;
+import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.KafkaEventFW;
+import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.MqttEventFW;
+import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.Result;
+import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.SchemaRegistryEventFW;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.TcpEventFW;
+import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.TlsError;
+import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.TlsEventFW;
 
 public class StdoutExporterHandlerTest
 {
     private static final Path ENGINE_PATH = Paths.get("target/zilla-itests");
     private static final Path EVENTS_PATH = ENGINE_PATH.resolve("events");
     private static final int CAPACITY = 1024;
-    private static final int TCP_TYPE_ID = 1;
-    private static final String EXPECTED_OUTPUT = "ERROR: TCP DNS Resolution Failed [timestamp = 77] " +
-        "[traceId = 0x0000000000000042] [binding = ns.binding] [address = address]\n";
+    private static final int HTTP_TYPE_ID = 1;
+    private static final int KAFKA_TYPE_ID = 2;
+    private static final int MQTT_TYPE_ID = 3;
+    private static final int SCHEMA_REGISTRY_TYPE_ID = 4;
+    private static final int TCP_TYPE_ID = 5;
+    private static final int TLS_TYPE_ID = 6;
+    private static final String EXPECTED_OUTPUT =
+        "WARNING: HTTP Authorization Failed [timestamp = 77] [traceId = 0x0000000000000042] [binding = ns.binding] " +
+            "[identity = identity]\n" +
+        "WARNING: Kafka Authorization Failed [timestamp = 77] [traceId = 0x0000000000000042] [binding = ns.binding]\n" +
+        "ERROR: Kafka API Version Rejected [timestamp = 77] [traceId = 0x0000000000000042] [binding = ns.binding]\n" +
+        "WARNING: MQTT Authorization Failed [timestamp = 77] [traceId = 0x0000000000000042] [binding = ns.binding] " +
+            "[identity = identity]\n" +
+        "ERROR: Schema Registry Remote Access Rejected [timestamp = 77] [traceId = 0x0000000000000042] [binding = ns.binding] " +
+            "[url = url] [method = method] [status = 42]\n" +
+        "ERROR: TCP DNS Resolution Failed [timestamp = 77] [traceId = 0x0000000000000042] [binding = ns.binding] " +
+            "[address = address]\n" +
+        "ERROR: TLS Failed [timestamp = 77] [traceId = 0x0000000000000042] [binding = ns.binding] [error = HANDSHAKE_ERROR]\n";
 
     @Test
     public void shouldStart()
@@ -53,21 +75,78 @@ public class StdoutExporterHandlerTest
             .capacity(CAPACITY)
             .build();
         MutableDirectBuffer eventBuffer = new UnsafeBuffer(new byte[64]);
-        TcpEventFW event = new TcpEventFW.Builder()
+        HttpEventFW httpAuthorizationEvent = new HttpEventFW.Builder()
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .authorization(e -> e.timestamp(77)
+                .traceId(0x0000000000000042L)
+                .namespacedId(0x0000000200000007L)
+                .result(r -> r.set(Result.FAILURE))
+                .identity("identity")
+            ).build();
+        layout.writeEvent(HTTP_TYPE_ID, httpAuthorizationEvent.buffer(), 0, httpAuthorizationEvent.sizeof());
+        KafkaEventFW kafkaAuthorizationEvent = new KafkaEventFW.Builder()
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .authorization(e -> e.timestamp(77)
+                .traceId(0x0000000000000042L)
+                .namespacedId(0x0000000200000007L)
+                .result(r -> r.set(Result.FAILURE))
+            ).build();
+        layout.writeEvent(KAFKA_TYPE_ID, kafkaAuthorizationEvent.buffer(), 0, kafkaAuthorizationEvent.sizeof());
+        KafkaEventFW kafkaApiVersionRejectedEvent = new KafkaEventFW.Builder()
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .apiVersionRejected(e -> e.timestamp(77)
+                .traceId(0x0000000000000042L)
+                .namespacedId(0x0000000200000007L)
+            ).build();
+        layout.writeEvent(KAFKA_TYPE_ID, kafkaApiVersionRejectedEvent.buffer(), 0, kafkaApiVersionRejectedEvent.sizeof());
+        MqttEventFW mqttAuthorizationEvent = new MqttEventFW.Builder()
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .authorization(e -> e.timestamp(77)
+                .traceId(0x0000000000000042L)
+                .namespacedId(0x0000000200000007L)
+                .result(r -> r.set(Result.FAILURE))
+                .identity("identity")
+            ).build();
+        layout.writeEvent(MQTT_TYPE_ID, mqttAuthorizationEvent.buffer(), 0, mqttAuthorizationEvent.sizeof());
+        SchemaRegistryEventFW schemaRegistryAuthorizationEvent = new SchemaRegistryEventFW.Builder()
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .remoteAccessRejected(e -> e.timestamp(77)
+                .traceId(0x0000000000000042L)
+                .namespacedId(0x0000000200000007L)
+                .url("url")
+                .method("method")
+                .status((short) 42)
+            ).build();
+        layout.writeEvent(SCHEMA_REGISTRY_TYPE_ID, schemaRegistryAuthorizationEvent.buffer(), 0,
+            schemaRegistryAuthorizationEvent.sizeof());
+        TcpEventFW tcpDnsResolutionFailedEvent = new TcpEventFW.Builder()
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .dnsResolutionFailed(e -> e.timestamp(77)
                 .traceId(0x0000000000000042L)
                 .namespacedId(0x0000000200000007L)
                 .address("address")
             ).build();
-        layout.writeEvent(TCP_TYPE_ID, event.buffer(), 0, event.sizeof());
+        layout.writeEvent(TCP_TYPE_ID, tcpDnsResolutionFailedEvent.buffer(), 0, tcpDnsResolutionFailedEvent.sizeof());
+        TlsEventFW tlsFailedEvent = new TlsEventFW.Builder()
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .tlsFailed(e -> e.timestamp(77)
+                .traceId(0x0000000000000042L)
+                .namespacedId(0x0000000200000007L)
+                .error(t -> t.set(TlsError.HANDSHAKE_ERROR))
+            ).build();
+        layout.writeEvent(TLS_TYPE_ID, tlsFailedEvent.buffer(), 0, tlsFailedEvent.sizeof());
 
         EngineConfiguration config = mock(EngineConfiguration.class);
         EngineContext context = mock(EngineContext.class);
         StdoutExporterConfig exporter = new StdoutExporterConfig(mock(ExporterConfig.class));
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         PrintStream ps = new PrintStream(os);
+        when(context.lookupLabelId("http")).thenReturn(HTTP_TYPE_ID);
+        when(context.lookupLabelId("kafka")).thenReturn(KAFKA_TYPE_ID);
+        when(context.lookupLabelId("mqtt")).thenReturn(MQTT_TYPE_ID);
+        when(context.lookupLabelId("schema-registry")).thenReturn(SCHEMA_REGISTRY_TYPE_ID);
         when(context.lookupLabelId("tcp")).thenReturn(TCP_TYPE_ID);
+        when(context.lookupLabelId("tls")).thenReturn(TLS_TYPE_ID);
         when(context.supplyNamespace(0x0000000200000007L)).thenReturn("ns");
         when(context.supplyLocalName(0x0000000200000007L)).thenReturn("binding");
         when(context.supplyEventReader()).thenReturn(() -> layout::readEvent);
@@ -75,7 +154,10 @@ public class StdoutExporterHandlerTest
 
         // WHEN
         handler.start();
-        handler.export();
+        for (int i = 0; i < 42; i++)
+        {
+            handler.export();
+        }
         handler.stop();
 
         // THEN
