@@ -33,11 +33,9 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.PriorityQueue;
 import java.util.ServiceLoader;
 import java.util.ServiceLoader.Provider;
 import java.util.concurrent.ExecutorService;
@@ -58,7 +56,6 @@ import org.agrona.ErrorHandler;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.concurrent.AgentRunner;
-import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -103,8 +100,9 @@ public final class Engine implements Collector, AutoCloseable
     private final EngineConfiguration config;
     private Future<Void> watcherTaskRef;
 
-    private final PriorityQueue<EventRecord> eventReadingQueue;
     private final EventFW eventRO = new EventFW();
+    private final int[] eventIndices;
+    private final long[] eventTimestamps;
 
     Engine(
         EngineConfiguration config,
@@ -225,7 +223,8 @@ public final class Engine implements Collector, AutoCloseable
         this.context = context;
         this.runners = runners;
         this.readonly = readonly;
-        this.eventReadingQueue = new PriorityQueue<>(Comparator.comparing(EventRecord::timestamp));
+        this.eventIndices = new int[workerCount];
+        this.eventTimestamps = new long[workerCount];
     }
 
     public <T> T binding(
@@ -497,26 +496,54 @@ public final class Engine implements Collector, AutoCloseable
         int messageCountLimit)
     {
         int messagesRead = 0;
-        boolean queueEmpty = false;
-        while (!queueEmpty && messagesRead < messageCountLimit)
+        boolean empty = false;
+        while (!empty && messagesRead < messageCountLimit)
         {
-            for (EngineWorker worker : workers)
+            int eventCount = 0;
+            for (int j = 0; j < workers.size(); j++)
             {
-                worker.readEvent((m, b, i, l) ->
+                final int workerIndex = j;
+                final int eventIndex = eventCount;
+                int eventsPeeked = workers.get(workerIndex).peekEvent((m, b, i, l) ->
                 {
                     eventRO.wrap(b, i, i + l);
-                    eventReadingQueue.add(new EventRecord(m, eventRO.timestamp(), new UnsafeBuffer(b, i, i + l)));
-                }, 1);
+                    eventIndices[eventIndex] = workerIndex;
+                    eventTimestamps[eventIndex] = eventRO.timestamp();
+                });
+                eventCount += eventsPeeked;
             }
-            queueEmpty = eventReadingQueue.isEmpty();
-            if (!queueEmpty)
+            sortEventIndicesByTimestamps(eventIndices, eventTimestamps);
+            for (int i = 0; i < eventCount && messagesRead < messageCountLimit; i++)
             {
-                EventRecord event = eventReadingQueue.poll();
-                handler.accept(event.msgTypeId, event.buffer, 0, event.buffer.capacity());
-                messagesRead++;
+                EngineWorker worker = workers.get(eventIndices[i]);
+                messagesRead += worker.readEvent(handler, 1);
             }
+            empty = eventCount == 0;
         }
         return messagesRead;
+    }
+
+    // visible for testing
+    public static void sortEventIndicesByTimestamps(
+        int[] indices,
+        long[] timestamps)
+    {
+        int i, j, index;
+        long timestamp;
+        for (i = 1; i < indices.length; i++)
+        {
+            index = indices[i];
+            timestamp = timestamps[i];
+            j = i - 1;
+            while (j >= 0 && timestamps[j] > timestamp)
+            {
+                indices[j + 1] = indices[j];
+                timestamps[j + 1] = timestamps[j];
+                j = j - 1;
+            }
+            indices[j + 1] = index;
+            timestamps[j + 1] = timestamp;
+        }
     }
 
     public EventReader supplyEventReader()

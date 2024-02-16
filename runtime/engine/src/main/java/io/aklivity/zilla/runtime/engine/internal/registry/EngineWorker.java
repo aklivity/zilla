@@ -1595,6 +1595,12 @@ public class EngineWorker implements EngineContext, Agent
         return eventsLayout.readEvent(handler, messageCountLimit);
     }
 
+    public int peekEvent(
+        MessageConsumer handler)
+    {
+        return eventsLayout.peekEvent(handler);
+    }
+
     public Supplier<EventReader> supplyEventReader()
     {
         return supplyEventReader;

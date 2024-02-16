@@ -32,6 +32,7 @@ public interface RingBufferSpy
 
     int spy(MessageConsumer handler);
     int spy(MessageConsumer handler, int messageCountLimit);
+    int peek(MessageConsumer handler);
 
     long producerPosition();
     long consumerPosition();

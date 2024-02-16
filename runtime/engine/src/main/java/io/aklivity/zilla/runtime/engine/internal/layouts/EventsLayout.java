@@ -89,6 +89,12 @@ public final class EventsLayout implements AutoCloseable
         return bufferSpy.spy(handler, messageCountLimit);
     }
 
+    public int peekEvent(
+        MessageConsumer handler)
+    {
+        return bufferSpy.peek(handler);
+    }
+
     private void rotateFile()
     {
         close();
