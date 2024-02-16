@@ -15,10 +15,26 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.spy;
 
+import org.agrona.DirectBuffer;
+
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
 public interface RingBufferSpy
 {
+    enum SpyPosition
+    {
+        ZERO,
+        HEAD,
+        TAIL
+    }
+
+    void spyAt(SpyPosition position);
+
     int spy(MessageConsumer handler);
     int spy(MessageConsumer handler, int messageCountLimit);
+
+    long producerPosition();
+    long consumerPosition();
+
+    DirectBuffer buffer();
 }

@@ -21,9 +21,14 @@ import static org.agrona.concurrent.ringbuffer.RecordDescriptor.HEADER_LENGTH;
 import static org.agrona.concurrent.ringbuffer.RecordDescriptor.lengthOffset;
 import static org.agrona.concurrent.ringbuffer.RecordDescriptor.typeOffset;
 import static org.agrona.concurrent.ringbuffer.RingBuffer.PADDING_MSG_TYPE_ID;
+import static org.agrona.concurrent.ringbuffer.RingBufferDescriptor.HEAD_POSITION_OFFSET;
+import static org.agrona.concurrent.ringbuffer.RingBufferDescriptor.TAIL_POSITION_OFFSET;
 import static org.agrona.concurrent.ringbuffer.RingBufferDescriptor.TRAILER_LENGTH;
 import static org.agrona.concurrent.ringbuffer.RingBufferDescriptor.checkCapacity;
 
+import java.util.concurrent.atomic.AtomicLong;
+
+import org.agrona.DirectBuffer;
 import org.agrona.concurrent.AtomicBuffer;
 
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -31,9 +36,8 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 public class OneToOneRingBufferSpy implements RingBufferSpy
 {
     private final int capacity;
+    private final AtomicLong spyPosition;
     private final AtomicBuffer buffer;
-
-    private int spyPosition;
 
     public OneToOneRingBufferSpy(
         final AtomicBuffer buffer)
@@ -41,8 +45,46 @@ public class OneToOneRingBufferSpy implements RingBufferSpy
         this.buffer = buffer;
         checkCapacity(buffer.capacity());
         capacity = buffer.capacity() - TRAILER_LENGTH;
+
         buffer.verifyAlignment();
-        spyPosition = 0;
+
+        spyPosition = new AtomicLong();
+    }
+
+    @Override
+    public void spyAt(
+        SpyPosition position)
+    {
+        switch (position)
+        {
+        case ZERO:
+            spyPosition.lazySet(0);
+            break;
+        case HEAD:
+            spyPosition.lazySet(buffer.getLong(capacity + HEAD_POSITION_OFFSET));
+            break;
+        case TAIL:
+            spyPosition.lazySet(buffer.getLong(capacity + TAIL_POSITION_OFFSET));
+            break;
+        }
+    }
+
+    @Override
+    public DirectBuffer buffer()
+    {
+        return buffer;
+    }
+
+    @Override
+    public long producerPosition()
+    {
+        return buffer.getLong(buffer.capacity() - TRAILER_LENGTH + TAIL_POSITION_OFFSET);
+    }
+
+    @Override
+    public long consumerPosition()
+    {
+        return buffer.getLong(buffer.capacity() - TRAILER_LENGTH + HEAD_POSITION_OFFSET);
     }
 
     @Override
@@ -58,10 +100,14 @@ public class OneToOneRingBufferSpy implements RingBufferSpy
         final int messageCountLimit)
     {
         int messagesRead = 0;
+
+        final AtomicBuffer buffer = this.buffer;
+        final long head = spyPosition.get();
+
         int bytesRead = 0;
 
         final int capacity = this.capacity;
-        final int headIndex = spyPosition & (capacity - 1);
+        final int headIndex = (int)head & (capacity - 1);
         final int contiguousBlockLength = capacity - headIndex;
 
         try
@@ -91,7 +137,7 @@ public class OneToOneRingBufferSpy implements RingBufferSpy
         {
             if (bytesRead != 0)
             {
-                spyPosition += bytesRead;
+                spyPosition.lazySet(head + bytesRead);
             }
         }
 
