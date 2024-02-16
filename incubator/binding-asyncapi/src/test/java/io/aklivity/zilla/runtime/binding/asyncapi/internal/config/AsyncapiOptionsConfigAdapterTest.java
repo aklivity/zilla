@@ -43,6 +43,9 @@ import org.mockito.junit.MockitoRule;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfigBuilder;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
@@ -108,6 +111,15 @@ public class AsyncapiOptionsConfigAdapterTest
                         "[" +
                             "\"echo\"" +
                         "]" +
+                    "}," +
+                    "\"kafka\":" +
+                    "{" +
+                        "\"sasl\":" +
+                        "{" +
+                            "\"mechanism\":\"plain\"," +
+                            "\"username\":\"username\"," +
+                            "\"password\":\"password\"" +
+                        "}" +
                     "}" +
                 "}";
 
@@ -124,6 +136,9 @@ public class AsyncapiOptionsConfigAdapterTest
         assertThat(options.tls.trustcacerts, equalTo(true));
         assertThat(options.tls.sni, equalTo(asList("example.net")));
         assertThat(options.tls.alpn, equalTo(asList("echo")));
+        assertThat(options.kafka.sasl.mechanism, equalTo("plain"));
+        assertThat(options.kafka.sasl.username, equalTo("username"));
+        assertThat(options.kafka.sasl.password, equalTo("password"));
     }
 
     @Test
@@ -146,6 +161,13 @@ public class AsyncapiOptionsConfigAdapterTest
                 .sni(asList("example.net"))
                 .alpn(asList("echo"))
                 .trustcacerts(true)
+                .build())
+            .kafka(KafkaOptionsConfig.builder()
+                .sasl(KafkaSaslConfig.builder()
+                    .mechanism("plain")
+                    .username("username")
+                    .password("password")
+                    .build())
                 .build())
             .build();
 
@@ -182,7 +204,16 @@ public class AsyncapiOptionsConfigAdapterTest
                     "[" +
                         "\"echo\"" +
                     "]" +
-                "}" +
+                "}," +
+                 "\"kafka\":" +
+                 "{" +
+                     "\"sasl\":" +
+                     "{" +
+                         "\"mechanism\":\"plain\"," +
+                         "\"username\":\"username\"," +
+                         "\"password\":\"password\"" +
+                     "}" +
+                 "}" +
             "}"));
     }
 }

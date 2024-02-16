@@ -118,6 +118,12 @@ public class AsyncapiHttpProtocol extends AsyncapiProtocol
         return binding;
     }
 
+    @Override
+    protected boolean isSecure()
+    {
+        return scheme.equals(SECURE_SCHEME);
+    }
+
     private <C> HttpOptionsConfigBuilder<C> injectHttpServerOptions(
         HttpOptionsConfigBuilder<C> options)
     {

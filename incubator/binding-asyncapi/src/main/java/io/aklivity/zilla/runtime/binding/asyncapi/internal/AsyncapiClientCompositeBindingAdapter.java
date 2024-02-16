@@ -48,18 +48,18 @@ public class AsyncapiClientCompositeBindingAdapter extends AsyncapiCompositeBind
         this.qvault = String.format("%s:%s", binding.namespace, binding.vault);
         this.protocol = resolveProtocol(firstServer.protocol(), options);
         this.allPorts = resolveAllPorts();
-        this.compositePorts = resolvePortsForScheme(protocol.scheme);
-        this.compositeSecurePorts = resolvePortsForScheme(protocol.secureScheme);
-        this.isPlainEnabled = compositePorts != null;
-        this.isTlsEnabled = compositeSecurePorts != null;
+        this.compositePorts = protocol.resolvePorts();
+        this.isTlsEnabled = protocol.isSecure();
 
         return BindingConfig.builder(binding)
             .composite()
                 .name(String.format("%s.%s", qname, "$composite"))
+                .inject(protocol::injectProtocolClientCache)
                 .binding()
                     .name(String.format("%s_client0", protocol.scheme))
                     .type(protocol.scheme)
                     .kind(CLIENT)
+                    .inject(protocol::injectProtocolClientOptions)
                     .exit(isTlsEnabled ? "tls_client0" : "tcp_client0")
                     .build()
                 .inject(n -> injectTlsClient(n, options))

@@ -96,4 +96,20 @@ public class SchemaTest
 
         assertThat(config, not(nullValue()));
     }
+
+    @Test
+    public void shouldValidateKafkaClient()
+    {
+        JsonObject config = schema.validate("client.kafka.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateKafkaClientSasl()
+    {
+        JsonObject config = schema.validate("client.kafka.sasl.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
 }

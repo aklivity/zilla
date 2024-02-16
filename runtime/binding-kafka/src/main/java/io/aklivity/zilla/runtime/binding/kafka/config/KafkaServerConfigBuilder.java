@@ -15,37 +15,47 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.config;
 
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 import java.util.function.Function;
 
-public class KafkaServerConfig
+import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
+
+public final class KafkaServerConfigBuilder<T> extends ConfigBuilder<T, KafkaServerConfigBuilder<T>>
 {
-    public final String host;
-    public final int port;
+    private final Function<KafkaServerConfig, T> mapper;
+    private String host;
+    private int port;
 
-    public static KafkaServerConfigBuilder<KafkaServerConfig> builder()
-    {
-        return new KafkaServerConfigBuilder<>(KafkaServerConfig.class::cast);
-    }
-
-    public static <T> KafkaServerConfigBuilder<T> builder(
+    KafkaServerConfigBuilder(
         Function<KafkaServerConfig, T> mapper)
     {
-        return new KafkaServerConfigBuilder<>(mapper);
-    }
-
-    public KafkaServerConfig(
-        String host,
-        int port)
-    {
-        this.host = host;
-        this.port = port;
+        this.mapper = mapper;
     }
 
     @Override
-    public String toString()
+    @SuppressWarnings("unchecked")
+    protected Class<KafkaServerConfigBuilder<T>> thisType()
     {
-        return String.format("%s:%d", host, port);
+        return (Class<KafkaServerConfigBuilder<T>>) getClass();
+    }
+
+    public KafkaServerConfigBuilder<T> host(
+        String host)
+    {
+        this.host = host;
+        return this;
+    }
+
+    public KafkaServerConfigBuilder<T> port(
+        int port)
+    {
+        this.port = port;
+        return this;
+    }
+
+    @Override
+    public T build()
+    {
+        return mapper.apply(new KafkaServerConfig(host, port));
     }
 }

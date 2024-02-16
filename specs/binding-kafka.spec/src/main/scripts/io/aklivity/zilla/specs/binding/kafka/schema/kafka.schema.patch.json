@@ -101,123 +101,7 @@
                                     "pattern": "([^\\:]+):(\\d+)"
                                 }
                             },
-                            "sasl":
-                            {
-                                "title": "SASL",
-                                "type": "object",
-                                "properties":
-                                {
-                                    "mechanism":
-                                    {
-                                        "title": "Mechanism",
-                                        "type": "string",
-                                        "enum": [ "plain", "scram-sha-1", "scram-sha-256", "scram-sha-512" ]
-                                    }
-                                },
-                                "oneOf":
-                                [
-                                    {
-                                        "additionalProperties": false,
-                                        "properties":
-                                        {
-                                            "mechanism":
-                                            {
-                                                "const": "plain"
-                                            },
-                                            "username":
-                                            {
-                                                "title": "Username",
-                                                "type": "string"
-                                            },
-                                            "password":
-                                            {
-                                                "title": "Password",
-                                                "type": "string"
-                                            }
-                                        },
-                                        "required":
-                                        [
-                                            "username",
-                                            "password"
-                                        ]
-                                    },
-                                    {
-                                        "additionalProperties": false,
-                                        "properties":
-                                        {
-                                            "mechanism":
-                                            {
-                                                "const": "scram-sha-1"
-                                            },
-                                            "username":
-                                            {
-                                                "title": "Username",
-                                                "type": "string"
-                                            },
-                                            "password":
-                                            {
-                                                "title": "Password",
-                                                "type": "string"
-                                            }
-                                        },
-                                        "required":
-                                        [
-                                            "username",
-                                            "password"
-                                        ]
-                                    },
-                                    {
-                                        "additionalProperties": false,
-                                        "properties":
-                                        {
-                                            "mechanism":
-                                            {
-                                                "const": "scram-sha-256"
-                                            },
-                                            "username":
-                                            {
-                                                "title": "Username",
-                                                "type": "string"
-                                            },
-                                            "password":
-                                            {
-                                                "title": "Password",
-                                                "type": "string"
-                                            }
-                                        },
-                                        "required":
-                                        [
-                                            "username",
-                                            "password"
-                                        ]
-                                    },
-                                    {
-                                        "additionalProperties": false,
-                                        "properties":
-                                        {
-                                            "mechanism":
-                                            {
-                                                "const": "scram-sha-512"
-                                            },
-                                            "username":
-                                            {
-                                                "title": "Username",
-                                                "type": "string"
-                                            },
-                                            "password":
-                                            {
-                                                "title": "Password",
-                                                "type": "string"
-                                            }
-                                        },
-                                        "required":
-                                        [
-                                            "username",
-                                            "password"
-                                        ]
-                                    }
-                                ]
-                            }
+                            "sasl": "$defs/options/binding/kafka/sasl"
                         },
                         "additionalProperties": false
                     },
@@ -265,6 +149,130 @@
                         "required":
                         [
                             "routes"
+                        ]
+                    }
+                ]
+            }
+        }
+    },
+    {
+        "op": "add",
+        "path": "/$defs/options/binding/kafka",
+        "value":
+        {
+            "sasl":
+            {
+                "title": "SASL",
+                "type": "object",
+                "properties":
+                {
+                    "mechanism":
+                    {
+                        "title": "Mechanism",
+                        "type": "string",
+                        "enum": [ "plain", "scram-sha-1", "scram-sha-256", "scram-sha-512" ]
+                    }
+                },
+                "oneOf":
+                [
+                    {
+                        "additionalProperties": false,
+                        "properties":
+                        {
+                            "mechanism":
+                            {
+                                "const": "plain"
+                            },
+                            "username":
+                            {
+                                "title": "Username",
+                                "type": "string"
+                            },
+                            "password":
+                            {
+                                "title": "Password",
+                                "type": "string"
+                            }
+                        },
+                        "required":
+                        [
+                            "username",
+                            "password"
+                        ]
+                    },
+                    {
+                        "additionalProperties": false,
+                        "properties":
+                        {
+                            "mechanism":
+                            {
+                                "const": "scram-sha-1"
+                            },
+                            "username":
+                            {
+                                "title": "Username",
+                                "type": "string"
+                            },
+                            "password":
+                            {
+                                "title": "Password",
+                                "type": "string"
+                            }
+                        },
+                        "required":
+                        [
+                            "username",
+                            "password"
+                        ]
+                    },
+                    {
+                        "additionalProperties": false,
+                        "properties":
+                        {
+                            "mechanism":
+                            {
+                                "const": "scram-sha-256"
+                            },
+                            "username":
+                            {
+                                "title": "Username",
+                                "type": "string"
+                            },
+                            "password":
+                            {
+                                "title": "Password",
+                                "type": "string"
+                            }
+                        },
+                        "required":
+                        [
+                            "username",
+                            "password"
+                        ]
+                    },
+                    {
+                        "additionalProperties": false,
+                        "properties":
+                        {
+                            "mechanism":
+                            {
+                                "const": "scram-sha-512"
+                            },
+                            "username":
+                            {
+                                "title": "Username",
+                                "type": "string"
+                            },
+                            "password":
+                            {
+                                "title": "Password",
+                                "type": "string"
+                            }
+                        },
+                        "required":
+                        [
+                            "username",
+                            "password"
                         ]
                     }
                 ]

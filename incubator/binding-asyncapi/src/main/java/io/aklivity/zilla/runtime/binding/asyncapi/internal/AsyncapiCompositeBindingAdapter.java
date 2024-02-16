@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal;
 
-import static java.util.Objects.requireNonNull;
-
 import java.net.URI;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -29,11 +27,9 @@ public class AsyncapiCompositeBindingAdapter
     protected static final String APPLICATION_JSON = "application/json";
 
     protected Asyncapi asyncApi;
-    protected boolean isPlainEnabled;
     protected boolean isTlsEnabled;
     protected int[] allPorts;
     protected int[] compositePorts;
-    protected int[] compositeSecurePorts;
     protected AsyncapiProtocol protocol;
     protected String qname;
     protected String qvault;
@@ -54,7 +50,11 @@ public class AsyncapiCompositeBindingAdapter
                 asyncapiProtocol = new AsyncapiHttpProtocol(qname, asyncApi, options);
                 break;
             case "mqtt":
-                asyncapiProtocol = new AyncapiMqttProtocol(qname, asyncApi, options);
+                asyncapiProtocol = new AyncapiMqttProtocol(qname, asyncApi);
+                break;
+            case "kafka":
+            case "kafka-secure":
+                asyncapiProtocol = new AyncapiKafkaProtocol(qname, asyncApi, options, protocol);
                 break;
             }
             return asyncapiProtocol;
@@ -77,35 +77,5 @@ public class AsyncapiCompositeBindingAdapter
             ports[i] = url.getPort();
         }
         return ports;
-    }
-
-    protected int[] resolvePortsForScheme(
-        String scheme)
-    {
-        requireNonNull(scheme);
-        int[] ports = null;
-        URI url = findFirstServerUrlWithScheme(scheme);
-        if (url != null)
-        {
-            ports = new int[] {url.getPort()};
-        }
-        return ports;
-    }
-
-    protected URI findFirstServerUrlWithScheme(
-        String scheme)
-    {
-        requireNonNull(scheme);
-        URI result = null;
-        for (String key : asyncApi.servers.keySet())
-        {
-            AsyncapiServerView server = AsyncapiServerView.of(asyncApi.servers.get(key));
-            if (scheme.equals(server.url().getScheme()))
-            {
-                result = server.url();
-                break;
-            }
-        }
-        return result;
     }
 }

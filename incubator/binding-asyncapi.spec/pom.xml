@@ -52,6 +52,11 @@
       <version>${project.version}</version>
     </dependency>
     <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>binding-kafka.spec</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
       <scope>test</scope>
@@ -88,7 +93,7 @@
         <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <scopeNames>core http mqtt asyncapi</scopeNames>
+          <scopeNames>core http mqtt kafka asyncapi</scopeNames>
           <packageName>io.aklivity.zilla.specs.binding.asyncapi.internal.types</packageName>
         </configuration>
         <executions>

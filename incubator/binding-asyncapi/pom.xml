@@ -63,6 +63,12 @@
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
+      <artifactId>binding-kafka</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
       <artifactId>binding-tcp</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
@@ -157,7 +163,7 @@
         <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <scopeNames>core mqtt http asyncapi</scopeNames>
+          <scopeNames>core mqtt http kafka asyncapi</scopeNames>
           <packageName>io.aklivity.zilla.runtime.binding.asyncapi.internal.types</packageName>
         </configuration>
         <executions>
