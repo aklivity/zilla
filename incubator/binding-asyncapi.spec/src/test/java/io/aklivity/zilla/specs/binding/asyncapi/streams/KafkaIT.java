@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.specs.binding.asyncapi.streams.mqtt;
+package io.aklivity.zilla.specs.binding.asyncapi.streams;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -26,10 +26,10 @@ import org.junit.rules.Timeout;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 
-public class MqttIT
+public class KafkaIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("mqtt", "io/aklivity/zilla/specs/binding/asyncapi/streams/mqtt");
+        .addScriptRoot("kafka", "io/aklivity/zilla/specs/binding/asyncapi/streams/kafka");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(5, SECONDS));
 
@@ -39,10 +39,10 @@ public class MqttIT
 
     @Test
     @Specification({
-        "${mqtt}/publish.and.subscribe/client",
-        "${mqtt}/publish.and.subscribe/server"
+        "${kafka}/produce.message/client",
+        "${kafka}/produce.message/server"
     })
-    public void shouldPublishAndSubscribe() throws Exception
+    public void shouldProduceMessage() throws Exception
     {
         k3po.finish();
     }

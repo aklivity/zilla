@@ -37,7 +37,7 @@ public class AsyncapiCompositeBindingAdapter
         String protocol,
         AsyncapiOptionsConfig options)
     {
-        Pattern pattern = Pattern.compile("(http|mqtt)");
+        Pattern pattern = Pattern.compile("(http|mqtt|kafka)");
         Matcher matcher = pattern.matcher(protocol);
         AsyncapiProtocol asyncapiProtocol = null;
         if (matcher.find())

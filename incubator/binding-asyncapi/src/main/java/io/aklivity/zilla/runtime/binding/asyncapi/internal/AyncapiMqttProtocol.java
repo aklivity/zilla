@@ -18,7 +18,6 @@ import static io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiCompos
 
 import java.util.Map;
 
-import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiChannel;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiMessage;

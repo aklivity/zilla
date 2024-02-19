@@ -14,18 +14,14 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal;
 
-import static io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiCompositeBindingAdapter.APPLICATION_JSON;
-
-import java.util.Map;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiChannel;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiMessage;
-import io.aklivity.zilla.runtime.binding.mqtt.config.MqttConditionConfig;
-import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfig;
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
-import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
+import io.aklivity.zilla.runtime.engine.config.KindConfig;
+import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 
 public class AyncapiKafkaProtocol extends AsyncapiProtocol
 {
@@ -33,6 +29,7 @@ public class AyncapiKafkaProtocol extends AsyncapiProtocol
     private static final String SECURE_SCHEME = "";
     private static final String SECURE_PROTOCOL = "kafka-secure";
     private final String protocol;
+    private final KafkaSaslConfig sasl;
 
     public AyncapiKafkaProtocol(
         String qname,
@@ -42,33 +39,46 @@ public class AyncapiKafkaProtocol extends AsyncapiProtocol
     {
         super(qname, asyncApi, SCHEME, SECURE_SCHEME);
         this.protocol = protocol;
+        this.sasl = options.kafka != null ? options.kafka.sasl : null;
+    }
+
+    @Override
+    public <C> NamespaceConfigBuilder<C> injectProtocolClientCache(
+        NamespaceConfigBuilder<C> namespace)
+    {
+        return namespace
+                .binding()
+                    .name("kafka_cache_client0")
+                    .type("kafka")
+                    .kind(KindConfig.CACHE_CLIENT)
+                    .exit("kafka_cache_server0")
+                .build()
+                .binding()
+                    .name("kafka_cache_server0")
+                    .type("kafka")
+                    .kind(KindConfig.CACHE_SERVER)
+                    .exit("kafka_client0")
+                .build();
+    }
+
+    @Override
+    public <C> BindingConfigBuilder<C> injectProtocolClientOptions(
+        BindingConfigBuilder<C> binding)
+    {
+        return sasl == null ? binding :
+            binding.options(KafkaOptionsConfig::builder)
+                .sasl(KafkaSaslConfig::builder)
+                    .mechanism(sasl.mechanism)
+                    .username(sasl.username)
+                    .password(sasl.password)
+                    .build()
+                .build();
     }
 
     @Override
     public <C> BindingConfigBuilder<C> injectProtocolServerOptions(
         BindingConfigBuilder<C> binding)
     {
-        for (Map.Entry<String, AsyncapiChannel> channelEntry : asyncApi.channels.entrySet())
-        {
-            String topic = channelEntry.getValue().address.replaceAll("\\{[^}]+\\}", "#");
-            Map<String, AsyncapiMessage> messages = channelEntry.getValue().messages;
-            if (hasJsonContentType())
-            {
-                binding
-                    .options(MqttOptionsConfig::builder)
-                        .topic()
-                            .name(topic)
-                            .content(JsonModelConfig::builder)
-                                .catalog()
-                                    .name(INLINE_CATALOG_NAME)
-                                    .inject(cataloged -> injectJsonSchemas(cataloged, messages, APPLICATION_JSON))
-                                    .build()
-                                .build()
-                            .build()
-                        .build()
-                    .build();
-            }
-        }
         return binding;
     }
 
@@ -76,24 +86,6 @@ public class AyncapiKafkaProtocol extends AsyncapiProtocol
     public <C> BindingConfigBuilder<C> injectProtocolServerRoutes(
         BindingConfigBuilder<C> binding)
     {
-        for (Map.Entry<String, AsyncapiChannel> entry : asyncApi.channels.entrySet())
-        {
-            String topic = entry.getValue().address.replaceAll("\\{[^}]+\\}", "#");
-            binding
-                .route()
-                    .when(MqttConditionConfig::builder)
-                        .publish()
-                            .topic(topic)
-                            .build()
-                        .build()
-                    .when(MqttConditionConfig::builder)
-                        .subscribe()
-                            .topic(topic)
-                            .build()
-                        .build()
-                    .exit(qname)
-                .build();
-        }
         return binding;
     }
 
