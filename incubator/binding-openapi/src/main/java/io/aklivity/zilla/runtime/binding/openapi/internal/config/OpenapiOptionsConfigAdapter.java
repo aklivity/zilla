@@ -175,26 +175,8 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
         String openapiText)
     {
         OpenApi openApi = null;
-        if (validateOpenapiSchema(openapiText))
-        {
-            try (Jsonb jsonb = JsonbBuilder.create())
-            {
-                openApi = jsonb.fromJson(openapiText, OpenApi.class);
-            }
-            catch (Exception ex)
-            {
-                rethrowUnchecked(ex);
-            }
-        }
-        return openApi;
-    }
 
-    private boolean validateOpenapiSchema(
-        String openapiText)
-    {
         List<Exception> errors = new LinkedList<>();
-
-        boolean valid = false;
 
         try
         {
@@ -206,20 +188,28 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
             JsonSchema schema = service.readSchema(schemaInput);
             ProblemHandler handler = service.createProblemPrinter(msg -> errors.add(new ConfigException(msg)));
 
-            String readable = openapiText.stripTrailing();
-            Reader openapiReader = new StringReader(readable);
+            Reader readable = new StringReader(openapiText);
+            JsonReader reader = service.createReader(readable, schema, handler);
 
-            JsonReader reader = service.createReader(openapiReader, schema, handler);
+            JsonStructure structure = reader.read();
+            String validJson = structure.toString();
 
-            JsonStructure json = reader.read();
-            valid = json != null;
+            Jsonb jsonb = JsonbBuilder.create();
+            openApi = jsonb.fromJson(validJson, OpenApi.class);
         }
         catch (Exception ex)
         {
             errors.add(ex);
         }
 
-        return valid;
+        if (!errors.isEmpty())
+        {
+            Exception ex = errors.remove(0);
+            errors.forEach(ex::addSuppressed);
+            rethrowUnchecked(ex);
+        }
+
+        return openApi;
     }
 
     private String detectOpenApiVersion(
