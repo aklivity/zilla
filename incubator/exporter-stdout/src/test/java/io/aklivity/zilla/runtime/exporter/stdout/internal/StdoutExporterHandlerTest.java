@@ -56,6 +56,10 @@ public class StdoutExporterHandlerTest
     private static final String EXPECTED_OUTPUT =
         "WARNING: HTTP Authorization Failed [timestamp = 77] [traceId = 0x0000000000000042] [binding = ns.binding] " +
             "[identity = identity]\n" +
+        "INFO: HTTP Request [timestamp = 77] [traceId = 0x0000000000000042] [binding = ns.binding] " +
+            "[name1 = value1] [name2 = value2] \n" +
+        "INFO: HTTP Response [timestamp = 77] [traceId = 0x0000000000000042] [binding = ns.binding] " +
+            "[name1 = value1] [name2 = value2] \n" +
         "WARNING: Kafka Authorization Failed [timestamp = 77] [traceId = 0x0000000000000042] [binding = ns.binding]\n" +
         "ERROR: Kafka API Version Rejected [timestamp = 77] [traceId = 0x0000000000000042] [binding = ns.binding]\n" +
         "WARNING: MQTT Authorization Failed [timestamp = 77] [traceId = 0x0000000000000042] [binding = ns.binding] " +
@@ -84,6 +88,24 @@ public class StdoutExporterHandlerTest
                 .identity("identity")
             ).build();
         layout.writeEvent(HTTP_TYPE_ID, httpAuthorizationEvent.buffer(), 0, httpAuthorizationEvent.sizeof());
+        HttpEventFW httpRequestEvent = new HttpEventFW.Builder()
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .request(e -> e.timestamp(77)
+                .traceId(0x0000000000000042L)
+                .namespacedId(0x0000000200000007L)
+                .headersItem(h -> h.name("name1").value("value1"))
+                .headersItem(h -> h.name("name2").value("value2"))
+            ).build();
+        layout.writeEvent(HTTP_TYPE_ID, httpRequestEvent.buffer(), 0, httpRequestEvent.sizeof());
+        HttpEventFW httpResponseEvent = new HttpEventFW.Builder()
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .response(e -> e.timestamp(77)
+                .traceId(0x0000000000000042L)
+                .namespacedId(0x0000000200000007L)
+                .headersItem(h -> h.name("name1").value("value1"))
+                .headersItem(h -> h.name("name2").value("value2"))
+            ).build();
+        layout.writeEvent(HTTP_TYPE_ID, httpResponseEvent.buffer(), 0, httpResponseEvent.sizeof());
         KafkaEventFW kafkaAuthorizationEvent = new KafkaEventFW.Builder()
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .authorization(e -> e.timestamp(77)

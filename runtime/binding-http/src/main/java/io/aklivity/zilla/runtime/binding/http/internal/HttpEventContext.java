@@ -16,11 +16,14 @@
 package io.aklivity.zilla.runtime.binding.http.internal;
 
 import java.nio.ByteBuffer;
+import java.util.Map;
 import java.util.function.LongSupplier;
 
-import org.agrona.MutableDirectBuffer;
+import org.agrona.concurrent.AtomicBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
+import io.aklivity.zilla.runtime.binding.http.internal.types.Array32FW;
+import io.aklivity.zilla.runtime.binding.http.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.event.HttpEventFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.event.Result;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -28,10 +31,14 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
 public class HttpEventContext
 {
-    private static final int EVENT_BUFFER_CAPACITY = 1024;
+    private static final int EVENT_BUFFER_CAPACITY = 2048;
+    private static final int HEADER_BUFFER_CAPACITY = 1024;
 
+    private final AtomicBuffer eventBuffer = new UnsafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
     private final HttpEventFW.Builder httpEventRW = new HttpEventFW.Builder();
-    private final MutableDirectBuffer eventBuffer = new UnsafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
+    private final AtomicBuffer headerBuffer = new UnsafeBuffer(new byte[HEADER_BUFFER_CAPACITY]);
+    private final Array32FW.Builder<HttpHeaderFW.Builder, HttpHeaderFW> headersRW =
+        new Array32FW.Builder<>(new HttpHeaderFW.Builder(), new HttpHeaderFW());
     private final int httpTypeId;
     private final MessageConsumer logger;
     private final LongSupplier timestamp;
@@ -60,6 +67,46 @@ public class HttpEventContext
                 .result(r -> r.set(result))
                 .identity(identity)
             )
+            .build();
+        logger.accept(httpTypeId, event.buffer(), event.offset(), event.limit());
+    }
+
+    public void request(
+        long traceId,
+        long routedId,
+        Array32FW<HttpHeaderFW> headers)
+    {
+        HttpEventFW event = httpEventRW
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .request(e -> e
+                .traceId(traceId)
+                .namespacedId(routedId)
+                .headers(headers))
+            .build();
+        logger.accept(httpTypeId, event.buffer(), event.offset(), event.limit());
+    }
+
+    public void request(
+        long traceId,
+        long routedId,
+        Map<String, String> headers)
+    {
+        headersRW.wrap(headerBuffer, 0, headerBuffer.capacity());
+        headers.forEach((n, v) -> headersRW.item(i -> i.name(n).value(v)));
+        request(traceId, routedId, headersRW.build());
+    }
+
+    public void response(
+        long traceId,
+        long routedId,
+        Array32FW<HttpHeaderFW> headers)
+    {
+        HttpEventFW event = httpEventRW
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .response(e -> e
+                .traceId(traceId)
+                .namespacedId(routedId)
+                .headers(headers))
             .build();
         logger.accept(httpTypeId, event.buffer(), event.offset(), event.limit());
     }
