@@ -29,7 +29,7 @@
                     },
                     "kind":
                     {
-                        "enum": [ "server", "client" ]
+                        "enum": [ "server", "client", "proxy" ]
                     },
                     "options":
                     {
@@ -69,7 +69,46 @@
                         },
                         "additionalProperties": false
                     },
-                    "routes": false
+                    "routes":
+                    {
+                        "items":
+                        {
+                            "properties":
+                            {
+                                "when":
+                                {
+                                    "items":
+                                    {
+                                        "additionalProperties": false,
+                                        "properties":
+                                        {
+                                            "operation":
+                                            {
+                                                "title": "MQTT Operation Id",
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                },
+                                "with":
+                                {
+                                    "properties":
+                                    {
+                                        "operation":
+                                        {
+                                            "title": "Kafka Operation Id",
+                                            "type": "string"
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                }
+                            },
+                            "required":
+                            [
+                                "with"
+                            ]
+                        }
+                    }
                 },
                 "oneOf":
                 [
