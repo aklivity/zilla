@@ -20,7 +20,6 @@ import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DIRECT
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKERS;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertTrue;
 
@@ -249,62 +248,6 @@ public class EngineTest
         {
             assertThat(errors, not(empty()));
         }
-    }
-
-    @Test
-    public void shouldSortEventIndicesByTimestampSimpleCase()
-    {
-        // GIVEN
-        int[] eventIndices = new int[]{1, 2, 3};
-        long[] eventTimestamps = new long[]{1L, 2L, 3L};
-
-        // WHEN
-        Engine.sortEventIndicesByTimestamps(eventIndices, eventTimestamps);
-
-        // THEN
-        assertThat(eventIndices, equalTo(new int[]{1, 2, 3}));
-    }
-
-    @Test
-    public void shouldSortEventIndicesByTimestampGenericCase()
-    {
-        // GIVEN
-        int[] eventIndices = new int[]{1, 5, 2, 7, 9, 8};
-        long[] eventTimestamps = new long[]{8L, 1L, 9L, 4L, 3L, 42L};
-
-        // WHEN
-        Engine.sortEventIndicesByTimestamps(eventIndices, eventTimestamps);
-
-        // THEN
-        assertThat(eventIndices, equalTo(new int[]{5, 9, 7, 1, 2, 8}));
-    }
-
-    @Test
-    public void shouldSortEventIndicesByTimestampOne()
-    {
-        // GIVEN
-        int[] eventIndices = new int[]{3};
-        long[] eventTimestamps = new long[]{7777L};
-
-        // WHEN
-        Engine.sortEventIndicesByTimestamps(eventIndices, eventTimestamps);
-
-        // THEN
-        assertThat(eventIndices, equalTo(new int[]{3}));
-    }
-
-    @Test
-    public void shouldSortEventIndicesByTimestampEmpty()
-    {
-        // GIVEN
-        int[] eventIndices = new int[]{};
-        long[] eventTimestamps = new long[]{};
-
-        // WHEN
-        Engine.sortEventIndicesByTimestamps(eventIndices, eventTimestamps);
-
-        // THEN
-        assertThat(eventIndices, equalTo(new int[]{}));
     }
 
     public static final class TestEngineExt implements EngineExtSpi

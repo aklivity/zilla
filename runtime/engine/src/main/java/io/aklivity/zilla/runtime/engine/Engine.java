@@ -53,7 +53,6 @@ import java.util.stream.Collectors;
 
 import org.agrona.CloseHelper;
 import org.agrona.ErrorHandler;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.concurrent.AgentRunner;
 
@@ -101,8 +100,8 @@ public final class Engine implements Collector, AutoCloseable
     private Future<Void> watcherTaskRef;
 
     private final EventFW eventRO = new EventFW();
-    private final int[] eventIndices;
-    private final long[] eventTimestamps;
+    private int minWorkerIndex;
+    private long minTimeStamp;
 
     Engine(
         EngineConfiguration config,
@@ -223,8 +222,6 @@ public final class Engine implements Collector, AutoCloseable
         this.context = context;
         this.runners = runners;
         this.readonly = readonly;
-        this.eventIndices = new int[workerCount];
-        this.eventTimestamps = new long[workerCount];
     }
 
     public <T> T binding(
@@ -500,50 +497,29 @@ public final class Engine implements Collector, AutoCloseable
         while (!empty && messagesRead < messageCountLimit)
         {
             int eventCount = 0;
+            minWorkerIndex = 0;
+            minTimeStamp = Long.MAX_VALUE;
             for (int j = 0; j < workers.size(); j++)
             {
                 final int workerIndex = j;
-                final int eventIndex = eventCount;
-                int eventsPeeked = workers.get(workerIndex).peekEvent((m, b, i, l) ->
+                int eventPeeked = workers.get(workerIndex).peekEvent((m, b, i, l) ->
                 {
                     eventRO.wrap(b, i, i + l);
-                    eventIndices[eventIndex] = workerIndex;
-                    eventTimestamps[eventIndex] = eventRO.timestamp();
+                    if (eventRO.timestamp() < minTimeStamp)
+                    {
+                        minTimeStamp = eventRO.timestamp();
+                        minWorkerIndex = workerIndex;
+                    }
                 });
-                eventCount += eventsPeeked;
-            }
-            sortEventIndicesByTimestamps(eventIndices, eventTimestamps);
-            for (int i = 0; i < eventCount && messagesRead < messageCountLimit; i++)
-            {
-                EngineWorker worker = workers.get(eventIndices[i]);
-                messagesRead += worker.readEvent(handler, 1);
+                eventCount += eventPeeked;
             }
             empty = eventCount == 0;
+            if (!empty)
+            {
+                messagesRead += workers.get(minWorkerIndex).readEvent(handler, 1);
+            }
         }
         return messagesRead;
-    }
-
-    // visible for testing
-    public static void sortEventIndicesByTimestamps(
-        int[] indices,
-        long[] timestamps)
-    {
-        int i, j, index;
-        long timestamp;
-        for (i = 1; i < indices.length; i++)
-        {
-            index = indices[i];
-            timestamp = timestamps[i];
-            j = i - 1;
-            while (j >= 0 && timestamps[j] > timestamp)
-            {
-                indices[j + 1] = indices[j];
-                timestamps[j + 1] = timestamps[j];
-                j = j - 1;
-            }
-            indices[j + 1] = index;
-            timestamps[j + 1] = timestamp;
-        }
     }
 
     public EventReader supplyEventReader()
@@ -563,28 +539,6 @@ public final class Engine implements Collector, AutoCloseable
     {
         EngineWorker worker = workers.get(0);
         return worker.supplyTypeId(label);
-    }
-
-    private static final class EventRecord
-    {
-        public int msgTypeId;
-        public long timestamp;
-        public MutableDirectBuffer buffer;
-
-        private EventRecord(
-            int msgTypeId,
-            long timestamp,
-            MutableDirectBuffer buffer)
-        {
-            this.msgTypeId = msgTypeId;
-            this.timestamp = timestamp;
-            this.buffer = buffer;
-        }
-
-        public long timestamp()
-        {
-            return timestamp;
-        }
     }
 
     // visible for testing
