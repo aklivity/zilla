@@ -15,7 +15,6 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.config;
 
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 import java.util.function.Function;
 

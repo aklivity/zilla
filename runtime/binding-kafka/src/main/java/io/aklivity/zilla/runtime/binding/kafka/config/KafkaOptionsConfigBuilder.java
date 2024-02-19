@@ -71,6 +71,12 @@ public final class KafkaOptionsConfigBuilder<T> extends ConfigBuilder<T, KafkaOp
         return this;
     }
 
+    public <C extends ConfigBuilder<KafkaOptionsConfigBuilder<T>, C>> C sasl(
+        Function<Function<KafkaSaslConfig, KafkaOptionsConfigBuilder<T>>, C> sasl)
+    {
+        return sasl.apply(this::sasl);
+    }
+
     @Override
     public T build()
     {

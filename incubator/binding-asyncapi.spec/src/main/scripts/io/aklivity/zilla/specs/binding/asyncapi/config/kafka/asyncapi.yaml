@@ -26,28 +26,28 @@ servers:
     protocol: kafka
 
 operations:
-  onUserSignedUp:
+  onSensorData:
     action: receive
     channel:
-      $ref: '#/channels/userSignedUp'
+      $ref: '#/channels/sensorData'
 
 channels:
-  userSignedUp:
-    description: This channel contains a message per each user who signs up in our application.
-    address: user_signedup
+  sensorData:
+    description: This channel contains a message for sensors.
+    address: sensors
     messages:
-      userSignedUp:
-        $ref: '#/components/messages/userSignedUp'
+      sensorData:
+        $ref: '#/components/messages/sensorData'
 
 components:
   messages:
-    userSignedUp:
+    sensorData:
       payload:
         type: object
         properties:
-          userId:
+          sensorId:
             type: integer
-            description: This property describes the id of the user
-          userEmail:
+            description: This property describes the id of the sensor
+          message:
             type: string
-            description: This property describes the email of the user
+            description: This property describes message of the sensor
