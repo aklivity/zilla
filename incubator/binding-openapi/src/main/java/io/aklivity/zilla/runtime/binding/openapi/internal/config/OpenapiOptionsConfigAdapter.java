@@ -29,13 +29,16 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonReader;
 import jakarta.json.JsonString;
-import jakarta.json.JsonStructure;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
+import jakarta.json.spi.JsonProvider;
+import jakarta.json.stream.JsonParser;
 
+import org.agrona.collections.IntArrayList;
 import org.leadpony.justify.api.JsonSchema;
+import org.leadpony.justify.api.JsonSchemaReader;
 import org.leadpony.justify.api.JsonValidationService;
 import org.leadpony.justify.api.ProblemHandler;
 
@@ -52,6 +55,7 @@ import io.aklivity.zilla.runtime.engine.config.ConfigException;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapter;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
+import io.aklivity.zilla.runtime.engine.internal.config.schema.UniquePropertyKeysSchema;
 
 public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
@@ -180,22 +184,25 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
 
         try
         {
-            JsonValidationService service = JsonValidationService.newInstance();
-
             String openApiVersion = detectOpenApiVersion(openapiText);
             InputStream schemaInput = selectSchemaPathForVersion(openApiVersion);
 
-            JsonSchema schema = service.readSchema(schemaInput);
+            JsonProvider schemaProvider = JsonProvider.provider();
+            JsonParser schemaParser = schemaProvider.createParserFactory(null)
+                .createParser(schemaInput);
+
+            JsonValidationService service = JsonValidationService.newInstance();
             ProblemHandler handler = service.createProblemPrinter(msg -> errors.add(new ConfigException(msg)));
+            JsonSchemaReader validator = service.createSchemaReader(schemaParser);
+            JsonSchema schema = new UniquePropertyKeysSchema(validator.read());
 
-            Reader readable = new StringReader(openapiText);
-            JsonReader reader = service.createReader(readable, schema, handler);
+            JsonProvider provider = service.createJsonProvider(schema, parser -> handler);
 
-            JsonStructure structure = reader.read();
-            String validJson = structure.toString();
+            Jsonb jsonb = JsonbBuilder.newBuilder()
+                .withProvider(provider)
+                .build();
 
-            Jsonb jsonb = JsonbBuilder.create();
-            openApi = jsonb.fromJson(validJson, OpenApi.class);
+            openApi = jsonb.fromJson(openapiText, OpenApi.class);
         }
         catch (Exception ex)
         {
