@@ -49,7 +49,7 @@ public interface EngineContext
     int supplyTypeId(
         String name);
 
-    int lookupLabelId(
+    int lookupTypeId(
         String name);
 
     long supplyInitialId(

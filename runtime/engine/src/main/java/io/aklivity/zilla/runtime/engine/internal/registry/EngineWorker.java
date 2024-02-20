@@ -461,7 +461,7 @@ public class EngineWorker implements EngineContext, Agent
     }
 
     @Override
-    public int lookupLabelId(
+    public int lookupTypeId(
         String name)
     {
         return labels.lookupLabelId(name);

@@ -163,12 +163,12 @@ public class StdoutExporterHandlerTest
         StdoutExporterConfig exporter = new StdoutExporterConfig(mock(ExporterConfig.class));
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         PrintStream ps = new PrintStream(os);
-        when(context.lookupLabelId("http")).thenReturn(HTTP_TYPE_ID);
-        when(context.lookupLabelId("kafka")).thenReturn(KAFKA_TYPE_ID);
-        when(context.lookupLabelId("mqtt")).thenReturn(MQTT_TYPE_ID);
-        when(context.lookupLabelId("schema-registry")).thenReturn(SCHEMA_REGISTRY_TYPE_ID);
-        when(context.lookupLabelId("tcp")).thenReturn(TCP_TYPE_ID);
-        when(context.lookupLabelId("tls")).thenReturn(TLS_TYPE_ID);
+        when(context.lookupTypeId("http")).thenReturn(HTTP_TYPE_ID);
+        when(context.lookupTypeId("kafka")).thenReturn(KAFKA_TYPE_ID);
+        when(context.lookupTypeId("mqtt")).thenReturn(MQTT_TYPE_ID);
+        when(context.lookupTypeId("schema-registry")).thenReturn(SCHEMA_REGISTRY_TYPE_ID);
+        when(context.lookupTypeId("tcp")).thenReturn(TCP_TYPE_ID);
+        when(context.lookupTypeId("tls")).thenReturn(TLS_TYPE_ID);
         when(context.supplyNamespace(0x0000000200000007L)).thenReturn("ns");
         when(context.supplyLocalName(0x0000000200000007L)).thenReturn("binding");
         when(context.supplyEventReader()).thenReturn(layout::readEvent);

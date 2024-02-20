@@ -43,7 +43,7 @@ public class StdoutExporterHandler implements ExporterHandler
     public void start()
     {
         stdoutEventsStream = new StdoutEventsStream(context.supplyEventReader(), context::supplyNamespace,
-            context::supplyLocalName, context::lookupLabelId, out);
+            context::supplyLocalName, context::lookupTypeId, out);
     }
 
     @Override
