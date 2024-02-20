@@ -54,21 +54,21 @@ public class StdoutExporterHandlerTest
     private static final int TCP_TYPE_ID = 5;
     private static final int TLS_TYPE_ID = 6;
     private static final String EXPECTED_OUTPUT =
-        "WARNING: HTTP Authorization Failed [timestamp = 77] [traceId = 0x0000000000000042] [binding = ns.binding] " +
+        "HTTP Authorization Failed [timestamp = 77] [traceId = 0x0000000000000042] [binding = ns.binding] " +
             "[identity = identity]\n" +
-        "INFO: HTTP Request [timestamp = 77] [traceId = 0x0000000000000042] [binding = ns.binding] " +
+        "HTTP Request [timestamp = 77] [traceId = 0x0000000000000042] [binding = ns.binding] " +
             "[name1 = value1] [name2 = value2] \n" +
-        "INFO: HTTP Response [timestamp = 77] [traceId = 0x0000000000000042] [binding = ns.binding] " +
+        "HTTP Response [timestamp = 77] [traceId = 0x0000000000000042] [binding = ns.binding] " +
             "[name1 = value1] [name2 = value2] \n" +
-        "WARNING: Kafka Authorization Failed [timestamp = 77] [traceId = 0x0000000000000042] [binding = ns.binding]\n" +
-        "ERROR: Kafka API Version Rejected [timestamp = 77] [traceId = 0x0000000000000042] [binding = ns.binding]\n" +
-        "WARNING: MQTT Authorization Failed [timestamp = 77] [traceId = 0x0000000000000042] [binding = ns.binding] " +
+        "Kafka Authorization Failed [timestamp = 77] [traceId = 0x0000000000000042] [binding = ns.binding]\n" +
+        "Kafka API Version Rejected [timestamp = 77] [traceId = 0x0000000000000042] [binding = ns.binding]\n" +
+        "MQTT Authorization Failed [timestamp = 77] [traceId = 0x0000000000000042] [binding = ns.binding] " +
             "[identity = identity]\n" +
-        "ERROR: Schema Registry Remote Access Rejected [timestamp = 77] [traceId = 0x0000000000000042] [binding = ns.binding] " +
+        "Schema Registry Remote Access Rejected [timestamp = 77] [traceId = 0x0000000000000042] [binding = ns.binding] " +
             "[url = url] [method = method] [status = 42]\n" +
-        "ERROR: TCP DNS Resolution Failed [timestamp = 77] [traceId = 0x0000000000000042] [binding = ns.binding] " +
+        "TCP DNS Resolution Failed [timestamp = 77] [traceId = 0x0000000000000042] [binding = ns.binding] " +
             "[address = address]\n" +
-        "ERROR: TLS Failed [timestamp = 77] [traceId = 0x0000000000000042] [binding = ns.binding] [error = HANDSHAKE_ERROR]\n";
+        "TLS Failed [timestamp = 77] [traceId = 0x0000000000000042] [binding = ns.binding] [error = HANDSHAKE_ERROR]\n";
 
     @Test
     public void shouldStart()

@@ -26,9 +26,9 @@ import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.KafkaEvent
 public class KafkaEventHandler extends EventHandler
 {
     private static final String KAFKA_AUTHORIZATION_FORMAT =
-        "%s: Kafka Authorization %s [timestamp = %d] [traceId = 0x%016x] [binding = %s.%s]%n";
+        "Kafka Authorization %s [timestamp = %d] [traceId = 0x%016x] [binding = %s.%s]%n";
     private static final String KAFKA_API_VERSION_REJECTED =
-        "ERROR: Kafka API Version Rejected [timestamp = %d] [traceId = 0x%016x] [binding = %s.%s]%n";
+        "Kafka API Version Rejected [timestamp = %d] [traceId = 0x%016x] [binding = %s.%s]%n";
 
     private final KafkaEventFW kafkaEventRO = new KafkaEventFW();
 
@@ -54,7 +54,7 @@ public class KafkaEventHandler extends EventHandler
             KafkaAuthorizationEventFW e = event.authorization();
             String namespace = supplyNamespace.apply(e.namespacedId());
             String binding = supplyLocalName.apply(e.namespacedId());
-            out.printf(KAFKA_AUTHORIZATION_FORMAT, level(e.result()), result(e.result()), e.timestamp(), e.traceId(), namespace,
+            out.printf(KAFKA_AUTHORIZATION_FORMAT, result(e.result()), e.timestamp(), e.traceId(), namespace,
                 binding);
             break;
         }

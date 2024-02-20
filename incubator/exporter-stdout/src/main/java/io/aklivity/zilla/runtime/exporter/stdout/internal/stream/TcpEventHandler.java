@@ -25,7 +25,7 @@ import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.TcpEventFW
 public class TcpEventHandler extends EventHandler
 {
     private static final String TCP_DNS_RESOLUTION_FAILED_FORMAT =
-        "ERROR: TCP DNS Resolution Failed [timestamp = %d] [traceId = 0x%016x] [binding = %s.%s] [address = %s]%n";
+        "TCP DNS Resolution Failed [timestamp = %d] [traceId = 0x%016x] [binding = %s.%s] [address = %s]%n";
 
     private final TcpEventFW tcpEventRO = new TcpEventFW();
 

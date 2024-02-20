@@ -25,7 +25,7 @@ import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.MqttEventF
 public class MqttEventHandler extends EventHandler
 {
     private static final String MQTT_AUTHORIZATION_FORMAT =
-        "%s: MQTT Authorization %s [timestamp = %d] [traceId = 0x%016x] [binding = %s.%s] [identity = %s]%n";
+        "MQTT Authorization %s [timestamp = %d] [traceId = 0x%016x] [binding = %s.%s] [identity = %s]%n";
 
     private final MqttEventFW mqttEventRO = new MqttEventFW();
 
@@ -50,7 +50,7 @@ public class MqttEventHandler extends EventHandler
             MqttAuthorizationEventFW e = event.authorization();
             String namespace = supplyNamespace.apply(e.namespacedId());
             String binding = supplyLocalName.apply(e.namespacedId());
-            out.printf(MQTT_AUTHORIZATION_FORMAT, level(e.result()), result(e.result()), e.timestamp(), e.traceId(), namespace,
+            out.printf(MQTT_AUTHORIZATION_FORMAT, result(e.result()), e.timestamp(), e.traceId(), namespace,
                 binding, asString(e.identity()));
             break;
         }

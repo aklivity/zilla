@@ -25,7 +25,7 @@ import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.TlsFailedE
 public class TlsEventHandler extends EventHandler
 {
     private static final String TLS_FAILED_FORMAT =
-        "ERROR: TLS Failed [timestamp = %d] [traceId = 0x%016x] [binding = %s.%s] [error = %s]%n";
+        "TLS Failed [timestamp = %d] [traceId = 0x%016x] [binding = %s.%s] [error = %s]%n";
 
     private final TlsEventFW tlsEventRO = new TlsEventFW();
 

@@ -29,11 +29,11 @@ import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.HttpRespon
 public class HttpEventHandler extends EventHandler
 {
     private static final String HTTP_AUTHORIZATION_FORMAT =
-        "%s: HTTP Authorization %s [timestamp = %d] [traceId = 0x%016x] [binding = %s.%s] [identity = %s]%n";
+        "HTTP Authorization %s [timestamp = %d] [traceId = 0x%016x] [binding = %s.%s] [identity = %s]%n";
     private static final String HTTP_REQUEST_FORMAT =
-        "INFO: HTTP Request [timestamp = %d] [traceId = 0x%016x] [binding = %s.%s] %s%n";
+        "HTTP Request [timestamp = %d] [traceId = 0x%016x] [binding = %s.%s] %s%n";
     private static final String HTTP_RESPONSE_FORMAT =
-        "INFO: HTTP Response [timestamp = %d] [traceId = 0x%016x] [binding = %s.%s] %s%n";
+        "HTTP Response [timestamp = %d] [traceId = 0x%016x] [binding = %s.%s] %s%n";
 
     private final HttpEventFW httpEventRO = new HttpEventFW();
 
@@ -59,7 +59,7 @@ public class HttpEventHandler extends EventHandler
             HttpAuthorizationEventFW e = event.authorization();
             String namespace = supplyNamespace.apply(e.namespacedId());
             String binding = supplyLocalName.apply(e.namespacedId());
-            out.printf(HTTP_AUTHORIZATION_FORMAT, level(e.result()), result(e.result()), e.timestamp(), e.traceId(), namespace,
+            out.printf(HTTP_AUTHORIZATION_FORMAT, result(e.result()), e.timestamp(), e.traceId(), namespace,
                 binding, asString(e.identity()));
             break;
         }

@@ -52,12 +52,6 @@ public abstract class EventHandler
         return s == null ? "" : s;
     }
 
-    protected static String level(
-        ResultFW result)
-    {
-        return result.get() == Result.SUCCESS ? "INFO" : "WARNING";
-    }
-
     protected static String result(
         ResultFW result)
     {
