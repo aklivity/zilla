@@ -295,7 +295,7 @@ public class TcpClientFactory implements TcpStreamFactory
             }
             catch (UnresolvedAddressException ex)
             {
-                event.dnsResolutionFailed(supplyTraceId.getAsLong(), routedId, null);
+                event.dnsResolutionFailed(0L, routedId, null);
                 onNetRejected();
             }
             catch (IOException ex)
