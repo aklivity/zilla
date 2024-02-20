@@ -87,6 +87,7 @@ import io.aklivity.zilla.runtime.engine.binding.Binding;
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageReader;
 import io.aklivity.zilla.runtime.engine.budget.BudgetCreditor;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
@@ -136,7 +137,6 @@ import io.aklivity.zilla.runtime.engine.model.ModelContext;
 import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
-import io.aklivity.zilla.runtime.engine.util.function.EventReader;
 import io.aklivity.zilla.runtime.engine.util.function.LongLongFunction;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
@@ -214,7 +214,7 @@ public class EngineWorker implements EngineContext, Agent
     private final ScalarsLayout gaugesLayout;
     private final HistogramsLayout histogramsLayout;
     private final EventsLayout eventsLayout;
-    private final Supplier<EventReader> supplyEventReader;
+    private final Supplier<MessageReader> supplyEventReader;
     private long initialId;
     private long promiseId;
     private long traceId;
@@ -237,7 +237,7 @@ public class EngineWorker implements EngineContext, Agent
         Collection<Model> models,
         Collection<MetricGroup> metricGroups,
         Collector collector,
-        Supplier<EventReader> supplyEventReader,
+        Supplier<MessageReader> supplyEventReader,
         int index,
         boolean readonly)
     {
@@ -1601,7 +1601,7 @@ public class EngineWorker implements EngineContext, Agent
         return eventsLayout.peekEvent(handler);
     }
 
-    public Supplier<EventReader> supplyEventReader()
+    public Supplier<MessageReader> supplyEventReader()
     {
         return supplyEventReader;
     }

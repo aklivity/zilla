@@ -22,16 +22,16 @@ import org.agrona.DirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.util.function.EventReader;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageReader;
 
 public class StdoutEventsStream
 {
-    private final EventReader readEvent;
+    private final MessageReader readEvent;
     private final ToIntFunction<String> lookupLabelId;
     private final Int2ObjectHashMap<MessageConsumer> eventHandlers;
 
     public StdoutEventsStream(
-        EventReader readEvent,
+        MessageReader readEvent,
         LongFunction<String> supplyNamespace,
         LongFunction<String> supplyLocalName,
         ToIntFunction<String> lookupLabelId,

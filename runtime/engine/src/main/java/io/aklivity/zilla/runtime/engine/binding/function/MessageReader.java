@@ -13,11 +13,9 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.util.function;
+package io.aklivity.zilla.runtime.engine.binding.function;
 
-import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
-
-public interface EventReader
+public interface MessageReader
 {
     int read(
         MessageConsumer handler,
