@@ -24,7 +24,7 @@ import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.SchemaRegi
 
 public class SchemaRegistryEventHandler extends EventHandler
 {
-    private static final String SCHEMA_REGISTRY_REMOTE_ACCESS_REJECTED =
+    private static final String REMOTE_ACCESS_REJECTED =
         "Schema Registry Remote Access Rejected [timestamp = %d] [traceId = 0x%016x] [binding = %s.%s] [url = %s] " +
             "[method = %s] [status = %d]%n";
 
@@ -51,7 +51,7 @@ public class SchemaRegistryEventHandler extends EventHandler
             SchemaRegistryRemoteAccessRejectedEventFW e = event.remoteAccessRejected();
             String namespace = supplyNamespace.apply(e.namespacedId());
             String binding = supplyLocalName.apply(e.namespacedId());
-            out.printf(SCHEMA_REGISTRY_REMOTE_ACCESS_REJECTED, e.timestamp(), e.traceId(), namespace, binding, asString(e.url()),
+            out.printf(REMOTE_ACCESS_REJECTED, e.timestamp(), e.traceId(), namespace, binding, asString(e.url()),
                 asString(e.method()), e.status());
             break;
         }
