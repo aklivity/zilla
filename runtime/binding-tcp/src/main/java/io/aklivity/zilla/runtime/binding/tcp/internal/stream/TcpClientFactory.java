@@ -273,8 +273,7 @@ public class TcpClientFactory implements TcpStreamFactory
             }
             catch (UnresolvedAddressException ex)
             {
-                String address = remoteAddress == null ? "" : remoteAddress.toString();
-                event.dnsResolutionFailed(supplyTraceId.getAsLong(), routedId, address);
+                event.dnsResolutionFailed(supplyTraceId.getAsLong(), routedId, remoteAddress);
                 onNetRejected();
             }
             catch (IOException ex)
@@ -294,7 +293,7 @@ public class TcpClientFactory implements TcpStreamFactory
             }
             catch (UnresolvedAddressException ex)
             {
-                event.dnsResolutionFailed(supplyTraceId.getAsLong(), routedId, "");
+                event.dnsResolutionFailed(supplyTraceId.getAsLong(), routedId, null);
                 onNetRejected();
             }
             catch (IOException ex)

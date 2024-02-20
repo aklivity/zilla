@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.tcp.internal;
 
+import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.function.LongSupplier;
 
@@ -46,8 +47,9 @@ public class TcpEventContext
     public void dnsResolutionFailed(
         long traceId,
         long routedId,
-        String address)
+        InetSocketAddress remoteAddress)
     {
+        String address = remoteAddress == null ? "" : remoteAddress.toString();
         TcpEventFW event = tcpEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .dnsResolutionFailed(e -> e
