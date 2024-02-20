@@ -32,27 +32,27 @@ public final class AsyncapiSchemaView extends AsyncapiResolvable<AsyncapiSchema>
 {
     private static final String ARRAY_TYPE = "array";
 
-    private final AsyncapiSchema asyncapiSchema;
+    private final AsyncapiSchema schema;
     private final Map<String, AsyncapiSchema> schemas;
 
     public String getType()
     {
-        return asyncapiSchema.type;
+        return schema.type;
     }
 
     public AsyncapiSchemaView getItems()
     {
-        return asyncapiSchema.items == null ? null : AsyncapiSchemaView.of(schemas, asyncapiSchema.items);
+        return schema.items == null ? null : AsyncapiSchemaView.of(schemas, schema.items);
     }
 
     public Map<String, AsyncapiItem> getProperties()
     {
-        return asyncapiSchema.properties;
+        return schema.properties;
     }
 
     public List<String> getRequired()
     {
-        return asyncapiSchema.required;
+        return schema.required;
     }
 
     public static AsyncapiSchemaView of(
@@ -64,18 +64,18 @@ public final class AsyncapiSchemaView extends AsyncapiResolvable<AsyncapiSchema>
 
     private AsyncapiSchemaView(
         Map<String, AsyncapiSchema> schemas,
-        AsyncapiSchema asyncapiSchema)
+        AsyncapiSchema schema)
     {
         super(schemas, "#/components/schemas/(\\w+)");
-        if (asyncapiSchema.ref != null)
+        if (schema.ref != null)
         {
-            asyncapiSchema = resolveRef(asyncapiSchema.ref);
+            schema = resolveRef(schema.ref);
         }
-        else if (ARRAY_TYPE.equals(asyncapiSchema.type) && asyncapiSchema.items != null && asyncapiSchema.items.ref != null)
+        else if (ARRAY_TYPE.equals(schema.type) && schema.items != null && schema.items.ref != null)
         {
-            asyncapiSchema.items = resolveRef(asyncapiSchema.items.ref);
+            schema.items = resolveRef(schema.items.ref);
         }
         this.schemas = schemas;
-        this.asyncapiSchema = asyncapiSchema;
+        this.schema = schema;
     }
 }

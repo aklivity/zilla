@@ -29,11 +29,7 @@ public class AsyncapiCompositeBindingAdapter
     protected static final String APPLICATION_JSON = "application/json";
 
     protected Asyncapi asyncApi;
-    protected boolean isPlainEnabled;
     protected boolean isTlsEnabled;
-    protected int[] allPorts;
-    protected int[] compositePorts;
-    protected int[] compositeSecurePorts;
     protected AsyncapiProtocol protocol;
     protected String qname;
     protected String qvault;

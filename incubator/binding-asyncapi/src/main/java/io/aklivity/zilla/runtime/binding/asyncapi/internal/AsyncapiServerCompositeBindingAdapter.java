@@ -29,6 +29,10 @@ import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 
 public class AsyncapiServerCompositeBindingAdapter extends AsyncapiCompositeBindingAdapter implements CompositeBindingAdapterSpi
 {
+    private int[] compositePorts;
+    private int[] compositeSecurePorts;
+    private boolean isPlainEnabled;
+
     @Override
     public String type()
     {
@@ -49,7 +53,7 @@ public class AsyncapiServerCompositeBindingAdapter extends AsyncapiCompositeBind
         this.qname = binding.qname;
         this.qvault = String.format("%s:%s", binding.namespace, binding.vault);
         this.protocol = resolveProtocol(firstServer.protocol(), options);
-        this.allPorts = resolveAllPorts();
+        int[] allPorts = resolveAllPorts();
         this.compositePorts = resolvePortsForScheme(protocol.scheme);
         this.compositeSecurePorts = resolvePortsForScheme(protocol.secureScheme);
         this.isPlainEnabled = compositePorts != null;

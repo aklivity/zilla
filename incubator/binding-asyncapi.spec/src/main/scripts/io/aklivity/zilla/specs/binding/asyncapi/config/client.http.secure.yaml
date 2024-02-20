@@ -16,22 +16,26 @@
 
 ---
 name: test
+vaults:
+  test0:
+    type: test
 bindings:
   asyncapi0:
     type: asyncapi
     kind: client
+    vault: test0
     options:
       specs:
-        - mqtt/asyncapi.yaml
+        - http/asyncapi.yaml
       tcp:
         host: localhost
         port:
-          - 7183
+          - 7080
       tls:
         trust:
           - serverca
         trustcacerts: true
         sni:
-          - example.net
+          - http.example.net
         alpn:
-          - echo
+          - http

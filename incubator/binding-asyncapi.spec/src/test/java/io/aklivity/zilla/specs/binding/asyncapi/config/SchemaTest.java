@@ -31,6 +31,7 @@ public class SchemaTest
     @Rule
     public final ConfigSchemaRule schema = new ConfigSchemaRule()
         .schemaPatch("io/aklivity/zilla/specs/binding/asyncapi/schema/asyncapi.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/specs/engine/schema/vault/test.schema.patch.json")
         .configurationRoot("io/aklivity/zilla/specs/binding/asyncapi/config");
 
     @Test
@@ -42,9 +43,9 @@ public class SchemaTest
     }
 
     @Test
-    public void shouldValidateMqttClientTls()
+    public void shouldValidateMqttSecureClient()
     {
-        JsonObject config = schema.validate("client.mqtt.tls.yaml");
+        JsonObject config = schema.validate("client.mqtt.secure.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -58,9 +59,9 @@ public class SchemaTest
     }
 
     @Test
-    public void shouldValidateMqttServerTls()
+    public void shouldValidateMqttSecureServer()
     {
-        JsonObject config = schema.validate("server.mqtt.tls.yaml");
+        JsonObject config = schema.validate("server.mqtt.secure.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -74,9 +75,9 @@ public class SchemaTest
     }
 
     @Test
-    public void shouldValidateHttpClientTls()
+    public void shouldValidateHttpSecureClient()
     {
-        JsonObject config = schema.validate("client.http.tls.yaml");
+        JsonObject config = schema.validate("client.http.secure.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -90,9 +91,9 @@ public class SchemaTest
     }
 
     @Test
-    public void shouldValidateHttpServerTls()
+    public void shouldValidateHttpSecureServer()
     {
-        JsonObject config = schema.validate("server.http.tls.yaml");
+        JsonObject config = schema.validate("server.http.secure.yaml");
 
         assertThat(config, not(nullValue()));
     }
