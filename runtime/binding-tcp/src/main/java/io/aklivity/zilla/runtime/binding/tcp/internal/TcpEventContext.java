@@ -52,7 +52,7 @@ public class TcpEventContext
         String address = remoteAddress == null ? "" : remoteAddress.toString();
         TcpEventFW event = tcpEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
-            .dnsResolutionFailed(e -> e
+            .dnsFailed(e -> e
                 .timestamp(timestamp.getAsLong())
                 .traceId(traceId)
                 .namespacedId(routedId)

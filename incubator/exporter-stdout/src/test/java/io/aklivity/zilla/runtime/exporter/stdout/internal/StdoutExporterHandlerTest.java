@@ -66,8 +66,7 @@ public class StdoutExporterHandlerTest
             "[identity = identity]\n" +
         "Schema Registry Remote Access Rejected [timestamp = 77] [traceId = 0x0000000000000042] [binding = ns.binding] " +
             "[url = url] [method = method] [status = 42]\n" +
-        "TCP DNS Resolution Failed [timestamp = 77] [traceId = 0x0000000000000042] [binding = ns.binding] " +
-            "[address = address]\n" +
+        "TCP DNS Failed [timestamp = 77] [traceId = 0x0000000000000042] [binding = ns.binding] [address = address]\n" +
         "TLS Failed [timestamp = 77] [traceId = 0x0000000000000042] [binding = ns.binding] [error = HANDSHAKE_ERROR]\n";
 
     @Test
@@ -143,7 +142,7 @@ public class StdoutExporterHandlerTest
             schemaRegistryAuthorizationEvent.sizeof());
         TcpEventFW tcpDnsResolutionFailedEvent = new TcpEventFW.Builder()
             .wrap(eventBuffer, 0, eventBuffer.capacity())
-            .dnsResolutionFailed(e -> e.timestamp(77)
+            .dnsFailed(e -> e.timestamp(77)
                 .traceId(0x0000000000000042L)
                 .namespacedId(0x0000000200000007L)
                 .address("address")

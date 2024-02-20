@@ -19,13 +19,13 @@ import java.util.function.LongFunction;
 
 import org.agrona.DirectBuffer;
 
-import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.TcpDnsResolutionFailedEventFW;
+import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.TcpDnsFailedFW;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.TcpEventFW;
 
 public class TcpEventHandler extends EventHandler
 {
-    private static final String TCP_DNS_RESOLUTION_FAILED_FORMAT =
-        "TCP DNS Resolution Failed [timestamp = %d] [traceId = 0x%016x] [binding = %s.%s] [address = %s]%n";
+    private static final String TCP_DNS_FAILED_FORMAT =
+        "TCP DNS Failed [timestamp = %d] [traceId = 0x%016x] [binding = %s.%s] [address = %s]%n";
 
     private final TcpEventFW tcpEventRO = new TcpEventFW();
 
@@ -46,11 +46,11 @@ public class TcpEventHandler extends EventHandler
         final TcpEventFW event = tcpEventRO.wrap(buffer, index, index + length);
         switch (event.kind())
         {
-        case DNS_RESOLUTION_FAILED:
-            TcpDnsResolutionFailedEventFW e = event.dnsResolutionFailed();
+        case DNS_FAILED:
+            TcpDnsFailedFW e = event.dnsFailed();
             String namespace = supplyNamespace.apply(e.namespacedId());
             String binding = supplyLocalName.apply(e.namespacedId());
-            out.printf(TCP_DNS_RESOLUTION_FAILED_FORMAT, e.timestamp(), e.traceId(), namespace, binding, asString(e.address()));
+            out.printf(TCP_DNS_FAILED_FORMAT, e.timestamp(), e.traceId(), namespace, binding, asString(e.address()));
             break;
         }
     }
