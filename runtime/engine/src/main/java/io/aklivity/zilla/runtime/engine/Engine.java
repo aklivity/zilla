@@ -99,10 +99,6 @@ public final class Engine implements Collector, AutoCloseable
     private final EngineConfiguration config;
     private Future<Void> watcherTaskRef;
 
-    private final EventFW eventRO = new EventFW();
-    private int minWorkerIndex;
-    private long minTimeStamp;
-
     Engine(
         EngineConfiguration config,
         Collection<Binding> bindings,
@@ -488,43 +484,9 @@ public final class Engine implements Collector, AutoCloseable
         return worker.histogramIds();
     }
 
-    public int readEvent(
-        MessageConsumer handler,
-        int messageCountLimit)
-    {
-        int messagesRead = 0;
-        boolean empty = false;
-        while (!empty && messagesRead < messageCountLimit)
-        {
-            int eventCount = 0;
-            minWorkerIndex = 0;
-            minTimeStamp = Long.MAX_VALUE;
-            for (int j = 0; j < workers.size(); j++)
-            {
-                final int workerIndex = j;
-                int eventPeeked = workers.get(workerIndex).peekEvent((m, b, i, l) ->
-                {
-                    eventRO.wrap(b, i, i + l);
-                    if (eventRO.timestamp() < minTimeStamp)
-                    {
-                        minTimeStamp = eventRO.timestamp();
-                        minWorkerIndex = workerIndex;
-                    }
-                });
-                eventCount += eventPeeked;
-            }
-            empty = eventCount == 0;
-            if (!empty)
-            {
-                messagesRead += workers.get(minWorkerIndex).readEvent(handler, 1);
-            }
-        }
-        return messagesRead;
-    }
-
     public MessageReader supplyEventReader()
     {
-        return this::readEvent;
+        return new EventReader();
     }
 
     public String supplyLocalName(
@@ -539,6 +501,48 @@ public final class Engine implements Collector, AutoCloseable
     {
         EngineWorker worker = workers.get(0);
         return worker.supplyTypeId(label);
+    }
+
+    private final class EventReader implements MessageReader
+    {
+        private final EventFW eventRO = new EventFW();
+        private int minWorkerIndex;
+        private long minTimeStamp;
+
+        @Override
+        public int read(
+            MessageConsumer handler,
+            int messageCountLimit)
+        {
+            int messagesRead = 0;
+            boolean empty = false;
+            while (!empty && messagesRead < messageCountLimit)
+            {
+                int eventCount = 0;
+                minWorkerIndex = 0;
+                minTimeStamp = Long.MAX_VALUE;
+                for (int j = 0; j < workers.size(); j++)
+                {
+                    final int workerIndex = j;
+                    int eventPeeked = workers.get(workerIndex).peekEvent((m, b, i, l) ->
+                    {
+                        eventRO.wrap(b, i, i + l);
+                        if (eventRO.timestamp() < minTimeStamp)
+                        {
+                            minTimeStamp = eventRO.timestamp();
+                            minWorkerIndex = workerIndex;
+                        }
+                    });
+                    eventCount += eventPeeked;
+                }
+                empty = eventCount == 0;
+                if (!empty)
+                {
+                    messagesRead += workers.get(minWorkerIndex).readEvent(handler, 1);
+                }
+            }
+            return messagesRead;
+        }
     }
 
     // visible for testing
