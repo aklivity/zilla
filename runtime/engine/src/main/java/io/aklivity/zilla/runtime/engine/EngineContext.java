@@ -19,7 +19,6 @@ import java.net.InetAddress;
 import java.net.URL;
 import java.nio.channels.SelectableChannel;
 import java.util.function.LongSupplier;
-import java.util.function.Supplier;
 
 import org.agrona.MutableDirectBuffer;
 
@@ -72,7 +71,7 @@ public interface EngineContext
         MessageConsumer handler,
         int messageCountLimit);
 
-    Supplier<MessageReader> supplyEventReader();
+    MessageReader supplyEventReader();
 
     MessageConsumer supplySender(
         long streamId);

@@ -171,7 +171,7 @@ public class StdoutExporterHandlerTest
         when(context.lookupLabelId("tls")).thenReturn(TLS_TYPE_ID);
         when(context.supplyNamespace(0x0000000200000007L)).thenReturn("ns");
         when(context.supplyLocalName(0x0000000200000007L)).thenReturn("binding");
-        when(context.supplyEventReader()).thenReturn(() -> layout::readEvent);
+        when(context.supplyEventReader()).thenReturn(layout::readEvent);
         StdoutExporterHandler handler = new StdoutExporterHandler(config, context, exporter, ps);
 
         // WHEN
