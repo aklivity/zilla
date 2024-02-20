@@ -31,6 +31,7 @@ public class SchemaTest
     @Rule
     public final ConfigSchemaRule schema = new ConfigSchemaRule()
         .schemaPatch("io/aklivity/zilla/specs/binding/asyncapi/schema/asyncapi.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/specs/engine/schema/vault/test.schema.patch.json")
         .configurationRoot("io/aklivity/zilla/specs/binding/asyncapi/config");
 
     @Test
@@ -42,9 +43,9 @@ public class SchemaTest
     }
 
     @Test
-    public void shouldValidateClientTls()
+    public void shouldValidateSecureClient()
     {
-        JsonObject config = schema.validate("client.tls.yaml");
+        JsonObject config = schema.validate("client.secure.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -58,9 +59,9 @@ public class SchemaTest
     }
 
     @Test
-    public void shouldValidateServerTls()
+    public void shouldValidateSecureServer()
     {
-        JsonObject config = schema.validate("server.tls.yaml");
+        JsonObject config = schema.validate("server.secure.yaml");
 
         assertThat(config, not(nullValue()));
     }

@@ -22,16 +22,16 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiServer;
 
 public final class AsyncapiServerView
 {
-    private final AsyncapiServer asyncapiServer;
+    private final AsyncapiServer server;
 
     public URI url()
     {
-        return URI.create(asyncapiServer.host);
+        return URI.create(server.host);
     }
 
     public List<Map<String, List<String>>> security()
     {
-        return asyncapiServer.security;
+        return server.security;
     }
 
     public String scheme()
@@ -51,8 +51,8 @@ public final class AsyncapiServerView
     }
 
     private AsyncapiServerView(
-        AsyncapiServer asyncapiServer)
+        AsyncapiServer server)
     {
-        this.asyncapiServer = asyncapiServer;
+        this.server = server;
     }
 }

@@ -21,7 +21,7 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiSchema;
 
 public final class AsyncapiMessageView extends AsyncapiResolvable<AsyncapiMessage>
 {
-    private final AsyncapiMessage asyncapiMessage;
+    private final AsyncapiMessage message;
 
     public String refKey()
     {
@@ -30,12 +30,12 @@ public final class AsyncapiMessageView extends AsyncapiResolvable<AsyncapiMessag
 
     public AsyncapiSchema headers()
     {
-        return asyncapiMessage.headers;
+        return message.headers;
     }
 
     public String contentType()
     {
-        return asyncapiMessage.contentType;
+        return message.contentType;
     }
 
     public static AsyncapiMessageView of(
@@ -47,9 +47,9 @@ public final class AsyncapiMessageView extends AsyncapiResolvable<AsyncapiMessag
 
     private AsyncapiMessageView(
         Map<String, AsyncapiMessage> messages,
-        AsyncapiMessage asyncapiMessage)
+        AsyncapiMessage message)
     {
         super(messages, "#/components/messages/(\\w+)");
-        this.asyncapiMessage = asyncapiMessage.ref == null ? asyncapiMessage : resolveRef(asyncapiMessage.ref);
+        this.message = message.ref == null ? message : resolveRef(message.ref);
     }
 }

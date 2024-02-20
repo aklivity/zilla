@@ -87,9 +87,9 @@ public class AsyncapiBingingFactorySpiTest
             .options(options)
             .build();
 
-        AsyncapiServerCompositeBindingAdapter asyncapiCompositeSpi = new AsyncapiServerCompositeBindingAdapter();
+        AsyncapiServerCompositeBindingAdapter adapter = new AsyncapiServerCompositeBindingAdapter();
         Assert.assertEquals(0, config.composites.size());
-        BindingConfig newConfig = asyncapiCompositeSpi.adapt(config);
+        BindingConfig newConfig = adapter.adapt(config);
         Assert.assertEquals(1, newConfig.composites.size());
         Assert.assertEquals(2, newConfig.composites.get(0).bindings.size());
     }

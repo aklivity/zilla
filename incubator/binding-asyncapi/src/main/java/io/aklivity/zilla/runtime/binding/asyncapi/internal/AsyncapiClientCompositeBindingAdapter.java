@@ -18,16 +18,12 @@ import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
-import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
-import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.CompositeBindingAdapterSpi;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 
 public class AsyncapiClientCompositeBindingAdapter extends AsyncapiCompositeBindingAdapter implements CompositeBindingAdapterSpi
 {
-    private int[] mqttPorts;
-    private int[] mqttsPorts;
 
     @Override
     public String type()
@@ -43,10 +39,7 @@ public class AsyncapiClientCompositeBindingAdapter extends AsyncapiCompositeBind
         AsyncapiConfig asyncapiConfig = options.specs.get(0);
         this.asyncApi = asyncapiConfig.asyncApi;
 
-        this.allPorts = resolveAllPorts();
-        this.mqttPorts = resolvePortsForScheme("mqtt");
-        this.mqttsPorts = resolvePortsForScheme("mqtts");
-        this.isPlainEnabled = mqttPorts != null;
+        int[] mqttsPorts = resolvePortsForScheme("mqtts");
         this.isTlsEnabled = mqttsPorts != null;
         this.qname = binding.qname;
         this.qvault = String.format("%s:%s", binding.namespace, binding.vault);
@@ -65,10 +58,7 @@ public class AsyncapiClientCompositeBindingAdapter extends AsyncapiCompositeBind
                     .name("tcp_client0")
                     .type("tcp")
                     .kind(CLIENT)
-                    .options(TcpOptionsConfig::builder)
-                        .host(options.tcp.host)
-                        .ports(options.tcp.ports)
-                        .build()
+                    .options(options.tcp)
                     .build()
                 .build()
             .build();
@@ -85,12 +75,7 @@ public class AsyncapiClientCompositeBindingAdapter extends AsyncapiCompositeBind
                     .name("tls_client0")
                     .type("tls")
                     .kind(CLIENT)
-                    .options(TlsOptionsConfig::builder)
-                        .trust(options.tls.trust)
-                        .sni(options.tls.sni)
-                        .alpn(options.tls.alpn)
-                        .trustcacerts(options.tls.trustcacerts)
-                        .build()
+                    .options(options.tls)
                     .vault(qvault)
                     .exit("tcp_client0")
                     .build();

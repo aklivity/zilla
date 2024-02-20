@@ -152,6 +152,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             if (route != null)
             {
                 final String operationId = null;
+
                 newStream = new CompositeStream(
                     receiver,
                     originId,

@@ -31,9 +31,7 @@ public class AsyncapiCompositeBindingAdapter
     protected final Matcher jsonContentType = JSON_CONTENT_TYPE.matcher("");
 
     protected Asyncapi asyncApi;
-    protected boolean isPlainEnabled;
     protected boolean isTlsEnabled;
-    protected int[] allPorts;
     protected String qname;
     protected String qvault;
 

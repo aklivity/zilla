@@ -102,11 +102,11 @@ public class AsyncapiOptionsConfigAdapterTest
                         "\"trustcacerts\":true," +
                         "\"sni\":" +
                         "[" +
-                            "\"example.net\"" +
+                            "\"mqtt.example.net\"" +
                         "]," +
                         "\"alpn\":" +
                         "[" +
-                            "\"echo\"" +
+                            "\"mqtt\"" +
                         "]" +
                     "}" +
                 "}";
@@ -122,8 +122,8 @@ public class AsyncapiOptionsConfigAdapterTest
         assertThat(options.tls.keys, equalTo(asList("localhost")));
         assertThat(options.tls.trust, equalTo(asList("serverca")));
         assertThat(options.tls.trustcacerts, equalTo(true));
-        assertThat(options.tls.sni, equalTo(asList("example.net")));
-        assertThat(options.tls.alpn, equalTo(asList("echo")));
+        assertThat(options.tls.sni, equalTo(asList("mqtt.example.net")));
+        assertThat(options.tls.alpn, equalTo(asList("mqtt")));
     }
 
     @Test
@@ -143,8 +143,8 @@ public class AsyncapiOptionsConfigAdapterTest
             .tls(TlsOptionsConfig.builder()
                 .keys(asList("localhost"))
                 .trust(asList("serverca"))
-                .sni(asList("example.net"))
-                .alpn(asList("echo"))
+                .sni(asList("mqtt.example.net"))
+                .alpn(asList("mqtt"))
                 .trustcacerts(true)
                 .build())
             .build();
@@ -176,11 +176,11 @@ public class AsyncapiOptionsConfigAdapterTest
                     "\"trustcacerts\":true," +
                     "\"sni\":" +
                     "[" +
-                        "\"example.net\"" +
+                        "\"mqtt.example.net\"" +
                     "]," +
                     "\"alpn\":" +
                     "[" +
-                        "\"echo\"" +
+                        "\"mqtt\"" +
                     "]" +
                 "}" +
             "}"));

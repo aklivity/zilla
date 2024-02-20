@@ -21,5 +21,5 @@ public class Asyncapi
     public Map<String, AsyncapiServer> servers;
     public Map<String, AsyncapiChannel> channels;
     public Map<String, AsyncapiOperation> operations;
-    public AsyncapiComponents asyncapiComponents;
+    public AsyncapiComponents components;
 }
