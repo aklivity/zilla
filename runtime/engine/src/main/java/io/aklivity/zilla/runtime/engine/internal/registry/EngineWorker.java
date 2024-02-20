@@ -42,6 +42,7 @@ import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.channels.SelectableChannel;
+import java.time.Clock;
 import java.time.Duration;
 import java.util.BitSet;
 import java.util.Collection;
@@ -921,9 +922,9 @@ public class EngineWorker implements EngineContext, Agent
     }
 
     @Override
-    public LongSupplier timestamp()
+    public Clock clock()
     {
-        return () -> timestamps ? System.nanoTime() : 0L;
+        return Clock.systemUTC();
     }
 
     private void onSystemMessage(

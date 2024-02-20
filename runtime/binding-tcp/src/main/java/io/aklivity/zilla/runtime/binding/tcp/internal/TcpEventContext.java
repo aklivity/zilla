@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.binding.tcp.internal;
 
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.util.function.LongSupplier;
+import java.time.Clock;
 
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -34,14 +34,14 @@ public class TcpEventContext
     private final MutableDirectBuffer eventBuffer = new UnsafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
     private final int tcpTypeId;
     private final MessageConsumer eventWriter;
-    private final LongSupplier timestamp;
+    private final Clock clock;
 
     public TcpEventContext(
         EngineContext context)
     {
         this.tcpTypeId = context.supplyTypeId(TcpBinding.NAME);
         this.eventWriter = context.supplyEventWriter();
-        this.timestamp = context.timestamp();
+        this.clock = context.clock();
     }
 
     public void dnsResolutionFailed(
@@ -53,7 +53,7 @@ public class TcpEventContext
         TcpEventFW event = tcpEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .dnsFailed(e -> e
-                .timestamp(timestamp.getAsLong())
+                .timestamp(clock.millis())
                 .traceId(traceId)
                 .namespacedId(routedId)
                 .address(address)

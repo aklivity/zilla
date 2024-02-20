@@ -16,7 +16,7 @@
 package io.aklivity.zilla.runtime.binding.mqtt.internal;
 
 import java.nio.ByteBuffer;
-import java.util.function.LongSupplier;
+import java.time.Clock;
 
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -34,14 +34,14 @@ public class MqttEventContext
     private final MutableDirectBuffer eventBuffer = new UnsafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
     private final int mqttTypeId;
     private final MessageConsumer eventWriter;
-    private final LongSupplier timestamp;
+    private final Clock clock;
 
     public MqttEventContext(
         EngineContext context)
     {
         this.mqttTypeId = context.supplyTypeId(MqttBinding.NAME);
         this.eventWriter = context.supplyEventWriter();
-        this.timestamp = context.timestamp();
+        this.clock = context.clock();
     }
 
     public void authorization(
@@ -54,7 +54,7 @@ public class MqttEventContext
         MqttEventFW event = mqttEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .authorization(e -> e
-                .timestamp(timestamp.getAsLong())
+                .timestamp(clock.millis())
                 .traceId(traceId)
                 .namespacedId(routedId)
                 .result(r -> r.set(result))

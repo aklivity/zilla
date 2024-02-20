@@ -16,8 +16,8 @@
 package io.aklivity.zilla.runtime.binding.http.internal;
 
 import java.nio.ByteBuffer;
+import java.time.Clock;
 import java.util.Map;
-import java.util.function.LongSupplier;
 
 import org.agrona.concurrent.AtomicBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -41,14 +41,14 @@ public class HttpEventContext
         new Array32FW.Builder<>(new HttpHeaderFW.Builder(), new HttpHeaderFW());
     private final int httpTypeId;
     private final MessageConsumer eventWriter;
-    private final LongSupplier timestamp;
+    private final Clock clock;
 
     public HttpEventContext(
         EngineContext context)
     {
         this.httpTypeId = context.supplyTypeId(HttpBinding.NAME);
         this.eventWriter = context.supplyEventWriter();
-        this.timestamp = context.timestamp();
+        this.clock = context.clock();
     }
 
     public void authorization(
@@ -61,7 +61,7 @@ public class HttpEventContext
         HttpEventFW event = httpEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .authorization(e -> e
-                .timestamp(timestamp.getAsLong())
+                .timestamp(clock.millis())
                 .traceId(traceId)
                 .namespacedId(routedId)
                 .result(r -> r.set(result))

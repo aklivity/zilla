@@ -18,6 +18,7 @@ package io.aklivity.zilla.runtime.engine;
 import java.net.InetAddress;
 import java.net.URL;
 import java.nio.channels.SelectableChannel;
+import java.time.Clock;
 import java.util.function.LongSupplier;
 
 import org.agrona.MutableDirectBuffer;
@@ -161,5 +162,5 @@ public interface EngineContext
 
     MessageReader supplyEventReader();
 
-    LongSupplier timestamp();
+    Clock clock();
 }
