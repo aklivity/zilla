@@ -79,6 +79,7 @@ public class HttpEventContext
         HttpEventFW event = httpEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .request(e -> e
+                .timestamp(clock.millis())
                 .traceId(traceId)
                 .namespacedId(routedId)
                 .headers(headers))
@@ -104,6 +105,7 @@ public class HttpEventContext
         HttpEventFW event = httpEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .response(e -> e
+                .timestamp(clock.millis())
                 .traceId(traceId)
                 .namespacedId(routedId)
                 .headers(headers))
