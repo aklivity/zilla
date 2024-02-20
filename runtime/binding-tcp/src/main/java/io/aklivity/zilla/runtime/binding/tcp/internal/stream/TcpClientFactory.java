@@ -141,6 +141,7 @@ public class TcpClientFactory implements TcpStreamFactory
         MessageConsumer application)
     {
         final BeginFW begin = beginRO.wrap(buffer, index, index + length);
+        final long traceId = begin.traceId();
         final long originId = begin.originId();
         final long routedId = begin.routedId();
         final long authorization = begin.authorization();
@@ -165,7 +166,7 @@ public class TcpClientFactory implements TcpStreamFactory
             final SocketChannel channel = newSocketChannel();
 
             final TcpClient client = new TcpClient(application, originId, routedId, initialId, channel);
-            client.doNetConnect(route, binding.options);
+            client.doNetConnect(traceId, route, binding.options);
             newStream = client::onAppMessage;
         }
 
@@ -252,6 +253,7 @@ public class TcpClientFactory implements TcpStreamFactory
         }
 
         private void doNetConnect(
+            long traceId,
             InetSocketAddress remoteAddress,
             TcpOptionsConfig options)
         {
@@ -273,7 +275,7 @@ public class TcpClientFactory implements TcpStreamFactory
             }
             catch (UnresolvedAddressException ex)
             {
-                event.dnsResolutionFailed(supplyTraceId.getAsLong(), routedId, remoteAddress);
+                event.dnsResolutionFailed(traceId, routedId, remoteAddress);
                 onNetRejected();
             }
             catch (IOException ex)
