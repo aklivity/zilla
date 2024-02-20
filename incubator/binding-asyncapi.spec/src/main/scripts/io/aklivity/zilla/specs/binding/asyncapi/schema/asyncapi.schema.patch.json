@@ -151,6 +151,40 @@
                         {
                             "kind":
                             {
+                                "const": "proxy"
+                            }
+                        },
+                        "anyOf":
+                        [
+                            {
+                                "required":
+                                [
+                                    "exit"
+                                ]
+                            },
+                            {
+                                "properties":
+                                {
+                                    "routes":
+                                    {
+                                        "required":
+                                        [
+                                            "exit"
+                                        ]
+                                    }
+                                },
+                                "required":
+                                [
+                                    "routes"
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "properties":
+                        {
+                            "kind":
+                            {
                                 "const": "client"
                             },
                             "routes":

@@ -14,10 +14,10 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal;
 
+import static io.aklivity.zilla.runtime.engine.config.KindConfig.PROXY;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiConditionConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiRouteConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiServerView;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
@@ -64,9 +64,9 @@ public class AsyncapiProxyCompositeBindingAdapter extends AsyncapiCompositeBindi
             .composite()
                 .name(String.format("%s/%s", qname, protocol.scheme))
                 .binding()
-                    .name("tcp_server0")
-                    .type("tcp")
-                    .kind(SERVER)
+                    .name("mqtt_kafka_proxy0")
+                    .type("mqtt-kafka")
+                    .kind(PROXY)
                     .options(TcpOptionsConfig::builder)
                         .host("0.0.0.0")
                         .ports(allPorts)
