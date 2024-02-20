@@ -19,7 +19,7 @@ import java.util.function.LongFunction;
 
 import org.agrona.DirectBuffer;
 
-import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.MqttAuthorizationEventFW;
+import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.MqttAuthorizationFW;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.MqttEventFW;
 
 public class MqttEventHandler extends EventHandler
@@ -47,7 +47,7 @@ public class MqttEventHandler extends EventHandler
         switch (event.kind())
         {
         case AUTHORIZATION:
-            MqttAuthorizationEventFW e = event.authorization();
+            MqttAuthorizationFW e = event.authorization();
             String namespace = supplyNamespace.apply(e.namespacedId());
             String binding = supplyLocalName.apply(e.namespacedId());
             out.printf(MQTT_AUTHORIZATION_FORMAT, result(e.result()), e.timestamp(), e.traceId(), namespace,

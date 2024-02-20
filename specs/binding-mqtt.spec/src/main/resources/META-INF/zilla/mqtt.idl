@@ -276,7 +276,7 @@ scope mqtt
             FAILURE (1)
         }
 
-        struct MqttAuthorizationEvent extends core::event::Event
+        struct MqttAuthorization extends core::event::Event
         {
             Result result;
             string8 identity;
@@ -284,7 +284,7 @@ scope mqtt
 
         union MqttEvent switch (MqttEventType)
         {
-            case AUTHORIZATION: MqttAuthorizationEvent authorization;
+            case AUTHORIZATION: MqttAuthorization authorization;
         }
     }
 }
