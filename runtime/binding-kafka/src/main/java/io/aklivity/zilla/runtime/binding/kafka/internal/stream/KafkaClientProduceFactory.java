@@ -816,7 +816,6 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
             final int partitionId = partition.partitionId();
             final int errorCode = partition.errorCode();
-            onDecodeResponseErrorCode(errorCode, traceId);
 
             progress = partition.limit();
 
@@ -2272,6 +2271,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                     assert partitionId == this.partitionId;
                     break;
                 default:
+                    onDecodeResponseErrorCode(traceId, errorCode);
                     final KafkaResetExFW resetEx = kafkaResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
                                                                  .typeId(kafkaTypeId)
                                                                  .error(errorCode)

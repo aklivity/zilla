@@ -698,7 +698,6 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
 
             final String topic = topicMetadata.topic().asString();
             final int topicError = topicMetadata.errorCode();
-            onDecodeResponseErrorCode(topicError, traceId);
 
             client.onDecodeTopic(traceId, authorization, topicError, topic);
 
@@ -763,7 +762,6 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
             }
 
             final int partitionError = partition.errorCode();
-            onDecodeResponseErrorCode(partitionError, traceId);
             final int partitionId = partition.partitionId();
             final int leaderId = partition.leader();
 
@@ -1812,6 +1810,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                     newPartitions.clear();
                     break;
                 default:
+                    onDecodeResponseErrorCode(traceId, errorCode);
                     final KafkaResetExFW resetEx = kafkaResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
                                                                  .typeId(kafkaTypeId)
                                                                  .error(errorCode)
@@ -1831,6 +1830,10 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                 if (partitionError == ERROR_NONE)
                 {
                     newPartitions.put(partitionId, leaderId);
+                }
+                else
+                {
+                    onDecodeResponseErrorCode(traceId, partitionError);
                 }
             }
 

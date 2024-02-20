@@ -835,8 +835,8 @@ public abstract class KafkaClientSaslHandshaker
     }
 
     protected void onDecodeResponseErrorCode(
-        int errorCode,
-        long traceId)
+        long traceId,
+        int errorCode)
     {
         if (errorCode == ERROR_UNSUPPORTED_VERSION)
         {

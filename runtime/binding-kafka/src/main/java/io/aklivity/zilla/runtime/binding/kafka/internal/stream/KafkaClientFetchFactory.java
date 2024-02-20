@@ -762,7 +762,6 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
 
             final int partitionId = partition.partitionId();
             final int errorCode = partition.errorCode();
-            onDecodeResponseErrorCode(errorCode, traceId);
             final long partitionOffset = partition.offset$();
 
             progress = partition.limit();
@@ -908,7 +907,6 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
             {
                 final int partitionId = partition.partitionId();
                 final int errorCode = partition.errorCode();
-                onDecodeResponseErrorCode(errorCode, traceId);
 
                 client.stableOffset = partition.lastStableOffset() - 1;
                 client.latestOffset = partition.highWatermark() - 1;
@@ -2951,6 +2949,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                     this.nextOffset = partitionOffset;
                     break;
                 default:
+                    onDecodeResponseErrorCode(traceId, errorCode);
                     cleanupApplication(traceId, errorCode);
                     doNetworkEnd(traceId, authorization);
                     break;
@@ -2989,6 +2988,10 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                             doFlush(metaInitial, originId, routedId, metaInitialId, 0, 0, 0,
                                     traceId, authorization, 0, EMPTY_OCTETS);
                         }
+                    }
+                    else
+                    {
+                        onDecodeResponseErrorCode(traceId, errorCode);
                     }
 
                     cleanupApplication(traceId, errorCode);
