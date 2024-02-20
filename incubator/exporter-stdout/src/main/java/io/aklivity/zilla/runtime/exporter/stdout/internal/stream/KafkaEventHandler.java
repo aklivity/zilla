@@ -20,7 +20,7 @@ import java.util.function.LongFunction;
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.EventFW;
-import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.KafkaAuthorizationEventFW;
+import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.KafkaAuthorizationFW;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.KafkaEventFW;
 
 public class KafkaEventHandler extends EventHandler
@@ -51,7 +51,7 @@ public class KafkaEventHandler extends EventHandler
         {
         case AUTHORIZATION:
         {
-            KafkaAuthorizationEventFW e = event.authorization();
+            KafkaAuthorizationFW e = event.authorization();
             String namespace = supplyNamespace.apply(e.namespacedId());
             String binding = supplyLocalName.apply(e.namespacedId());
             out.printf(KAFKA_AUTHORIZATION_FORMAT, result(e.result()), e.timestamp(), e.traceId(), namespace,

@@ -548,14 +548,14 @@ scope kafka
             FAILURE (1)
         }
 
-        struct KafkaAuthorizationEvent extends core::event::Event
+        struct KafkaAuthorization extends core::event::Event
         {
             Result result;
         }
 
         union KafkaEvent switch (KafkaEventType)
         {
-            case AUTHORIZATION: KafkaAuthorizationEvent authorization;
+            case AUTHORIZATION: KafkaAuthorization authorization;
             case API_VERSION_REJECTED: core::event::Event apiVersionRejected;
         }
     }
