@@ -915,7 +915,7 @@ public class EngineWorker implements EngineContext, Agent
     }
 
     @Override
-    public MessageConsumer logger()
+    public MessageConsumer supplyEventWriter()
     {
         return this.eventsLayout::writeEvent;
     }

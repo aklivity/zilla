@@ -33,14 +33,14 @@ public class TcpEventContext
     private final TcpEventFW.Builder tcpEventRW = new TcpEventFW.Builder();
     private final MutableDirectBuffer eventBuffer = new UnsafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
     private final int tcpTypeId;
-    private final MessageConsumer logger;
+    private final MessageConsumer eventWriter;
     private final LongSupplier timestamp;
 
     public TcpEventContext(
         EngineContext context)
     {
         this.tcpTypeId = context.supplyTypeId(TcpBinding.NAME);
-        this.logger = context.logger();
+        this.eventWriter = context.supplyEventWriter();
         this.timestamp = context.timestamp();
     }
 
@@ -59,6 +59,6 @@ public class TcpEventContext
                 .address(address)
             )
             .build();
-        logger.accept(tcpTypeId, event.buffer(), event.offset(), event.limit());
+        eventWriter.accept(tcpTypeId, event.buffer(), event.offset(), event.limit());
     }
 }

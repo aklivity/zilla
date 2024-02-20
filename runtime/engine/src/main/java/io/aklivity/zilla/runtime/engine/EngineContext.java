@@ -71,8 +71,6 @@ public interface EngineContext
         MessageConsumer handler,
         int messageCountLimit);
 
-    MessageReader supplyEventReader();
-
     MessageConsumer supplySender(
         long streamId);
 
@@ -159,7 +157,9 @@ public interface EngineContext
     void onExporterDetached(
         long exporterId);
 
-    MessageConsumer logger();
+    MessageConsumer supplyEventWriter();
+
+    MessageReader supplyEventReader();
 
     LongSupplier timestamp();
 }

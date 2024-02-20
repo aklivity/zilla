@@ -32,14 +32,14 @@ public class SchemaRegistryEventContext
     private final SchemaRegistryEventFW.Builder schemaRegistryEventRW = new SchemaRegistryEventFW.Builder();
     private final MutableDirectBuffer eventBuffer = new UnsafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
     private final int schemaRegistryTypeId;
-    private final MessageConsumer logger;
+    private final MessageConsumer eventWriter;
     private final LongSupplier timestamp;
 
     public SchemaRegistryEventContext(
         EngineContext context)
     {
         this.schemaRegistryTypeId = context.supplyTypeId(SchemaRegistryCatalog.NAME);
-        this.logger = context.logger();
+        this.eventWriter = context.supplyEventWriter();
         this.timestamp = context.timestamp();
     }
 
@@ -58,6 +58,6 @@ public class SchemaRegistryEventContext
                 .status((short) status)
             )
             .build();
-        logger.accept(schemaRegistryTypeId, event.buffer(), event.offset(), event.limit());
+        eventWriter.accept(schemaRegistryTypeId, event.buffer(), event.offset(), event.limit());
     }
 }

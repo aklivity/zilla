@@ -33,14 +33,14 @@ public class MqttEventContext
     private final MqttEventFW.Builder mqttEventRW = new MqttEventFW.Builder();
     private final MutableDirectBuffer eventBuffer = new UnsafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
     private final int mqttTypeId;
-    private final MessageConsumer logger;
+    private final MessageConsumer eventWriter;
     private final LongSupplier timestamp;
 
     public MqttEventContext(
         EngineContext context)
     {
         this.mqttTypeId = context.supplyTypeId(MqttBinding.NAME);
-        this.logger = context.logger();
+        this.eventWriter = context.supplyEventWriter();
         this.timestamp = context.timestamp();
     }
 
@@ -61,6 +61,6 @@ public class MqttEventContext
                 .identity(identity)
             )
             .build();
-        logger.accept(mqttTypeId, event.buffer(), event.offset(), event.limit());
+        eventWriter.accept(mqttTypeId, event.buffer(), event.offset(), event.limit());
     }
 }

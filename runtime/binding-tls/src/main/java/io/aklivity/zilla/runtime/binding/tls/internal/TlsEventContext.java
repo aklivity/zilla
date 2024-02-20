@@ -38,14 +38,14 @@ public class TlsEventContext
     private final TlsEventFW.Builder tlsEventRW = new TlsEventFW.Builder();
     private final MutableDirectBuffer eventBuffer = new UnsafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
     private final int tlsTypeId;
-    private final MessageConsumer logger;
+    private final MessageConsumer eventWriter;
     private final LongSupplier timestamp;
 
     public TlsEventContext(
         EngineContext context)
     {
         this.tlsTypeId = context.supplyTypeId(TlsBinding.NAME);
-        this.logger = context.logger();
+        this.eventWriter = context.supplyEventWriter();
         this.timestamp = context.timestamp();
     }
 
@@ -61,7 +61,7 @@ public class TlsEventContext
                 .error(r -> r.set(error))
             )
             .build();
-        logger.accept(tlsTypeId, event.buffer(), event.offset(), event.limit());
+        eventWriter.accept(tlsTypeId, event.buffer(), event.offset(), event.limit());
     }
 
     public void tlsFailed(

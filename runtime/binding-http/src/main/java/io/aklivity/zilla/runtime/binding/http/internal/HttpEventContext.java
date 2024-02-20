@@ -40,14 +40,14 @@ public class HttpEventContext
     private final Array32FW.Builder<HttpHeaderFW.Builder, HttpHeaderFW> headersRW =
         new Array32FW.Builder<>(new HttpHeaderFW.Builder(), new HttpHeaderFW());
     private final int httpTypeId;
-    private final MessageConsumer logger;
+    private final MessageConsumer eventWriter;
     private final LongSupplier timestamp;
 
     public HttpEventContext(
         EngineContext context)
     {
         this.httpTypeId = context.supplyTypeId(HttpBinding.NAME);
-        this.logger = context.logger();
+        this.eventWriter = context.supplyEventWriter();
         this.timestamp = context.timestamp();
     }
 
@@ -68,7 +68,7 @@ public class HttpEventContext
                 .identity(identity)
             )
             .build();
-        logger.accept(httpTypeId, event.buffer(), event.offset(), event.limit());
+        eventWriter.accept(httpTypeId, event.buffer(), event.offset(), event.limit());
     }
 
     public void request(
@@ -83,7 +83,7 @@ public class HttpEventContext
                 .namespacedId(routedId)
                 .headers(headers))
             .build();
-        logger.accept(httpTypeId, event.buffer(), event.offset(), event.limit());
+        eventWriter.accept(httpTypeId, event.buffer(), event.offset(), event.limit());
     }
 
     public void request(
@@ -108,6 +108,6 @@ public class HttpEventContext
                 .namespacedId(routedId)
                 .headers(headers))
             .build();
-        logger.accept(httpTypeId, event.buffer(), event.offset(), event.limit());
+        eventWriter.accept(httpTypeId, event.buffer(), event.offset(), event.limit());
     }
 }
