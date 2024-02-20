@@ -14,9 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.config;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;

@@ -36,10 +36,10 @@ import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaRouteConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaHeaderHelper;
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaRouteConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaPublishMetadata.KafkaGroup;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaPublishMetadata.KafkaOffsetMetadata;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaPublishMetadata.KafkaTopicPartition;

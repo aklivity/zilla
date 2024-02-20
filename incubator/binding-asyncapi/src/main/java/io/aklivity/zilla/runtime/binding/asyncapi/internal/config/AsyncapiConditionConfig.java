@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.config;
 
-import java.util.List;
-
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 
 public class AsyncapiConditionConfig extends ConditionConfig

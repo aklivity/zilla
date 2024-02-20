@@ -12,8 +12,9 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config;
+package io.aklivity.zilla.runtime.binding.mqtt.kafka.config;
 
+import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
 
@@ -22,6 +23,17 @@ public class MqttKafkaTopicsConfig
     public final String16FW sessions;
     public final String16FW messages;
     public final String16FW retained;
+
+    public static MqttKafkaTopicsConfigBuilder<MqttKafkaTopicsConfig> builder()
+    {
+        return new MqttKafkaTopicsConfigBuilder<>(MqttKafkaTopicsConfig.class::cast);
+    }
+
+    public static <T> MqttKafkaTopicsConfigBuilder<T> builder(
+        Function<MqttKafkaTopicsConfig, T> mapper)
+    {
+        return new MqttKafkaTopicsConfigBuilder<>(mapper);
+    }
 
     public MqttKafkaTopicsConfig(
         String16FW sessions,

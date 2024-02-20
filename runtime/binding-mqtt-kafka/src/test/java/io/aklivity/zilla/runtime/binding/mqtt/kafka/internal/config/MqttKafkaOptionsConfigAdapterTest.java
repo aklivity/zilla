@@ -28,6 +28,9 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaOptionsConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaOptionsConfigAdapter;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaTopicsConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
 
 public class MqttKafkaOptionsConfigAdapterTest

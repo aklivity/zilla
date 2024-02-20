@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config;
+package io.aklivity.zilla.runtime.binding.mqtt.kafka.config;
 
 import static java.util.stream.Collectors.toList;
 
@@ -20,8 +20,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.LongPredicate;
 
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaConditionConfig;
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaConditionKind;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaConditionMatcher;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaWithResolver;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 
@@ -55,7 +55,7 @@ public class MqttKafkaRouteConfig
         this.authorized = route.authorized;
     }
 
-    boolean authorized(
+    public boolean authorized(
         long authorization)
     {
         return authorized.test(authorization);

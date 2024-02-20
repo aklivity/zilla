@@ -14,19 +14,18 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.config;
 
+import static java.util.stream.Collectors.toList;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.function.LongPredicate;
 
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
-import static java.util.stream.Collectors.toList;
 
 public final class AsyncapiRouteConfig
 {
     public final long id;
-    private final Optional<AsyncapiWithConfig> with;
-    private final List<AsyncapiConditionConfig> when;
+    public final AsyncapiWithConfig with;
+    public final List<AsyncapiConditionConfig> when;
     private final LongPredicate authorized;
 
     public AsyncapiRouteConfig(
@@ -37,8 +36,7 @@ public final class AsyncapiRouteConfig
         this.when = route.when.stream()
             .map(AsyncapiConditionConfig.class::cast)
             .collect(toList());
-        this.with = Optional.ofNullable(route.with)
-            .map(AsyncapiWithConfig.class::cast);
+        this.with = (AsyncapiWithConfig) route.with;
     }
 
     boolean authorized(

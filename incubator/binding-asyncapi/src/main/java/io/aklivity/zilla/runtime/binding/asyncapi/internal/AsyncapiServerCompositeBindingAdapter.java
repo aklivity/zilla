@@ -16,7 +16,8 @@ package io.aklivity.zilla.runtime.binding.asyncapi.internal;
 
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 
-import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiConfig;
+import java.util.stream.Collectors;
+
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiServerView;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
@@ -30,7 +31,6 @@ import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 public class AsyncapiServerCompositeBindingAdapter extends AsyncapiCompositeBindingAdapter implements CompositeBindingAdapterSpi
 {
     private int[] compositePorts;
-    private int[] compositeSecurePorts;
 
     @Override
     public String type()
@@ -43,8 +43,8 @@ public class AsyncapiServerCompositeBindingAdapter extends AsyncapiCompositeBind
         BindingConfig binding)
     {
         AsyncapiOptionsConfig options = (AsyncapiOptionsConfig) binding.options;
-        AsyncapiConfig asyncapiConfig = options.specs.get(0);
-        this.asyncApi = asyncapiConfig.asyncApi;
+        this.asyncApis = options.specs.stream().map(s -> s.asyncApi).collect(Collectors.toList());
+        this.asyncApi = asyncApis.get(0);
 
         //TODO: add composite for all servers
         AsyncapiServerView firstServer = AsyncapiServerView.of(asyncApi.servers.entrySet().iterator().next().getValue());

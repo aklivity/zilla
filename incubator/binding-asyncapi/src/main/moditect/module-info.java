@@ -36,6 +36,12 @@ module io.aklivity.zilla.runtime.binding.asyncapi
     provides io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi
         with io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiOptionsConfigAdapter;
 
+    provides io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi
+        with io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiConditionalConfigAdapter;
+
+    provides io.aklivity.zilla.runtime.engine.config.WithConfigAdapterSp
+        with io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiWithConfigAdapter;
+
     provides io.aklivity.zilla.runtime.engine.config.CompositeBindingAdapterSpi
         with io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiBindingAdapter;
 }

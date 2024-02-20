@@ -20,4 +20,5 @@ public class AsyncapiOperation
 {
     public Map<String, AsyncapiBinding> bindings;
     public AsyncapiChannel channel;
+    public String action;
 }

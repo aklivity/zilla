@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config;
+package io.aklivity.zilla.runtime.binding.mqtt.kafka.config;
 
 import java.util.ArrayList;
 import java.util.List;

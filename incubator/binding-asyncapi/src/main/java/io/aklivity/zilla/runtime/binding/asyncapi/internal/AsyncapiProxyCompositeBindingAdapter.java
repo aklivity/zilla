@@ -15,24 +15,31 @@
 package io.aklivity.zilla.runtime.binding.asyncapi.internal;
 
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.PROXY;
-import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
-import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiConfig;
-import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiRouteConfig;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiServerView;
-import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
-import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
-import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.CompositeBindingAdapterSpi;
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiConditionConfig;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiRouteConfig;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiOperation;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiChannelView;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiServerView;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaConditionConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaConditionKind;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaOptionsConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaWithConfig;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
+import io.aklivity.zilla.runtime.engine.config.CompositeBindingAdapterSpi;
+import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
 public class AsyncapiProxyCompositeBindingAdapter extends AsyncapiCompositeBindingAdapter implements CompositeBindingAdapterSpi
 {
+    private static final String ASYNCAPI_SEND_ACTION_NAME = "send";
+    private static final String ASYNCAPI_RECEIVE_ACTION_NAME = "receive";
+
     @Override
     public String type()
     {
@@ -45,10 +52,10 @@ public class AsyncapiProxyCompositeBindingAdapter extends AsyncapiCompositeBindi
     {
         AsyncapiOptionsConfig options = (AsyncapiOptionsConfig) binding.options;
         List<AsyncapiRouteConfig> routes = binding.routes.stream()
-            .map(AsyncapiRouteConfig.class::cast)
+            .map(AsyncapiRouteConfig::new)
             .collect(Collectors.toList());
-        AsyncapiConfig asyncapiConfig = options.specs.get(0);
-        this.asyncApi = asyncapiConfig.asyncApi;
+        this.asyncApis = options.specs.stream().map(s -> s.asyncApi).collect(Collectors.toList());
+        this.asyncApi = asyncApis.get(0);
 
         //TODO: add composite for all servers
         AsyncapiServerView firstServer = AsyncapiServerView.of(asyncApi.servers.entrySet().iterator().next().getValue());
@@ -56,9 +63,6 @@ public class AsyncapiProxyCompositeBindingAdapter extends AsyncapiCompositeBindi
         this.qname = binding.qname;
         this.qvault = String.format("%s:%s", binding.namespace, binding.vault);
         this.protocol = resolveProtocol(firstServer.protocol(), options);
-        this.allPorts = resolveAllPorts();
-        this.compositePorts = protocol.resolvePorts();
-        this.isTlsEnabled = protocol.isSecure();
 
         return BindingConfig.builder(binding)
             .composite()
@@ -67,77 +71,53 @@ public class AsyncapiProxyCompositeBindingAdapter extends AsyncapiCompositeBindi
                     .name("mqtt_kafka_proxy0")
                     .type("mqtt-kafka")
                     .kind(PROXY)
-                    .options(TcpOptionsConfig::builder)
-                        .host("0.0.0.0")
-                        .ports(allPorts)
+                    .options(MqttKafkaOptionsConfig::builder)
+                        .topics()
+                            .sessions("mqtt-sessions")
+                            .messages("mqtt-messages")
+                            .retained("mqtt-retained")
+                            .build()
+                        .clients(Collections.emptyList())
                         .build()
-                    .inject(this::injectPlainTcpRoute)
-                    .inject(this::injectTlsTcpRoute)
-                    .build()
-                .inject(n -> injectTlsServer(n, options))
-                .binding()
-                    .name(String.format("%s_server0", protocol.scheme))
-                    .type(protocol.scheme)
-                    .kind(SERVER)
-                    .inject(protocol::injectProtocolServerOptions)
-                    .inject(protocol::injectProtocolServerRoutes)
+                    .inject(b -> this.injectMqttKafkaRoutes(b, routes))
                     .build()
                 .build()
            .build();
     }
 
-    private <C> BindingConfigBuilder<C> injectPlainTcpRoute(
-        BindingConfigBuilder<C> binding)
+    public <C> BindingConfigBuilder<C> injectMqttKafkaRoutes(
+        BindingConfigBuilder<C> binding,
+        List<AsyncapiRouteConfig> routes)
     {
-        if (!isTlsEnabled)
+        for (AsyncapiRouteConfig route : routes)
         {
-            binding
-                .route()
-                    .when(TcpConditionConfig::builder)
-                        .ports(compositePorts)
-                        .build()
-                    .exit(String.format("%s_server0", protocol.scheme))
-                    .build();
+            final RouteConfigBuilder<BindingConfigBuilder<C>> routeBuilder = binding.route();
+
+            final Asyncapi kafkaAsyncapi = asyncApis.stream()
+                .filter(a -> a.operations.containsKey(route.with.operation))
+                .findFirst().get();
+            final AsyncapiOperation withOperation = kafkaAsyncapi.operations.get(route.with.operation);
+            final String messages = AsyncapiChannelView.of(kafkaAsyncapi.channels, withOperation.channel).address();
+
+            for (AsyncapiConditionConfig condition : route.when)
+            {
+                final AsyncapiOperation operation = asyncApi.operations.get(condition.operation);
+                final AsyncapiChannelView channel = AsyncapiChannelView.of(asyncApi.channels, operation.channel);
+                final MqttKafkaConditionKind kind = operation.action.equals(ASYNCAPI_SEND_ACTION_NAME) ?
+                    MqttKafkaConditionKind.PUBLISH : MqttKafkaConditionKind.SUBSCRIBE;
+                final String topic = channel.address().replaceAll("\\{[^}]+\\}", "#");
+                routeBuilder
+                    .when(MqttKafkaConditionConfig::builder)
+                        .topic(topic)
+                        .kind(kind)
+                    .build()
+                    .with(MqttKafkaWithConfig::builder)
+                        .messages(messages)
+                    .build()
+                    .exit(qname);
+            }
+            binding = routeBuilder.build();
         }
         return binding;
-    }
-
-    private <C> BindingConfigBuilder<C> injectTlsTcpRoute(
-        BindingConfigBuilder<C> binding)
-    {
-        if (isTlsEnabled)
-        {
-            binding
-                .route()
-                    .when(TcpConditionConfig::builder)
-                        .ports(compositePorts)
-                        .build()
-                    .exit("tls_server0")
-                    .build();
-        }
-        return binding;
-    }
-
-    private <C> NamespaceConfigBuilder<C> injectTlsServer(
-        NamespaceConfigBuilder<C> namespace,
-        AsyncapiOptionsConfig options)
-    {
-        if (isTlsEnabled)
-        {
-            namespace
-                .binding()
-                    .name("tls_server0")
-                    .type("tls")
-                    .kind(SERVER)
-                    .options(TlsOptionsConfig::builder)
-                        .keys(options.tls.keys)
-                        .sni(options.tls.sni)
-                        .alpn(options.tls.alpn)
-                        .build()
-                    .vault(qvault)
-                    .exit(String.format("%s_server0", protocol.scheme))
-                    .build();
-        }
-        return namespace;
     }
 }
