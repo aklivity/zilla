@@ -36,7 +36,7 @@ public final class AsyncapiServerView
 
     public String protocol()
     {
-        return asyncapiServer.protocol;
+        return server.protocol;
     }
 
     public String scheme()
