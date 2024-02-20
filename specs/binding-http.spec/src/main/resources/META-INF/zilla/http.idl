@@ -65,27 +65,27 @@ scope http
             FAILURE (1)
         }
 
-        struct HttpAuthorizationEvent extends core::event::Event
+        struct HttpAuthorization extends core::event::Event
         {
             Result result;
             string8 identity;
         }
 
-        struct HttpRequestEvent extends core::event::Event
+        struct HttpRequest extends core::event::Event
         {
             HttpHeader[] headers;
         }
 
-        struct HttpResponseEvent extends core::event::Event
+        struct HttpResponse extends core::event::Event
         {
             HttpHeader[] headers;
         }
 
         union HttpEvent switch (HttpEventType)
         {
-            case AUTHORIZATION: HttpAuthorizationEvent authorization;
-            case REQUEST: HttpRequestEvent request;
-            case RESPONSE: HttpResponseEvent response;
+            case AUTHORIZATION: HttpAuthorization authorization;
+            case REQUEST: HttpRequest request;
+            case RESPONSE: HttpResponse response;
         }
     }
 }

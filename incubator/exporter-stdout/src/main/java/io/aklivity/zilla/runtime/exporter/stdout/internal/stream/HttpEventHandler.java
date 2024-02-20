@@ -21,10 +21,10 @@ import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.HttpHeaderFW;
-import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.HttpAuthorizationEventFW;
+import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.HttpAuthorizationFW;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.HttpEventFW;
-import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.HttpRequestEventFW;
-import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.HttpResponseEventFW;
+import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.HttpRequestFW;
+import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.HttpResponseFW;
 
 public class HttpEventHandler extends EventHandler
 {
@@ -56,7 +56,7 @@ public class HttpEventHandler extends EventHandler
         {
         case AUTHORIZATION:
         {
-            HttpAuthorizationEventFW e = event.authorization();
+            HttpAuthorizationFW e = event.authorization();
             String namespace = supplyNamespace.apply(e.namespacedId());
             String binding = supplyLocalName.apply(e.namespacedId());
             out.printf(HTTP_AUTHORIZATION_FORMAT, result(e.result()), e.timestamp(), e.traceId(), namespace,
@@ -65,7 +65,7 @@ public class HttpEventHandler extends EventHandler
         }
         case REQUEST:
         {
-            HttpRequestEventFW e = event.request();
+            HttpRequestFW e = event.request();
             String namespace = supplyNamespace.apply(e.namespacedId());
             String binding = supplyLocalName.apply(e.namespacedId());
             out.format(HTTP_REQUEST_FORMAT, e.timestamp(), e.traceId(), namespace, binding, headersAsString(e.headers()));
@@ -73,7 +73,7 @@ public class HttpEventHandler extends EventHandler
         }
         case RESPONSE:
         {
-            HttpResponseEventFW e = event.response();
+            HttpResponseFW e = event.response();
             String namespace = supplyNamespace.apply(e.namespacedId());
             String binding = supplyLocalName.apply(e.namespacedId());
             out.format(HTTP_RESPONSE_FORMAT, e.timestamp(), e.traceId(), namespace, binding, headersAsString(e.headers()));
