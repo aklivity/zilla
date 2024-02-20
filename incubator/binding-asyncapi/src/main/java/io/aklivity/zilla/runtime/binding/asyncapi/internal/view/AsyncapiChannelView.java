@@ -22,21 +22,21 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiParamet
 
 public final class AsyncapiChannelView extends AsyncapiResolvable<AsyncapiChannel>
 {
-    private final AsyncapiChannel asyncapiChannel;
+    private final AsyncapiChannel channel;
 
     public String address()
     {
-        return asyncapiChannel.address;
+        return channel.address;
     }
 
     public Map<String, AsyncapiMessage> messages()
     {
-        return asyncapiChannel.messages;
+        return channel.messages;
     }
 
     public Map<String, AsyncapiParameter> parameters()
     {
-        return asyncapiChannel.parameters;
+        return channel.parameters;
     }
 
     public static AsyncapiChannelView of(
@@ -48,9 +48,9 @@ public final class AsyncapiChannelView extends AsyncapiResolvable<AsyncapiChanne
 
     private AsyncapiChannelView(
         Map<String, AsyncapiChannel> channels,
-        AsyncapiChannel asyncapiChannel)
+        AsyncapiChannel channel)
     {
         super(channels, "#/channels/(\\w+)");
-        this.asyncapiChannel = asyncapiChannel.ref == null ? asyncapiChannel : resolveRef(asyncapiChannel.ref);
+        this.channel = channel.ref == null ? channel : resolveRef(channel.ref);
     }
 }

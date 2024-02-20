@@ -19,14 +19,13 @@ import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiServerView;
-import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
-import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.CompositeBindingAdapterSpi;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 
 public class AsyncapiClientCompositeBindingAdapter extends AsyncapiCompositeBindingAdapter implements CompositeBindingAdapterSpi
 {
+
     @Override
     public String type()
     {
@@ -43,12 +42,9 @@ public class AsyncapiClientCompositeBindingAdapter extends AsyncapiCompositeBind
 
         //TODO: add composite for all servers
         AsyncapiServerView firstServer = AsyncapiServerView.of(asyncApi.servers.entrySet().iterator().next().getValue());
-
         this.qname = binding.qname;
         this.qvault = String.format("%s:%s", binding.namespace, binding.vault);
         this.protocol = resolveProtocol(firstServer.protocol(), options);
-        this.allPorts = resolveAllPorts();
-        this.compositePorts = protocol.resolvePorts();
         this.isTlsEnabled = protocol.isSecure();
 
         return BindingConfig.builder(binding)
@@ -67,10 +63,7 @@ public class AsyncapiClientCompositeBindingAdapter extends AsyncapiCompositeBind
                     .name("tcp_client0")
                     .type("tcp")
                     .kind(CLIENT)
-                    .options(TcpOptionsConfig::builder)
-                        .host(options.tcp.host)
-                        .ports(options.tcp.ports)
-                        .build()
+                    .options(options.tcp)
                     .build()
                 .build()
             .build();
@@ -87,12 +80,7 @@ public class AsyncapiClientCompositeBindingAdapter extends AsyncapiCompositeBind
                     .name("tls_client0")
                     .type("tls")
                     .kind(CLIENT)
-                    .options(TlsOptionsConfig::builder)
-                        .trust(options.tls.trust)
-                        .sni(options.tls.sni)
-                        .alpn(options.tls.alpn)
-                        .trustcacerts(options.tls.trustcacerts)
-                        .build()
+                    .options(options.tls)
                     .vault(qvault)
                     .exit("tcp_client0")
                     .build();

@@ -28,8 +28,6 @@ public class AsyncapiCompositeBindingAdapter
 
     protected Asyncapi asyncApi;
     protected boolean isTlsEnabled;
-    protected int[] allPorts;
-    protected int[] compositePorts;
     protected AsyncapiProtocol protocol;
     protected String qname;
     protected String qvault;
