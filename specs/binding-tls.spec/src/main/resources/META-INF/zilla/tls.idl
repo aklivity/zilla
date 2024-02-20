@@ -31,14 +31,14 @@ scope tls
             UNSPECIFIED_ERROR (5)
         }
 
-        struct TlsFailedEvent extends core::event::Event
+        struct TlsFailed extends core::event::Event
         {
             TlsError error;
         }
 
         union TlsEvent switch (TlsEventType)
         {
-            case TLS_FAILED: TlsFailedEvent tlsFailed;
+            case TLS_FAILED: TlsFailed tlsFailed;
         }
     }
 }

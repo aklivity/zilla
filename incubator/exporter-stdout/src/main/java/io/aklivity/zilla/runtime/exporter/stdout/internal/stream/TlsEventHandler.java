@@ -20,7 +20,7 @@ import java.util.function.LongFunction;
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.TlsEventFW;
-import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.TlsFailedEventFW;
+import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.TlsFailedFW;
 
 public class TlsEventHandler extends EventHandler
 {
@@ -47,7 +47,7 @@ public class TlsEventHandler extends EventHandler
         switch (event.kind())
         {
         case TLS_FAILED:
-            TlsFailedEventFW e = event.tlsFailed();
+            TlsFailedFW e = event.tlsFailed();
             String namespace = supplyNamespace.apply(e.namespacedId());
             String binding = supplyLocalName.apply(e.namespacedId());
             out.printf(TLS_FAILED_FORMAT, e.timestamp(), e.traceId(), namespace, binding, e.error().get().name());
