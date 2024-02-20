@@ -71,6 +71,7 @@ public class EngineManager
     private final Function<String, Binding> bindingByType;
     private final Function<String, Guard> guardByType;
     private final ToIntFunction<String> supplyId;
+    private final IntFunction<String> supplyName;
     private final IntFunction<ToIntFunction<KindConfig>> maxWorkers;
     private final Tuning tuning;
     private final Collection<EngineWorker> dispatchers;
@@ -89,6 +90,7 @@ public class EngineManager
         Function<String, Binding> bindingByType,
         Function<String, Guard> guardByType,
         ToIntFunction<String> supplyId,
+        IntFunction<String> supplyName,
         IntFunction<ToIntFunction<KindConfig>> maxWorkers,
         Tuning tuning,
         Collection<EngineWorker> dispatchers,
@@ -102,6 +104,7 @@ public class EngineManager
         this.bindingByType = bindingByType;
         this.guardByType = guardByType;
         this.supplyId = supplyId;
+        this.supplyName = supplyName;
         this.maxWorkers = maxWorkers;
         this.tuning = tuning;
         this.dispatchers = dispatchers;
@@ -242,6 +245,7 @@ public class EngineManager
             if (binding.vault != null)
             {
                 binding.vaultId = resolver.resolve(binding.vault);
+                binding.qvault = resolver.format(binding.vaultId);
             }
 
             if (binding.catalogs != null)
@@ -438,6 +442,14 @@ public class EngineManager
             }
 
             return id;
+        }
+
+        private String format(
+            long namespacedId)
+        {
+            return String.format("%s:%s",
+                    supplyName.apply(NamespacedId.namespaceId(namespacedId)),
+                    supplyName.apply(NamespacedId.localId(namespacedId)));
         }
     }
 
