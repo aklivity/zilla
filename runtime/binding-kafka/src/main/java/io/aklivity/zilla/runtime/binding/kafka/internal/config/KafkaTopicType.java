@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.config;
 
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -24,13 +25,16 @@ import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 
 public class KafkaTopicType
 {
-    private final Matcher topicMatch;
+    public static final KafkaTopicType DEFAULT_TOPIC_TYPE = new KafkaTopicType();
+
     public final ConverterHandler keyReader;
     public final ConverterHandler keyWriter;
     public final ConverterHandler valueReader;
     public final ConverterHandler valueWriter;
 
-    public KafkaTopicType()
+    private final Matcher topicMatch;
+
+    private KafkaTopicType()
     {
         this.topicMatch = null;
         this.keyReader = ConverterHandler.NONE;
@@ -44,10 +48,18 @@ public class KafkaTopicType
         KafkaTopicConfig topicConfig)
     {
         this.topicMatch = topicConfig.name != null ? asMatcher(topicConfig.name) : null;
-        this.keyReader = topicConfig.key != null ? context.supplyReadConverter(topicConfig.key) : ConverterHandler.NONE;
-        this.keyWriter = topicConfig.key != null ? context.supplyWriteConverter(topicConfig.key) : ConverterHandler.NONE;
-        this.valueReader = topicConfig.value != null ? context.supplyReadConverter(topicConfig.value) : ConverterHandler.NONE;
-        this.valueWriter = topicConfig.value != null ? context.supplyWriteConverter(topicConfig.value) : ConverterHandler.NONE;
+        this.keyReader = Optional.ofNullable(topicConfig.key)
+            .map(context::supplyReadConverter)
+            .orElse(ConverterHandler.NONE);
+        this.keyWriter = Optional.ofNullable(topicConfig.key)
+            .map(context::supplyWriteConverter)
+            .orElse(ConverterHandler.NONE);
+        this.valueReader = Optional.ofNullable(topicConfig.value)
+            .map(context::supplyReadConverter)
+            .orElse(ConverterHandler.NONE);
+        this.valueWriter = Optional.ofNullable(topicConfig.value)
+            .map(context::supplyWriteConverter)
+            .orElse(ConverterHandler.NONE);
     }
 
     public boolean matches(

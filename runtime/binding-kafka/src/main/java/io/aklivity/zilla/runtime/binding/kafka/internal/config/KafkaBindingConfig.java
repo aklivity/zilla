@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.config;
 
+import static io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaTopicType.DEFAULT_TOPIC_TYPE;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType.HISTORICAL;
 import static java.util.stream.Collectors.toList;
 
@@ -34,15 +35,13 @@ import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 public final class KafkaBindingConfig
 {
-    private static final KafkaTopicType DEFAULT_TOPIC_TYPE = new KafkaTopicType();
-
     public final long id;
     public final String name;
     public final KafkaOptionsConfig options;
     public final KindConfig kind;
     public final List<KafkaRouteConfig> routes;
     public final ToLongFunction<String> resolveId;
-    public final List<KafkaTopicType> kafkaTopicTypes;
+    public final List<KafkaTopicType> topicTypes;
 
     public KafkaBindingConfig(
         BindingConfig binding,
@@ -54,7 +53,7 @@ public final class KafkaBindingConfig
         this.options = KafkaOptionsConfig.class.cast(binding.options);
         this.routes = binding.routes.stream().map(KafkaRouteConfig::new).collect(toList());
         this.resolveId = binding.resolveId;
-        this.kafkaTopicTypes = options != null && options.topics != null
+        this.topicTypes = options != null && options.topics != null
             ? options.topics.stream().map(t -> new KafkaTopicType(context, t)).collect(toList()) : Collections.emptyList();
     }
 
@@ -117,15 +116,15 @@ public final class KafkaBindingConfig
     public KafkaTopicType resolveTopicType(
         String topic)
     {
-        KafkaTopicType topicType = DEFAULT_TOPIC_TYPE;
-        for (KafkaTopicType k : kafkaTopicTypes)
+        KafkaTopicType matchedType = DEFAULT_TOPIC_TYPE;
+        for (KafkaTopicType topicType : topicTypes)
         {
-            if (k.matches(topic))
+            if (topicType.matches(topic))
             {
-                topicType = k;
+                matchedType = topicType;
                 break;
             }
         }
-        return topicType;
+        return matchedType;
     }
 }

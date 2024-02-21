@@ -258,6 +258,16 @@ public class CacheMergedIT
     }
 
     @Test
+    @Configuration("cache.options.parameterized.topic.validate.yaml")
+    @Specification({
+        "${app}/merged.fetch.from.parameterized.topic.value.valid/client",
+        "${app}/unmerged.fetch.from.parameterized.topic.value.valid/server"})
+    public void shouldFetchMergedFromParameterizedTopicValid() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("cache.options.validate.yaml")
     @Specification({
         "${app}/merged.fetch.message.value.invalid/client",
