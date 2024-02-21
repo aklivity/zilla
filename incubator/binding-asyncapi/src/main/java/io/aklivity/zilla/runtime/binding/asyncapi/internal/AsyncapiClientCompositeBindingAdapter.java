@@ -42,7 +42,7 @@ public class AsyncapiClientCompositeBindingAdapter extends AsyncapiCompositeBind
         int[] mqttsPorts = resolvePortsForScheme("mqtts");
         this.isTlsEnabled = mqttsPorts != null;
         this.qname = binding.qname;
-        this.qvault = String.format("%s:%s", binding.namespace, binding.vault);
+        this.qvault = binding.qvault;
 
         return BindingConfig.builder(binding)
             .composite()

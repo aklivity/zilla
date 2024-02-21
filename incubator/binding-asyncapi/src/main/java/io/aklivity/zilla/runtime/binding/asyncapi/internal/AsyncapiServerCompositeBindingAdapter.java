@@ -61,7 +61,7 @@ public class AsyncapiServerCompositeBindingAdapter extends AsyncapiCompositeBind
         this.isPlainEnabled = mqttPorts != null;
         this.isTlsEnabled = mqttsPorts != null;
         this.qname = binding.qname;
-        this.qvault = String.format("%s:%s", binding.namespace, binding.vault);
+        this.qvault = binding.qvault;
 
         return BindingConfig.builder(binding)
             .composite()
