@@ -68,10 +68,6 @@ public interface EngineContext
 
     long supplyTraceId();
 
-    int readEvent(
-        MessageConsumer handler,
-        int messageCountLimit);
-
     MessageConsumer supplySender(
         long streamId);
 
