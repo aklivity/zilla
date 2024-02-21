@@ -267,24 +267,17 @@ scope mqtt
     {
         enum MqttEventType (uint8)
         {
-            AUTHORIZATION (1)
+            AUTHORIZATION_FAILURE (1)
         }
 
-        enum Result (uint8)
+        struct MqttAuthorizationFailure extends core::event::Event
         {
-            SUCCESS (0),
-            FAILURE (1)
-        }
-
-        struct MqttAuthorization extends core::event::Event
-        {
-            Result result;
             string8 identity;
         }
 
         union MqttEvent switch (MqttEventType)
         {
-            case AUTHORIZATION: MqttAuthorization authorization;
+            case AUTHORIZATION_FAILURE: MqttAuthorizationFailure authorizationFailure;
         }
     }
 }

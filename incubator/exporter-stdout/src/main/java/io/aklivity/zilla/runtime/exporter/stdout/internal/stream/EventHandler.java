@@ -20,8 +20,6 @@ import java.util.function.LongFunction;
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.StringFW;
-import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.Result;
-import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.ResultFW;
 
 public abstract class EventHandler
 {
@@ -50,11 +48,5 @@ public abstract class EventHandler
     {
         String s = stringFW.asString();
         return s == null ? "" : s;
-    }
-
-    protected static String result(
-        ResultFW result)
-    {
-        return result.get() == Result.SUCCESS ? "Succeeded" : "Failed";
     }
 }

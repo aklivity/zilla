@@ -22,7 +22,6 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.event.MqttEventFW;
-import io.aklivity.zilla.runtime.binding.mqtt.internal.types.event.Result;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
@@ -44,23 +43,24 @@ public class MqttEventContext
         this.clock = context.clock();
     }
 
-    public void authorization(
+    public void authorizationFailure(
         long sessionId,
         long traceId,
         long routedId,
         String identity)
     {
-        Result result = sessionId == 0 ? Result.FAILURE : Result.SUCCESS;
-        MqttEventFW event = mqttEventRW
-            .wrap(eventBuffer, 0, eventBuffer.capacity())
-            .authorization(e -> e
-                .timestamp(clock.millis())
-                .traceId(traceId)
-                .namespacedId(routedId)
-                .result(r -> r.set(result))
-                .identity(identity)
-            )
-            .build();
-        eventWriter.accept(mqttTypeId, event.buffer(), event.offset(), event.limit());
+        if (sessionId == 0)
+        {
+            MqttEventFW event = mqttEventRW
+                .wrap(eventBuffer, 0, eventBuffer.capacity())
+                .authorizationFailure(e -> e
+                    .timestamp(clock.millis())
+                    .traceId(traceId)
+                    .namespacedId(routedId)
+                    .identity(identity)
+                )
+                .build();
+            eventWriter.accept(mqttTypeId, event.buffer(), event.offset(), event.limit());
+        }
     }
 }
