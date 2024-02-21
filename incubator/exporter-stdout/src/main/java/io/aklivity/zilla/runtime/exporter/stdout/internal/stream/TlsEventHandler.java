@@ -19,13 +19,21 @@ import java.util.function.LongFunction;
 
 import org.agrona.DirectBuffer;
 
+import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.TlsEventFW;
-import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.TlsFailedFW;
 
 public class TlsEventHandler extends EventHandler
 {
     private static final String TLS_FAILED_FORMAT =
-        "TLS Failed [timestamp = %d] [traceId = 0x%016x] [binding = %s.%s] [error = %s]%n";
+        "TLS Failed [timestamp = %d] [traceId = 0x%016x] [binding = %s.%s]%n";
+    private static final String TLS_PROTOCOL_REJECTED =
+        "TLS Protocol Rejected [timestamp = %d] [traceId = 0x%016x] [binding = %s.%s]%n";
+    private static final String TLS_KEY_REJECTED =
+        "TLS Key Rejected [timestamp = %d] [traceId = 0x%016x] [binding = %s.%s]%n";
+    private static final String TLS_PEER_NOT_VERIFIED =
+        "TLS Peer Not Verified [timestamp = %d] [traceId = 0x%016x] [binding = %s.%s]%n";
+    private static final String TLS_HANDSHAKE_FAILED =
+        "TLS Handshake Failed [timestamp = %d] [traceId = 0x%016x] [binding = %s.%s]%n";
 
     private final TlsEventFW tlsEventRO = new TlsEventFW();
 
@@ -47,11 +55,45 @@ public class TlsEventHandler extends EventHandler
         switch (event.kind())
         {
         case TLS_FAILED:
-            TlsFailedFW e = event.tlsFailed();
+        {
+            EventFW e = event.tlsFailed();
             String namespace = supplyNamespace.apply(e.namespacedId());
             String binding = supplyLocalName.apply(e.namespacedId());
-            out.printf(TLS_FAILED_FORMAT, e.timestamp(), e.traceId(), namespace, binding, e.error().get().name());
+            out.printf(TLS_FAILED_FORMAT, e.timestamp(), e.traceId(), namespace, binding);
             break;
+        }
+        case TLS_PROTOCOL_REJECTED:
+        {
+            EventFW e = event.tlsProtocolRejected();
+            String namespace = supplyNamespace.apply(e.namespacedId());
+            String binding = supplyLocalName.apply(e.namespacedId());
+            out.printf(TLS_PROTOCOL_REJECTED, e.timestamp(), e.traceId(), namespace, binding);
+            break;
+        }
+        case TLS_KEY_REJECTED:
+        {
+            EventFW e = event.tlsKeyRejected();
+            String namespace = supplyNamespace.apply(e.namespacedId());
+            String binding = supplyLocalName.apply(e.namespacedId());
+            out.printf(TLS_KEY_REJECTED, e.timestamp(), e.traceId(), namespace, binding);
+            break;
+        }
+        case TLS_PEER_NOT_VERIFIED:
+        {
+            EventFW e = event.tlsPeerNotVerified();
+            String namespace = supplyNamespace.apply(e.namespacedId());
+            String binding = supplyLocalName.apply(e.namespacedId());
+            out.printf(TLS_PEER_NOT_VERIFIED, e.timestamp(), e.traceId(), namespace, binding);
+            break;
+        }
+        case TLS_HANDSHAKE_FAILED:
+        {
+            EventFW e = event.tlsHandshakeFailed();
+            String namespace = supplyNamespace.apply(e.namespacedId());
+            String binding = supplyLocalName.apply(e.namespacedId());
+            out.printf(TLS_HANDSHAKE_FAILED, e.timestamp(), e.traceId(), namespace, binding);
+            break;
+        }
         }
     }
 }

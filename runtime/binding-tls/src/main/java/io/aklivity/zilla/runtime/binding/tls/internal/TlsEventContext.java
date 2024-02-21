@@ -18,15 +18,9 @@ package io.aklivity.zilla.runtime.binding.tls.internal;
 import java.nio.ByteBuffer;
 import java.time.Clock;
 
-import javax.net.ssl.SSLHandshakeException;
-import javax.net.ssl.SSLKeyException;
-import javax.net.ssl.SSLPeerUnverifiedException;
-import javax.net.ssl.SSLProtocolException;
-
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
-import io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsError;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsEventFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -50,45 +44,77 @@ public class TlsEventContext
     }
 
     public void tlsFailed(
-        TlsError error,
-        long traceId)
+        long traceId,
+        long routedId)
     {
         TlsEventFW event = tlsEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .tlsFailed(e -> e
                 .timestamp(clock.millis())
                 .traceId(traceId)
-                .error(r -> r.set(error))
+                .namespacedId(routedId)
             )
             .build();
         eventWriter.accept(tlsTypeId, event.buffer(), event.offset(), event.limit());
     }
 
-    public void tlsFailed(
-        Exception ex,
-        long traceId)
+    public void tlsProtocolRejected(
+        long traceId,
+        long routedId)
     {
-        TlsError error;
-        if (ex instanceof SSLProtocolException)
-        {
-            error = TlsError.PROTOCOL_ERROR;
-        }
-        else if (ex instanceof SSLKeyException)
-        {
-            error = TlsError.KEY_ERROR;
-        }
-        else if (ex instanceof SSLHandshakeException)
-        {
-            error = TlsError.HANDSHAKE_ERROR;
-        }
-        else if (ex instanceof SSLPeerUnverifiedException)
-        {
-            error = TlsError.PEER_UNVERIFIED_ERROR;
-        }
-        else
-        {
-            error = TlsError.UNSPECIFIED_ERROR;
-        }
-        tlsFailed(error, traceId);
+        TlsEventFW event = tlsEventRW
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .tlsProtocolRejected(e -> e
+                .timestamp(clock.millis())
+                .traceId(traceId)
+                .namespacedId(routedId)
+            )
+            .build();
+        eventWriter.accept(tlsTypeId, event.buffer(), event.offset(), event.limit());
+    }
+
+    public void tlsKeyRejected(
+        long traceId,
+        long routedId)
+    {
+        TlsEventFW event = tlsEventRW
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .tlsKeyRejected(e -> e
+                .timestamp(clock.millis())
+                .traceId(traceId)
+                .namespacedId(routedId)
+            )
+            .build();
+        eventWriter.accept(tlsTypeId, event.buffer(), event.offset(), event.limit());
+    }
+
+    public void tlsPeerNotVerified(
+        long traceId,
+        long routedId)
+    {
+        TlsEventFW event = tlsEventRW
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .tlsKeyRejected(e -> e
+                .timestamp(clock.millis())
+                .traceId(traceId)
+                .namespacedId(routedId)
+            )
+            .build();
+        eventWriter.accept(tlsTypeId, event.buffer(), event.offset(), event.limit());
+    }
+
+    public void tlsHandshakeFailed(
+        long traceId,
+        long routedId)
+    {
+        TlsEventFW event = tlsEventRW
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .tlsKeyRejected(e -> e
+                .timestamp(clock.millis())
+                .traceId(traceId)
+                .namespacedId(routedId)
+            )
+            .build();
+        eventWriter.accept(tlsTypeId, event.buffer(), event.offset(), event.limit());
     }
 }

@@ -19,26 +19,20 @@ scope tls
     {
         enum TlsEventType (uint8)
         {
-            TLS_FAILED (1)
-        }
-
-        enum TlsError (uint8)
-        {
-            PROTOCOL_ERROR (1),
-            KEY_ERROR (2),
-            HANDSHAKE_ERROR (3),
-            PEER_UNVERIFIED_ERROR (4),
-            UNSPECIFIED_ERROR (5)
-        }
-
-        struct TlsFailed extends core::event::Event
-        {
-            TlsError error;
+            TLS_FAILED (1),
+            TLS_PROTOCOL_REJECTED (2),
+            TLS_KEY_REJECTED (3),
+            TLS_PEER_NOT_VERIFIED (4),
+            TLS_HANDSHAKE_FAILED (5)
         }
 
         union TlsEvent switch (TlsEventType)
         {
-            case TLS_FAILED: TlsFailed tlsFailed;
+            case TLS_FAILED: core::event::Event tlsFailed;
+            case TLS_PROTOCOL_REJECTED: core::event::Event tlsProtocolRejected;
+            case TLS_KEY_REJECTED: core::event::Event tlsKeyRejected;
+            case TLS_PEER_NOT_VERIFIED: core::event::Event tlsPeerNotVerified;
+            case TLS_HANDSHAKE_FAILED: core::event::Event tlsHandshakeFailed;
         }
     }
 }

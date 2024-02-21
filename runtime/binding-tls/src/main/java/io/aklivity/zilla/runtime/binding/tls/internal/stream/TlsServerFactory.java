@@ -42,7 +42,10 @@ import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLEngineResult.HandshakeStatus;
 import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLHandshakeException;
+import javax.net.ssl.SSLKeyException;
 import javax.net.ssl.SSLPeerUnverifiedException;
+import javax.net.ssl.SSLProtocolException;
 import javax.net.ssl.SSLSession;
 import javax.security.auth.x500.X500Principal;
 
@@ -59,7 +62,6 @@ import io.aklivity.zilla.runtime.binding.tls.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.codec.TlsRecordInfoFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.codec.TlsUnwrappedDataFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.codec.TlsUnwrappedInfoFW;
-import io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsError;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.DataFW;
@@ -527,12 +529,39 @@ public final class TlsServerFactory implements TlsStreamFactory
     {
         try
         {
-            server.tlsEngine.beginHandshake();
-            server.decoder = decodeHandshake;
+            try
+            {
+                server.tlsEngine.beginHandshake();
+                server.decoder = decodeHandshake;
+            }
+            catch (SSLProtocolException ex)
+            {
+                event.tlsProtocolRejected(traceId, server.routedId);
+                throw ex;
+            }
+            catch (SSLKeyException ex)
+            {
+                event.tlsKeyRejected(traceId, server.routedId);
+                throw ex;
+            }
+            catch (SSLPeerUnverifiedException ex)
+            {
+                event.tlsPeerNotVerified(traceId, server.routedId);
+                throw ex;
+            }
+            catch (SSLHandshakeException ex)
+            {
+                event.tlsHandshakeFailed(traceId, server.routedId);
+                throw ex;
+            }
+            catch (SSLException | RuntimeException ex)
+            {
+                event.tlsFailed(traceId, server.routedId);
+                throw ex;
+            }
         }
         catch (SSLException | RuntimeException ex)
         {
-            event.tlsFailed(ex, traceId);
             server.cleanupNet(traceId);
             server.decoder = decodeIgnoreAll;
         }
@@ -610,48 +639,76 @@ public final class TlsServerFactory implements TlsStreamFactory
 
                     try
                     {
-                        final SSLEngineResult result = server.tlsEngine.unwrap(inNetByteBuffer, outAppByteBuffer);
-                        final int bytesProduced = result.bytesProduced();
-                        final int bytesConsumed = result.bytesConsumed();
-
-                        switch (result.getStatus())
+                        try
                         {
-                        case BUFFER_UNDERFLOW:
-                        case BUFFER_OVERFLOW:
-                            assert false;
-                            break;
-                        case OK:
-                            if (bytesProduced == 0)
+                            final SSLEngineResult result = server.tlsEngine.unwrap(inNetByteBuffer, outAppByteBuffer);
+                            final int bytesProduced = result.bytesProduced();
+                            final int bytesConsumed = result.bytesConsumed();
+
+                            switch (result.getStatus())
                             {
-                                server.decoder = decodeHandshake;
+                            case BUFFER_UNDERFLOW:
+                            case BUFFER_OVERFLOW:
+                                assert false;
+                                break;
+                            case OK:
+                                if (bytesProduced == 0)
+                                {
+                                    server.decoder = decodeHandshake;
+                                    progress += bytesConsumed;
+                                }
+                                else
+                                {
+                                    assert bytesConsumed == tlsRecordBytes;
+                                    assert bytesProduced <= bytesConsumed :
+                                        String.format("%d <= %d", bytesProduced, bytesConsumed);
+
+                                    tlsUnwrappedDataRW.wrap(buffer, tlsRecordDataOffset, tlsRecordDataLimit)
+                                        .payload(outAppBuffer, 0, bytesProduced)
+                                        .build();
+
+                                    server.decodableRecordBytes -= bytesConsumed;
+                                    assert server.decodableRecordBytes == 0;
+
+                                    server.decoder = decodeNotHandshakingUnwrapped;
+                                }
+                                break;
+                            case CLOSED:
+                                assert bytesProduced == 0;
+                                server.onDecodeInboundClosed(traceId);
+                                server.decoder = TlsState.initialClosed(server.state) ? decodeIgnoreAll : decodeHandshake;
                                 progress += bytesConsumed;
+                                break;
                             }
-                            else
-                            {
-                                assert bytesConsumed == tlsRecordBytes;
-                                assert bytesProduced <= bytesConsumed : String.format("%d <= %d", bytesProduced, bytesConsumed);
-
-                                tlsUnwrappedDataRW.wrap(buffer, tlsRecordDataOffset, tlsRecordDataLimit)
-                                                  .payload(outAppBuffer, 0, bytesProduced)
-                                                  .build();
-
-                                server.decodableRecordBytes -= bytesConsumed;
-                                assert server.decodableRecordBytes == 0;
-
-                                server.decoder = decodeNotHandshakingUnwrapped;
-                            }
-                            break;
-                        case CLOSED:
-                            assert bytesProduced == 0;
-                            server.onDecodeInboundClosed(traceId);
-                            server.decoder = TlsState.initialClosed(server.state) ? decodeIgnoreAll : decodeHandshake;
-                            progress += bytesConsumed;
-                            break;
+                        }
+                        catch (SSLProtocolException ex)
+                        {
+                            event.tlsProtocolRejected(traceId, server.routedId);
+                            throw ex;
+                        }
+                        catch (SSLKeyException ex)
+                        {
+                            event.tlsKeyRejected(traceId, server.routedId);
+                            throw ex;
+                        }
+                        catch (SSLPeerUnverifiedException ex)
+                        {
+                            event.tlsPeerNotVerified(traceId, server.routedId);
+                            throw ex;
+                        }
+                        catch (SSLHandshakeException ex)
+                        {
+                            event.tlsHandshakeFailed(traceId, server.routedId);
+                            throw ex;
+                        }
+                        catch (SSLException | RuntimeException ex)
+                        {
+                            event.tlsFailed(traceId, server.routedId);
+                            throw ex;
                         }
                     }
                     catch (SSLException | RuntimeException ex)
                     {
-                        event.tlsFailed(ex, traceId);
                         server.cleanupNet(traceId);
                         server.decoder = decodeIgnoreAll;
                     }
@@ -785,59 +842,86 @@ public final class TlsServerFactory implements TlsStreamFactory
 
             try
             {
-                final SSLEngineResult result = server.tlsEngine.unwrap(inNetByteBuffer, outAppByteBuffer);
-                final int bytesConsumed = result.bytesConsumed();
-                final int bytesProduced = result.bytesProduced();
-
-                switch (result.getStatus())
+                try
                 {
-                case BUFFER_UNDERFLOW:
-                    if (TlsState.initialClosed(server.state))
+                    final SSLEngineResult result = server.tlsEngine.unwrap(inNetByteBuffer, outAppByteBuffer);
+                    final int bytesConsumed = result.bytesConsumed();
+                    final int bytesProduced = result.bytesProduced();
+
+                    switch (result.getStatus())
                     {
+                    case BUFFER_UNDERFLOW:
+                        if (TlsState.initialClosed(server.state))
+                        {
+                            server.decoder = decodeIgnoreAll;
+                        }
+                        break;
+                    case BUFFER_OVERFLOW:
+                        assert false;
+                        break;
+                    case OK:
+                        final HandshakeStatus handshakeStatus = result.getHandshakeStatus();
+                        if (handshakeStatus == HandshakeStatus.FINISHED)
+                        {
+                            server.onDecodeHandshakeFinished(traceId, budgetId);
+                        }
+
+                        if (bytesProduced > 0 && handshakeStatus == HandshakeStatus.FINISHED)
+                        {
+                            final TlsRecordInfoFW tlsRecordInfo = tlsRecordInfoRW
+                                .wrap(buffer, progress, progress + bytesConsumed)
+                                .build();
+                            final int tlsRecordDataOffset = tlsRecordInfo.limit();
+                            final int tlsRecordDataLimit = tlsRecordDataOffset + tlsRecordInfo.length();
+
+                            tlsUnwrappedDataRW.wrap(buffer, tlsRecordDataOffset, tlsRecordDataLimit)
+                                .payload(outAppBuffer, 0, bytesProduced)
+                                .build();
+                            server.decoder = decodeNotHandshakingUnwrapped;
+                        }
+                        else
+                        {
+                            server.decoder = decodeHandshake;
+                        }
+
+                        break;
+                    case CLOSED:
+                        assert bytesProduced == 0;
+                        server.onDecodeInboundClosed(traceId);
                         server.decoder = decodeIgnoreAll;
-                    }
-                    break;
-                case BUFFER_OVERFLOW:
-                    assert false;
-                    break;
-                case OK:
-                    final HandshakeStatus handshakeStatus = result.getHandshakeStatus();
-                    if (handshakeStatus == HandshakeStatus.FINISHED)
-                    {
-                        server.onDecodeHandshakeFinished(traceId, budgetId);
+                        break;
                     }
 
-                    if (bytesProduced > 0 && handshakeStatus == HandshakeStatus.FINISHED)
-                    {
-                        final TlsRecordInfoFW tlsRecordInfo = tlsRecordInfoRW
-                            .wrap(buffer, progress, progress + bytesConsumed)
-                            .build();
-                        final int tlsRecordDataOffset = tlsRecordInfo.limit();
-                        final int tlsRecordDataLimit = tlsRecordDataOffset + tlsRecordInfo.length();
-
-                        tlsUnwrappedDataRW.wrap(buffer, tlsRecordDataOffset, tlsRecordDataLimit)
-                                          .payload(outAppBuffer, 0, bytesProduced)
-                                          .build();
-                        server.decoder = decodeNotHandshakingUnwrapped;
-                    }
-                    else
-                    {
-                        server.decoder = decodeHandshake;
-                    }
-
-                    break;
-                case CLOSED:
-                    assert bytesProduced == 0;
-                    server.onDecodeInboundClosed(traceId);
-                    server.decoder = decodeIgnoreAll;
-                    break;
+                    progress += bytesConsumed;
                 }
-
-                progress += bytesConsumed;
+                catch (SSLProtocolException ex)
+                {
+                    event.tlsProtocolRejected(traceId, server.routedId);
+                    throw ex;
+                }
+                catch (SSLKeyException ex)
+                {
+                    event.tlsKeyRejected(traceId, server.routedId);
+                    throw ex;
+                }
+                catch (SSLPeerUnverifiedException ex)
+                {
+                    event.tlsPeerNotVerified(traceId, server.routedId);
+                    throw ex;
+                }
+                catch (SSLHandshakeException ex)
+                {
+                    event.tlsHandshakeFailed(traceId, server.routedId);
+                    throw ex;
+                }
+                catch (SSLException | RuntimeException ex)
+                {
+                    event.tlsFailed(traceId, server.routedId);
+                    throw ex;
+                }
             }
             catch (SSLException | RuntimeException ex)
             {
-                event.tlsFailed(ex, traceId);
                 server.doEncodeWrapIfNecessary(traceId, budgetId);
                 server.cleanupNet(traceId);
                 server.decoder = decodeIgnoreAll;
@@ -1316,7 +1400,7 @@ public final class TlsServerFactory implements TlsStreamFactory
                 handshakeTimeoutFutureId = NO_CANCEL_ID;
 
                 cleanupNet(traceId);
-                event.tlsFailed(TlsError.HANDSHAKE_ERROR, traceId);
+                event.tlsHandshakeFailed(traceId, routedId);
                 decoder = decodeIgnoreAll;
             }
         }
@@ -1660,40 +1744,67 @@ public final class TlsServerFactory implements TlsStreamFactory
 
             try
             {
-                loop:
-                do
+                try
                 {
-                    final SSLEngineResult result = tlsEngine.wrap(inAppByteBuffer, outNetByteBuffer);
-                    final int bytesProduced = result.bytesProduced();
-
-                    switch (result.getStatus())
+                    loop:
+                    do
                     {
-                    case BUFFER_OVERFLOW:
-                    case BUFFER_UNDERFLOW:
-                        assert false;
-                        break;
-                    case CLOSED:
-                        assert bytesProduced > 0;
-                        assert tlsEngine.isOutboundDone();
-                        stream.ifPresent(s -> s.doAppResetLater(traceId));
-                        state = TlsState.closingReply(state);
-                        break loop;
-                    case OK:
-                        assert bytesProduced > 0 || tlsEngine.isInboundDone();
-                        if (result.getHandshakeStatus() == HandshakeStatus.FINISHED)
-                        {
-                            onDecodeHandshakeFinished(traceId, budgetId);
-                        }
-                        break;
-                    }
-                } while (inAppByteBuffer.hasRemaining());
+                        final SSLEngineResult result = tlsEngine.wrap(inAppByteBuffer, outNetByteBuffer);
+                        final int bytesProduced = result.bytesProduced();
 
-                final int outNetBytesProduced = outNetByteBuffer.position();
-                doNetData(traceId, budgetId, outNetBuffer, 0, outNetBytesProduced);
+                        switch (result.getStatus())
+                        {
+                        case BUFFER_OVERFLOW:
+                        case BUFFER_UNDERFLOW:
+                            assert false;
+                            break;
+                        case CLOSED:
+                            assert bytesProduced > 0;
+                            assert tlsEngine.isOutboundDone();
+                            stream.ifPresent(s -> s.doAppResetLater(traceId));
+                            state = TlsState.closingReply(state);
+                            break loop;
+                        case OK:
+                            assert bytesProduced > 0 || tlsEngine.isInboundDone();
+                            if (result.getHandshakeStatus() == HandshakeStatus.FINISHED)
+                            {
+                                onDecodeHandshakeFinished(traceId, budgetId);
+                            }
+                            break;
+                        }
+                    } while (inAppByteBuffer.hasRemaining());
+
+                    final int outNetBytesProduced = outNetByteBuffer.position();
+                    doNetData(traceId, budgetId, outNetBuffer, 0, outNetBytesProduced);
+                }
+                catch (SSLProtocolException ex)
+                {
+                    event.tlsProtocolRejected(traceId, routedId);
+                    throw ex;
+                }
+                catch (SSLKeyException ex)
+                {
+                    event.tlsKeyRejected(traceId, routedId);
+                    throw ex;
+                }
+                catch (SSLPeerUnverifiedException ex)
+                {
+                    event.tlsPeerNotVerified(traceId, routedId);
+                    throw ex;
+                }
+                catch (SSLHandshakeException ex)
+                {
+                    event.tlsHandshakeFailed(traceId, routedId);
+                    throw ex;
+                }
+                catch (SSLException | RuntimeException ex)
+                {
+                    event.tlsFailed(traceId, routedId);
+                    throw ex;
+                }
             }
             catch (SSLException | RuntimeException ex)
             {
-                event.tlsFailed(ex, traceId);
                 cleanupNet(traceId);
             }
         }
