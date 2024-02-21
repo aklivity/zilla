@@ -4225,6 +4225,8 @@ public class KafkaFunctionsTest
             .group()
                 .groupId("test")
                 .protocol("roundrobin")
+                .host("broker1.example.com")
+                .port(9092)
                 .timeout(10)
                 .build()
             .build();
@@ -4237,6 +4239,7 @@ public class KafkaFunctionsTest
         final KafkaGroupBeginExFW groupBeginEx = beginEx.group();
         assertEquals("test", groupBeginEx.groupId().asString());
         assertEquals("roundrobin", groupBeginEx.protocol().asString());
+        assertEquals("broker1.example.com", groupBeginEx.host().asString());
         assertEquals(10, groupBeginEx.timeout());
     }
 
@@ -4248,6 +4251,8 @@ public class KafkaFunctionsTest
                 .consumer()
                     .groupId("test")
                     .consumerId("consumer-1")
+                    .host("broker1.example.com")
+                    .port(9092)
                     .timeout(10000)
                     .topic("topic")
                     .partition(0)
@@ -4261,6 +4266,7 @@ public class KafkaFunctionsTest
 
         final KafkaConsumerBeginExFW consumerBeginEx = beginEx.consumer();
         assertEquals("test", consumerBeginEx.groupId().asString());
+        assertEquals("broker1.example.com", consumerBeginEx.host().asString());
         assertEquals("topic", consumerBeginEx.topic().asString());
         assertEquals(1, consumerBeginEx.partitionIds().fieldCount());
     }

@@ -1482,6 +1482,20 @@ public final class KafkaFunctions
                 return this;
             }
 
+            public KafkaConsumerBeginExBuilder host(
+                String host)
+            {
+                consumerBeginExRW.host(host);
+                return this;
+            }
+
+            public KafkaConsumerBeginExBuilder port(
+                int port)
+            {
+                consumerBeginExRW.port(port);
+                return this;
+            }
+
             public KafkaConsumerBeginExBuilder timeout(
                 int timeout)
             {

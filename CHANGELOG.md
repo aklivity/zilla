@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.9.68](https://github.com/aklivity/zilla/tree/0.9.68) (2024-02-13)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.67...0.9.68)
+
+**Fixed bugs:**
+
+- Zilla crashes when a large number of MQTT clients connect [\#793](https://github.com/aklivity/zilla/issues/793)
+
+**Merged pull requests:**
+
+- Require group host and port for `kafka` coordinator-specific streams [\#794](https://github.com/aklivity/zilla/pull/794) ([jfallows](https://github.com/jfallows))
+
 ## [0.9.67](https://github.com/aklivity/zilla/tree/0.9.67) (2024-02-11)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.66...0.9.67)
