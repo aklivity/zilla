@@ -27,18 +27,18 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageReader;
 public class StdoutEventsStream
 {
     private final MessageReader readEvent;
-    private final ToIntFunction<String> lookupTypeId;
+    private final ToIntFunction<String> supplyTypeId;
     private final Int2ObjectHashMap<MessageConsumer> eventHandlers;
 
     public StdoutEventsStream(
         MessageReader readEvent,
         LongFunction<String> supplyNamespace,
         LongFunction<String> supplyLocalName,
-        ToIntFunction<String> lookupTypeId,
+        ToIntFunction<String> supplyTypeId,
         PrintStream out)
     {
         this.readEvent = readEvent;
-        this.lookupTypeId = lookupTypeId;
+        this.supplyTypeId = supplyTypeId;
 
         final HttpEventHandler httpEventHandler = new HttpEventHandler(supplyNamespace, supplyLocalName, out);
         final KafkaEventHandler kafkaEventHandler = new KafkaEventHandler(supplyNamespace, supplyLocalName, out);
@@ -67,7 +67,7 @@ public class StdoutEventsStream
         String type,
         MessageConsumer consumer)
     {
-        int labelId = lookupTypeId.applyAsInt(type);
+        int labelId = supplyTypeId.applyAsInt(type);
         if (labelId != 0)
         {
             eventHandlers.put(labelId, consumer);

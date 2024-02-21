@@ -50,9 +50,6 @@ public interface EngineContext
     int supplyTypeId(
         String name);
 
-    int lookupTypeId(
-        String name);
-
     long supplyInitialId(
         long bindingId);
 
