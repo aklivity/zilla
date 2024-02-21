@@ -24,6 +24,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.event.MqttEventFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public class MqttEventContext
 {
@@ -47,10 +48,12 @@ public class MqttEventContext
         long sessionId,
         long traceId,
         long routedId,
-        String identity)
+        GuardHandler guard,
+        long authorization)
     {
         if (sessionId == 0)
         {
+            String identity = guard == null ? null : guard.identity(authorization);
             MqttEventFW event = mqttEventRW
                 .wrap(eventBuffer, 0, eventBuffer.capacity())
                 .authorizationFailure(e -> e
