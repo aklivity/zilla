@@ -34,6 +34,7 @@ import org.mockito.quality.Strictness;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
+import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapter;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig;
 
@@ -45,13 +46,13 @@ public class OptionsConfigAdapterTest
     @Mock
     private ConfigAdapterContext context;
 
-    private OptionsAdapter adapter;
+    private OptionsConfigAdapter adapter;
     private Jsonb jsonb;
 
     @Before
     public void initJson()
     {
-        adapter = new OptionsAdapter(OptionsConfigAdapterSpi.Kind.BINDING, context);
+        adapter = new OptionsConfigAdapter(OptionsConfigAdapterSpi.Kind.BINDING, context);
         adapter.adaptType("test");
         JsonbConfig config = new JsonbConfig()
                 .withAdapters(adapter);
