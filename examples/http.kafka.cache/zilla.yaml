@@ -74,13 +74,13 @@ bindings:
   north_kafka_cache_client:
     type: kafka
     kind: cache_client
-    options:
-      bootstrap:
-        - items-snapshots
     exit: south_kafka_cache_server
   south_kafka_cache_server:
     type: kafka
     kind: cache_server
+    options:
+      bootstrap:
+        - items-snapshots
     exit: south_kafka_client
   south_kafka_client:
     type: kafka
