@@ -121,6 +121,10 @@
                         "maxProperties": 1
                     }
                 },
+                "required":
+                [
+                    "catalog"
+                ],
                 "additionalProperties": false
             }
         }
@@ -247,6 +251,10 @@
                         "maxProperties": 1
                     }
                 },
+                "required":
+                [
+                    "catalog"
+                ],
                 "additionalProperties": false
             }
         }
