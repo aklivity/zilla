@@ -55,8 +55,7 @@ scope http
         enum HttpEventType (uint8)
         {
             AUTHORIZATION (1),
-            REQUEST (2),
-            RESPONSE (3)
+            REQUEST (2)
         }
 
         enum Result (uint8)
@@ -76,16 +75,10 @@ scope http
             HttpHeader[] headers;
         }
 
-        struct HttpResponse extends core::event::Event
-        {
-            HttpHeader[] headers;
-        }
-
         union HttpEvent switch (HttpEventType)
         {
             case AUTHORIZATION: HttpAuthorization authorization;
             case REQUEST: HttpRequest request;
-            case RESPONSE: HttpResponse response;
         }
     }
 }

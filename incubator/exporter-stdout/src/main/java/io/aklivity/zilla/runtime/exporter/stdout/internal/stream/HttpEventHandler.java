@@ -24,7 +24,6 @@ import io.aklivity.zilla.runtime.exporter.stdout.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.HttpAuthorizationFW;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.HttpEventFW;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.HttpRequestFW;
-import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.HttpResponseFW;
 
 public class HttpEventHandler extends EventHandler
 {
@@ -69,14 +68,6 @@ public class HttpEventHandler extends EventHandler
             String namespace = supplyNamespace.apply(e.namespacedId());
             String binding = supplyLocalName.apply(e.namespacedId());
             out.format(HTTP_REQUEST_FORMAT, e.timestamp(), e.traceId(), namespace, binding, headersAsString(e.headers()));
-            break;
-        }
-        case RESPONSE:
-        {
-            HttpResponseFW e = event.response();
-            String namespace = supplyNamespace.apply(e.namespacedId());
-            String binding = supplyLocalName.apply(e.namespacedId());
-            out.format(HTTP_RESPONSE_FORMAT, e.timestamp(), e.traceId(), namespace, binding, headersAsString(e.headers()));
             break;
         }
         }

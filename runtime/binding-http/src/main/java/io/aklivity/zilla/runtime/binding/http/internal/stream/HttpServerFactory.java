@@ -3000,7 +3000,6 @@ public final class HttpServerFactory implements HttpStreamFactory
                 final HttpBeginExFW beginEx = begin.extension().get(beginExRO::tryWrap);
                 final Array32FW<HttpHeaderFW> headers = beginEx != null ? beginEx.headers() : DEFAULT_HEADERS;
 
-                event.response(traceId, routedId, headers);
                 responseState = HttpExchangeState.OPEN;
                 doEncodeHeaders(this, traceId, sessionId, 0L, headers);
             }
@@ -6022,7 +6021,6 @@ public final class HttpServerFactory implements HttpStreamFactory
                         header.name().equals(HEADER_CONTENT_LENGTH));
                 responseContentLength = contentLengthHeader != null ? parseInt(contentLengthHeader.value().asString()) : -1;
 
-                event.response(traceId, routedId, headers);
                 doEncodeHeaders(traceId, authorization, streamId, policy, origin, headers, responseContentLength == 0);
             }
 

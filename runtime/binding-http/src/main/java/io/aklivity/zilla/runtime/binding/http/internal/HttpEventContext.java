@@ -96,20 +96,4 @@ public class HttpEventContext
         headers.forEach((n, v) -> headersRW.item(i -> i.name(n).value(v)));
         request(traceId, routedId, headersRW.build());
     }
-
-    public void response(
-        long traceId,
-        long routedId,
-        Array32FW<HttpHeaderFW> headers)
-    {
-        HttpEventFW event = httpEventRW
-            .wrap(eventBuffer, 0, eventBuffer.capacity())
-            .response(e -> e
-                .timestamp(clock.millis())
-                .traceId(traceId)
-                .namespacedId(routedId)
-                .headers(headers))
-            .build();
-        eventWriter.accept(httpTypeId, event.buffer(), event.offset(), event.limit());
-    }
 }
