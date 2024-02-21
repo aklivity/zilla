@@ -16,7 +16,6 @@ package io.aklivity.zilla.runtime.exporter.stdout.internal;
 
 import java.net.URL;
 
-import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.exporter.Exporter;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterContext;
@@ -25,10 +24,10 @@ public class StdoutExporter implements Exporter
 {
     public static final String NAME = "stdout";
 
-    private final EngineConfiguration config;
+    private final StdoutConfiguration config;
 
     public StdoutExporter(
-        EngineConfiguration config)
+        StdoutConfiguration config)
     {
         this.config = config;
     }

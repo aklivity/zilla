@@ -16,7 +16,6 @@ package io.aklivity.zilla.runtime.exporter.stdout.internal;
 
 import java.io.PrintStream;
 
-import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.config.StdoutExporterConfig;
@@ -30,13 +29,12 @@ public class StdoutExporterHandler implements ExporterHandler
     private StdoutEventsStream stdoutEventsStream;
 
     public StdoutExporterHandler(
-        EngineConfiguration config,
+        StdoutConfiguration config,
         EngineContext context,
-        StdoutExporterConfig exporter,
-        PrintStream out)
+        StdoutExporterConfig exporter)
     {
         this.context = context;
-        this.out = out;
+        this.out = config.output();
     }
 
     @Override

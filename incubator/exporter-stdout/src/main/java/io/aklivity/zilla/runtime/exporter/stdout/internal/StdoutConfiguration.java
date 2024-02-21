@@ -14,22 +14,19 @@
  */
 package io.aklivity.zilla.runtime.exporter.stdout.internal;
 
+import java.io.PrintStream;
+
 import io.aklivity.zilla.runtime.engine.Configuration;
-import io.aklivity.zilla.runtime.engine.exporter.Exporter;
-import io.aklivity.zilla.runtime.engine.exporter.ExporterFactorySpi;
 
-public class StdoutExporterFactorySpi implements ExporterFactorySpi
+public class StdoutConfiguration extends Configuration
 {
-    @Override
-    public String type()
-    {
-        return StdoutExporter.NAME;
-    }
-
-    @Override
-    public Exporter create(
+    public StdoutConfiguration(
         Configuration config)
     {
-        return new StdoutExporter(new StdoutConfiguration(config));
+    }
+
+    public PrintStream output()
+    {
+        return System.out;
     }
 }

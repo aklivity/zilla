@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.exporter.stdout.internal;
 import java.util.List;
 import java.util.function.LongFunction;
 
-import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.AttributeConfig;
 import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
@@ -29,11 +28,11 @@ import io.aklivity.zilla.runtime.exporter.stdout.internal.config.StdoutExporterC
 
 public class StdoutExporterContext implements ExporterContext
 {
-    private final EngineConfiguration config;
+    private final StdoutConfiguration config;
     private final EngineContext context;
 
     public StdoutExporterContext(
-        EngineConfiguration config,
+        StdoutConfiguration config,
         EngineContext context)
     {
         this.config = config;
@@ -48,7 +47,7 @@ public class StdoutExporterContext implements ExporterContext
         LongFunction<KindConfig> resolveKind)
     {
         StdoutExporterConfig stdoutExporter = new StdoutExporterConfig(exporter);
-        return new StdoutExporterHandler(config, context, stdoutExporter, System.out);
+        return new StdoutExporterHandler(config, context, stdoutExporter);
     }
 
     @Override
