@@ -153,7 +153,7 @@ public class EngineManager
 
             if (current == null)
             {
-                throw new ConfigException("Engine configuration failed");
+                throw new ConfigException("Engine configuration failed", ex);
             }
         }
 
