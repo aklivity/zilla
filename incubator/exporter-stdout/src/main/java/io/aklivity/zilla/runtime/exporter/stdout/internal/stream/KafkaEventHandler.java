@@ -20,13 +20,12 @@ import java.util.function.LongFunction;
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.EventFW;
-import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.KafkaAuthorizationFW;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.KafkaEventFW;
 
 public class KafkaEventHandler extends EventHandler
 {
-    private static final String KAFKA_AUTHORIZATION_FORMAT =
-        "Kafka Authorization %s [timestamp = %d] [traceId = 0x%016x] [binding = %s.%s]%n";
+    private static final String KAFKA_AUTHORIZATION_FAILURE_FORMAT =
+        "Kafka Authorization Failure [timestamp = %d] [traceId = 0x%016x] [binding = %s.%s]%n";
     private static final String KAFKA_API_VERSION_REJECTED =
         "Kafka API Version Rejected [timestamp = %d] [traceId = 0x%016x] [binding = %s.%s]%n";
 
@@ -49,12 +48,12 @@ public class KafkaEventHandler extends EventHandler
         final KafkaEventFW event = kafkaEventRO.wrap(buffer, index, index + length);
         switch (event.kind())
         {
-        case AUTHORIZATION:
+        case AUTHORIZATION_FAILURE:
         {
-            KafkaAuthorizationFW e = event.authorization();
+            EventFW e = event.authorizationFailure();
             String namespace = supplyNamespace.apply(e.namespacedId());
             String binding = supplyLocalName.apply(e.namespacedId());
-            out.printf(KAFKA_AUTHORIZATION_FORMAT, result(e.result()), e.timestamp(), e.traceId(), namespace,
+            out.printf(KAFKA_AUTHORIZATION_FAILURE_FORMAT, e.timestamp(), e.traceId(), namespace,
                 binding);
             break;
         }

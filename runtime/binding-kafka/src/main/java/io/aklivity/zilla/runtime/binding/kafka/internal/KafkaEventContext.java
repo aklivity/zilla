@@ -22,7 +22,6 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaEventFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.Result;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
@@ -45,22 +44,23 @@ public class KafkaEventContext
         this.clock = context.clock();
     }
 
-    public void authorization(
+    public void authorizationFailure(
         int errorCode,
         long traceId,
         long routedId)
     {
-        Result result = errorCode == ERROR_NONE ? Result.SUCCESS : Result.FAILURE;
-        KafkaEventFW event = kafkaEventRW
-            .wrap(eventBuffer, 0, eventBuffer.capacity())
-            .authorization(e -> e
-                .timestamp(clock.millis())
-                .traceId(traceId)
-                .namespacedId(routedId)
-                .result(r -> r.set(result))
-            )
-            .build();
-        eventWriter.accept(kafkaTypeId, event.buffer(), event.offset(), event.limit());
+        if (errorCode != ERROR_NONE)
+        {
+            KafkaEventFW event = kafkaEventRW
+                .wrap(eventBuffer, 0, eventBuffer.capacity())
+                .authorizationFailure(e -> e
+                    .timestamp(clock.millis())
+                    .traceId(traceId)
+                    .namespacedId(routedId)
+                )
+                .build();
+            eventWriter.accept(kafkaTypeId, event.buffer(), event.offset(), event.limit());
+        }
     }
 
     public void apiVersionRejected(
