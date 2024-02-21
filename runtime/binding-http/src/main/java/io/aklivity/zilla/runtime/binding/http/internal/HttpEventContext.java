@@ -17,27 +17,21 @@ package io.aklivity.zilla.runtime.binding.http.internal;
 
 import java.nio.ByteBuffer;
 import java.time.Clock;
-import java.util.Map;
 
 import org.agrona.concurrent.AtomicBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
-import io.aklivity.zilla.runtime.binding.http.internal.types.Array32FW;
-import io.aklivity.zilla.runtime.binding.http.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.event.HttpEventFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public class HttpEventContext
 {
     private static final int EVENT_BUFFER_CAPACITY = 2048;
-    private static final int HEADER_BUFFER_CAPACITY = 1024;
 
     private final AtomicBuffer eventBuffer = new UnsafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
     private final HttpEventFW.Builder httpEventRW = new HttpEventFW.Builder();
-    private final AtomicBuffer headerBuffer = new UnsafeBuffer(new byte[HEADER_BUFFER_CAPACITY]);
-    private final Array32FW.Builder<HttpHeaderFW.Builder, HttpHeaderFW> headersRW =
-        new Array32FW.Builder<>(new HttpHeaderFW.Builder(), new HttpHeaderFW());
     private final int httpTypeId;
     private final MessageConsumer eventWriter;
     private final Clock clock;
@@ -54,10 +48,12 @@ public class HttpEventContext
         long sessionId,
         long traceId,
         long routedId,
-        String identity)
+        GuardHandler guard,
+        long authorization)
     {
         if (sessionId == 0)
         {
+            String identity = guard == null ? null : guard.identity(authorization);
             HttpEventFW event = httpEventRW
                 .wrap(eventBuffer, 0, eventBuffer.capacity())
                 .authorizationFailure(e -> e
@@ -74,26 +70,19 @@ public class HttpEventContext
     public void request(
         long traceId,
         long routedId,
-        Array32FW<HttpHeaderFW> headers)
+        GuardHandler guard,
+        long authorization)
     {
+        String identity = guard == null ? null : guard.identity(authorization);
         HttpEventFW event = httpEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .request(e -> e
                 .timestamp(clock.millis())
                 .traceId(traceId)
                 .namespacedId(routedId)
-                .headers(headers))
+                .identity(identity)
+            )
             .build();
         eventWriter.accept(httpTypeId, event.buffer(), event.offset(), event.limit());
-    }
-
-    public void request(
-        long traceId,
-        long routedId,
-        Map<String, String> headers)
-    {
-        headersRW.wrap(headerBuffer, 0, headerBuffer.capacity());
-        headers.forEach((n, v) -> headersRW.item(i -> i.name(n).value(v)));
-        request(traceId, routedId, headersRW.build());
     }
 }

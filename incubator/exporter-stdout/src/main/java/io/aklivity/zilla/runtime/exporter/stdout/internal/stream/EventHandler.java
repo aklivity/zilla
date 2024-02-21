@@ -49,4 +49,11 @@ public abstract class EventHandler
         String s = stringFW.asString();
         return s == null ? "" : s;
     }
+
+    protected static String identity(
+        StringFW stringFW)
+    {
+        String s = stringFW.asString();
+        return s == null || s.isEmpty() ? "-" : s;
+    }
 }

@@ -19,18 +19,13 @@ import java.util.function.LongFunction;
 
 import org.agrona.DirectBuffer;
 
-import io.aklivity.zilla.runtime.exporter.stdout.internal.types.Array32FW;
-import io.aklivity.zilla.runtime.exporter.stdout.internal.types.HttpHeaderFW;
-import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.HttpAuthorizationFailureFW;
+import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.HttpDefaultEventFW;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.HttpEventFW;
-import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.HttpRequestFW;
 
 public class HttpEventHandler extends EventHandler
 {
-    private static final String HTTP_AUTHORIZATION_FAILURE_FORMAT =
-        "HTTP Authorization Failure [timestamp = %d] [traceId = 0x%016x] [binding = %s.%s] [identity = %s]%n";
-    private static final String HTTP_REQUEST_FORMAT =
-        "HTTP Request [timestamp = %d] [traceId = 0x%016x] [binding = %s.%s] %s%n";
+    private static final String HTTP_AUTHORIZATION_FAILURE_FORMAT = "HTTP_AUTHORIZATION_FAILURE 0x%016x %s.%s %s %d%n";
+    private static final String HTTP_REQUEST_FORMAT = "HTTP_REQUEST 0x%016x %s.%s %s %d%n";
 
     private final HttpEventFW httpEventRO = new HttpEventFW();
 
@@ -53,35 +48,20 @@ public class HttpEventHandler extends EventHandler
         {
         case AUTHORIZATION_FAILURE:
         {
-            HttpAuthorizationFailureFW e = event.authorizationFailure();
+            HttpDefaultEventFW e = event.authorizationFailure();
             String namespace = supplyNamespace.apply(e.namespacedId());
             String binding = supplyLocalName.apply(e.namespacedId());
-            out.printf(HTTP_AUTHORIZATION_FAILURE_FORMAT, e.timestamp(), e.traceId(), namespace, binding, asString(e.identity()));
+            out.printf(HTTP_AUTHORIZATION_FAILURE_FORMAT, e.traceId(), namespace, binding, identity(e.identity()), e.timestamp());
             break;
         }
         case REQUEST:
         {
-            HttpRequestFW e = event.request();
+            HttpDefaultEventFW e = event.request();
             String namespace = supplyNamespace.apply(e.namespacedId());
             String binding = supplyLocalName.apply(e.namespacedId());
-            out.format(HTTP_REQUEST_FORMAT, e.timestamp(), e.traceId(), namespace, binding, headersAsString(e.headers()));
+            out.format(HTTP_REQUEST_FORMAT, e.traceId(), namespace, binding, identity(e.identity()), e.timestamp());
             break;
         }
         }
-    }
-
-    private static String headersAsString(
-        Array32FW<HttpHeaderFW> headers)
-    {
-        StringBuilder sb = new StringBuilder();
-        headers.forEach(h ->
-        {
-            sb.append("[");
-            sb.append(h.name().asString());
-            sb.append(" = ");
-            sb.append(h.value().asString());
-            sb.append("] ");
-        });
-        return sb.toString();
     }
 }
