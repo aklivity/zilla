@@ -18,15 +18,15 @@ package io.aklivity.zilla.runtime.engine.namespace;
 public final class NamespacedId
 {
     public static int namespaceId(
-        long bindingId)
+        long namespacedId)
     {
-        return (int)(bindingId >> Integer.SIZE) & 0xffff_ffff;
+        return (int)(namespacedId >> Integer.SIZE) & 0xffff_ffff;
     }
 
     public static int localId(
-        long bindingId)
+        long namespacedId)
     {
-        return (int)(bindingId >> 0) & 0xffff_ffff;
+        return (int)(namespacedId >> 0) & 0xffff_ffff;
     }
 
     public static long id(

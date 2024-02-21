@@ -187,8 +187,20 @@ public final class Engine implements Collector, AutoCloseable
         final Map<String, Guard> guardsByType = guards.stream()
             .collect(Collectors.toMap(g -> g.name(), g -> g));
 
-        EngineManager manager = new EngineManager(schemaTypes, bindingsByType::get, guardsByType::get,
-            labels::supplyLabelId, maxWorkers, tuning, workers, logger, context, config, extensions, this::readURL);
+        EngineManager manager = new EngineManager(
+            schemaTypes,
+            bindingsByType::get,
+            guardsByType::get,
+            labels::supplyLabelId,
+            labels::lookupLabel,
+            maxWorkers,
+            tuning,
+            workers,
+            logger,
+            context,
+            config,
+            extensions,
+            this::readURL);
 
         this.configURL = config.configURL();
         String protocol = configURL.getProtocol();

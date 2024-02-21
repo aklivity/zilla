@@ -43,7 +43,7 @@ public class AsyncapiClientCompositeBindingAdapter extends AsyncapiCompositeBind
         //TODO: add composite for all servers
         AsyncapiServerView firstServer = AsyncapiServerView.of(asyncApi.servers.entrySet().iterator().next().getValue());
         this.qname = binding.qname;
-        this.qvault = String.format("%s:%s", binding.namespace, binding.vault);
+        this.qvault = binding.qvault;
         this.protocol = resolveProtocol(firstServer.protocol(), options);
         int[] compositeSecurePorts = resolvePortsForScheme(protocol.secureScheme);
         this.isTlsEnabled = compositeSecurePorts != null;
