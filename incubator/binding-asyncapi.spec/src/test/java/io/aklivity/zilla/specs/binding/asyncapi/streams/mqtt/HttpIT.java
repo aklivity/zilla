@@ -39,8 +39,8 @@ public class HttpIT
 
     @Test
     @Specification({
-        "${http}/create.item/client",
-        "${http}/create.item/server"
+        "${http}/create.pets/client",
+        "${http}/create.pets/server"
     })
     public void shouldCreateItem() throws Exception
     {

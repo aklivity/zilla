@@ -53,7 +53,7 @@ public class AsyncapiIT
     @Configuration("server.mqtt.yaml")
     @Specification({
         "${mqtt}/publish.and.subscribe/client",
-        "${asyncapi}/publish.and.subscribe/server"
+        "${asyncapi}/mqtt/publish.and.subscribe/server"
     })
     public void shouldPublishAndSubscribe() throws Exception
     {
@@ -63,8 +63,8 @@ public class AsyncapiIT
     @Test
     @Configuration("server.http.yaml")
     @Specification({
-        "${http}/create.item/client",
-        "${asyncapi}/create.item/server"
+        "${http}/create.pets/client",
+        "${asyncapi}/http/create.pets/server"
     })
     public void shouldCreateItem() throws Exception
     {
