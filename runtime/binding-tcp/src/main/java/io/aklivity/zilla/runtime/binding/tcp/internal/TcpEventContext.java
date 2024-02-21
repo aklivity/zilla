@@ -49,7 +49,7 @@ public class TcpEventContext
         long routedId,
         InetSocketAddress remoteAddress)
     {
-        String address = remoteAddress == null ? "" : remoteAddress.toString();
+        String address = remoteAddress == null ? "" : remoteAddress.getHostString();
         TcpEventFW event = tcpEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .dnsFailed(e -> e
