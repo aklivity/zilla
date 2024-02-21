@@ -18,10 +18,9 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.config;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType.HISTORICAL;
 import static java.util.stream.Collectors.toList;
 
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.function.ToLongFunction;
-import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
@@ -32,20 +31,18 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
-import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 
 public final class KafkaBindingConfig
 {
+    private static final KafkaTopicType DEFAULT_TOPIC_TYPE = new KafkaTopicType();
+
     public final long id;
     public final String name;
     public final KafkaOptionsConfig options;
     public final KindConfig kind;
     public final List<KafkaRouteConfig> routes;
     public final ToLongFunction<String> resolveId;
-    public final Map<String, ConverterHandler> keyReaders;
-    public final Map<String, ConverterHandler> keyWriters;
-    public final Map<String, ConverterHandler> valueReaders;
-    public final Map<String, ConverterHandler> valueWriters;
+    public final List<KafkaTopicType> kafkaTopicTypes;
 
     public KafkaBindingConfig(
         BindingConfig binding,
@@ -57,38 +54,8 @@ public final class KafkaBindingConfig
         this.options = KafkaOptionsConfig.class.cast(binding.options);
         this.routes = binding.routes.stream().map(KafkaRouteConfig::new).collect(toList());
         this.resolveId = binding.resolveId;
-        this.keyReaders = options != null && options.topics != null
-                ? options.topics.stream()
-                .collect(Collectors.toMap(
-                    t -> t.name,
-                    t -> t.key != null
-                        ? context.supplyReadConverter(t.key)
-                        : ConverterHandler.NONE))
-                : null;
-        this.keyWriters = options != null && options.topics != null
-                ? options.topics.stream()
-                .collect(Collectors.toMap(
-                    t -> t.name,
-                    t -> t.key != null
-                        ? context.supplyWriteConverter(t.key)
-                        : ConverterHandler.NONE))
-                : null;
-        this.valueReaders = options != null && options.topics != null
-                ? options.topics.stream()
-                .collect(Collectors.toMap(
-                    t -> t.name,
-                    t -> t.value != null
-                        ? context.supplyReadConverter(t.value)
-                        : ConverterHandler.NONE))
-                : null;
-        this.valueWriters = options != null && options.topics != null
-                ? options.topics.stream()
-                .collect(Collectors.toMap(
-                    t -> t.name,
-                    t -> t.value != null
-                        ? context.supplyWriteConverter(t.value)
-                        : ConverterHandler.NONE))
-                : null;
+        this.kafkaTopicTypes = options != null && options.topics != null
+            ? options.topics.stream().map(t -> new KafkaTopicType(context, t)).collect(toList()) : Collections.emptyList();
     }
 
     public KafkaRouteConfig resolve(
@@ -147,27 +114,18 @@ public final class KafkaBindingConfig
         return config != null && config.defaultOffset != null ? config.defaultOffset : HISTORICAL;
     }
 
-    public ConverterHandler resolveKeyReader(
+    public KafkaTopicType resolveTopicType(
         String topic)
     {
-        return keyReaders != null ? keyReaders.getOrDefault(topic, ConverterHandler.NONE) : ConverterHandler.NONE;
-    }
-
-    public ConverterHandler resolveKeyWriter(
-        String topic)
-    {
-        return keyWriters != null ? keyWriters.getOrDefault(topic, ConverterHandler.NONE) : ConverterHandler.NONE;
-    }
-
-    public ConverterHandler resolveValueReader(
-        String topic)
-    {
-        return valueReaders != null ? valueReaders.getOrDefault(topic, ConverterHandler.NONE) : ConverterHandler.NONE;
-    }
-
-    public ConverterHandler resolveValueWriter(
-        String topic)
-    {
-        return valueWriters != null ? valueWriters.getOrDefault(topic, ConverterHandler.NONE) : ConverterHandler.NONE;
+        KafkaTopicType topicType = DEFAULT_TOPIC_TYPE;
+        for (KafkaTopicType k : kafkaTopicTypes)
+        {
+            if (k.matches(topic))
+            {
+                topicType = k;
+                break;
+            }
+        }
+        return topicType;
     }
 }

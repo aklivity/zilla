@@ -48,6 +48,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartitio
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheTopic;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaRouteConfig;
+import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaTopicType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaAckMode;
@@ -260,11 +261,10 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 final KafkaCache cache = supplyCache.apply(cacheName);
                 final KafkaCacheTopic topic = cache.supplyTopic(topicName);
                 final KafkaCachePartition partition = topic.supplyProducePartition(partitionId, localIndex);
-                final ConverterHandler convertKey = binding.resolveKeyWriter(topicName);
-                final ConverterHandler convertValue = binding.resolveValueWriter(topicName);
+                final KafkaTopicType topicType = binding.resolveTopicType(topicName);
                 final KafkaCacheClientProduceFan newFan =
                         new KafkaCacheClientProduceFan(routedId, resolvedId, authorization, budget,
-                            partition, cacheRoute, topicName, convertKey, convertValue);
+                            partition, cacheRoute, topicName, topicType);
 
                 cacheRoute.clientProduceFansByTopicPartition.put(partitionKey, newFan);
                 fan = newFan;
@@ -537,8 +537,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             KafkaCachePartition partition,
             KafkaCacheRoute cacheRoute,
             String topicName,
-            ConverterHandler convertKey,
-            ConverterHandler convertValue)
+            KafkaTopicType topicType)
         {
             this.originId = originId;
             this.routedId = routedId;
@@ -548,8 +547,8 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             this.budget = budget;
             this.cacheRoute = cacheRoute;
             this.topicName = topicName;
-            this.convertKey = convertKey;
-            this.convertValue = convertValue;
+            this.convertKey = topicType.keyWriter;
+            this.convertValue = topicType.valueWriter;
             this.members = new Long2ObjectHashMap<>();
             this.defaultOffset = KafkaOffsetType.LIVE;
             this.cursor = cursorFactory.newCursor(
