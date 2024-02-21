@@ -20,7 +20,7 @@ import java.util.Map;
 public class OpenApi
 {
     public String openapi;
-    public List<Server> servers;
+    public List<OpenApiServer> servers;
     public Map<String, PathItem> paths;
-    public Components components;
+    public OpenApiComponents components;
 }

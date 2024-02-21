@@ -14,14 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.model;
 
-import java.util.List;
-import java.util.Map;
-
-public class Operation
+public class OpenApiServer
 {
-    public List<Map<String, List<String>>> security;
-    public String operationId;
-    public RequestBody requestBody;
-    public List<Parameter> parameters;
-    public Map<String, ResponseByContentType> responses;
+    public String url;
 }

@@ -14,7 +14,9 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.model;
 
-public class Server
+import java.util.Map;
+
+public class OpenApiRequestBody
 {
-    public String url;
+    public Map<String, OpenApiMediaType> content;
 }

@@ -18,14 +18,14 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public abstract class Resolvable<T>
+public abstract class OpenApiResolvable<T>
 {
     private final Map<String, T> map;
     private final Matcher matcher;
 
     protected String key;
 
-    public Resolvable(
+    public OpenApiResolvable(
         Map<String, T> map,
         String regex)
     {

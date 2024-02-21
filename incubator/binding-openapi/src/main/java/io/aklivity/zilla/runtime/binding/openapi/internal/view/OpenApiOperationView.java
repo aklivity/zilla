@@ -16,18 +16,18 @@ package io.aklivity.zilla.runtime.binding.openapi.internal.view;
 
 import java.util.Map;
 
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.Operation;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenApiOperation;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.ResponseByContentType;
 
-public final class OperationView
+public final class OpenApiOperationView
 {
     public static final String DEFAULT = "default";
 
-    private final Operation operation;
+    private final OpenApiOperation operation;
     private final boolean hasResponses;
 
-    private OperationView(
-        Operation operation)
+    private OpenApiOperationView(
+        OpenApiOperation operation)
     {
         this.operation = operation;
         this.hasResponses = initHasResponses();
@@ -62,9 +62,9 @@ public final class OperationView
         return result;
     }
 
-    public static OperationView of(
-        Operation operation)
+    public static OpenApiOperationView of(
+        OpenApiOperation operation)
     {
-        return new OperationView(operation);
+        return new OpenApiOperationView(operation);
     }
 }

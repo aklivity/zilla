@@ -18,6 +18,6 @@ import java.util.Map;
 
 public class ResponseByContentType
 {
-    public Map<String, Header> headers;
-    public Map<String, Response> content;
+    public Map<String, OpenApiHeader> headers;
+    public Map<String, OpenApiResponse> content;
 }

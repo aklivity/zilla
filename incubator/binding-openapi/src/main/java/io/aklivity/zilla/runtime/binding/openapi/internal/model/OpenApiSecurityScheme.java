@@ -14,10 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.model;
 
-import java.util.Map;
-
-public class Components
+public class OpenApiSecurityScheme
 {
-    public Map<String, SecurityScheme> securitySchemes;
-    public Map<String, Schema> schemas;
+    public String bearerFormat;
 }

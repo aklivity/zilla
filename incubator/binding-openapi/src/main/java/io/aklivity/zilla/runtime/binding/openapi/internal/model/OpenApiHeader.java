@@ -14,18 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.model;
 
-import java.util.List;
-import java.util.Map;
-
-import jakarta.json.bind.annotation.JsonbProperty;
-
-public class Schema
+public class OpenApiHeader
 {
-    public String type;
-    public Schema items;
-    public Map<String, Item> properties;
-    public List<String> required;
-
-    @JsonbProperty("$ref")
-    public String ref;
+    public OpenApiSchema schema;
 }

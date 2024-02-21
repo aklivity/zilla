@@ -14,7 +14,10 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.model;
 
-public class SecurityScheme
+public class OpenApiParameter
 {
-    public String bearerFormat;
+    public String name;
+    public String in;
+    public boolean required;
+    public OpenApiSchema schema;
 }

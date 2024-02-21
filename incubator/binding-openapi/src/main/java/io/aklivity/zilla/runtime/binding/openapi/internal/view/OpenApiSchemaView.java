@@ -19,8 +19,8 @@ import java.util.Map;
 
 import jakarta.json.bind.annotation.JsonbPropertyOrder;
 
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.Item;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.Schema;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenApiItem;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenApiSchema;
 
 @JsonbPropertyOrder({
     "type",
@@ -28,16 +28,16 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.model.Schema;
     "properties",
     "required"
 })
-public final class SchemaView extends Resolvable<Schema>
+public final class OpenApiSchemaView extends OpenApiResolvable<OpenApiSchema>
 {
     private static final String ARRAY_TYPE = "array";
 
-    private final Schema schema;
-    private final Map<String, Schema> schemas;
+    private final OpenApiSchema schema;
+    private final Map<String, OpenApiSchema> schemas;
 
-    private SchemaView(
-        Map<String, Schema> schemas,
-        Schema schema)
+    private OpenApiSchemaView(
+        Map<String, OpenApiSchema> schemas,
+        OpenApiSchema schema)
     {
         super(schemas, "#/components/schemas/(\\w+)");
         if (schema.ref != null)
@@ -62,12 +62,12 @@ public final class SchemaView extends Resolvable<Schema>
         return schema.type;
     }
 
-    public SchemaView getItems()
+    public OpenApiSchemaView getItems()
     {
-        return schema.items == null ? null : SchemaView.of(schemas, schema.items);
+        return schema.items == null ? null : OpenApiSchemaView.of(schemas, schema.items);
     }
 
-    public Map<String, Item> getProperties()
+    public Map<String, OpenApiItem> getProperties()
     {
         return schema.properties;
     }
@@ -77,10 +77,10 @@ public final class SchemaView extends Resolvable<Schema>
         return schema.required;
     }
 
-    public static SchemaView of(
-        Map<String, Schema> schemas,
-        Schema schema)
+    public static OpenApiSchemaView of(
+        Map<String, OpenApiSchema> schemas,
+        OpenApiSchema schema)
     {
-        return new SchemaView(schemas, schema);
+        return new OpenApiSchemaView(schemas, schema);
     }
 }

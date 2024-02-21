@@ -14,9 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.model;
 
-import java.util.Map;
-
-public class RequestBody
+public class OpenApiBearerAuth
 {
-    public Map<String, MediaType> content;
+    public String bearerFormat;
 }

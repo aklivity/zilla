@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.model;
 
-public class BearerAuth
+public class OpenApiResponse
 {
-    public String bearerFormat;
+    public OpenApiSchema schema;
 }

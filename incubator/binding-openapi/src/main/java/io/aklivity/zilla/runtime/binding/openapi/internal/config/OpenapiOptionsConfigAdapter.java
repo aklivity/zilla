@@ -14,13 +14,14 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.config;
 
+import static java.util.Collections.unmodifiableMap;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.InputStream;
-import java.io.Reader;
 import java.io.StringReader;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 import jakarta.json.Json;
@@ -33,12 +34,9 @@ import jakarta.json.JsonValue;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
-import jakarta.json.spi.JsonProvider;
-import jakarta.json.stream.JsonParser;
 
-import org.agrona.collections.IntArrayList;
+import org.agrona.collections.Object2ObjectHashMap;
 import org.leadpony.justify.api.JsonSchema;
-import org.leadpony.justify.api.JsonSchemaReader;
 import org.leadpony.justify.api.JsonValidationService;
 import org.leadpony.justify.api.ProblemHandler;
 
@@ -55,7 +53,6 @@ import io.aklivity.zilla.runtime.engine.config.ConfigException;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapter;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
-import io.aklivity.zilla.runtime.engine.internal.config.schema.UniquePropertyKeysSchema;
 
 public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
@@ -63,10 +60,21 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
     private static final String TLS_NAME = "tls";
     private static final String HTTP_NAME = "http";
     private static final String SPECS_NAME = "specs";
+
+    private final Map<String, JsonSchema> schemas;
+
     private OptionsConfigAdapter tcpOptions;
     private OptionsConfigAdapter tlsOptions;
     private OptionsConfigAdapter httpOptions;
     private Function<String, String> readURL;
+
+    public OpenapiOptionsConfigAdapter()
+    {
+        Map<String, JsonSchema> schemas = new Object2ObjectHashMap<>();
+        schemas.put("3.0.0", schema("3.0.0"));
+        schemas.put("3.1.0", schema("3.1.0"));
+        this.schemas = unmodifiableMap(schemas);
+    }
 
     @Override
     public Kind kind()
@@ -185,22 +193,14 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
         try
         {
             String openApiVersion = detectOpenApiVersion(openapiText);
-            InputStream schemaInput = selectSchemaPathForVersion(openApiVersion);
-
-            JsonProvider schemaProvider = JsonProvider.provider();
-            JsonParser schemaParser = schemaProvider.createParserFactory(null)
-                .createParser(schemaInput);
 
             JsonValidationService service = JsonValidationService.newInstance();
             ProblemHandler handler = service.createProblemPrinter(msg -> errors.add(new ConfigException(msg)));
-            JsonSchemaReader validator = service.createSchemaReader(schemaParser);
-            JsonSchema schema = new UniquePropertyKeysSchema(validator.read());
+            JsonSchema schema = schemas.get(openApiVersion);
 
-            JsonProvider provider = service.createJsonProvider(schema, parser -> handler);
+            service.createReader(new StringReader(openapiText), schema, handler).read();
 
-            Jsonb jsonb = JsonbBuilder.newBuilder()
-                .withProvider(provider)
-                .build();
+            Jsonb jsonb = JsonbBuilder.create();
 
             openApi = jsonb.fromJson(openapiText, OpenApi.class);
         }
@@ -240,20 +240,25 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
         }
     }
 
-    private InputStream selectSchemaPathForVersion(
+    private JsonSchema schema(
         String version)
     {
+        InputStream schemaInput = null;
         if (version.startsWith("3.0"))
         {
-            return OpenapiBinding.class.getResourceAsStream("schema/openapi.3.0.schema.json");
+            schemaInput = OpenapiBinding.class.getResourceAsStream("schema/openapi.3.0.schema.json");
         }
         else if (version.startsWith("3.1"))
         {
-            return OpenapiBinding.class.getResourceAsStream("schema/openapi.3.1.schema.json");
+            schemaInput =  OpenapiBinding.class.getResourceAsStream("schema/openapi.3.1.schema.json");
         }
-        else
-        {
-            throw new IllegalArgumentException("Unsupported OpenAPI version: " + version);
-        }
+
+        JsonValidationService service = JsonValidationService.newInstance();
+
+        return service.createSchemaReaderFactoryBuilder()
+                .withSpecVersionDetection(true)
+                .build()
+                .createSchemaReader(schemaInput)
+                .read();
     }
 }

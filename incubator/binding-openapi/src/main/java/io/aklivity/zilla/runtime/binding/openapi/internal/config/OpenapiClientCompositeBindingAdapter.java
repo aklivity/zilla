@@ -28,16 +28,16 @@ import io.aklivity.zilla.runtime.binding.http.config.HttpResponseConfigBuilder;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiBinding;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.Header;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenApiHeader;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenApi;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.Response;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenApiResponse;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.ResponseByContentType;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.Server;
-import io.aklivity.zilla.runtime.binding.openapi.internal.view.OperationView;
-import io.aklivity.zilla.runtime.binding.openapi.internal.view.OperationsView;
-import io.aklivity.zilla.runtime.binding.openapi.internal.view.PathView;
-import io.aklivity.zilla.runtime.binding.openapi.internal.view.SchemaView;
-import io.aklivity.zilla.runtime.binding.openapi.internal.view.ServerView;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenApiServer;
+import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenApiOperationView;
+import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenApiOperationsView;
+import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenApiPathView;
+import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenApiSchemaView;
+import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenApiServerView;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
@@ -119,9 +119,9 @@ public final class OpenapiClientCompositeBindingAdapter implements CompositeBind
     {
         requireNonNull(scheme);
         URI result = null;
-        for (Server item : openApi.servers)
+        for (OpenApiServer item : openApi.servers)
         {
-            ServerView server = ServerView.of(item);
+            OpenApiServerView server = OpenApiServerView.of(item);
             if (scheme.equals(server.url().getScheme()))
             {
                 result = server.url();
@@ -135,7 +135,7 @@ public final class OpenapiClientCompositeBindingAdapter implements CompositeBind
         BindingConfigBuilder<C> binding,
         OpenApi openApi)
     {
-        OperationsView operations = OperationsView.of(openApi.paths);
+        OpenApiOperationsView operations = OpenApiOperationsView.of(openApi.paths);
         if (operations.hasResponses())
         {
             binding.
@@ -147,16 +147,16 @@ public final class OpenapiClientCompositeBindingAdapter implements CompositeBind
     }
 
     private <C> HttpOptionsConfigBuilder<C> injectHttpClientRequests(
-        OperationsView operations,
+        OpenApiOperationsView operations,
         HttpOptionsConfigBuilder<C> options,
         OpenApi openApi)
     {
         for (String pathName : openApi.paths.keySet())
         {
-            PathView path = PathView.of(openApi.paths.get(pathName));
+            OpenApiPathView path = OpenApiPathView.of(openApi.paths.get(pathName));
             for (String methodName : path.methods().keySet())
             {
-                OperationView operation = operations.operation(pathName, methodName);
+                OpenApiOperationView operation = operations.operation(pathName, methodName);
                 if (operation.hasResponses())
                 {
                     options
@@ -174,7 +174,7 @@ public final class OpenapiClientCompositeBindingAdapter implements CompositeBind
 
     private <C> HttpRequestConfigBuilder<C> injectResponses(
         HttpRequestConfigBuilder<C> request,
-        OperationView operation,
+        OpenApiOperationView operation,
         OpenApi openApi)
     {
         if (operation != null && operation.responsesByStatus() != null)
@@ -183,11 +183,11 @@ public final class OpenapiClientCompositeBindingAdapter implements CompositeBind
             {
                 String status = responses0.getKey();
                 ResponseByContentType responses1 = responses0.getValue();
-                if (!(OperationView.DEFAULT.equals(status)) && responses1.content != null)
+                if (!(OpenApiOperationView.DEFAULT.equals(status)) && responses1.content != null)
                 {
-                    for (Map.Entry<String, Response> response2 : responses1.content.entrySet())
+                    for (Map.Entry<String, OpenApiResponse> response2 : responses1.content.entrySet())
                     {
-                        SchemaView schema = SchemaView.of(openApi.components.schemas, response2.getValue().schema);
+                        OpenApiSchemaView schema = OpenApiSchemaView.of(openApi.components.schemas, response2.getValue().schema);
                         request
                             .response()
                                 .status(Integer.parseInt(status))
@@ -215,7 +215,7 @@ public final class OpenapiClientCompositeBindingAdapter implements CompositeBind
     {
         if (responses.headers != null && !responses.headers.isEmpty())
         {
-            for (Map.Entry<String, Header> header : responses.headers.entrySet())
+            for (Map.Entry<String, OpenApiHeader> header : responses.headers.entrySet())
             {
                 String name = header.getKey();
                 ModelConfig model = models.get(header.getValue().schema.type);

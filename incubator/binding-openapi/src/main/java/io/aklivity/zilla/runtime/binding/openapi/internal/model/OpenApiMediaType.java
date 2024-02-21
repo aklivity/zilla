@@ -14,10 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.model;
 
-public class Parameter
+public class OpenApiMediaType
 {
-    public String name;
-    public String in;
-    public boolean required;
-    public Schema schema;
+    public OpenApiSchema schema;
 }

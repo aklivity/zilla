@@ -14,7 +14,14 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.model;
 
-public class Header
+import java.util.List;
+import java.util.Map;
+
+public class OpenApiOperation
 {
-    public Schema schema;
+    public List<Map<String, List<String>>> security;
+    public String operationId;
+    public OpenApiRequestBody requestBody;
+    public List<OpenApiParameter> parameters;
+    public Map<String, ResponseByContentType> responses;
 }
