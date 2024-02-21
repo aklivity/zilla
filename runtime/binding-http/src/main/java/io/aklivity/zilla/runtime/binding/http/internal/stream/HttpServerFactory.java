@@ -1059,7 +1059,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                             if (credentialsMatch != null)
                             {
                                 exchangeAuth = guard.reauthorize(server.initialId, credentialsMatch);
-                                event.authorization(exchangeAuth, traceId, server.routedId, guard.identity(authorization));
+                                event.authorizationFailure(exchangeAuth, traceId, server.routedId, guard.identity(authorization));
                             }
                         }
 
@@ -4974,7 +4974,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                             if (credentialsMatch != null)
                             {
                                 exchangeAuth = guard.reauthorize(initialId, credentialsMatch);
-                                event.authorization(exchangeAuth, traceId, routedId, guard.identity(authorization));
+                                event.authorizationFailure(exchangeAuth, traceId, routedId, guard.identity(authorization));
                             }
                         }
 

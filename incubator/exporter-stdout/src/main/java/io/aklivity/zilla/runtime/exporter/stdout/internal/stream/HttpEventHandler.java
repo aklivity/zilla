@@ -21,18 +21,16 @@ import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.HttpHeaderFW;
-import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.HttpAuthorizationFW;
+import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.HttpAuthorizationFailureFW;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.HttpEventFW;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.HttpRequestFW;
 
 public class HttpEventHandler extends EventHandler
 {
-    private static final String HTTP_AUTHORIZATION_FORMAT =
-        "HTTP Authorization %s [timestamp = %d] [traceId = 0x%016x] [binding = %s.%s] [identity = %s]%n";
+    private static final String HTTP_AUTHORIZATION_FAILURE_FORMAT =
+        "HTTP Authorization Failure [timestamp = %d] [traceId = 0x%016x] [binding = %s.%s] [identity = %s]%n";
     private static final String HTTP_REQUEST_FORMAT =
         "HTTP Request [timestamp = %d] [traceId = 0x%016x] [binding = %s.%s] %s%n";
-    private static final String HTTP_RESPONSE_FORMAT =
-        "HTTP Response [timestamp = %d] [traceId = 0x%016x] [binding = %s.%s] %s%n";
 
     private final HttpEventFW httpEventRO = new HttpEventFW();
 
@@ -53,13 +51,12 @@ public class HttpEventHandler extends EventHandler
         final HttpEventFW event = httpEventRO.wrap(buffer, index, index + length);
         switch (event.kind())
         {
-        case AUTHORIZATION:
+        case AUTHORIZATION_FAILURE:
         {
-            HttpAuthorizationFW e = event.authorization();
+            HttpAuthorizationFailureFW e = event.authorizationFailure();
             String namespace = supplyNamespace.apply(e.namespacedId());
             String binding = supplyLocalName.apply(e.namespacedId());
-            out.printf(HTTP_AUTHORIZATION_FORMAT, result(e.result()), e.timestamp(), e.traceId(), namespace,
-                binding, asString(e.identity()));
+            out.printf(HTTP_AUTHORIZATION_FAILURE_FORMAT, e.timestamp(), e.traceId(), namespace, binding, asString(e.identity()));
             break;
         }
         case REQUEST:
