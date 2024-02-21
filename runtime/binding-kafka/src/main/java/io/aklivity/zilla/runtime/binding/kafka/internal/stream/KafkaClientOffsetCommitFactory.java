@@ -589,7 +589,7 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
             }
             else
             {
-                onDecodeResponseErrorCode(traceId, errorCode);
+                client.onDecodeResponseErrorCode(traceId, errorCode);
                 client.errorCode = errorCode;
                 client.decoder = decodeReject;
             }

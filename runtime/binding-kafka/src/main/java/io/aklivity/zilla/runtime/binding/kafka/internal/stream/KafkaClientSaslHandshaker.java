@@ -427,6 +427,16 @@ public abstract class KafkaClientSaslHandshaker
             doDecodeSaslAuthenticateResponse(traceId);
         }
 
+        protected final void onDecodeResponseErrorCode(
+            long traceId,
+            int errorCode)
+        {
+            if (errorCode == ERROR_UNSUPPORTED_VERSION)
+            {
+                event.apiVersionRejected(traceId);
+            }
+        }
+
         protected abstract void doNetworkData(
             long traceId,
             long budgetId,
@@ -832,16 +842,6 @@ public abstract class KafkaClientSaslHandshaker
     {
         String clientId = clientIdSupplier.get(server.host);
         return clientId != null ? new String16FW(clientId) : KAFKA_CLIENT_ID_DEFAULT_VALUE;
-    }
-
-    protected void onDecodeResponseErrorCode(
-        long traceId,
-        int errorCode)
-    {
-        if (errorCode == ERROR_UNSUPPORTED_VERSION)
-        {
-            event.apiVersionRejected(traceId);
-        }
     }
 
     public byte[] hmac(byte[] key, byte[] bytes)

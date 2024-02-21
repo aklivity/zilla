@@ -878,7 +878,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                         findCoordinatorResponse.host(), findCoordinatorResponse.port());
                     break;
                 default:
-                    onDecodeResponseErrorCode(traceId, errorCode);
+                    client.onDecodeResponseErrorCode(traceId, errorCode);
                     client.errorCode = errorCode;
                     client.decoder = decodeClusterReject;
                     break;
@@ -1013,7 +1013,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                         joinGroupResponse.memberId().asString());
                     break;
                 default:
-                    onDecodeResponseErrorCode(traceId, errorCode);
+                    client.onDecodeResponseErrorCode(traceId, errorCode);
                     client.errorCode = errorCode;
                     client.decoder = decodeCoordinatorReject;
                     break;
@@ -1073,7 +1073,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                     client.onSyncGroupResponse(traceId, authorization, syncGroupResponse.assignment());
                     break;
                 default:
-                    onDecodeResponseErrorCode(traceId, errorCode);
+                    client.onDecodeResponseErrorCode(traceId, errorCode);
                     client.errorCode = errorCode;
                     client.decoder = decodeCoordinatorReject;
                     break;
@@ -1136,7 +1136,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                     client.onHeartbeatResponse(traceId, authorization);
                     break;
                 default:
-                    onDecodeResponseErrorCode(traceId, errorCode);
+                    client.onDecodeResponseErrorCode(traceId, errorCode);
                     client.errorCode = errorCode;
                     client.decoder = decodeCoordinatorReject;
                     break;
@@ -1201,7 +1201,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                             }
                             else
                             {
-                                onDecodeResponseErrorCode(traceId, errorCode);
+                                client.onDecodeResponseErrorCode(traceId, errorCode);
                                 client.errorCode = errorCode;
                                 client.decoder = decodeCoordinatorReject;
                             }
@@ -1216,7 +1216,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 }
                 else
                 {
-                    onDecodeResponseErrorCode(traceId, errorCode);
+                    client.onDecodeResponseErrorCode(traceId, errorCode);
                     client.errorCode = errorCode;
                     client.decoder = decodeCoordinatorReject;
                 }
