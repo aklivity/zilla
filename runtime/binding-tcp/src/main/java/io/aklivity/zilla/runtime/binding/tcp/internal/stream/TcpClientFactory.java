@@ -259,26 +259,29 @@ public class TcpClientFactory implements TcpStreamFactory
         {
             try
             {
-                state = TcpState.openingInitial(state);
-                net.setOption(SO_KEEPALIVE, options != null && options.keepalive);
+                try
+                {
+                    state = TcpState.openingInitial(state);
+                    net.setOption(SO_KEEPALIVE, options != null && options.keepalive);
 
-                if (net.connect(remoteAddress))
-                {
-                    onNetConnected();
+                    if (net.connect(remoteAddress))
+                    {
+                        onNetConnected();
+                    }
+                    else
+                    {
+                        networkKey = supplyPollerKey.apply(net);
+                        networkKey.handler(OP_CONNECT, this::onNetConnect);
+                        networkKey.register(OP_CONNECT);
+                    }
                 }
-                else
+                catch (UnresolvedAddressException ex)
                 {
-                    networkKey = supplyPollerKey.apply(net);
-                    networkKey.handler(OP_CONNECT, this::onNetConnect);
-                    networkKey.register(OP_CONNECT);
+                    event.dnsResolutionFailed(traceId, routedId, remoteAddress);
+                    throw ex;
                 }
             }
-            catch (UnresolvedAddressException ex)
-            {
-                event.dnsResolutionFailed(traceId, routedId, remoteAddress);
-                onNetRejected();
-            }
-            catch (IOException ex)
+            catch (UnresolvedAddressException | IOException ex)
             {
                 onNetRejected();
             }
@@ -292,11 +295,6 @@ public class TcpClientFactory implements TcpStreamFactory
                 key.clear(OP_CONNECT);
                 net.finishConnect();
                 onNetConnected();
-            }
-            catch (UnresolvedAddressException ex)
-            {
-                event.dnsResolutionFailed(0L, routedId, null);
-                onNetRejected();
             }
             catch (IOException ex)
             {
