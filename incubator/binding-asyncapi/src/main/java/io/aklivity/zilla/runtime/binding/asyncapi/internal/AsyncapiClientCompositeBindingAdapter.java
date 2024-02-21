@@ -19,14 +19,12 @@ import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiServerView;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiView;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.CompositeBindingAdapterSpi;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 
 public class AsyncapiClientCompositeBindingAdapter extends AsyncapiCompositeBindingAdapter implements CompositeBindingAdapterSpi
 {
-
     @Override
     public String type()
     {

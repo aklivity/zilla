@@ -57,6 +57,13 @@ public final class KafkaBindingConfig
         this.options = KafkaOptionsConfig.class.cast(binding.options);
         this.routes = binding.routes.stream().map(KafkaRouteConfig::new).collect(toList());
         this.resolveId = binding.resolveId;
+
+        // List<KafkaTopicType>
+        // KafkaTopicType(matcher, keyReader, keyWriter, valueReader, valueWriter): ConverterHandlers default to NONE
+        // KafkaBindingConfig.resolveTopic(String topic) KafkaTopicType
+        // Create default KafkaTopicType with NONE converhandlers that we can return for every non-configured topic
+        // resolve once in the FetchFactory.newStream
+        // .replaceAll("\\{[^}]+\\}", "[^/]+") should be called when we create the matchers
         this.keyReaders = options != null && options.topics != null
                 ? options.topics.stream()
                 .collect(Collectors.toMap(

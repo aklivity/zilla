@@ -58,8 +58,8 @@ public class AsyncapiIT
 
     @Test
     @Specification({
-        "${asyncapi}/produce.message/client",
-        "${asyncapi}/produce.message/server"
+        "${asyncapi}/kafka/produce.message/client",
+        "${asyncapi}/kafka/produce.message/server"
     })
     public void shouldProduceMessage() throws Exception
     {

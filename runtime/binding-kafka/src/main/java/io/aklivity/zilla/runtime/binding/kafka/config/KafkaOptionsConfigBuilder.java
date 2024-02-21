@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.config;
 
-
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
@@ -34,6 +34,9 @@ public final class KafkaOptionsConfigBuilder<T> extends ConfigBuilder<T, KafkaOp
         Function<OptionsConfig, T> mapper)
     {
         this.mapper = mapper;
+        this.topics = new ArrayList<>();
+        this.servers = new ArrayList<>();
+        this.bootstrap = new ArrayList<>();
     }
 
     @Override
@@ -55,6 +58,19 @@ public final class KafkaOptionsConfigBuilder<T> extends ConfigBuilder<T, KafkaOp
     {
         this.topics = topics;
         return this;
+    }
+
+    public KafkaOptionsConfigBuilder<T> topic(
+        KafkaTopicConfig topic)
+    {
+        this.topics.add(topic);
+        return this;
+    }
+
+    public <C extends ConfigBuilder<KafkaOptionsConfigBuilder<T>, C>> C topic(
+        Function<Function<KafkaTopicConfig, KafkaOptionsConfigBuilder<T>>, C> topic)
+    {
+        return topic.apply(this::topic);
     }
 
     public KafkaOptionsConfigBuilder<T> servers(

@@ -25,6 +25,9 @@ servers:
     host: http://localhost:8080
     protocol: http
     protocolVersion: '2.0'
+    security:
+      - httpBearerToken:
+          - public
 defaultContentType: application/json
 
 channels:

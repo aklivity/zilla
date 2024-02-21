@@ -84,7 +84,7 @@ public class AsyncapiIT
     @Test
     @Configuration("client.kafka.yaml")
     @Specification({
-        "${asyncapi}/produce.message/client",
+        "${asyncapi}/kafka/produce.message/client",
         "${kafka}/produce.message/server"
     })
     @Configure(name = ASYNCAPI_TARGET_ROUTE_ID_NAME, value = "4294967300")

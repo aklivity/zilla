@@ -26,4 +26,4 @@ bindings:
       tcp:
         host: localhost
         port:
-          - 7183
+          - 9092
