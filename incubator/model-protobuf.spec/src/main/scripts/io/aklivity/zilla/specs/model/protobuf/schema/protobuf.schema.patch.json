@@ -62,7 +62,8 @@
                                             },
                                             "required":
                                             [
-                                                "id"
+                                                "id",
+                                                "record"
                                             ],
                                             "additionalProperties": false
                                         },
@@ -86,7 +87,8 @@
                                             },
                                             "required":
                                             [
-                                                "schema"
+                                                "schema",
+                                                "record"
                                             ],
                                             "additionalProperties": false
                                         },
@@ -110,7 +112,8 @@
                                             },
                                             "required":
                                             [
-                                                "strategy"
+                                                "strategy",
+                                                "record"
                                             ],
                                             "additionalProperties": false
                                         },
@@ -134,7 +137,8 @@
                                             },
                                             "required":
                                             [
-                                                "subject"
+                                                "subject",
+                                                "record"
                                             ],
                                             "additionalProperties": false
                                         }
@@ -145,6 +149,10 @@
                         "maxProperties": 1
                     }
                 },
+                "required":
+                [
+                    "catalog"
+                ],
                 "additionalProperties": false
             }
         }
