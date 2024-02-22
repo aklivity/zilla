@@ -130,7 +130,7 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
                         .inject(o -> this.injectHttpServerOptions(o, authorization, hasJwt))
                         .inject(r -> this.injectHttpServerRequests(r, openApi))
                         .build()
-                    .inject(b -> this.injectHttpServerRoutes(b, openApi, guardName, securitySchemes))
+                    .inject(b -> this.injectHttpServerRoutes(b, openApi, binding.qname, guardName, securitySchemes))
                     .build()
                 .build()
             .build();
@@ -300,6 +300,7 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
     private <C> BindingConfigBuilder<C> injectHttpServerRoutes(
         BindingConfigBuilder<C> binding,
         OpenApi openApi,
+        String qname,
         String guardName,
         Map<String, String> securitySchemes)
     {
@@ -310,7 +311,7 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
             {
                 binding
                     .route()
-                        .exit("http_client0")
+                        .exit(qname)
                         .when(HttpConditionConfig::builder)
                             .header(":path", item.replaceAll("\\{[^}]+\\}", "*"))
                             .header(":method", method)
