@@ -15,10 +15,10 @@
 package io.aklivity.zilla.runtime.exporter.stdout.internal.stream;
 
 import java.io.PrintStream;
-import java.util.function.LongFunction;
 
 import org.agrona.DirectBuffer;
 
+import io.aklivity.zilla.runtime.exporter.stdout.internal.StdoutExporterContext;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.KafkaEventFW;
 
@@ -30,10 +30,10 @@ public class StdoutKafkaHandler extends EventHandler
     private final KafkaEventFW kafkaEventRO = new KafkaEventFW();
 
     public StdoutKafkaHandler(
-        LongFunction<String> supplyQName,
+        StdoutExporterContext context,
         PrintStream out)
     {
-        super(supplyQName, out);
+        super(context, out);
     }
 
     public void handleEvent(
@@ -48,14 +48,14 @@ public class StdoutKafkaHandler extends EventHandler
         case AUTHORIZATION_FAILED:
         {
             EventFW e = event.authorizationFailed();
-            String qname = supplyQName.apply(e.namespacedId());
+            String qname = context.supplyQName(e.namespacedId());
             out.printf(AUTHORIZATION_FAILED_FORMAT, qname, asDateTime(e.timestamp()));
             break;
         }
         case API_VERSION_REJECTED:
         {
             EventFW e = event.apiVersionRejected();
-            String qname = supplyQName.apply(e.namespacedId());
+            String qname = context.supplyQName(e.namespacedId());
             out.printf(API_VERSION_REJECTED_FORMAT, qname, asDateTime(e.timestamp()));
             break;
         }

@@ -15,10 +15,10 @@
 package io.aklivity.zilla.runtime.exporter.stdout.internal.stream;
 
 import java.io.PrintStream;
-import java.util.function.LongFunction;
 
 import org.agrona.DirectBuffer;
 
+import io.aklivity.zilla.runtime.exporter.stdout.internal.StdoutExporterContext;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.TlsEventFW;
 
@@ -33,10 +33,10 @@ public class StdoutTlsHandler extends EventHandler
     private final TlsEventFW tlsEventRO = new TlsEventFW();
 
     public StdoutTlsHandler(
-        LongFunction<String> supplyQName,
+        StdoutExporterContext context,
         PrintStream out)
     {
-        super(supplyQName, out);
+        super(context, out);
     }
 
     public void handleEvent(
@@ -51,35 +51,35 @@ public class StdoutTlsHandler extends EventHandler
         case TLS_FAILED:
         {
             EventFW e = event.tlsFailed();
-            String qname = supplyQName.apply(e.namespacedId());
+            String qname = context.supplyQName(e.namespacedId());
             out.printf(TLS_FAILED_FORMAT, qname, asDateTime(e.timestamp()));
             break;
         }
         case TLS_PROTOCOL_REJECTED:
         {
             EventFW e = event.tlsProtocolRejected();
-            String qname = supplyQName.apply(e.namespacedId());
+            String qname = context.supplyQName(e.namespacedId());
             out.printf(PROTOCOL_REJECTED_FORMAT, qname, asDateTime(e.timestamp()));
             break;
         }
         case TLS_KEY_REJECTED:
         {
             EventFW e = event.tlsKeyRejected();
-            String qname = supplyQName.apply(e.namespacedId());
+            String qname = context.supplyQName(e.namespacedId());
             out.printf(KEY_REJECTED_FORMAT, qname, asDateTime(e.timestamp()));
             break;
         }
         case TLS_PEER_NOT_VERIFIED:
         {
             EventFW e = event.tlsPeerNotVerified();
-            String qname = supplyQName.apply(e.namespacedId());
+            String qname = context.supplyQName(e.namespacedId());
             out.printf(PEER_NOT_VERIFIED_FORMAT, qname, asDateTime(e.timestamp()));
             break;
         }
         case TLS_HANDSHAKE_FAILED:
         {
             EventFW e = event.tlsHandshakeFailed();
-            String qname = supplyQName.apply(e.namespacedId());
+            String qname = context.supplyQName(e.namespacedId());
             out.printf(HANDSHAKE_FAILED_FORMAT, qname, asDateTime(e.timestamp()));
             break;
         }

@@ -23,7 +23,7 @@ import io.aklivity.zilla.runtime.exporter.stdout.internal.stream.StdoutEventsStr
 
 public class StdoutExporterHandler implements ExporterHandler
 {
-    private final EngineContext context;
+    private final StdoutExporterContext context;
     private final PrintStream out;
 
     private StdoutEventsStream stdoutEventsStream;
@@ -33,15 +33,14 @@ public class StdoutExporterHandler implements ExporterHandler
         EngineContext context,
         StdoutExporterConfig exporter)
     {
-        this.context = context;
+        this.context = new StdoutExporterContext(config, context);
         this.out = config.output();
     }
 
     @Override
     public void start()
     {
-        stdoutEventsStream = new StdoutEventsStream(context.supplyEventReader(), context::supplyQName,
-            context::supplyTypeId, out);
+        stdoutEventsStream = new StdoutEventsStream(context, out);
     }
 
     @Override

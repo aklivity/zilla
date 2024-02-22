@@ -19,24 +19,24 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.function.LongFunction;
 
 import org.agrona.DirectBuffer;
 
+import io.aklivity.zilla.runtime.exporter.stdout.internal.StdoutExporterContext;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.StringFW;
 
 public abstract class EventHandler
 {
     protected static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd/MMM/yyyy:HH:mm:ss Z");
 
-    protected final LongFunction<String> supplyQName;
+    protected final StdoutExporterContext context;
     protected final PrintStream out;
 
     public EventHandler(
-        LongFunction<String> supplyQName,
+        StdoutExporterContext context,
         PrintStream out)
     {
-        this.supplyQName = supplyQName;
+        this.context = context;
         this.out = out;
     }
 

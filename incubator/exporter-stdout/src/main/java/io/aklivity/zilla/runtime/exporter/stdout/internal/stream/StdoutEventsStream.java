@@ -15,14 +15,13 @@
 package io.aklivity.zilla.runtime.exporter.stdout.internal.stream;
 
 import java.io.PrintStream;
-import java.util.function.LongFunction;
-import java.util.function.ToIntFunction;
 
 import org.agrona.DirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageReader;
+import io.aklivity.zilla.runtime.exporter.stdout.internal.StdoutExporterContext;
 
 public class StdoutEventsStream
 {
@@ -30,21 +29,19 @@ public class StdoutEventsStream
     private final Int2ObjectHashMap<MessageConsumer> eventHandlers;
 
     public StdoutEventsStream(
-        MessageReader readEvent,
-        LongFunction<String> supplyQName,
-        ToIntFunction<String> supplyTypeId,
+        StdoutExporterContext context,
         PrintStream out)
     {
-        this.readEvent = readEvent;
+        this.readEvent = context.supplyEventReader();
 
         final Int2ObjectHashMap<MessageConsumer> eventHandlers = new Int2ObjectHashMap<>();
-        eventHandlers.put(supplyTypeId.applyAsInt("http"), new StdoutHttpHandler(supplyQName, out)::handleEvent);
-        eventHandlers.put(supplyTypeId.applyAsInt("kafka"), new StdoutKafkaHandler(supplyQName, out)::handleEvent);
-        eventHandlers.put(supplyTypeId.applyAsInt("mqtt"), new StdoutMqttHandler(supplyQName, out)::handleEvent);
-        eventHandlers.put(supplyTypeId.applyAsInt("schema-registry"),
-            new StdoutSchemaRegistryHandler(supplyQName, out)::handleEvent);
-        eventHandlers.put(supplyTypeId.applyAsInt("tcp"), new StdoutTcpHandler(supplyQName, out)::handleEvent);
-        eventHandlers.put(supplyTypeId.applyAsInt("tls"), new StdoutTlsHandler(supplyQName, out)::handleEvent);
+        eventHandlers.put(context.supplyTypeId("http"), new StdoutHttpHandler(context, out)::handleEvent);
+        eventHandlers.put(context.supplyTypeId("kafka"), new StdoutKafkaHandler(context, out)::handleEvent);
+        eventHandlers.put(context.supplyTypeId("mqtt"), new StdoutMqttHandler(context, out)::handleEvent);
+        eventHandlers.put(context.supplyTypeId("schema-registry"),
+            new StdoutSchemaRegistryHandler(context, out)::handleEvent);
+        eventHandlers.put(context.supplyTypeId("tcp"), new StdoutTcpHandler(context, out)::handleEvent);
+        eventHandlers.put(context.supplyTypeId("tls"), new StdoutTlsHandler(context, out)::handleEvent);
         this.eventHandlers = eventHandlers;
     }
 

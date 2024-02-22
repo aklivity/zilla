@@ -15,10 +15,10 @@
 package io.aklivity.zilla.runtime.exporter.stdout.internal.stream;
 
 import java.io.PrintStream;
-import java.util.function.LongFunction;
 
 import org.agrona.DirectBuffer;
 
+import io.aklivity.zilla.runtime.exporter.stdout.internal.StdoutExporterContext;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.TcpDnsFailedFW;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.TcpEventFW;
 
@@ -29,10 +29,10 @@ public class StdoutTcpHandler extends EventHandler
     private final TcpEventFW tcpEventRO = new TcpEventFW();
 
     public StdoutTcpHandler(
-        LongFunction<String> supplyQName,
+        StdoutExporterContext context,
         PrintStream out)
     {
-        super(supplyQName, out);
+        super(context, out);
     }
 
     public void handleEvent(
@@ -46,7 +46,7 @@ public class StdoutTcpHandler extends EventHandler
         {
         case DNS_FAILED:
             TcpDnsFailedFW e = event.dnsFailed();
-            String qname = supplyQName.apply(e.namespacedId());
+            String qname = context.supplyQName(e.namespacedId());
             out.printf(DNS_FAILED_FORMAT, qname, asDateTime(e.timestamp()), asString(e.address()));
             break;
         }

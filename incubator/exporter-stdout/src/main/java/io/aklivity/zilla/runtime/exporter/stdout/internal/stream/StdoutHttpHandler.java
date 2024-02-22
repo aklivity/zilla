@@ -15,10 +15,10 @@
 package io.aklivity.zilla.runtime.exporter.stdout.internal.stream;
 
 import java.io.PrintStream;
-import java.util.function.LongFunction;
 
 import org.agrona.DirectBuffer;
 
+import io.aklivity.zilla.runtime.exporter.stdout.internal.StdoutExporterContext;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.HttpDefaultEventFW;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.HttpEventFW;
 
@@ -30,10 +30,10 @@ public class StdoutHttpHandler extends EventHandler
     private final HttpEventFW httpEventRO = new HttpEventFW();
 
     public StdoutHttpHandler(
-        LongFunction<String> supplyQName,
+        StdoutExporterContext context,
         PrintStream out)
     {
-        super(supplyQName, out);
+        super(context, out);
     }
 
     public void handleEvent(
@@ -48,14 +48,14 @@ public class StdoutHttpHandler extends EventHandler
         case AUTHORIZATION_FAILED:
         {
             HttpDefaultEventFW e = event.authorizationFailed();
-            String qname = supplyQName.apply(e.namespacedId());
+            String qname = context.supplyQName(e.namespacedId());
             out.printf(AUTHORIZATION_FAILED_FORMAT, qname, identity(e.identity()), asDateTime(e.timestamp()));
             break;
         }
         case REQUEST_ACCEPTED:
         {
             HttpDefaultEventFW e = event.requestAccepted();
-            String qname = supplyQName.apply(e.namespacedId());
+            String qname = context.supplyQName(e.namespacedId());
             out.format(REQUEST_ACCEPTED_FORMAT, qname, identity(e.identity()), asDateTime(e.timestamp()));
             break;
         }

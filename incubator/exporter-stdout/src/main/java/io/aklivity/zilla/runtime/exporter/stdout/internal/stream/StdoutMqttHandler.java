@@ -15,10 +15,10 @@
 package io.aklivity.zilla.runtime.exporter.stdout.internal.stream;
 
 import java.io.PrintStream;
-import java.util.function.LongFunction;
 
 import org.agrona.DirectBuffer;
 
+import io.aklivity.zilla.runtime.exporter.stdout.internal.StdoutExporterContext;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.MqttAuthorizationFailedFW;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.MqttEventFW;
 
@@ -29,10 +29,10 @@ public class StdoutMqttHandler extends EventHandler
     private final MqttEventFW mqttEventRO = new MqttEventFW();
 
     public StdoutMqttHandler(
-        LongFunction<String> supplyQName,
+        StdoutExporterContext context,
         PrintStream out)
     {
-        super(supplyQName, out);
+        super(context, out);
     }
 
     public void handleEvent(
@@ -46,7 +46,7 @@ public class StdoutMqttHandler extends EventHandler
         {
         case AUTHORIZATION_FAILED:
             MqttAuthorizationFailedFW e = event.authorizationFailed();
-            String qname = supplyQName.apply(e.namespacedId());
+            String qname = context.supplyQName(e.namespacedId());
             out.printf(AUTHORIZATION_FAILED_FORMAT, qname, identity(e.identity()), asDateTime(e.timestamp()));
             break;
         }

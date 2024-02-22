@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.function.LongFunction;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageReader;
 import io.aklivity.zilla.runtime.engine.config.AttributeConfig;
 import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
@@ -54,5 +55,22 @@ public class StdoutExporterContext implements ExporterContext
     public void detach(
         long exporterId)
     {
+    }
+
+    public String supplyQName(
+        long namespacedId)
+    {
+        return context.supplyQName(namespacedId);
+    }
+
+    public int supplyTypeId(
+        String name)
+    {
+        return context.supplyTypeId(name);
+    }
+
+    public MessageReader supplyEventReader()
+    {
+        return context.supplyEventReader();
     }
 }

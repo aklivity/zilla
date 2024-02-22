@@ -15,10 +15,10 @@
 package io.aklivity.zilla.runtime.exporter.stdout.internal.stream;
 
 import java.io.PrintStream;
-import java.util.function.LongFunction;
 
 import org.agrona.DirectBuffer;
 
+import io.aklivity.zilla.runtime.exporter.stdout.internal.StdoutExporterContext;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.SchemaRegistryEventFW;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.SchemaRegistryRemoteAccessRejectedFW;
 
@@ -29,10 +29,10 @@ public class StdoutSchemaRegistryHandler extends EventHandler
     private final SchemaRegistryEventFW schemaRegistryEventRO = new SchemaRegistryEventFW();
 
     public StdoutSchemaRegistryHandler(
-        LongFunction<String> supplyQName,
+        StdoutExporterContext context,
         PrintStream out)
     {
-        super(supplyQName, out);
+        super(context, out);
     }
 
     public void handleEvent(
@@ -46,7 +46,7 @@ public class StdoutSchemaRegistryHandler extends EventHandler
         {
         case REMOTE_ACCESS_REJECTED:
             SchemaRegistryRemoteAccessRejectedFW e = event.remoteAccessRejected();
-            String qname = supplyQName.apply(e.namespacedId());
+            String qname = context.supplyQName(e.namespacedId());
             out.printf(REMOTE_ACCESS_REJECTED, qname, asDateTime(e.timestamp()), asString(e.method()), asString(e.url()),
                 e.status());
             break;
