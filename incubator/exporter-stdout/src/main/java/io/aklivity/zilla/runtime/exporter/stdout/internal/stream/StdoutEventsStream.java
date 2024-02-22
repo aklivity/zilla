@@ -27,51 +27,36 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageReader;
 public class StdoutEventsStream
 {
     private final MessageReader readEvent;
-    private final ToIntFunction<String> supplyTypeId;
     private final Int2ObjectHashMap<MessageConsumer> eventHandlers;
 
     public StdoutEventsStream(
         MessageReader readEvent,
-        LongFunction<String> supplyNamespace,
-        LongFunction<String> supplyLocalName,
+        LongFunction<String> supplyQName,
         ToIntFunction<String> supplyTypeId,
         PrintStream out)
     {
         this.readEvent = readEvent;
-        this.supplyTypeId = supplyTypeId;
 
-        final HttpEventHandler httpEventHandler = new HttpEventHandler(supplyNamespace, supplyLocalName, out);
-        final KafkaEventHandler kafkaEventHandler = new KafkaEventHandler(supplyNamespace, supplyLocalName, out);
-        final MqttEventHandler mqttEventHandler = new MqttEventHandler(supplyNamespace, supplyLocalName, out);
+        final HttpEventHandler httpEventHandler = new HttpEventHandler(supplyQName, out);
+        final KafkaEventHandler kafkaEventHandler = new KafkaEventHandler(supplyQName, out);
+        final MqttEventHandler mqttEventHandler = new MqttEventHandler(supplyQName, out);
         final SchemaRegistryEventHandler schemaRegistryEventHandler =
-            new SchemaRegistryEventHandler(supplyNamespace, supplyLocalName, out);
-        final TcpEventHandler tcpEventHandler = new TcpEventHandler(supplyNamespace, supplyLocalName, out);
-        final TlsEventHandler tlsEventHandler = new TlsEventHandler(supplyNamespace, supplyLocalName, out);
+            new SchemaRegistryEventHandler(supplyQName, out);
+        final TcpEventHandler tcpEventHandler = new TcpEventHandler(supplyQName, out);
+        final TlsEventHandler tlsEventHandler = new TlsEventHandler(supplyQName, out);
         final Int2ObjectHashMap<MessageConsumer> eventHandlers = new Int2ObjectHashMap<>();
-        addEventHandler(eventHandlers, "http", httpEventHandler::handleEvent);
-        addEventHandler(eventHandlers, "kafka", kafkaEventHandler::handleEvent);
-        addEventHandler(eventHandlers, "mqtt", mqttEventHandler::handleEvent);
-        addEventHandler(eventHandlers, "schema-registry", schemaRegistryEventHandler::handleEvent);
-        addEventHandler(eventHandlers, "tcp", tcpEventHandler::handleEvent);
-        addEventHandler(eventHandlers, "tls", tlsEventHandler::handleEvent);
+        eventHandlers.put(supplyTypeId.applyAsInt("http"), httpEventHandler::handleEvent);
+        eventHandlers.put(supplyTypeId.applyAsInt("kafka"), kafkaEventHandler::handleEvent);
+        eventHandlers.put(supplyTypeId.applyAsInt("mqtt"), mqttEventHandler::handleEvent);
+        eventHandlers.put(supplyTypeId.applyAsInt("schema-registry"), schemaRegistryEventHandler::handleEvent);
+        eventHandlers.put(supplyTypeId.applyAsInt("tcp"), tcpEventHandler::handleEvent);
+        eventHandlers.put(supplyTypeId.applyAsInt("tls"), tlsEventHandler::handleEvent);
         this.eventHandlers = eventHandlers;
     }
 
     public int process()
     {
         return readEvent.read(this::handleEvent, 1);
-    }
-
-    private void addEventHandler(
-        Int2ObjectHashMap<MessageConsumer> eventHandlers,
-        String type,
-        MessageConsumer consumer)
-    {
-        int labelId = supplyTypeId.applyAsInt(type);
-        if (labelId != 0)
-        {
-            eventHandlers.put(labelId, consumer);
-        }
     }
 
     private void handleEvent(

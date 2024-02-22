@@ -119,6 +119,9 @@ public interface EngineContext
     String supplyLocalName(
         long namespacedId);
 
+    String supplyQName(
+        long namespacedId);
+
     BindingHandler streamFactory();
 
     GuardHandler supplyGuard(

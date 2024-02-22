@@ -24,16 +24,15 @@ import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.TcpEventFW
 
 public class TcpEventHandler extends EventHandler
 {
-    private static final String DNS_FAILED_FORMAT = "DNS_FAILED %s.%s - [%s] %s%n";
+    private static final String DNS_FAILED_FORMAT = "DNS_FAILED %s - [%s] %s%n";
 
     private final TcpEventFW tcpEventRO = new TcpEventFW();
 
     public TcpEventHandler(
-        LongFunction<String> supplyNamespace,
-        LongFunction<String> supplyLocalName,
+        LongFunction<String> supplyQName,
         PrintStream out)
     {
-        super(supplyNamespace, supplyLocalName, out);
+        super(supplyQName, out);
     }
 
     public void handleEvent(
@@ -47,9 +46,8 @@ public class TcpEventHandler extends EventHandler
         {
         case DNS_FAILED:
             TcpDnsFailedFW e = event.dnsFailed();
-            String namespace = supplyNamespace.apply(e.namespacedId());
-            String binding = supplyLocalName.apply(e.namespacedId());
-            out.printf(DNS_FAILED_FORMAT, namespace, binding, asDateTime(e.timestamp()), asString(e.address()));
+            String qname = supplyQName.apply(e.namespacedId());
+            out.printf(DNS_FAILED_FORMAT, qname, asDateTime(e.timestamp()), asString(e.address()));
             break;
         }
     }

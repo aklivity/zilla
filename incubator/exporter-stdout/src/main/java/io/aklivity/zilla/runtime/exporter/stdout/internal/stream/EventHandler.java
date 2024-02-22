@@ -29,17 +29,14 @@ public abstract class EventHandler
 {
     protected static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd/MMM/yyyy:HH:mm:ss Z");
 
-    protected final LongFunction<String> supplyNamespace;
-    protected final LongFunction<String> supplyLocalName;
+    protected final LongFunction<String> supplyQName;
     protected final PrintStream out;
 
     public EventHandler(
-        LongFunction<String> supplyNamespace,
-        LongFunction<String> supplyLocalName,
+        LongFunction<String> supplyQName,
         PrintStream out)
     {
-        this.supplyNamespace = supplyNamespace;
-        this.supplyLocalName = supplyLocalName;
+        this.supplyQName = supplyQName;
         this.out = out;
     }
 

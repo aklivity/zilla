@@ -24,17 +24,16 @@ import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.KafkaEvent
 
 public class KafkaEventHandler extends EventHandler
 {
-    private static final String AUTHORIZATION_FAILED_FORMAT = "AUTHORIZATION_FAILED %s.%s - [%s]%n";
-    private static final String API_VERSION_REJECTED_FORMAT = "API_VERSION_REJECTED %s.%s - [%s]%n";
+    private static final String AUTHORIZATION_FAILED_FORMAT = "AUTHORIZATION_FAILED %s - [%s]%n";
+    private static final String API_VERSION_REJECTED_FORMAT = "API_VERSION_REJECTED %s - [%s]%n";
 
     private final KafkaEventFW kafkaEventRO = new KafkaEventFW();
 
     public KafkaEventHandler(
-        LongFunction<String> supplyNamespace,
-        LongFunction<String> supplyLocalName,
+        LongFunction<String> supplyQName,
         PrintStream out)
     {
-        super(supplyNamespace, supplyLocalName, out);
+        super(supplyQName, out);
     }
 
     public void handleEvent(
@@ -49,17 +48,15 @@ public class KafkaEventHandler extends EventHandler
         case AUTHORIZATION_FAILED:
         {
             EventFW e = event.authorizationFailed();
-            String namespace = supplyNamespace.apply(e.namespacedId());
-            String binding = supplyLocalName.apply(e.namespacedId());
-            out.printf(AUTHORIZATION_FAILED_FORMAT, namespace, binding, asDateTime(e.timestamp()));
+            String qname = supplyQName.apply(e.namespacedId());
+            out.printf(AUTHORIZATION_FAILED_FORMAT, qname, asDateTime(e.timestamp()));
             break;
         }
         case API_VERSION_REJECTED:
         {
             EventFW e = event.apiVersionRejected();
-            String namespace = supplyNamespace.apply(e.namespacedId());
-            String binding = supplyLocalName.apply(e.namespacedId());
-            out.printf(API_VERSION_REJECTED_FORMAT, namespace, binding, asDateTime(e.timestamp()));
+            String qname = supplyQName.apply(e.namespacedId());
+            out.printf(API_VERSION_REJECTED_FORMAT, qname, asDateTime(e.timestamp()));
             break;
         }
         }

@@ -24,16 +24,15 @@ import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.MqttEventF
 
 public class MqttEventHandler extends EventHandler
 {
-    private static final String AUTHORIZATION_FAILED_FORMAT = "AUTHORIZATION_FAILED %s.%s %s [%s]%n";
+    private static final String AUTHORIZATION_FAILED_FORMAT = "AUTHORIZATION_FAILED %s %s [%s]%n";
 
     private final MqttEventFW mqttEventRO = new MqttEventFW();
 
     public MqttEventHandler(
-        LongFunction<String> supplyNamespace,
-        LongFunction<String> supplyLocalName,
+        LongFunction<String> supplyQName,
         PrintStream out)
     {
-        super(supplyNamespace, supplyLocalName, out);
+        super(supplyQName, out);
     }
 
     public void handleEvent(
@@ -47,9 +46,8 @@ public class MqttEventHandler extends EventHandler
         {
         case AUTHORIZATION_FAILED:
             MqttAuthorizationFailedFW e = event.authorizationFailed();
-            String namespace = supplyNamespace.apply(e.namespacedId());
-            String binding = supplyLocalName.apply(e.namespacedId());
-            out.printf(AUTHORIZATION_FAILED_FORMAT, namespace, binding, identity(e.identity()), asDateTime(e.timestamp()));
+            String qname = supplyQName.apply(e.namespacedId());
+            out.printf(AUTHORIZATION_FAILED_FORMAT, qname, identity(e.identity()), asDateTime(e.timestamp()));
             break;
         }
     }

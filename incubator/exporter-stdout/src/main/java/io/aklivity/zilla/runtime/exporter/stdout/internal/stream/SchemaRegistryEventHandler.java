@@ -24,16 +24,15 @@ import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.SchemaRegi
 
 public class SchemaRegistryEventHandler extends EventHandler
 {
-    private static final String REMOTE_ACCESS_REJECTED = "REMOTE_ACCESS_REJECTED %s.%s - [%s] %s %s %d%n";
+    private static final String REMOTE_ACCESS_REJECTED = "REMOTE_ACCESS_REJECTED %s - [%s] %s %s %d%n";
 
     private final SchemaRegistryEventFW schemaRegistryEventRO = new SchemaRegistryEventFW();
 
     public SchemaRegistryEventHandler(
-        LongFunction<String> supplyNamespace,
-        LongFunction<String> supplyLocalName,
+        LongFunction<String> supplyQName,
         PrintStream out)
     {
-        super(supplyNamespace, supplyLocalName, out);
+        super(supplyQName, out);
     }
 
     public void handleEvent(
@@ -47,10 +46,9 @@ public class SchemaRegistryEventHandler extends EventHandler
         {
         case REMOTE_ACCESS_REJECTED:
             SchemaRegistryRemoteAccessRejectedFW e = event.remoteAccessRejected();
-            String namespace = supplyNamespace.apply(e.namespacedId());
-            String binding = supplyLocalName.apply(e.namespacedId());
-            out.printf(REMOTE_ACCESS_REJECTED, namespace, binding, asDateTime(e.timestamp()), asString(e.method()),
-                asString(e.url()), e.status());
+            String qname = supplyQName.apply(e.namespacedId());
+            out.printf(REMOTE_ACCESS_REJECTED, qname, asDateTime(e.timestamp()), asString(e.method()), asString(e.url()),
+                e.status());
             break;
         }
     }
