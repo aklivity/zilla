@@ -58,7 +58,7 @@ public class AsyncapiIT
     @Test
     @Configuration("client.mqtt.yaml")
     @Specification({
-        "${asyncapi}/publish.and.subscribe/client",
+        "${asyncapi}/mqtt/publish.and.subscribe/client",
         "${mqtt}/publish.and.subscribe/server"
     })
     @Configure(name = ASYNCAPI_TARGET_ROUTE_ID_NAME, value = "4294967298")
@@ -71,8 +71,8 @@ public class AsyncapiIT
     @Test
     @Configuration("client.http.yaml")
     @Specification({
-        "${asyncapi}/create.item/client",
-        "${http}/create.item/server"
+        "${asyncapi}/http/create.pets/client",
+        "${http}/create.pets/server"
     })
     @Configure(name = ASYNCAPI_TARGET_ROUTE_ID_NAME, value = "4294967299")
     @ScriptProperty("serverAddress \"zilla://streams/http0\"")
@@ -84,7 +84,7 @@ public class AsyncapiIT
     @Test
     @Configuration("client.kafka.yaml")
     @Specification({
-        "${asyncapi}/produce.message/client",
+        "${asyncapi}/kafka/produce.message/client",
         "${kafka}/produce.message/server"
     })
     @Configure(name = ASYNCAPI_TARGET_ROUTE_ID_NAME, value = "4294967300")

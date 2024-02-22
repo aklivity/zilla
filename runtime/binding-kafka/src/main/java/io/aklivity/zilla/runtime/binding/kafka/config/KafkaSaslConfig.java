@@ -35,7 +35,7 @@ public class KafkaSaslConfig
         return new KafkaSaslConfigBuilder<>(mapper);
     }
 
-    public KafkaSaslConfig(
+    KafkaSaslConfig(
         String mechanism,
         String username,
         String password)

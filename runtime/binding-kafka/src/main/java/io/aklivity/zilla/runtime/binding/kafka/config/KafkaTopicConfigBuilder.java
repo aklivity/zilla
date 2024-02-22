@@ -80,6 +80,12 @@ public final class KafkaTopicConfigBuilder<T> extends ConfigBuilder<T, KafkaTopi
         return this;
     }
 
+    public <C extends ConfigBuilder<KafkaTopicConfigBuilder<T>, C>> C value(
+        Function<Function<ModelConfig, KafkaTopicConfigBuilder<T>>, C> value)
+    {
+        return value.apply(this::value);
+    }
+
     @Override
     public T build()
     {

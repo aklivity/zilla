@@ -38,4 +38,4 @@ bindings:
         sni:
           - http.example.net
         alpn:
-          - http
+          - h2

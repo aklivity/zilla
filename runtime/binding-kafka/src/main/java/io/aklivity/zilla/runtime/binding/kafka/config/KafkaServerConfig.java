@@ -33,7 +33,7 @@ public class KafkaServerConfig
         return new KafkaServerConfigBuilder<>(mapper);
     }
 
-    public KafkaServerConfig(
+    KafkaServerConfig(
         String host,
         int port)
     {

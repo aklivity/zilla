@@ -16,8 +16,7 @@ package io.aklivity.zilla.runtime.binding.asyncapi.internal;
 
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
 
-import java.util.stream.Collectors;
-
+import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiServerView;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
@@ -26,7 +25,6 @@ import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 
 public class AsyncapiClientCompositeBindingAdapter extends AsyncapiCompositeBindingAdapter implements CompositeBindingAdapterSpi
 {
-
     @Override
     public String type()
     {
@@ -38,14 +36,15 @@ public class AsyncapiClientCompositeBindingAdapter extends AsyncapiCompositeBind
         BindingConfig binding)
     {
         AsyncapiOptionsConfig options = (AsyncapiOptionsConfig) binding.options;
-        this.asyncApis = options.specs.stream().map(s -> s.asyncApi).collect(Collectors.toList());
-        this.asyncApi = asyncApis.get(0);
+        AsyncapiConfig asyncapiConfig = options.specs.get(0);
+        this.asyncApi = asyncapiConfig.asyncApi;
 
         //TODO: add composite for all servers
         AsyncapiServerView firstServer = AsyncapiServerView.of(asyncApi.servers.entrySet().iterator().next().getValue());
         this.qname = binding.qname;
-        this.qvault = String.format("%s:%s", binding.namespace, binding.vault);
+        this.qvault = binding.qvault;
         this.protocol = resolveProtocol(firstServer.protocol(), options);
+        this.compositePorts = protocol.resolvePorts();
         this.isTlsEnabled = protocol.isSecure();
 
         return BindingConfig.builder(binding)

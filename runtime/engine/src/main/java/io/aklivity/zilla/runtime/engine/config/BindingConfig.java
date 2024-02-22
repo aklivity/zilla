@@ -29,6 +29,7 @@ public class BindingConfig
     public transient ToLongFunction<String> resolveId;
 
     public transient long vaultId;
+    public transient String qvault;
 
     public transient long[] metricIds;
 

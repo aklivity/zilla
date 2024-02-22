@@ -16,31 +16,11 @@
 
 ---
 name: test
-vaults:
-  test0:
-    type: test
 bindings:
-  asyncapi0:
+  composite0:
     type: asyncapi
-    kind: client
-    vault: test0
+    kind: server
     options:
       specs:
-        - kafka/asyncapi.yaml
-      tcp:
-        host: localhost
-        port:
-          - 9092
-      tls:
-        trust:
-          - serverca
-        trustcacerts: true
-        sni:
-          - kafka.example.net
-        alpn:
-          - kafka
-      kafka:
-        sasl:
-          mechanism: plain
-          username: username
-          password: password
+        - mqtt/asyncapi.yaml
+    exit: asyncapi0

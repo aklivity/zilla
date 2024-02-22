@@ -43,7 +43,7 @@ public final class KafkaOptionsConfig extends OptionsConfig
         return new KafkaOptionsConfigBuilder<>(mapper);
     }
 
-    public KafkaOptionsConfig(
+    KafkaOptionsConfig(
         List<String> bootstrap,
         List<KafkaTopicConfig> topics,
         List<KafkaServerConfig> servers,

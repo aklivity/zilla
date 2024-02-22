@@ -41,7 +41,7 @@ public class KafkaTopicConfig
         return new KafkaTopicConfigBuilder<>(mapper);
     }
 
-    public KafkaTopicConfig(
+    KafkaTopicConfig(
         String name,
         KafkaOffsetType defaultOffset,
         KafkaDeltaType deltaType,

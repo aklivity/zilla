@@ -14,22 +14,20 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal;
 
-import java.net.URI;
-import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiServerView;
 
 public class AsyncapiCompositeBindingAdapter
 {
     protected static final String APPLICATION_JSON = "application/json";
 
-    protected List<Asyncapi> asyncApis;
     protected Asyncapi asyncApi;
     protected boolean isTlsEnabled;
+    protected int[] allPorts;
+    protected int[] compositePorts;
     protected AsyncapiProtocol protocol;
     protected String qname;
     protected String qvault;
@@ -57,25 +55,11 @@ public class AsyncapiCompositeBindingAdapter
                 asyncapiProtocol = new AyncapiKafkaProtocol(qname, asyncApi, options, protocol);
                 break;
             }
-            return asyncapiProtocol;
         }
         else
         {
             // TODO: should we do something?
         }
         return asyncapiProtocol;
-    }
-
-    protected int[] resolveAllPorts()
-    {
-        int[] ports = new int[asyncApi.servers.size()];
-        String[] keys = asyncApi.servers.keySet().toArray(String[]::new);
-        for (int i = 0; i < asyncApi.servers.size(); i++)
-        {
-            AsyncapiServerView server = AsyncapiServerView.of(asyncApi.servers.get(keys[i]));
-            URI url = server.url();
-            ports[i] = url.getPort();
-        }
-        return ports;
     }
 }

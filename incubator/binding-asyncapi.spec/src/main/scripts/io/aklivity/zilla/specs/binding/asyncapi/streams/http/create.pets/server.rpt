@@ -14,30 +14,34 @@
 # under the License.
 #
 
-connect "zilla://streams/composite0"
+property serverAddress "zilla://streams/composite0"
+
+accept ${serverAddress}
         option zilla:window 8192
         option zilla:transmission "half-duplex"
-        option zilla:ephemeral "test:composite0/http"
 
-write zilla:begin.ext ${http:beginEx()
+accepted
+
+read zilla:begin.ext ${http:matchBeginEx()
                               .typeId(zilla:id("http"))
                               .header(":method", "POST")
                               .header(":scheme", "http")
-                              .header(":path", "/items")
+                              .header(":path", "/pets")
                               .header(":authority", "localhost:8080")
                               .header("content-type", "application/json")
                               .header("content-length", "8")
                               .build()}
 connected
 
-write "{\"test\"}"
-write close
+read "{\"test\"}"
+read closed
 
-read zilla:begin.ext ${http:beginEx()
+write zilla:begin.ext ${http:beginEx()
                              .typeId(zilla:id("http"))
                              .header(":status", "200")
                              .header("content-type", "application/json")
                              .header("content-length", "21")
                              .build()}
 
-read "{\"message\": \"string\"}"
+write "{\"message\": \"string\"}"
+write flush

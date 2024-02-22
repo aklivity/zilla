@@ -33,5 +33,5 @@ bindings:
         sni:
           - http.example.net
         alpn:
-          - http
+          - h2
     exit: asyncapi0

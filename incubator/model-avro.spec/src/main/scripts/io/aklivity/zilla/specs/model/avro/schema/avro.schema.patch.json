@@ -129,6 +129,10 @@
                         "maxProperties": 1
                     }
                 },
+                "required":
+                [
+                    "catalog"
+                ],
                 "additionalProperties": false
             }
         }
