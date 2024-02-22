@@ -35,6 +35,7 @@ public class HttpEventContext
     private static final int EVENT_BUFFER_CAPACITY = 2048;
     private static final String8FW HEADER_SCHEME = new String8FW(":scheme");
     private static final String8FW HEADER_METHOD = new String8FW(":method");
+    private static final String8FW HEADER_AUTHORITY = new String8FW(":authority");
     private static final String8FW HEADER_PATH = new String8FW(":path");
 
     private final AtomicBuffer eventBuffer = new UnsafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
@@ -91,6 +92,7 @@ public class HttpEventContext
                 .identity(identity)
                 .scheme(headers.get(":scheme"))
                 .method(headers.get(":method"))
+                .authority(headers.get(":authority"))
                 .path(headers.get(":path"))
             )
             .build();
@@ -114,6 +116,7 @@ public class HttpEventContext
                 .identity(identity)
                 .scheme(headers.matchFirst(h -> HEADER_SCHEME.equals(h.name())).value().asString())
                 .method(headers.matchFirst(h -> HEADER_METHOD.equals(h.name())).value().asString())
+                .authority(headers.matchFirst(h -> HEADER_AUTHORITY.equals(h.name())).value().asString())
                 .path(headers.matchFirst(h -> HEADER_PATH.equals(h.name())).value().asString())
             )
             .build();

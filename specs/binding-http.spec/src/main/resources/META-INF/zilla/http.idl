@@ -68,6 +68,7 @@ scope http
             string8 identity;
             string8 scheme;
             string8 method;
+            string16 authority;
             string16 path;
         }
 
