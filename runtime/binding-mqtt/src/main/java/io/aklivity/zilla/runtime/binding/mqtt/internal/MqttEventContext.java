@@ -44,7 +44,7 @@ public class MqttEventContext
         this.clock = context.clock();
     }
 
-    public void authorizationFailure(
+    public void authorizationFailed(
         long sessionId,
         long traceId,
         long routedId,
@@ -56,7 +56,7 @@ public class MqttEventContext
             String identity = guard == null ? null : guard.identity(authorization);
             MqttEventFW event = mqttEventRW
                 .wrap(eventBuffer, 0, eventBuffer.capacity())
-                .authorizationFailure(e -> e
+                .authorizationFailed(e -> e
                     .timestamp(clock.millis())
                     .traceId(traceId)
                     .namespacedId(routedId)

@@ -19,12 +19,12 @@ import java.util.function.LongFunction;
 
 import org.agrona.DirectBuffer;
 
-import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.MqttAuthorizationFailureFW;
+import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.MqttAuthorizationFailedFW;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.MqttEventFW;
 
 public class MqttEventHandler extends EventHandler
 {
-    private static final String MQTT_AUTHORIZATION_FAILURE_FORMAT = "AUTHORIZATION_FAILURE %s.%s %s %d%n";
+    private static final String MQTT_AUTHORIZATION_FAILED_FORMAT = "AUTHORIZATION_FAILED %s.%s %s %d%n";
 
     private final MqttEventFW mqttEventRO = new MqttEventFW();
 
@@ -45,11 +45,11 @@ public class MqttEventHandler extends EventHandler
         MqttEventFW event = mqttEventRO.wrap(buffer, index, index + length);
         switch (event.kind())
         {
-        case AUTHORIZATION_FAILURE:
-            MqttAuthorizationFailureFW e = event.authorizationFailure();
+        case AUTHORIZATION_FAILED:
+            MqttAuthorizationFailedFW e = event.authorizationFailed();
             String namespace = supplyNamespace.apply(e.namespacedId());
             String binding = supplyLocalName.apply(e.namespacedId());
-            out.printf(MQTT_AUTHORIZATION_FAILURE_FORMAT, namespace, binding, identity(e.identity()), e.timestamp());
+            out.printf(MQTT_AUTHORIZATION_FAILED_FORMAT, namespace, binding, identity(e.identity()), e.timestamp());
             break;
         }
     }
