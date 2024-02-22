@@ -37,20 +37,14 @@ public class StdoutEventsStream
     {
         this.readEvent = readEvent;
 
-        final HttpEventHandler httpEventHandler = new HttpEventHandler(supplyQName, out);
-        final KafkaEventHandler kafkaEventHandler = new KafkaEventHandler(supplyQName, out);
-        final MqttEventHandler mqttEventHandler = new MqttEventHandler(supplyQName, out);
-        final SchemaRegistryEventHandler schemaRegistryEventHandler =
-            new SchemaRegistryEventHandler(supplyQName, out);
-        final TcpEventHandler tcpEventHandler = new TcpEventHandler(supplyQName, out);
-        final TlsEventHandler tlsEventHandler = new TlsEventHandler(supplyQName, out);
         final Int2ObjectHashMap<MessageConsumer> eventHandlers = new Int2ObjectHashMap<>();
-        eventHandlers.put(supplyTypeId.applyAsInt("http"), httpEventHandler::handleEvent);
-        eventHandlers.put(supplyTypeId.applyAsInt("kafka"), kafkaEventHandler::handleEvent);
-        eventHandlers.put(supplyTypeId.applyAsInt("mqtt"), mqttEventHandler::handleEvent);
-        eventHandlers.put(supplyTypeId.applyAsInt("schema-registry"), schemaRegistryEventHandler::handleEvent);
-        eventHandlers.put(supplyTypeId.applyAsInt("tcp"), tcpEventHandler::handleEvent);
-        eventHandlers.put(supplyTypeId.applyAsInt("tls"), tlsEventHandler::handleEvent);
+        eventHandlers.put(supplyTypeId.applyAsInt("http"), new StdoutHttpHandler(supplyQName, out)::handleEvent);
+        eventHandlers.put(supplyTypeId.applyAsInt("kafka"), new StdoutKafkaHandler(supplyQName, out)::handleEvent);
+        eventHandlers.put(supplyTypeId.applyAsInt("mqtt"), new StdoutMqttHandler(supplyQName, out)::handleEvent);
+        eventHandlers.put(supplyTypeId.applyAsInt("schema-registry"),
+            new StdoutSchemaRegistryHandler(supplyQName, out)::handleEvent);
+        eventHandlers.put(supplyTypeId.applyAsInt("tcp"), new StdoutTcpHandler(supplyQName, out)::handleEvent);
+        eventHandlers.put(supplyTypeId.applyAsInt("tls"), new StdoutTlsHandler(supplyQName, out)::handleEvent);
         this.eventHandlers = eventHandlers;
     }
 

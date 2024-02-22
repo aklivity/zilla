@@ -19,16 +19,16 @@ import java.util.function.LongFunction;
 
 import org.agrona.DirectBuffer;
 
-import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.MqttAuthorizationFailedFW;
-import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.MqttEventFW;
+import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.TcpDnsFailedFW;
+import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.TcpEventFW;
 
-public class MqttEventHandler extends EventHandler
+public class StdoutTcpHandler extends EventHandler
 {
-    private static final String AUTHORIZATION_FAILED_FORMAT = "AUTHORIZATION_FAILED %s %s [%s]%n";
+    private static final String DNS_FAILED_FORMAT = "DNS_FAILED %s - [%s] %s%n";
 
-    private final MqttEventFW mqttEventRO = new MqttEventFW();
+    private final TcpEventFW tcpEventRO = new TcpEventFW();
 
-    public MqttEventHandler(
+    public StdoutTcpHandler(
         LongFunction<String> supplyQName,
         PrintStream out)
     {
@@ -41,13 +41,13 @@ public class MqttEventHandler extends EventHandler
         int index,
         int length)
     {
-        MqttEventFW event = mqttEventRO.wrap(buffer, index, index + length);
+        final TcpEventFW event = tcpEventRO.wrap(buffer, index, index + length);
         switch (event.kind())
         {
-        case AUTHORIZATION_FAILED:
-            MqttAuthorizationFailedFW e = event.authorizationFailed();
+        case DNS_FAILED:
+            TcpDnsFailedFW e = event.dnsFailed();
             String qname = supplyQName.apply(e.namespacedId());
-            out.printf(AUTHORIZATION_FAILED_FORMAT, qname, identity(e.identity()), asDateTime(e.timestamp()));
+            out.printf(DNS_FAILED_FORMAT, qname, asDateTime(e.timestamp()), asString(e.address()));
             break;
         }
     }

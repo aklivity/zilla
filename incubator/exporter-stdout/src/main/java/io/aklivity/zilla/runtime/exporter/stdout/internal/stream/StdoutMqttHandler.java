@@ -19,17 +19,16 @@ import java.util.function.LongFunction;
 
 import org.agrona.DirectBuffer;
 
-import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.EventFW;
-import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.KafkaEventFW;
+import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.MqttAuthorizationFailedFW;
+import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.MqttEventFW;
 
-public class KafkaEventHandler extends EventHandler
+public class StdoutMqttHandler extends EventHandler
 {
-    private static final String AUTHORIZATION_FAILED_FORMAT = "AUTHORIZATION_FAILED %s - [%s]%n";
-    private static final String API_VERSION_REJECTED_FORMAT = "API_VERSION_REJECTED %s - [%s]%n";
+    private static final String AUTHORIZATION_FAILED_FORMAT = "AUTHORIZATION_FAILED %s %s [%s]%n";
 
-    private final KafkaEventFW kafkaEventRO = new KafkaEventFW();
+    private final MqttEventFW mqttEventRO = new MqttEventFW();
 
-    public KafkaEventHandler(
+    public StdoutMqttHandler(
         LongFunction<String> supplyQName,
         PrintStream out)
     {
@@ -42,23 +41,14 @@ public class KafkaEventHandler extends EventHandler
         int index,
         int length)
     {
-        final KafkaEventFW event = kafkaEventRO.wrap(buffer, index, index + length);
+        MqttEventFW event = mqttEventRO.wrap(buffer, index, index + length);
         switch (event.kind())
         {
         case AUTHORIZATION_FAILED:
-        {
-            EventFW e = event.authorizationFailed();
+            MqttAuthorizationFailedFW e = event.authorizationFailed();
             String qname = supplyQName.apply(e.namespacedId());
-            out.printf(AUTHORIZATION_FAILED_FORMAT, qname, asDateTime(e.timestamp()));
+            out.printf(AUTHORIZATION_FAILED_FORMAT, qname, identity(e.identity()), asDateTime(e.timestamp()));
             break;
-        }
-        case API_VERSION_REJECTED:
-        {
-            EventFW e = event.apiVersionRejected();
-            String qname = supplyQName.apply(e.namespacedId());
-            out.printf(API_VERSION_REJECTED_FORMAT, qname, asDateTime(e.timestamp()));
-            break;
-        }
         }
     }
 }

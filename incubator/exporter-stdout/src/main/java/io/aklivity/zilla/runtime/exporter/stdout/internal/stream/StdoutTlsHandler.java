@@ -22,7 +22,7 @@ import org.agrona.DirectBuffer;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.TlsEventFW;
 
-public class TlsEventHandler extends EventHandler
+public class StdoutTlsHandler extends EventHandler
 {
     private static final String TLS_FAILED_FORMAT = "TLS_FAILED %s - [%s]%n";
     private static final String PROTOCOL_REJECTED_FORMAT = "PROTOCOL_REJECTED %s - [%s]%n";
@@ -32,7 +32,7 @@ public class TlsEventHandler extends EventHandler
 
     private final TlsEventFW tlsEventRO = new TlsEventFW();
 
-    public TlsEventHandler(
+    public StdoutTlsHandler(
         LongFunction<String> supplyQName,
         PrintStream out)
     {

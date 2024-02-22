@@ -19,17 +19,17 @@ import java.util.function.LongFunction;
 
 import org.agrona.DirectBuffer;
 
-import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.HttpDefaultEventFW;
-import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.HttpEventFW;
+import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.EventFW;
+import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.KafkaEventFW;
 
-public class HttpEventHandler extends EventHandler
+public class StdoutKafkaHandler extends EventHandler
 {
-    private static final String AUTHORIZATION_FAILED_FORMAT = "AUTHORIZATION_FAILED %s %s [%s]%n";
-    private static final String REQUEST_ACCEPTED_FORMAT = "REQUEST_ACCEPTED %s %s [%s]%n";
+    private static final String AUTHORIZATION_FAILED_FORMAT = "AUTHORIZATION_FAILED %s - [%s]%n";
+    private static final String API_VERSION_REJECTED_FORMAT = "API_VERSION_REJECTED %s - [%s]%n";
 
-    private final HttpEventFW httpEventRO = new HttpEventFW();
+    private final KafkaEventFW kafkaEventRO = new KafkaEventFW();
 
-    public HttpEventHandler(
+    public StdoutKafkaHandler(
         LongFunction<String> supplyQName,
         PrintStream out)
     {
@@ -42,21 +42,21 @@ public class HttpEventHandler extends EventHandler
         int index,
         int length)
     {
-        final HttpEventFW event = httpEventRO.wrap(buffer, index, index + length);
+        final KafkaEventFW event = kafkaEventRO.wrap(buffer, index, index + length);
         switch (event.kind())
         {
         case AUTHORIZATION_FAILED:
         {
-            HttpDefaultEventFW e = event.authorizationFailed();
+            EventFW e = event.authorizationFailed();
             String qname = supplyQName.apply(e.namespacedId());
-            out.printf(AUTHORIZATION_FAILED_FORMAT, qname, identity(e.identity()), asDateTime(e.timestamp()));
+            out.printf(AUTHORIZATION_FAILED_FORMAT, qname, asDateTime(e.timestamp()));
             break;
         }
-        case REQUEST_ACCEPTED:
+        case API_VERSION_REJECTED:
         {
-            HttpDefaultEventFW e = event.requestAccepted();
+            EventFW e = event.apiVersionRejected();
             String qname = supplyQName.apply(e.namespacedId());
-            out.format(REQUEST_ACCEPTED_FORMAT, qname, identity(e.identity()), asDateTime(e.timestamp()));
+            out.printf(API_VERSION_REJECTED_FORMAT, qname, asDateTime(e.timestamp()));
             break;
         }
         }

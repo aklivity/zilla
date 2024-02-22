@@ -19,16 +19,17 @@ import java.util.function.LongFunction;
 
 import org.agrona.DirectBuffer;
 
-import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.TcpDnsFailedFW;
-import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.TcpEventFW;
+import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.HttpDefaultEventFW;
+import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.HttpEventFW;
 
-public class TcpEventHandler extends EventHandler
+public class StdoutHttpHandler extends EventHandler
 {
-    private static final String DNS_FAILED_FORMAT = "DNS_FAILED %s - [%s] %s%n";
+    private static final String AUTHORIZATION_FAILED_FORMAT = "AUTHORIZATION_FAILED %s %s [%s]%n";
+    private static final String REQUEST_ACCEPTED_FORMAT = "REQUEST_ACCEPTED %s %s [%s]%n";
 
-    private final TcpEventFW tcpEventRO = new TcpEventFW();
+    private final HttpEventFW httpEventRO = new HttpEventFW();
 
-    public TcpEventHandler(
+    public StdoutHttpHandler(
         LongFunction<String> supplyQName,
         PrintStream out)
     {
@@ -41,14 +42,23 @@ public class TcpEventHandler extends EventHandler
         int index,
         int length)
     {
-        final TcpEventFW event = tcpEventRO.wrap(buffer, index, index + length);
+        final HttpEventFW event = httpEventRO.wrap(buffer, index, index + length);
         switch (event.kind())
         {
-        case DNS_FAILED:
-            TcpDnsFailedFW e = event.dnsFailed();
+        case AUTHORIZATION_FAILED:
+        {
+            HttpDefaultEventFW e = event.authorizationFailed();
             String qname = supplyQName.apply(e.namespacedId());
-            out.printf(DNS_FAILED_FORMAT, qname, asDateTime(e.timestamp()), asString(e.address()));
+            out.printf(AUTHORIZATION_FAILED_FORMAT, qname, identity(e.identity()), asDateTime(e.timestamp()));
             break;
+        }
+        case REQUEST_ACCEPTED:
+        {
+            HttpDefaultEventFW e = event.requestAccepted();
+            String qname = supplyQName.apply(e.namespacedId());
+            out.format(REQUEST_ACCEPTED_FORMAT, qname, identity(e.identity()), asDateTime(e.timestamp()));
+            break;
+        }
         }
     }
 }

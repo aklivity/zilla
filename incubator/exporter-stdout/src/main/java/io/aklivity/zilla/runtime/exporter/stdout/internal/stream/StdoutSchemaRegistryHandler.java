@@ -22,13 +22,13 @@ import org.agrona.DirectBuffer;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.SchemaRegistryEventFW;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.SchemaRegistryRemoteAccessRejectedFW;
 
-public class SchemaRegistryEventHandler extends EventHandler
+public class StdoutSchemaRegistryHandler extends EventHandler
 {
     private static final String REMOTE_ACCESS_REJECTED = "REMOTE_ACCESS_REJECTED %s - [%s] %s %s %d%n";
 
     private final SchemaRegistryEventFW schemaRegistryEventRO = new SchemaRegistryEventFW();
 
-    public SchemaRegistryEventHandler(
+    public StdoutSchemaRegistryHandler(
         LongFunction<String> supplyQName,
         PrintStream out)
     {
