@@ -49,4 +49,26 @@ scope http
             HttpHeader[] headers;
         }
     }
+
+    scope event
+    {
+        enum HttpEventType (uint8)
+        {
+            REQUEST_ACCEPTED (1)
+        }
+
+        struct HttpRequestAccepted extends core::event::Event
+        {
+            string8 identity;
+            string8 scheme;
+            string8 method;
+            string16 authority;
+            string16 path;
+        }
+
+        union HttpEvent switch (HttpEventType)
+        {
+            case REQUEST_ACCEPTED: HttpRequestAccepted requestAccepted;
+        }
+    }
 }

@@ -20,16 +20,20 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 
 import java.lang.reflect.Method;
+import java.nio.ByteBuffer;
 
 import javax.el.ELContext;
 import javax.el.FunctionMapper;
 
 import org.agrona.DirectBuffer;
+import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
+import org.kaazing.k3po.lang.el.BytesMatcher;
 import org.kaazing.k3po.lang.internal.el.ExpressionContext;
 
 import io.aklivity.zilla.specs.binding.openapi.OpenapiFunctions;
+import io.aklivity.zilla.specs.binding.openapi.internal.types.OctetsFW;
 import io.aklivity.zilla.specs.binding.openapi.internal.types.stream.OpenapiBeginExFW;
 
 public class OpenapiFunctionsTest
@@ -50,6 +54,7 @@ public class OpenapiFunctionsTest
     {
         byte[] build = OpenapiFunctions.beginEx()
             .typeId(0x01)
+            .apiId(1L)
             .operationId("test")
             .extension("extension".getBytes())
             .build();
@@ -57,8 +62,31 @@ public class OpenapiFunctionsTest
         DirectBuffer buffer = new UnsafeBuffer(build);
 
         OpenapiBeginExFW beginEx = new OpenapiBeginExFW().wrap(buffer, 0, buffer.capacity());
-        assertEquals(0L, beginEx.apiId());
+        assertEquals(1L, beginEx.apiId());
         assertEquals("test", beginEx.operationId().asString());
         assertEquals("extension".length(), beginEx.extension().sizeof());
+    }
+
+    @Test
+    public void shouldMatchOpenapiBeginExtension() throws Exception
+    {
+        BytesMatcher matcher = OpenapiFunctions.matchBeginEx()
+            .typeId(0x00)
+            .apiId(1)
+            .operationId("operationId")
+            .extension(new byte[] {1})
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(26);
+        MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1]);
+
+        new OpenapiBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x00)
+            .apiId(1)
+            .operationId("operationId")
+            .extension(new OctetsFW.Builder().wrap(writeBuffer, 0, 1).set(new byte[] {1}).build())
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
     }
 }

@@ -167,7 +167,7 @@ public class JwtGuardTest
 
         String token = sign(claims.toJson(), "test", RFC7515_RS256, "RS256");
 
-        long authorizedId = handler.reauthorize(101L, token);
+        long authorizedId = handler.reauthorize(0L, 0L, 101L, token);
 
         assertFalse(verifier.test(authorizedId));
     }
@@ -220,7 +220,7 @@ public class JwtGuardTest
 
         String token = sign(claims.toJson(), "test", RFC7515_RS256, "RS256");
 
-        long sessionId = handler.reauthorize(101L, token);
+        long sessionId = handler.reauthorize(0L, 0L, 101L, token);
 
         assertTrue(verifier.test(sessionId));
     }
@@ -272,7 +272,7 @@ public class JwtGuardTest
 
         String token = sign(claims.toJson(), "test", RFC7515_RS256, "RS256");
 
-        long sessionId = handler.reauthorize(101L, token);
+        long sessionId = handler.reauthorize(0L, 0L, 101L, token);
 
         assertTrue(verifier.test(sessionId));
     }
@@ -323,7 +323,7 @@ public class JwtGuardTest
 
         String token = sign(claims.toJson(), "test", RFC7515_RS256, "RS256");
 
-        long sessionId = handler.reauthorize(101L, token);
+        long sessionId = handler.reauthorize(0L, 0L, 101L, token);
 
         assertTrue(verifier.test(sessionId));
     }
@@ -374,7 +374,7 @@ public class JwtGuardTest
 
         String token = sign(claims.toJson(), "test", RFC7515_RS256, "RS256");
 
-        long sessionId = handler.reauthorize(101L, token);
+        long sessionId = handler.reauthorize(0L, 0L, 101L, token);
 
         assertTrue(verifier.test(sessionId));
     }
@@ -425,7 +425,7 @@ public class JwtGuardTest
 
         String token = sign(claims.toJson(), "test", RFC7515_RS256, "RS256");
 
-        long sessionId = handler.reauthorize(101L, token);
+        long sessionId = handler.reauthorize(0L, 0L, 101L, token);
 
         assertEquals("testSubject", identifier.apply(sessionId));
     }
@@ -478,7 +478,7 @@ public class JwtGuardTest
 
         String token = sign(claims.toJson(), "test", RFC7515_RS256, "RS256");
 
-        long sessionId = handler.reauthorize(101L, token);
+        long sessionId = handler.reauthorize(0L, 0L, 101L, token);
 
         assertEquals("testSubject", identifier.apply(sessionId));
     }

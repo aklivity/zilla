@@ -41,5 +41,5 @@ bindings:
               query:
                 access_token: "{credentials}"
       specs:
-        - openapi/petstore.yaml
+        openapi-id: openapi/petstore.yaml
     exit: openapi0

@@ -25,4 +25,4 @@ bindings:
         host: localhost
         port: 8080
       specs:
-        - openapi/petstore.yaml
+        openapi-id: openapi/petstore.yaml

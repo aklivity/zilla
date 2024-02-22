@@ -138,6 +138,7 @@ public class TcpClientFactory implements TcpStreamFactory
         MessageConsumer application)
     {
         final BeginFW begin = beginRO.wrap(buffer, index, index + length);
+        final long traceId = begin.traceId();
         final long originId = begin.originId();
         final long routedId = begin.routedId();
         final long authorization = begin.authorization();
@@ -151,7 +152,7 @@ public class TcpClientFactory implements TcpStreamFactory
         TcpBindingConfig binding = router.lookup(routedId);
         if (binding != null)
         {
-            route = router.resolve(binding, authorization, beginEx);
+            route = router.resolve(binding, traceId, authorization, beginEx);
         }
 
         MessageConsumer newStream = null;
@@ -257,13 +258,14 @@ public class TcpClientFactory implements TcpStreamFactory
                 state = TcpState.openingInitial(state);
                 net.setOption(SO_KEEPALIVE, options != null && options.keepalive);
 
+                networkKey = supplyPollerKey.apply(net);
+
                 if (net.connect(remoteAddress))
                 {
                     onNetConnected();
                 }
                 else
                 {
-                    networkKey = supplyPollerKey.apply(net);
                     networkKey.handler(OP_CONNECT, this::onNetConnect);
                     networkKey.register(OP_CONNECT);
                 }
@@ -283,7 +285,7 @@ public class TcpClientFactory implements TcpStreamFactory
                 net.finishConnect();
                 onNetConnected();
             }
-            catch (UnresolvedAddressException | IOException ex)
+            catch (IOException ex)
             {
                 onNetRejected();
             }
