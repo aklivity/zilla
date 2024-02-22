@@ -14,16 +14,17 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.view;
 
+import static org.agrona.LangUtil.rethrowUnchecked;
+
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiServer;
-import static org.agrona.LangUtil.rethrowUnchecked;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiServer;
 
 public final class AsyncapiServerView
 {
@@ -40,7 +41,8 @@ public final class AsyncapiServerView
         List<Map<String, List<String>>> security = null;
         try
         {
-            security = objectMapper.readValue(server.security.toString(), new TypeReference<>() { });
+            security = objectMapper.readValue(server.security.toString(), new TypeReference<>()
+            { });
         }
         catch (JsonProcessingException e)
         {

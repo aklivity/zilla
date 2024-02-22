@@ -2440,7 +2440,10 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             delegate.nodeId = String.valueOf(nodeId);
 
-            KafkaServerConfig server = new KafkaServerConfig(host.asString(), port);
+            KafkaServerConfig server = KafkaServerConfig.builder()
+                .host(host.asString())
+                .port(port)
+                .build();
             delegate.client = new DescribeClient(originId, routedId, server, sasl, delegate);
 
             delegate.client.doNetworkBegin(traceId, authorization, 0);
