@@ -51,9 +51,9 @@ public abstract class EventHandler
     }
 
     protected static String identity(
-        StringFW stringFW)
+        StringFW identity)
     {
-        String s = stringFW.asString();
-        return s == null || s.isEmpty() ? "-" : s;
+        int length = identity.length();
+        return length <= 0 ? "-" : identity.asString();
     }
 }
