@@ -24,7 +24,7 @@ import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.MqttEventF
 
 public class MqttEventHandler extends EventHandler
 {
-    private static final String MQTT_AUTHORIZATION_FAILURE_FORMAT = "MQTT_AUTHORIZATION_FAILURE %s.%s %s %d%n";
+    private static final String MQTT_AUTHORIZATION_FAILURE_FORMAT = "AUTHORIZATION_FAILURE %s.%s %s %d%n";
 
     private final MqttEventFW mqttEventRO = new MqttEventFW();
 

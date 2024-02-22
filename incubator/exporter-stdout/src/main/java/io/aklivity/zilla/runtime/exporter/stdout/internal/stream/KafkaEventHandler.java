@@ -24,8 +24,8 @@ import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.KafkaEvent
 
 public class KafkaEventHandler extends EventHandler
 {
-    private static final String KAFKA_AUTHORIZATION_FAILURE_FORMAT = "KAFKA_AUTHORIZATION_FAILURE %s.%s - %d%n";
-    private static final String KAFKA_API_VERSION_REJECTED_FORMAT = "KAFKA_API_VERSION_REJECTED %s.%s - %d%n";
+    private static final String KAFKA_AUTHORIZATION_FAILURE_FORMAT = "AUTHORIZATION_FAILURE %s.%s - %d%n";
+    private static final String KAFKA_API_VERSION_REJECTED_FORMAT = "API_VERSION_REJECTED %s.%s - %d%n";
 
     private final KafkaEventFW kafkaEventRO = new KafkaEventFW();
 

@@ -24,7 +24,7 @@ import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.TcpEventFW
 
 public class TcpEventHandler extends EventHandler
 {
-    private static final String TCP_DNS_FAILED_FORMAT = "TCP_DNS_FAILED %s.%s - %d %s%n";
+    private static final String TCP_DNS_FAILED_FORMAT = "DNS_FAILED %s.%s - %d %s%n";
 
     private final TcpEventFW tcpEventRO = new TcpEventFW();
 

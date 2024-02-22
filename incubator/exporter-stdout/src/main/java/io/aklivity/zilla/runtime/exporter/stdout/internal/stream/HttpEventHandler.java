@@ -24,8 +24,8 @@ import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.HttpEventF
 
 public class HttpEventHandler extends EventHandler
 {
-    private static final String HTTP_AUTHORIZATION_FAILURE_FORMAT = "HTTP_AUTHORIZATION_FAILURE %s.%s %s %d%n";
-    private static final String HTTP_REQUEST_FORMAT = "HTTP_REQUEST %s.%s %s %d%n";
+    private static final String HTTP_AUTHORIZATION_FAILURE_FORMAT = "AUTHORIZATION_FAILURE %s.%s %s %d%n";
+    private static final String HTTP_REQUEST_FORMAT = "REQUEST %s.%s %s %d%n";
 
     private final HttpEventFW httpEventRO = new HttpEventFW();
 

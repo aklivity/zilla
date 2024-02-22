@@ -25,10 +25,10 @@ import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.TlsEventFW
 public class TlsEventHandler extends EventHandler
 {
     private static final String TLS_FAILED_FORMAT = "TLS_FAILED %s.%s - %d%n";
-    private static final String TLS_PROTOCOL_REJECTED_FORMAT = "TLS_PROTOCOL_REJECTED %s.%s - %d%n";
-    private static final String TLS_KEY_REJECTED_FORMAT = "TLS_KEY_REJECTED %s.%s - %d%n";
-    private static final String TLS_PEER_NOT_VERIFIED_FORMAT = "TLS_PEER_NOT_VERIFIED %s.%s - %d%n";
-    private static final String TLS_HANDSHAKE_FAILED_FORMAT = "TLS_HANDSHAKE_FAILED %s.%s - %d%n";
+    private static final String TLS_PROTOCOL_REJECTED_FORMAT = "PROTOCOL_REJECTED %s.%s - %d%n";
+    private static final String TLS_KEY_REJECTED_FORMAT = "KEY_REJECTED %s.%s - %d%n";
+    private static final String TLS_PEER_NOT_VERIFIED_FORMAT = "PEER_NOT_VERIFIED %s.%s - %d%n";
+    private static final String TLS_HANDSHAKE_FAILED_FORMAT = "HANDSHAKE_FAILED %s.%s - %d%n";
 
     private final TlsEventFW tlsEventRO = new TlsEventFW();
 
