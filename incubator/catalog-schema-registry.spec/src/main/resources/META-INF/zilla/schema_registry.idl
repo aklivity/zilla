@@ -24,7 +24,7 @@ scope schema_registry
         struct SchemaRegistryRemoteAccessRejected extends core::event::Event
         {
             string8 method;
-            string16 baseUrl;
+            string16 url;
             int16 status;
         }
 

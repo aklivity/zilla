@@ -50,7 +50,7 @@ public class SchemaRegistryEventHandler extends EventHandler
             String namespace = supplyNamespace.apply(e.namespacedId());
             String binding = supplyLocalName.apply(e.namespacedId());
             out.printf(REMOTE_ACCESS_REJECTED, e.traceId(), namespace, binding, e.timestamp(), asString(e.method()),
-                asString(e.baseUrl()), e.status());
+                asString(e.url()), e.status());
             break;
         }
     }

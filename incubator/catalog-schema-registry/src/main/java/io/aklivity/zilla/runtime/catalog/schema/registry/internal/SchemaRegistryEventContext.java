@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.catalog.schema.registry.internal;
 
+import java.net.http.HttpRequest;
 import java.nio.ByteBuffer;
 import java.time.Clock;
 
@@ -44,8 +45,7 @@ public class SchemaRegistryEventContext
 
     public void remoteAccessRejected(
         long catalogId,
-        String baseUrl,
-        String method,
+        HttpRequest httpRequest,
         int status)
     {
         SchemaRegistryEventFW event = schemaRegistryEventRW
@@ -53,8 +53,8 @@ public class SchemaRegistryEventContext
             .remoteAccessRejected(e -> e
                 .timestamp(clock.millis())
                 .namespacedId(catalogId)
-                .method(method)
-                .baseUrl(baseUrl)
+                .method(httpRequest.method())
+                .url(httpRequest.uri().toString())
                 .status((short) status)
             )
             .build();
