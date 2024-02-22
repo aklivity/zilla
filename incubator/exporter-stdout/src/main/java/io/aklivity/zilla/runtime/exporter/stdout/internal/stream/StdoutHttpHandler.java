@@ -19,13 +19,14 @@ import java.io.PrintStream;
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.exporter.stdout.internal.StdoutExporterContext;
-import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.HttpDefaultEventFW;
+import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.HttpAuthorizationFailedEventFW;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.HttpEventFW;
+import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.HttpRequestAcceptedEventFW;
 
 public class StdoutHttpHandler extends EventHandler
 {
     private static final String AUTHORIZATION_FAILED_FORMAT = "AUTHORIZATION_FAILED %s %s [%s]%n";
-    private static final String REQUEST_ACCEPTED_FORMAT = "REQUEST_ACCEPTED %s %s [%s]%n";
+    private static final String REQUEST_ACCEPTED_FORMAT = "REQUEST_ACCEPTED %s %s [%s] %s %s %s%n";
 
     private final HttpEventFW httpEventRO = new HttpEventFW();
 
@@ -47,16 +48,17 @@ public class StdoutHttpHandler extends EventHandler
         {
         case AUTHORIZATION_FAILED:
         {
-            HttpDefaultEventFW e = event.authorizationFailed();
+            HttpAuthorizationFailedEventFW e = event.authorizationFailed();
             String qname = context.supplyQName(e.namespacedId());
             out.printf(AUTHORIZATION_FAILED_FORMAT, qname, identity(e.identity()), asDateTime(e.timestamp()));
             break;
         }
         case REQUEST_ACCEPTED:
         {
-            HttpDefaultEventFW e = event.requestAccepted();
+            HttpRequestAcceptedEventFW e = event.requestAccepted();
             String qname = context.supplyQName(e.namespacedId());
-            out.format(REQUEST_ACCEPTED_FORMAT, qname, identity(e.identity()), asDateTime(e.timestamp()));
+            out.format(REQUEST_ACCEPTED_FORMAT, qname, identity(e.identity()), asDateTime(e.timestamp()), asString(e.scheme()),
+                asString(e.method()), asString(e.path()));
             break;
         }
         }
