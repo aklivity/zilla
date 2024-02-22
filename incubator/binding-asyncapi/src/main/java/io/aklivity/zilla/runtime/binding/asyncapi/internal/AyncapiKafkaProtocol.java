@@ -118,7 +118,10 @@ public class AyncapiKafkaProtocol extends AsyncapiProtocol
         return options.servers(asyncApi.servers.values().stream().map(s ->
         {
             final URI serverUrl = AsyncapiServerView.of(s).url();
-            return new KafkaServerConfig(serverUrl.getHost(), serverUrl.getPort());
+            return KafkaServerConfig.builder()
+                .host(serverUrl.getHost())
+                .port(serverUrl.getPort())
+                .build();
         }).collect(Collectors.toList()));
     }
 
