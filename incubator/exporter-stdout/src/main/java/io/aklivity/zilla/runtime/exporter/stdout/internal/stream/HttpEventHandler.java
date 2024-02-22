@@ -24,8 +24,8 @@ import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.HttpEventF
 
 public class HttpEventHandler extends EventHandler
 {
-    private static final String HTTP_AUTHORIZATION_FAILED_FORMAT = "AUTHORIZATION_FAILED %s.%s %s [%s]%n";
-    private static final String HTTP_REQUEST_FORMAT = "REQUEST_ACCEPTED %s.%s %s [%s]%n";
+    private static final String AUTHORIZATION_FAILED_FORMAT = "AUTHORIZATION_FAILED %s.%s %s [%s]%n";
+    private static final String REQUEST_ACCEPTED_FORMAT = "REQUEST_ACCEPTED %s.%s %s [%s]%n";
 
     private final HttpEventFW httpEventRO = new HttpEventFW();
 
@@ -51,7 +51,7 @@ public class HttpEventHandler extends EventHandler
             HttpDefaultEventFW e = event.authorizationFailed();
             String namespace = supplyNamespace.apply(e.namespacedId());
             String binding = supplyLocalName.apply(e.namespacedId());
-            out.printf(HTTP_AUTHORIZATION_FAILED_FORMAT, namespace, binding, identity(e.identity()), asDateTime(e.timestamp()));
+            out.printf(AUTHORIZATION_FAILED_FORMAT, namespace, binding, identity(e.identity()), asDateTime(e.timestamp()));
             break;
         }
         case REQUEST_ACCEPTED:
@@ -59,7 +59,7 @@ public class HttpEventHandler extends EventHandler
             HttpDefaultEventFW e = event.requestAccepted();
             String namespace = supplyNamespace.apply(e.namespacedId());
             String binding = supplyLocalName.apply(e.namespacedId());
-            out.format(HTTP_REQUEST_FORMAT, namespace, binding, identity(e.identity()), asDateTime(e.timestamp()));
+            out.format(REQUEST_ACCEPTED_FORMAT, namespace, binding, identity(e.identity()), asDateTime(e.timestamp()));
             break;
         }
         }

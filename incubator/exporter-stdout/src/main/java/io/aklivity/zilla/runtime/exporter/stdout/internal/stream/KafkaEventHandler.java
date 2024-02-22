@@ -24,8 +24,8 @@ import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.KafkaEvent
 
 public class KafkaEventHandler extends EventHandler
 {
-    private static final String KAFKA_AUTHORIZATION_FAILED_FORMAT = "AUTHORIZATION_FAILED %s.%s - [%s]%n";
-    private static final String KAFKA_API_VERSION_REJECTED_FORMAT = "API_VERSION_REJECTED %s.%s - [%s]%n";
+    private static final String AUTHORIZATION_FAILED_FORMAT = "AUTHORIZATION_FAILED %s.%s - [%s]%n";
+    private static final String API_VERSION_REJECTED_FORMAT = "API_VERSION_REJECTED %s.%s - [%s]%n";
 
     private final KafkaEventFW kafkaEventRO = new KafkaEventFW();
 
@@ -51,7 +51,7 @@ public class KafkaEventHandler extends EventHandler
             EventFW e = event.authorizationFailed();
             String namespace = supplyNamespace.apply(e.namespacedId());
             String binding = supplyLocalName.apply(e.namespacedId());
-            out.printf(KAFKA_AUTHORIZATION_FAILED_FORMAT, namespace, binding, asDateTime(e.timestamp()));
+            out.printf(AUTHORIZATION_FAILED_FORMAT, namespace, binding, asDateTime(e.timestamp()));
             break;
         }
         case API_VERSION_REJECTED:
@@ -59,7 +59,7 @@ public class KafkaEventHandler extends EventHandler
             EventFW e = event.apiVersionRejected();
             String namespace = supplyNamespace.apply(e.namespacedId());
             String binding = supplyLocalName.apply(e.namespacedId());
-            out.printf(KAFKA_API_VERSION_REJECTED_FORMAT, namespace, binding, asDateTime(e.timestamp()));
+            out.printf(API_VERSION_REJECTED_FORMAT, namespace, binding, asDateTime(e.timestamp()));
             break;
         }
         }
