@@ -71,6 +71,6 @@ public class KafkaTopicType
     private static Matcher asMatcher(
         String topic)
     {
-        return Pattern.compile(topic.replaceAll("\\{[^}]+\\}", "[^/]+")).matcher("");
+        return Pattern.compile(topic.replaceAll("\\{[^}]+\\}", ".+")).matcher("");
     }
 }
