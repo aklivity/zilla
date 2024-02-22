@@ -19,9 +19,9 @@ import java.io.PrintStream;
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.exporter.stdout.internal.StdoutExporterContext;
-import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.HttpAuthorizationFailedEventFW;
+import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.HttpAuthorizationFailedFW;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.HttpEventFW;
-import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.HttpRequestAcceptedEventFW;
+import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.HttpRequestAcceptedFW;
 
 public class StdoutHttpHandler extends EventHandler
 {
@@ -48,14 +48,14 @@ public class StdoutHttpHandler extends EventHandler
         {
         case AUTHORIZATION_FAILED:
         {
-            HttpAuthorizationFailedEventFW e = event.authorizationFailed();
+            HttpAuthorizationFailedFW e = event.authorizationFailed();
             String qname = context.supplyQName(e.namespacedId());
             out.printf(AUTHORIZATION_FAILED_FORMAT, qname, identity(e.identity()), asDateTime(e.timestamp()));
             break;
         }
         case REQUEST_ACCEPTED:
         {
-            HttpRequestAcceptedEventFW e = event.requestAccepted();
+            HttpRequestAcceptedFW e = event.requestAccepted();
             String qname = context.supplyQName(e.namespacedId());
             out.format(REQUEST_ACCEPTED_FORMAT, qname, identity(e.identity()), asDateTime(e.timestamp()), asString(e.scheme()),
                 asString(e.method()), asString(e.path()));

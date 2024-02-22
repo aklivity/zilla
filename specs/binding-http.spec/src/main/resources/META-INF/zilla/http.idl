@@ -58,12 +58,12 @@ scope http
             REQUEST_ACCEPTED (2)
         }
 
-        struct HttpAuthorizationFailedEvent extends core::event::Event
+        struct HttpAuthorizationFailed extends core::event::Event
         {
             string8 identity;
         }
 
-        struct HttpRequestAcceptedEvent extends core::event::Event
+        struct HttpRequestAccepted extends core::event::Event
         {
             string8 identity;
             string8 scheme;
@@ -73,8 +73,8 @@ scope http
 
         union HttpEvent switch (HttpEventType)
         {
-            case AUTHORIZATION_FAILED: HttpAuthorizationFailedEvent authorizationFailed;
-            case REQUEST_ACCEPTED: HttpRequestAcceptedEvent requestAccepted;
+            case AUTHORIZATION_FAILED: HttpAuthorizationFailed authorizationFailed;
+            case REQUEST_ACCEPTED: HttpRequestAccepted requestAccepted;
         }
     }
 }
