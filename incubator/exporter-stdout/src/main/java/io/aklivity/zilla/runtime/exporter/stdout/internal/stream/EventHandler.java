@@ -15,6 +15,10 @@
 package io.aklivity.zilla.runtime.exporter.stdout.internal.stream;
 
 import java.io.PrintStream;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.function.LongFunction;
 
 import org.agrona.DirectBuffer;
@@ -23,6 +27,8 @@ import io.aklivity.zilla.runtime.exporter.stdout.internal.types.StringFW;
 
 public abstract class EventHandler
 {
+    protected static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd/MMM/yyyy:HH:mm:ss Z");
+
     protected final LongFunction<String> supplyNamespace;
     protected final LongFunction<String> supplyLocalName;
     protected final PrintStream out;
@@ -55,5 +61,13 @@ public abstract class EventHandler
     {
         int length = identity.length();
         return length <= 0 ? "-" : identity.asString();
+    }
+
+    protected static String asDateTime(
+        long timestamp)
+    {
+        Instant instant = Instant.ofEpochMilli(timestamp);
+        OffsetDateTime offsetDateTime = OffsetDateTime.ofInstant(instant, ZoneId.systemDefault());
+        return offsetDateTime.format(FORMATTER);
     }
 }
