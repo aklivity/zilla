@@ -44,7 +44,7 @@ public class KafkaEventContext
         this.clock = context.clock();
     }
 
-    public void authorizationFailure(
+    public void authorizationFailed(
         int errorCode,
         long traceId,
         long routedId)
@@ -53,7 +53,7 @@ public class KafkaEventContext
         {
             KafkaEventFW event = kafkaEventRW
                 .wrap(eventBuffer, 0, eventBuffer.capacity())
-                .authorizationFailure(e -> e
+                .authorizationFailed(e -> e
                     .timestamp(clock.millis())
                     .traceId(traceId)
                     .namespacedId(routedId)
