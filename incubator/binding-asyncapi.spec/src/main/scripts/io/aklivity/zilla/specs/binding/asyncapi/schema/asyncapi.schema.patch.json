@@ -1,0 +1,114 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/binding/properties/type/enum/-",
+        "value": "asyncapi"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/binding/allOf/-",
+        "value":
+        {
+            "if":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "asyncapi"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "asyncapi"
+                    },
+                    "kind":
+                    {
+                        "enum": [ "server", "client" ]
+                    },
+                    "options":
+                    {
+                        "properties":
+                        {
+                            "specs":
+                            {
+                                "title": "Specifications",
+                                "type": "array",
+                                "items":
+                                {
+                                    "type": "string"
+                                }
+                            },
+                            "tcp": "#/$defs/binding/tcp/options",
+                            "tls": "#/$defs/binding/tls/options"
+                        },
+                        "additionalProperties": false
+                    },
+                    "routes": false
+                },
+                "oneOf":
+                [
+                    {
+                        "properties":
+                        {
+                            "kind":
+                            {
+                                "const": "server"
+                            }
+                        },
+                        "anyOf":
+                        [
+                            {
+                                "required":
+                                [
+                                    "exit"
+                                ]
+                            },
+                            {
+                                "properties":
+                                {
+                                    "routes":
+                                    {
+                                        "required":
+                                        [
+                                            "exit"
+                                        ]
+                                    }
+                                },
+                                "required":
+                                [
+                                    "routes"
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "properties":
+                        {
+                            "kind":
+                            {
+                                "const": "client"
+                            },
+                            "routes":
+                            {
+                                "items":
+                                {
+                                    "properties":
+                                    {
+                                        "exit": false
+                                    }
+                                }
+                            },
+                            "exit": false
+                        }
+                    }
+                ]
+            }
+        }
+    }
+]
