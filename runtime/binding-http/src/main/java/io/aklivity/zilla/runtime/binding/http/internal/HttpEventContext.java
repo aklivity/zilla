@@ -44,7 +44,7 @@ public class HttpEventContext
         this.clock = context.clock();
     }
 
-    public void authorizationFailure(
+    public void authorizationFailed(
         long sessionId,
         long traceId,
         long routedId,
@@ -56,7 +56,7 @@ public class HttpEventContext
             String identity = guard == null ? null : guard.identity(authorization);
             HttpEventFW event = httpEventRW
                 .wrap(eventBuffer, 0, eventBuffer.capacity())
-                .authorizationFailure(e -> e
+                .authorizationFailed(e -> e
                     .timestamp(clock.millis())
                     .traceId(traceId)
                     .namespacedId(routedId)
@@ -67,7 +67,7 @@ public class HttpEventContext
         }
     }
 
-    public void request(
+    public void requestAccepted(
         long traceId,
         long routedId,
         GuardHandler guard,
@@ -76,7 +76,7 @@ public class HttpEventContext
         String identity = guard == null ? null : guard.identity(authorization);
         HttpEventFW event = httpEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
-            .request(e -> e
+            .requestAccepted(e -> e
                 .timestamp(clock.millis())
                 .traceId(traceId)
                 .namespacedId(routedId)

@@ -1059,7 +1059,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                             if (credentialsMatch != null)
                             {
                                 exchangeAuth = guard.reauthorize(server.initialId, credentialsMatch);
-                                event.authorizationFailure(exchangeAuth, traceId, server.routedId, guard, authorization);
+                                event.authorizationFailed(exchangeAuth, traceId, server.routedId, guard, authorization);
                             }
                         }
 
@@ -2272,7 +2272,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 final HttpHeaderFW connection = beginEx.headers().matchFirst(h -> HEADER_CONNECTION.equals(h.name()));
                 exchange.responseClosing = connection != null && connectionClose.reset(connection.value().asString()).matches();
 
-                event.request(traceId, routedId, guard, authorization);
+                event.requestAccepted(traceId, routedId, guard, authorization);
                 this.exchange = exchange;
             }
             return headersValid;
@@ -4928,7 +4928,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             else
             {
                 final Map<String, String> headers = headersDecoder.headers;
-                event.request(traceId, routedId, guard, authorization);
+                event.requestAccepted(traceId, routedId, guard, authorization);
                 if (isCorsPreflightRequest(headers))
                 {
                     if (!endRequest)
@@ -4974,7 +4974,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                             if (credentialsMatch != null)
                             {
                                 exchangeAuth = guard.reauthorize(initialId, credentialsMatch);
-                                event.authorizationFailure(exchangeAuth, traceId, routedId, guard, authorization);
+                                event.authorizationFailed(exchangeAuth, traceId, routedId, guard, authorization);
                             }
                         }
 

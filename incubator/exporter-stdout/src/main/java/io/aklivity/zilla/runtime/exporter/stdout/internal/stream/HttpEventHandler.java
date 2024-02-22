@@ -24,8 +24,8 @@ import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.HttpEventF
 
 public class HttpEventHandler extends EventHandler
 {
-    private static final String HTTP_AUTHORIZATION_FAILURE_FORMAT = "AUTHORIZATION_FAILURE %s.%s %s %d%n";
-    private static final String HTTP_REQUEST_FORMAT = "REQUEST %s.%s %s %d%n";
+    private static final String HTTP_AUTHORIZATION_FAILED_FORMAT = "AUTHORIZATION_FAILED %s.%s %s %d%n";
+    private static final String HTTP_REQUEST_FORMAT = "REQUEST_ACCEPTED %s.%s %s %d%n";
 
     private final HttpEventFW httpEventRO = new HttpEventFW();
 
@@ -46,17 +46,17 @@ public class HttpEventHandler extends EventHandler
         final HttpEventFW event = httpEventRO.wrap(buffer, index, index + length);
         switch (event.kind())
         {
-        case AUTHORIZATION_FAILURE:
+        case AUTHORIZATION_FAILED:
         {
-            HttpDefaultEventFW e = event.authorizationFailure();
+            HttpDefaultEventFW e = event.authorizationFailed();
             String namespace = supplyNamespace.apply(e.namespacedId());
             String binding = supplyLocalName.apply(e.namespacedId());
-            out.printf(HTTP_AUTHORIZATION_FAILURE_FORMAT, namespace, binding, identity(e.identity()), e.timestamp());
+            out.printf(HTTP_AUTHORIZATION_FAILED_FORMAT, namespace, binding, identity(e.identity()), e.timestamp());
             break;
         }
-        case REQUEST:
+        case REQUEST_ACCEPTED:
         {
-            HttpDefaultEventFW e = event.request();
+            HttpDefaultEventFW e = event.requestAccepted();
             String namespace = supplyNamespace.apply(e.namespacedId());
             String binding = supplyLocalName.apply(e.namespacedId());
             out.format(HTTP_REQUEST_FORMAT, namespace, binding, identity(e.identity()), e.timestamp());
