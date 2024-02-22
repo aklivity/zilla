@@ -244,6 +244,8 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
         String version)
     {
         InputStream schemaInput = null;
+        boolean detect = true;
+
         if (version.startsWith("3.0"))
         {
             schemaInput = OpenapiBinding.class.getResourceAsStream("schema/openapi.3.0.schema.json");
@@ -251,12 +253,13 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
         else if (version.startsWith("3.1"))
         {
             schemaInput =  OpenapiBinding.class.getResourceAsStream("schema/openapi.3.1.schema.json");
+            detect = false;
         }
 
         JsonValidationService service = JsonValidationService.newInstance();
 
         return service.createSchemaReaderFactoryBuilder()
-                .withSpecVersionDetection(true)
+                .withSpecVersionDetection(detect)
                 .build()
                 .createSchemaReader(schemaInput)
                 .read();
