@@ -17,6 +17,8 @@ package io.aklivity.zilla.runtime.binding.http.config;
 
 import static java.util.function.Function.identity;
 
+import java.util.function.Function;
+
 public final class HttpAuthorizationConfig
 {
     public final String name;
@@ -25,6 +27,12 @@ public final class HttpAuthorizationConfig
     public static HttpAuthorizationConfigBuilder<HttpAuthorizationConfig> builder()
     {
         return new HttpAuthorizationConfigBuilder<>(identity());
+    }
+
+    public static <T> HttpAuthorizationConfigBuilder<T> builder(
+        Function<HttpAuthorizationConfig, T> mapper)
+    {
+        return new HttpAuthorizationConfigBuilder(mapper);
     }
 
     HttpAuthorizationConfig(
