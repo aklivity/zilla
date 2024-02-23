@@ -17,13 +17,13 @@
 ---
 name: test
 bindings:
-  asyncapi_mqtt0:
+  asyncapi_mqtt_kafka0:
     type: asyncapi
     kind: proxy
     options:
       specs:
         - mqtt/asyncapi.yaml
-        - kafka/asyncapi.yaml
+        - kafka/sensor.asyncapi.yaml
     routes:
       - when:
           - operation: sendEvents

@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal;
 
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -24,10 +25,9 @@ public class AsyncapiCompositeBindingAdapter
 {
     protected static final String APPLICATION_JSON = "application/json";
 
+    protected List<Asyncapi> asyncApis;
     protected Asyncapi asyncApi;
     protected boolean isTlsEnabled;
-    protected int[] allPorts;
-    protected int[] compositePorts;
     protected AsyncapiProtocol protocol;
     protected String qname;
     protected String qvault;

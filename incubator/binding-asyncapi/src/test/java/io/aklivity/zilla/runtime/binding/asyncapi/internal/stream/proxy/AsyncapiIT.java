@@ -14,12 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.stream.proxy;
 
-import static io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiConfigurationTest.ASYNCAPI_TARGET_ROUTE_ID_NAME;
-import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.INSTANCE_ID_NAME;
-import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.LIFETIME_ID_NAME;
-import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.SESSION_ID_NAME;
-import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.TIME_NAME;
-import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.WILL_ID_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -29,13 +23,11 @@ import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
-import org.kaazing.k3po.junit.annotation.ScriptProperty;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
-import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class AsyncapiIT
 {
@@ -49,16 +41,6 @@ public class AsyncapiIT
         .countersBufferCapacity(8192)
         .configure(ENGINE_DRAIN_ON_CLOSE, false)
         .configurationRoot("io/aklivity/zilla/specs/binding/asyncapi/config")
-        .configure(SESSION_ID_NAME,
-            "io.aklivity.zilla.runtime.binding.asyncapi.internal.stream.proxy.AsyncapiIT::supplySessionId")
-        .configure(INSTANCE_ID_NAME,
-            "io.aklivity.zilla.runtime.binding.asyncapi.internal.stream.proxy.AsyncapiIT::supplyInstanceId")
-        .configure(TIME_NAME,
-            "io.aklivity.zilla.runtime.binding.asyncapi.internal.stream.proxy.AsyncapiIT::supplyTime")
-        .configure(LIFETIME_ID_NAME,
-            "io.aklivity.zilla.runtime.binding.asyncapi.internal.stream.proxy.AsyncapiIT::supplyLifetimeId")
-        .configure(WILL_ID_NAME,
-            "io.aklivity.zilla.runtime.binding.asyncapi.internal.stream.proxy.AsyncapiIT::supplyWillId")
         .external("asyncapi_kafka0")
         .clean();
 
@@ -74,30 +56,5 @@ public class AsyncapiIT
     public void shouldPublishAndSubscribe() throws Exception
     {
         k3po.finish();
-    }
-
-    public static String supplySessionId()
-    {
-        return "sender-1";
-    }
-
-    public static String supplyWillId()
-    {
-        return "d252a6bd-abb5-446a-b0f7-d0a3d8c012e2";
-    }
-
-    public static String supplyLifetimeId()
-    {
-        return "1e6a1eb5-810a-459d-a12c-a6fa08f228d1";
-    }
-
-    public static String supplyInstanceId()
-    {
-        return "zilla-1";
-    }
-
-    public static long supplyTime()
-    {
-        return 1000L;
     }
 }
