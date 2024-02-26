@@ -1046,7 +1046,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                         final String credentialsMatch = server.credentials.apply(headers::get);
                         if (credentialsMatch != null)
                         {
-                            guard.reauthorize(server.initialId, credentialsMatch);
+                            guard.reauthorize(traceId, server.routedId, server.initialId, credentialsMatch);
                         }
                         server.doEncodeHeaders(traceId, authorization, budgetId, headers204);
                     }
@@ -1058,7 +1058,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                             final String credentialsMatch = server.credentials.apply(headers::get);
                             if (credentialsMatch != null)
                             {
-                                exchangeAuth = guard.reauthorize(server.initialId, credentialsMatch);
+                                exchangeAuth = guard.reauthorize(traceId, server.routedId, server.initialId, credentialsMatch);
                                 event.authorizationFailed(exchangeAuth, traceId, server.routedId, guard, authorization);
                             }
                         }
@@ -4961,7 +4961,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                         final String credentialsMatch = credentials.apply(headers::get);
                         if (credentialsMatch != null)
                         {
-                            guard.reauthorize(initialId, credentialsMatch);
+                            guard.reauthorize(traceId, routedId, initialId, credentialsMatch);
                         }
                         doEncodeHeaders(traceId, authorization, streamId, headers204, true);
                     }
@@ -4973,7 +4973,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                             final String credentialsMatch = credentials.apply(headers::get);
                             if (credentialsMatch != null)
                             {
-                                exchangeAuth = guard.reauthorize(initialId, credentialsMatch);
+                                exchangeAuth = guard.reauthorize(traceId, routedId, initialId, credentialsMatch);
                                 event.authorizationFailed(exchangeAuth, traceId, routedId, guard, authorization);
                             }
                         }
@@ -5348,7 +5348,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 final String credentialsMatch = credentials.apply(headers::get);
                 if (credentialsMatch != null)
                 {
-                    exchangeAuth = guard.reauthorize(initialId, credentialsMatch);
+                    exchangeAuth = guard.reauthorize(traceId, routedId, initialId, credentialsMatch);
                 }
             }
 

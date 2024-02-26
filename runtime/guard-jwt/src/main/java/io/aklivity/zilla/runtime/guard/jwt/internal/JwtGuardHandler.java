@@ -121,6 +121,8 @@ public class JwtGuardHandler implements GuardHandler
 
     @Override
     public long reauthorize(
+        long traceId,
+        long bindingId,
         long contextId,
         String credentials)
     {
@@ -192,8 +194,7 @@ public class JwtGuardHandler implements GuardHandler
         }
         if (session == null)
         {
-            // TODO: Ati - traceId, bindingId
-            event.authorizationFailed(0L, 0L, subject);
+            event.authorizationFailed(traceId, bindingId, subject);
         }
         return session != null ? session.authorized : NOT_AUTHORIZED;
     }
