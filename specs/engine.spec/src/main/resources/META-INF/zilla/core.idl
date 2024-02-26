@@ -105,9 +105,9 @@ scope core
     {
         struct Event
         {
-            int64 timestamp = 0;
-            int64 traceId = 0;
-            int64 namespacedId = 0;
+            int64 timestamp;
+            int64 traceId;
+            int64 namespacedId;
         }
     }
 }

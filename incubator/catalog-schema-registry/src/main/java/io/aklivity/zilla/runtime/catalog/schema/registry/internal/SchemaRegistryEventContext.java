@@ -52,6 +52,7 @@ public class SchemaRegistryEventContext
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .remoteAccessRejected(e -> e
                 .timestamp(clock.millis())
+                .traceId(0L)
                 .namespacedId(catalogId)
                 .method(httpRequest.method())
                 .url(httpRequest.uri().toString())
