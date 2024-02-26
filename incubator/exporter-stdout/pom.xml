@@ -81,6 +81,12 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
+      <artifactId>guard-jwt.spec</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
       <artifactId>engine</artifactId>
       <type>test-jar</type>
       <version>${project.version}</version>
@@ -150,7 +156,7 @@
         <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <scopeNames>core http kafka mqtt schema_registry tcp tls</scopeNames>
+          <scopeNames>core http jwt kafka mqtt schema_registry tcp tls</scopeNames>
           <packageName>io.aklivity.zilla.runtime.exporter.stdout.internal.types</packageName>
         </configuration>
         <executions>

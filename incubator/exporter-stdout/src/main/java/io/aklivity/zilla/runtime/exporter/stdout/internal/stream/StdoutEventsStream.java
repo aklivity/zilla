@@ -36,6 +36,7 @@ public class StdoutEventsStream
 
         final Int2ObjectHashMap<MessageConsumer> eventHandlers = new Int2ObjectHashMap<>();
         eventHandlers.put(context.supplyTypeId("http"), new StdoutHttpHandler(context, out)::handleEvent);
+        eventHandlers.put(context.supplyTypeId("jwt"), new StdoutJwtHandler(context, out)::handleEvent);
         eventHandlers.put(context.supplyTypeId("kafka"), new StdoutKafkaHandler(context, out)::handleEvent);
         eventHandlers.put(context.supplyTypeId("mqtt"), new StdoutMqttHandler(context, out)::handleEvent);
         eventHandlers.put(context.supplyTypeId("schema-registry"),

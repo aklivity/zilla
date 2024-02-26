@@ -42,6 +42,7 @@ import org.jose4j.jwt.NumericDate;
 import org.jose4j.jwt.consumer.InvalidJwtException;
 import org.jose4j.lang.JoseException;
 
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.guard.jwt.config.JwtKeyConfig;
 import io.aklivity.zilla.runtime.guard.jwt.config.JwtKeySetConfig;
@@ -59,9 +60,11 @@ public class JwtGuardHandler implements GuardHandler
     private final Long2ObjectHashMap<JwtSession> sessionsById;
     private final LongSupplier supplyAuthorizedId;
     private final Long2ObjectHashMap<JwtSessionStore> sessionStoresByContextId;
+    private final JwtEventContext event;
 
     public JwtGuardHandler(
         JwtOptionsConfig options,
+        EngineContext context,
         LongSupplier supplyAuthorizedId,
         Function<String, String> readURL)
     {
@@ -113,6 +116,7 @@ public class JwtGuardHandler implements GuardHandler
         this.supplyAuthorizedId = supplyAuthorizedId;
         this.sessionsById = new Long2ObjectHashMap<>();
         this.sessionStoresByContextId = new Long2ObjectHashMap<>();
+        this.event = new JwtEventContext(context);
     }
 
     @Override
@@ -121,6 +125,7 @@ public class JwtGuardHandler implements GuardHandler
         String credentials)
     {
         JwtSession session = null;
+        String subject = null;
 
         authorize:
         try
@@ -161,7 +166,7 @@ public class JwtGuardHandler implements GuardHandler
                 break authorize;
             }
 
-            String subject = claims.getSubject();
+            subject = claims.getSubject();
             List<String> roles = Optional.ofNullable(claims.getClaimValue("scope"))
                 .map(s -> s.toString().intern())
                 .map(s -> s.split("\\s+"))
@@ -185,7 +190,11 @@ public class JwtGuardHandler implements GuardHandler
         {
             // not authorized
         }
-
+        if (session == null)
+        {
+            // TODO: Ati - traceId, bindingId
+            event.authorizationFailed(0L, 0L, subject);
+        }
         return session != null ? session.authorized : NOT_AUTHORIZED;
     }
 
