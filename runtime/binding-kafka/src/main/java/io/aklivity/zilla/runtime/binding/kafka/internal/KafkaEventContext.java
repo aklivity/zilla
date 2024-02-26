@@ -64,13 +64,19 @@ public class KafkaEventContext
     }
 
     public void apiVersionRejected(
-        long traceId)
+        long traceId,
+        long bindingId,
+        int apiKey,
+        int apiVersion)
     {
         KafkaEventFW event = kafkaEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .apiVersionRejected(e -> e
                 .timestamp(clock.millis())
                 .traceId(traceId)
+                .namespacedId(bindingId)
+                .apiKey(apiKey)
+                .apiVersion(apiVersion)
             )
             .build();
         eventWriter.accept(kafkaTypeId, event.buffer(), event.offset(), event.limit());

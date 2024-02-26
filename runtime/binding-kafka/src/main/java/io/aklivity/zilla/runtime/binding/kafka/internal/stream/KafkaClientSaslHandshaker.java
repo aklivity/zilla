@@ -429,11 +429,14 @@ public abstract class KafkaClientSaslHandshaker
 
         protected final void onDecodeResponseErrorCode(
             long traceId,
+            long bindingId,
+            int apiKey,
+            int apiVersion,
             int errorCode)
         {
             if (errorCode == ERROR_UNSUPPORTED_VERSION)
             {
-                event.apiVersionRejected(traceId);
+                event.apiVersionRejected(traceId, bindingId, apiKey, apiVersion);
             }
         }
 

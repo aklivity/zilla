@@ -20,12 +20,13 @@ import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.exporter.stdout.internal.StdoutExporterContext;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.EventFW;
+import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.KafkaApiVersionRejectedFW;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.KafkaEventFW;
 
 public class StdoutKafkaHandler extends EventHandler
 {
     private static final String AUTHORIZATION_FAILED_FORMAT = "%s - [%s] AUTHORIZATION_FAILED%n";
-    private static final String API_VERSION_REJECTED_FORMAT = "%s - [%s] API_VERSION_REJECTED%n";
+    private static final String API_VERSION_REJECTED_FORMAT = "%s - [%s] API_VERSION_REJECTED %d %d%n";
 
     private final KafkaEventFW kafkaEventRO = new KafkaEventFW();
 
@@ -54,9 +55,9 @@ public class StdoutKafkaHandler extends EventHandler
         }
         case API_VERSION_REJECTED:
         {
-            EventFW e = event.apiVersionRejected();
+            KafkaApiVersionRejectedFW e = event.apiVersionRejected();
             String qname = context.supplyQName(e.namespacedId());
-            out.printf(API_VERSION_REJECTED_FORMAT, qname, asDateTime(e.timestamp()));
+            out.printf(API_VERSION_REJECTED_FORMAT, qname, asDateTime(e.timestamp()), e.apiKey(), e.apiVersion());
             break;
         }
         }

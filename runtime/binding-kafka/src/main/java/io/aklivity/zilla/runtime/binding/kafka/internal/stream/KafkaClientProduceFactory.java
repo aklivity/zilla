@@ -2271,7 +2271,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                     assert partitionId == this.partitionId;
                     break;
                 default:
-                    onDecodeResponseErrorCode(traceId, errorCode);
+                    onDecodeResponseErrorCode(traceId, originId, errorCode);
                     final KafkaResetExFW resetEx = kafkaResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
                                                                  .typeId(kafkaTypeId)
                                                                  .error(errorCode)
@@ -2280,6 +2280,14 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                     doNetworkEnd(traceId, authorization);
                     break;
                 }
+            }
+
+            private void onDecodeResponseErrorCode(
+                long traceId,
+                long originId,
+                int errorCode)
+            {
+                super.onDecodeResponseErrorCode(traceId, originId, PRODUCE_API_KEY, PRODUCE_API_VERSION, errorCode);
             }
 
             @Override

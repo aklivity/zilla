@@ -965,7 +965,7 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
                     assert resource.equals(this.topic);
                     break;
                 default:
-                    onDecodeResponseErrorCode(traceId, errorCode);
+                    onDecodeResponseErrorCode(traceId, originId, errorCode);
                     final KafkaResetExFW resetEx = kafkaResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
                                                                  .typeId(kafkaTypeId)
                                                                  .error(errorCode)
@@ -974,6 +974,15 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
                     doNetworkEnd(traceId, authorization);
                     break;
                 }
+            }
+
+            private void onDecodeResponseErrorCode(
+                long traceId,
+                long originId,
+                int errorCode)
+            {
+                super.onDecodeResponseErrorCode(traceId, originId, DESCRIBE_CONFIGS_API_KEY, DESCRIBE_CONFIGS_API_VERSION,
+                    errorCode);
             }
 
             private void onNetwork(
