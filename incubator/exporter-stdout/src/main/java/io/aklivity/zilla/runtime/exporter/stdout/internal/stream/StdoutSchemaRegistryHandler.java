@@ -24,7 +24,7 @@ import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.SchemaRegi
 
 public class StdoutSchemaRegistryHandler extends EventHandler
 {
-    private static final String REMOTE_ACCESS_REJECTED = "REMOTE_ACCESS_REJECTED %s - [%s] %s %s %d%n";
+    private static final String REMOTE_ACCESS_REJECTED = "%s - [%s] REMOTE_ACCESS_REJECTED %s %s %d%n";
 
     private final SchemaRegistryEventFW schemaRegistryEventRO = new SchemaRegistryEventFW();
 

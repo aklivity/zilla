@@ -63,6 +63,6 @@ public class Http11EventsIT
     public void shouldRejectCredentialsHeader() throws Exception
     {
         k3po.finish();
-        output.expect(Pattern.compile("AUTHORIZATION_FAILED test.net0 test \\[[^\\]]+\\]\n"));
+        output.expect(Pattern.compile("test.net0 test \\[[^\\]]+\\] AUTHORIZATION_FAILED\n"));
     }
 }

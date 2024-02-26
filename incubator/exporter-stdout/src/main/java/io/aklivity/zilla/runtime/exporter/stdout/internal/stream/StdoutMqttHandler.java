@@ -24,7 +24,7 @@ import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.MqttEventF
 
 public class StdoutMqttHandler extends EventHandler
 {
-    private static final String AUTHORIZATION_FAILED_FORMAT = "AUTHORIZATION_FAILED %s %s [%s]%n";
+    private static final String AUTHORIZATION_FAILED_FORMAT = "%s %s [%s] AUTHORIZATION_FAILED%n";
 
     private final MqttEventFW mqttEventRO = new MqttEventFW();
 
