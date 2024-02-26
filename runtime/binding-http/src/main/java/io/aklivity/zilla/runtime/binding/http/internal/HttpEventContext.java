@@ -52,29 +52,6 @@ public class HttpEventContext
         this.clock = context.clock();
     }
 
-    public void authorizationFailed(
-        long sessionId,
-        long traceId,
-        long bindingId,
-        GuardHandler guard,
-        long authorization)
-    {
-        if (sessionId == 0)
-        {
-            String identity = guard == null ? null : guard.identity(authorization);
-            HttpEventFW event = httpEventRW
-                .wrap(eventBuffer, 0, eventBuffer.capacity())
-                .authorizationFailed(e -> e
-                    .timestamp(clock.millis())
-                    .traceId(traceId)
-                    .namespacedId(bindingId)
-                    .identity(identity)
-                )
-                .build();
-            eventWriter.accept(httpTypeId, event.buffer(), event.offset(), event.limit());
-        }
-    }
-
     public void requestAccepted(
         long traceId,
         long bindingId,

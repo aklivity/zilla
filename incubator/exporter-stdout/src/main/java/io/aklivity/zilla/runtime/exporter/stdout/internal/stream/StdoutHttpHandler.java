@@ -19,13 +19,11 @@ import java.io.PrintStream;
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.exporter.stdout.internal.StdoutExporterContext;
-import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.HttpAuthorizationFailedFW;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.HttpEventFW;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.HttpRequestAcceptedFW;
 
 public class StdoutHttpHandler extends EventHandler
 {
-    private static final String AUTHORIZATION_FAILED_FORMAT = "%s %s [%s] AUTHORIZATION_FAILED%n";
     private static final String REQUEST_ACCEPTED_FORMAT = "%s %s [%s] REQUEST_ACCEPTED %s %s %s %s%n";
 
     private final HttpEventFW httpEventRO = new HttpEventFW();
@@ -46,13 +44,6 @@ public class StdoutHttpHandler extends EventHandler
         final HttpEventFW event = httpEventRO.wrap(buffer, index, index + length);
         switch (event.kind())
         {
-        case AUTHORIZATION_FAILED:
-        {
-            HttpAuthorizationFailedFW e = event.authorizationFailed();
-            String qname = context.supplyQName(e.namespacedId());
-            out.printf(AUTHORIZATION_FAILED_FORMAT, qname, identity(e.identity()), asDateTime(e.timestamp()));
-            break;
-        }
         case REQUEST_ACCEPTED:
         {
             HttpRequestAcceptedFW e = event.requestAccepted();

@@ -54,13 +54,7 @@ scope http
     {
         enum HttpEventType (uint8)
         {
-            AUTHORIZATION_FAILED (1),
-            REQUEST_ACCEPTED (2)
-        }
-
-        struct HttpAuthorizationFailed extends core::event::Event
-        {
-            string8 identity;
+            REQUEST_ACCEPTED (1)
         }
 
         struct HttpRequestAccepted extends core::event::Event
@@ -74,7 +68,6 @@ scope http
 
         union HttpEvent switch (HttpEventType)
         {
-            case AUTHORIZATION_FAILED: HttpAuthorizationFailed authorizationFailed;
             case REQUEST_ACCEPTED: HttpRequestAccepted requestAccepted;
         }
     }
