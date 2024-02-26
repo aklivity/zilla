@@ -94,7 +94,7 @@ public class TlsEventContext
     {
         TlsEventFW event = tlsEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
-            .tlsKeyRejected(e -> e
+            .tlsPeerNotVerified(e -> e
                 .timestamp(clock.millis())
                 .traceId(traceId)
                 .namespacedId(bindingId)
@@ -109,7 +109,7 @@ public class TlsEventContext
     {
         TlsEventFW event = tlsEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
-            .tlsKeyRejected(e -> e
+            .tlsHandshakeFailed(e -> e
                 .timestamp(clock.millis())
                 .traceId(traceId)
                 .namespacedId(bindingId)
