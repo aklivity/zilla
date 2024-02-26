@@ -55,7 +55,7 @@ public class HttpEventContext
     public void authorizationFailed(
         long sessionId,
         long traceId,
-        long routedId,
+        long bindingId,
         GuardHandler guard,
         long authorization)
     {
@@ -67,7 +67,7 @@ public class HttpEventContext
                 .authorizationFailed(e -> e
                     .timestamp(clock.millis())
                     .traceId(traceId)
-                    .namespacedId(routedId)
+                    .namespacedId(bindingId)
                     .identity(identity)
                 )
                 .build();
@@ -77,7 +77,7 @@ public class HttpEventContext
 
     public void requestAccepted(
         long traceId,
-        long routedId,
+        long bindingId,
         GuardHandler guard,
         long authorization,
         Map<String, String> headers)
@@ -88,7 +88,7 @@ public class HttpEventContext
             .requestAccepted(e -> e
                 .timestamp(clock.millis())
                 .traceId(traceId)
-                .namespacedId(routedId)
+                .namespacedId(bindingId)
                 .identity(identity)
                 .scheme(headers.get(":scheme"))
                 .method(headers.get(":method"))
@@ -101,7 +101,7 @@ public class HttpEventContext
 
     public void requestAccepted(
         long traceId,
-        long routedId,
+        long bindingId,
         GuardHandler guard,
         long authorization,
         Array32FW<HttpHeaderFW> headers)
@@ -112,7 +112,7 @@ public class HttpEventContext
             .requestAccepted(e -> e
                 .timestamp(clock.millis())
                 .traceId(traceId)
-                .namespacedId(routedId)
+                .namespacedId(bindingId)
                 .identity(identity)
                 .scheme(headers.matchFirst(h -> HEADER_SCHEME.equals(h.name())).value().asString())
                 .method(headers.matchFirst(h -> HEADER_METHOD.equals(h.name())).value().asString())

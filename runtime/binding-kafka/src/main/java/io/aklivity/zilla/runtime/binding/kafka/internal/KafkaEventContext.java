@@ -47,7 +47,7 @@ public class KafkaEventContext
     public void authorizationFailed(
         int errorCode,
         long traceId,
-        long routedId)
+        long bindingId)
     {
         if (errorCode != ERROR_NONE)
         {
@@ -56,7 +56,7 @@ public class KafkaEventContext
                 .authorizationFailed(e -> e
                     .timestamp(clock.millis())
                     .traceId(traceId)
-                    .namespacedId(routedId)
+                    .namespacedId(bindingId)
                 )
                 .build();
             eventWriter.accept(kafkaTypeId, event.buffer(), event.offset(), event.limit());

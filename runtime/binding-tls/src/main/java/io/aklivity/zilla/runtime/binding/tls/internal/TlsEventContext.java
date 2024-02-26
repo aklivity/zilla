@@ -45,14 +45,14 @@ public class TlsEventContext
 
     public void tlsFailed(
         long traceId,
-        long routedId)
+        long bindingId)
     {
         TlsEventFW event = tlsEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .tlsFailed(e -> e
                 .timestamp(clock.millis())
                 .traceId(traceId)
-                .namespacedId(routedId)
+                .namespacedId(bindingId)
             )
             .build();
         eventWriter.accept(tlsTypeId, event.buffer(), event.offset(), event.limit());
@@ -60,14 +60,14 @@ public class TlsEventContext
 
     public void tlsProtocolRejected(
         long traceId,
-        long routedId)
+        long bindingId)
     {
         TlsEventFW event = tlsEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .tlsProtocolRejected(e -> e
                 .timestamp(clock.millis())
                 .traceId(traceId)
-                .namespacedId(routedId)
+                .namespacedId(bindingId)
             )
             .build();
         eventWriter.accept(tlsTypeId, event.buffer(), event.offset(), event.limit());
@@ -75,14 +75,14 @@ public class TlsEventContext
 
     public void tlsKeyRejected(
         long traceId,
-        long routedId)
+        long bindingId)
     {
         TlsEventFW event = tlsEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .tlsKeyRejected(e -> e
                 .timestamp(clock.millis())
                 .traceId(traceId)
-                .namespacedId(routedId)
+                .namespacedId(bindingId)
             )
             .build();
         eventWriter.accept(tlsTypeId, event.buffer(), event.offset(), event.limit());
@@ -90,14 +90,14 @@ public class TlsEventContext
 
     public void tlsPeerNotVerified(
         long traceId,
-        long routedId)
+        long bindingId)
     {
         TlsEventFW event = tlsEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .tlsKeyRejected(e -> e
                 .timestamp(clock.millis())
                 .traceId(traceId)
-                .namespacedId(routedId)
+                .namespacedId(bindingId)
             )
             .build();
         eventWriter.accept(tlsTypeId, event.buffer(), event.offset(), event.limit());
@@ -105,14 +105,14 @@ public class TlsEventContext
 
     public void tlsHandshakeFailed(
         long traceId,
-        long routedId)
+        long bindingId)
     {
         TlsEventFW event = tlsEventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .tlsKeyRejected(e -> e
                 .timestamp(clock.millis())
                 .traceId(traceId)
-                .namespacedId(routedId)
+                .namespacedId(bindingId)
             )
             .build();
         eventWriter.accept(tlsTypeId, event.buffer(), event.offset(), event.limit());

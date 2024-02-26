@@ -46,7 +46,7 @@ public class TcpEventContext
 
     public void dnsResolutionFailed(
         long traceId,
-        long routedId,
+        long bindingId,
         InetSocketAddress remoteAddress)
     {
         String address = remoteAddress == null ? "" : remoteAddress.getHostString();
@@ -55,7 +55,7 @@ public class TcpEventContext
             .dnsFailed(e -> e
                 .timestamp(clock.millis())
                 .traceId(traceId)
-                .namespacedId(routedId)
+                .namespacedId(bindingId)
                 .address(address)
             )
             .build();

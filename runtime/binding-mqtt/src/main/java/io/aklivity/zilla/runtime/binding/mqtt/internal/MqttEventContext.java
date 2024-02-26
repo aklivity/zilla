@@ -47,7 +47,7 @@ public class MqttEventContext
     public void authorizationFailed(
         long sessionId,
         long traceId,
-        long routedId,
+        long bindingId,
         GuardHandler guard,
         long authorization)
     {
@@ -59,7 +59,7 @@ public class MqttEventContext
                 .authorizationFailed(e -> e
                     .timestamp(clock.millis())
                     .traceId(traceId)
-                    .namespacedId(routedId)
+                    .namespacedId(bindingId)
                     .identity(identity)
                 )
                 .build();
