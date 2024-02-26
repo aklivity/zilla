@@ -260,24 +260,5 @@ scope mqtt
             COMPLETE(0),
             INCOMPLETE(1)
         }
-
-    }
-
-    scope event
-    {
-        enum MqttEventType (uint8)
-        {
-            AUTHORIZATION_FAILED (1)
-        }
-
-        struct MqttAuthorizationFailed extends core::event::Event
-        {
-            string8 identity;
-        }
-
-        union MqttEvent switch (MqttEventType)
-        {
-            case AUTHORIZATION_FAILED: MqttAuthorizationFailed authorizationFailed;
-        }
     }
 }

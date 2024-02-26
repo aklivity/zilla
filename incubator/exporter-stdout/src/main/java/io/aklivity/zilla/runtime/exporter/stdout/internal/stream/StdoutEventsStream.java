@@ -38,7 +38,6 @@ public class StdoutEventsStream
         eventHandlers.put(context.supplyTypeId("http"), new StdoutHttpHandler(context, out)::handleEvent);
         eventHandlers.put(context.supplyTypeId("jwt"), new StdoutJwtHandler(context, out)::handleEvent);
         eventHandlers.put(context.supplyTypeId("kafka"), new StdoutKafkaHandler(context, out)::handleEvent);
-        eventHandlers.put(context.supplyTypeId("mqtt"), new StdoutMqttHandler(context, out)::handleEvent);
         eventHandlers.put(context.supplyTypeId("schema-registry"),
             new StdoutSchemaRegistryHandler(context, out)::handleEvent);
         eventHandlers.put(context.supplyTypeId("tcp"), new StdoutTcpHandler(context, out)::handleEvent);
