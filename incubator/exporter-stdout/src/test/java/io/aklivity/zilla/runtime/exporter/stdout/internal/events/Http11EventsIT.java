@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.exporter.stdout.internal.events;
 
-import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_SERVER_HEADER;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BUFFER_SLOT_CAPACITY;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -35,15 +35,15 @@ import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 public class Http11EventsIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/http/streams/network/rfc7230/authorization")
-        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/http/streams/application/rfc7230/authorization");
+        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/http/streams/network/rfc7230/message.format")
+        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/http/streams/application/rfc7230/message.format");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
         .countersBufferCapacity(8192)
-        .configure(HTTP_SERVER_HEADER, "Zilla")
+        .configure(ENGINE_BUFFER_SLOT_CAPACITY, 8192)
         .configurationRoot("io/aklivity/zilla/specs/binding/http/config/v1.1")
         .external("app0")
         .clean();
@@ -54,15 +54,15 @@ public class Http11EventsIT
     public final TestRule chain = outerRule(output).around(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("my_server.authorization.credentials.yaml")
+    @Configuration("server.yaml")
     @Specification({
-        "${net}/reject.credentials.header/client",
-    })
+        "${net}/request.with.headers/client",
+        "${app}/request.with.headers/server" })
     @Configure(name = "zilla.exporter.stdout.output",
         value = "io.aklivity.zilla.runtime.exporter.stdout.internal.events.StdoutOutputRule.OUT")
-    public void shouldRejectCredentialsHeader() throws Exception
+    public void requestWithHeaders() throws Exception
     {
         k3po.finish();
-        output.expect(Pattern.compile("test.net0 test \\[[^\\]]+\\] AUTHORIZATION_FAILED\n"));
+        output.expect(Pattern.compile("test.app0 - \\[[^\\]]+\\] REQUEST_ACCEPTED http GET localhost:8080 /\n"));
     }
 }
