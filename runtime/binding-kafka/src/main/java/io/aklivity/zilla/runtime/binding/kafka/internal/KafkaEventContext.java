@@ -45,22 +45,18 @@ public class KafkaEventContext
     }
 
     public void authorizationFailed(
-        int errorCode,
         long traceId,
         long bindingId)
     {
-        if (errorCode != ERROR_NONE)
-        {
-            KafkaEventFW event = kafkaEventRW
-                .wrap(eventBuffer, 0, eventBuffer.capacity())
-                .authorizationFailed(e -> e
-                    .timestamp(clock.millis())
-                    .traceId(traceId)
-                    .namespacedId(bindingId)
-                )
-                .build();
-            eventWriter.accept(kafkaTypeId, event.buffer(), event.offset(), event.limit());
-        }
+        KafkaEventFW event = kafkaEventRW
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .authorizationFailed(e -> e
+                .timestamp(clock.millis())
+                .traceId(traceId)
+                .namespacedId(bindingId)
+            )
+            .build();
+        eventWriter.accept(kafkaTypeId, event.buffer(), event.offset(), event.limit());
     }
 
     public void apiVersionRejected(
