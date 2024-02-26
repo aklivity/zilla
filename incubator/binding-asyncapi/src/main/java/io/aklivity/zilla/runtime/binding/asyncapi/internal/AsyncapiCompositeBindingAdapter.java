@@ -26,6 +26,8 @@ public class AsyncapiCompositeBindingAdapter
 
     protected Asyncapi asyncapi;
     protected boolean isTlsEnabled;
+    protected int[] allPorts;
+    protected int[] compositePorts;
     protected AsyncapiProtocol protocol;
     protected String qname;
     protected String qvault;
@@ -35,7 +37,7 @@ public class AsyncapiCompositeBindingAdapter
         String protocolName,
         AsyncapiOptionsConfig options)
     {
-        Pattern pattern = Pattern.compile("(http|mqtt)");
+        Pattern pattern = Pattern.compile("(http|mqtt|kafka)");
         Matcher matcher = pattern.matcher(protocolName);
         AsyncapiProtocol protocol = null;
         if (matcher.find())
@@ -46,7 +48,11 @@ public class AsyncapiCompositeBindingAdapter
                 protocol = new AsyncapiHttpProtocol(qname, asyncapi, options);
                 break;
             case "mqtt":
-                protocol = new AyncapiMqttProtocol(qname, asyncapi, options);
+                protocol = new AyncapiMqttProtocol(qname, asyncapi);
+                break;
+            case "kafka":
+            case "kafka-secure":
+                protocol = new AyncapiKafkaProtocol(qname, asyncapi, options, protocolName);
                 break;
             }
         }

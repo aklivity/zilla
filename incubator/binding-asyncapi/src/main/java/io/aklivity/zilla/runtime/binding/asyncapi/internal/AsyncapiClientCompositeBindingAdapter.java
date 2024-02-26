@@ -19,14 +19,12 @@ import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiServerView;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiView;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.CompositeBindingAdapterSpi;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 
 public class AsyncapiClientCompositeBindingAdapter extends AsyncapiCompositeBindingAdapter implements CompositeBindingAdapterSpi
 {
-
     @Override
     public String type()
     {
@@ -40,22 +38,24 @@ public class AsyncapiClientCompositeBindingAdapter extends AsyncapiCompositeBind
         AsyncapiOptionsConfig options = (AsyncapiOptionsConfig) binding.options;
         AsyncapiConfig asyncapiConfig = options.specs.get(0);
         this.asyncapi = asyncapiConfig.asyncapi;
-        AsyncapiView asyncapiView = AsyncapiView.of(asyncapi);
 
         //TODO: add composite for all servers
         AsyncapiServerView firstServer = AsyncapiServerView.of(asyncapi.servers.entrySet().iterator().next().getValue());
         this.qname = binding.qname;
         this.qvault = binding.qvault;
         this.protocol = resolveProtocol(firstServer.protocol(), options);
-        int[] compositeSecurePorts = asyncapiView.resolvePortsForScheme(protocol.secureScheme);
-        this.isTlsEnabled = compositeSecurePorts != null;
+        this.compositePorts = protocol.resolvePorts();
+        this.isTlsEnabled = protocol.isSecure();
+
         return BindingConfig.builder(binding)
             .composite()
                 .name(String.format("%s.%s", qname, "$composite"))
+                .inject(protocol::injectProtocolClientCache)
                 .binding()
                     .name(String.format("%s_client0", protocol.scheme))
                     .type(protocol.scheme)
                     .kind(CLIENT)
+                    .inject(protocol::injectProtocolClientOptions)
                     .exit(isTlsEnabled ? "tls_client0" : "tcp_client0")
                     .build()
                 .inject(n -> injectTlsClient(n, options))

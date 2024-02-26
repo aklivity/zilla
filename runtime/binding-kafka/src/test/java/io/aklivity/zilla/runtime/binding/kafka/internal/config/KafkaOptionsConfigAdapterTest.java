@@ -77,7 +77,8 @@ public class KafkaOptionsConfigAdapterTest
 
         assertThat(options, not(nullValue()));
         assertThat(options.bootstrap, equalTo(singletonList("test")));
-        assertThat(options.topics, equalTo(singletonList(new KafkaTopicConfig("test", LIVE, JSON_PATCH, null, null))));
+        assertThat(options.topics, equalTo(singletonList(KafkaTopicConfig.builder()
+            .name("test").defaultOffset(LIVE).deltaType(JSON_PATCH).build())));
         assertThat(options.sasl.mechanism, equalTo("plain"));
         assertThat(options.sasl.username, equalTo("username"));
         assertThat(options.sasl.password, equalTo("password"));
@@ -86,11 +87,24 @@ public class KafkaOptionsConfigAdapterTest
     @Test
     public void shouldWriteOptions()
     {
-        KafkaOptionsConfig options = new KafkaOptionsConfig(
-                singletonList("test"),
-                singletonList(new KafkaTopicConfig("test", LIVE, JSON_PATCH, null, TestModelConfig.builder().build())),
-                singletonList(new KafkaServerConfig("localhost", 9092)),
-                new KafkaSaslConfig("plain", "username", "password"));
+        KafkaOptionsConfig options = KafkaOptionsConfig.builder()
+            .bootstrap(singletonList("test"))
+            .topics(
+                singletonList(KafkaTopicConfig.builder()
+                    .name("test")
+                    .defaultOffset(LIVE)
+                    .deltaType(JSON_PATCH)
+                    .value(TestModelConfig.builder().build())
+                    .build()))
+            .servers(singletonList(KafkaServerConfig.builder()
+                    .host("localhost")
+                    .port(9092).build()))
+            .sasl(KafkaSaslConfig.builder()
+                .mechanism("plain")
+                .username("username")
+                .password("password")
+                .build())
+            .build();
 
         String text = jsonb.toJson(options);
 
@@ -132,7 +146,7 @@ public class KafkaOptionsConfigAdapterTest
         assertThat(options, not(nullValue()));
         assertThat(options.bootstrap, equalTo(singletonList("test")));
         assertThat(options.topics, equalTo(singletonList(
-                new KafkaTopicConfig("test", LIVE, JSON_PATCH, null, null))));
+            KafkaTopicConfig.builder().name("test").defaultOffset(LIVE).deltaType(JSON_PATCH).build())));
         assertThat(options.sasl.mechanism, equalTo("scram-sha-256"));
         assertThat(options.sasl.username, equalTo("username"));
         assertThat(options.sasl.password, equalTo("password"));
@@ -141,11 +155,23 @@ public class KafkaOptionsConfigAdapterTest
     @Test
     public void shouldWriteSaslScramOptions()
     {
-        KafkaOptionsConfig options = new KafkaOptionsConfig(
-                singletonList("test"),
-                singletonList(new KafkaTopicConfig("test", LIVE, JSON_PATCH, null, null)),
-                singletonList(new KafkaServerConfig("localhost", 9092)),
-                new KafkaSaslConfig("scram-sha-256", "username", "password"));
+        KafkaOptionsConfig options = KafkaOptionsConfig.builder()
+            .bootstrap(singletonList("test"))
+            .topics(singletonList(KafkaTopicConfig.builder()
+                .name("test")
+                .defaultOffset(LIVE)
+                .deltaType(JSON_PATCH)
+                .build()))
+            .servers(singletonList(KafkaServerConfig.builder()
+                .host("localhost")
+                .port(9092)
+                .build()))
+            .sasl(KafkaSaslConfig.builder()
+                .mechanism("scram-sha-256")
+                .username("username")
+                .password("password")
+                .build())
+            .build();
 
         String text = jsonb.toJson(options);
 
@@ -159,14 +185,24 @@ public class KafkaOptionsConfigAdapterTest
     @Test
     public void shouldWriteCatalogOptions()
     {
-        KafkaOptionsConfig options = new KafkaOptionsConfig(
-                singletonList("test"),
-                singletonList(new KafkaTopicConfig("test", LIVE, JSON_PATCH, null,
-                    TestModelConfig.builder()
-                        .length(0)
-                        .build())),
-                singletonList(new KafkaServerConfig("localhost", 9092)),
-                new KafkaSaslConfig("plain", "username", "password"));
+        KafkaOptionsConfig options = KafkaOptionsConfig.builder()
+            .bootstrap(singletonList("test"))
+            .topics(singletonList(KafkaTopicConfig.builder()
+                .name("test")
+                    .defaultOffset(LIVE)
+                    .deltaType(JSON_PATCH)
+                    .value(TestModelConfig.builder().length(0).build())
+                    .build()))
+            .servers(singletonList(KafkaServerConfig.builder()
+                    .host("localhost")
+                    .port(9092)
+                    .build()))
+            .sasl(KafkaSaslConfig.builder()
+                .mechanism("plain")
+                .username("username")
+                .password("password")
+                .build())
+            .build();
 
         String text = jsonb.toJson(options);
 

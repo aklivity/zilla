@@ -18,7 +18,6 @@ import static io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiCompos
 
 import java.util.Map;
 
-import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiChannel;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiMessage;
@@ -34,8 +33,7 @@ public class AyncapiMqttProtocol extends AsyncapiProtocol
 
     public AyncapiMqttProtocol(
         String qname,
-        Asyncapi asyncApi,
-        AsyncapiOptionsConfig options)
+        Asyncapi asyncApi)
     {
         super(qname, asyncApi, SCHEME, SECURE_SCHEME);
     }
@@ -91,5 +89,11 @@ public class AyncapiMqttProtocol extends AsyncapiProtocol
                 .build();
         }
         return binding;
+    }
+
+    @Override
+    protected boolean isSecure()
+    {
+        return scheme.equals(SECURE_SCHEME);
     }
 }

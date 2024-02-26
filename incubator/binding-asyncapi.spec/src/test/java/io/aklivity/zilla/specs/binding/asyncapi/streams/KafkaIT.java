@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.specs.binding.asyncapi.streams.asyncapi;
+package io.aklivity.zilla.specs.binding.asyncapi.streams;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -26,40 +26,21 @@ import org.junit.rules.Timeout;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 
-public class AsyncapiIT
+public class KafkaIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("asyncapi", "io/aklivity/zilla/specs/binding/asyncapi/streams/asyncapi");
+        .addScriptRoot("kafka", "io/aklivity/zilla/specs/binding/asyncapi/streams/kafka");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(5, SECONDS));
 
     @Rule
     public final TestRule chain = outerRule(k3po).around(timeout);
 
-    @Test
-    @Specification({
-        "${asyncapi}/mqtt/publish.and.subscribe/client",
-        "${asyncapi}/mqtt/publish.and.subscribe/server"
-    })
-    public void shouldPublishAndSubscribe() throws Exception
-    {
-        k3po.finish();
-    }
 
     @Test
     @Specification({
-        "${asyncapi}/http/create.pet/client",
-        "${asyncapi}/http/create.pet/server"
-    })
-    public void shouldCreatePet() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${asyncapi}/kafka/produce.message/client",
-        "${asyncapi}/kafka/produce.message/server"
+        "${kafka}/produce.message/client",
+        "${kafka}/produce.message/server"
     })
     public void shouldProduceMessage() throws Exception
     {

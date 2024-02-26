@@ -47,6 +47,7 @@ import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfigBu
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiBinding;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
@@ -61,10 +62,12 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
     private static final String TCP_NAME = "tcp";
     private static final String TLS_NAME = "tls";
     private static final String HTTP_NAME = "http";
+    private static final String KAFKA_NAME = "kafka";
 
     private OptionsConfigAdapter tcpOptions;
     private OptionsConfigAdapter tlsOptions;
     private OptionsConfigAdapter httpOptions;
+    private OptionsConfigAdapter kafkaOptions;
     private Function<String, String> readURL;
 
     public Kind kind()
@@ -111,6 +114,12 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
             object.add(HTTP_NAME, httpOptions.adaptToJson(http));
         }
 
+        if (asyncapiOptions.kafka != null)
+        {
+            final KafkaOptionsConfig kafka = asyncapiOptions.kafka;
+            object.add(KAFKA_NAME, kafkaOptions.adaptToJson(kafka));
+        }
+
         return object.build();
     }
 
@@ -146,6 +155,13 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
             asyncapiOptions.http(httpOptions);
         }
 
+        if (object.containsKey(KAFKA_NAME))
+        {
+            final JsonObject kafka = object.getJsonObject(KAFKA_NAME);
+            final KafkaOptionsConfig kafkaOptions = (KafkaOptionsConfig) this.kafkaOptions.adaptFromJson(kafka);
+            asyncapiOptions.kafka(kafkaOptions);
+        }
+
         return asyncapiOptions.build();
     }
 
@@ -160,6 +176,8 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
         this.tlsOptions.adaptType("tls");
         this.httpOptions = new OptionsConfigAdapter(Kind.BINDING, context);
         this.httpOptions.adaptType("http");
+        this.kafkaOptions = new OptionsConfigAdapter(Kind.BINDING, context);
+        this.kafkaOptions.adaptType("kafka");
     }
 
     private List<AsyncapiConfig> asListAsyncapis(

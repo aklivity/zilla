@@ -55,6 +55,16 @@
                                     "authorization": "$defs/options/binding/http/authorization"
                                 },
                                 "additionalProperties": false
+                            },
+                            "kafka":
+                            {
+                                "title": "Kafka",
+                                "type": "object",
+                                "properties":
+                                {
+                                    "sasl": "$defs/options/binding/kafka/sasl"
+                                },
+                                "additionalProperties": false
                             }
                         },
                         "additionalProperties": false
