@@ -50,6 +50,7 @@ public final class StdoutOutputRule implements TestRule
             @Override
             public void evaluate() throws Throwable
             {
+                BOS.reset();
                 base.evaluate();
                 assertThat(BOS.toString(StandardCharsets.UTF_8), matchesPattern(expected));
             }
