@@ -1,0 +1,125 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/binding/properties/type/enum/-",
+        "value": "openapi"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/binding/allOf/-",
+        "value":
+        {
+            "if":
+            {
+               "properties":
+                {
+                    "type":
+                    {
+                        "const": "openapi"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "openapi"
+                    },
+                    "kind":
+                    {
+                        "enum": [ "client", "server" ]
+                    },
+                    "options":
+                    {
+                        "properties":
+                        {
+                            "tcp": "#/$defs/binding/tcp/options",
+                            "tls": "#/$defs/binding/tls/options",
+                            "http":
+                            {
+                                "title": "Http",
+                                "type": "object",
+                                "properties":
+                                {
+                                    "authorization": "$defs/options/binding/http/authorization"
+                                },
+                                "additionalProperties": false
+                            },
+                            "specs":
+                            {
+                                "title": "Specs",
+                                "type": "array",
+                                "items":
+                                {
+                                    "title": "Specs",
+                                    "type": "string"
+                                }
+                            }
+                        },
+                        "additionalProperties": false
+                    },
+                    "routes": false
+                },
+                "oneOf":
+                [
+                    {
+                        "properties":
+                        {
+                            "kind":
+                            {
+                                "const": "server"
+                            }
+                        },
+                        "anyOf":
+                        [
+                            {
+                                "required":
+                                [
+                                    "exit"
+                                ]
+                            },
+                            {
+                                "properties":
+                                {
+                                    "routes":
+                                    {
+                                        "required":
+                                        [
+                                            "exit"
+                                        ]
+                                    }
+                                },
+                                "required":
+                                [
+                                    "routes"
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "properties":
+                        {
+                            "kind":
+                            {
+                                "const": "client"
+                            },
+                            "routes":
+                            {
+                                "items":
+                                {
+                                    "properties":
+                                    {
+                                        "exit": false
+                                    }
+                                }
+                            },
+                            "exit": false
+                        }
+                    }
+                ]
+            }
+        }
+    }
+]

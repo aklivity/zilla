@@ -19,6 +19,7 @@
   <modules>
     <module>binding-amqp.spec</module>
     <module>binding-asyncapi.spec</module>
+    <module>binding-openapi.spec</module>
     <module>catalog-inline.spec</module>
     <module>catalog-schema-registry.spec</module>
     <module>exporter-otlp.spec</module>
@@ -29,6 +30,7 @@
 
     <module>binding-amqp</module>
     <module>binding-asyncapi</module>
+    <module>binding-openapi</module>
 
     <module>catalog-inline</module>
     <module>catalog-schema-registry</module>
@@ -56,6 +58,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>binding-asyncapi</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>binding-openapi</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

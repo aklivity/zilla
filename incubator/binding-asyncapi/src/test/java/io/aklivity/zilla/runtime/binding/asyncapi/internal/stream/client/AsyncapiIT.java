@@ -71,12 +71,12 @@ public class AsyncapiIT
     @Test
     @Configuration("client.http.yaml")
     @Specification({
-        "${asyncapi}/http/create.pets/client",
-        "${http}/create.pets/server"
+        "${asyncapi}/http/create.pet/client",
+        "${http}/create.pet/server"
     })
     @Configure(name = ASYNCAPI_TARGET_ROUTE_ID_NAME, value = "4294967299")
     @ScriptProperty("serverAddress \"zilla://streams/http0\"")
-    public void shouldCreateItem() throws Exception
+    public void shouldCreatePet() throws Exception
     {
         k3po.finish();
     }

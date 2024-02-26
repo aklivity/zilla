@@ -16,7 +16,7 @@
 
 asyncapi: 3.0.0
 info:
-  title: Swagger Petstore
+  title: AsyncAPI Petstore
   license:
     name: MIT
   version: 1.0.0
@@ -25,9 +25,6 @@ servers:
     host: http://localhost:8080
     protocol: http
     protocolVersion: '2.0'
-    security:
-      - httpBearerToken:
-          - public
 defaultContentType: application/json
 
 channels:
@@ -37,7 +34,7 @@ channels:
     address: /pets/{id}
 
 operations:
-  createPets:
+  createPet:
     action: send
     bindings:
       http:

@@ -24,7 +24,7 @@ public class AsyncapiCompositeBindingAdapter
 {
     protected static final String APPLICATION_JSON = "application/json";
 
-    protected Asyncapi asyncApi;
+    protected Asyncapi asyncapi;
     protected boolean isTlsEnabled;
     protected int[] allPorts;
     protected int[] compositePorts;

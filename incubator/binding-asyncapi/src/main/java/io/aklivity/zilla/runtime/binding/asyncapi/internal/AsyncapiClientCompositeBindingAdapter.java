@@ -37,7 +37,7 @@ public class AsyncapiClientCompositeBindingAdapter extends AsyncapiCompositeBind
     {
         AsyncapiOptionsConfig options = (AsyncapiOptionsConfig) binding.options;
         AsyncapiConfig asyncapiConfig = options.specs.get(0);
-        this.asyncApi = asyncapiConfig.asyncApi;
+        this.asyncapi = asyncapiConfig.asyncapi;
 
         //TODO: add composite for all servers
         AsyncapiServerView firstServer = AsyncapiServerView.of(asyncApi.servers.entrySet().iterator().next().getValue());
