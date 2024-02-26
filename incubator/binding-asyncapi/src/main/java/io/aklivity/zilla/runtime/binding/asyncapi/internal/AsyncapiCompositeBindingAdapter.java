@@ -24,7 +24,7 @@ public class AsyncapiCompositeBindingAdapter
 {
     protected static final String APPLICATION_JSON = "application/json";
 
-    protected Asyncapi asyncApi;
+    protected Asyncapi asyncapi;
     protected boolean isTlsEnabled;
     protected AsyncapiProtocol protocol;
     protected String qname;
@@ -32,21 +32,21 @@ public class AsyncapiCompositeBindingAdapter
 
 
     protected AsyncapiProtocol resolveProtocol(
-        String protocol,
+        String protocolName,
         AsyncapiOptionsConfig options)
     {
         Pattern pattern = Pattern.compile("(http|mqtt)");
-        Matcher matcher = pattern.matcher(protocol);
-        AsyncapiProtocol asyncapiProtocol = null;
+        Matcher matcher = pattern.matcher(protocolName);
+        AsyncapiProtocol protocol = null;
         if (matcher.find())
         {
             switch (matcher.group())
             {
             case "http":
-                asyncapiProtocol = new AsyncapiHttpProtocol(qname, asyncApi, options);
+                protocol = new AsyncapiHttpProtocol(qname, asyncapi, options);
                 break;
             case "mqtt":
-                asyncapiProtocol = new AyncapiMqttProtocol(qname, asyncApi, options);
+                protocol = new AyncapiMqttProtocol(qname, asyncapi, options);
                 break;
             }
         }
@@ -54,6 +54,6 @@ public class AsyncapiCompositeBindingAdapter
         {
             // TODO: should we do something?
         }
-        return asyncapiProtocol;
+        return protocol;
     }
 }

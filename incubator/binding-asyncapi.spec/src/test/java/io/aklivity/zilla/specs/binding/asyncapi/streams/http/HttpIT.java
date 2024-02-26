@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.specs.binding.asyncapi.streams.mqtt;
+package io.aklivity.zilla.specs.binding.asyncapi.streams.http;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -39,10 +39,10 @@ public class HttpIT
 
     @Test
     @Specification({
-        "${http}/create.pets/client",
-        "${http}/create.pets/server"
+        "${http}/create.pet/client",
+        "${http}/create.pet/server"
     })
-    public void shouldCreateItem() throws Exception
+    public void shouldCreatePet() throws Exception
     {
         k3po.finish();
     }

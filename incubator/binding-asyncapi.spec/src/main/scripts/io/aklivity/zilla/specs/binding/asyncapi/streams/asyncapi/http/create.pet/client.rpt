@@ -20,7 +20,7 @@ connect "zilla://streams/asyncapi0"
 
 write zilla:begin.ext ${asyncapi:beginEx()
                              .typeId(zilla:id("asyncapi"))
-                             .operationId("createPets")
+                             .operationId("createPet")
                              .extension(http:beginEx()
                                   .typeId(zilla:id("http"))
                                   .header(":method", "POST")
@@ -38,7 +38,7 @@ write close
 
 read zilla:begin.ext ${asyncapi:matchBeginEx()
                              .typeId(zilla:id("asyncapi"))
-                             .operationId("createPets")
+                             .operationId("createPet")
                              .extension(http:beginEx()
                                  .typeId(zilla:id("http"))
                                  .header(":status", "200")
