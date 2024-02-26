@@ -268,7 +268,7 @@ public class AsyncapiOptionsConfigAdapterTest
         assertThat(options, not(nullValue()));
         AsyncapiConfig asyncapi = options.specs.get(0);
         assertThat(asyncapi.location, equalTo("kafka/asyncapi.yaml"));
-        assertThat(asyncapi.asyncApi, instanceOf(Asyncapi.class));
+        assertThat(asyncapi.asyncapi, instanceOf(Asyncapi.class));
         assertThat(options.tcp.host, equalTo("localhost"));
         assertThat(options.tcp.ports, equalTo(new int[] { 9092 }));
         assertThat(options.tls.keys, equalTo(asList("localhost")));
@@ -384,7 +384,7 @@ public class AsyncapiOptionsConfigAdapterTest
         assertThat(options, not(nullValue()));
         AsyncapiConfig asyncapi = options.specs.get(0);
         assertThat(asyncapi.location, equalTo("http/asyncapi.yaml"));
-        assertThat(asyncapi.asyncApi, instanceOf(Asyncapi.class));
+        assertThat(asyncapi.asyncapi, instanceOf(Asyncapi.class));
         assertThat(options.tcp.host, equalTo("localhost"));
         assertThat(options.tcp.ports, equalTo(new int[] { 7080 }));
         assertThat(options.tls.keys, equalTo(asList("localhost")));

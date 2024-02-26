@@ -45,14 +45,14 @@ public class AsyncapiCompositeBindingAdapter
             switch (matcher.group())
             {
             case "http":
-                asyncapiProtocol = new AsyncapiHttpProtocol(qname, asyncApi, options);
+                asyncapiProtocol = new AsyncapiHttpProtocol(qname, asyncapi, options);
                 break;
             case "mqtt":
-                asyncapiProtocol = new AyncapiMqttProtocol(qname, asyncApi);
+                asyncapiProtocol = new AyncapiMqttProtocol(qname, asyncapi);
                 break;
             case "kafka":
             case "kafka-secure":
-                asyncapiProtocol = new AyncapiKafkaProtocol(qname, asyncApi, options, protocol);
+                asyncapiProtocol = new AyncapiKafkaProtocol(qname, asyncapi, options, protocol);
                 break;
             }
         }
