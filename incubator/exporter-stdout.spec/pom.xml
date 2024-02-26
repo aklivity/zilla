@@ -9,7 +9,7 @@
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>specs</artifactId>
     <version>develop-SNAPSHOT</version>
-    <relativePath>../../specs/pom.xml</relativePath>
+    <relativePath>../pom.xml</relativePath>
   </parent>
 
   <artifactId>exporter-stdout.spec</artifactId>

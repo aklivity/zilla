@@ -26,7 +26,7 @@ public class StdoutExporterHandler implements ExporterHandler
     private final StdoutExporterContext context;
     private final PrintStream out;
 
-    private StdoutEventsStream stdoutEventsStream;
+    private StdoutEventsStream events;
 
     public StdoutExporterHandler(
         StdoutConfiguration config,
@@ -40,18 +40,18 @@ public class StdoutExporterHandler implements ExporterHandler
     @Override
     public void start()
     {
-        stdoutEventsStream = new StdoutEventsStream(context, out);
+        events = new StdoutEventsStream(context, out);
     }
 
     @Override
     public int export()
     {
-        return stdoutEventsStream.process();
+        return events.process();
     }
 
     @Override
     public void stop()
     {
-        this.stdoutEventsStream = null;
+        this.events = null;
     }
 }
