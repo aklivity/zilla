@@ -14,7 +14,7 @@
 # under the License.
 #
 
-accept "zilla://streams/asyncapi0"
+accept "zilla://streams/asyncapi_proxy0"
         option zilla:window 8192
         option zilla:transmission "duplex"
 
