@@ -51,6 +51,7 @@ public final class AsyncapiBindingConfig
     public final List<AsyncapiRouteConfig> routes;
     private final Int2ObjectHashMap<String> composites;
     private final long overrideRouteId;
+    private final Long2LongHashMap compositeResolvedIds;
     private final Long2LongHashMap resolvedIds;
     private final HttpHeaderHelper helper;
     private final Object2ObjectHashMap<Matcher, String> paths;
@@ -66,7 +67,8 @@ public final class AsyncapiBindingConfig
         this.overrideRouteId = overrideRouteId;
         this.options = AsyncapiOptionsConfig.class.cast(binding.options);
         this.routes = binding.routes.stream().map(AsyncapiRouteConfig::new).collect(toList());
-        this.resolvedIds = binding.composites.stream()
+        this.resolvedIds = binding.
+        this.compositeResolvedIds = binding.composites.stream()
             .map(c -> c.bindings)
             .flatMap(List::stream)
             .filter(b -> b.type.equals("mqtt") || b.type.equals("http") || b.type.equals("kafka") || b.type.equals("mqtt-kafka"))
@@ -115,10 +117,10 @@ public final class AsyncapiBindingConfig
         return composites.get(NamespacedId.namespaceId(originId));
     }
 
-    public long resolveResolvedId(
+    public long resolveCompositeResolvedId(
         long apiId)
     {
-        return overrideRouteId != -1 ? overrideRouteId : resolvedIds.get(apiId);
+        return overrideRouteId != -1 ? overrideRouteId : compositeResolvedIds.get(apiId);
     }
 
     public String resolveOperationId(
@@ -148,6 +150,16 @@ public final class AsyncapiBindingConfig
     {
         return routes.stream()
             .filter(r -> r.authorized(authorization))
+            .findFirst()
+            .orElse(null);
+    }
+
+    public AsyncapiRouteConfig resolve(
+        long authorization,
+        long apiId)
+    {
+        return routes.stream()
+            .filter(r -> r.authorized(authorization) && r.matches(apiId))
             .findFirst()
             .orElse(null);
     }

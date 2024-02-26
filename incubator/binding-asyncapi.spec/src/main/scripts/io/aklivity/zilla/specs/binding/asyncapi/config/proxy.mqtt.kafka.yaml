@@ -17,17 +17,16 @@
 ---
 name: test
 bindings:
-  asyncapi_mqtt_kafka0:
+  asyncapi_proxy0:
     type: asyncapi
     kind: proxy
     options:
       specs:
-        - mqtt/asyncapi.yaml
-        - kafka/sensor.asyncapi.yaml
+        mqtt_api: mqtt/asyncapi.yaml
+        kafka_api: kafka/sensor.asyncapi.yaml
     routes:
       - when:
-          - operation: sendEvents
-          - operation: receiveEvents
-        with:
-          operation: onSensorData
+          - api-id: mqtt_api # has to be mqtt -> rely on server protocol to identify
         exit: asyncapi_kafka0
+        with:
+          api-id: kafka_api # has to start with kafka -> rely on server protocol to identify

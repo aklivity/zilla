@@ -41,12 +41,12 @@ public class AsyncapiWithConfigAdapterTest
     @Test
     public void shouldReadWith()
     {
-        String text = "{\"operation\":\"test\"}";
+        String text = "{\"api-id\":\"test\"}";
 
         AsyncapiWithConfig with = jsonb.fromJson(text, AsyncapiWithConfig.class);
 
         assertThat(with, not(nullValue()));
-        assertThat(with.operation, equalTo("test"));
+        assertThat(with.apiId, equalTo("test"));
     }
 
     @Test
@@ -57,6 +57,6 @@ public class AsyncapiWithConfigAdapterTest
         String text = jsonb.toJson(with);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"operation\":\"test\"}"));
+        assertThat(text, equalTo("{\"api-id\":\"test\"}"));
     }
 }

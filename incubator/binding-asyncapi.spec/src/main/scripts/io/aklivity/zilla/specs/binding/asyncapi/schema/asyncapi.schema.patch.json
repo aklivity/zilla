@@ -41,7 +41,19 @@
                                 "type": "array",
                                 "items":
                                 {
-                                    "type": "string"
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "properties":
+                                    {
+                                        "apiId":
+                                        {
+                                            "type": "string"
+                                        },
+                                        "location":
+                                        {
+                                            "type": "string"
+                                        }
+                                    }
                                 }
                             },
                             "tcp": "#/$defs/binding/tcp/options",
@@ -82,9 +94,9 @@
                                         "additionalProperties": false,
                                         "properties":
                                         {
-                                            "operation":
+                                            "api-id":
                                             {
-                                                "title": "MQTT Operation Id",
+                                                "title": "MQTT API Id",
                                                 "type": "string"
                                             }
                                         }
@@ -94,9 +106,9 @@
                                 {
                                     "properties":
                                     {
-                                        "operation":
+                                        "api-id":
                                         {
-                                            "title": "Kafka Operation Id",
+                                            "title": "Kafka API Id",
                                             "type": "string"
                                         }
                                     },

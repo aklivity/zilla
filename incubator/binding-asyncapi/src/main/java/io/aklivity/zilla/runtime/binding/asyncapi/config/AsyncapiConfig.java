@@ -18,13 +18,16 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 
 public class AsyncapiConfig
 {
+    public final String apiId;
     public final String location;
     public final Asyncapi asyncApi;
 
     public AsyncapiConfig(
+        String apiId,
         String location,
         Asyncapi asyncApi)
     {
+        this.apiId = apiId;
         this.location = location;
         this.asyncApi = asyncApi;
     }

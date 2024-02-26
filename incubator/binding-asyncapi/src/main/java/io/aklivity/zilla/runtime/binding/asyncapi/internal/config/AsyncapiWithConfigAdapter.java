@@ -25,7 +25,7 @@ import io.aklivity.zilla.runtime.engine.config.WithConfigAdapterSpi;
 
 public class AsyncapiWithConfigAdapter implements WithConfigAdapterSpi, JsonbAdapter<WithConfig, JsonObject>
 {
-    private static final String OPERATION_NAME = "operation";
+    private static final String API_ID_NAME = "api-id";
 
     @Override
     public String type()
@@ -41,9 +41,9 @@ public class AsyncapiWithConfigAdapter implements WithConfigAdapterSpi, JsonbAda
 
         JsonObjectBuilder object = Json.createObjectBuilder();
 
-        if (config.operation != null)
+        if (config.apiId != null)
         {
-            object.add(OPERATION_NAME, config.operation);
+            object.add(API_ID_NAME, config.apiId);
         }
 
         return object.build();
@@ -53,10 +53,10 @@ public class AsyncapiWithConfigAdapter implements WithConfigAdapterSpi, JsonbAda
     public WithConfig adaptFromJson(
         JsonObject object)
     {
-        String operation = object.containsKey(OPERATION_NAME)
-            ? object.getString(OPERATION_NAME)
+        String apiId = object.containsKey(API_ID_NAME)
+            ? object.getString(API_ID_NAME)
             : null;
 
-        return new AsyncapiWithConfig(operation);
+        return new AsyncapiWithConfig(apiId);
     }
 }

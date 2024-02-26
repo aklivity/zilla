@@ -14,7 +14,7 @@
 # under the License.
 #
 
-connect "zilla://streams/asyncapi_mqtt0"
+connect "zilla://streams/asyncapi_mqtt_kafka0"
         option zilla:window 8192
         option zilla:transmission "duplex"
 

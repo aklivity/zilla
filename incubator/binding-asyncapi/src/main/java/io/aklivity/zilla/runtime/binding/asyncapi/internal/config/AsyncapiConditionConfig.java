@@ -18,11 +18,25 @@ import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 
 public class AsyncapiConditionConfig extends ConditionConfig
 {
-    public final String operation;
+    public final long apiId;
 
     public AsyncapiConditionConfig(
-        String operation)
+        String apiId)
     {
-        this.operation = operation;
+        this.apiId = System.identityHashCode(apiId.intern());
     }
+
+    public boolean matches(
+        long apiId)
+    {
+        return matchesApiId(apiId);
+    }
+
+    private boolean matchesApiId(
+        long apiId)
+    {
+        return this.apiId == apiId;
+    }
+
+
 }

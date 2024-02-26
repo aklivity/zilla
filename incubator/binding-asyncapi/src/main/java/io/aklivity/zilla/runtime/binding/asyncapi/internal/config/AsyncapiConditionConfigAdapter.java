@@ -25,7 +25,7 @@ import io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
 
 public class AsyncapiConditionConfigAdapter implements ConditionConfigAdapterSpi, JsonbAdapter<ConditionConfig, JsonObject>
 {
-    private static final String OPERATION_NAME = "operation";
+    private static final String API_ID_NAME = "api-id";
 
     @Override
     public String type()
@@ -40,7 +40,7 @@ public class AsyncapiConditionConfigAdapter implements ConditionConfigAdapterSpi
         AsyncapiConditionConfig asyncapiCondition = (AsyncapiConditionConfig) condition;
         JsonObjectBuilder object = Json.createObjectBuilder();
 
-        object.add(OPERATION_NAME, asyncapiCondition.operation);
+        object.add(API_ID_NAME, asyncapiCondition.apiId);
 
         return object.build();
     }
@@ -49,7 +49,7 @@ public class AsyncapiConditionConfigAdapter implements ConditionConfigAdapterSpi
     public ConditionConfig adaptFromJson(
         JsonObject object)
     {
-        String operation = object.getString(OPERATION_NAME);
-        return new AsyncapiConditionConfig(operation);
+        String apiId = object.getString(API_ID_NAME);
+        return new AsyncapiConditionConfig(apiId);
     }
 }

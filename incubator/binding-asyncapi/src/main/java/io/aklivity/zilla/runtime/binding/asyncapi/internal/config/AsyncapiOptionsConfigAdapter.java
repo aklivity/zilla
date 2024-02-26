@@ -22,10 +22,10 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 import jakarta.json.Json;
-import jakarta.json.JsonArray;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
@@ -130,7 +130,7 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
         final AsyncapiOptionsConfigBuilder<AsyncapiOptionsConfig> asyncapiOptions = AsyncapiOptionsConfig.builder();
 
         List<AsyncapiConfig> specs = object.containsKey(SPECS_NAME)
-            ? asListAsyncapis(object.getJsonArray(SPECS_NAME))
+            ? asListAsyncapis(object.getJsonObject(SPECS_NAME))
             : null;
         asyncapiOptions.specs(specs);
 
@@ -181,21 +181,22 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
     }
 
     private List<AsyncapiConfig> asListAsyncapis(
-        JsonArray array)
+        JsonObject array)
     {
-        return array.stream()
+        return array.entrySet().stream()
             .map(this::asAsyncapi)
             .collect(toList());
     }
 
     private AsyncapiConfig asAsyncapi(
-        JsonValue value)
+        Map.Entry<String, JsonValue> entry)
     {
-        final String location = ((JsonString) value).getString();
+        final String apiId = entry.getKey();
+        final String location = ((JsonString) entry.getValue()).getString();
         final String specText = readURL.apply(location);
         Asyncapi asyncapi = parseAsyncapi(specText);
 
-        return new AsyncapiConfig(location, asyncapi);
+        return new AsyncapiConfig(apiId, location, asyncapi);
     }
 
     private Asyncapi parseAsyncapi(

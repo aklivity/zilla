@@ -20,6 +20,7 @@ import java.util.function.LongUnaryOperator;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
+import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
@@ -75,6 +76,8 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
     private final LongSupplier supplyTraceId;
     private final Function<String, Integer> supplyTypeId;
     private final Long2ObjectHashMap<AsyncapiBindingConfig> bindings;
+    private final Long2ObjectHashMap<MessageConsumer> compositeHandlers;
+    private final Long2LongHashMap apiIds;
     private final int asyncapiTypeId;
 
     private final AsyncapiConfiguration config;
@@ -93,6 +96,8 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
         this.supplyTypeId = context::supplyTypeId;
         this.supplyTraceId = context::supplyTraceId;
         this.bindings = new Long2ObjectHashMap<>();
+        this.compositeHandlers = new Long2ObjectHashMap<>();
+        this.apiIds = new Long2LongHashMap(-1);
         this.asyncapiTypeId = context.supplyTypeId(AsyncapiBinding.NAME);
     }
 
@@ -139,26 +144,46 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
 
         MessageConsumer newStream = null;
 
-        if (binding != null && !binding.isCompositeOriginId(originId))
+        //TODO
+        // Rename operation to operationId in the when/with
+        // apiId comes from the asyncapiServer, which tells us "what to do"
+        // add apiId as the affinity, mqtt-kafka should set it in the reply
+        // Map<affinity, apiId>
+        if (binding != null)
         {
-            final long apiId = asyncapiBeginEx.apiId();
-            final String operationId = asyncapiBeginEx.operationId().asString();
-
-            final long compositeResolvedId = binding.resolveResolvedId(apiId);
-            final AsyncapiRouteConfig route = binding.resolve(authorization);
-
-            if (compositeResolvedId != -1 && route != null)
+            if (binding.isCompositeOriginId(originId))
             {
-                newStream = new AsyncapiServerStream(
-                    receiver,
-                    originId,
-                    routedId,
-                    initialId,
-                    affinity,
-                    authorization,
-                    route.id,
-                    compositeResolvedId,
-                    operationId)::onAsyncapiServerMessage;
+                final long apiId = asyncapiBeginEx.apiId();
+                final String operationId = asyncapiBeginEx.operationId().asString();
+
+                final long compositeResolvedId = binding.resolveCompositeResolvedId(apiId);
+                final AsyncapiRouteConfig route = binding.resolve(authorization);
+                apiIds.put(apiId, apiId);
+
+                // Get apiId from affinity -> get the route for that -> set kafka apiId from the with
+                // receiver will be the composite stream
+                //binding.routes.
+
+                if (compositeResolvedId != -1 && route != null)
+                {
+                    newStream = new AsyncapiServerStream(
+                        receiver,
+                        originId,
+                        routedId,
+                        initialId,
+                        apiId,
+                        authorization,
+                        route.id,
+                        compositeResolvedId,
+                        operationId)::onAsyncapiServerMessage;
+                }
+            }
+            else
+            {
+                final long apiId = apiIds.get(affinity);
+                final AsyncapiRouteConfig route = binding.resolve(authorization, apiId);
+
+
             }
         }
 
@@ -201,7 +226,7 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
             String operationId)
         {
             this.delegate =
-                new CompositeStream(this, routedId, resolvedId, compositeResolvedId, authorization, operationId);
+                new CompositeStream(this, originId, routedId, resolvedId, compositeResolvedId, authorization, operationId);
             this.sender = sender;
             this.originId = originId;
             this.routedId = routedId;
@@ -273,7 +298,7 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
             assert initialAck <= initialSeq;
 
             final AsyncapiBeginExFW asyncapiBeginEx = extension.get(asyncapiBeginExRO::tryWrap);
-
+            compositeHandlers.put(affinity, delegate::onCompositeMessage);
             delegate.doCompositeBegin(traceId, asyncapiBeginEx.extension());
         }
 
@@ -507,6 +532,7 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
         private final long routedId;
         private final long authorization;
 
+        private AsyncapiServerStream asyncapiServer;
         private AsyncapiClientStream asyncapiClient;
         private long initialId;
         private long replyId;
@@ -527,13 +553,15 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
         private CompositeStream(
             AsyncapiServerStream delegate,
             long originId,
+            long routedId,
             long resolvedId,
             long compositeResolvedId,
             long authorization,
             String operationId)
         {
-            this.asyncapiClient = new AsyncapiClientStream(delegate, originId, resolvedId, authorization, operationId);
-            this.originId = originId;
+            this.asyncapiServer = delegate;
+            this.asyncapiClient = new AsyncapiClientStream(this, originId, resolvedId, authorization, operationId);
+            this.originId = routedId;
             this.routedId = compositeResolvedId;
             this.receiver = MessageConsumer.NOOP;
             this.authorization = authorization;
@@ -824,16 +852,15 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
 
     final class AsyncapiClientStream
     {
-        private final AsyncapiServerStream delegate;
-        private final String operationId;
         private final long originId;
         private final long routedId;
         private final long authorization;
+        private final CompositeStream delegate;
+        private final String operationId;
 
         private long initialId;
         private long replyId;
-        private MessageConsumer receiver;
-
+        private MessageConsumer asyncapiClient;
         private int state;
 
         private long initialSeq;
@@ -847,7 +874,7 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
         private int replyPad;
 
         private AsyncapiClientStream(
-            AsyncapiServerStream delegate,
+            CompositeStream delegate,
             long originId,
             long routedId,
             long authorization,
@@ -856,7 +883,8 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
             this.delegate = delegate;
             this.originId = originId;
             this.routedId = routedId;
-            this.receiver = MessageConsumer.NOOP;
+            this.initialId = supplyInitialId.applyAsLong(routedId);
+            this.replyId = supplyReplyId.applyAsLong(initialId);
             this.authorization = authorization;
             this.operationId = operationId;
         }
@@ -1082,7 +1110,7 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
 
                 this.initialId = supplyInitialId.applyAsLong(routedId);
                 this.replyId = supplyReplyId.applyAsLong(initialId);
-                this.receiver = newStream(this::onAsyncapiClientMessage,
+                this.asyncapiClient = newStream(this::onAsyncapiClientMessage,
                     originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, 0L, asyncapiBeginEx);
                 state = AsyncapiState.openingInitial(state);
@@ -1098,7 +1126,7 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
             OctetsFW payload,
             Flyweight extension)
         {
-            doData(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            doData(asyncapiClient, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, budgetId, flags, reserved, payload, extension);
 
             initialSeq += reserved;
@@ -1111,7 +1139,7 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
             int reserved,
             OctetsFW extension)
         {
-            doFlush(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            doFlush(asyncapiClient, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, initialBud, reserved, extension);
         }
 
@@ -1121,7 +1149,7 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
         {
             if (!AsyncapiState.initialClosed(state))
             {
-                doEnd(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doEnd(asyncapiClient, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, extension);
 
                 state = AsyncapiState.closeInitial(state);
@@ -1134,7 +1162,7 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
         {
             if (!AsyncapiState.initialClosed(state))
             {
-                doAbort(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doAbort(asyncapiClient, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, extension);
 
                 state = AsyncapiState.closeInitial(state);

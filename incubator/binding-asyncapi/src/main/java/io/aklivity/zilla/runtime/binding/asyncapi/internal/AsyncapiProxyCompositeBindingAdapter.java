@@ -26,7 +26,6 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiRouteC
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiOperation;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiChannelView;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiServerView;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaConditionConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaConditionKind;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaOptionsConfig;
@@ -35,10 +34,13 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.CompositeBindingAdapterSpi;
 import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
+
 public class AsyncapiProxyCompositeBindingAdapter extends AsyncapiCompositeBindingAdapter implements CompositeBindingAdapterSpi
 {
     private static final String ASYNCAPI_SEND_ACTION_NAME = "send";
     private static final String ASYNCAPI_RECEIVE_ACTION_NAME = "receive";
+    private static final String ASYNCAPI_KAFKA_PROTOCOL_NAME = "kafka";
+    private static final String ASYNCAPI_MQTT_PROTOCOL_NAME = "mqtt";
 
     @Override
     public String type()
@@ -54,19 +56,12 @@ public class AsyncapiProxyCompositeBindingAdapter extends AsyncapiCompositeBindi
         List<AsyncapiRouteConfig> routes = binding.routes.stream()
             .map(AsyncapiRouteConfig::new)
             .collect(Collectors.toList());
-        this.asyncApis = options.specs.stream().map(s -> s.asyncApi).collect(Collectors.toList());
-        this.asyncApi = asyncApis.get(0);
-
-        //TODO: add composite for all servers
-        AsyncapiServerView firstServer = AsyncapiServerView.of(asyncApi.servers.entrySet().iterator().next().getValue());
-
+        this.asyncApis = options.specs.stream().collect(Collectors.toUnmodifiableMap(a -> a.apiId, a -> a.asyncApi));
         this.qname = binding.qname;
-        this.qvault = String.format("%s:%s", binding.namespace, binding.vault);
-        this.protocol = resolveProtocol(firstServer.protocol(), options);
 
         return BindingConfig.builder(binding)
             .composite()
-                .name(String.format("%s/%s", qname, "mqtt_kafka"))
+                .name(String.format("%s/%s", qname, "mqtt-kafka"))
                 .binding()
                     .name("mqtt_kafka_proxy0")
                     .type("mqtt-kafka")
@@ -89,32 +84,46 @@ public class AsyncapiProxyCompositeBindingAdapter extends AsyncapiCompositeBindi
         BindingConfigBuilder<C> binding,
         List<AsyncapiRouteConfig> routes)
     {
+        inject:
         for (AsyncapiRouteConfig route : routes)
         {
             final RouteConfigBuilder<BindingConfigBuilder<C>> routeBuilder = binding.route();
 
-            final Asyncapi kafkaAsyncapi = asyncApis.stream()
-                .filter(a -> a.operations.containsKey(route.with.operation))
-                .findFirst().get();
-            final AsyncapiOperation withOperation = kafkaAsyncapi.operations.get(route.with.operation);
+            final Asyncapi kafkaAsyncapi = asyncApis.get(route.with.apiId);
+
+            if (kafkaAsyncapi.servers.values().stream().anyMatch(s -> !s.protocol.startsWith(ASYNCAPI_KAFKA_PROTOCOL_NAME)))
+            {
+                break inject;
+            }
+
+            //TODO: get first kafka operation or add operationId to the with as well?
+            final AsyncapiOperation withOperation = kafkaAsyncapi.operations.entrySet().iterator().next().getValue();
             final String messages = AsyncapiChannelView.of(kafkaAsyncapi.channels, withOperation.channel).address();
 
             for (AsyncapiConditionConfig condition : route.when)
             {
-                final AsyncapiOperation operation = asyncApi.operations.get(condition.operation);
-                final AsyncapiChannelView channel = AsyncapiChannelView.of(asyncApi.channels, operation.channel);
-                final MqttKafkaConditionKind kind = operation.action.equals(ASYNCAPI_SEND_ACTION_NAME) ?
-                    MqttKafkaConditionKind.PUBLISH : MqttKafkaConditionKind.SUBSCRIBE;
-                final String topic = channel.address().replaceAll("\\{[^}]+\\}", "#");
-                routeBuilder
-                    .when(MqttKafkaConditionConfig::builder)
-                        .topic(topic)
-                        .kind(kind)
-                    .build()
-                    .with(MqttKafkaWithConfig::builder)
-                        .messages(messages)
-                    .build()
-                    .exit(qname);
+                final Asyncapi mqttAsyncapi = asyncApis.get(condition.apiId);
+                if (mqttAsyncapi.servers.values().stream().anyMatch(s -> !s.protocol.startsWith(ASYNCAPI_MQTT_PROTOCOL_NAME)))
+                {
+                    break inject;
+                }
+                //TODO: get all mqtt operation?
+                for (AsyncapiOperation operation : mqttAsyncapi.operations.values())
+                {
+                    final AsyncapiChannelView channel = AsyncapiChannelView.of(mqttAsyncapi.channels, operation.channel);
+                    final MqttKafkaConditionKind kind = operation.action.equals(ASYNCAPI_SEND_ACTION_NAME) ?
+                        MqttKafkaConditionKind.PUBLISH : MqttKafkaConditionKind.SUBSCRIBE;
+                    final String topic = channel.address().replaceAll("\\{[^}]+\\}", "#");
+                    routeBuilder
+                        .when(MqttKafkaConditionConfig::builder)
+                            .topic(topic)
+                            .kind(kind)
+                            .build()
+                        .with(MqttKafkaWithConfig::builder)
+                            .messages(messages)
+                            .build()
+                        .exit(qname);
+                }
             }
             binding = routeBuilder.build();
         }

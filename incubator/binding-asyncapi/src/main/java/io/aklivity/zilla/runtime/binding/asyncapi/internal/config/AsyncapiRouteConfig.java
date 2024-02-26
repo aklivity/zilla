@@ -44,4 +44,10 @@ public final class AsyncapiRouteConfig
     {
         return authorized.test(authorization);
     }
+
+    boolean matches(
+        long apiId)
+    {
+        return when.isEmpty() || when.stream().anyMatch(m -> m.matches(apiId));
+    }
 }
