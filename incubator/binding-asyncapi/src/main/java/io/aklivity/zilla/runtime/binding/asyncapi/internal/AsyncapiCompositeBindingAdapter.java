@@ -14,68 +14,46 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal;
 
-import static java.util.Objects.requireNonNull;
-
-import java.net.URI;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiServerView;
 
 public class AsyncapiCompositeBindingAdapter
 {
-    protected static final String INLINE_CATALOG_NAME = "catalog0";
     protected static final String APPLICATION_JSON = "application/json";
-    protected static final Pattern JSON_CONTENT_TYPE = Pattern.compile("^application/(?:.+\\+)?json$");
-    protected final Matcher jsonContentType = JSON_CONTENT_TYPE.matcher("");
 
-    protected Asyncapi asyncApi;
+    protected Asyncapi asyncapi;
     protected boolean isTlsEnabled;
+    protected AsyncapiProtocol protocol;
     protected String qname;
     protected String qvault;
 
 
-    protected int[] resolveAllPorts()
+    protected AsyncapiProtocol resolveProtocol(
+        String protocolName,
+        AsyncapiOptionsConfig options)
     {
-        int[] ports = new int[asyncApi.servers.size()];
-        String[] keys = asyncApi.servers.keySet().toArray(String[]::new);
-        for (int i = 0; i < asyncApi.servers.size(); i++)
+        Pattern pattern = Pattern.compile("(http|mqtt)");
+        Matcher matcher = pattern.matcher(protocolName);
+        AsyncapiProtocol protocol = null;
+        if (matcher.find())
         {
-            AsyncapiServerView server = AsyncapiServerView.of(asyncApi.servers.get(keys[i]));
-            URI url = server.url();
-            ports[i] = url.getPort();
-        }
-        return ports;
-    }
-
-    protected int[] resolvePortsForScheme(
-        String scheme)
-    {
-        requireNonNull(scheme);
-        int[] ports = null;
-        URI url = findFirstServerUrlWithScheme(scheme);
-        if (url != null)
-        {
-            ports = new int[] {url.getPort()};
-        }
-        return ports;
-    }
-
-    protected URI findFirstServerUrlWithScheme(
-        String scheme)
-    {
-        requireNonNull(scheme);
-        URI result = null;
-        for (String key : asyncApi.servers.keySet())
-        {
-            AsyncapiServerView server = AsyncapiServerView.of(asyncApi.servers.get(key));
-            if (scheme.equals(server.url().getScheme()))
+            switch (matcher.group())
             {
-                result = server.url();
+            case "http":
+                protocol = new AsyncapiHttpProtocol(qname, asyncapi, options);
+                break;
+            case "mqtt":
+                protocol = new AyncapiMqttProtocol(qname, asyncapi, options);
                 break;
             }
         }
-        return result;
+        else
+        {
+            // TODO: should we do something?
+        }
+        return protocol;
     }
 }

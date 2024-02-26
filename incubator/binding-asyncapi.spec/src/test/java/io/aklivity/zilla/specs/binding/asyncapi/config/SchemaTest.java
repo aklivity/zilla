@@ -35,33 +35,65 @@ public class SchemaTest
         .configurationRoot("io/aklivity/zilla/specs/binding/asyncapi/config");
 
     @Test
-    public void shouldValidateClient()
+    public void shouldValidateMqttClient()
     {
-        JsonObject config = schema.validate("client.yaml");
+        JsonObject config = schema.validate("client.mqtt.yaml");
 
         assertThat(config, not(nullValue()));
     }
 
     @Test
-    public void shouldValidateSecureClient()
+    public void shouldValidateMqttSecureClient()
     {
-        JsonObject config = schema.validate("client.secure.yaml");
+        JsonObject config = schema.validate("client.mqtt.secure.yaml");
 
         assertThat(config, not(nullValue()));
     }
 
     @Test
-    public void shouldValidateServer()
+    public void shouldValidateMqttServer()
     {
-        JsonObject config = schema.validate("server.yaml");
+        JsonObject config = schema.validate("server.mqtt.yaml");
 
         assertThat(config, not(nullValue()));
     }
 
     @Test
-    public void shouldValidateSecureServer()
+    public void shouldValidateMqttSecureServer()
     {
-        JsonObject config = schema.validate("server.secure.yaml");
+        JsonObject config = schema.validate("server.mqtt.secure.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateHttpClient()
+    {
+        JsonObject config = schema.validate("client.http.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateHttpSecureClient()
+    {
+        JsonObject config = schema.validate("client.http.secure.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateHttpServer()
+    {
+        JsonObject config = schema.validate("server.http.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateHttpSecureServer()
+    {
+        JsonObject config = schema.validate("server.http.secure.yaml");
 
         assertThat(config, not(nullValue()));
     }

@@ -116,7 +116,7 @@ public class AsyncapiOptionsConfigAdapterTest
         assertThat(options, not(nullValue()));
         AsyncapiConfig asyncapi = options.specs.get(0);
         assertThat(asyncapi.location, equalTo("mqtt/asyncapi.yaml"));
-        assertThat(asyncapi.asyncApi, instanceOf(Asyncapi.class));
+        assertThat(asyncapi.asyncapi, instanceOf(Asyncapi.class));
         assertThat(options.tcp.host, equalTo("localhost"));
         assertThat(options.tcp.ports, equalTo(new int[] { 7183 }));
         assertThat(options.tls.keys, equalTo(asList("localhost")));

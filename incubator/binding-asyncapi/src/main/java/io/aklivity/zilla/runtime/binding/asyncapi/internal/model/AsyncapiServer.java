@@ -20,5 +20,6 @@ import java.util.Map;
 public class AsyncapiServer
 {
     public String host;
+    public String protocol;
     public List<Map<String, List<String>>> security;
 }
