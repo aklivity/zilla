@@ -17,6 +17,8 @@ package io.aklivity.zilla.runtime.exporter.stdout.internal.events;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.regex.Pattern;
 
 import org.junit.Rule;
@@ -57,9 +59,17 @@ public class TcpEventsIT
     })
     @Configure(name = "zilla.exporter.stdout.output",
         value = "io.aklivity.zilla.runtime.exporter.stdout.internal.events.StdoutOutputRule.OUT")
+    @Configure(name = "zilla.engine.host.resolver",
+        value = "io.aklivity.zilla.runtime.exporter.stdout.internal.events.TcpEventsIT::resolveHost")
     public void dnsResolutionFailed() throws Exception
     {
         k3po.finish();
-        output.expect(Pattern.compile("test.app0 - \\[[^\\]]+\\] DNS_FAILED invalid-hostname\n"));
+        output.expect(Pattern.compile("test.app0 - \\[[^\\]]+\\] DNS_FAILED localhost\n"));
+    }
+
+    public static InetAddress[] resolveHost(
+        String host) throws UnknownHostException
+    {
+        throw new UnknownHostException();
     }
 }
