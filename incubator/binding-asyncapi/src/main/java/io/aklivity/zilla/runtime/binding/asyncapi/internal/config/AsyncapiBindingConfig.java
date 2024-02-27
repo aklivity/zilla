@@ -70,7 +70,6 @@ public final class AsyncapiBindingConfig
         this.compositeResolvedIds = binding.composites.stream()
             .map(c -> c.bindings)
             .flatMap(List::stream)
-            //TODO: select the first one for this
             .filter(b -> b.type.equals("mqtt") || b.type.equals("http") ||
                 b.type.equals("kafka") && b.kind == CACHE_CLIENT || b.type.equals("mqtt-kafka"))
             .collect(of(
