@@ -216,6 +216,16 @@ public class ClientIT
     }
 
     @Test
+    @Configuration("client.invalid.hostname.yaml")
+    @Specification({
+        "${app}/connection.failed/client"
+    })
+    public void dnsResolutionFailed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("client.host.yaml")
     @Specification({
         "${app}/server.close/client",

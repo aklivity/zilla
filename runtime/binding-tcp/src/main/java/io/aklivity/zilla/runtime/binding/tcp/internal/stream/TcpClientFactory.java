@@ -480,7 +480,10 @@ public class TcpClientFactory implements TcpStreamFactory
                 }
                 else
                 {
-                    networkKey.clear(OP_WRITE);
+                    if (networkKey != null)
+                    {
+                        networkKey.clear(OP_WRITE);
+                    }
                     net.shutdownOutput();
 
                     if (net.socket().isInputShutdown())
