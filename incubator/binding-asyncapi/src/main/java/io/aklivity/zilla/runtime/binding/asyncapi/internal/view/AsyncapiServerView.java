@@ -39,14 +39,18 @@ public final class AsyncapiServerView
     public List<Map<String, List<String>>> security()
     {
         List<Map<String, List<String>>> security = null;
-        try
+        if (server.security != null)
         {
-            security = objectMapper.readValue(server.security.toString(), new TypeReference<>()
-            { });
-        }
-        catch (JsonProcessingException e)
-        {
-            rethrowUnchecked(e);
+            try
+            {
+                security = objectMapper.readValue(server.security.toString(), new TypeReference<>()
+                {
+                });
+            }
+            catch (JsonProcessingException e)
+            {
+                rethrowUnchecked(e);
+            }
         }
 
         return security;

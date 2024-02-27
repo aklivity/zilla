@@ -72,9 +72,9 @@ public class AsyncapiBingingFactorySpiTest
         String text =
             "{" +
                 "\"specs\":" +
-                "[" +
-                    "\"mqtt/asyncapi.yaml\"" +
-                "]" +
+                "{" +
+                    "\"mqtt-api\":\"mqtt/asyncapi.yaml\"" +
+                "}" +
             "}";
 
         AsyncapiOptionsConfig options = jsonb.fromJson(text, AsyncapiOptionsConfig.class);

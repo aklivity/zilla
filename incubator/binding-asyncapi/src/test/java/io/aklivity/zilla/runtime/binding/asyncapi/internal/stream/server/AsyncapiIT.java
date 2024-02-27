@@ -63,10 +63,10 @@ public class AsyncapiIT
     @Test
     @Configuration("server.http.yaml")
     @Specification({
-        "${http}/create.pets/client",
-        "${asyncapi}/http/create.pets/server"
+        "${http}/create.pet/client",
+        "${asyncapi}/http/create.pet/server"
     })
-    public void shouldCreateItem() throws Exception
+    public void shouldCreatePet() throws Exception
     {
         k3po.finish();
     }

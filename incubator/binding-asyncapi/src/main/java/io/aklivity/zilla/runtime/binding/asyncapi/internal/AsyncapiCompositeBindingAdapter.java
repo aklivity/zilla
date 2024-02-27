@@ -25,8 +25,8 @@ public class AsyncapiCompositeBindingAdapter
 {
     protected static final String APPLICATION_JSON = "application/json";
 
+    protected Asyncapi asyncapi;
     protected Map<String, Asyncapi> asyncApis;
-    protected Asyncapi asyncApi;
     protected boolean isTlsEnabled;
     protected AsyncapiProtocol protocol;
     protected String qname;
@@ -34,25 +34,25 @@ public class AsyncapiCompositeBindingAdapter
 
 
     protected AsyncapiProtocol resolveProtocol(
-        String protocol,
+        String protocolName,
         AsyncapiOptionsConfig options)
     {
         Pattern pattern = Pattern.compile("(http|mqtt|kafka)");
-        Matcher matcher = pattern.matcher(protocol);
-        AsyncapiProtocol asyncapiProtocol = null;
+        Matcher matcher = pattern.matcher(protocolName);
+        AsyncapiProtocol protocol = null;
         if (matcher.find())
         {
             switch (matcher.group())
             {
             case "http":
-                asyncapiProtocol = new AsyncapiHttpProtocol(qname, asyncApi, options);
+                protocol = new AsyncapiHttpProtocol(qname, asyncapi, options);
                 break;
             case "mqtt":
-                asyncapiProtocol = new AyncapiMqttProtocol(qname, asyncApi);
+                protocol = new AyncapiMqttProtocol(qname, asyncapi);
                 break;
             case "kafka":
             case "kafka-secure":
-                asyncapiProtocol = new AyncapiKafkaProtocol(qname, asyncApi, options, protocol);
+                protocol = new AyncapiKafkaProtocol(qname, asyncapi, options, protocolName);
                 break;
             }
         }
@@ -60,6 +60,6 @@ public class AsyncapiCompositeBindingAdapter
         {
             // TODO: should we do something?
         }
-        return asyncapiProtocol;
+        return protocol;
     }
 }

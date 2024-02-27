@@ -83,9 +83,9 @@ public class AsyncapiOptionsConfigAdapterTest
         String text =
                 "{" +
                     "\"specs\":" +
-                    "[" +
-                        "\"mqtt/asyncapi.yaml\"," +
-                    "]," +
+                    "{" +
+                        "\"mqtt-api\":\"mqtt/asyncapi.yaml\"," +
+                    "}," +
                     "\"tcp\":" +
                     "{" +
                         "\"host\":\"localhost\"," +
@@ -127,7 +127,7 @@ public class AsyncapiOptionsConfigAdapterTest
         assertThat(options, not(nullValue()));
         AsyncapiConfig asyncapi = options.specs.get(0);
         assertThat(asyncapi.location, equalTo("mqtt/asyncapi.yaml"));
-        assertThat(asyncapi.asyncApi, instanceOf(Asyncapi.class));
+        assertThat(asyncapi.asyncapi, instanceOf(Asyncapi.class));
         assertThat(options.tcp.host, equalTo("localhost"));
         assertThat(options.tcp.ports, equalTo(new int[] { 7183 }));
         assertThat(options.tls.keys, equalTo(asList("localhost")));
@@ -145,7 +145,7 @@ public class AsyncapiOptionsConfigAdapterTest
     {
         initJson("mqtt/asyncapi.yaml");
         List<AsyncapiConfig> specs = new ArrayList<>();
-        specs.add(new AsyncapiConfig("mqtt_api", "mqtt/asyncapi.yaml", new Asyncapi()));
+        specs.add(new AsyncapiConfig("mqtt-api", "mqtt/asyncapi.yaml", new Asyncapi()));
 
 
         AsyncapiOptionsConfig options = AsyncapiOptionsConfig.builder()
@@ -177,9 +177,9 @@ public class AsyncapiOptionsConfigAdapterTest
         assertThat(text, equalTo(
             "{" +
                 "\"specs\":" +
-                "[" +
-                    "\"mqtt/asyncapi.yaml\"" +
-                "]," +
+                "{" +
+                    "\"mqtt-api\":\"mqtt/asyncapi.yaml\"" +
+                "}," +
                 "\"tcp\":" +
                 "{" +
                     "\"host\":\"localhost\"," +
@@ -224,9 +224,9 @@ public class AsyncapiOptionsConfigAdapterTest
         String text =
                 "{" +
                     "\"specs\":" +
-                    "[" +
-                        "\"kafka/asyncapi.yaml\"," +
-                    "]," +
+                    "{" +
+                        "\"kafka-api\":\"kafka/asyncapi.yaml\"," +
+                    "}," +
                     "\"tcp\":" +
                     "{" +
                         "\"host\":\"localhost\"," +
@@ -268,7 +268,7 @@ public class AsyncapiOptionsConfigAdapterTest
         assertThat(options, not(nullValue()));
         AsyncapiConfig asyncapi = options.specs.get(0);
         assertThat(asyncapi.location, equalTo("kafka/asyncapi.yaml"));
-        assertThat(asyncapi.asyncApi, instanceOf(Asyncapi.class));
+        assertThat(asyncapi.asyncapi, instanceOf(Asyncapi.class));
         assertThat(options.tcp.host, equalTo("localhost"));
         assertThat(options.tcp.ports, equalTo(new int[] { 9092 }));
         assertThat(options.tls.keys, equalTo(asList("localhost")));
@@ -286,7 +286,7 @@ public class AsyncapiOptionsConfigAdapterTest
     {
         initJson("http/asyncapi.yaml");
         List<AsyncapiConfig> specs = new ArrayList<>();
-        specs.add(new AsyncapiConfig("http_api", "http/asyncapi.yaml", new Asyncapi()));
+        specs.add(new AsyncapiConfig("http-api", "http/asyncapi.yaml", new Asyncapi()));
 
 
         AsyncapiOptionsConfig options = AsyncapiOptionsConfig.builder()
@@ -311,9 +311,9 @@ public class AsyncapiOptionsConfigAdapterTest
         assertThat(text, equalTo(
             "{" +
                 "\"specs\":" +
-                "[" +
-                    "\"http/asyncapi.yaml\"" +
-                "]," +
+                "{" +
+                    "\"http-api\":\"http/asyncapi.yaml\"" +
+                "}," +
                 "\"tcp\":" +
                 "{" +
                     "\"host\":\"localhost\"," +
@@ -349,9 +349,9 @@ public class AsyncapiOptionsConfigAdapterTest
         String text =
                 "{" +
                     "\"specs\":" +
-                    "[" +
-                        "\"http/asyncapi.yaml\"," +
-                    "]," +
+                    "{" +
+                        "\"http-api\":\"http/asyncapi.yaml\"," +
+                    "}," +
                     "\"tcp\":" +
                     "{" +
                         "\"host\":\"localhost\"," +
@@ -384,7 +384,7 @@ public class AsyncapiOptionsConfigAdapterTest
         assertThat(options, not(nullValue()));
         AsyncapiConfig asyncapi = options.specs.get(0);
         assertThat(asyncapi.location, equalTo("http/asyncapi.yaml"));
-        assertThat(asyncapi.asyncApi, instanceOf(Asyncapi.class));
+        assertThat(asyncapi.asyncapi, instanceOf(Asyncapi.class));
         assertThat(options.tcp.host, equalTo("localhost"));
         assertThat(options.tcp.ports, equalTo(new int[] { 7080 }));
         assertThat(options.tls.keys, equalTo(asList("localhost")));
@@ -399,7 +399,7 @@ public class AsyncapiOptionsConfigAdapterTest
     {
         initJson("kafka/asyncapi.yaml");
         List<AsyncapiConfig> specs = new ArrayList<>();
-        specs.add(new AsyncapiConfig("kafka_api", "kafka/asyncapi.yaml", new Asyncapi()));
+        specs.add(new AsyncapiConfig("kafka-api", "kafka/asyncapi.yaml", new Asyncapi()));
 
 
         AsyncapiOptionsConfig options = AsyncapiOptionsConfig.builder()
@@ -431,9 +431,9 @@ public class AsyncapiOptionsConfigAdapterTest
         assertThat(text, equalTo(
             "{" +
                 "\"specs\":" +
-                "[" +
-                    "\"kafka/asyncapi.yaml\"" +
-                "]," +
+                "{" +
+                    "\"kafka-api\":\"kafka/asyncapi.yaml\"" +
+                "}," +
                 "\"tcp\":" +
                 "{" +
                     "\"host\":\"localhost\"," +

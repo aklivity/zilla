@@ -14,15 +14,13 @@
 # under the License.
 #
 
-accept "zilla://streams/asyncapi0"
+connect "zilla://streams/asyncapi0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
 
-accepted
-
-read zilla:begin.ext ${asyncapi:matchBeginEx()
+write zilla:begin.ext ${asyncapi:beginEx()
                              .typeId(zilla:id("asyncapi"))
-                             .operationId("createPets")
+                             .operationId("createPet")
                              .extension(http:beginEx()
                                   .typeId(zilla:id("http"))
                                   .header(":method", "POST")
@@ -35,12 +33,12 @@ read zilla:begin.ext ${asyncapi:matchBeginEx()
                              .build()}
 connected
 
-read "{\"test\"}"
-read closed
+write "{\"test\"}"
+write close
 
-write zilla:begin.ext ${asyncapi:beginEx()
+read zilla:begin.ext ${asyncapi:matchBeginEx()
                              .typeId(zilla:id("asyncapi"))
-                             .operationId("createPets")
+                             .operationId("createPet")
                              .extension(http:beginEx()
                                  .typeId(zilla:id("http"))
                                  .header(":status", "200")
@@ -49,5 +47,4 @@ write zilla:begin.ext ${asyncapi:beginEx()
                                  .build())
                              .build()}
 
-write "{\"message\": \"string\"}"
-write flush
+read "{\"message\": \"string\"}"

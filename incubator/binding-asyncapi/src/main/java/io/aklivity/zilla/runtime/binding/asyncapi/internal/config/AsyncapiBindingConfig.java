@@ -65,7 +65,8 @@ public final class AsyncapiBindingConfig
         this.kind = binding.kind;
         this.overrideRouteId = overrideRouteId;
         this.options = AsyncapiOptionsConfig.class.cast(binding.options);
-        this.routes = binding.routes.stream().map(AsyncapiRouteConfig::new).collect(toList()); // TODO: add options::resolveApiId to route constructor
+        this.routes = binding.routes.stream().map(AsyncapiRouteConfig::new).collect(toList());
+        // TODO: add options::resolveApiId to route constructor
         this.compositeResolvedIds = binding.composites.stream()
             .map(c -> c.bindings)
             .flatMap(List::stream)
@@ -84,7 +85,7 @@ public final class AsyncapiBindingConfig
             .forEach(b -> this.composites.put(NamespacedId.namespaceId(b.id), b.type));
 
         this.paths = new Object2ObjectHashMap<>();
-        options.specs.forEach(c -> c.asyncApi.channels.forEach((k, v) ->
+        options.specs.forEach(c -> c.asyncapi.channels.forEach((k, v) ->
         {
             String regex = v.address.replaceAll("\\{[^/]+}", "[^/]+");
             regex = "^" + regex + "$";
@@ -95,7 +96,7 @@ public final class AsyncapiBindingConfig
         this.helper = new HttpHeaderHelper();
 
         Map<CharSequence, String> resolversByMethod = new TreeMap<>(CharSequence::compare);
-        options.specs.forEach(c -> c.asyncApi.operations.forEach((k, v) ->
+        options.specs.forEach(c -> c.asyncapi.operations.forEach((k, v) ->
         {
             String[] refParts = v.channel.ref.split("/");
             resolversByMethod.put(refParts[refParts.length - 1], k);

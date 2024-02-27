@@ -26,7 +26,6 @@ import java.util.Map;
 import java.util.function.Function;
 
 import jakarta.json.Json;
-import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonReader;
@@ -91,9 +90,9 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
 
         if (asyncapiOptions.specs != null)
         {
-            JsonArrayBuilder keys = Json.createArrayBuilder();
-            asyncapiOptions.specs.forEach(p -> keys.add(p.location));
-            object.add(SPECS_NAME, keys);
+            JsonObjectBuilder specs = Json.createObjectBuilder();
+            asyncapiOptions.specs.forEach(p -> specs.add(p.apiId, p.location));
+            object.add(SPECS_NAME, specs);
         }
 
         if (asyncapiOptions.tcp != null)

@@ -56,7 +56,7 @@ public class AsyncapiProxyCompositeBindingAdapter extends AsyncapiCompositeBindi
         List<AsyncapiRouteConfig> routes = binding.routes.stream()
             .map(AsyncapiRouteConfig::new)
             .collect(Collectors.toList());
-        this.asyncApis = options.specs.stream().collect(Collectors.toUnmodifiableMap(a -> a.apiId, a -> a.asyncApi));
+        this.asyncApis = options.specs.stream().collect(Collectors.toUnmodifiableMap(a -> a.apiId, a -> a.asyncapi));
         this.qname = binding.qname;
 
         return BindingConfig.builder(binding)

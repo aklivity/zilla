@@ -52,6 +52,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheSegment;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheTopic;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaRouteConfig;
+import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaTopicType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.ArrayFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
@@ -237,11 +238,10 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 final KafkaCache cache = supplyCache.apply(cacheName);
                 final KafkaCacheTopic cacheTopic = cache.supplyTopic(topicName);
                 final KafkaCachePartition partition = cacheTopic.supplyFetchPartition(partitionId);
-                final ConverterHandler convertKey = binding.resolveKeyReader(topicName);
-                final ConverterHandler convertValue = binding.resolveValueReader(topicName);
+                final KafkaTopicType topicType = binding.resolveTopicType(topicName);
                 final KafkaCacheServerFetchFanout newFanout =
                     new KafkaCacheServerFetchFanout(routedId, resolvedId, authorization,
-                        affinity, partition, routeDeltaType, defaultOffset, convertKey, convertValue);
+                        affinity, partition, routeDeltaType, defaultOffset, topicType);
 
                 cacheRoute.serverFetchFanoutsByTopicPartition.put(partitionKey, newFanout);
                 fanout = newFanout;
@@ -516,8 +516,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
             KafkaCachePartition partition,
             KafkaDeltaType deltaType,
             KafkaOffsetType defaultOffset,
-            ConverterHandler convertKey,
-            ConverterHandler convertValue)
+            KafkaTopicType topicType)
         {
             this.originId = originId;
             this.routedId = routedId;
@@ -528,8 +527,8 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
             this.retentionMillisMax = defaultOffset == LIVE ? SECONDS.toMillis(30) : Long.MAX_VALUE;
             this.members = new ArrayList<>();
             this.leaderId = leaderId;
-            this.convertKey = convertKey;
-            this.convertValue = convertValue;
+            this.convertKey = topicType.keyReader;
+            this.convertValue = topicType.valueReader;
             this.entryMark = new MutableInteger(0);
             this.valueMark = new MutableInteger(0);
         }
