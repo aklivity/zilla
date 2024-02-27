@@ -145,7 +145,7 @@ public class AsyncapiOptionsConfigAdapterTest
     {
         initJson("mqtt/asyncapi.yaml");
         List<AsyncapiConfig> specs = new ArrayList<>();
-        specs.add(new AsyncapiConfig("mqtt-api", "mqtt/asyncapi.yaml", new Asyncapi()));
+        specs.add(new AsyncapiConfig("mqtt-api", 1, "mqtt/asyncapi.yaml", new Asyncapi()));
 
 
         AsyncapiOptionsConfig options = AsyncapiOptionsConfig.builder()
@@ -286,7 +286,7 @@ public class AsyncapiOptionsConfigAdapterTest
     {
         initJson("http/asyncapi.yaml");
         List<AsyncapiConfig> specs = new ArrayList<>();
-        specs.add(new AsyncapiConfig("http-api", "http/asyncapi.yaml", new Asyncapi()));
+        specs.add(new AsyncapiConfig("http-api", 1,  "http/asyncapi.yaml", new Asyncapi()));
 
 
         AsyncapiOptionsConfig options = AsyncapiOptionsConfig.builder()
@@ -399,7 +399,7 @@ public class AsyncapiOptionsConfigAdapterTest
     {
         initJson("kafka/asyncapi.yaml");
         List<AsyncapiConfig> specs = new ArrayList<>();
-        specs.add(new AsyncapiConfig("kafka-api", "kafka/asyncapi.yaml", new Asyncapi()));
+        specs.add(new AsyncapiConfig("kafka-api", 1,  "kafka/asyncapi.yaml", new Asyncapi()));
 
 
         AsyncapiOptionsConfig options = AsyncapiOptionsConfig.builder()

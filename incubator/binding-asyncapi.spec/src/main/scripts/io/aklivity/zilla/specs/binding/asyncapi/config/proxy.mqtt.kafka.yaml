@@ -22,11 +22,11 @@ bindings:
     kind: proxy
     options:
       specs:
-        mqtt_api: mqtt/asyncapi.yaml # mqtt_api -> 1
-        kafka_api: kafka/sensor.asyncapi.yaml # kafka_api -> 2, create Map<Long, String> apiLabels
+        mqtt_api: mqtt/asyncapi.yaml
+        kafka_api: kafka/sensor.asyncapi.yaml
     routes:
       - when:
-          - api-id: mqtt_api # get apiId = 1 in the begin, get label from apiLabels
+          - api-id: mqtt_api
         exit: asyncapi_kafka0
         with:
           api-id: kafka_api

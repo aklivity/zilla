@@ -59,6 +59,13 @@ public final class AsyncapiFunctions
             return this;
         }
 
+        public AsyncapiBeginExBuilder apiId(
+            long apiId)
+        {
+            beginExRW.apiId(apiId);
+            return this;
+        }
+
         public AsyncapiBeginExBuilder operationId(
             String operationId)
         {

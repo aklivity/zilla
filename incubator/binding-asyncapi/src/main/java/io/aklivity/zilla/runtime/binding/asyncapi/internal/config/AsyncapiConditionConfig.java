@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.config;
 
+import java.util.function.Function;
+
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 
 public class AsyncapiConditionConfig extends ConditionConfig
@@ -27,16 +29,16 @@ public class AsyncapiConditionConfig extends ConditionConfig
     }
 
     public boolean matches(
-        long apiId)
+        long apiId,
+        Function<String, Long> supplyApiId)
     {
-        return matchesApiId(apiId);
+        return matchesApiId(apiId, supplyApiId);
     }
 
     private boolean matchesApiId(
-        long apiId)
+        long apiId,
+        Function<String, Long> supplyApiId)
     {
-        return System.identityHashCode(this.apiId.intern()) == apiId;
+        return supplyApiId.apply(this.apiId) == apiId;
     }
-
-
 }

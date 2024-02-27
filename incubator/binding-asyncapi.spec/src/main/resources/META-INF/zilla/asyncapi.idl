@@ -19,7 +19,7 @@ scope asyncapi
     {
         struct AsyncapiBeginEx extends core::stream::Extension
         {
-            int32 apiId = 0;
+            int64 apiId = 0;
             string16 operationId = null;
             octets extension;
         }

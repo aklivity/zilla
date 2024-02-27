@@ -20,10 +20,12 @@ import static org.agrona.LangUtil.rethrowUnchecked;
 import java.io.InputStream;
 import java.io.Reader;
 import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.zip.CRC32C;
 
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
@@ -63,6 +65,7 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
     private static final String HTTP_NAME = "http";
     private static final String KAFKA_NAME = "kafka";
 
+    private CRC32C crc;
     private OptionsConfigAdapter tcpOptions;
     private OptionsConfigAdapter tlsOptions;
     private OptionsConfigAdapter httpOptions;
@@ -91,7 +94,7 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
         if (asyncapiOptions.specs != null)
         {
             JsonObjectBuilder specs = Json.createObjectBuilder();
-            asyncapiOptions.specs.forEach(p -> specs.add(p.apiId, p.location));
+            asyncapiOptions.specs.forEach(p -> specs.add(p.apiLabel, p.location));
             object.add(SPECS_NAME, specs);
         }
 
@@ -177,6 +180,7 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
         this.httpOptions.adaptType("http");
         this.kafkaOptions = new OptionsConfigAdapter(Kind.BINDING, context);
         this.kafkaOptions.adaptType("kafka");
+        this.crc = new CRC32C();
     }
 
     private List<AsyncapiConfig> asListAsyncapis(
@@ -190,12 +194,15 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
     private AsyncapiConfig asAsyncapi(
         Map.Entry<String, JsonValue> entry)
     {
-        final String apiId = entry.getKey();
+        final String apiLabel = entry.getKey();
         final String location = ((JsonString) entry.getValue()).getString();
         final String specText = readURL.apply(location);
+        crc.reset();
+        crc.update(specText.getBytes(StandardCharsets.UTF_8));
+        final long apiId = crc.getValue();
         Asyncapi asyncapi = parseAsyncapi(specText);
 
-        return new AsyncapiConfig(apiId, location, asyncapi);
+        return new AsyncapiConfig(apiLabel, apiId, location, asyncapi);
     }
 
     private Asyncapi parseAsyncapi(

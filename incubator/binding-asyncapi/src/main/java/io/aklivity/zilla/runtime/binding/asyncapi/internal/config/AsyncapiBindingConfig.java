@@ -65,15 +65,14 @@ public final class AsyncapiBindingConfig
         this.kind = binding.kind;
         this.overrideRouteId = overrideRouteId;
         this.options = AsyncapiOptionsConfig.class.cast(binding.options);
-        this.routes = binding.routes.stream().map(AsyncapiRouteConfig::new).collect(toList());
-        // TODO: add options::resolveApiId to route constructor
+        this.routes = binding.routes.stream().map(r -> new AsyncapiRouteConfig(r, options::resolveApiId)).collect(toList());
         this.compositeResolvedIds = binding.composites.stream()
             .map(c -> c.bindings)
             .flatMap(List::stream)
             .filter(b -> b.type.equals("mqtt") || b.type.equals("http") || b.type.equals("kafka") || b.type.equals("mqtt-kafka"))
             .collect(of(
                 () -> new Long2LongHashMap(-1),
-                (m, r) -> m.put(0L, r.id), //TODO: populate proper apiId: with the hashed asyncapi content
+                (m, r) -> m.put(options.specs.get(0).apiId, r.id),
                 (m, r) -> m,
                 IDENTITY_FINISH
             ));

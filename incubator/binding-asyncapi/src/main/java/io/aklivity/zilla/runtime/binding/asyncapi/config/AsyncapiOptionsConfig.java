@@ -55,4 +55,19 @@ public final class AsyncapiOptionsConfig extends OptionsConfig
         this.tls = tls;
         this.kafka = kafka;
     }
+
+    public long resolveApiId(
+        String apiLabel)
+    {
+        long apiId = -1;
+        for (AsyncapiConfig c : specs)
+        {
+            if (c.apiLabel.equals(apiLabel))
+            {
+                apiId = c.apiId;
+                break;
+            }
+        }
+        return apiId;
+    }
 }
