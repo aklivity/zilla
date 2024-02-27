@@ -264,13 +264,14 @@ public class TcpClientFactory implements TcpStreamFactory
                     state = TcpState.openingInitial(state);
                     net.setOption(SO_KEEPALIVE, options != null && options.keepalive);
 
+                    networkKey = supplyPollerKey.apply(net);
+
                     if (net.connect(remoteAddress))
                     {
                         onNetConnected();
                     }
                     else
                     {
-                        networkKey = supplyPollerKey.apply(net);
                         networkKey.handler(OP_CONNECT, this::onNetConnect);
                         networkKey.register(OP_CONNECT);
                     }
@@ -480,10 +481,7 @@ public class TcpClientFactory implements TcpStreamFactory
                 }
                 else
                 {
-                    if (networkKey != null)
-                    {
-                        networkKey.clear(OP_WRITE);
-                    }
+                    networkKey.clear(OP_WRITE);
                     net.shutdownOutput();
 
                     if (net.socket().isInputShutdown())
