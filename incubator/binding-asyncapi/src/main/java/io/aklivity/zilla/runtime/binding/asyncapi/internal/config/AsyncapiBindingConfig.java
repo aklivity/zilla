@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.config;
 
+import static io.aklivity.zilla.runtime.engine.config.KindConfig.CACHE_CLIENT;
 import static java.util.Collections.unmodifiableMap;
 import static java.util.stream.Collector.of;
 import static java.util.stream.Collector.Characteristics.IDENTITY_FINISH;
@@ -69,7 +70,7 @@ public final class AsyncapiBindingConfig
         this.resolvedIds = binding.composites.stream()
             .map(c -> c.bindings)
             .flatMap(List::stream)
-            .filter(b -> b.type.equals("mqtt") || b.type.equals("http") || b.type.equals("kafka"))
+            .filter(b -> b.type.equals("mqtt") || b.type.equals("http") || b.type.equals("kafka") && b.kind == CACHE_CLIENT)
             .collect(of(
                 () -> new Long2LongHashMap(-1),
                 (m, r) -> m.put(0L, r.id), //TODO: populate proper apiId
@@ -80,7 +81,7 @@ public final class AsyncapiBindingConfig
         binding.composites.stream()
             .map(c -> c.bindings)
             .flatMap(List::stream)
-            .filter(b -> b.type.equals("mqtt") || b.type.equals("http") || b.type.equals("kafka"))
+            .filter(b -> b.type.equals("mqtt") || b.type.equals("http") || b.type.equals("kafka") && b.kind == CACHE_CLIENT)
             .forEach(b -> this.composites.put(NamespacedId.namespaceId(b.id), b.type));
 
         this.paths = new Object2ObjectHashMap<>();
