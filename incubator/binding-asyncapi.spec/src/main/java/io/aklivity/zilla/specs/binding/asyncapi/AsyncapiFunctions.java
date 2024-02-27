@@ -96,7 +96,7 @@ public final class AsyncapiFunctions
         private final AsyncapiBeginExFW beginExRO = new AsyncapiBeginExFW();
 
         private Integer typeId;
-        private int apiId;
+        private long apiId;
         private String operationId;
         private OctetsFW.Builder extensionRW;
 
@@ -115,7 +115,7 @@ public final class AsyncapiFunctions
         }
 
         public AsyncapiBeginExMatcherBuilder apiId(
-            int apiId)
+            long apiId)
         {
             this.apiId = apiId;
             return this;

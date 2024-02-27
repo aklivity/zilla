@@ -164,6 +164,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
 
                 final String operationId = compositeTypeId == httpTypeId ?
                     binding.resolveOperationId(extension.get(httpBeginRO::tryWrap)) : null;
+                final long apiId = binding.options.specs.get(0).apiId;
                 newStream = new CompositeStream(
                     receiver,
                     originId,
@@ -172,6 +173,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
                     affinity,
                     authorization,
                     route.id,
+                    apiId,
                     operationId)::onCompositeMessage;
             }
         }
@@ -211,9 +213,10 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             long affinity,
             long authorization,
             long resolvedId,
+            long apiId,
             String operationId)
         {
-            this.delegate = new AsyncapiStream(this, routedId, resolvedId, authorization, operationId);
+            this.delegate = new AsyncapiStream(this, routedId, resolvedId, authorization, apiId, operationId);
             this.sender = sender;
             this.originId = originId;
             this.routedId = routedId;
@@ -514,6 +517,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
     {
         private final CompositeStream delegate;
         private final String operationId;
+        private final long apiId;
         private final long originId;
         private final long routedId;
         private final long authorization;
@@ -539,6 +543,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             long originId,
             long routedId,
             long authorization,
+            long apiId,
             String operationId)
         {
             this.delegate = delegate;
@@ -546,6 +551,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             this.routedId = routedId;
             this.receiver = MessageConsumer.NOOP;
             this.authorization = authorization;
+            this.apiId = apiId;
             this.operationId = operationId;
         }
 
@@ -764,6 +770,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
                 final AsyncapiBeginExFW asyncapiBeginEx = asyncapiBeginExRW
                     .wrap(extBuffer, 0, extBuffer.capacity())
                     .typeId(asyncapiTypeId)
+                    .apiId(apiId)
                     .operationId(operationId)
                     .extension(extension)
                     .build();

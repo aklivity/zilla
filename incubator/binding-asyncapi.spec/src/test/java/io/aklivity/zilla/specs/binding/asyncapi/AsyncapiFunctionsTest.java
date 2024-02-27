@@ -64,7 +64,7 @@ public class AsyncapiFunctionsTest
             .extension(new byte[] {1})
             .build();
 
-        ByteBuffer byteBuf = ByteBuffer.allocate(11);
+        ByteBuffer byteBuf = ByteBuffer.allocate(15);
         MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1]);
 
         new AsyncapiBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
@@ -85,7 +85,7 @@ public class AsyncapiFunctionsTest
             .extension(new byte[] {1})
             .build();
 
-        ByteBuffer byteBuf = ByteBuffer.allocate(22);
+        ByteBuffer byteBuf = ByteBuffer.allocate(26);
         MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1]);
 
         new AsyncapiBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
