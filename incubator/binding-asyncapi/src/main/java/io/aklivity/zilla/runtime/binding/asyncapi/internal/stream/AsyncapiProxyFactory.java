@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.stream;
 
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
@@ -146,7 +147,6 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
             if (!binding.isCompositeOriginId(originId))
             {
                 final AsyncapiBeginExFW asyncapiBeginEx = extension.get(asyncapiBeginExRO::tryWrap);
-                //TODO: add crc32c hash apiId in the server factory
                 final long apiId = asyncapiBeginEx.apiId();
                 final String operationId = asyncapiBeginEx.operationId().asString();
 
@@ -173,6 +173,7 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
 
                 if (route != null)
                 {
+                    final long clientApiId = binding.options.resolveApiId(route.with.apiId);
                     newStream = new CompositeClientStream(
                         receiver,
                         originId,
@@ -180,7 +181,26 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
                         initialId,
                         authorization,
                         route.id,
-                        affinity)::onCompositeClientMessage;
+                        affinity,
+                        clientApiId)::onCompositeClientMessage;
+                }
+                else
+                {
+                    // Needed by the willStream which comes directly from the composite without Asyncapi begin pair
+                    Optional<AsyncapiRouteConfig> asyncapiRoute = binding.routes.stream().findFirst();
+                    final long routeId = asyncapiRoute.map(r -> r.id).orElse(0L);
+                    final long clientApiId = asyncapiRoute.map(asyncapiRouteConfig ->
+                            binding.options.resolveApiId(asyncapiRouteConfig.with.apiId)).orElse(0L);
+
+                    newStream = new CompositeClientStream(
+                        receiver,
+                        originId,
+                        routedId,
+                        initialId,
+                        authorization,
+                        routeId,
+                        affinity,
+                        clientApiId)::onCompositeClientMessage;
                 }
             }
         }
@@ -873,7 +893,8 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
             long initialId,
             long authorization,
             long resolvedId,
-            long affinity)
+            long affinity,
+            long apiId)
         {
             this.sender = sender;
             this.originId = originId;
@@ -882,7 +903,7 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = affinity;
             this.authorization = authorization;
-            this.delegate = new AsyncapiClientStream(this, originId, resolvedId, authorization);
+            this.delegate = new AsyncapiClientStream(this, originId, resolvedId, authorization, apiId);
         }
 
         private void onCompositeClientMessage(
@@ -1176,7 +1197,7 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
         private final long routedId;
         private final long authorization;
         private final CompositeClientStream delegate;
-        //private final String operationId;
+        private final long apiId;
 
         private long initialId;
         private long replyId;
@@ -1197,7 +1218,8 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
             CompositeClientStream delegate,
             long originId,
             long routedId,
-            long authorization)
+            long authorization,
+            long apiId)
         {
             this.delegate = delegate;
             this.originId = originId;
@@ -1205,7 +1227,7 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
             this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.authorization = authorization;
-            //this.operationId = operationId;
+            this.apiId = apiId;
         }
 
         private void onAsyncapiClientMessage(
@@ -1425,6 +1447,7 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
                 final AsyncapiBeginExFW asyncapiBeginEx = asyncapiBeginExRW
                     .wrap(extBuffer, 0, extBuffer.capacity())
                     .typeId(asyncapiTypeId)
+                    .apiId(apiId)
                     .operationId((String) null)
                     .extension(extension)
                     .build();
