@@ -44,7 +44,6 @@ import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tcp.internal.TcpConfiguration;
-import io.aklivity.zilla.runtime.binding.tcp.internal.TcpEventContext;
 import io.aklivity.zilla.runtime.binding.tcp.internal.config.TcpBindingConfig;
 import io.aklivity.zilla.runtime.binding.tcp.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.tcp.internal.types.OctetsFW;
@@ -96,7 +95,6 @@ public class TcpClientFactory implements TcpStreamFactory
     private final int proxyTypeId;
     private final int windowThreshold;
     private final int initialMax;
-    private final TcpEventContext event;
 
     public TcpClientFactory(
         TcpConfiguration config,
@@ -117,7 +115,6 @@ public class TcpClientFactory implements TcpStreamFactory
 
         this.initialMax = bufferPool.slotCapacity();
         this.windowThreshold = (bufferPool.slotCapacity() * config.windowThreshold()) / 100;
-        this.event = new TcpEventContext(context);
     }
 
     @Override
@@ -155,7 +152,7 @@ public class TcpClientFactory implements TcpStreamFactory
         TcpBindingConfig binding = router.lookup(routedId);
         if (binding != null)
         {
-            route = router.resolve(binding, authorization, beginEx);
+            route = router.resolve(binding, traceId, authorization, beginEx);
         }
 
         MessageConsumer newStream = null;
@@ -166,7 +163,7 @@ public class TcpClientFactory implements TcpStreamFactory
             final SocketChannel channel = newSocketChannel();
 
             final TcpClient client = new TcpClient(application, originId, routedId, initialId, channel);
-            client.doNetConnect(traceId, route, binding.options);
+            client.doNetConnect(route, binding.options);
             newStream = client::onAppMessage;
         }
 
@@ -253,33 +250,24 @@ public class TcpClientFactory implements TcpStreamFactory
         }
 
         private void doNetConnect(
-            long traceId,
             InetSocketAddress remoteAddress,
             TcpOptionsConfig options)
         {
             try
             {
-                try
+                state = TcpState.openingInitial(state);
+                net.setOption(SO_KEEPALIVE, options != null && options.keepalive);
+
+                networkKey = supplyPollerKey.apply(net);
+
+                if (net.connect(remoteAddress))
                 {
-                    state = TcpState.openingInitial(state);
-                    net.setOption(SO_KEEPALIVE, options != null && options.keepalive);
-
-                    networkKey = supplyPollerKey.apply(net);
-
-                    if (net.connect(remoteAddress))
-                    {
-                        onNetConnected();
-                    }
-                    else
-                    {
-                        networkKey.handler(OP_CONNECT, this::onNetConnect);
-                        networkKey.register(OP_CONNECT);
-                    }
+                    onNetConnected();
                 }
-                catch (UnresolvedAddressException ex)
+                else
                 {
-                    event.dnsResolutionFailed(traceId, routedId, remoteAddress);
-                    throw ex;
+                    networkKey.handler(OP_CONNECT, this::onNetConnect);
+                    networkKey.register(OP_CONNECT);
                 }
             }
             catch (UnresolvedAddressException | IOException ex)

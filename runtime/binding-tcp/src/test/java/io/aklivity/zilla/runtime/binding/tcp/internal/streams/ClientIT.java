@@ -21,7 +21,9 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.rules.RuleChain.outerRule;
 
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
@@ -37,6 +39,7 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class ClientIT
 {
@@ -216,10 +219,12 @@ public class ClientIT
     }
 
     @Test
-    @Configuration("client.invalid.hostname.yaml")
+    @Configuration("client.host.yaml")
     @Specification({
         "${app}/connection.failed/client"
     })
+    @Configure(name = "zilla.engine.host.resolver",
+        value = "io.aklivity.zilla.runtime.binding.tcp.internal.streams.ClientIT::resolveHost")
     public void dnsResolutionFailed() throws Exception
     {
         k3po.finish();
@@ -335,5 +340,11 @@ public class ClientIT
                 k3po.finish();
             }
         }
+    }
+
+    public static InetAddress[] resolveHost(
+        String host) throws UnknownHostException
+    {
+        throw new UnknownHostException();
     }
 }
