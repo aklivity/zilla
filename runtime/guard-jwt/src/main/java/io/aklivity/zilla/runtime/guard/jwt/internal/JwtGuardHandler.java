@@ -154,6 +154,7 @@ public class JwtGuardHandler implements GuardHandler
 
             String payload = signature.getPayload();
             JwtClaims claims = JwtClaims.parse(payload);
+            subject = claims.getSubject();
             NumericDate notBefore = claims.getNotBefore();
             NumericDate notAfter = claims.getExpirationTime();
             String issuer = claims.getIssuer();
@@ -168,7 +169,6 @@ public class JwtGuardHandler implements GuardHandler
                 break authorize;
             }
 
-            subject = claims.getSubject();
             List<String> roles = Optional.ofNullable(claims.getClaimValue("scope"))
                 .map(s -> s.toString().intern())
                 .map(s -> s.split("\\s+"))
