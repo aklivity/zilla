@@ -542,16 +542,16 @@ scope kafka
             API_VERSION_REJECTED (2)
         }
 
-        struct KafkaApiVersionRejected extends core::event::Event
+        struct KafkaApiVersionRejectedEx extends core::stream::Extension
         {
             int32 apiKey;
             int32 apiVersion;
         }
 
-        union KafkaEvent switch (KafkaEventType)
+        union KafkaEventEx switch (KafkaEventType)
         {
-            case AUTHORIZATION_FAILED: core::event::Event authorizationFailed;
-            case API_VERSION_REJECTED: KafkaApiVersionRejected apiVersionRejected;
+            case AUTHORIZATION_FAILED: core::stream::Extension authorizationFailed;
+            case API_VERSION_REJECTED: KafkaApiVersionRejectedEx apiVersionRejected;
         }
     }
 }

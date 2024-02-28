@@ -20,15 +20,16 @@ import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.exporter.stdout.internal.StdoutExporterContext;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.EventFW;
-import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.KafkaApiVersionRejectedFW;
-import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.KafkaEventFW;
+import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.KafkaApiVersionRejectedExFW;
+import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.KafkaEventExFW;
 
 public class StdoutKafkaHandler extends EventHandler
 {
     private static final String AUTHORIZATION_FAILED_FORMAT = "%s - [%s] AUTHORIZATION_FAILED%n";
     private static final String API_VERSION_REJECTED_FORMAT = "%s - [%s] API_VERSION_REJECTED %d %d%n";
 
-    private final KafkaEventFW kafkaEventRO = new KafkaEventFW();
+    private final EventFW eventRO = new EventFW();
+    private final KafkaEventExFW kafkaEventExRO = new KafkaEventExFW();
 
     public StdoutKafkaHandler(
         StdoutExporterContext context,
@@ -43,21 +44,22 @@ public class StdoutKafkaHandler extends EventHandler
         int index,
         int length)
     {
-        final KafkaEventFW event = kafkaEventRO.wrap(buffer, index, index + length);
-        switch (event.kind())
+        final EventFW event = eventRO.wrap(buffer, index, index + length);
+        final KafkaEventExFW extension = kafkaEventExRO
+            .wrap(event.extension().buffer(), event.extension().offset(), event.extension().limit());
+        switch (extension.kind())
         {
         case AUTHORIZATION_FAILED:
         {
-            EventFW e = event.authorizationFailed();
-            String qname = context.supplyQName(e.namespacedId());
-            out.printf(AUTHORIZATION_FAILED_FORMAT, qname, asDateTime(e.timestamp()));
+            String qname = context.supplyQName(event.namespacedId());
+            out.printf(AUTHORIZATION_FAILED_FORMAT, qname, asDateTime(event.timestamp()));
             break;
         }
         case API_VERSION_REJECTED:
         {
-            KafkaApiVersionRejectedFW e = event.apiVersionRejected();
-            String qname = context.supplyQName(e.namespacedId());
-            out.printf(API_VERSION_REJECTED_FORMAT, qname, asDateTime(e.timestamp()), e.apiKey(), e.apiVersion());
+            KafkaApiVersionRejectedExFW ex = extension.apiVersionRejected();
+            String qname = context.supplyQName(event.namespacedId());
+            out.printf(API_VERSION_REJECTED_FORMAT, qname, asDateTime(event.timestamp()), ex.apiKey(), ex.apiVersion());
             break;
         }
         }
