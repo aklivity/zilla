@@ -57,6 +57,8 @@ import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.concurrent.AgentRunner;
 
 import io.aklivity.zilla.runtime.engine.binding.Binding;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageReader;
 import io.aklivity.zilla.runtime.engine.catalog.Catalog;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.exporter.Exporter;
@@ -71,6 +73,7 @@ import io.aklivity.zilla.runtime.engine.internal.registry.EngineWorker;
 import io.aklivity.zilla.runtime.engine.internal.registry.FileWatcherTask;
 import io.aklivity.zilla.runtime.engine.internal.registry.HttpWatcherTask;
 import io.aklivity.zilla.runtime.engine.internal.registry.WatcherTask;
+import io.aklivity.zilla.runtime.engine.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
 import io.aklivity.zilla.runtime.engine.model.Model;
@@ -160,7 +163,7 @@ public final class Engine implements Collector, AutoCloseable
             EngineWorker worker =
                 new EngineWorker(config, tasks, labels, errorHandler, tuning::affinity,
                         bindings, exporters, guards, vaults, catalogs, models, metricGroups,
-                    this, coreIndex, readonly);
+                    this, this::supplyEventReader, coreIndex, readonly);
             workers.add(worker);
         }
         this.workers = workers;
@@ -493,6 +496,11 @@ public final class Engine implements Collector, AutoCloseable
         return worker.histogramIds();
     }
 
+    public MessageReader supplyEventReader()
+    {
+        return new EventReader();
+    }
+
     public String supplyLocalName(
         long namespacedId)
     {
@@ -505,6 +513,48 @@ public final class Engine implements Collector, AutoCloseable
     {
         EngineWorker worker = workers.get(0);
         return worker.supplyTypeId(label);
+    }
+
+    private final class EventReader implements MessageReader
+    {
+        private final EventFW eventRO = new EventFW();
+        private int minWorkerIndex;
+        private long minTimeStamp;
+
+        @Override
+        public int read(
+            MessageConsumer handler,
+            int messageCountLimit)
+        {
+            int messagesRead = 0;
+            boolean empty = false;
+            while (!empty && messagesRead < messageCountLimit)
+            {
+                int eventCount = 0;
+                minWorkerIndex = 0;
+                minTimeStamp = Long.MAX_VALUE;
+                for (int j = 0; j < workers.size(); j++)
+                {
+                    final int workerIndex = j;
+                    int eventPeeked = workers.get(workerIndex).peekEvent((m, b, i, l) ->
+                    {
+                        eventRO.wrap(b, i, i + l);
+                        if (eventRO.timestamp() < minTimeStamp)
+                        {
+                            minTimeStamp = eventRO.timestamp();
+                            minWorkerIndex = workerIndex;
+                        }
+                    });
+                    eventCount += eventPeeked;
+                }
+                empty = eventCount == 0;
+                if (!empty)
+                {
+                    messagesRead += workers.get(minWorkerIndex).readEvent(handler, 1);
+                }
+            }
+            return messagesRead;
+        }
     }
 
     // visible for testing

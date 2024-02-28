@@ -28,12 +28,14 @@ final class JwtGuardContext implements GuardContext
 {
     private final Long2ObjectHashMap<JwtGuardHandler> handlersById;
     private final LongSupplier supplyAuthorizedId;
+    private final EngineContext context;
 
     JwtGuardContext(
         Configuration config,
         EngineContext context)
     {
         this.handlersById = new Long2ObjectHashMap<>();
+        this.context = context;
         this.supplyAuthorizedId = context::supplyAuthorizedId;
     }
 
@@ -42,7 +44,7 @@ final class JwtGuardContext implements GuardContext
         GuardConfig guard)
     {
         JwtOptionsConfig options = (JwtOptionsConfig) guard.options;
-        JwtGuardHandler handler = new JwtGuardHandler(options, supplyAuthorizedId, guard.readURL);
+        JwtGuardHandler handler = new JwtGuardHandler(options, context, supplyAuthorizedId, guard.readURL);
         handlersById.put(guard.id, handler);
         return handler;
     }

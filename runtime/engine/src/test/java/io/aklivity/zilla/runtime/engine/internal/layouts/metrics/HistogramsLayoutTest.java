@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.internal.layout.metrics;
+package io.aklivity.zilla.runtime.engine.internal.layouts.metrics;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -27,8 +27,6 @@ import java.util.function.LongConsumer;
 import java.util.function.LongSupplier;
 
 import org.junit.Test;
-
-import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.HistogramsLayout;
 
 public class HistogramsLayoutTest
 {
