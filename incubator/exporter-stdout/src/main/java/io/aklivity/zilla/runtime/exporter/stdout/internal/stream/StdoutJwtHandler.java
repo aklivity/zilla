@@ -19,14 +19,16 @@ import java.io.PrintStream;
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.exporter.stdout.internal.StdoutExporterContext;
-import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.JwtAuthorizationFailedFW;
-import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.JwtEventFW;
+import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.EventFW;
+import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.JwtAuthorizationFailedExFW;
+import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.JwtEventExFW;
 
 public class StdoutJwtHandler extends EventHandler
 {
     private static final String AUTHORIZATION_FAILED_FORMAT = "%s %s [%s] AUTHORIZATION_FAILED%n";
 
-    private final JwtEventFW jwtEventRO = new JwtEventFW();
+    private final EventFW eventRO = new EventFW();
+    private final JwtEventExFW jwtEventExRO = new JwtEventExFW();
 
     public StdoutJwtHandler(
         StdoutExporterContext context,
@@ -41,13 +43,15 @@ public class StdoutJwtHandler extends EventHandler
         int index,
         int length)
     {
-        JwtEventFW event = jwtEventRO.wrap(buffer, index, index + length);
-        switch (event.kind())
+        final EventFW event = eventRO.wrap(buffer, index, index + length);
+        final JwtEventExFW extension = jwtEventExRO
+            .wrap(event.extension().buffer(), event.extension().offset(), event.extension().limit());
+        switch (extension.kind())
         {
         case AUTHORIZATION_FAILED:
-            JwtAuthorizationFailedFW e = event.authorizationFailed();
-            String qname = context.supplyQName(e.namespacedId());
-            out.printf(AUTHORIZATION_FAILED_FORMAT, qname, identity(e.identity()), asDateTime(e.timestamp()));
+            JwtAuthorizationFailedExFW ex = extension.authorizationFailed();
+            String qname = context.supplyQName(event.namespacedId());
+            out.printf(AUTHORIZATION_FAILED_FORMAT, qname, identity(ex.identity()), asDateTime(event.timestamp()));
             break;
         }
     }
