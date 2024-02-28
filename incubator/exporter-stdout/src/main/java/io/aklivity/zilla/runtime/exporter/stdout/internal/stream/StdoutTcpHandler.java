@@ -19,14 +19,16 @@ import java.io.PrintStream;
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.exporter.stdout.internal.StdoutExporterContext;
-import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.TcpDnsFailedFW;
-import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.TcpEventFW;
+import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.EventFW;
+import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.TcpDnsFailedExFW;
+import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.TcpEventExFW;
 
 public class StdoutTcpHandler extends EventHandler
 {
     private static final String DNS_FAILED_FORMAT = "%s - [%s] DNS_FAILED %s%n";
 
-    private final TcpEventFW tcpEventRO = new TcpEventFW();
+    private final EventFW eventRO = new EventFW();
+    private final TcpEventExFW tcpEventExRO = new TcpEventExFW();
 
     public StdoutTcpHandler(
         StdoutExporterContext context,
@@ -41,13 +43,15 @@ public class StdoutTcpHandler extends EventHandler
         int index,
         int length)
     {
-        final TcpEventFW event = tcpEventRO.wrap(buffer, index, index + length);
-        switch (event.kind())
+        final EventFW event = eventRO.wrap(buffer, index, index + length);
+        final TcpEventExFW extension = tcpEventExRO
+            .wrap(event.extension().buffer(), event.extension().offset(), event.extension().limit());
+        switch (extension.kind())
         {
         case DNS_FAILED:
-            TcpDnsFailedFW e = event.dnsFailed();
-            String qname = context.supplyQName(e.namespacedId());
-            out.printf(DNS_FAILED_FORMAT, qname, asDateTime(e.timestamp()), asString(e.address()));
+            TcpDnsFailedExFW ex = extension.dnsFailed();
+            String qname = context.supplyQName(event.namespacedId());
+            out.printf(DNS_FAILED_FORMAT, qname, asDateTime(event.timestamp()), asString(ex.address()));
             break;
         }
     }
