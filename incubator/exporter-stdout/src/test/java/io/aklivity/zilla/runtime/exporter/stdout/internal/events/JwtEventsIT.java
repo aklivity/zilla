@@ -35,8 +35,8 @@ import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 public class JwtEventsIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/override/http/streams/network/rfc7230/authorization")
-        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/override/http/streams/application/rfc7230/authorization");
+        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/http/streams/network/rfc7230/authorization")
+        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/http/streams/application/rfc7230/authorization");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
