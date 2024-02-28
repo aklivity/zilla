@@ -33,6 +33,7 @@ public class AsyncapiIT
 {
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("mqtt", "io/aklivity/zilla/specs/binding/asyncapi/streams/mqtt")
+        .addScriptRoot("http", "io/aklivity/zilla/specs/binding/asyncapi/streams/http")
         .addScriptRoot("asyncapi", "io/aklivity/zilla/specs/binding/asyncapi/streams/asyncapi");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
@@ -49,12 +50,23 @@ public class AsyncapiIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("server.yaml")
+    @Configuration("server.mqtt.yaml")
     @Specification({
         "${mqtt}/publish.and.subscribe/client",
-        "${asyncapi}/publish.and.subscribe/server"
+        "${asyncapi}/mqtt/publish.and.subscribe/server"
     })
     public void shouldPublishAndSubscribe() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.http.yaml")
+    @Specification({
+        "${http}/create.pet/client",
+        "${asyncapi}/http/create.pet/server"
+    })
+    public void shouldCreatePet() throws Exception
     {
         k3po.finish();
     }

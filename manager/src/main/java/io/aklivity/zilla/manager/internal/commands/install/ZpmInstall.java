@@ -704,6 +704,7 @@ public final class ZpmInstall extends ZpmCommand
         Path zillaPath = launcherDir.resolve("zilla");
         Files.write(zillaPath, Arrays.asList(
                 "#!/bin/sh",
+                "JAVA_OPTIONS+=\"${ZILLA_INCUBATOR_ENABLED:+ -Dzilla.incubator.enabled=$ZILLA_INCUBATOR_ENABLED}\"",
                 "cd \"${0%/*}\"",
                 String.format(String.join(" ", Arrays.asList(
                     "exec %s/bin/java",

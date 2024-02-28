@@ -38,10 +38,30 @@ public class AsyncapiIT
 
     @Test
     @Specification({
-        "${asyncapi}/publish.and.subscribe/client",
-        "${asyncapi}/publish.and.subscribe/server"
+        "${asyncapi}/mqtt/publish.and.subscribe/client",
+        "${asyncapi}/mqtt/publish.and.subscribe/server"
     })
     public void shouldPublishAndSubscribe() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${asyncapi}/http/create.pet/client",
+        "${asyncapi}/http/create.pet/server"
+    })
+    public void shouldCreatePet() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${asyncapi}/kafka/produce.message/client",
+        "${asyncapi}/kafka/produce.message/server"
+    })
+    public void shouldProduceMessage() throws Exception
     {
         k3po.finish();
     }

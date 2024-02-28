@@ -15,13 +15,27 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.config;
 
+
+import java.util.function.Function;
+
 public class KafkaSaslConfig
 {
     public final String mechanism;
     public final String username;
     public final String password;
 
-    public KafkaSaslConfig(
+    public static KafkaSaslConfigBuilder<KafkaSaslConfig> builder()
+    {
+        return new KafkaSaslConfigBuilder<>(KafkaSaslConfig.class::cast);
+    }
+
+    public static <T> KafkaSaslConfigBuilder<T> builder(
+        Function<KafkaSaslConfig, T> mapper)
+    {
+        return new KafkaSaslConfigBuilder<>(mapper);
+    }
+
+    KafkaSaslConfig(
         String mechanism,
         String username,
         String password)

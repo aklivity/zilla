@@ -1786,7 +1786,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                 String host,
                 int port)
             {
-                newServers.put(brokerId, new KafkaServerConfig(host, port));
+                newServers.put(brokerId, KafkaServerConfig.builder().host(host).port(port).build());
             }
 
             private void onDecodeBrokers()

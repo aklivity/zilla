@@ -32,7 +32,6 @@ import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
 
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -43,6 +42,8 @@ import org.mockito.junit.MockitoRule;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
@@ -58,14 +59,14 @@ public class AsyncapiOptionsConfigAdapterTest
     private ConfigAdapterContext context;
     private Jsonb jsonb;
 
-    @Before
-    public void initJson() throws IOException
+    public void initJson(
+        String asyncapiConfig) throws IOException
     {
         try (InputStream resource = AsyncapiSpecs.class
-            .getResourceAsStream("config/mqtt/asyncapi.yaml"))
+            .getResourceAsStream("config/" + asyncapiConfig))
         {
             String content = new String(resource.readAllBytes(), UTF_8);
-            Mockito.doReturn(content).when(context).readURL("mqtt/asyncapi.yaml");
+            Mockito.doReturn(content).when(context).readURL(asyncapiConfig);
 
             OptionsConfigAdapter adapter = new OptionsConfigAdapter(OptionsConfigAdapterSpi.Kind.BINDING, context);
             adapter.adaptType("asyncapi");
@@ -76,13 +77,14 @@ public class AsyncapiOptionsConfigAdapterTest
     }
 
     @Test
-    public void shouldReadOptions()
+    public void shouldReadOptionsMqtt() throws IOException
     {
+        initJson("mqtt/asyncapi.yaml");
         String text =
                 "{" +
                     "\"specs\":" +
                     "[" +
-                        "\"mqtt/asyncapi.yaml\"" +
+                        "\"mqtt/asyncapi.yaml\"," +
                     "]," +
                     "\"tcp\":" +
                     "{" +
@@ -108,6 +110,15 @@ public class AsyncapiOptionsConfigAdapterTest
                         "[" +
                             "\"mqtt\"" +
                         "]" +
+                    "}," +
+                    "\"kafka\":" +
+                    "{" +
+                        "\"sasl\":" +
+                        "{" +
+                            "\"mechanism\":\"plain\"," +
+                            "\"username\":\"username\"," +
+                            "\"password\":\"password\"" +
+                        "}" +
                     "}" +
                 "}";
 
@@ -116,7 +127,7 @@ public class AsyncapiOptionsConfigAdapterTest
         assertThat(options, not(nullValue()));
         AsyncapiConfig asyncapi = options.specs.get(0);
         assertThat(asyncapi.location, equalTo("mqtt/asyncapi.yaml"));
-        assertThat(asyncapi.asyncApi, instanceOf(Asyncapi.class));
+        assertThat(asyncapi.asyncapi, instanceOf(Asyncapi.class));
         assertThat(options.tcp.host, equalTo("localhost"));
         assertThat(options.tcp.ports, equalTo(new int[] { 7183 }));
         assertThat(options.tls.keys, equalTo(asList("localhost")));
@@ -124,11 +135,15 @@ public class AsyncapiOptionsConfigAdapterTest
         assertThat(options.tls.trustcacerts, equalTo(true));
         assertThat(options.tls.sni, equalTo(asList("mqtt.example.net")));
         assertThat(options.tls.alpn, equalTo(asList("mqtt")));
+        assertThat(options.kafka.sasl.mechanism, equalTo("plain"));
+        assertThat(options.kafka.sasl.username, equalTo("username"));
+        assertThat(options.kafka.sasl.password, equalTo("password"));
     }
 
     @Test
-    public void shouldWriteOptions()
+    public void shouldWriteOptionsMqtt() throws IOException
     {
+        initJson("mqtt/asyncapi.yaml");
         List<AsyncapiConfig> specs = new ArrayList<>();
         specs.add(new AsyncapiConfig("mqtt/asyncapi.yaml", new Asyncapi()));
 
@@ -146,6 +161,13 @@ public class AsyncapiOptionsConfigAdapterTest
                 .sni(asList("mqtt.example.net"))
                 .alpn(asList("mqtt"))
                 .trustcacerts(true)
+                .build())
+            .kafka(KafkaOptionsConfig.builder()
+                .sasl(KafkaSaslConfig.builder()
+                    .mechanism("plain")
+                    .username("username")
+                    .password("password")
+                    .build())
                 .build())
             .build();
 
@@ -182,7 +204,270 @@ public class AsyncapiOptionsConfigAdapterTest
                     "[" +
                         "\"mqtt\"" +
                     "]" +
+                "}," +
+                 "\"kafka\":" +
+                 "{" +
+                     "\"sasl\":" +
+                     "{" +
+                         "\"mechanism\":\"plain\"," +
+                         "\"username\":\"username\"," +
+                         "\"password\":\"password\"" +
+                     "}" +
+                 "}" +
+            "}"));
+    }
+
+    @Test
+    public void shouldReadOptionsKafka() throws IOException
+    {
+        initJson("kafka/asyncapi.yaml");
+        String text =
+                "{" +
+                    "\"specs\":" +
+                    "[" +
+                        "\"kafka/asyncapi.yaml\"," +
+                    "]," +
+                    "\"tcp\":" +
+                    "{" +
+                        "\"host\":\"localhost\"," +
+                        "\"port\":9092" +
+                    "}," +
+                    "\"tls\":" +
+                    "{" +
+                        "\"keys\":" +
+                        "[" +
+                            "\"localhost\"" +
+                        "]," +
+                        "\"trust\":" +
+                        "[" +
+                            "\"serverca\"" +
+                        "]," +
+                        "\"trustcacerts\":true," +
+                        "\"sni\":" +
+                        "[" +
+                            "\"kafka.example.net\"" +
+                        "]," +
+                        "\"alpn\":" +
+                        "[" +
+                            "\"kafka\"" +
+                        "]" +
+                    "}," +
+                    "\"kafka\":" +
+                    "{" +
+                        "\"sasl\":" +
+                        "{" +
+                            "\"mechanism\":\"plain\"," +
+                            "\"username\":\"username\"," +
+                            "\"password\":\"password\"" +
+                        "}" +
+                    "}" +
+                "}";
+
+        AsyncapiOptionsConfig options = jsonb.fromJson(text, AsyncapiOptionsConfig.class);
+
+        assertThat(options, not(nullValue()));
+        AsyncapiConfig asyncapi = options.specs.get(0);
+        assertThat(asyncapi.location, equalTo("kafka/asyncapi.yaml"));
+        assertThat(asyncapi.asyncapi, instanceOf(Asyncapi.class));
+        assertThat(options.tcp.host, equalTo("localhost"));
+        assertThat(options.tcp.ports, equalTo(new int[] { 9092 }));
+        assertThat(options.tls.keys, equalTo(asList("localhost")));
+        assertThat(options.tls.trust, equalTo(asList("serverca")));
+        assertThat(options.tls.trustcacerts, equalTo(true));
+        assertThat(options.tls.sni, equalTo(asList("kafka.example.net")));
+        assertThat(options.tls.alpn, equalTo(asList("kafka")));
+        assertThat(options.kafka.sasl.mechanism, equalTo("plain"));
+        assertThat(options.kafka.sasl.username, equalTo("username"));
+        assertThat(options.kafka.sasl.password, equalTo("password"));
+    }
+
+    @Test
+    public void shouldWriteOptionsHttp() throws IOException
+    {
+        initJson("http/asyncapi.yaml");
+        List<AsyncapiConfig> specs = new ArrayList<>();
+        specs.add(new AsyncapiConfig("http/asyncapi.yaml", new Asyncapi()));
+
+
+        AsyncapiOptionsConfig options = AsyncapiOptionsConfig.builder()
+            .inject(Function.identity())
+            .specs(specs)
+            .tcp(TcpOptionsConfig.builder()
+                .host("localhost")
+                .ports(new int[] { 7080 })
+                .build())
+            .tls(TlsOptionsConfig.builder()
+                .keys(asList("localhost"))
+                .trust(asList("serverca"))
+                .sni(asList("http.example.net"))
+                .alpn(asList("http"))
+                .trustcacerts(true)
+                .build())
+            .build();
+
+        String text = jsonb.toJson(options);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo(
+            "{" +
+                "\"specs\":" +
+                "[" +
+                    "\"http/asyncapi.yaml\"" +
+                "]," +
+                "\"tcp\":" +
+                "{" +
+                    "\"host\":\"localhost\"," +
+                    "\"port\":7080" +
+                "}," +
+                "\"tls\":" +
+                "{" +
+                    "\"keys\":" +
+                    "[" +
+                        "\"localhost\"" +
+                    "]," +
+                    "\"trust\":" +
+                    "[" +
+                        "\"serverca\"" +
+                    "]," +
+                    "\"trustcacerts\":true," +
+                    "\"sni\":" +
+                    "[" +
+                        "\"http.example.net\"" +
+                    "]," +
+                    "\"alpn\":" +
+                    "[" +
+                        "\"http\"" +
+                    "]" +
                 "}" +
+            "}"));
+    }
+
+    @Test
+    public void shouldReadOptionsHttp() throws IOException
+    {
+        initJson("http/asyncapi.yaml");
+        String text =
+                "{" +
+                    "\"specs\":" +
+                    "[" +
+                        "\"http/asyncapi.yaml\"," +
+                    "]," +
+                    "\"tcp\":" +
+                    "{" +
+                        "\"host\":\"localhost\"," +
+                        "\"port\":7080" +
+                    "}," +
+                    "\"tls\":" +
+                    "{" +
+                        "\"keys\":" +
+                        "[" +
+                            "\"localhost\"" +
+                        "]," +
+                        "\"trust\":" +
+                        "[" +
+                            "\"serverca\"" +
+                        "]," +
+                        "\"trustcacerts\":true," +
+                        "\"sni\":" +
+                        "[" +
+                            "\"http.example.net\"" +
+                        "]," +
+                        "\"alpn\":" +
+                        "[" +
+                            "\"http\"" +
+                        "]" +
+                    "}" +
+                "}";
+
+        AsyncapiOptionsConfig options = jsonb.fromJson(text, AsyncapiOptionsConfig.class);
+
+        assertThat(options, not(nullValue()));
+        AsyncapiConfig asyncapi = options.specs.get(0);
+        assertThat(asyncapi.location, equalTo("http/asyncapi.yaml"));
+        assertThat(asyncapi.asyncapi, instanceOf(Asyncapi.class));
+        assertThat(options.tcp.host, equalTo("localhost"));
+        assertThat(options.tcp.ports, equalTo(new int[] { 7080 }));
+        assertThat(options.tls.keys, equalTo(asList("localhost")));
+        assertThat(options.tls.trust, equalTo(asList("serverca")));
+        assertThat(options.tls.trustcacerts, equalTo(true));
+        assertThat(options.tls.sni, equalTo(asList("http.example.net")));
+        assertThat(options.tls.alpn, equalTo(asList("http")));
+    }
+
+    @Test
+    public void shouldWriteOptionsKafka() throws IOException
+    {
+        initJson("kafka/asyncapi.yaml");
+        List<AsyncapiConfig> specs = new ArrayList<>();
+        specs.add(new AsyncapiConfig("kafka/asyncapi.yaml", new Asyncapi()));
+
+
+        AsyncapiOptionsConfig options = AsyncapiOptionsConfig.builder()
+            .inject(Function.identity())
+            .specs(specs)
+            .tcp(TcpOptionsConfig.builder()
+                .host("localhost")
+                .ports(new int[] { 9092 })
+                .build())
+            .tls(TlsOptionsConfig.builder()
+                .keys(asList("localhost"))
+                .trust(asList("serverca"))
+                .sni(asList("kafka.example.net"))
+                .alpn(asList("kafka"))
+                .trustcacerts(true)
+                .build())
+            .kafka(KafkaOptionsConfig.builder()
+                .sasl(KafkaSaslConfig.builder()
+                    .mechanism("plain")
+                    .username("username")
+                    .password("password")
+                    .build())
+                .build())
+            .build();
+
+        String text = jsonb.toJson(options);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo(
+            "{" +
+                "\"specs\":" +
+                "[" +
+                    "\"kafka/asyncapi.yaml\"" +
+                "]," +
+                "\"tcp\":" +
+                "{" +
+                    "\"host\":\"localhost\"," +
+                    "\"port\":9092" +
+                "}," +
+                "\"tls\":" +
+                "{" +
+                    "\"keys\":" +
+                    "[" +
+                        "\"localhost\"" +
+                    "]," +
+                    "\"trust\":" +
+                    "[" +
+                        "\"serverca\"" +
+                    "]," +
+                    "\"trustcacerts\":true," +
+                    "\"sni\":" +
+                    "[" +
+                        "\"kafka.example.net\"" +
+                    "]," +
+                    "\"alpn\":" +
+                    "[" +
+                        "\"kafka\"" +
+                    "]" +
+                "}," +
+                 "\"kafka\":" +
+                 "{" +
+                     "\"sasl\":" +
+                     "{" +
+                         "\"mechanism\":\"plain\"," +
+                         "\"username\":\"username\"," +
+                         "\"password\":\"password\"" +
+                     "}" +
+                 "}" +
             "}"));
     }
 }
