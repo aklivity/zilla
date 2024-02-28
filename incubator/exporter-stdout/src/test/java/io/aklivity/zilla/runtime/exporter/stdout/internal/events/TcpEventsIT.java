@@ -53,7 +53,7 @@ public class TcpEventsIT
     public final TestRule chain = outerRule(output).around(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("client.invalid.hostname.yaml")
+    @Configuration("client.host.yaml")
     @Specification({
         "${app}/connection.failed/client"
     })
