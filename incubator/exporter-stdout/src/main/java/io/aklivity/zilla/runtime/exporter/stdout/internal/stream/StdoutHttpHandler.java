@@ -19,14 +19,16 @@ import java.io.PrintStream;
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.exporter.stdout.internal.StdoutExporterContext;
-import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.HttpEventFW;
-import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.HttpRequestAcceptedFW;
+import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.EventFW;
+import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.HttpEventExFW;
+import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.HttpRequestAcceptedExFW;
 
 public class StdoutHttpHandler extends EventHandler
 {
     private static final String REQUEST_ACCEPTED_FORMAT = "%s %s [%s] REQUEST_ACCEPTED %s %s %s %s%n";
 
-    private final HttpEventFW httpEventRO = new HttpEventFW();
+    private final EventFW eventRO = new EventFW();
+    private final HttpEventExFW httpEventExRO = new HttpEventExFW();
 
     public StdoutHttpHandler(
         StdoutExporterContext context,
@@ -41,15 +43,17 @@ public class StdoutHttpHandler extends EventHandler
         int index,
         int length)
     {
-        final HttpEventFW event = httpEventRO.wrap(buffer, index, index + length);
-        switch (event.kind())
+        final EventFW event = eventRO.wrap(buffer, index, index + length);
+        final HttpEventExFW extension = httpEventExRO
+            .wrap(event.extension().buffer(), event.extension().offset(), event.extension().limit());
+        switch (extension.kind())
         {
         case REQUEST_ACCEPTED:
         {
-            HttpRequestAcceptedFW e = event.requestAccepted();
-            String qname = context.supplyQName(e.namespacedId());
-            out.format(REQUEST_ACCEPTED_FORMAT, qname, identity(e.identity()), asDateTime(e.timestamp()), asString(e.scheme()),
-                asString(e.method()), asString(e.authority()), asString(e.path()));
+            HttpRequestAcceptedExFW ex = extension.requestAccepted();
+            String qname = context.supplyQName(event.namespacedId());
+            out.format(REQUEST_ACCEPTED_FORMAT, qname, identity(ex.identity()), asDateTime(event.timestamp()),
+                asString(ex.scheme()), asString(ex.method()), asString(ex.authority()), asString(ex.path()));
             break;
         }
         }
