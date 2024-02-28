@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal;
 
-import java.net.URI;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -24,7 +23,6 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiMessage
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiOperation;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiChannelView;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiMessageView;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiServerView;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
@@ -65,12 +63,19 @@ public class AyncapiKafkaProtocol extends AsyncapiProtocol
                     .name("kafka_cache_client0")
                     .type("kafka")
                     .kind(KindConfig.CACHE_CLIENT)
+                    .options(KafkaOptionsConfig::builder)
+                        .inject(this::injectKafkaTopicOptions)
+                        .build()
                     .exit("kafka_cache_server0")
                 .build()
                 .binding()
                     .name("kafka_cache_server0")
                     .type("kafka")
                     .kind(KindConfig.CACHE_SERVER)
+                    .options(KafkaOptionsConfig::builder)
+                        .inject(this::injectKafkaBootstrapOptions)
+                        .inject(this::injectKafkaTopicOptions)
+                        .build()
                     .exit("kafka_client0")
                 .build();
     }
@@ -79,16 +84,9 @@ public class AyncapiKafkaProtocol extends AsyncapiProtocol
     public <C> BindingConfigBuilder<C> injectProtocolClientOptions(
         BindingConfigBuilder<C> binding)
     {
-        return sasl == null ? binding :
-            binding.options(KafkaOptionsConfig::builder)
-                .sasl(KafkaSaslConfig::builder)
-                    .mechanism(sasl.mechanism)
-                    .username(sasl.username)
-                    .password(sasl.password)
-                    .build()
+        return binding.options(KafkaOptionsConfig::builder)
+                .inject(this::injectKafkaSaslOptions)
                 .inject(this::injectKafkaServerOptions)
-                //.inject(this::injectKafkaBootstrapOptions)
-                .inject(this::injectKafkaTopicOptions)
                 .build();
     }
 
@@ -112,15 +110,25 @@ public class AyncapiKafkaProtocol extends AsyncapiProtocol
         return protocol.equals(SECURE_PROTOCOL);
     }
 
+    private <C> KafkaOptionsConfigBuilder<C> injectKafkaSaslOptions(
+        KafkaOptionsConfigBuilder<C> options)
+    {
+        return sasl != null ? options.sasl(KafkaSaslConfig::builder)
+            .mechanism(sasl.mechanism)
+            .username(sasl.username)
+            .password(sasl.password)
+            .build() : options;
+    }
+
     private <C> KafkaOptionsConfigBuilder<C> injectKafkaServerOptions(
         KafkaOptionsConfigBuilder<C> options)
     {
         return options.servers(asyncApi.servers.values().stream().map(s ->
         {
-            final URI serverUrl = AsyncapiServerView.of(s).url();
+            String[] hostAndPort = s.host.split(":");
             return KafkaServerConfig.builder()
-                .host(serverUrl.getHost())
-                .port(serverUrl.getPort())
+                .host(hostAndPort[0])
+                .port(Integer.parseInt(hostAndPort[1]))
                 .build();
         }).collect(Collectors.toList()));
     }
@@ -146,6 +154,13 @@ public class AyncapiKafkaProtocol extends AsyncapiProtocol
             }
         }
         return options;
+    }
+
+    private <C> KafkaOptionsConfigBuilder<C> injectKafkaBootstrapOptions(
+        KafkaOptionsConfigBuilder<C> options)
+    {
+        return options.bootstrap(asyncApi.channels.values().stream().map(c ->
+            AsyncapiChannelView.of(asyncApi.channels, c).address()).collect(Collectors.toList()));
     }
 
     private <C> KafkaTopicConfigBuilder<C> injectValue(

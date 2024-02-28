@@ -42,7 +42,11 @@ import org.leadpony.justify.api.JsonSchema;
 import org.leadpony.justify.api.JsonValidationService;
 import org.leadpony.justify.api.ProblemHandler;
 
+import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiChannelsConfig;
+import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiChannelsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiConfig;
+import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiMqttKafkaConfig;
+import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiMqttKafkaConfigBuilder;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiBinding;
@@ -64,6 +68,11 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
     private static final String TLS_NAME = "tls";
     private static final String HTTP_NAME = "http";
     private static final String KAFKA_NAME = "kafka";
+    private static final String MQTT_KAFKA_NAME = "mqtt_kafka";
+    private static final String CHANNELS_NAME = "channels";
+    private static final String SESSIONS_NAME = "sessions";
+    private static final String MESSAGES_NAME = "messages";
+    private static final String RETAINED_NAME = "retained";
 
     private CRC32C crc;
     private OptionsConfigAdapter tcpOptions;
@@ -122,6 +131,37 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
             object.add(KAFKA_NAME, kafkaOptions.adaptToJson(kafka));
         }
 
+        if (asyncapiOptions.mqttKafka != null)
+        {
+            AsyncapiMqttKafkaConfig mqttKafka = asyncapiOptions.mqttKafka;
+            JsonObjectBuilder newMqttKafka = Json.createObjectBuilder();
+            AsyncapiChannelsConfig channels = mqttKafka.channels;
+            if (channels != null)
+            {
+                JsonObjectBuilder newChannels = Json.createObjectBuilder();
+                String sessions = channels.sessions;
+                if (sessions != null)
+                {
+                    newChannels.add(SESSIONS_NAME, sessions);
+                }
+
+                String messages = channels.messages;
+                if (messages != null)
+                {
+                    newChannels.add(MESSAGES_NAME, messages);
+                }
+
+                String retained = channels.retained;
+                if (retained != null)
+                {
+                    newChannels.add(RETAINED_NAME, retained);
+                }
+                newMqttKafka.add(CHANNELS_NAME, newChannels);
+
+                object.add(MQTT_KAFKA_NAME, newMqttKafka);
+            }
+        }
+
         return object.build();
     }
 
@@ -164,6 +204,30 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
             asyncapiOptions.kafka(kafkaOptions);
         }
 
+        if (object.containsKey(MQTT_KAFKA_NAME))
+        {
+            AsyncapiMqttKafkaConfigBuilder<AsyncapiMqttKafkaConfig> mqttKafkaBuilder = AsyncapiMqttKafkaConfig.builder();
+            final JsonObject mqttKafka = object.getJsonObject(MQTT_KAFKA_NAME);
+            if (mqttKafka.containsKey(CHANNELS_NAME))
+            {
+                AsyncapiChannelsConfigBuilder<AsyncapiChannelsConfig> channelsBuilder = AsyncapiChannelsConfig.builder();
+                JsonObject channels = mqttKafka.getJsonObject(CHANNELS_NAME);
+
+                if (channels.containsKey(SESSIONS_NAME))
+                {
+                    channelsBuilder.sessions(channels.getString(SESSIONS_NAME));
+                }
+                if (channels.containsKey(MESSAGES_NAME))
+                {
+                    channelsBuilder.messages(channels.getString(MESSAGES_NAME));
+                }
+                if (channels.containsKey(RETAINED_NAME))
+                {
+                    channelsBuilder.retained(channels.getString(RETAINED_NAME));
+                }
+                asyncapiOptions.mqttKafka(mqttKafkaBuilder.channels(channelsBuilder.build()).build());
+            }
+        }
         return asyncapiOptions.build();
     }
 

@@ -4086,8 +4086,11 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             final KafkaMetaDataExFW kafkaMetaDataEx = kafkaDataEx.meta();
             final Array32FW<KafkaPartitionFW> partitions = kafkaMetaDataEx.partitions();
 
-            delegate.onPartitionsFetched(traceId, authorization, topic, partitions, this);
-            doKafkaEnd(traceId, authorization);
+            if (!MqttKafkaState.initialClosed(state))
+            {
+                delegate.onPartitionsFetched(traceId, authorization, topic, partitions, this);
+                doKafkaEnd(traceId, authorization);
+            }
         }
 
         private void onKafkaEnd(

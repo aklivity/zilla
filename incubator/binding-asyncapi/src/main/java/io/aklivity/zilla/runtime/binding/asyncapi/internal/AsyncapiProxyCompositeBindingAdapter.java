@@ -59,6 +59,27 @@ public class AsyncapiProxyCompositeBindingAdapter extends AsyncapiCompositeBindi
         this.asyncApis = options.specs.stream().collect(Collectors.toUnmodifiableMap(a -> a.apiLabel, a -> a.asyncapi));
         this.qname = binding.qname;
 
+        String sessions = "";
+        String messages = "";
+        String retained = "";
+        for (Asyncapi asyncapi : asyncApis.values())
+        {
+            if (asyncapi.channels.containsKey(options.mqttKafka.channels.sessions))
+            {
+                sessions = asyncapi.channels.get(options.mqttKafka.channels.sessions).address;
+            }
+
+            if (asyncapi.channels.containsKey(options.mqttKafka.channels.messages))
+            {
+                messages = asyncapi.channels.get(options.mqttKafka.channels.messages).address;
+            }
+
+            if (asyncapi.channels.containsKey(options.mqttKafka.channels.retained))
+            {
+                retained = asyncapi.channels.get(options.mqttKafka.channels.retained).address;
+            }
+        }
+
         return BindingConfig.builder(binding)
             .composite()
                 .name(String.format("%s/%s", qname, "mqtt-kafka"))
@@ -68,9 +89,9 @@ public class AsyncapiProxyCompositeBindingAdapter extends AsyncapiCompositeBindi
                     .kind(PROXY)
                     .options(MqttKafkaOptionsConfig::builder)
                         .topics()
-                            .sessions("mqtt-sessions")
-                            .messages("mqtt-messages")
-                            .retained("mqtt-retained")
+                            .sessions(sessions)
+                            .messages(messages)
+                            .retained(retained)
                             .build()
                         .clients(Collections.emptyList())
                         .build()

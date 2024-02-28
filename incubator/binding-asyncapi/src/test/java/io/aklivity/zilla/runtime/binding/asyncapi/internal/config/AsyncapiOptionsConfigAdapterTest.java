@@ -39,7 +39,9 @@ import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
+import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiChannelsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiConfig;
+import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiMqttKafkaConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
@@ -110,15 +112,6 @@ public class AsyncapiOptionsConfigAdapterTest
                         "[" +
                             "\"mqtt\"" +
                         "]" +
-                    "}," +
-                    "\"kafka\":" +
-                    "{" +
-                        "\"sasl\":" +
-                        "{" +
-                            "\"mechanism\":\"plain\"," +
-                            "\"username\":\"username\"," +
-                            "\"password\":\"password\"" +
-                        "}" +
                     "}" +
                 "}";
 
@@ -135,9 +128,6 @@ public class AsyncapiOptionsConfigAdapterTest
         assertThat(options.tls.trustcacerts, equalTo(true));
         assertThat(options.tls.sni, equalTo(asList("mqtt.example.net")));
         assertThat(options.tls.alpn, equalTo(asList("mqtt")));
-        assertThat(options.kafka.sasl.mechanism, equalTo("plain"));
-        assertThat(options.kafka.sasl.username, equalTo("username"));
-        assertThat(options.kafka.sasl.password, equalTo("password"));
     }
 
     @Test
@@ -213,7 +203,16 @@ public class AsyncapiOptionsConfigAdapterTest
                          "\"username\":\"username\"," +
                          "\"password\":\"password\"" +
                      "}" +
-                 "}" +
+                 "}," +
+                "\"mqtt_kafka\":" +
+                "{" +
+                    "\"channels\":" +
+                    "{" +
+                        "\"sessions\":\"mqttSessions\"," +
+                        "\"messages\":\"mqttMessages\"," +
+                        "\"retained\":\"mqttRetained\"" +
+                    "}" +
+                "}" +
             "}"));
     }
 
@@ -338,6 +337,15 @@ public class AsyncapiOptionsConfigAdapterTest
                     "[" +
                         "\"http\"" +
                     "]" +
+                "}," +
+                "\"mqtt_kafka\":" +
+                "{" +
+                    "\"channels\":" +
+                    "{" +
+                        "\"sessions\":\"mqttSessions\"," +
+                        "\"messages\":\"mqttMessages\"," +
+                        "\"retained\":\"mqttRetained\"" +
+                    "}" +
                 "}" +
             "}"));
     }
@@ -467,7 +475,88 @@ public class AsyncapiOptionsConfigAdapterTest
                          "\"username\":\"username\"," +
                          "\"password\":\"password\"" +
                      "}" +
-                 "}" +
+                 "}," +
+                "\"mqtt_kafka\":" +
+                "{" +
+                    "\"channels\":" +
+                    "{" +
+                        "\"sessions\":\"mqttSessions\"," +
+                        "\"messages\":\"mqttMessages\"," +
+                        "\"retained\":\"mqttRetained\"" +
+                    "}" +
+                "}" +
             "}"));
+    }
+
+    @Test
+    public void shouldReadOptionsMqttKafka() throws IOException
+    {
+        initJson("mqtt/asyncapi.yaml");
+        String text =
+                "{" +
+                    "\"specs\":" +
+                    "{" +
+                        "\"mqtt-api\":\"mqtt/asyncapi.yaml\"" +
+                    "}," +
+                    "\"mqtt_kafka\":" +
+                    "{" +
+                        "\"channels\":" +
+                        "{" +
+                            "\"sessions\":\"sessionsChannel\"," +
+                            "\"messages\":\"messagesChannel\"," +
+                            "\"retained\":\"retainedChannel\"" +
+                        "}" +
+                    "}" +
+                "}";
+
+        AsyncapiOptionsConfig options = jsonb.fromJson(text, AsyncapiOptionsConfig.class);
+
+        assertThat(options, not(nullValue()));
+        AsyncapiConfig asyncapi = options.specs.get(0);
+        assertThat(asyncapi.location, equalTo("mqtt/asyncapi.yaml"));
+        assertThat(asyncapi.asyncapi, instanceOf(Asyncapi.class));
+        assertThat(options.mqttKafka.channels.sessions, equalTo("sessionsChannel"));
+        assertThat(options.mqttKafka.channels.messages, equalTo("messagesChannel"));
+        assertThat(options.mqttKafka.channels.retained, equalTo("retainedChannel"));
+    }
+
+    @Test
+    public void shouldWriteOptionsMqttKafka() throws IOException
+    {
+        initJson("mqtt/asyncapi.yaml");
+        List<AsyncapiConfig> specs = new ArrayList<>();
+        specs.add(new AsyncapiConfig("mqtt-api", 1, "mqtt/asyncapi.yaml", new Asyncapi()));
+
+
+        AsyncapiOptionsConfig options = AsyncapiOptionsConfig.builder()
+            .inject(Function.identity())
+            .specs(specs)
+            .mqttKafka(AsyncapiMqttKafkaConfig.builder().channels(AsyncapiChannelsConfig.builder()
+                    .sessions("sessionsChannel")
+                    .messages("messagesChannel")
+                    .retained("retainedChannel")
+                    .build())
+                .build())
+            .build();
+
+        String text = jsonb.toJson(options);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo(
+            "{" +
+                    "\"specs\":" +
+                    "{" +
+                        "\"mqtt-api\":\"mqtt/asyncapi.yaml\"" +
+                    "}," +
+                    "\"mqtt_kafka\":" +
+                    "{" +
+                        "\"channels\":" +
+                        "{" +
+                            "\"sessions\":\"sessionsChannel\"," +
+                            "\"messages\":\"messagesChannel\"," +
+                            "\"retained\":\"retainedChannel\"" +
+                        "}" +
+                    "}" +
+                "}"));
     }
 }

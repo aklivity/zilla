@@ -38,6 +38,15 @@ channels:
     messages:
       sensorData:
         $ref: '#/components/messages/sensorData'
+  mqttSessions:
+    description: This channel contains MQTT sessions.
+    address: mqtt-sessions
+  mqttMessages:
+    description: This channel contains MQTT messages.
+    address: mqtt-messages
+  mqttRetained:
+    description: This channel contains MQTT retained messages.
+    address: mqtt-retained
 
 components:
   messages:
