@@ -19,14 +19,16 @@ import java.io.PrintStream;
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.exporter.stdout.internal.StdoutExporterContext;
-import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.SchemaRegistryEventFW;
-import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.SchemaRegistryRemoteAccessRejectedFW;
+import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.EventFW;
+import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.SchemaRegistryEventExFW;
+import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.SchemaRegistryRemoteAccessRejectedExFW;
 
 public class StdoutSchemaRegistryHandler extends EventHandler
 {
     private static final String REMOTE_ACCESS_REJECTED = "%s - [%s] REMOTE_ACCESS_REJECTED %s %s %d%n";
 
-    private final SchemaRegistryEventFW schemaRegistryEventRO = new SchemaRegistryEventFW();
+    private final EventFW eventRO = new EventFW();
+    private final SchemaRegistryEventExFW schemaRegistryEventExRO = new SchemaRegistryEventExFW();
 
     public StdoutSchemaRegistryHandler(
         StdoutExporterContext context,
@@ -41,14 +43,16 @@ public class StdoutSchemaRegistryHandler extends EventHandler
         int index,
         int length)
     {
-        SchemaRegistryEventFW event = schemaRegistryEventRO.wrap(buffer, index, index + length);
-        switch (event.kind())
+        final EventFW event = eventRO.wrap(buffer, index, index + length);
+        final SchemaRegistryEventExFW extension = schemaRegistryEventExRO
+            .wrap(event.extension().buffer(), event.extension().offset(), event.extension().limit());
+        switch (extension.kind())
         {
         case REMOTE_ACCESS_REJECTED:
-            SchemaRegistryRemoteAccessRejectedFW e = event.remoteAccessRejected();
-            String qname = context.supplyQName(e.namespacedId());
-            out.printf(REMOTE_ACCESS_REJECTED, qname, asDateTime(e.timestamp()), asString(e.method()), asString(e.url()),
-                e.status());
+            SchemaRegistryRemoteAccessRejectedExFW ex = extension.remoteAccessRejected();
+            String qname = context.supplyQName(event.namespacedId());
+            out.printf(REMOTE_ACCESS_REJECTED, qname, asDateTime(event.timestamp()), asString(ex.method()), asString(ex.url()),
+                ex.status());
             break;
         }
     }
