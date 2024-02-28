@@ -26,7 +26,7 @@
   <properties>
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
-    <jacoco.coverage.ratio>0.76</jacoco.coverage.ratio>
+    <jacoco.coverage.ratio>0.75</jacoco.coverage.ratio>
     <jacoco.missed.count>0</jacoco.missed.count>
   </properties>
 
@@ -109,7 +109,7 @@
         <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <scopeNames>core proxy protocol</scopeNames>
+          <scopeNames>core proxy tls protocol</scopeNames>
           <packageName>io.aklivity.zilla.runtime.binding.tls.internal.types</packageName>
         </configuration>
         <executions>

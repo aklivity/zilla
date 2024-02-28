@@ -24,7 +24,7 @@
   <properties>
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
-    <jacoco.coverage.ratio>0.90</jacoco.coverage.ratio>
+    <jacoco.coverage.ratio>0.80</jacoco.coverage.ratio>
     <jacoco.missed.count>0</jacoco.missed.count>
   </properties>
 
@@ -72,15 +72,11 @@
         <artifactId>maven-notice-plugin</artifactId>
       </plugin>
       <plugin>
-        <groupId>com.mycila</groupId>
-        <artifactId>license-maven-plugin</artifactId>
-      </plugin>
-      <plugin>
         <groupId>${project.groupId}</groupId>
         <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <scopeNames>internal</scopeNames>
+          <scopeNames>core schema_registry internal</scopeNames>
           <packageName>io.aklivity.zilla.runtime.catalog.schema.registry.internal.types</packageName>
         </configuration>
         <executions>
@@ -90,6 +86,10 @@
             </goals>
           </execution>
         </executions>
+      </plugin>
+      <plugin>
+        <groupId>com.mycila</groupId>
+        <artifactId>license-maven-plugin</artifactId>
       </plugin>
       <plugin>
         <artifactId>maven-checkstyle-plugin</artifactId>

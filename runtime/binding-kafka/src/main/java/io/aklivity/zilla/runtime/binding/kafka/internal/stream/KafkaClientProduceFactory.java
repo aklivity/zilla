@@ -42,6 +42,7 @@ import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
+import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaEventContext;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaRouteConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Array32FW;
@@ -193,6 +194,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
     private final int decodeMaxBytes;
     private final int encodeMaxBytes;
     private final CRC32C crc32c;
+    private final KafkaEventContext event;
 
     public KafkaClientProduceFactory(
         KafkaConfiguration config,
@@ -218,6 +220,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
         this.encodeMaxBytes = Math.min(config.clientProduceMaxBytes(),
                 encodePool.slotCapacity() - PRODUCE_REQUEST_RECORDS_OFFSET_MAX);
         this.crc32c = new CRC32C();
+        this.event = new KafkaEventContext(context);
     }
 
     @Override
@@ -2268,6 +2271,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                     assert partitionId == this.partitionId;
                     break;
                 default:
+                    onDecodeResponseErrorCode(traceId, originId, errorCode);
                     final KafkaResetExFW resetEx = kafkaResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
                                                                  .typeId(kafkaTypeId)
                                                                  .error(errorCode)
@@ -2276,6 +2280,14 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                     doNetworkEnd(traceId, authorization);
                     break;
                 }
+            }
+
+            private void onDecodeResponseErrorCode(
+                long traceId,
+                long originId,
+                int errorCode)
+            {
+                super.onDecodeResponseErrorCode(traceId, originId, PRODUCE_API_KEY, PRODUCE_API_VERSION, errorCode);
             }
 
             @Override
