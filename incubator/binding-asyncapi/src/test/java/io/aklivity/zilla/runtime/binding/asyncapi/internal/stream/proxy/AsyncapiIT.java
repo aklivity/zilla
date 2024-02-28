@@ -50,8 +50,8 @@ public class AsyncapiIT
     @Test
     @Configuration("proxy.mqtt.kafka.yaml")
     @Specification({
-        "${asyncapi}/proxy.mqtt.publish.and.subscribe/client",
-        "${asyncapi}/proxy.kafka.publish.and.subscribe/server"
+        "${asyncapi}/proxy.mqtt.publish/client",
+        "${asyncapi}/proxy.kafka.publish/server"
     })
     public void shouldPublish() throws Exception
     {

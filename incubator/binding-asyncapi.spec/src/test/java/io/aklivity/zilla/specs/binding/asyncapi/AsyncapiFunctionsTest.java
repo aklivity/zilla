@@ -43,6 +43,7 @@ public class AsyncapiFunctionsTest
     {
         final byte[] array = AsyncapiFunctions.beginEx()
             .typeId(0)
+            .apiId(1)
             .operationId("operationId")
             .extension(new byte[] {1})
             .build();
@@ -51,6 +52,7 @@ public class AsyncapiFunctionsTest
         AsyncapiBeginExFW asyncapiBeginEx = new AsyncapiBeginExFW().wrap(buffer, 0, buffer.capacity());
         MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1]);
 
+        assertEquals(1, asyncapiBeginEx.apiId());
         assertEquals("operationId", asyncapiBeginEx.operationId().asString());
         assertEquals(new OctetsFW.Builder().wrap(writeBuffer, 0, 1).set(new byte[] {1}).build(),
             asyncapiBeginEx.extension());

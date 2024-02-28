@@ -96,7 +96,6 @@ public class AsyncapiProxyCompositeBindingAdapter extends AsyncapiCompositeBindi
                 break inject;
             }
 
-            //TODO: get first kafka operation or add operationId to the with as well?
             final AsyncapiOperation withOperation = kafkaAsyncapi.operations.entrySet().iterator().next().getValue();
             final String messages = AsyncapiChannelView.of(kafkaAsyncapi.channels, withOperation.channel).address();
 
@@ -107,7 +106,6 @@ public class AsyncapiProxyCompositeBindingAdapter extends AsyncapiCompositeBindi
                 {
                     break inject;
                 }
-                //TODO: get all mqtt operation?
                 for (AsyncapiOperation operation : mqttAsyncapi.operations.values())
                 {
                     final AsyncapiChannelView channel = AsyncapiChannelView.of(mqttAsyncapi.channels, operation.channel);
