@@ -14,10 +14,12 @@
  */
 package io.aklivity.zilla.runtime.exporter.stdout.internal;
 
+import io.aklivity.zilla.runtime.common.feature.Incubating;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.exporter.Exporter;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterFactorySpi;
 
+@Incubating
 public class StdoutExporterFactorySpi implements ExporterFactorySpi
 {
     @Override
