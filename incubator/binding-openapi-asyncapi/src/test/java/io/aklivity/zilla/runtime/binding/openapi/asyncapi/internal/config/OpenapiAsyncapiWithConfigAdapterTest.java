@@ -41,22 +41,23 @@ public class OpenapiAsyncapiWithConfigAdapterTest
     @Test
     public void shouldReadWith()
     {
-        String text = "{\"api-id\":\"test\"}";
+        String text = "{\"api-id\":\"test\",\"operation-id\":\"o-id\"}";
 
         OpenapiAsyncapiWithConfig with = jsonb.fromJson(text, OpenapiAsyncapiWithConfig.class);
 
         assertThat(with, not(nullValue()));
         assertThat(with.apiId, equalTo("test"));
+        assertThat(with.operationId, equalTo("o-id"));
     }
 
     @Test
     public void shouldWriteWith()
     {
-        OpenapiAsyncapiWithConfig with = new OpenapiAsyncapiWithConfig("test");
+        OpenapiAsyncapiWithConfig with = new OpenapiAsyncapiWithConfig("test", "o-id");
 
         String text = jsonb.toJson(with);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"api-id\":\"test\"}"));
+        assertThat(text, equalTo("{\"api-id\":\"test\",\"operation-id\":\"o-id\"}"));
     }
 }

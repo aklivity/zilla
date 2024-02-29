@@ -182,6 +182,7 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
                 if (route != null)
                 {
                     final long clientApiId = binding.options.resolveAsyncapiApiId(route.with.apiId);
+                    final String operationId = route.with.operationId;
                     newStream = new CompositeClientStream(
                         receiver,
                         originId,
@@ -190,7 +191,8 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
                         authorization,
                         route.id,
                         affinity,
-                        clientApiId)::onCompositeClientMessage;
+                        clientApiId,
+                        operationId)::onCompositeClientMessage;
                 }
             }
         }
@@ -888,7 +890,8 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
             long authorization,
             long resolvedId,
             long affinity,
-            long apiId)
+            long apiId,
+            String operationId)
         {
             this.sender = sender;
             this.originId = originId;
@@ -897,7 +900,7 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = affinity;
             this.authorization = authorization;
-            this.delegate = new AsyncapiStream(this, originId, resolvedId, authorization, apiId);
+            this.delegate = new AsyncapiStream(this, originId, resolvedId, authorization, apiId, operationId);
         }
 
         private void onCompositeClientMessage(
@@ -1194,6 +1197,7 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
         private final long apiId;
 
         private long initialId;
+        private final String operationId;
         private long replyId;
         private MessageConsumer asyncapi;
         private int state;
@@ -1213,12 +1217,14 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
             long originId,
             long routedId,
             long authorization,
-            long apiId)
+            long apiId,
+            String operationId)
         {
             this.delegate = delegate;
             this.originId = originId;
             this.routedId = routedId;
             this.initialId = supplyInitialId.applyAsLong(routedId);
+            this.operationId = String;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.authorization = authorization;
             this.apiId = apiId;
@@ -1442,7 +1448,7 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
                     .wrap(extBuffer, 0, extBuffer.capacity())
                     .typeId(asyncapiTypeId)
                     .apiId(apiId)
-                    .operationId((String) null)
+                    .operationId(operationId)
                     .extension(extension)
                     .build();
 

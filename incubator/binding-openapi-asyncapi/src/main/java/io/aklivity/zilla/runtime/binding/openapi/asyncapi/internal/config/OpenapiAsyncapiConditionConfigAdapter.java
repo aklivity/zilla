@@ -27,6 +27,7 @@ public final class OpenapiAsyncapiConditionConfigAdapter implements ConditionCon
     JsonbAdapter<ConditionConfig, JsonObject>
 {
     private static final String API_ID_NAME = "api-id";
+    private static final String OPERATION_ID_NAME = "operation-id";
 
     @Override
     public String type()
@@ -43,6 +44,11 @@ public final class OpenapiAsyncapiConditionConfigAdapter implements ConditionCon
 
         object.add(API_ID_NAME, asyncapiCondition.apiId);
 
+        if (asyncapiCondition.operationId != null)
+        {
+            object.add(OPERATION_ID_NAME, asyncapiCondition.operationId);
+        }
+
         return object.build();
     }
 
@@ -50,7 +56,14 @@ public final class OpenapiAsyncapiConditionConfigAdapter implements ConditionCon
     public ConditionConfig adaptFromJson(
         JsonObject object)
     {
-        String apiId = object.getString(API_ID_NAME);
-        return new OpenapiAsyncapiConditionConfig(apiId);
+        String apiId = object.containsKey(API_ID_NAME)
+            ? object.getString(API_ID_NAME)
+            : null;
+
+        String operationId = object.containsKey(OPERATION_ID_NAME)
+            ? object.getString(OPERATION_ID_NAME)
+            : null;
+
+        return new OpenapiAsyncapiConditionConfig(apiId, operationId);
     }
 }

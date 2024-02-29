@@ -90,6 +90,11 @@
                                             {
                                                 "title": "ApiId",
                                                 "type": "string"
+                                            },
+                                            "operation-id":
+                                            {
+                                                "title": "OperationId",
+                                                "type": "string"
                                             }
                                         },
                                         "additionalProperties": false
@@ -102,6 +107,11 @@
                                         "api-id":
                                         {
                                             "title": "ApiId",
+                                            "type": "string"
+                                        },
+                                        "operation-id":
+                                        {
+                                            "title": "OperationId",
                                             "type": "string"
                                         }
                                     }

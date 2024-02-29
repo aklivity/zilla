@@ -21,11 +21,14 @@ import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 public class OpenapiAsyncapiConditionConfig extends ConditionConfig
 {
     public final String apiId;
+    public final String operationId;
 
     public OpenapiAsyncapiConditionConfig(
-        String apiId)
+        String apiId,
+        String operationId)
     {
         this.apiId = apiId;
+        this.operationId = operationId;
     }
 
     public boolean matches(

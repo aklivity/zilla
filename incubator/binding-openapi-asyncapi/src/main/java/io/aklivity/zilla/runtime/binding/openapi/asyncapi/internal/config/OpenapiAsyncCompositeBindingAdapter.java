@@ -93,10 +93,11 @@ public final class OpenapiAsyncCompositeBindingAdapter implements CompositeBindi
                     OpenApiPathView path = OpenApiPathView.of(openapi.paths.get(item));
                     for (String method : path.methods().keySet())
                     {
-                        final OpenApiOperation operationId = path.methods().get(method);
+                        final String operationId = condition.operationId != null ?
+                            condition.operationId : path.methods().get(method).operationId;
 
                         final AsyncapiOperation operation = asyncapi.operations.entrySet().stream()
-                            .filter(f -> f.getKey().equals(operationId.operationId))
+                            .filter(f -> f.getKey().equals(operationId))
                             .map(v -> v.getValue())
                             .findFirst()
                             .get();

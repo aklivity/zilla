@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.unmodifiableSet;
 
+import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.zip.CRC32C;
@@ -26,8 +27,6 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
 import jakarta.json.bind.adapter.JsonbAdapter;
-
-import org.agrona.collections.ObjectHashSet;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiParser;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.config.AsyncapiConfig;
@@ -99,7 +98,7 @@ public final class OpenapiAsyncapiOptionsConfigAdapter implements OptionsConfigA
         JsonObject specs = object.getJsonObject(SPECS_NAME);
 
         JsonObject openapi = specs.getJsonObject(OPENAPI_NAME);
-        Set<OpenapiConfig> openapis = new ObjectHashSet<>();
+        Set<OpenapiConfig> openapis = new LinkedHashSet<>();
         openapi.forEach((n, v) ->
         {
             final String location = JsonString.class.cast(v).getString();
@@ -112,7 +111,7 @@ public final class OpenapiAsyncapiOptionsConfigAdapter implements OptionsConfigA
         });
 
         JsonObject asyncapi = specs.getJsonObject(ASYNCAPI_NAME);
-        Set<AsyncapiConfig> asyncapis = new ObjectHashSet<>();
+        Set<AsyncapiConfig> asyncapis = new LinkedHashSet<>();
         asyncapi.forEach((n, v) ->
         {
             final String location = JsonString.class.cast(v).getString();
