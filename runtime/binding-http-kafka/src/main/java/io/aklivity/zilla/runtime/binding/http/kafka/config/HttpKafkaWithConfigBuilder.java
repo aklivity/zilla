@@ -27,7 +27,7 @@ public final class HttpKafkaWithConfigBuilder<T> extends ConfigBuilder<T, HttpKa
     private HttpKafkaWithFetchConfig fetch;
     private HttpKafkaWithProduceConfig produce;
 
-    public HttpKafkaWithConfigBuilder(
+    HttpKafkaWithConfigBuilder(
         Function<WithConfig, T> mapper)
     {
         this.mapper = mapper;

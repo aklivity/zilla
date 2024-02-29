@@ -30,3 +30,6 @@ This project includes:
   zilla::runtime::binding-tcp under The Apache Software License, Version 2.0
   zilla::runtime::binding-tls under The Apache Software License, Version 2.0
 
+
+This project also includes code under copyright of the following entities:
+  https://github.com/reaktivity/

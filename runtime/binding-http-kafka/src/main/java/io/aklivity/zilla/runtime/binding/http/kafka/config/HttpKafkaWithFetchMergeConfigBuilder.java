@@ -27,7 +27,7 @@ public final class HttpKafkaWithFetchMergeConfigBuilder<T> extends
     private String path;
 
 
-    public HttpKafkaWithFetchMergeConfigBuilder(
+    HttpKafkaWithFetchMergeConfigBuilder(
         Function<HttpKafkaWithFetchMergeConfig, T> mapper)
     {
         this.mapper = mapper;

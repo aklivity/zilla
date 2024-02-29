@@ -14,15 +14,14 @@
  */
 module io.aklivity.zilla.runtime.binding.openapi.asyncapi
 {
-    requires com.fasterxml.jackson.core;
-    requires com.fasterxml.jackson.databind;
+    requires org.leadpony.justify;
+
     requires io.aklivity.zilla.runtime.engine;
     requires io.aklivity.zilla.runtime.binding.asyncapi;
     requires io.aklivity.zilla.runtime.binding.openapi;
     requires io.aklivity.zilla.runtime.binding.http;
     requires io.aklivity.zilla.runtime.binding.kafka;
     requires io.aklivity.zilla.runtime.binding.http.kafka;
-    requires org.leadpony.justify;
 
     exports io.aklivity.zilla.runtime.binding.openapi.asyncapi.config;
 

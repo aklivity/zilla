@@ -31,7 +31,7 @@ public final class HttpKafkaWithProduceConfigBuilder<T> extends ConfigBuilder<T,
     private List<HttpKafkaWithProduceAsyncHeaderConfig> async;
 
 
-    public HttpKafkaWithProduceConfigBuilder(
+    HttpKafkaWithProduceConfigBuilder(
         Function<HttpKafkaWithProduceConfig, T> mapper)
     {
         this.mapper = mapper;

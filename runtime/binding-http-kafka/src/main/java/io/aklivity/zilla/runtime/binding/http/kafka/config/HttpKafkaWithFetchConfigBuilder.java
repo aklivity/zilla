@@ -27,7 +27,7 @@ public final class HttpKafkaWithFetchConfigBuilder<T> extends ConfigBuilder<T, H
     private List<HttpKafkaWithFetchFilterConfig> filters;
     private HttpKafkaWithFetchMergeConfig merge;
 
-    public HttpKafkaWithFetchConfigBuilder(
+    HttpKafkaWithFetchConfigBuilder(
         Function<HttpKafkaWithFetchConfig, T> mapper)
     {
         this.mapper = mapper;

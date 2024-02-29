@@ -26,7 +26,7 @@ public final class HttpKafkaWithProduceAsyncHeaderConfigBuilder<T> extends
     private String value;
 
 
-    public HttpKafkaWithProduceAsyncHeaderConfigBuilder(
+    HttpKafkaWithProduceAsyncHeaderConfigBuilder(
         Function<HttpKafkaWithProduceAsyncHeaderConfig, T> mapper)
     {
         this.mapper = mapper;

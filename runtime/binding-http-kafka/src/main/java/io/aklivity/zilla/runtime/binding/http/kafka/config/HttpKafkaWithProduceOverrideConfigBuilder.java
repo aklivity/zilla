@@ -26,7 +26,7 @@ public final class HttpKafkaWithProduceOverrideConfigBuilder<T> extends
     private String value;
 
 
-    public HttpKafkaWithProduceOverrideConfigBuilder(
+    HttpKafkaWithProduceOverrideConfigBuilder(
         Function<HttpKafkaWithProduceOverrideConfig, T> mapper)
     {
         this.mapper = mapper;

@@ -65,9 +65,9 @@
                                             {
                                                 "type": "string"
                                             }
-                                        }
-                                    },
-                                    "maxProperties": 1
+                                        },
+                                        "maxProperties": 1
+                                    }
                                 },
                                 "required": [ "openapi", "asyncapi" ]
                             }
