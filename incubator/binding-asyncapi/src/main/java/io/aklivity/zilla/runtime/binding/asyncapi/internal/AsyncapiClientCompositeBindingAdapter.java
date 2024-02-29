@@ -49,6 +49,7 @@ public class AsyncapiClientCompositeBindingAdapter extends AsyncapiCompositeBind
         return BindingConfig.builder(binding)
             .composite()
                 .name(String.format("%s.%s", qname, "$composite"))
+                .inject(n -> this.injectCatalog(n, asyncapi))
                 .inject(protocol::injectProtocolClientCache)
                 .binding()
                     .name(String.format("%s_client0", protocol.scheme))

@@ -18,13 +18,13 @@ package io.aklivity.zilla.runtime.binding.mqtt.internal.config;
 import static java.util.stream.Collectors.toList;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.function.ToLongFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttCredentialsConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfig;
@@ -47,7 +47,7 @@ public final class MqttBindingConfig
     public final MqttOptionsConfig options;
     public final List<MqttRouteConfig> routes;
     public final Function<String, String> credentials;
-    public final Map<String, ModelConfig> topics;
+    public final Map<Matcher, ModelConfig> topics;
     public final List<MqttVersion> versions;
     public final ToLongFunction<String> resolveId;
     public final GuardHandler guard;
@@ -64,10 +64,20 @@ public final class MqttBindingConfig
         this.resolveId = binding.resolveId;
         this.credentials = options != null && options.authorization != null ?
             asAccessor(options.authorization.credentials) : DEFAULT_CREDENTIALS;
-        this.topics = options != null &&
-            options.topics != null
-            ? options.topics.stream()
-            .collect(Collectors.toMap(t -> t.name, t -> t.content)) : null;
+        this.topics = new HashMap<>();
+        if (options != null && options.topics != null)
+        {
+            options.topics.forEach(t ->
+            {
+                String pattern = t.name.replace(".", "\\.")
+                    .replace("$", "\\$")
+                    .replace("+", "[^/]*")
+                    .replace("#", ".*");
+                topics.put(Pattern.compile(pattern).matcher(""), t.content);
+            });
+        }
+
+
         this.guard = resolveGuard(context);
         this.versions = options != null &&
             options.versions != null ? options.versions : DEFAULT_VERSIONS;
@@ -115,7 +125,21 @@ public final class MqttBindingConfig
     public ModelConfig supplyModelConfig(
         String topic)
     {
-        return topics != null ? topics.getOrDefault(topic, null) : null;
+        ModelConfig config = null;
+        if (topics != null)
+        {
+            for (Map.Entry<Matcher, ModelConfig> t : topics.entrySet())
+            {
+                final Matcher matcher = t.getKey();
+                matcher.reset(topic);
+                if (matcher.find())
+                {
+                    config = t.getValue();
+                    break;
+                }
+            }
+        }
+        return config;
     }
 
     public Function<String, String> credentials()
