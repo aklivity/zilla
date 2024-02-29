@@ -26,6 +26,7 @@ public class MqttKafkaTopicsConfigBuilder<T> extends ConfigBuilder<T, MqttKafkaT
     private String sessions;
     private String messages;
     private String retained;
+
     MqttKafkaTopicsConfigBuilder(
         Function<MqttKafkaTopicsConfig, T> mapper)
     {

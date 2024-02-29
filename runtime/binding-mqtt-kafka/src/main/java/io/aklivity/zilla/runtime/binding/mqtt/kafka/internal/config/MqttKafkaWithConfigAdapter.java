@@ -58,6 +58,8 @@ public class MqttKafkaWithConfigAdapter implements WithConfigAdapterSpi, JsonbAd
             ? object.getString(MESSAGES_NAME)
             : null;
 
-        return new MqttKafkaWithConfig(topic);
+        return MqttKafkaWithConfig.builder()
+            .messages(topic)
+            .build();
     }
 }

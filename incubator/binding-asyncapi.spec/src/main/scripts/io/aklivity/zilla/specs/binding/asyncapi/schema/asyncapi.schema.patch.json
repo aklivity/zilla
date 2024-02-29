@@ -128,6 +128,11 @@
                                             {
                                                 "title": "MQTT API Id",
                                                 "type": "string"
+                                            },
+                                            "operation-id":
+                                            {
+                                                "title": "MQTT Operation Id",
+                                                "type": "string"
                                             }
                                         }
                                     }
@@ -139,6 +144,11 @@
                                         "api-id":
                                         {
                                             "title": "Kafka API Id",
+                                            "type": "string"
+                                        },
+                                        "operation-id":
+                                        {
+                                            "title": "Kafka Operation Id",
                                             "type": "string"
                                         }
                                     },

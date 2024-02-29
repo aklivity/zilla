@@ -1431,6 +1431,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                         .flags(sessionFlags)
                         .expiry((int) TimeUnit.MILLISECONDS.toSeconds(sessionExpiryMillis))
                         .subscribeQosMax(MQTT_KAFKA_MAX_QOS)
+                        .publishQosMax(MQTT_KAFKA_MAX_QOS)
                         .capabilities(MQTT_KAFKA_CAPABILITIES)
                         .clientId(clientId);
 

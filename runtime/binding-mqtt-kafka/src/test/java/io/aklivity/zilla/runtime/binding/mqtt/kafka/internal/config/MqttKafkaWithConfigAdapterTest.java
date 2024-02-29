@@ -55,7 +55,7 @@ public class MqttKafkaWithConfigAdapterTest
     @Test
     public void shouldWriteWith()
     {
-        MqttKafkaWithConfig with = new MqttKafkaWithConfig("test");
+        MqttKafkaWithConfig with = MqttKafkaWithConfig.builder().messages("test").build();
 
         String text = jsonb.toJson(with);
 

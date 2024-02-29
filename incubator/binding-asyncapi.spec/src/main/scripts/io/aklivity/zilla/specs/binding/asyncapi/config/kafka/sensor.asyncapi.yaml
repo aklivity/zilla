@@ -30,6 +30,10 @@ operations:
     action: receive
     channel:
       $ref: '#/channels/sensorData'
+  toSensorData:
+    action: send
+    channel:
+      $ref: '#/channels/sensorData'
 
 channels:
   sensorData:

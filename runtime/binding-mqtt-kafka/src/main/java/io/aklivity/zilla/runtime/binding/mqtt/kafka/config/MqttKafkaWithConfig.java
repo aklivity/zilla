@@ -33,7 +33,7 @@ public class MqttKafkaWithConfig extends WithConfig
         return new MqttKafkaWithConfigBuilder<>(mapper);
     }
 
-    public MqttKafkaWithConfig(
+    MqttKafkaWithConfig(
         String messages)
     {
         this.messages = messages;

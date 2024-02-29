@@ -35,7 +35,7 @@ public class MqttKafkaTopicsConfig
         return new MqttKafkaTopicsConfigBuilder<>(mapper);
     }
 
-    public MqttKafkaTopicsConfig(
+    MqttKafkaTopicsConfig(
         String16FW sessions,
         String16FW messages,
         String16FW retained)

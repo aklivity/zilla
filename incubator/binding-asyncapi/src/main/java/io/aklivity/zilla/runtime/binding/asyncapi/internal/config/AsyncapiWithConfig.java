@@ -19,10 +19,13 @@ import io.aklivity.zilla.runtime.engine.config.WithConfig;
 public class AsyncapiWithConfig extends WithConfig
 {
     public final String apiId;
+    public final String operationId;
 
     public AsyncapiWithConfig(
-        String apiId)
+        String apiId,
+        String operationId)
     {
         this.apiId = apiId;
+        this.operationId = operationId;
     }
 }
