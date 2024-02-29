@@ -19,7 +19,7 @@ connect "zilla://streams/composite0"
 
 write zilla:begin.ext ${openapi:beginEx()
                              .typeId(zilla:id("openapi"))
-                             .apiId(1054721173)
+                             .apiId(1807802422)
                              .operationId("createPets")
                              .extension(http:beginEx()
                                   .typeId(zilla:id("http"))
@@ -38,7 +38,7 @@ write close
 
 read zilla:begin.ext ${openapi:matchBeginEx()
                              .typeId(zilla:id("openapi"))
-                             .apiId(1054721173)
+                             .apiId(1807802422)
                              .operationId("createPets")
                              .extension(http:beginEx()
                                    .typeId(zilla:id("http"))

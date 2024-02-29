@@ -22,7 +22,7 @@ connect "zilla://streams/asyncapi_client0"
 
 write zilla:begin.ext ${asyncapi:beginEx()
                              .typeId(zilla:id("asyncapi"))
-                             .apiId(1823889317)
+                             .apiId(1977467119)
                              .extension(kafka:beginEx()
                                            .typeId(zilla:id("kafka"))
                                            .merged()
