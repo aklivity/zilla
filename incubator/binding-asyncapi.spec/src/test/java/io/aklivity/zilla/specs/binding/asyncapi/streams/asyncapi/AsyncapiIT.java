@@ -65,4 +65,24 @@ public class AsyncapiIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${asyncapi}/proxy.kafka.publish/client",
+        "${asyncapi}/proxy.kafka.publish/server"
+    })
+    public void shouldProxyPublishMessageKafka() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${asyncapi}/proxy.mqtt.publish/client",
+        "${asyncapi}/proxy.mqtt.publish/server"
+    })
+    public void shouldProxyPublishMessageMqtt() throws Exception
+    {
+        k3po.finish();
+    }
 }

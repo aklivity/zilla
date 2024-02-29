@@ -26,7 +26,7 @@ bindings:
     vault: test0
     options:
       specs:
-        - kafka/asyncapi.yaml
+        kafka_api: kafka/asyncapi.yaml
       tcp:
         host: localhost
         port:

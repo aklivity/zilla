@@ -14,7 +14,6 @@
 
   <artifactId>binding-asyncapi.spec</artifactId>
   <name>zilla::incubator::binding-asyncapi.spec</name>
-
   <licenses>
     <license>
       <name>The Apache Software License, Version 2.0</name>
@@ -54,6 +53,11 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>binding-kafka.spec</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>binding-mqtt-kafka.spec</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>

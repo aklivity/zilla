@@ -14,7 +14,10 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.config;
 
+import static java.util.stream.Collectors.toList;
 
+import java.util.List;
+import java.util.function.Function;
 import java.util.function.LongPredicate;
 
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
@@ -22,19 +25,33 @@ import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 public final class AsyncapiRouteConfig
 {
     public final long id;
-
+    public final AsyncapiWithConfig with;
+    public final List<AsyncapiConditionConfig> when;
     private final LongPredicate authorized;
+    private final Function<String, Long> supplyApiId;
 
     public AsyncapiRouteConfig(
-        RouteConfig route)
+        RouteConfig route,
+        Function<String, Long> supplyApiId)
     {
         this.id = route.id;
         this.authorized = route.authorized;
+        this.when = route.when.stream()
+            .map(AsyncapiConditionConfig.class::cast)
+            .collect(toList());
+        this.with = (AsyncapiWithConfig) route.with;
+        this.supplyApiId = supplyApiId;
     }
 
     boolean authorized(
         long authorization)
     {
         return authorized.test(authorization);
+    }
+
+    boolean matches(
+        long apiId)
+    {
+        return when.isEmpty() || when.stream().anyMatch(m -> m.matches(apiId, supplyApiId));
     }
 }

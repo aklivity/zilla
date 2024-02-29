@@ -12,9 +12,10 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config;
+package io.aklivity.zilla.runtime.binding.mqtt.kafka.config;
 
 import java.util.List;
+import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
@@ -24,7 +25,18 @@ public class MqttKafkaOptionsConfig extends OptionsConfig
     public final String serverRef;
     public final List<String> clients;
 
-    public MqttKafkaOptionsConfig(
+    public static MqttKafkaOptionsConfigBuilder<MqttKafkaOptionsConfig> builder()
+    {
+        return new MqttKafkaOptionsConfigBuilder<>(MqttKafkaOptionsConfig.class::cast);
+    }
+
+    public static <T> MqttKafkaOptionsConfigBuilder<T> builder(
+        Function<OptionsConfig, T> mapper)
+    {
+        return new MqttKafkaOptionsConfigBuilder<>(mapper);
+    }
+
+    MqttKafkaOptionsConfig(
         MqttKafkaTopicsConfig topics,
         String serverRef,
         List<String> clients)

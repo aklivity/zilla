@@ -20,13 +20,14 @@ import static org.agrona.LangUtil.rethrowUnchecked;
 import java.io.InputStream;
 import java.io.Reader;
 import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
+import java.util.zip.CRC32C;
 
 import jakarta.json.Json;
-import jakarta.json.JsonArray;
-import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonReader;
@@ -41,7 +42,11 @@ import org.leadpony.justify.api.JsonSchema;
 import org.leadpony.justify.api.JsonValidationService;
 import org.leadpony.justify.api.ProblemHandler;
 
+import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiChannelsConfig;
+import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiChannelsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiConfig;
+import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiMqttKafkaConfig;
+import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiMqttKafkaConfigBuilder;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiBinding;
@@ -63,7 +68,13 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
     private static final String TLS_NAME = "tls";
     private static final String HTTP_NAME = "http";
     private static final String KAFKA_NAME = "kafka";
+    private static final String MQTT_KAFKA_NAME = "mqtt_kafka";
+    private static final String CHANNELS_NAME = "channels";
+    private static final String SESSIONS_NAME = "sessions";
+    private static final String MESSAGES_NAME = "messages";
+    private static final String RETAINED_NAME = "retained";
 
+    private CRC32C crc;
     private OptionsConfigAdapter tcpOptions;
     private OptionsConfigAdapter tlsOptions;
     private OptionsConfigAdapter httpOptions;
@@ -91,9 +102,9 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
 
         if (asyncapiOptions.specs != null)
         {
-            JsonArrayBuilder keys = Json.createArrayBuilder();
-            asyncapiOptions.specs.forEach(p -> keys.add(p.location));
-            object.add(SPECS_NAME, keys);
+            JsonObjectBuilder specs = Json.createObjectBuilder();
+            asyncapiOptions.specs.forEach(p -> specs.add(p.apiLabel, p.location));
+            object.add(SPECS_NAME, specs);
         }
 
         if (asyncapiOptions.tcp != null)
@@ -120,6 +131,37 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
             object.add(KAFKA_NAME, kafkaOptions.adaptToJson(kafka));
         }
 
+        if (asyncapiOptions.mqttKafka != null)
+        {
+            AsyncapiMqttKafkaConfig mqttKafka = asyncapiOptions.mqttKafka;
+            JsonObjectBuilder newMqttKafka = Json.createObjectBuilder();
+            AsyncapiChannelsConfig channels = mqttKafka.channels;
+            if (channels != null)
+            {
+                JsonObjectBuilder newChannels = Json.createObjectBuilder();
+                String sessions = channels.sessions;
+                if (sessions != null)
+                {
+                    newChannels.add(SESSIONS_NAME, sessions);
+                }
+
+                String messages = channels.messages;
+                if (messages != null)
+                {
+                    newChannels.add(MESSAGES_NAME, messages);
+                }
+
+                String retained = channels.retained;
+                if (retained != null)
+                {
+                    newChannels.add(RETAINED_NAME, retained);
+                }
+                newMqttKafka.add(CHANNELS_NAME, newChannels);
+
+                object.add(MQTT_KAFKA_NAME, newMqttKafka);
+            }
+        }
+
         return object.build();
     }
 
@@ -130,7 +172,7 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
         final AsyncapiOptionsConfigBuilder<AsyncapiOptionsConfig> asyncapiOptions = AsyncapiOptionsConfig.builder();
 
         List<AsyncapiConfig> specs = object.containsKey(SPECS_NAME)
-            ? asListAsyncapis(object.getJsonArray(SPECS_NAME))
+            ? asListAsyncapis(object.getJsonObject(SPECS_NAME))
             : null;
         asyncapiOptions.specs(specs);
 
@@ -162,6 +204,30 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
             asyncapiOptions.kafka(kafkaOptions);
         }
 
+        if (object.containsKey(MQTT_KAFKA_NAME))
+        {
+            AsyncapiMqttKafkaConfigBuilder<AsyncapiMqttKafkaConfig> mqttKafkaBuilder = AsyncapiMqttKafkaConfig.builder();
+            final JsonObject mqttKafka = object.getJsonObject(MQTT_KAFKA_NAME);
+            if (mqttKafka.containsKey(CHANNELS_NAME))
+            {
+                AsyncapiChannelsConfigBuilder<AsyncapiChannelsConfig> channelsBuilder = AsyncapiChannelsConfig.builder();
+                JsonObject channels = mqttKafka.getJsonObject(CHANNELS_NAME);
+
+                if (channels.containsKey(SESSIONS_NAME))
+                {
+                    channelsBuilder.sessions(channels.getString(SESSIONS_NAME));
+                }
+                if (channels.containsKey(MESSAGES_NAME))
+                {
+                    channelsBuilder.messages(channels.getString(MESSAGES_NAME));
+                }
+                if (channels.containsKey(RETAINED_NAME))
+                {
+                    channelsBuilder.retained(channels.getString(RETAINED_NAME));
+                }
+                asyncapiOptions.mqttKafka(mqttKafkaBuilder.channels(channelsBuilder.build()).build());
+            }
+        }
         return asyncapiOptions.build();
     }
 
@@ -178,24 +244,29 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
         this.httpOptions.adaptType("http");
         this.kafkaOptions = new OptionsConfigAdapter(Kind.BINDING, context);
         this.kafkaOptions.adaptType("kafka");
+        this.crc = new CRC32C();
     }
 
     private List<AsyncapiConfig> asListAsyncapis(
-        JsonArray array)
+        JsonObject array)
     {
-        return array.stream()
+        return array.entrySet().stream()
             .map(this::asAsyncapi)
             .collect(toList());
     }
 
     private AsyncapiConfig asAsyncapi(
-        JsonValue value)
+        Map.Entry<String, JsonValue> entry)
     {
-        final String location = ((JsonString) value).getString();
+        final String apiLabel = entry.getKey();
+        final String location = ((JsonString) entry.getValue()).getString();
         final String specText = readURL.apply(location);
+        crc.reset();
+        crc.update(specText.getBytes(StandardCharsets.UTF_8));
+        final long apiId = crc.getValue();
         Asyncapi asyncapi = parseAsyncapi(specText);
 
-        return new AsyncapiConfig(location, asyncapi);
+        return new AsyncapiConfig(apiLabel, apiId, location, asyncapi);
     }
 
     private Asyncapi parseAsyncapi(

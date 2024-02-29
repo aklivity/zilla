@@ -149,7 +149,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
             final long apiId = asyncapiBeginEx.apiId();
             final String operationId = asyncapiBeginEx.operationId().asString();
 
-            final long resolvedId = binding.resolveResolvedId(apiId);
+            final long resolvedId = binding.resolveCompositeResolvedId(apiId);
 
             if (resolvedId != -1)
             {
