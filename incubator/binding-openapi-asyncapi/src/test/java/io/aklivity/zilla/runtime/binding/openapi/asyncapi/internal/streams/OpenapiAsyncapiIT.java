@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.streams;
 
-import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -40,7 +39,6 @@ public class OpenapiAsyncapiIT
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
         .countersBufferCapacity(8192)
-        .configure(ENGINE_DRAIN_ON_CLOSE, false)
         .configurationRoot("io/aklivity/zilla/specs/binding/openapi/asyncapi/config")
         .external("asyncapi_client0")
         .clean();

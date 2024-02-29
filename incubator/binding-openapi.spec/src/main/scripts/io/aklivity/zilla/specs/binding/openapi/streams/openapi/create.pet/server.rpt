@@ -19,7 +19,7 @@ accept "zilla://streams/openapi0"
         option zilla:transmission "half-duplex"
 accepted
 
-read zilla:begin.ext ${openapi:beginEx()
+read zilla:begin.ext ${openapi:matchBeginEx()
                              .typeId(zilla:id("openapi"))
                              .operationId("createPets")
                              .extension(http:beginEx()
