@@ -63,7 +63,7 @@ public class KafkaEventsIT
     public void shouldHandleInvalidDescribeConfig() throws Exception
     {
         k3po.finish();
-        output.expect(Pattern.compile("test.app0 - \\[[^\\]]+\\] API_VERSION_REJECTED 32 0\n"));
+        output.expect(Pattern.compile("test.app0 \\[[^\\]]+\\] API_VERSION_REJECTED 32 0\n"));
     }
 
     public static String supplyInstanceId()

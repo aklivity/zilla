@@ -56,7 +56,6 @@ public class StdoutEventsStream
 
         final Int2ObjectHashMap<MessageConsumer> eventHandlers = new Int2ObjectHashMap<>();
         eventHandlers.put(context.supplyTypeId("jwt"), new StdoutJwtHandler(context, out)::handleEvent);
-        eventHandlers.put(context.supplyTypeId("kafka"), new StdoutKafkaHandler(context, out)::handleEvent);
         eventHandlers.put(context.supplyTypeId("schema-registry"),
             new StdoutSchemaRegistryHandler(context, out)::handleEvent);
         eventHandlers.put(context.supplyTypeId("tcp"), new StdoutTcpHandler(context, out)::handleEvent);
@@ -76,7 +75,7 @@ public class StdoutEventsStream
         int index,
         int length)
     {
-        if (msgTypeId == context.supplyTypeId("http")) // TODO: Ati
+        if (formatters.containsKey(msgTypeId))
         {
             final EventFW event = eventRO.wrap(buffer, index, index + length);
             String qname = context.supplyQName(event.namespacedId());
