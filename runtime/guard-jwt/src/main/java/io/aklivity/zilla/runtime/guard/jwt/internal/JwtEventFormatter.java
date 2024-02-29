@@ -12,32 +12,30 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.exporter.stdout.internal.stream;
-
-import java.io.PrintStream;
+package io.aklivity.zilla.runtime.guard.jwt.internal;
 
 import org.agrona.DirectBuffer;
 
-import io.aklivity.zilla.runtime.exporter.stdout.internal.StdoutExporterContext;
-import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.EventFW;
-import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.JwtAuthorizationFailedExFW;
-import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.JwtEventExFW;
+import io.aklivity.zilla.runtime.engine.event.EventFormatterSpi;
+import io.aklivity.zilla.runtime.guard.jwt.internal.types.StringFW;
+import io.aklivity.zilla.runtime.guard.jwt.internal.types.event.EventFW;
+import io.aklivity.zilla.runtime.guard.jwt.internal.types.event.JwtAuthorizationFailedExFW;
+import io.aklivity.zilla.runtime.guard.jwt.internal.types.event.JwtEventExFW;
 
-public class StdoutJwtHandler extends EventHandler
+public class JwtEventFormatter implements EventFormatterSpi
 {
-    private static final String AUTHORIZATION_FAILED_FORMAT = "%s %s [%s] AUTHORIZATION_FAILED%n";
+    private static final String AUTHORIZATION_FAILED_FORMAT = "AUTHORIZATION_FAILED %s";
 
     private final EventFW eventRO = new EventFW();
     private final JwtEventExFW jwtEventExRO = new JwtEventExFW();
 
-    public StdoutJwtHandler(
-        StdoutExporterContext context,
-        PrintStream out)
+    @Override
+    public String type()
     {
-        super(context, out);
+        return JwtGuard.NAME;
     }
 
-    public void handleEvent(
+    public String formatEventEx(
         int msgTypeId,
         DirectBuffer buffer,
         int index,
@@ -46,13 +44,23 @@ public class StdoutJwtHandler extends EventHandler
         final EventFW event = eventRO.wrap(buffer, index, index + length);
         final JwtEventExFW extension = jwtEventExRO
             .wrap(event.extension().buffer(), event.extension().offset(), event.extension().limit());
+        String result = null;
         switch (extension.kind())
         {
         case AUTHORIZATION_FAILED:
+        {
             JwtAuthorizationFailedExFW ex = extension.authorizationFailed();
-            String qname = context.supplyQName(event.namespacedId());
-            out.printf(AUTHORIZATION_FAILED_FORMAT, qname, identity(ex.identity()), asDateTime(event.timestamp()));
+            result = String.format(AUTHORIZATION_FAILED_FORMAT, identity(ex.identity()));
             break;
         }
+        }
+        return result;
+    }
+
+    private static String identity(
+        StringFW identity)
+    {
+        int length = identity.length();
+        return length <= 0 ? "-" : identity.asString();
     }
 }

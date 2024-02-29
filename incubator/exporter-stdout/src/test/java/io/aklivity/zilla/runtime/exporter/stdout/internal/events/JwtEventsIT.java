@@ -63,6 +63,6 @@ public class JwtEventsIT
     public void shouldRejectCredentialsHeader() throws Exception
     {
         k3po.finish();
-        output.expect(Pattern.compile("test.net0 user \\[[^\\]]+\\] AUTHORIZATION_FAILED\n"));
+        output.expect(Pattern.compile("test.net0 \\[[^\\]]+\\] AUTHORIZATION_FAILED user\n"));
     }
 }

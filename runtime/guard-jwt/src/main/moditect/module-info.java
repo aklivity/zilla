@@ -24,4 +24,7 @@ module io.aklivity.zilla.runtime.guard.jwt
 
     provides io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi
         with io.aklivity.zilla.runtime.guard.jwt.internal.config.JwtOptionsConfigAdapter;
+
+    provides io.aklivity.zilla.runtime.engine.event.EventFormatterSpi
+        with io.aklivity.zilla.runtime.guard.jwt.internal.JwtEventFormatter;
 }

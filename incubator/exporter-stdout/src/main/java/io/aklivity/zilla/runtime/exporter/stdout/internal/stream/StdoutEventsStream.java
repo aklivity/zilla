@@ -55,7 +55,6 @@ public class StdoutEventsStream
         this.formatters = f;
 
         final Int2ObjectHashMap<MessageConsumer> eventHandlers = new Int2ObjectHashMap<>();
-        eventHandlers.put(context.supplyTypeId("jwt"), new StdoutJwtHandler(context, out)::handleEvent);
         eventHandlers.put(context.supplyTypeId("schema-registry"),
             new StdoutSchemaRegistryHandler(context, out)::handleEvent);
         this.eventHandlers = eventHandlers;
