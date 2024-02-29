@@ -39,21 +39,17 @@
                             {
                                 "title": "Specifications",
                                 "type": "array",
-                                "items":
+                                "apiId":
                                 {
                                     "type": "object",
-                                    "additionalProperties": false,
-                                    "properties":
+                                    "patternProperties":
                                     {
-                                        "apiId":
-                                        {
-                                            "type": "string"
-                                        },
-                                        "location":
+                                        "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
                                         {
                                             "type": "string"
                                         }
-                                    }
+                                    },
+                                    "maxProperties": 1
                                 }
                             },
                             "tcp": "#/$defs/binding/tcp/options",
