@@ -21,7 +21,7 @@ accepted
 
 read zilla:begin.ext ${openapi:beginEx()
                              .typeId(zilla:id("openapi"))
-                             .apiId(3223647503)
+                             .apiId(1783189785)
                              .operationId("createPets")
                              .extension(http:beginEx()
                                   .typeId(zilla:id("http"))
@@ -41,7 +41,7 @@ read closed
 
 write zilla:begin.ext ${openapi:beginEx()
                              .typeId(zilla:id("openapi"))
-                             .apiId(3223647503)
+                             .apiId(1783189785)
                              .operationId("createPets")
                              .extension(http:beginEx()
                                   .typeId(zilla:id("http"))

@@ -252,11 +252,11 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
     private AsyncapiConfig asAsyncapi(
         Map.Entry<String, JsonValue> entry)
     {
-        final String apiLabel = entry.getKey();
         final String location = ((JsonString) entry.getValue()).getString();
         final String specText = readURL.apply(location);
+        final String apiLabel = entry.getKey();
         crc.reset();
-        crc.update(specText.getBytes(StandardCharsets.UTF_8));
+        crc.update(apiLabel.getBytes(StandardCharsets.UTF_8));
         final long apiId = crc.getValue();
         Asyncapi asyncapi = parser.parse(specText);
 

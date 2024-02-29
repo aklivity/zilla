@@ -22,7 +22,7 @@ accepted
 
 read zilla:begin.ext ${asyncapi:matchBeginEx()
                              .typeId(zilla:id("asyncapi"))
-                             .apiId(3724230511)
+                             .apiId(819642305)
                              .extension(mqtt:beginEx()
                                             .typeId(zilla:id("mqtt"))
                                             .session()
@@ -51,7 +51,7 @@ accepted
 
 read zilla:begin.ext ${asyncapi:matchBeginEx()
                              .typeId(zilla:id("asyncapi"))
-                             .apiId(3724230511)
+                             .apiId(819642305)
                              .extension(mqtt:beginEx()
                                               .typeId(zilla:id("mqtt"))
                                               .publish()
@@ -81,7 +81,7 @@ accepted
 
 read zilla:begin.ext ${asyncapi:matchBeginEx()
                              .typeId(zilla:id("asyncapi"))
-                             .apiId(3724230511)
+                             .apiId(819642305)
                              .extension(mqtt:beginEx()
                                              .typeId(zilla:id("mqtt"))
                                              .subscribe()
