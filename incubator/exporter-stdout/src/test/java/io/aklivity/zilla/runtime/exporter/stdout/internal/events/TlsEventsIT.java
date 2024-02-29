@@ -62,7 +62,7 @@ public class TlsEventsIT
     public void shouldResetMalformedClientHello() throws Exception
     {
         k3po.finish();
-        output.expect(Pattern.compile("test.net0 - \\[[^\\]]+\\] TLS_FAILED\n"));
+        output.expect(Pattern.compile("test.net0 \\[[^\\]]+\\] TLS_FAILED\n"));
     }
 
     @Test
@@ -75,6 +75,6 @@ public class TlsEventsIT
     public void shouldTimeoutHandshake() throws Exception
     {
         k3po.finish();
-        output.expect(Pattern.compile("test.net0 - \\[[^\\]]+\\] HANDSHAKE_FAILED\n"));
+        output.expect(Pattern.compile("test.net0 \\[[^\\]]+\\] HANDSHAKE_FAILED\n"));
     }
 }
