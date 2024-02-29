@@ -117,7 +117,6 @@ public class AsyncapiProxyCompositeBindingAdapter extends AsyncapiCompositeBindi
                 break inject;
             }
 
-
             final AsyncapiOperation withOperation = kafkaAsyncapi.operations.get(route.with.operationId);
             final String messages = AsyncapiChannelView.of(kafkaAsyncapi.channels, withOperation.channel).address();
 
