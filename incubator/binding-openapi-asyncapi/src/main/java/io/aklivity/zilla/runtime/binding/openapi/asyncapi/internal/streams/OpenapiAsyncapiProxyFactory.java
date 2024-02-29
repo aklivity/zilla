@@ -1224,7 +1224,7 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
             this.originId = originId;
             this.routedId = routedId;
             this.initialId = supplyInitialId.applyAsLong(routedId);
-            this.operationId = String;
+            this.operationId = operationId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.authorization = authorization;
             this.apiId = apiId;
