@@ -16,6 +16,8 @@ module io.aklivity.zilla.runtime.exporter.stdout
 {
     requires io.aklivity.zilla.runtime.engine;
 
+    uses io.aklivity.zilla.runtime.engine.event.EventFormatterSpi;
+
     provides io.aklivity.zilla.runtime.engine.exporter.ExporterFactorySpi
         with io.aklivity.zilla.runtime.exporter.stdout.internal.StdoutExporterFactorySpi;
 

@@ -63,6 +63,6 @@ public class Http11EventsIT
     public void requestWithHeaders() throws Exception
     {
         k3po.finish();
-        output.expect(Pattern.compile("test.app0 - \\[[^\\]]+\\] REQUEST_ACCEPTED http GET localhost:8080 /\n"));
+        output.expect(Pattern.compile("test.net0 \\[[^\\]]+\\] REQUEST_ACCEPTED - http GET localhost:8080 /\n"));
     }
 }

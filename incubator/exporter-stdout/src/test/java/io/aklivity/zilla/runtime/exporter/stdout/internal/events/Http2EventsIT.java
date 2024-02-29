@@ -63,6 +63,6 @@ public class Http2EventsIT
     public void connectionHeaders() throws Exception
     {
         k3po.finish();
-        output.expect(Pattern.compile("test.net0 - \\[[^\\]]+\\] REQUEST_ACCEPTED http GET localhost:8080 /\n"));
+        output.expect(Pattern.compile("ephemeral.net0 \\[[^\\]]+\\] REQUEST_ACCEPTED - http GET localhost:8080 /\n"));
     }
 }

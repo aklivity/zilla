@@ -14,8 +14,13 @@
  */
 package io.aklivity.zilla.runtime.exporter.stdout.internal;
 
+import java.util.Map;
+import java.util.ServiceLoader;
+import java.util.stream.Collectors;
+
 import io.aklivity.zilla.runtime.common.feature.Incubating;
 import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.event.EventFormatterSpi;
 import io.aklivity.zilla.runtime.engine.exporter.Exporter;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterFactorySpi;
 
@@ -32,6 +37,12 @@ public class StdoutExporterFactorySpi implements ExporterFactorySpi
     public Exporter create(
         Configuration config)
     {
-        return new StdoutExporter(new StdoutConfiguration(config));
+        Map<String, EventFormatterSpi> formatters = ServiceLoader.load(EventFormatterSpi.class)
+            .stream()
+            .collect(Collectors.toMap(
+                provider -> provider.get().type(),
+                provider -> provider.get()
+            ));
+        return new StdoutExporter(new StdoutConfiguration(config), formatters);
     }
 }

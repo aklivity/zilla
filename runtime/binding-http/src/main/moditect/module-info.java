@@ -27,4 +27,7 @@ module io.aklivity.zilla.runtime.binding.http
 
     provides io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi
         with io.aklivity.zilla.runtime.binding.http.internal.config.HttpConditionConfigAdapter;
+
+    provides io.aklivity.zilla.runtime.engine.event.EventFormatterSpi
+        with io.aklivity.zilla.runtime.binding.http.internal.HttpEventFormatter;
 }
