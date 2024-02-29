@@ -26,6 +26,7 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaOptionsConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaTopicsConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaBinding;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
@@ -106,8 +107,9 @@ public class MqttKafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
     public OptionsConfig adaptFromJson(
         JsonObject object)
     {
+        MqttKafkaOptionsConfigBuilder<MqttKafkaOptionsConfig> options = MqttKafkaOptionsConfig.builder();
         JsonObject topics = object.getJsonObject(TOPICS_NAME);
-        String server = object.getString(SERVER_NAME, null);
+        options.serverRef(object.getString(SERVER_NAME, null));
         JsonArray clientsJson = object.getJsonArray(CLIENTS_NAME);
 
         List<String> clients = new ArrayList<>();
@@ -118,13 +120,14 @@ public class MqttKafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
                 clients.add(clientsJson.getString(i));
             }
         }
+        options.clients(clients);
 
-        String16FW newSessions = new String16FW(topics.getString(SESSIONS_NAME));
-        String16FW newMessages = new String16FW(topics.getString(MESSAGES_NAME));
-        String16FW newRetained = new String16FW(topics.getString(RETAINED_NAME));
+        options.topics(MqttKafkaTopicsConfig.builder()
+            .sessions(topics.getString(SESSIONS_NAME))
+            .messages(topics.getString(MESSAGES_NAME))
+            .retained(topics.getString(RETAINED_NAME))
+            .build());
 
-        MqttKafkaTopicsConfig newTopics = new MqttKafkaTopicsConfig(newSessions, newMessages, newRetained);
-
-        return new MqttKafkaOptionsConfig(newTopics, server, clients);
+        return options.build();
     }
 }

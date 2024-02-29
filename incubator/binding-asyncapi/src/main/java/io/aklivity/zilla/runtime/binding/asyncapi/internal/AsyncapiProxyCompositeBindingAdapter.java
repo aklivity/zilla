@@ -117,7 +117,8 @@ public class AsyncapiProxyCompositeBindingAdapter extends AsyncapiCompositeBindi
                 break inject;
             }
 
-            final AsyncapiOperation withOperation = kafkaAsyncapi.operations.entrySet().iterator().next().getValue();
+
+            final AsyncapiOperation withOperation = kafkaAsyncapi.operations.get(route.with.operationId);
             final String messages = AsyncapiChannelView.of(kafkaAsyncapi.channels, withOperation.channel).address();
 
             for (AsyncapiConditionConfig condition : route.when)
@@ -127,22 +128,20 @@ public class AsyncapiProxyCompositeBindingAdapter extends AsyncapiCompositeBindi
                 {
                     break inject;
                 }
-                for (AsyncapiOperation operation : mqttAsyncapi.operations.values())
-                {
-                    final AsyncapiChannelView channel = AsyncapiChannelView.of(mqttAsyncapi.channels, operation.channel);
-                    final MqttKafkaConditionKind kind = operation.action.equals(ASYNCAPI_SEND_ACTION_NAME) ?
-                        MqttKafkaConditionKind.PUBLISH : MqttKafkaConditionKind.SUBSCRIBE;
-                    final String topic = channel.address().replaceAll("\\{[^}]+\\}", "#");
-                    routeBuilder
-                        .when(MqttKafkaConditionConfig::builder)
-                            .topic(topic)
-                            .kind(kind)
-                            .build()
-                        .with(MqttKafkaWithConfig::builder)
-                            .messages(messages)
-                            .build()
-                        .exit(qname);
-                }
+                final AsyncapiOperation whenOperation = mqttAsyncapi.operations.get(condition.operationId);
+                final AsyncapiChannelView channel = AsyncapiChannelView.of(mqttAsyncapi.channels, whenOperation.channel);
+                final MqttKafkaConditionKind kind = whenOperation.action.equals(ASYNCAPI_SEND_ACTION_NAME) ?
+                    MqttKafkaConditionKind.PUBLISH : MqttKafkaConditionKind.SUBSCRIBE;
+                final String topic = channel.address().replaceAll("\\{[^}]+\\}", "+");
+                routeBuilder
+                    .when(MqttKafkaConditionConfig::builder)
+                        .topic(topic)
+                        .kind(kind)
+                        .build()
+                    .with(MqttKafkaWithConfig::builder)
+                        .messages(messages)
+                        .build()
+                    .exit(qname);
             }
             binding = routeBuilder.build();
         }

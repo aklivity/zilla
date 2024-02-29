@@ -36,7 +36,7 @@ public class MqttKafkaOptionsConfig extends OptionsConfig
         return new MqttKafkaOptionsConfigBuilder<>(mapper);
     }
 
-    public MqttKafkaOptionsConfig(
+    MqttKafkaOptionsConfig(
         MqttKafkaTopicsConfig topics,
         String serverRef,
         List<String> clients)

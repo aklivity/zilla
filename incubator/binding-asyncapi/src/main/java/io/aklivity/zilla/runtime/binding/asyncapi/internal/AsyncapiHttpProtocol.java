@@ -121,7 +121,7 @@ public class AsyncapiHttpProtocol extends AsyncapiProtocol
     @Override
     protected boolean isSecure()
     {
-        return scheme.equals(SECURE_SCHEME);
+        return findFirstServerUrlWithScheme(SECURE_SCHEME) != null;
     }
 
     private <C> HttpOptionsConfigBuilder<C> injectHttpServerOptions(

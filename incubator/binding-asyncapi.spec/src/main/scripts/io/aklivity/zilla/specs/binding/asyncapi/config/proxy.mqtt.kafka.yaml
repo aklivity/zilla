@@ -32,6 +32,15 @@ bindings:
     routes:
       - when:
           - api-id: mqtt_api
+            operation-id: sendEvents
         exit: asyncapi_kafka0
         with:
           api-id: kafka_api
+          operation-id: toSensorData
+      - when:
+          - api-id: mqtt_api
+            operation-id: receiveEvents
+        exit: asyncapi_kafka0
+        with:
+          api-id: kafka_api
+          operation-id: onSensorData

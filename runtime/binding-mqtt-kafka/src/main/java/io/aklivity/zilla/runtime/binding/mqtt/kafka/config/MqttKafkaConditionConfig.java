@@ -35,7 +35,7 @@ public class MqttKafkaConditionConfig extends ConditionConfig
         return new MqttKafkaConditionConfigBuilder<>(mapper);
     }
 
-    public MqttKafkaConditionConfig(
+    MqttKafkaConditionConfig(
         List<String> topics,
         MqttKafkaConditionKind kind)
     {

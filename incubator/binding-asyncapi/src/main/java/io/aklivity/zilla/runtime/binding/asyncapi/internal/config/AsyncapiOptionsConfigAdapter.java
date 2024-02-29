@@ -242,9 +242,9 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
     }
 
     private List<AsyncapiConfig> asListAsyncapis(
-        JsonObject object)
+        JsonObject array)
     {
-        return object.entrySet().stream()
+        return array.entrySet().stream()
             .map(this::asAsyncapi)
             .collect(toList());
     }

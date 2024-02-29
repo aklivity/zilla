@@ -27,6 +27,7 @@ public class MqttKafkaOptionsConfigBuilder<T> extends ConfigBuilder<T, MqttKafka
     private MqttKafkaTopicsConfig topics;
     private String serverRef;
     private List<String> clients;
+
     MqttKafkaOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
     {

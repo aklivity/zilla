@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.asyncapi.internal;
 
 import java.util.Map;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
@@ -40,6 +41,8 @@ public class AyncapiKafkaProtocol extends AsyncapiProtocol
     private static final String SCHEME = "kafka";
     private static final String SECURE_SCHEME = "";
     private static final String SECURE_PROTOCOL = "kafka-secure";
+    private static final Pattern PARAMETERIZED_TOPIC_PATTERN = Pattern.compile("\\{.*?\\}");
+
     private final String protocol;
     private final KafkaSaslConfig sasl;
 
@@ -159,8 +162,9 @@ public class AyncapiKafkaProtocol extends AsyncapiProtocol
     private <C> KafkaOptionsConfigBuilder<C> injectKafkaBootstrapOptions(
         KafkaOptionsConfigBuilder<C> options)
     {
-        return options.bootstrap(asyncApi.channels.values().stream().map(c ->
-            AsyncapiChannelView.of(asyncApi.channels, c).address()).collect(Collectors.toList()));
+        return options.bootstrap(asyncApi.channels.values().stream()
+            .filter(c -> !PARAMETERIZED_TOPIC_PATTERN.matcher(c.address).find())
+            .map(c -> AsyncapiChannelView.of(asyncApi.channels, c).address()).collect(Collectors.toList()));
     }
 
     private <C> KafkaTopicConfigBuilder<C> injectValue(

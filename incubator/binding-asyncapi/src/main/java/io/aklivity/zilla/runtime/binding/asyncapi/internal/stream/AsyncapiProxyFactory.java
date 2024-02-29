@@ -313,7 +313,6 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
             assert initialAck <= initialSeq;
 
             final AsyncapiBeginExFW asyncapiBeginEx = extension.get(asyncapiBeginExRO::tryWrap);
-            //compositeHandlers.put(affinity, delegate::onCompositeServerMessage);
             delegate.doCompositeBegin(traceId, affinity, asyncapiBeginEx.extension());
         }
 
@@ -428,8 +427,14 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
         {
             state = AsyncapiState.openingReply(state);
 
+            final AsyncapiBeginExFW asyncapiBeginEx = asyncapiBeginExRW
+                .wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(asyncapiTypeId)
+                .extension(extension)
+                .build();
+
             doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                traceId, authorization, affinity, extension);
+                traceId, authorization, affinity, asyncapiBeginEx);
         }
 
         private void doAsyncapiServerData(
@@ -628,10 +633,7 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
 
             state = AsyncapiState.openingReply(state);
 
-            final AsyncapiBeginExFW asyncapiBeginEx = extension.get(asyncapiBeginExRO::tryWrap);
-            final OctetsFW asyncapiExtension = asyncapiBeginEx != null ? asyncapiBeginEx.extension() : EMPTY_OCTETS;
-
-            delegate.doAsyncapiServerBegin(traceId, asyncapiExtension);
+            delegate.doAsyncapiServerBegin(traceId, extension);
         }
 
         private void onCompositeData(
