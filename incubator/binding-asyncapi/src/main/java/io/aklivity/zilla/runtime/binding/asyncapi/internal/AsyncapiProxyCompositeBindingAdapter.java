@@ -132,7 +132,7 @@ public class AsyncapiProxyCompositeBindingAdapter extends AsyncapiCompositeBindi
                 final AsyncapiChannelView channel = AsyncapiChannelView.of(mqttAsyncapi.channels, whenOperation.channel);
                 final MqttKafkaConditionKind kind = whenOperation.action.equals(ASYNCAPI_SEND_ACTION_NAME) ?
                     MqttKafkaConditionKind.PUBLISH : MqttKafkaConditionKind.SUBSCRIBE;
-                final String topic = channel.address().replaceAll("\\{[^}]+\\}", "#");
+                final String topic = channel.address().replaceAll("\\{[^}]+\\}", "+");
                 routeBuilder
                     .when(MqttKafkaConditionConfig::builder)
                         .topic(topic)

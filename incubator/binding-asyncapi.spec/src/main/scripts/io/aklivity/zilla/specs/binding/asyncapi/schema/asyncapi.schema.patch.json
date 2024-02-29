@@ -38,7 +38,7 @@
                             "specs":
                             {
                                 "title": "Specifications",
-                                "type": "array",
+                                "type": "object",
                                 "apiId":
                                 {
                                     "type": "object",
