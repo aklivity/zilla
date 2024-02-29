@@ -64,7 +64,7 @@ public class TcpEventsIT
     public void dnsResolutionFailed() throws Exception
     {
         k3po.finish();
-        output.expect(Pattern.compile("test.app0 - \\[[^\\]]+\\] DNS_FAILED localhost\n"));
+        output.expect(Pattern.compile("test.app0 \\[[^\\]]+\\] DNS_FAILED localhost\n"));
     }
 
     public static InetAddress[] resolveHost(

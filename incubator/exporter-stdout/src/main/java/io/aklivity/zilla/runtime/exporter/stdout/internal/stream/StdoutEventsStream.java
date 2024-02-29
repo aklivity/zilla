@@ -58,7 +58,6 @@ public class StdoutEventsStream
         eventHandlers.put(context.supplyTypeId("jwt"), new StdoutJwtHandler(context, out)::handleEvent);
         eventHandlers.put(context.supplyTypeId("schema-registry"),
             new StdoutSchemaRegistryHandler(context, out)::handleEvent);
-        eventHandlers.put(context.supplyTypeId("tcp"), new StdoutTcpHandler(context, out)::handleEvent);
         eventHandlers.put(context.supplyTypeId("tls"), new StdoutTlsHandler(context, out)::handleEvent);
         this.eventHandlers = eventHandlers;
         this.out = out;
