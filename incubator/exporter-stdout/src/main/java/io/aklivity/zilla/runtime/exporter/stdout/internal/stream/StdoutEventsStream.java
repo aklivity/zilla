@@ -24,7 +24,6 @@ import java.util.Map;
 import org.agrona.DirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
 
-import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageReader;
 import io.aklivity.zilla.runtime.engine.event.EventFormatterSpi;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.StdoutExporterContext;
@@ -38,7 +37,6 @@ public class StdoutEventsStream
     private final StdoutExporterContext context;
     private final MessageReader readEvent;
     private final Int2ObjectHashMap<EventFormatterSpi> formatters;
-    private final Int2ObjectHashMap<MessageConsumer> eventHandlers;  // TODO: Ati - rm this
     private final EventFW eventRO = new EventFW();
     private final PrintStream out;
 
@@ -54,10 +52,6 @@ public class StdoutEventsStream
         formatters.forEach((k, v) -> f.put(context.supplyTypeId(k), v));
         this.formatters = f;
 
-        final Int2ObjectHashMap<MessageConsumer> eventHandlers = new Int2ObjectHashMap<>();
-        eventHandlers.put(context.supplyTypeId("schema-registry"),
-            new StdoutSchemaRegistryHandler(context, out)::handleEvent);
-        this.eventHandlers = eventHandlers;
         this.out = out;
     }
 
@@ -78,14 +72,6 @@ public class StdoutEventsStream
             String qname = context.supplyQName(event.namespacedId());
             String extension = formatters.get(msgTypeId).formatEventEx(msgTypeId, buffer, index, length);
             out.format(FORMAT, qname, asDateTime(event.timestamp()), extension);
-        }
-        else // TODO: Ati
-        {
-            final MessageConsumer handler = eventHandlers.get(msgTypeId);
-            if (handler != null)
-            {
-                handler.accept(msgTypeId, buffer, index, length);
-            }
         }
     }
 

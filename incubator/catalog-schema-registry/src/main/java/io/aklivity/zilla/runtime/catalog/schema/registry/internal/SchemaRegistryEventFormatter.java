@@ -12,32 +12,30 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.exporter.stdout.internal.stream;
-
-import java.io.PrintStream;
+package io.aklivity.zilla.runtime.catalog.schema.registry.internal;
 
 import org.agrona.DirectBuffer;
 
-import io.aklivity.zilla.runtime.exporter.stdout.internal.StdoutExporterContext;
-import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.EventFW;
-import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.SchemaRegistryEventExFW;
-import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.SchemaRegistryRemoteAccessRejectedExFW;
+import io.aklivity.zilla.runtime.catalog.schema.registry.internal.types.StringFW;
+import io.aklivity.zilla.runtime.catalog.schema.registry.internal.types.event.EventFW;
+import io.aklivity.zilla.runtime.catalog.schema.registry.internal.types.event.SchemaRegistryEventExFW;
+import io.aklivity.zilla.runtime.catalog.schema.registry.internal.types.event.SchemaRegistryRemoteAccessRejectedExFW;
+import io.aklivity.zilla.runtime.engine.event.EventFormatterSpi;
 
-public class StdoutSchemaRegistryHandler extends EventHandler
+public class SchemaRegistryEventFormatter implements EventFormatterSpi
 {
-    private static final String REMOTE_ACCESS_REJECTED = "%s - [%s] REMOTE_ACCESS_REJECTED %s %s %d%n";
+    private static final String REMOTE_ACCESS_REJECTED = "REMOTE_ACCESS_REJECTED %s %s %d";
 
     private final EventFW eventRO = new EventFW();
     private final SchemaRegistryEventExFW schemaRegistryEventExRO = new SchemaRegistryEventExFW();
 
-    public StdoutSchemaRegistryHandler(
-        StdoutExporterContext context,
-        PrintStream out)
+    @Override
+    public String type()
     {
-        super(context, out);
+        return SchemaRegistryCatalog.NAME;
     }
 
-    public void handleEvent(
+    public String formatEventEx(
         int msgTypeId,
         DirectBuffer buffer,
         int index,
@@ -46,14 +44,24 @@ public class StdoutSchemaRegistryHandler extends EventHandler
         final EventFW event = eventRO.wrap(buffer, index, index + length);
         final SchemaRegistryEventExFW extension = schemaRegistryEventExRO
             .wrap(event.extension().buffer(), event.extension().offset(), event.extension().limit());
+        String result = null;
         switch (extension.kind())
         {
         case REMOTE_ACCESS_REJECTED:
+        {
             SchemaRegistryRemoteAccessRejectedExFW ex = extension.remoteAccessRejected();
-            String qname = context.supplyQName(event.namespacedId());
-            out.printf(REMOTE_ACCESS_REJECTED, qname, asDateTime(event.timestamp()), asString(ex.method()), asString(ex.url()),
+            result = String.format(REMOTE_ACCESS_REJECTED, asString(ex.method()), asString(ex.url()),
                 ex.status());
             break;
         }
+        }
+        return result;
+    }
+
+    private static String asString(
+        StringFW stringFW)
+    {
+        String s = stringFW.asString();
+        return s == null ? "" : s;
     }
 }
