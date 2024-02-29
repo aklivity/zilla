@@ -38,21 +38,12 @@
                             "specs":
                             {
                                 "title": "Specifications",
-                                "type": "array",
-                                "items":
+                                "type": "object",
+                                "patternProperties":
                                 {
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "properties":
+                                    "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
                                     {
-                                        "apiId":
-                                        {
-                                            "type": "string"
-                                        },
-                                        "location":
-                                        {
-                                            "type": "string"
-                                        }
+                                        "type": "string"
                                     }
                                 }
                             },
