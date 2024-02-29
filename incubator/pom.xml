@@ -22,6 +22,7 @@
     <module>binding-openapi.spec</module>
     <module>binding-openapi-asyncapi.spec</module>
     <module>catalog-inline.spec</module>
+    <module>catalog-apicurio.spec</module>
     <module>catalog-schema-registry.spec</module>
     <module>exporter-otlp.spec</module>
     <module>exporter-stdout.spec</module>
@@ -36,6 +37,7 @@
     <module>binding-openapi-asyncapi</module>
 
     <module>catalog-inline</module>
+    <module>catalog-apicurio</module>
     <module>catalog-schema-registry</module>
 
     <module>command-log</module>
