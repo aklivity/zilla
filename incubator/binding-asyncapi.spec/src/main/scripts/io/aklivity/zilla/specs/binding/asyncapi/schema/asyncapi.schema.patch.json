@@ -128,7 +128,6 @@
                                             {
                                                 "title": "MQTT API Id",
                                                 "type": "string"
-
                                             },
                                             "operation-id":
                                             {
