@@ -1913,9 +1913,12 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         {
             if (!MqttKafkaState.initialClosed(state))
             {
-                state = MqttKafkaState.closeInitial(state);
+                if (MqttKafkaState.initialOpening(state))
+                {
+                    state = MqttKafkaState.closeInitial(state);
 
-                doEnd(kafka, originId, routedId, initialId, 0, 0, 0, traceId, authorization);
+                    doEnd(kafka, originId, routedId, initialId, 0, 0, 0, traceId, authorization);
+                }
 
                 signaler.cancel(reconnectAt);
                 reconnectAt = NO_CANCEL_ID;
