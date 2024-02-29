@@ -30,6 +30,7 @@ import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithProduceC
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.config.OpenapiAsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.config.OpenapiAsyncapiSpecConfig;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.OpenapiAsyncapiBinding;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenApiOperation;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.Openapi;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenApiPathView;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;

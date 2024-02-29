@@ -105,7 +105,7 @@ public final class OpenapiAsyncapiOptionsConfigAdapter implements OptionsConfigA
             final String specText = readURL.apply(location);
             final String apiLabel = n;
             crc.reset();
-            crc.update(apiLabel.getBytes(UTF_8));
+            crc.update(specText.getBytes(UTF_8));
             final long apiId = crc.getValue();
             openapis.add(new OpenapiConfig(apiLabel, apiId, location, openapiParser.parse(specText)));
         });
@@ -118,7 +118,7 @@ public final class OpenapiAsyncapiOptionsConfigAdapter implements OptionsConfigA
             final String specText = readURL.apply(location);
             final String apiLabel = n;
             crc.reset();
-            crc.update(apiLabel.getBytes(UTF_8));
+            crc.update(specText.getBytes(UTF_8));
             final long apiId = crc.getValue();
             asyncapis.add(new AsyncapiConfig(apiLabel, apiId, location, asyncapiParser.parse(specText)));
         });
