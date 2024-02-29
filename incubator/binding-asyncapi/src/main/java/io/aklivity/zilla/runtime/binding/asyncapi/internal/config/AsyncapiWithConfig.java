@@ -12,17 +12,20 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config;
+package io.aklivity.zilla.runtime.binding.asyncapi.internal.config;
 
 import io.aklivity.zilla.runtime.engine.config.WithConfig;
 
-public class MqttKafkaWithConfig extends WithConfig
+public class AsyncapiWithConfig extends WithConfig
 {
-    public final String messages;
+    public final String apiId;
+    public final String operationId;
 
-    public MqttKafkaWithConfig(
-        String messages)
+    public AsyncapiWithConfig(
+        String apiId,
+        String operationId)
     {
-        this.messages = messages;
+        this.apiId = apiId;
+        this.operationId = operationId;
     }
 }

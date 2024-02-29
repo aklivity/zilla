@@ -30,6 +30,7 @@ public final class AsyncapiOptionsConfig extends OptionsConfig
     public final TlsOptionsConfig tls;
     public final HttpOptionsConfig http;
     public final KafkaOptionsConfig kafka;
+    public final AsyncapiMqttKafkaConfig mqttKafka;
 
     public static AsyncapiOptionsConfigBuilder<AsyncapiOptionsConfig> builder()
     {
@@ -47,12 +48,29 @@ public final class AsyncapiOptionsConfig extends OptionsConfig
         TcpOptionsConfig tcp,
         TlsOptionsConfig tls,
         HttpOptionsConfig http,
-        KafkaOptionsConfig kafka)
+        KafkaOptionsConfig kafka,
+        AsyncapiMqttKafkaConfig mqttKafka)
     {
         this.specs = specs;
         this.http = http;
         this.tcp = tcp;
         this.tls = tls;
         this.kafka = kafka;
+        this.mqttKafka = mqttKafka;
+    }
+
+    public long resolveApiId(
+        String apiLabel)
+    {
+        long apiId = -1;
+        for (AsyncapiConfig c : specs)
+        {
+            if (c.apiLabel.equals(apiLabel))
+            {
+                apiId = c.apiId;
+                break;
+            }
+        }
+        return apiId;
     }
 }

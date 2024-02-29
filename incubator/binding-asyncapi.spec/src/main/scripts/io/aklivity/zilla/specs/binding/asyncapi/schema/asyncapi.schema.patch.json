@@ -29,7 +29,7 @@
                     },
                     "kind":
                     {
-                        "enum": [ "server", "client" ]
+                        "enum": [ "server", "client", "proxy" ]
                     },
                     "options":
                     {
@@ -38,10 +38,18 @@
                             "specs":
                             {
                                 "title": "Specifications",
-                                "type": "array",
-                                "items":
+                                "type": "object",
+                                "apiId":
                                 {
-                                    "type": "string"
+                                    "type": "object",
+                                    "patternProperties":
+                                    {
+                                        "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                                        {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "maxProperties": 1
                                 }
                             },
                             "tcp": "#/$defs/binding/tcp/options",
@@ -65,11 +73,94 @@
                                     "sasl": "$defs/options/binding/kafka/sasl"
                                 },
                                 "additionalProperties": false
+                            },
+                            "mqtt_kafka":
+                            {
+                                "title": "MQTT-Kafka",
+                                "type": "object",
+                                "properties":
+                                {
+                                    "channels":
+                                    {
+                                        "title": "Channels",
+                                        "type": "object",
+                                        "properties":
+                                        {
+                                            "sessions":
+                                            {
+                                                "title": "Kafka Sessions Channel",
+                                                "type": "string"
+                                            },
+                                            "messages":
+                                            {
+                                                "title": "Kafka Messages Channel",
+                                                "type": "string"
+                                            },
+                                            "retained":
+                                            {
+                                                "title": "Kafka Retained Channel",
+                                                "type": "string"
+                                            },
+                                            "additionalProperties": false
+                                        },
+                                        "additionalProperties": false
+                                    }
+                                },
+                                "additionalProperties": false
                             }
                         },
                         "additionalProperties": false
                     },
-                    "routes": false
+                    "routes":
+                    {
+                        "items":
+                        {
+                            "properties":
+                            {
+                                "when":
+                                {
+                                    "items":
+                                    {
+                                        "additionalProperties": false,
+                                        "properties":
+                                        {
+                                            "api-id":
+                                            {
+                                                "title": "MQTT API Id",
+                                                "type": "string"
+                                            },
+                                            "operation-id":
+                                            {
+                                                "title": "MQTT Operation Id",
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                },
+                                "with":
+                                {
+                                    "properties":
+                                    {
+                                        "api-id":
+                                        {
+                                            "title": "Kafka API Id",
+                                            "type": "string"
+                                        },
+                                        "operation-id":
+                                        {
+                                            "title": "Kafka Operation Id",
+                                            "type": "string"
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                }
+                            },
+                            "required":
+                            [
+                                "with"
+                            ]
+                        }
+                    }
                 },
                 "oneOf":
                 [
@@ -79,6 +170,40 @@
                             "kind":
                             {
                                 "const": "server"
+                            }
+                        },
+                        "anyOf":
+                        [
+                            {
+                                "required":
+                                [
+                                    "exit"
+                                ]
+                            },
+                            {
+                                "properties":
+                                {
+                                    "routes":
+                                    {
+                                        "required":
+                                        [
+                                            "exit"
+                                        ]
+                                    }
+                                },
+                                "required":
+                                [
+                                    "routes"
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "properties":
+                        {
+                            "kind":
+                            {
+                                "const": "proxy"
                             }
                         },
                         "anyOf":

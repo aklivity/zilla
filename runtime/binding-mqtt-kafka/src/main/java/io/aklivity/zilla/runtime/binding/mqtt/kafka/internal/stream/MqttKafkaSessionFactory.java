@@ -49,11 +49,11 @@ import org.agrona.collections.Object2LongHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaRouteConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.InstanceId;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaHeaderHelper;
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaRouteConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaPublishMetadata.KafkaGroup;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaPublishMetadata.KafkaOffsetMetadata;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaPublishMetadata.KafkaOffsetMetadataHelper;
@@ -1431,6 +1431,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                         .flags(sessionFlags)
                         .expiry((int) TimeUnit.MILLISECONDS.toSeconds(sessionExpiryMillis))
                         .subscribeQosMax(MQTT_KAFKA_MAX_QOS)
+                        .publishQosMax(MQTT_KAFKA_MAX_QOS)
                         .capabilities(MQTT_KAFKA_CAPABILITIES)
                         .clientId(clientId);
 
@@ -4086,8 +4087,11 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             final KafkaMetaDataExFW kafkaMetaDataEx = kafkaDataEx.meta();
             final Array32FW<KafkaPartitionFW> partitions = kafkaMetaDataEx.partitions();
 
-            delegate.onPartitionsFetched(traceId, authorization, topic, partitions, this);
-            doKafkaEnd(traceId, authorization);
+            if (!MqttKafkaState.initialClosed(state))
+            {
+                delegate.onPartitionsFetched(traceId, authorization, topic, partitions, this);
+                doKafkaEnd(traceId, authorization);
+            }
         }
 
         private void onKafkaEnd(

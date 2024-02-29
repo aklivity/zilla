@@ -113,4 +113,12 @@ public class SchemaTest
 
         assertThat(config, not(nullValue()));
     }
+
+    @Test
+    public void shouldValidateAsyncapiProxy()
+    {
+        JsonObject config = schema.validate("proxy.mqtt.kafka.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
 }
