@@ -70,7 +70,7 @@ public class StdoutEventsStream
         {
             final EventFW event = eventRO.wrap(buffer, index, index + length);
             String qname = context.supplyQName(event.namespacedId());
-            String extension = formatters.get(msgTypeId).formatEventEx(msgTypeId, buffer, index, length);
+            String extension = formatters.get(msgTypeId).format(buffer, index, length);
             out.format(FORMAT, qname, asDateTime(event.timestamp()), extension);
         }
     }

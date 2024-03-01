@@ -36,8 +36,7 @@ public class HttpEventFormatter implements EventFormatterSpi
         return HttpBinding.NAME;
     }
 
-    public String formatEventEx(
-        int msgTypeId,
+    public String format(
         DirectBuffer buffer,
         int index,
         int length)

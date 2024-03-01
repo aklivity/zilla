@@ -61,7 +61,7 @@ public class TlsEventFormatterTest
         TlsEventFormatter formatter = new TlsEventFormatter();
 
         // WHEN
-        String result = formatter.formatEventEx(0, eventBuffer, 0, eventBuffer.capacity());
+        String result = formatter.format(eventBuffer, 0, eventBuffer.capacity());
 
         // THEN
         assertThat(result, equalTo("TLS_FAILED"));
@@ -87,7 +87,7 @@ public class TlsEventFormatterTest
         TlsEventFormatter formatter = new TlsEventFormatter();
 
         // WHEN
-        String result = formatter.formatEventEx(0, eventBuffer, 0, eventBuffer.capacity());
+        String result = formatter.format(eventBuffer, 0, eventBuffer.capacity());
 
         // THEN
         assertThat(result, equalTo("PROTOCOL_REJECTED"));
@@ -113,7 +113,7 @@ public class TlsEventFormatterTest
         TlsEventFormatter formatter = new TlsEventFormatter();
 
         // WHEN
-        String result = formatter.formatEventEx(0, eventBuffer, 0, eventBuffer.capacity());
+        String result = formatter.format(eventBuffer, 0, eventBuffer.capacity());
 
         // THEN
         assertThat(result, equalTo("KEY_REJECTED"));
@@ -139,7 +139,7 @@ public class TlsEventFormatterTest
         TlsEventFormatter formatter = new TlsEventFormatter();
 
         // WHEN
-        String result = formatter.formatEventEx(0, eventBuffer, 0, eventBuffer.capacity());
+        String result = formatter.format(eventBuffer, 0, eventBuffer.capacity());
 
         // THEN
         assertThat(result, equalTo("PEER_NOT_VERIFIED"));
@@ -165,7 +165,7 @@ public class TlsEventFormatterTest
         TlsEventFormatter formatter = new TlsEventFormatter();
 
         // WHEN
-        String result = formatter.formatEventEx(0, eventBuffer, 0, eventBuffer.capacity());
+        String result = formatter.format(eventBuffer, 0, eventBuffer.capacity());
 
         // THEN
         assertThat(result, equalTo("HANDSHAKE_FAILED"));

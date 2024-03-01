@@ -62,7 +62,7 @@ public class HttpEventFormatterTest
         HttpEventFormatter formatter = new HttpEventFormatter();
 
         // WHEN
-        String result = formatter.formatEventEx(0, eventBuffer, 0, eventBuffer.capacity());
+        String result = formatter.format(eventBuffer, 0, eventBuffer.capacity());
 
         // THEN
         assertThat(result, equalTo("REQUEST_ACCEPTED user http GET localhost:8080 /hello"));
@@ -93,7 +93,7 @@ public class HttpEventFormatterTest
         HttpEventFormatter formatter = new HttpEventFormatter();
 
         // WHEN
-        String result = formatter.formatEventEx(0, eventBuffer, 0, eventBuffer.capacity());
+        String result = formatter.format(eventBuffer, 0, eventBuffer.capacity());
 
         // THEN
         assertThat(result, equalTo("REQUEST_ACCEPTED - http GET localhost:8080 /hello"));

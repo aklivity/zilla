@@ -35,8 +35,7 @@ public class SchemaRegistryEventFormatter implements EventFormatterSpi
         return SchemaRegistryCatalog.NAME;
     }
 
-    public String formatEventEx(
-        int msgTypeId,
+    public String format(
         DirectBuffer buffer,
         int index,
         int length)

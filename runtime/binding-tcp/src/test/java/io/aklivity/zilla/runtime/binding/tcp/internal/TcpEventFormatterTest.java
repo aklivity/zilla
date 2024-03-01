@@ -58,7 +58,7 @@ public class TcpEventFormatterTest
         TcpEventFormatter formatter = new TcpEventFormatter();
 
         // WHEN
-        String result = formatter.formatEventEx(0, eventBuffer, 0, eventBuffer.capacity());
+        String result = formatter.format(eventBuffer, 0, eventBuffer.capacity());
 
         // THEN
         assertThat(result, equalTo("DNS_FAILED address"));

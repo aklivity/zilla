@@ -36,8 +36,7 @@ public class TcpEventFormatter implements EventFormatterSpi
         return TcpBinding.NAME;
     }
 
-    public String formatEventEx(
-        int msgTypeId,
+    public String format(
         DirectBuffer buffer,
         int index,
         int length)

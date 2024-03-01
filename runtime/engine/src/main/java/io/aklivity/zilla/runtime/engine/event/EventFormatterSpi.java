@@ -21,8 +21,7 @@ public interface EventFormatterSpi
 {
     String type();
 
-    String formatEventEx(
-        int msgTypeId,
+    String format(
         DirectBuffer buffer,
         int index,
         int length);

@@ -58,7 +58,7 @@ public class KafkaEventFormatterTest
         KafkaEventFormatter formatter = new KafkaEventFormatter();
 
         // WHEN
-        String result = formatter.formatEventEx(0, eventBuffer, 0, eventBuffer.capacity());
+        String result = formatter.format(eventBuffer, 0, eventBuffer.capacity());
 
         // THEN
         assertThat(result, equalTo("AUTHORIZATION_FAILED"));
@@ -86,7 +86,7 @@ public class KafkaEventFormatterTest
         KafkaEventFormatter formatter = new KafkaEventFormatter();
 
         // WHEN
-        String result = formatter.formatEventEx(0, eventBuffer, 0, eventBuffer.capacity());
+        String result = formatter.format(eventBuffer, 0, eventBuffer.capacity());
 
         // THEN
         assertThat(result, equalTo("API_VERSION_REJECTED 42 7"));

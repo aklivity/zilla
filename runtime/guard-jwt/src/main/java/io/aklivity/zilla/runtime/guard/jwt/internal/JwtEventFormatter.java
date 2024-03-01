@@ -35,8 +35,7 @@ public class JwtEventFormatter implements EventFormatterSpi
         return JwtGuard.NAME;
     }
 
-    public String formatEventEx(
-        int msgTypeId,
+    public String format(
         DirectBuffer buffer,
         int index,
         int length)

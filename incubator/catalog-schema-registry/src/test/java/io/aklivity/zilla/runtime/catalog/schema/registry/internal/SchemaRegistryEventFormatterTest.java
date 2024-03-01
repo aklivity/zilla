@@ -59,7 +59,7 @@ public class SchemaRegistryEventFormatterTest
         SchemaRegistryEventFormatter formatter = new SchemaRegistryEventFormatter();
 
         // WHEN
-        String result = formatter.formatEventEx(0, eventBuffer, 0, eventBuffer.capacity());
+        String result = formatter.format(eventBuffer, 0, eventBuffer.capacity());
 
         // THEN
         assertThat(result, equalTo("REMOTE_ACCESS_REJECTED GET http://localhost:8080/hello 500"));

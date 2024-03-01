@@ -38,8 +38,7 @@ public class TlsEventFormatter implements EventFormatterSpi
         return TlsBinding.NAME;
     }
 
-    public String formatEventEx(
-        int msgTypeId,
+    public String format(
         DirectBuffer buffer,
         int index,
         int length)
