@@ -1,0 +1,101 @@
+#
+# Copyright 2021-2023 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+asyncapi: 3.0.0
+info:
+  title: Petstore Kafka API
+  version: 1.0.0
+defaultContentType: application/json
+servers:
+  host-connections:
+    host: 'localhost:9092'
+    protocol: kafka-secure
+    description: Test broker
+    tags:
+      - name: 'kind:remote'
+        description: This server is a remote server. Not exposed by the application.
+      - name: 'visibility:private'
+        description: This resource is private and only available to certain users.
+channels:
+  petstore:
+    address: 'petstore'
+    messages:
+      pet:
+        $ref: '#/components/messages/pet'
+    description: The topic on which pet values may be produced and consumed.
+operations:
+  listPets:
+    action: receive
+    channel:
+      $ref: '#/channels/petstore'
+    summary: >-
+      List all pets.
+    traits:
+      - $ref: '#/components/operationTraits/kafka'
+    messages:
+      - $ref: '#/channels/petstore/messages/pet'
+  createPets:
+    action: send
+    channel:
+      $ref: '#/channels/petstore'
+    summary: >-
+      Create a pet.
+    traits:
+      - $ref: '#/components/operationTraits/kafka'
+    messages:
+      - $ref: '#/channels/petstore/messages/pet'
+components:
+  messages:
+    pet:
+      name: Pet
+      title: Pet
+      summary: >-
+        Inform about Pet.
+      contentType: application/json
+      traits:
+        - $ref: '#/components/messageTraits/commonHeaders'
+      payload:
+        $ref: '#/components/schemas/petPayload'
+  schemas:
+    petPayload:
+      type: object
+      properties:
+        id:
+          type: integer
+          minimum: 0
+          description: Pet id.
+        name:
+          type: string
+          description: Pet name.
+        tag:
+          type: string
+          description: Tag.
+  messageTraits:
+    commonHeaders:
+      headers:
+        type: object
+        properties:
+          my-app-header:
+            type: integer
+            minimum: 0
+            maximum: 100
+  operationTraits:
+    kafka:
+      bindings:
+        kafka:
+          clientId:
+            type: string
+            enum:
+              - my-app-id

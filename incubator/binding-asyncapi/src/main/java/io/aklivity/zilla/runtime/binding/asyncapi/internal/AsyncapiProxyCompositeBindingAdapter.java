@@ -127,7 +127,6 @@ public class AsyncapiProxyCompositeBindingAdapter extends AsyncapiCompositeBindi
                 {
                     break inject;
                 }
-
                 final AsyncapiOperation whenOperation = mqttAsyncapi.operations.get(condition.operationId);
                 final AsyncapiChannelView channel = AsyncapiChannelView.of(mqttAsyncapi.channels, whenOperation.channel);
                 final MqttKafkaConditionKind kind = whenOperation.action.equals(ASYNCAPI_SEND_ACTION_NAME) ?

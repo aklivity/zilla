@@ -36,7 +36,7 @@ connected
 write "{\"id\": 1, \"name\": \"rocky \"tag\": \"test\"}"
 write close
 
-read zilla:begin.ext ${openapi:beginEx()
+read zilla:begin.ext ${openapi:matchBeginEx()
                              .typeId(zilla:id("openapi"))
                              .operationId("createPets")
                              .extension(http:beginEx()

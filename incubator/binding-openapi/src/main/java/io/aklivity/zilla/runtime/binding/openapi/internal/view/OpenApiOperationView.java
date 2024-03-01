@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.binding.openapi.internal.view;
 import java.util.Map;
 
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenApiOperation;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.ResponseByContentType;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiResponseByContentType;
 
 public final class OpenApiOperationView
 {
@@ -33,7 +33,7 @@ public final class OpenApiOperationView
         this.hasResponses = initHasResponses();
     }
 
-    public Map<String, ResponseByContentType> responsesByStatus()
+    public Map<String, OpenapiResponseByContentType> responsesByStatus()
     {
         return operation.responses;
     }
@@ -48,10 +48,10 @@ public final class OpenApiOperationView
         boolean result = false;
         if (operation != null && operation.responses != null)
         {
-            for (Map.Entry<String, ResponseByContentType> response0 : operation.responses.entrySet())
+            for (Map.Entry<String, OpenapiResponseByContentType> response0 : operation.responses.entrySet())
             {
                 String status = response0.getKey();
-                ResponseByContentType response1 = response0.getValue();
+                OpenapiResponseByContentType response1 = response0.getValue();
                 if (!(DEFAULT.equals(status)) && response1.content != null)
                 {
                     result = true;

@@ -36,7 +36,7 @@ import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.PathItem;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiPathItem;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.String8FW;
@@ -57,8 +57,8 @@ public final class OpenapiBindingConfig
     private final long overrideRouteId;
     private final IntHashSet httpOrigins;
     private final Long2LongHashMap resolvedIds;
-    private final Object2ObjectHashMap<Matcher, PathItem> paths;
-    private final Map<CharSequence, Function<PathItem, String>> resolversByMethod;
+    private final Object2ObjectHashMap<Matcher, OpenapiPathItem> paths;
+    private final Map<CharSequence, Function<OpenapiPathItem, String>> resolversByMethod;
 
     public OpenapiBindingConfig(
         BindingConfig binding,
@@ -86,7 +86,7 @@ public final class OpenapiBindingConfig
             .filter(b -> b.type.equals("http"))
             .collect(of(
                 () -> new Long2LongHashMap(-1),
-                (m, r) -> m.put(0L, r.id), //TODO: populate proper apiId
+                (m, r) -> m.put(options.openapis.stream().findFirst().get().apiId, r.id),
                 (m, r) -> m,
                 IDENTITY_FINISH
             ));
@@ -99,7 +99,7 @@ public final class OpenapiBindingConfig
             .collect(toCollection(IntHashSet::new));
         this.helper = new HttpHeaderHelper();
 
-        Map<CharSequence, Function<PathItem, String>> resolversByMethod = new TreeMap<>(CharSequence::compare);
+        Map<CharSequence, Function<OpenapiPathItem, String>> resolversByMethod = new TreeMap<>(CharSequence::compare);
         resolversByMethod.put("POST", o -> o.post != null ? o.post.operationId : null);
         resolversByMethod.put("PUT", o -> o.put != null ? o.put.operationId : null);
         resolversByMethod.put("GET", o -> o.get != null ? o.get.operationId : null);
@@ -131,13 +131,13 @@ public final class OpenapiBindingConfig
         String operationId = null;
 
         resolve:
-        for (Map.Entry<Matcher, PathItem> item : paths.entrySet())
+        for (Map.Entry<Matcher, OpenapiPathItem> item : paths.entrySet())
         {
             Matcher matcher = item.getKey();
             matcher.reset(helper.path);
             if (matcher.find())
             {
-                PathItem operations = item.getValue();
+                OpenapiPathItem operations = item.getValue();
                 operationId = resolveMethod(operations);
                 break resolve;
             }
@@ -147,9 +147,9 @@ public final class OpenapiBindingConfig
     }
 
     private String resolveMethod(
-        PathItem operations)
+        OpenapiPathItem operations)
     {
-        Function<PathItem, String> resolver = resolversByMethod.get(helper.method);
+        Function<OpenapiPathItem, String> resolver = resolversByMethod.get(helper.method);
         return resolver != null ? resolver.apply(operations) : null;
     }
 
