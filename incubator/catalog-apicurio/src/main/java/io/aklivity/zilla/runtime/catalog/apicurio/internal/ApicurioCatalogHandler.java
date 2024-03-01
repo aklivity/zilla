@@ -29,28 +29,20 @@ import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.catalog.apicurio.internal.config.ApicurioOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.apicurio.internal.serializer.RegisterSchemaRequest;
-import io.aklivity.zilla.runtime.catalog.schema.registry.internal.types.SchemaRegistryPrefixFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 
 public class ApicurioCatalogHandler implements CatalogHandler
 {
     private static final String SUBJECT_VERSION_PATH = "/subjects/{0}/versions/{1}";
     private static final String SCHEMA_PATH = "/schemas/ids/{0}";
     private static final String REGISTER_SCHEMA_PATH = "/subjects/{0}/versions";
-    private static final int MAX_PADDING_LENGTH = 5;
-    private static final byte MAGIC_BYTE = 0x0;
-
-    private final SchemaRegistryPrefixFW.Builder prefixRW = new SchemaRegistryPrefixFW.Builder()
-        .wrap(new UnsafeBuffer(new byte[5]), 0, 5);
 
     private final HttpClient client;
     private final String baseUrl;
-    private final RegisterSchemaRequest request;
     private final CRC32C crc32c;
-    private final Int2ObjectCache<String> schemas;
-    private final Int2ObjectCache<CachedSchemaId> schemaIds;
+    private final Int2ObjectCache<String> specs;
+    private final Int2ObjectCache<CachedSchemaId> specIds;
     private final long maxAgeMillis;
     private final ApicurioEventContext event;
     private final long catalogId;
@@ -62,10 +54,10 @@ public class ApicurioCatalogHandler implements CatalogHandler
     {
         this.baseUrl = config.url;
         this.client = HttpClient.newHttpClient();
-        this.request = new RegisterSchemaRequest();
+        //this.request = new RegisterSchemaRequest();
         this.crc32c = new CRC32C();
-        this.schemas = new Int2ObjectCache<>(1, 1024, i -> {});
-        this.schemaIds = new Int2ObjectCache<>(1, 1024, i -> {});
+        this.specs = new Int2ObjectCache<>(1, 1024, i -> {});
+        this.specIds = new Int2ObjectCache<>(1, 1024, i -> {});
         this.maxAgeMillis = config.maxAge.toMillis();
         this.event = new ApicurioEventContext(context);
         this.catalogId = catalogId;
@@ -77,7 +69,6 @@ public class ApicurioCatalogHandler implements CatalogHandler
         String type,
         String schema)
     {
-        //TODO: do we want to register as well?
         return -1;
     }
 
@@ -85,19 +76,19 @@ public class ApicurioCatalogHandler implements CatalogHandler
     public String resolve(
         int schemaId)
     {
-        String schema;
-        if (schemas.containsKey(schemaId))
+        String schema = null;
+        if (specs.containsKey(schemaId))
         {
-            schema = schemas.get(schemaId);
+            schema = specs.get(schemaId);
         }
         else
         {
             String response = sendHttpRequest(MessageFormat.format(SCHEMA_PATH, schemaId));
-            schema = response != null ? request.resolveSchemaResponse(response) : null;
-            if (schema != null)
-            {
-                schemas.put(schemaId, schema);
-            }
+            //            schema = response != null ? request.resolveSchemaResponse(response) : null;
+            //            if (schema != null)
+            //            {
+            //                specs.put(schemaId, schema);
+            //            }
         }
         return schema;
     }
@@ -110,10 +101,10 @@ public class ApicurioCatalogHandler implements CatalogHandler
         int schemaId;
 
         int checkSum = generateCRC32C(subject, version);
-        if (schemaIds.containsKey(checkSum) &&
-            (System.currentTimeMillis() - schemaIds.get(checkSum).timestamp) < maxAgeMillis)
+        if (specIds.containsKey(checkSum) &&
+            (System.currentTimeMillis() - specIds.get(checkSum).timestamp) < maxAgeMillis)
         {
-            schemaId = schemaIds.get(checkSum).id;
+            schemaId = specIds.get(checkSum).id;
         }
         else
         {
@@ -121,7 +112,7 @@ public class ApicurioCatalogHandler implements CatalogHandler
             schemaId = response != null ? request.resolveResponse(response) : NO_SCHEMA_ID;
             if (schemaId != NO_SCHEMA_ID)
             {
-                schemaIds.put(checkSum, new CachedSchemaId(System.currentTimeMillis(), schemaId));
+                specIds.put(checkSum, new CachedSchemaId(System.currentTimeMillis(), schemaId));
             }
         }
         return schemaId;
@@ -139,52 +130,6 @@ public class ApicurioCatalogHandler implements CatalogHandler
             schemaId = data.getInt(index + BitUtil.SIZE_OF_BYTE, ByteOrder.BIG_ENDIAN);
         }
         return schemaId;
-    }
-
-    @Override
-    public int decode(
-        DirectBuffer data,
-        int index,
-        int length,
-        ValueConsumer next,
-        Decoder decoder)
-    {
-        int schemaId = NO_SCHEMA_ID;
-        int progress = 0;
-        int valLength = -1;
-        if (data.getByte(index) == MAGIC_BYTE)
-        {
-            progress += BitUtil.SIZE_OF_BYTE;
-            schemaId = data.getInt(index + progress, ByteOrder.BIG_ENDIAN);
-            progress += BitUtil.SIZE_OF_INT;
-        }
-
-        if (schemaId > NO_SCHEMA_ID)
-        {
-            valLength = decoder.accept(schemaId, data, index + progress, length - progress, next);
-        }
-        return valLength;
-    }
-
-    @Override
-    public int encode(
-        int schemaId,
-        DirectBuffer data,
-        int index,
-        int length,
-        ValueConsumer next,
-        Encoder encoder)
-    {
-        SchemaRegistryPrefixFW prefix = prefixRW.rewrap().schemaId(schemaId).build();
-        next.accept(prefix.buffer(), prefix.offset(), prefix.sizeof());
-        int valLength = encoder.accept(schemaId, data, index, length, next);
-        return valLength > 0 ? prefix.sizeof() + valLength : -1;
-    }
-
-    @Override
-    public int encodePadding()
-    {
-        return MAX_PADDING_LENGTH;
     }
 
     private String sendHttpRequest(
