@@ -50,12 +50,15 @@
                             "specs":
                             {
                                 "title": "Specs",
-                                "type": "array",
-                                "items":
+                                "type": "object",
+                                "patternProperties":
                                 {
-                                    "title": "Specs",
-                                    "type": "string"
-                                }
+                                    "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                                    {
+                                        "type": "string"
+                                    }
+                                },
+                                "maxProperties": 1
                             }
                         },
                         "additionalProperties": false

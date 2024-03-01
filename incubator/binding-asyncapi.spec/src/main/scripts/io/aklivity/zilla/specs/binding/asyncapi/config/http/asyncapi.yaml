@@ -30,15 +30,20 @@ defaultContentType: application/json
 channels:
   pets:
     address: /pets
+    messages:
+      pet:
+        $ref: '#/components/messages/pet'
   showPetById:
     address: /pets/{id}
+    messages:
+      pet:
+        $ref: '#/components/messages/pet'
 
 operations:
   createPet:
     action: send
     bindings:
       http:
-        type: request
         method: POST
     channel:
       $ref: '#/channels/pets'
@@ -46,7 +51,6 @@ operations:
     action: receive
     bindings:
       http:
-        type: request
         method: GET
     channel:
       $ref: '#/channels/pets'
@@ -54,7 +58,6 @@ operations:
     action: receive
     bindings:
       http:
-        type: request
         method: GET
         query:
           type: object
@@ -68,3 +71,26 @@ components:
   correlationIds:
     petsCorrelationId:
       location: '$message.header#/idempotency-key'
+  schemas:
+    petPayload:
+      type: object
+      properties:
+        id:
+          type: integer
+          minimum: 0
+          description: Pet id.
+        name:
+          type: string
+          description: Pet name.
+        tag:
+          type: string
+          description: Tag.
+  messages:
+    pet:
+      name: Pet
+      title: Pet
+      summary: >-
+        Inform about Pet.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/petPayload'

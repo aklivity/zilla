@@ -23,5 +23,5 @@ public class OpenApiOperation
     public String operationId;
     public OpenApiRequestBody requestBody;
     public List<OpenApiParameter> parameters;
-    public Map<String, ResponseByContentType> responses;
+    public Map<String, OpenapiResponseByContentType> responses;
 }

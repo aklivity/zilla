@@ -28,11 +28,11 @@ import io.aklivity.zilla.runtime.binding.http.config.HttpResponseConfigBuilder;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiBinding;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenApi;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenApiHeader;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenApiResponse;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenApiServer;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.ResponseByContentType;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.Openapi;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiResponseByContentType;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenApiOperationView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenApiOperationsView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenApiPathView;
@@ -74,7 +74,7 @@ public final class OpenapiClientCompositeBindingAdapter implements CompositeBind
         OpenapiOptionsConfig options = (OpenapiOptionsConfig) binding.options;
         OpenapiConfig openapiConfig = options.openapis.get(0);
 
-        final OpenApi openApi = openapiConfig.openapi;
+        final Openapi openApi = openapiConfig.openapi;
         final int[] httpsPorts = resolvePortsForScheme(openApi, "https");
         final boolean secure = httpsPorts != null;
 
@@ -100,7 +100,7 @@ public final class OpenapiClientCompositeBindingAdapter implements CompositeBind
     }
 
     private int[] resolvePortsForScheme(
-        OpenApi openApi,
+        Openapi openApi,
         String scheme)
     {
         requireNonNull(scheme);
@@ -114,7 +114,7 @@ public final class OpenapiClientCompositeBindingAdapter implements CompositeBind
     }
 
     private URI findFirstServerUrlWithScheme(
-        OpenApi openApi,
+        Openapi openApi,
         String scheme)
     {
         requireNonNull(scheme);
@@ -133,7 +133,7 @@ public final class OpenapiClientCompositeBindingAdapter implements CompositeBind
 
     private <C> BindingConfigBuilder<C> injectHttpClientOptions(
         BindingConfigBuilder<C> binding,
-        OpenApi openApi)
+        Openapi openApi)
     {
         OpenApiOperationsView operations = OpenApiOperationsView.of(openApi.paths);
         if (operations.hasResponses())
@@ -149,7 +149,7 @@ public final class OpenapiClientCompositeBindingAdapter implements CompositeBind
     private <C> HttpOptionsConfigBuilder<C> injectHttpClientRequests(
         OpenApiOperationsView operations,
         HttpOptionsConfigBuilder<C> options,
-        OpenApi openApi)
+        Openapi openApi)
     {
         for (String pathName : openApi.paths.keySet())
         {
@@ -175,14 +175,14 @@ public final class OpenapiClientCompositeBindingAdapter implements CompositeBind
     private <C> HttpRequestConfigBuilder<C> injectResponses(
         HttpRequestConfigBuilder<C> request,
         OpenApiOperationView operation,
-        OpenApi openApi)
+        Openapi openApi)
     {
         if (operation != null && operation.responsesByStatus() != null)
         {
-            for (Map.Entry<String, ResponseByContentType> responses0 : operation.responsesByStatus().entrySet())
+            for (Map.Entry<String, OpenapiResponseByContentType> responses0 : operation.responsesByStatus().entrySet())
             {
                 String status = responses0.getKey();
-                ResponseByContentType responses1 = responses0.getValue();
+                OpenapiResponseByContentType responses1 = responses0.getValue();
                 if (!(OpenApiOperationView.DEFAULT.equals(status)) && responses1.content != null)
                 {
                     for (Map.Entry<String, OpenApiResponse> response2 : responses1.content.entrySet())
@@ -210,7 +210,7 @@ public final class OpenapiClientCompositeBindingAdapter implements CompositeBind
     }
 
     private <C> HttpResponseConfigBuilder<C> injectResponseHeaders(
-        ResponseByContentType responses,
+        OpenapiResponseByContentType responses,
         HttpResponseConfigBuilder<C> response)
     {
         if (responses.headers != null && !responses.headers.isEmpty())

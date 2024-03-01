@@ -1,0 +1,57 @@
+/*
+ * Copyright 2021-2023 Aklivity Inc
+ *
+ * Licensed under the Aklivity Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ *   https://www.aklivity.io/aklivity-community-license/
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+package io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config;
+
+import static java.util.stream.Collectors.toList;
+
+import java.util.List;
+import java.util.function.Function;
+import java.util.function.LongPredicate;
+
+import io.aklivity.zilla.runtime.engine.config.RouteConfig;
+
+public final class OpenapiAsyncapiRouteConfig
+{
+    public final long id;
+    public final OpenapiAsyncapiWithConfig with;
+    private final Function<String, Long> supplyApiId;
+    public final List<OpenapiAsyncapiConditionConfig> when;
+    private final LongPredicate authorized;
+
+    public OpenapiAsyncapiRouteConfig(
+        RouteConfig route,
+        Function<String, Long> supplyApiId)
+    {
+        this.id = route.id;
+        this.authorized = route.authorized;
+        this.when = route.when.stream()
+            .map(OpenapiAsyncapiConditionConfig.class::cast)
+            .collect(toList());
+        this.with = (OpenapiAsyncapiWithConfig) route.with;
+        this.supplyApiId = supplyApiId;
+    }
+
+    boolean authorized(
+        long authorization)
+    {
+        return authorized.test(authorization);
+    }
+
+    boolean matches(
+        long apiId)
+    {
+        return when.isEmpty() || when.stream().anyMatch(m -> m.matches(apiId, supplyApiId));
+    }
+}

@@ -14,42 +14,26 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.config;
 
-import static java.util.Collections.unmodifiableMap;
-import static org.agrona.LangUtil.rethrowUnchecked;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.io.InputStream;
-import java.io.StringReader;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
 import java.util.function.Function;
+import java.util.zip.CRC32C;
 
 import jakarta.json.Json;
-import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.JsonReader;
 import jakarta.json.JsonString;
-import jakarta.json.JsonValue;
-import jakarta.json.bind.Jsonb;
-import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
-
-import org.agrona.collections.Object2ObjectHashMap;
-import org.leadpony.justify.api.JsonSchema;
-import org.leadpony.justify.api.JsonValidationService;
-import org.leadpony.justify.api.ProblemHandler;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
+import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiParser;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenpaiOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiBinding;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenApi;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
-import io.aklivity.zilla.runtime.engine.config.ConfigException;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapter;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
@@ -61,7 +45,8 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
     private static final String HTTP_NAME = "http";
     private static final String SPECS_NAME = "specs";
 
-    private final Map<String, JsonSchema> schemas;
+    private final OpenapiParser parser;
+    private final CRC32C crc;
 
     private OptionsConfigAdapter tcpOptions;
     private OptionsConfigAdapter tlsOptions;
@@ -70,10 +55,8 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
 
     public OpenapiOptionsConfigAdapter()
     {
-        Map<String, JsonSchema> schemas = new Object2ObjectHashMap<>();
-        schemas.put("3.0.0", schema("3.0.0"));
-        schemas.put("3.1.0", schema("3.1.0"));
-        this.schemas = unmodifiableMap(schemas);
+        this.parser = new OpenapiParser();
+        this.crc = new CRC32C();
     }
 
     @Override
@@ -92,33 +75,33 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
     public JsonObject adaptToJson(
         OptionsConfig options)
     {
-        OpenapiOptionsConfig openOptions = (OpenapiOptionsConfig) options;
+        OpenapiOptionsConfig openapiOptions = (OpenapiOptionsConfig) options;
 
         JsonObjectBuilder object = Json.createObjectBuilder();
 
-        if (openOptions.tcp != null)
+        if (openapiOptions.tcp != null)
         {
             final TcpOptionsConfig tcp = ((OpenapiOptionsConfig) options).tcp;
             object.add(TCP_NAME, tcpOptions.adaptToJson(tcp));
         }
 
-        if (openOptions.tls != null)
+        if (openapiOptions.tls != null)
         {
             final TlsOptionsConfig tls = ((OpenapiOptionsConfig) options).tls;
             object.add(TLS_NAME, tlsOptions.adaptToJson(tls));
         }
 
-        HttpOptionsConfig http = openOptions.http;
+        HttpOptionsConfig http = openapiOptions.http;
         if (http != null)
         {
             object.add(HTTP_NAME, httpOptions.adaptToJson(http));
         }
 
-        if (openOptions.openapis != null)
+        if (openapiOptions.openapis != null)
         {
-            JsonArrayBuilder keys = Json.createArrayBuilder();
-            openOptions.openapis.forEach(p -> keys.add(p.location));
-            object.add(SPECS_NAME, keys);
+            JsonObjectBuilder openapi = Json.createObjectBuilder();
+            openapiOptions.openapis.forEach(o -> openapi.add(o.apiLabel, o.location));
+            object.add(SPECS_NAME, openapi);
         }
 
         return object.build();
@@ -154,7 +137,17 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
 
         if (object.containsKey(SPECS_NAME))
         {
-            object.getJsonArray(SPECS_NAME).forEach(s -> openapiOptions.openapi(asOpenapi(s)));
+            JsonObject openapi = object.getJsonObject(SPECS_NAME);
+            openapi.forEach((n, v) ->
+            {
+                final String location = JsonString.class.cast(v).getString();
+                final String specText = readURL.apply(location);
+                final String apiLabel = n;
+                crc.reset();
+                crc.update(specText.getBytes(UTF_8));
+                final long apiId = crc.getValue();
+                openapiOptions.openapi(new OpenapiConfig(apiLabel, apiId, location, parser.parse(specText)));
+            });
         }
 
         return openapiOptions.build();
@@ -171,97 +164,5 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
         this.tlsOptions.adaptType("tls");
         this.httpOptions = new OptionsConfigAdapter(Kind.BINDING, context);
         this.httpOptions.adaptType("http");
-    }
-
-    private OpenapiConfig asOpenapi(
-        JsonValue value)
-    {
-        final String location = ((JsonString) value).getString();
-        final String specText = readURL.apply(location);
-        OpenApi openapi = parseOpenApi(specText);
-
-        return new OpenapiConfig(location, openapi);
-    }
-
-    private OpenApi parseOpenApi(
-        String openapiText)
-    {
-        OpenApi openApi = null;
-
-        List<Exception> errors = new LinkedList<>();
-
-        try
-        {
-            String openApiVersion = detectOpenApiVersion(openapiText);
-
-            JsonValidationService service = JsonValidationService.newInstance();
-            ProblemHandler handler = service.createProblemPrinter(msg -> errors.add(new ConfigException(msg)));
-            JsonSchema schema = schemas.get(openApiVersion);
-
-            service.createReader(new StringReader(openapiText), schema, handler).read();
-
-            Jsonb jsonb = JsonbBuilder.create();
-
-            openApi = jsonb.fromJson(openapiText, OpenApi.class);
-        }
-        catch (Exception ex)
-        {
-            errors.add(ex);
-        }
-
-        if (!errors.isEmpty())
-        {
-            Exception ex = errors.remove(0);
-            errors.forEach(ex::addSuppressed);
-            rethrowUnchecked(ex);
-        }
-
-        return openApi;
-    }
-
-    private String detectOpenApiVersion(
-        String openapiText)
-    {
-        try (JsonReader reader = Json.createReader(new StringReader(openapiText)))
-        {
-            JsonObject json = reader.readObject();
-            if (json.containsKey("openapi"))
-            {
-                return json.getString("openapi");
-            }
-            else
-            {
-                throw new IllegalArgumentException("Unable to determine OpenAPI version.");
-            }
-        }
-        catch (Exception e)
-        {
-            throw new RuntimeException("Error reading OpenAPI document.", e);
-        }
-    }
-
-    private JsonSchema schema(
-        String version)
-    {
-        InputStream schemaInput = null;
-        boolean detect = true;
-
-        if (version.startsWith("3.0"))
-        {
-            schemaInput = OpenapiBinding.class.getResourceAsStream("schema/openapi.3.0.schema.json");
-        }
-        else if (version.startsWith("3.1"))
-        {
-            schemaInput =  OpenapiBinding.class.getResourceAsStream("schema/openapi.3.1.schema.json");
-            detect = false;
-        }
-
-        JsonValidationService service = JsonValidationService.newInstance();
-
-        return service.createSchemaReaderFactoryBuilder()
-                .withSpecVersionDetection(detect)
-                .build()
-                .createSchemaReader(schemaInput)
-                .read();
     }
 }

@@ -15,11 +15,17 @@
  */
 package io.aklivity.zilla.specs.binding.openapi;
 
+import java.nio.ByteBuffer;
+import java.util.Objects;
+
+import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
+import org.kaazing.k3po.lang.el.BytesMatcher;
 import org.kaazing.k3po.lang.el.Function;
 import org.kaazing.k3po.lang.el.spi.FunctionMapperSpi;
 
+import io.aklivity.zilla.specs.binding.openapi.internal.types.OctetsFW;
 import io.aklivity.zilla.specs.binding.openapi.internal.types.stream.OpenapiBeginExFW;
 
 public final class OpenapiFunctions
@@ -28,6 +34,12 @@ public final class OpenapiFunctions
     public static OpenapiBeginExBuilder beginEx()
     {
         return new OpenapiBeginExBuilder();
+    }
+
+    @Function
+    public static OpenapiBeginExMatcherBuilder matchBeginEx()
+    {
+        return new OpenapiBeginExMatcherBuilder();
     }
 
     public static final class OpenapiBeginExBuilder
@@ -44,6 +56,13 @@ public final class OpenapiFunctions
             int typeId)
         {
             beginExRW.typeId(typeId);
+            return this;
+        }
+
+        public OpenapiBeginExBuilder apiId(
+            long apiId)
+        {
+            beginExRW.apiId(apiId);
             return this;
         }
 
@@ -67,6 +86,102 @@ public final class OpenapiFunctions
             final byte[] array = new byte[beginEx.sizeof()];
             beginEx.buffer().getBytes(beginEx.offset(), array);
             return array;
+        }
+    }
+
+    public static final class OpenapiBeginExMatcherBuilder
+    {
+        private final DirectBuffer bufferRO = new UnsafeBuffer();
+
+        private final OpenapiBeginExFW beginExRO = new OpenapiBeginExFW();
+
+        private Integer typeId;
+        private Long apiId;
+        private String operationId;
+        private OctetsFW.Builder extensionRW;
+
+        public OpenapiBeginExMatcherBuilder typeId(
+            int typeId)
+        {
+            this.typeId = typeId;
+            return this;
+        }
+
+        public OpenapiBeginExMatcherBuilder operationId(
+            String operationId)
+        {
+            this.operationId = operationId;
+            return this;
+        }
+
+        public OpenapiBeginExMatcherBuilder apiId(
+            long apiId)
+        {
+            this.apiId = apiId;
+            return this;
+        }
+
+        public OpenapiBeginExMatcherBuilder extension(
+            byte[] extension)
+        {
+            assert extensionRW == null;
+            extensionRW = new OctetsFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+
+            extensionRW.set(Objects.requireNonNullElseGet(extension, () -> new byte[] {}));
+
+            return this;
+        }
+
+        public BytesMatcher build()
+        {
+            return typeId != null ? this::match : buf -> null;
+        }
+
+        private OpenapiBeginExFW match(
+            ByteBuffer byteBuf) throws Exception
+        {
+            if (!byteBuf.hasRemaining())
+            {
+                return null;
+            }
+
+            bufferRO.wrap(byteBuf);
+            final OpenapiBeginExFW beginEx = beginExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.limit());
+
+            if (beginEx != null &&
+                matchTypeId(beginEx) &&
+                matchApiId(beginEx) &&
+                matchOperationId(beginEx) &&
+                matchExtension(beginEx))
+            {
+                byteBuf.position(byteBuf.position() + beginEx.sizeof());
+                return beginEx;
+            }
+            throw new Exception(beginEx.toString());
+        }
+
+        private boolean matchTypeId(
+            OpenapiBeginExFW beginEx)
+        {
+            return typeId == beginEx.typeId();
+        }
+
+        private boolean matchApiId(
+            OpenapiBeginExFW beginEx)
+        {
+            return apiId == null || apiId == beginEx.apiId();
+        }
+
+        private boolean matchOperationId(
+            OpenapiBeginExFW beginEx)
+        {
+            return operationId == null || operationId.equals(beginEx.operationId().asString());
+        }
+
+        private boolean matchExtension(
+            final OpenapiBeginExFW beginEx)
+        {
+            return extensionRW == null || extensionRW.build().equals(beginEx.extension());
         }
     }
 

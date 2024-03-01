@@ -63,6 +63,7 @@ public class AsyncapiFunctionsTest
     {
         BytesMatcher matcher = AsyncapiFunctions.matchBeginEx()
             .typeId(0x00)
+            .apiId(1L)
             .extension(new byte[] {1})
             .build();
 
@@ -71,6 +72,7 @@ public class AsyncapiFunctionsTest
 
         new AsyncapiBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
             .typeId(0x00)
+            .apiId(1L)
             .extension(new OctetsFW.Builder().wrap(writeBuffer, 0, 1).set(new byte[] {1}).build())
             .build();
 
@@ -82,7 +84,7 @@ public class AsyncapiFunctionsTest
     {
         BytesMatcher matcher = AsyncapiFunctions.matchBeginEx()
             .typeId(0x00)
-            .apiId(1)
+            .apiId(1L)
             .operationId("operationId")
             .extension(new byte[] {1})
             .build();

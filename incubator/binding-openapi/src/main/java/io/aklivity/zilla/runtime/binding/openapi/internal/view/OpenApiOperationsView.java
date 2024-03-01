@@ -19,7 +19,7 @@ import java.util.Map;
 
 import org.agrona.collections.Object2ObjectHashMap;
 
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.PathItem;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiPathItem;
 
 public final class OpenApiOperationsView
 {
@@ -39,13 +39,13 @@ public final class OpenApiOperationsView
     }
 
     public static OpenApiOperationsView of(
-        Map<String, PathItem> paths)
+        Map<String, OpenapiPathItem> paths)
     {
         return new OpenApiOperationsView(paths);
     }
 
     private OpenApiOperationsView(
-        Map<String, PathItem> paths)
+        Map<String, OpenapiPathItem> paths)
     {
         this.operationsByPath = new Object2ObjectHashMap<>();
         boolean hasResponses = false;

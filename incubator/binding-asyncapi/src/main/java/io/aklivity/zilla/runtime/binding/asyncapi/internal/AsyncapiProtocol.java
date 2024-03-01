@@ -33,6 +33,7 @@ public abstract class AsyncapiProtocol
 {
     protected static final String INLINE_CATALOG_NAME = "catalog0";
     protected static final Pattern JSON_CONTENT_TYPE = Pattern.compile("^application/(?:.+\\+)?json$");
+    private static final String VERSION_LATEST = "latest";
 
     protected final Matcher jsonContentType = JSON_CONTENT_TYPE.matcher("");
 
@@ -85,8 +86,9 @@ public abstract class AsyncapiProtocol
             {
                 cataloged
                     .schema()
-                    .subject(schema)
-                    .build()
+                        .version(VERSION_LATEST)
+                        .subject(schema)
+                        .build()
                     .build();
             }
             else

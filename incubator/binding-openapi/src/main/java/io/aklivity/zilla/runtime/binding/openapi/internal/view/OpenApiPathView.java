@@ -20,7 +20,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenApiOperation;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.PathItem;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiPathItem;
 
 public final class OpenApiPathView
 {
@@ -32,13 +32,13 @@ public final class OpenApiPathView
     }
 
     public static OpenApiPathView of(
-        PathItem pathItem)
+        OpenapiPathItem pathItem)
     {
         return new OpenApiPathView(pathItem);
     }
 
     private OpenApiPathView(
-        PathItem pathItem)
+        OpenapiPathItem pathItem)
     {
         Map<String, OpenApiOperation> methods = new LinkedHashMap<>();
         putIfNotNull(methods, "GET", pathItem.get);
