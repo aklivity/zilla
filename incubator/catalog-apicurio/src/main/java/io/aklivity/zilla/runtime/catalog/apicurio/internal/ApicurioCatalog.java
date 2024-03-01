@@ -46,6 +46,6 @@ public class ApicurioCatalog implements Catalog
     @Override
     public URL type()
     {
-        return getClass().getResource("schema/schema.registry.schema.patch.json");
+        return getClass().getResource("schema/apicurio.schema.patch.json");
     }
 }
