@@ -542,6 +542,11 @@ scope kafka
             API_VERSION_REJECTED (2)
         }
 
+        struct KafkaAuthorizationFailedEx extends core::stream::Extension
+        {
+            string8 identity;
+        }
+
         struct KafkaApiVersionRejectedEx extends core::stream::Extension
         {
             int32 apiKey;
@@ -550,7 +555,7 @@ scope kafka
 
         union KafkaEventEx switch (KafkaEventType)
         {
-            case AUTHORIZATION_FAILED: core::stream::Extension authorizationFailed;
+            case AUTHORIZATION_FAILED: KafkaAuthorizationFailedEx authorizationFailed;
             case API_VERSION_REJECTED: KafkaApiVersionRejectedEx apiVersionRejected;
         }
     }

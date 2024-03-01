@@ -51,12 +51,14 @@ public class KafkaEventContext
 
     public void authorizationFailed(
         long traceId,
-        long bindingId)
+        long bindingId,
+        String identity)
     {
         KafkaEventExFW extension = kafkaEventExRW
             .wrap(extensionBuffer, 0, extensionBuffer.capacity())
-            .apiVersionRejected(e -> e
+            .authorizationFailed(e -> e
                 .typeId(AUTHORIZATION_FAILED.value())
+                .identity(identity)
             )
             .build();
         EventFW event = eventRW

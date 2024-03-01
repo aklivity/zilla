@@ -19,12 +19,13 @@ import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaApiVersionRejectedExFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaAuthorizationFailedExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaEventExFW;
 import io.aklivity.zilla.runtime.engine.event.EventFormatterSpi;
 
 public class KafkaEventFormatter implements EventFormatterSpi
 {
-    private static final String AUTHORIZATION_FAILED_FORMAT = "AUTHORIZATION_FAILED";
+    private static final String AUTHORIZATION_FAILED_FORMAT = "AUTHORIZATION_FAILED %s";
     private static final String API_VERSION_REJECTED_FORMAT = "API_VERSION_REJECTED %d %d";
 
     private final EventFW eventRO = new EventFW();
@@ -50,7 +51,8 @@ public class KafkaEventFormatter implements EventFormatterSpi
         {
         case AUTHORIZATION_FAILED:
         {
-            result = AUTHORIZATION_FAILED_FORMAT;
+            KafkaAuthorizationFailedExFW ex = extension.authorizationFailed();
+            result = String.format(AUTHORIZATION_FAILED_FORMAT, ex.identity());
             break;
         }
         case API_VERSION_REJECTED:
