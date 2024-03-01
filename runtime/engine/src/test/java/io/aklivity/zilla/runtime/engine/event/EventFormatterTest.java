@@ -15,16 +15,17 @@
  */
 package io.aklivity.zilla.runtime.engine.event;
 
-import org.agrona.DirectBuffer;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.MatcherAssert.assertThat;
 
-import io.aklivity.zilla.runtime.engine.factory.FactorySpi;
+import org.junit.Test;
 
-public interface EventFormatterSpi extends FactorySpi
+public class EventFormatterTest
 {
-    String type();
-
-    String format(
-        DirectBuffer buffer,
-        int index,
-        int length);
+    @Test
+    public void shouldInstantiate()
+    {
+        EventFormatter formatter = EventFormatter.instantiate();
+        assertThat(formatter, instanceOf(EventFormatter.class));
+    }
 }

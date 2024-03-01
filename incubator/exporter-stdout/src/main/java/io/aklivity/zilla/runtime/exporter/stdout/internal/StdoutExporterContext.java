@@ -15,7 +15,6 @@
 package io.aklivity.zilla.runtime.exporter.stdout.internal;
 
 import java.util.List;
-import java.util.Map;
 import java.util.function.LongFunction;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -23,7 +22,7 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageReader;
 import io.aklivity.zilla.runtime.engine.config.AttributeConfig;
 import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
-import io.aklivity.zilla.runtime.engine.event.EventFormatterSpi;
+import io.aklivity.zilla.runtime.engine.event.EventFormatter;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterContext;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
 import io.aklivity.zilla.runtime.engine.metrics.Collector;
@@ -32,17 +31,17 @@ import io.aklivity.zilla.runtime.exporter.stdout.internal.config.StdoutExporterC
 public class StdoutExporterContext implements ExporterContext
 {
     private final StdoutConfiguration config;
-    private final Map<String, EventFormatterSpi> formatters;
     private final EngineContext context;
+    private final EventFormatter formatter;
 
     public StdoutExporterContext(
         StdoutConfiguration config,
         EngineContext context,
-        Map<String, EventFormatterSpi> formatters)
+        EventFormatter formatter)
     {
         this.config = config;
         this.context = context;
-        this.formatters = formatters;
+        this.formatter = formatter;
     }
 
     @Override
@@ -53,7 +52,7 @@ public class StdoutExporterContext implements ExporterContext
         LongFunction<KindConfig> resolveKind)
     {
         StdoutExporterConfig stdoutExporter = new StdoutExporterConfig(exporter);
-        return new StdoutExporterHandler(config, formatters, context, stdoutExporter);
+        return new StdoutExporterHandler(config, context, formatter, stdoutExporter);
     }
 
     @Override
@@ -68,10 +67,10 @@ public class StdoutExporterContext implements ExporterContext
         return context.supplyQName(namespacedId);
     }
 
-    public int supplyTypeId(
-        String name)
+    public String supplyLocalName(
+        int localId)
     {
-        return context.supplyTypeId(name);
+        return context.supplyLocalName(localId);
     }
 
     public MessageReader supplyEventReader()

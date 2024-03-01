@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.kafka.internal;
 
 import org.agrona.DirectBuffer;
 
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.StringFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaApiVersionRejectedExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaAuthorizationFailedExFW;
@@ -51,7 +52,7 @@ public class KafkaEventFormatter implements EventFormatterSpi
         case AUTHORIZATION_FAILED:
         {
             KafkaAuthorizationFailedExFW ex = extension.authorizationFailed();
-            result = String.format(AUTHORIZATION_FAILED_FORMAT, ex.identity());
+            result = String.format(AUTHORIZATION_FAILED_FORMAT, identity(ex.identity()));
             break;
         }
         case API_VERSION_REJECTED:
@@ -61,5 +62,12 @@ public class KafkaEventFormatter implements EventFormatterSpi
         }
         }
         return result;
+    }
+
+    private static String identity(
+        StringFW identity)
+    {
+        int length = identity.length();
+        return length <= 0 ? "-" : identity.asString();
     }
 }

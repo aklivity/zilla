@@ -46,6 +46,7 @@ public class KafkaEventFormatterTest
             .wrap(extensionBuffer, 0, extensionBuffer.capacity())
             .authorizationFailed(e -> e
                 .typeId(AUTHORIZATION_FAILED.value())
+                .identity("user")
             )
             .build();
         eventRW
@@ -61,7 +62,7 @@ public class KafkaEventFormatterTest
         String result = formatter.format(eventBuffer, 0, eventBuffer.capacity());
 
         // THEN
-        assertThat(result, equalTo("AUTHORIZATION_FAILED"));
+        assertThat(result, equalTo("AUTHORIZATION_FAILED user"));
     }
 
     @Test

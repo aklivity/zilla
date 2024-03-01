@@ -19,13 +19,11 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.Map;
 
 import org.agrona.DirectBuffer;
-import org.agrona.collections.Int2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.engine.binding.function.MessageReader;
-import io.aklivity.zilla.runtime.engine.event.EventFormatterSpi;
+import io.aklivity.zilla.runtime.engine.event.EventFormatter;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.StdoutExporterContext;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.EventFW;
 
@@ -36,22 +34,18 @@ public class StdoutEventsStream
 
     private final StdoutExporterContext context;
     private final MessageReader readEvent;
-    private final Int2ObjectHashMap<EventFormatterSpi> formatters;
+    private final EventFormatter formatter;
     private final EventFW eventRO = new EventFW();
     private final PrintStream out;
 
     public StdoutEventsStream(
         StdoutExporterContext context,
-        Map<String, EventFormatterSpi> formatters,
+        EventFormatter formatter,
         PrintStream out)
     {
         this.context = context;
         this.readEvent = context.supplyEventReader();
-
-        Int2ObjectHashMap<EventFormatterSpi> f = new Int2ObjectHashMap<>();
-        formatters.forEach((k, v) -> f.put(context.supplyTypeId(k), v));
-        this.formatters = f;
-
+        this.formatter = formatter;
         this.out = out;
     }
 
@@ -66,13 +60,10 @@ public class StdoutEventsStream
         int index,
         int length)
     {
-        if (formatters.containsKey(msgTypeId))
-        {
-            final EventFW event = eventRO.wrap(buffer, index, index + length);
-            String qname = context.supplyQName(event.namespacedId());
-            String extension = formatters.get(msgTypeId).format(buffer, index, length);
-            out.format(FORMAT, qname, asDateTime(event.timestamp()), extension);
-        }
+        final EventFW event = eventRO.wrap(buffer, index, index + length);
+        String qname = context.supplyQName(event.namespacedId());
+        String extension = formatter.format(context.supplyLocalName(msgTypeId), buffer, index, length);
+        out.format(FORMAT, qname, asDateTime(event.timestamp()), extension);
     }
 
     private static String asDateTime(
