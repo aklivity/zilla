@@ -15,40 +15,28 @@
  */
 package io.aklivity.zilla.runtime.engine.event;
 
-import static java.util.ServiceLoader.load;
-
-import java.util.Map;
-
 import org.agrona.DirectBuffer;
+import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.engine.factory.Factory;
 
 public final class EventFormatter extends Factory
 {
-    private final Map<String, EventFormatterSpi> formatters;
+    private final Long2ObjectHashMap<EventFormatterSpi> formatters;
 
-    public static EventFormatter instantiate()
+    EventFormatter(
+        Long2ObjectHashMap<EventFormatterSpi> formatters)
     {
-        return instantiate(load(EventFormatterSpi.class), EventFormatter::new);
+        this.formatters = formatters;
     }
 
     public String format(
-        String type,
+        int msgTypeId,
         DirectBuffer buffer,
         int index,
         int length)
     {
-        String result = null;
-        if (formatters.containsKey(type))
-        {
-            result = formatters.get(type).format(buffer, index, length);
-        }
-        return result;
-    }
-
-    private EventFormatter(
-        Map<String, EventFormatterSpi> formatters)
-    {
-        this.formatters = formatters;
+        EventFormatterSpi formatter = formatters.get(msgTypeId);
+        return formatter != null ? formatter.format(buffer, index, length) : null;
     }
 }

@@ -12,26 +12,23 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.exporter.stdout.internal;
+package io.aklivity.zilla.runtime.guard.jwt.internal;
 
-import io.aklivity.zilla.runtime.common.feature.Incubating;
 import io.aklivity.zilla.runtime.engine.Configuration;
-import io.aklivity.zilla.runtime.engine.exporter.Exporter;
-import io.aklivity.zilla.runtime.engine.exporter.ExporterFactorySpi;
+import io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi;
 
-@Incubating
-public class StdoutExporterFactorySpi implements ExporterFactorySpi
+public final class JwtEventFormatterFactory implements EventFormatterFactorySpi
 {
     @Override
-    public String type()
+    public JwtEventFormatter create(
+        Configuration config)
     {
-        return StdoutExporter.NAME;
+        return new JwtEventFormatter(config);
     }
 
     @Override
-    public Exporter create(
-        Configuration config)
+    public String type()
     {
-        return new StdoutExporter(new StdoutConfiguration(config));
+        return JwtGuard.NAME;
     }
 }

@@ -56,7 +56,7 @@ public class SchemaRegistryEventFormatterTest
             .namespacedId(0L)
             .extension(extension.buffer(), extension.offset(), extension.limit())
             .build();
-        SchemaRegistryEventFormatter formatter = new SchemaRegistryEventFormatter();
+        SchemaRegistryEventFormatter formatter = new SchemaRegistryEventFormatter(null);
 
         // WHEN
         String result = formatter.format(eventBuffer, 0, eventBuffer.capacity());

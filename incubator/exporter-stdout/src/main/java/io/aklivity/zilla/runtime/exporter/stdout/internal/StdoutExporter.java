@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.exporter.stdout.internal;
 import java.net.URL;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.event.EventFormatter;
 import io.aklivity.zilla.runtime.engine.exporter.Exporter;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterContext;
 
@@ -26,14 +25,11 @@ public class StdoutExporter implements Exporter
     public static final String NAME = "stdout";
 
     private final StdoutConfiguration config;
-    private final EventFormatter formatter;
 
     public StdoutExporter(
-        StdoutConfiguration config,
-        EventFormatter formatter)
+        StdoutConfiguration config)
     {
         this.config = config;
-        this.formatter = formatter;
     }
 
     @Override
@@ -52,6 +48,6 @@ public class StdoutExporter implements Exporter
     public ExporterContext supply(
         EngineContext context)
     {
-        return new StdoutExporterContext(config, context, formatter);
+        return new StdoutExporterContext(config, context);
     }
 }

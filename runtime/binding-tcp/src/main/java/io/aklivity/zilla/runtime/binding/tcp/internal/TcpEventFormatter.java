@@ -21,19 +21,19 @@ import io.aklivity.zilla.runtime.binding.tcp.internal.types.StringFW;
 import io.aklivity.zilla.runtime.binding.tcp.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.binding.tcp.internal.types.event.TcpDnsFailedExFW;
 import io.aklivity.zilla.runtime.binding.tcp.internal.types.event.TcpEventExFW;
+import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.event.EventFormatterSpi;
 
-public class TcpEventFormatter implements EventFormatterSpi
+public final class TcpEventFormatter implements EventFormatterSpi
 {
     private static final String DNS_FAILED_FORMAT = "DNS_FAILED %s";
 
     private final EventFW eventRO = new EventFW();
     private final TcpEventExFW tcpEventExRO = new TcpEventExFW();
 
-    @Override
-    public String type()
+    TcpEventFormatter(
+        Configuration config)
     {
-        return TcpBinding.NAME;
     }
 
     public String format(

@@ -59,7 +59,7 @@ public class HttpEventFormatterTest
             .namespacedId(0L)
             .extension(extension.buffer(), extension.offset(), extension.limit())
             .build();
-        HttpEventFormatter formatter = new HttpEventFormatter();
+        HttpEventFormatter formatter = new HttpEventFormatter(null);
 
         // WHEN
         String result = formatter.format(eventBuffer, 0, eventBuffer.capacity());
@@ -90,7 +90,7 @@ public class HttpEventFormatterTest
             .namespacedId(0L)
             .extension(extension.buffer(), extension.offset(), extension.limit())
             .build();
-        HttpEventFormatter formatter = new HttpEventFormatter();
+        HttpEventFormatter formatter = new HttpEventFormatter(null);
 
         // WHEN
         String result = formatter.format(eventBuffer, 0, eventBuffer.capacity());

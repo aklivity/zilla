@@ -12,26 +12,23 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.exporter.stdout.internal;
+package io.aklivity.zilla.runtime.catalog.schema.registry.internal;
 
-import io.aklivity.zilla.runtime.common.feature.Incubating;
 import io.aklivity.zilla.runtime.engine.Configuration;
-import io.aklivity.zilla.runtime.engine.exporter.Exporter;
-import io.aklivity.zilla.runtime.engine.exporter.ExporterFactorySpi;
+import io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi;
 
-@Incubating
-public class StdoutExporterFactorySpi implements ExporterFactorySpi
+public final class SchemaRegistryEventFormatterFactory implements EventFormatterFactorySpi
 {
     @Override
-    public String type()
+    public SchemaRegistryEventFormatter create(
+        Configuration config)
     {
-        return StdoutExporter.NAME;
+        return new SchemaRegistryEventFormatter(config);
     }
 
     @Override
-    public Exporter create(
-        Configuration config)
+    public String type()
     {
-        return new StdoutExporter(new StdoutConfiguration(config));
+        return SchemaRegistryCatalog.NAME;
     }
 }

@@ -54,7 +54,7 @@ public class JwtEventFormatterTest
             .namespacedId(0L)
             .extension(extension.buffer(), extension.offset(), extension.limit())
             .build();
-        JwtEventFormatter formatter = new JwtEventFormatter();
+        JwtEventFormatter formatter = new JwtEventFormatter(null);
 
         // WHEN
         String result = formatter.format(eventBuffer, 0, eventBuffer.capacity());

@@ -13,14 +13,23 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.event;
+package io.aklivity.zilla.runtime.binding.kafka.internal;
 
-import org.agrona.DirectBuffer;
+import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi;
 
-public interface EventFormatterSpi
+public final class KafkaEventFormatterFactory implements EventFormatterFactorySpi
 {
-    String format(
-        DirectBuffer buffer,
-        int index,
-        int length);
+    @Override
+    public KafkaEventFormatter create(
+        Configuration config)
+    {
+        return new KafkaEventFormatter(config);
+    }
+
+    @Override
+    public String type()
+    {
+        return KafkaBinding.NAME;
+    }
 }

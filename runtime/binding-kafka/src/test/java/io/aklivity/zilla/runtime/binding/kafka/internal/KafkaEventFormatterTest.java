@@ -56,7 +56,7 @@ public class KafkaEventFormatterTest
             .namespacedId(0L)
             .extension(extension.buffer(), extension.offset(), extension.limit())
             .build();
-        KafkaEventFormatter formatter = new KafkaEventFormatter();
+        KafkaEventFormatter formatter = new KafkaEventFormatter(null);
 
         // WHEN
         String result = formatter.format(eventBuffer, 0, eventBuffer.capacity());
@@ -84,7 +84,7 @@ public class KafkaEventFormatterTest
             .namespacedId(0L)
             .extension(extension.buffer(), extension.offset(), extension.limit())
             .build();
-        KafkaEventFormatter formatter = new KafkaEventFormatter();
+        KafkaEventFormatter formatter = new KafkaEventFormatter(null);
 
         // WHEN
         String result = formatter.format(eventBuffer, 0, eventBuffer.capacity());

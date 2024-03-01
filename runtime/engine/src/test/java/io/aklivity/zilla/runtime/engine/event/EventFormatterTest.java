@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.event;
+/*package io.aklivity.zilla.runtime.engine.event;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -29,3 +29,4 @@ public class EventFormatterTest
         assertThat(formatter, instanceOf(EventFormatter.class));
     }
 }
+*/

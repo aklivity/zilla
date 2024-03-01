@@ -13,14 +13,23 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.event;
+package io.aklivity.zilla.runtime.binding.http.internal;
 
-import org.agrona.DirectBuffer;
+import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi;
 
-public interface EventFormatterSpi
+public final class HttpEventFormatterFactory implements EventFormatterFactorySpi
 {
-    String format(
-        DirectBuffer buffer,
-        int index,
-        int length);
+    @Override
+    public HttpEventFormatter create(
+        Configuration config)
+    {
+        return new HttpEventFormatter(config);
+    }
+
+    @Override
+    public String type()
+    {
+        return HttpBinding.NAME;
+    }
 }

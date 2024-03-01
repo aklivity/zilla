@@ -15,12 +15,11 @@
  */
 package io.aklivity.zilla.runtime.engine.event;
 
-import org.agrona.DirectBuffer;
+import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.factory.FactorySpi;
 
-public interface EventFormatterSpi
+public interface EventFormatterFactorySpi extends FactorySpi
 {
-    String format(
-        DirectBuffer buffer,
-        int index,
-        int length);
+    EventFormatterSpi create(
+        Configuration config);
 }

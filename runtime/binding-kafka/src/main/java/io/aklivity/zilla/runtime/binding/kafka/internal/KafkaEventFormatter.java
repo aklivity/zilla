@@ -22,9 +22,10 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaApiVersionRejectedExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaAuthorizationFailedExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaEventExFW;
+import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.event.EventFormatterSpi;
 
-public class KafkaEventFormatter implements EventFormatterSpi
+public final class KafkaEventFormatter implements EventFormatterSpi
 {
     private static final String AUTHORIZATION_FAILED_FORMAT = "AUTHORIZATION_FAILED %s";
     private static final String API_VERSION_REJECTED_FORMAT = "API_VERSION_REJECTED %d %d";
@@ -32,10 +33,9 @@ public class KafkaEventFormatter implements EventFormatterSpi
     private final EventFW eventRO = new EventFW();
     private final KafkaEventExFW kafkaEventExRO = new KafkaEventExFW();
 
-    @Override
-    public String type()
+    KafkaEventFormatter(
+        Configuration config)
     {
-        return KafkaBinding.NAME;
     }
 
     public String format(

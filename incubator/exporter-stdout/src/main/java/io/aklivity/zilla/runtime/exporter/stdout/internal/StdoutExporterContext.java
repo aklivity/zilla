@@ -32,16 +32,13 @@ public class StdoutExporterContext implements ExporterContext
 {
     private final StdoutConfiguration config;
     private final EngineContext context;
-    private final EventFormatter formatter;
 
     public StdoutExporterContext(
         StdoutConfiguration config,
-        EngineContext context,
-        EventFormatter formatter)
+        EngineContext context)
     {
         this.config = config;
         this.context = context;
-        this.formatter = formatter;
     }
 
     @Override
@@ -52,7 +49,7 @@ public class StdoutExporterContext implements ExporterContext
         LongFunction<KindConfig> resolveKind)
     {
         StdoutExporterConfig stdoutExporter = new StdoutExporterConfig(exporter);
-        return new StdoutExporterHandler(config, context, formatter, stdoutExporter);
+        return new StdoutExporterHandler(config, context, stdoutExporter);
     }
 
     @Override
@@ -67,10 +64,9 @@ public class StdoutExporterContext implements ExporterContext
         return context.supplyQName(namespacedId);
     }
 
-    public String supplyLocalName(
-        int localId)
+    public EventFormatter supplyEventFormatter()
     {
-        return context.supplyLocalName(localId);
+        return context.supplyEventFormatter();
     }
 
     public MessageReader supplyEventReader()

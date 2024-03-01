@@ -19,9 +19,10 @@ import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.binding.tls.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsEventExFW;
+import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.event.EventFormatterSpi;
 
-public class TlsEventFormatter implements EventFormatterSpi
+public final class TlsEventFormatter implements EventFormatterSpi
 {
     private static final String TLS_FAILED_FORMAT = "TLS_FAILED";
     private static final String PROTOCOL_REJECTED_FORMAT = "PROTOCOL_REJECTED";
@@ -32,10 +33,9 @@ public class TlsEventFormatter implements EventFormatterSpi
     private final EventFW eventRO = new EventFW();
     private final TlsEventExFW tlsEventExRO = new TlsEventExFW();
 
-    @Override
-    public String type()
+    TlsEventFormatter(
+        Configuration config)
     {
-        return TlsBinding.NAME;
     }
 
     public String format(

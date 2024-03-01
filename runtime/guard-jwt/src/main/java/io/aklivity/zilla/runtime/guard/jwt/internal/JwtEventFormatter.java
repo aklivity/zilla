@@ -16,23 +16,23 @@ package io.aklivity.zilla.runtime.guard.jwt.internal;
 
 import org.agrona.DirectBuffer;
 
+import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.event.EventFormatterSpi;
 import io.aklivity.zilla.runtime.guard.jwt.internal.types.StringFW;
 import io.aklivity.zilla.runtime.guard.jwt.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.guard.jwt.internal.types.event.JwtAuthorizationFailedExFW;
 import io.aklivity.zilla.runtime.guard.jwt.internal.types.event.JwtEventExFW;
 
-public class JwtEventFormatter implements EventFormatterSpi
+public final class JwtEventFormatter implements EventFormatterSpi
 {
     private static final String AUTHORIZATION_FAILED_FORMAT = "AUTHORIZATION_FAILED %s";
 
     private final EventFW eventRO = new EventFW();
     private final JwtEventExFW jwtEventExRO = new JwtEventExFW();
 
-    @Override
-    public String type()
+    JwtEventFormatter(
+        Configuration config)
     {
-        return JwtGuard.NAME;
     }
 
     public String format(

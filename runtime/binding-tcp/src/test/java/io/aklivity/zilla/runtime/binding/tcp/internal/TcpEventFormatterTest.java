@@ -55,7 +55,7 @@ public class TcpEventFormatterTest
             .namespacedId(0L)
             .extension(extension.buffer(), extension.offset(), extension.limit())
             .build();
-        TcpEventFormatter formatter = new TcpEventFormatter();
+        TcpEventFormatter formatter = new TcpEventFormatter(null);
 
         // WHEN
         String result = formatter.format(eventBuffer, 0, eventBuffer.capacity());

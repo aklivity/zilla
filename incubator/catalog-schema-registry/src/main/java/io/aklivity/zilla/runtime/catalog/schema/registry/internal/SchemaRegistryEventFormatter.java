@@ -20,19 +20,19 @@ import io.aklivity.zilla.runtime.catalog.schema.registry.internal.types.StringFW
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.types.event.SchemaRegistryEventExFW;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.types.event.SchemaRegistryRemoteAccessRejectedExFW;
+import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.event.EventFormatterSpi;
 
-public class SchemaRegistryEventFormatter implements EventFormatterSpi
+public final class SchemaRegistryEventFormatter implements EventFormatterSpi
 {
     private static final String REMOTE_ACCESS_REJECTED = "REMOTE_ACCESS_REJECTED %s %s %d";
 
     private final EventFW eventRO = new EventFW();
     private final SchemaRegistryEventExFW schemaRegistryEventExRO = new SchemaRegistryEventExFW();
 
-    @Override
-    public String type()
+    SchemaRegistryEventFormatter(
+        Configuration config)
     {
-        return SchemaRegistryCatalog.NAME;
     }
 
     public String format(

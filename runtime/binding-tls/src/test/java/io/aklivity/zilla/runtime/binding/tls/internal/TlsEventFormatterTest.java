@@ -58,7 +58,7 @@ public class TlsEventFormatterTest
             .namespacedId(0L)
             .extension(extension.buffer(), extension.offset(), extension.limit())
             .build();
-        TlsEventFormatter formatter = new TlsEventFormatter();
+        TlsEventFormatter formatter = new TlsEventFormatter(null);
 
         // WHEN
         String result = formatter.format(eventBuffer, 0, eventBuffer.capacity());
@@ -84,7 +84,7 @@ public class TlsEventFormatterTest
             .namespacedId(0L)
             .extension(extension.buffer(), extension.offset(), extension.limit())
             .build();
-        TlsEventFormatter formatter = new TlsEventFormatter();
+        TlsEventFormatter formatter = new TlsEventFormatter(null);
 
         // WHEN
         String result = formatter.format(eventBuffer, 0, eventBuffer.capacity());
@@ -110,7 +110,7 @@ public class TlsEventFormatterTest
             .namespacedId(0L)
             .extension(extension.buffer(), extension.offset(), extension.limit())
             .build();
-        TlsEventFormatter formatter = new TlsEventFormatter();
+        TlsEventFormatter formatter = new TlsEventFormatter(null);
 
         // WHEN
         String result = formatter.format(eventBuffer, 0, eventBuffer.capacity());
@@ -136,7 +136,7 @@ public class TlsEventFormatterTest
             .namespacedId(0L)
             .extension(extension.buffer(), extension.offset(), extension.limit())
             .build();
-        TlsEventFormatter formatter = new TlsEventFormatter();
+        TlsEventFormatter formatter = new TlsEventFormatter(null);
 
         // WHEN
         String result = formatter.format(eventBuffer, 0, eventBuffer.capacity());
@@ -162,7 +162,7 @@ public class TlsEventFormatterTest
             .namespacedId(0L)
             .extension(extension.buffer(), extension.offset(), extension.limit())
             .build();
-        TlsEventFormatter formatter = new TlsEventFormatter();
+        TlsEventFormatter formatter = new TlsEventFormatter(null);
 
         // WHEN
         String result = formatter.format(eventBuffer, 0, eventBuffer.capacity());
