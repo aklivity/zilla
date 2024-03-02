@@ -24,6 +24,7 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiMessage
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiOperation;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiChannelView;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiMessageView;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiSchemaView;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
@@ -194,10 +195,12 @@ public class AyncapiKafkaProtocol extends AsyncapiProtocol
         for (String name : messages.keySet())
         {
             AsyncapiMessageView message = AsyncapiMessageView.of(asyncApi.components.messages, messages.get(name));
-            String subject = message.refKey() != null ? message.refKey() : name;
+            AsyncapiSchemaView payload = AsyncapiSchemaView.of(asyncApi.components.schemas, message.payload());
+            String subject = payload.refKey() != null ? payload.refKey() : name;
             catalog
                 .schema()
                     .subject(subject)
+                    .version(VERSION_LATEST)
                     .build()
                 .build();
         }

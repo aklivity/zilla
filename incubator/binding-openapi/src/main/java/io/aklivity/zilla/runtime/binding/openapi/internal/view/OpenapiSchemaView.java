@@ -19,8 +19,8 @@ import java.util.Map;
 
 import jakarta.json.bind.annotation.JsonbPropertyOrder;
 
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenApiItem;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenApiSchema;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiItem;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiSchema;
 
 @JsonbPropertyOrder({
     "type",
@@ -28,26 +28,31 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenApiSchema;
     "properties",
     "required"
 })
-public final class OpenApiSchemaView extends OpenApiResolvable<OpenApiSchema>
+public final class OpenapiSchemaView extends OpenapiResolvable<OpenapiSchema>
 {
     private static final String ARRAY_TYPE = "array";
 
-    private final OpenApiSchema schema;
-    private final Map<String, OpenApiSchema> schemas;
+    private final OpenapiSchema schema;
+    private final Map<String, OpenapiSchema> schemas;
+    private final OpenapiSchema schemaRef;
 
-    private OpenApiSchemaView(
-        Map<String, OpenApiSchema> schemas,
-        OpenApiSchema schema)
+    private OpenapiSchemaView(
+        Map<String, OpenapiSchema> schemas,
+        OpenapiSchema schema)
     {
         super(schemas, "#/components/schemas/(\\w+)");
+        OpenapiSchema schemaRef = null;
         if (schema.ref != null)
         {
+            schemaRef = new OpenapiSchema();
+            schemaRef.ref = schema.ref;
             schema = resolveRef(schema.ref);
         }
         else if (ARRAY_TYPE.equals(schema.type) && schema.items != null && schema.items.ref != null)
         {
             schema.items = resolveRef(schema.items.ref);
         }
+        this.schemaRef = schemaRef;
         this.schemas = schemas;
         this.schema = schema;
     }
@@ -56,18 +61,22 @@ public final class OpenApiSchemaView extends OpenApiResolvable<OpenApiSchema>
     {
         return key;
     }
+    public OpenapiSchema ref()
+    {
+        return schemaRef;
+    }
 
     public String getType()
     {
         return schema.type;
     }
 
-    public OpenApiSchemaView getItems()
+    public OpenapiSchemaView getItems()
     {
-        return schema.items == null ? null : OpenApiSchemaView.of(schemas, schema.items);
+        return schema.items == null ? null : OpenapiSchemaView.of(schemas, schema.items);
     }
 
-    public Map<String, OpenApiItem> getProperties()
+    public Map<String, OpenapiItem> getProperties()
     {
         return schema.properties;
     }
@@ -77,10 +86,10 @@ public final class OpenApiSchemaView extends OpenApiResolvable<OpenApiSchema>
         return schema.required;
     }
 
-    public static OpenApiSchemaView of(
-        Map<String, OpenApiSchema> schemas,
-        OpenApiSchema schema)
+    public static OpenapiSchemaView of(
+        Map<String, OpenapiSchema> schemas,
+        OpenapiSchema schema)
     {
-        return new OpenApiSchemaView(schemas, schema);
+        return new OpenapiSchemaView(schemas, schema);
     }
 }

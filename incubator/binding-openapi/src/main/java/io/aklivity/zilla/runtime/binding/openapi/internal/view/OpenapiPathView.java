@@ -19,28 +19,28 @@ import static java.util.Collections.unmodifiableMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenApiOperation;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiOperation;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiPathItem;
 
-public final class OpenApiPathView
+public final class OpenapiPathView
 {
-    private final Map<String, OpenApiOperation> methods;
+    private final Map<String, OpenapiOperation> methods;
 
-    public Map<String, OpenApiOperation> methods()
+    public Map<String, OpenapiOperation> methods()
     {
         return methods;
     }
 
-    public static OpenApiPathView of(
+    public static OpenapiPathView of(
         OpenapiPathItem pathItem)
     {
-        return new OpenApiPathView(pathItem);
+        return new OpenapiPathView(pathItem);
     }
 
-    private OpenApiPathView(
+    private OpenapiPathView(
         OpenapiPathItem pathItem)
     {
-        Map<String, OpenApiOperation> methods = new LinkedHashMap<>();
+        Map<String, OpenapiOperation> methods = new LinkedHashMap<>();
         putIfNotNull(methods, "GET", pathItem.get);
         putIfNotNull(methods, "PUT", pathItem.put);
         putIfNotNull(methods, "POST", pathItem.post);
@@ -53,9 +53,9 @@ public final class OpenApiPathView
     }
 
     private static void putIfNotNull(
-        Map<String, OpenApiOperation> methods,
+        Map<String, OpenapiOperation> methods,
         String method,
-        OpenApiOperation operation)
+        OpenapiOperation operation)
     {
         if (operation != null)
         {

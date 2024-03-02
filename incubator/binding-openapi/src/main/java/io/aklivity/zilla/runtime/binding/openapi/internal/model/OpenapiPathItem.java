@@ -16,12 +16,12 @@ package io.aklivity.zilla.runtime.binding.openapi.internal.model;
 
 public class OpenapiPathItem
 {
-    public OpenApiOperation get;
-    public OpenApiOperation put;
-    public OpenApiOperation post;
-    public OpenApiOperation delete;
-    public OpenApiOperation options;
-    public OpenApiOperation head;
-    public OpenApiOperation patch;
-    public OpenApiOperation trace;
+    public OpenapiOperation get;
+    public OpenapiOperation put;
+    public OpenapiOperation post;
+    public OpenapiOperation delete;
+    public OpenapiOperation options;
+    public OpenapiOperation head;
+    public OpenapiOperation patch;
+    public OpenapiOperation trace;
 }

@@ -20,6 +20,7 @@ public class AsyncapiMessage
 {
     public AsyncapiSchema headers;
     public String contentType;
+    public AsyncapiSchema payload;
 
     @JsonbProperty("$ref")
     public String ref;
