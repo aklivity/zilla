@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.exporter.stdout.internal.events;
 
-import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_SERVER_HEADER;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -32,19 +31,18 @@ import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
-public class JwtEventsIT
+public class EventIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/http/streams/network/rfc7230/authorization")
-        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/http/streams/application/rfc7230/authorization");
+        .addScriptRoot("net", "io/aklivity/zilla/specs/engine/streams/network")
+        .addScriptRoot("app", "io/aklivity/zilla/specs/engine/streams/application");
 
-    private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
+    private final TestRule timeout = new DisableOnDebug(new Timeout(5, SECONDS));
 
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
-        .countersBufferCapacity(8192)
-        .configure(HTTP_SERVER_HEADER, "Zilla")
-        .configurationRoot("io/aklivity/zilla/specs/binding/http/config/v1.1")
+        .countersBufferCapacity(4096)
+        .configurationRoot("io/aklivity/zilla/specs/exporter/stdout/config")
         .external("app0")
         .clean();
 
@@ -54,15 +52,16 @@ public class JwtEventsIT
     public final TestRule chain = outerRule(output).around(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("server.authorization.credentials.yaml")
+    @Configuration("server.event.yaml")
     @Specification({
-        "${net}/reject.credentials.header/client",
+        "${net}/event/client",
+        "${app}/event/server"
     })
     @Configure(name = "zilla.exporter.stdout.output",
         value = "io.aklivity.zilla.runtime.exporter.stdout.internal.events.StdoutOutputRule.OUT")
-    public void shouldRejectCredentialsHeader() throws Exception
+    public void shouldLogEvents() throws Exception
     {
         k3po.finish();
-        output.expect(Pattern.compile("test.net0 \\[[^\\]]+\\] AUTHORIZATION_FAILED user\n"));
+        output.expect(Pattern.compile("test.net0 \\[[^\\]]+\\] test event message\n"));
     }
 }
