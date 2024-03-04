@@ -38,6 +38,11 @@ public final class AsyncapiMessageView extends AsyncapiResolvable<AsyncapiMessag
         return message.contentType;
     }
 
+    public AsyncapiSchema payload()
+    {
+        return message.payload;
+    }
+
     public static AsyncapiMessageView of(
         Map<String, AsyncapiMessage> messages,
         AsyncapiMessage asyncapiMessage)

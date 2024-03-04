@@ -12,11 +12,30 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.openapi.internal.model;
+package io.aklivity.zilla.runtime.binding.openapi.internal.view;
 
-import java.util.Map;
+import java.net.URI;
 
-public class OpenApiRequestBody
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiServer;
+
+public final class OpenapiServerView
 {
-    public Map<String, OpenApiMediaType> content;
+    private URI url;
+
+    private OpenapiServerView(
+        OpenapiServer server)
+    {
+        this.url = URI.create(server.url);
+    }
+
+    public URI url()
+    {
+        return url;
+    }
+
+    public static OpenapiServerView of(
+        OpenapiServer server)
+    {
+        return new OpenapiServerView(server);
+    }
 }

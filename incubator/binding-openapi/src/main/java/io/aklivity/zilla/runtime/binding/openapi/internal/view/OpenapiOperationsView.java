@@ -21,9 +21,9 @@ import org.agrona.collections.Object2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiPathItem;
 
-public final class OpenApiOperationsView
+public final class OpenapiOperationsView
 {
-    private final Map<String, Map<String, OpenApiOperationView>> operationsByPath;
+    private final Map<String, Map<String, OpenapiOperationView>> operationsByPath;
     private final boolean hasResponses;
 
     public boolean hasResponses()
@@ -31,30 +31,30 @@ public final class OpenApiOperationsView
         return this.hasResponses;
     }
 
-    public OpenApiOperationView operation(
+    public OpenapiOperationView operation(
         String pathName,
         String methodName)
     {
         return operationsByPath.get(pathName).get(methodName);
     }
 
-    public static OpenApiOperationsView of(
+    public static OpenapiOperationsView of(
         Map<String, OpenapiPathItem> paths)
     {
-        return new OpenApiOperationsView(paths);
+        return new OpenapiOperationsView(paths);
     }
 
-    private OpenApiOperationsView(
+    private OpenapiOperationsView(
         Map<String, OpenapiPathItem> paths)
     {
         this.operationsByPath = new Object2ObjectHashMap<>();
         boolean hasResponses = false;
         for (String pathName : paths.keySet())
         {
-            OpenApiPathView path = OpenApiPathView.of(paths.get(pathName));
+            OpenapiPathView path = OpenapiPathView.of(paths.get(pathName));
             for (String methodName : path.methods().keySet())
             {
-                OpenApiOperationView operation = OpenApiOperationView.of(path.methods().get(methodName));
+                OpenapiOperationView operation = OpenapiOperationView.of(path.methods().get(methodName));
                 hasResponses |= operation.hasResponses();
                 if (operationsByPath.containsKey(pathName))
                 {
@@ -62,7 +62,7 @@ public final class OpenApiOperationsView
                 }
                 else
                 {
-                    Map<String, OpenApiOperationView> operationsPerMethod = new LinkedHashMap<>();
+                    Map<String, OpenapiOperationView> operationsPerMethod = new LinkedHashMap<>();
                     operationsPerMethod.put(methodName, operation);
                     operationsByPath.put(pathName, operationsPerMethod);
                 }

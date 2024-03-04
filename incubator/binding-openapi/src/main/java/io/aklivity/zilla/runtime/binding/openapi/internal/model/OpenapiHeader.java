@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.model;
 
-public class OpenApiSecurityScheme
+public class OpenapiHeader
 {
-    public String bearerFormat;
+    public OpenapiSchema schema;
 }
