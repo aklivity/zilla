@@ -17,11 +17,11 @@ package io.aklivity.zilla.runtime.binding.openapi.internal.model;
 import java.util.List;
 import java.util.Map;
 
-public class OpenApiOperation
+public class OpenapiOperation
 {
     public List<Map<String, List<String>>> security;
     public String operationId;
-    public OpenApiRequestBody requestBody;
-    public List<OpenApiParameter> parameters;
+    public OpenapiRequestBody requestBody;
+    public List<OpenapiParameter> parameters;
     public Map<String, OpenapiResponseByContentType> responses;
 }

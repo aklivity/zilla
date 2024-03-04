@@ -18,6 +18,9 @@ import static io.aklivity.zilla.runtime.engine.config.KindConfig.PROXY;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiOperation;
@@ -26,12 +29,18 @@ import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaConditionCon
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithConfigBuilder;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchConfig;
+import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchConfigBuilder;
+import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchMergeConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithProduceConfig;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.config.OpenapiAsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.config.OpenapiAsyncapiSpecConfig;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.OpenapiAsyncapiBinding;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.Openapi;
-import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenApiPathView;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiOperation;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiResponse;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiResponseByContentType;
+import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiPathView;
+import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiSchemaView;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.CompositeBindingAdapterSpi;
@@ -39,6 +48,10 @@ import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
 
 public final class OpenapiAsyncCompositeBindingAdapter implements CompositeBindingAdapterSpi
 {
+    private static final Pattern JSON_CONTENT_TYPE = Pattern.compile("^application/(?:.+\\+)?json$");
+
+    private final Matcher jsonContentType = JSON_CONTENT_TYPE.matcher("");
+
     @Override
     public String type()
     {
@@ -89,20 +102,22 @@ public final class OpenapiAsyncCompositeBindingAdapter implements CompositeBindi
 
                 for (String item : openapi.paths.keySet())
                 {
-                    OpenApiPathView path = OpenApiPathView.of(openapi.paths.get(item));
+                    OpenapiPathView path = OpenapiPathView.of(openapi.paths.get(item));
                     for (String method : path.methods().keySet())
                     {
                         final String operationId = condition.operationId != null ?
                             condition.operationId : path.methods().get(method).operationId;
 
-                        final AsyncapiOperation operation = asyncapi.operations.entrySet().stream()
+                        final OpenapiOperation openapiOperation = path.methods().get(method);
+
+                        final AsyncapiOperation asyncapiOperation = asyncapi.operations.entrySet().stream()
                             .filter(f -> f.getKey().equals(operationId))
                             .map(v -> v.getValue())
                             .findFirst()
                             .get();
 
                         final AsyncapiChannelView channel = AsyncapiChannelView
-                            .of(asyncapi.channels, operation.channel);
+                            .of(asyncapi.channels, asyncapiOperation.channel);
 
                         binding
                             .route()
@@ -111,7 +126,8 @@ public final class OpenapiAsyncCompositeBindingAdapter implements CompositeBindi
                                     .method(method)
                                     .path(item)
                                     .build()
-                                .inject(r -> injectHttpKafkaRouteWith(r, operation.action, channel.address()))
+                                .inject(r -> injectHttpKafkaRouteWith(r, openapi, openapiOperation,
+                                    asyncapiOperation.action, channel.address()))
                                 .build();
                     }
                 }
@@ -123,6 +139,8 @@ public final class OpenapiAsyncCompositeBindingAdapter implements CompositeBindi
 
     private <C> RouteConfigBuilder<C> injectHttpKafkaRouteWith(
         RouteConfigBuilder<C> route,
+        Openapi openapi,
+        OpenapiOperation operation,
         String action,
         String address)
     {
@@ -133,6 +151,7 @@ public final class OpenapiAsyncCompositeBindingAdapter implements CompositeBindi
         case "receive":
             newWith.fetch(HttpKafkaWithFetchConfig.builder()
                 .topic(address)
+                .inject(with -> this.injectHttpKafkaRouteFetchWith(with, openapi, operation))
                 .build());
             break;
         case "send":
@@ -146,5 +165,47 @@ public final class OpenapiAsyncCompositeBindingAdapter implements CompositeBindi
         route.with(newWith.build());
 
         return route;
+    }
+
+    private <C> HttpKafkaWithFetchConfigBuilder<C> injectHttpKafkaRouteFetchWith(
+        HttpKafkaWithFetchConfigBuilder<C> fetch,
+        Openapi openapi,
+        OpenapiOperation operation)
+    {
+        merge:
+        for (Map.Entry<String, OpenapiResponseByContentType> response : operation.responses.entrySet())
+        {
+            OpenapiSchemaView schema = resolveSchemaForJsonContentType(response.getValue().content, openapi);
+
+            if ("array".equals(schema.getType()))
+            {
+                fetch.merged(HttpKafkaWithFetchMergeConfig.builder()
+                    .contentType("application/json")
+                    .build());
+                break merge;
+            }
+
+        }
+        return fetch;
+    }
+
+    private OpenapiSchemaView resolveSchemaForJsonContentType(
+        Map<String, OpenapiResponse> content,
+        Openapi openApi)
+    {
+        OpenapiResponse response = null;
+        if (content != null)
+        {
+            for (String contentType : content.keySet())
+            {
+                if (jsonContentType.reset(contentType).matches())
+                {
+                    response = content.get(contentType);
+                    break;
+                }
+            }
+        }
+
+        return response == null ? null : OpenapiSchemaView.of(openApi.components.schemas, response.schema);
     }
 }

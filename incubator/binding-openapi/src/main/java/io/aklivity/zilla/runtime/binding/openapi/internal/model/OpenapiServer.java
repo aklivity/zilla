@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.model;
 
-public class OpenApiServer
+public class OpenapiServer
 {
     public String url;
 }

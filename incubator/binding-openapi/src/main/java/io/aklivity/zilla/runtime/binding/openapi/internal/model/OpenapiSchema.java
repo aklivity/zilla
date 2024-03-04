@@ -14,7 +14,18 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.model;
 
-public class OpenApiBearerAuth
+import java.util.List;
+import java.util.Map;
+
+import jakarta.json.bind.annotation.JsonbProperty;
+
+public class OpenapiSchema
 {
-    public String bearerFormat;
+    public String type;
+    public OpenapiSchema items;
+    public Map<String, OpenapiItem> properties;
+    public List<String> required;
+
+    @JsonbProperty("$ref")
+    public String ref;
 }

@@ -14,7 +14,10 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.model;
 
-public class OpenApiResponse
+public class OpenapiParameter
 {
-    public OpenApiSchema schema;
+    public String name;
+    public String in;
+    public boolean required;
+    public OpenapiSchema schema;
 }
