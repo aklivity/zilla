@@ -42,6 +42,7 @@ import org.jose4j.jwt.NumericDate;
 import org.jose4j.jwt.consumer.InvalidJwtException;
 import org.jose4j.lang.JoseException;
 
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.guard.jwt.config.JwtKeyConfig;
 import io.aklivity.zilla.runtime.guard.jwt.config.JwtKeySetConfig;
@@ -59,9 +60,11 @@ public class JwtGuardHandler implements GuardHandler
     private final Long2ObjectHashMap<JwtSession> sessionsById;
     private final LongSupplier supplyAuthorizedId;
     private final Long2ObjectHashMap<JwtSessionStore> sessionStoresByContextId;
+    private final JwtEventContext event;
 
     public JwtGuardHandler(
         JwtOptionsConfig options,
+        EngineContext context,
         LongSupplier supplyAuthorizedId,
         Function<String, String> readURL)
     {
@@ -113,14 +116,18 @@ public class JwtGuardHandler implements GuardHandler
         this.supplyAuthorizedId = supplyAuthorizedId;
         this.sessionsById = new Long2ObjectHashMap<>();
         this.sessionStoresByContextId = new Long2ObjectHashMap<>();
+        this.event = new JwtEventContext(context);
     }
 
     @Override
     public long reauthorize(
+        long traceId,
+        long bindingId,
         long contextId,
         String credentials)
     {
         JwtSession session = null;
+        String subject = null;
 
         authorize:
         try
@@ -147,6 +154,7 @@ public class JwtGuardHandler implements GuardHandler
 
             String payload = signature.getPayload();
             JwtClaims claims = JwtClaims.parse(payload);
+            subject = claims.getSubject();
             NumericDate notBefore = claims.getNotBefore();
             NumericDate notAfter = claims.getExpirationTime();
             String issuer = claims.getIssuer();
@@ -161,7 +169,6 @@ public class JwtGuardHandler implements GuardHandler
                 break authorize;
             }
 
-            String subject = claims.getSubject();
             List<String> roles = Optional.ofNullable(claims.getClaimValue("scope"))
                 .map(s -> s.toString().intern())
                 .map(s -> s.split("\\s+"))
@@ -185,7 +192,10 @@ public class JwtGuardHandler implements GuardHandler
         {
             // not authorized
         }
-
+        if (session == null)
+        {
+            event.authorizationFailed(traceId, bindingId, subject);
+        }
         return session != null ? session.authorized : NOT_AUTHORIZED;
     }
 

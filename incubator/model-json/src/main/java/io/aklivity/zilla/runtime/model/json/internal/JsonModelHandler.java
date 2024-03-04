@@ -72,17 +72,16 @@ public abstract class JsonModelHandler
         int index,
         int length)
     {
-        boolean status = false;
+        boolean status = true;
         try
         {
             JsonProvider provider = supplyProvider(schemaId);
             in.wrap(buffer, index, length);
             provider.createReader(in).readValue();
-            status = true;
         }
         catch (JsonValidatingException ex)
         {
-            ex.printStackTrace();
+            status = false;
         }
         return status;
     }

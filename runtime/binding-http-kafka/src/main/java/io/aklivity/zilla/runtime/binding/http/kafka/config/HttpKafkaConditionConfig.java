@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.http.kafka.config;
 
+import java.util.function.Function;
+
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 
 public final class HttpKafkaConditionConfig extends ConditionConfig
@@ -27,5 +29,16 @@ public final class HttpKafkaConditionConfig extends ConditionConfig
     {
         this.method = method;
         this.path = path;
+    }
+
+    public static HttpKafkaConditionConfigBuilder<HttpKafkaConditionConfig> builder()
+    {
+        return new HttpKafkaConditionConfigBuilder<>(HttpKafkaConditionConfig.class::cast);
+    }
+
+    public static <T> HttpKafkaConditionConfigBuilder<T> builder(
+        Function<ConditionConfig, T> mapper)
+    {
+        return new HttpKafkaConditionConfigBuilder<>(mapper);
     }
 }

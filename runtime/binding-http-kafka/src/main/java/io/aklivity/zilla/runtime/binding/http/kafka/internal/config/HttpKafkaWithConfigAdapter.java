@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.http.kafka.internal.config;
 import jakarta.json.JsonObject;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.HttpKafkaBinding;
 import io.aklivity.zilla.runtime.engine.config.WithConfig;
 import io.aklivity.zilla.runtime.engine.config.WithConfigAdapterSpi;

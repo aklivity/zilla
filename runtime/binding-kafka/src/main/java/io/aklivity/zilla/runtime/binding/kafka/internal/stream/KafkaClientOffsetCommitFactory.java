@@ -208,7 +208,10 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
             final KafkaSaslConfig sasl = resolveSasl.apply(binding.sasl());
 
             // TODO: use affinity (like meta, fetch, produce) instead of host and port
-            final KafkaServerConfig server = new KafkaServerConfig(host, port);
+            final KafkaServerConfig server = KafkaServerConfig.builder()
+                .host(host)
+                .port(port)
+                .build();
 
             newStream = new KafkaOffsetCommitStream(
                     application,
@@ -589,6 +592,8 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
             }
             else
             {
+                client.onDecodeResponseErrorCode(traceId, client.originId, OFFSET_COMMIT_API_KEY, OFFSET_COMMIT_API_VERSION,
+                    errorCode);
                 client.errorCode = errorCode;
                 client.decoder = decodeReject;
             }

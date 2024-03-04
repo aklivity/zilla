@@ -40,6 +40,7 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.CompositeBindingAdapterSpi;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
+import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapter;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 
@@ -57,7 +58,7 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
 
     private final KindAdapter kind;
     private final RouteAdapter route;
-    private final OptionsAdapter options;
+    private final OptionsConfigAdapter options;
     private final CatalogedAdapter cataloged;
     private final TelemetryRefAdapter telemetryRef;
 
@@ -70,7 +71,7 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
     {
         this.kind = new KindAdapter(context);
         this.route = new RouteAdapter(context);
-        this.options = new OptionsAdapter(OptionsConfigAdapterSpi.Kind.BINDING, context);
+        this.options = new OptionsConfigAdapter(OptionsConfigAdapterSpi.Kind.BINDING, context);
         this.cataloged = new CatalogedAdapter();
         this.telemetryRef = new TelemetryRefAdapter();
 

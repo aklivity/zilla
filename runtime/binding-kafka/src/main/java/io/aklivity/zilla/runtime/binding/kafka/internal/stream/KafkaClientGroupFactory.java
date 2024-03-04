@@ -878,6 +878,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                         findCoordinatorResponse.host(), findCoordinatorResponse.port());
                     break;
                 default:
+                    client.onDecodeResponseErrorCode(traceId, client.originId, FIND_COORDINATOR_API_KEY,
+                        FIND_COORDINATOR_API_VERSION, errorCode);
                     client.errorCode = errorCode;
                     client.decoder = decodeClusterReject;
                     break;
@@ -1012,6 +1014,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                         joinGroupResponse.memberId().asString());
                     break;
                 default:
+                    client.onDecodeResponseErrorCode(traceId, client.originId, JOIN_GROUP_API_KEY, JOIN_GROUP_VERSION, errorCode);
                     client.errorCode = errorCode;
                     client.decoder = decodeCoordinatorReject;
                     break;
@@ -1071,6 +1074,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                     client.onSyncGroupResponse(traceId, authorization, syncGroupResponse.assignment());
                     break;
                 default:
+                    client.onDecodeResponseErrorCode(traceId, client.originId, SYNC_GROUP_API_KEY, SYNC_GROUP_VERSION, errorCode);
                     client.errorCode = errorCode;
                     client.decoder = decodeCoordinatorReject;
                     break;
@@ -1133,6 +1137,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                     client.onHeartbeatResponse(traceId, authorization);
                     break;
                 default:
+                    client.onDecodeResponseErrorCode(traceId, client.originId, HEARTBEAT_API_KEY, HEARTBEAT_VERSION, errorCode);
                     client.errorCode = errorCode;
                     client.decoder = decodeCoordinatorReject;
                     break;
@@ -1197,6 +1202,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                             }
                             else
                             {
+                                client.onDecodeResponseErrorCode(traceId, client.originId, LEAVE_GROUP_API_KEY,
+                                    LEAVE_GROUP_VERSION, errorCode);
                                 client.errorCode = errorCode;
                                 client.decoder = decodeCoordinatorReject;
                             }
@@ -1211,6 +1218,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 }
                 else
                 {
+                    client.onDecodeResponseErrorCode(traceId, client.originId, LEAVE_GROUP_API_KEY, LEAVE_GROUP_VERSION,
+                        errorCode);
                     client.errorCode = errorCode;
                     client.decoder = decodeCoordinatorReject;
                 }
@@ -2440,7 +2449,10 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             delegate.nodeId = String.valueOf(nodeId);
 
-            KafkaServerConfig server = new KafkaServerConfig(host.asString(), port);
+            KafkaServerConfig server = KafkaServerConfig.builder()
+                .host(host.asString())
+                .port(port)
+                .build();
             delegate.client = new DescribeClient(originId, routedId, server, sasl, delegate);
 
             delegate.client.doNetworkBegin(traceId, authorization, 0);
@@ -2565,9 +2577,18 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 assert resource.equals(delegate.nodeId);
                 break;
             default:
+                onDecodeResponseErrorCode(traceId, originId, errorCode);
                 onNetworkError(traceId, errorCode);
                 break;
             }
+        }
+
+        private void onDecodeResponseErrorCode(
+            long traceId,
+            long originId,
+            int errorCode)
+        {
+            super.onDecodeResponseErrorCode(traceId, originId, DESCRIBE_CONFIGS_API_KEY, DESCRIBE_CONFIGS_API_VERSION, errorCode);
         }
 
         private void onNetwork(

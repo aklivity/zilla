@@ -30,14 +30,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Consumer;
 
-import jakarta.json.Json;
 import jakarta.json.JsonArray;
-import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
-import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonPatch;
 import jakarta.json.JsonReader;
-import jakarta.json.JsonValue;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
@@ -61,6 +57,7 @@ public final class EngineConfigReader
     private final Resolver expressions;
     private final Collection<URL> schemaTypes;
     private final Consumer<String> logger;
+
 
     public EngineConfigReader(
         ConfigAdapterContext context,
@@ -190,7 +187,8 @@ public final class EngineConfigReader
         validate:
         try
         {
-            final JsonObject annotatedSchemaObject = (JsonObject) annotateJsonObject(schemaObject);
+            final EngineConfigAnnotator annotator = new EngineConfigAnnotator();
+            final JsonObject annotatedSchemaObject = annotator.annotate(schemaObject);
 
             if (logger != null)
             {
@@ -249,87 +247,5 @@ public final class EngineConfigReader
 
     }
 
-    private JsonValue annotateJsonObject(
-        JsonObject jsonObject)
-    {
-        JsonObjectBuilder builder = Json.createObjectBuilder();
 
-        jsonObject.forEach((key, value) ->
-        {
-            if ("expression".equals(key))
-            {
-                builder.add(key, value);
-            }
-            else if (value.getValueType() == JsonValue.ValueType.OBJECT)
-            {
-                builder.add(key, annotateJsonObject(value.asJsonObject()));
-            }
-            else if (value.getValueType() == JsonValue.ValueType.ARRAY)
-            {
-                builder.add(key, annotateJsonArray(value.asJsonArray()));
-            }
-            else if (key.equals("type") &&
-                isPrimitiveType(value.toString().replaceAll("\"", "")))
-            {
-                JsonValue pattern = jsonObject.get("pattern");
-                builder.add(key, value);
-                builder.add("anyOf", createOneOfTypes(value.toString().replaceAll("\"", ""), pattern));
-            }
-            else if (!"pattern".equals(key))
-            {
-                builder.add(key, value);
-            }
-        });
-
-        return builder.build();
-    }
-
-    private JsonValue annotateJsonArray(
-        JsonArray jsonArray)
-    {
-        JsonArrayBuilder arrayBuilder = Json.createArrayBuilder();
-
-        jsonArray.forEach(item ->
-        {
-            if (item.getValueType() == JsonValue.ValueType.OBJECT)
-            {
-                arrayBuilder.add(annotateJsonObject(item.asJsonObject()));
-            }
-            else
-            {
-                arrayBuilder.add(item);
-            }
-        });
-
-        return arrayBuilder.build();
-    }
-
-    private boolean isPrimitiveType(
-        String type)
-    {
-        return "string".equals(type) ||
-            "integer".equals(type) ||
-            "boolean".equals(type) ||
-            "number".equals(type);
-    }
-
-    private JsonArray createOneOfTypes(
-        String originalType,
-        JsonValue pattern)
-    {
-        JsonArrayBuilder oneOfArrayBuilder = Json.createArrayBuilder();
-        JsonObjectBuilder objectBuilder = Json.createObjectBuilder();
-        objectBuilder.add("type", originalType);
-        if (pattern != null)
-        {
-            objectBuilder.add("pattern", pattern);
-        }
-        oneOfArrayBuilder.add(objectBuilder);
-
-        oneOfArrayBuilder.add(Json.createObjectBuilder()
-            .add("$ref", "#/$defs/expression")
-        );
-
-        return oneOfArrayBuilder.build();
-    }
 }

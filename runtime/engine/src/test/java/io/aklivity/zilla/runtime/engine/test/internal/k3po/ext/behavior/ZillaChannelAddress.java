@@ -28,38 +28,44 @@ public final class ZillaChannelAddress extends ChannelAddress
     private final long authorization;
     private final String namespace;
     private final String binding;
+    private final String ephemeralName;
 
     public ZillaChannelAddress(
         URI location,
         long authorization,
-        String namespace)
+        String namespace,
+        String ephemeral)
     {
-        this(location, authorization, namespace, bindingName(location));
+        this(location, authorization, namespace, bindingName(location), ephemeral);
     }
 
     private ZillaChannelAddress(
         URI location,
         long authorization,
         String namespace,
-        String binding)
+        String binding,
+        String ephemeral)
     {
         super(location);
 
         this.authorization = authorization;
         this.namespace = requireNonNull(namespace);
         this.binding = requireNonNull(binding);
+        this.ephemeralName = requireNonNull(ephemeral);
     }
 
     private ZillaChannelAddress(
         URI location,
         ChannelAddress transport,
         boolean ephemeral,
+        String ephemeralName,
         long authorization,
         String namespace,
         String binding)
     {
         super(location, transport, ephemeral);
 
+        this.ephemeralName = ephemeralName;
         this.authorization = authorization;
         this.namespace = requireNonNull(namespace);
         this.binding = requireNonNull(binding);
@@ -97,7 +103,7 @@ public final class ZillaChannelAddress extends ChannelAddress
         URI location,
         ChannelAddress transport)
     {
-        return new ZillaChannelAddress(location, transport, true, authorization, "ephemeral", binding);
+        return new ZillaChannelAddress(location, transport, true, ephemeralName, authorization, ephemeralName, binding);
     }
 
     private static String bindingName(

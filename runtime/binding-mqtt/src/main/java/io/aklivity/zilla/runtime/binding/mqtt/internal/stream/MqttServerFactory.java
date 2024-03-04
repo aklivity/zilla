@@ -2910,7 +2910,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                     if (credentialsMatch != null)
                     {
-                        sessionAuth = guard.reauthorize(initialId, credentialsMatch);
+                        sessionAuth = guard.reauthorize(traceId, routedId, initialId, credentialsMatch);
                     }
                 }
 

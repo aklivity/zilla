@@ -21,9 +21,9 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfig;
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfigBuilder;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
-import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfigAdapter;
 
 public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicConfig, JsonObject>
@@ -77,23 +77,23 @@ public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicCon
     public KafkaTopicConfig adaptFromJson(
         JsonObject object)
     {
+        KafkaTopicConfigBuilder<KafkaTopicConfig> topicBuilder = KafkaTopicConfig.builder();
         String name = object.containsKey(NAME_NAME)
-                ? object.getString(NAME_NAME)
-                : null;
+            ? object.getString(NAME_NAME)
+            : null;
+        topicBuilder.name(name);
 
-        KafkaOffsetType defaultOffset = object.containsKey(DEFAULT_OFFSET_NAME)
+        topicBuilder.defaultOffset(object.containsKey(DEFAULT_OFFSET_NAME)
                 ? KafkaOffsetType.valueOf(object.getString(DEFAULT_OFFSET_NAME).toUpperCase())
-                : null;
+                : null);
 
-        KafkaDeltaType deltaType = object.containsKey(DELTA_TYPE_NAME)
+        topicBuilder.deltaType(object.containsKey(DELTA_TYPE_NAME)
                 ? KafkaDeltaType.valueOf(object.getString(DELTA_TYPE_NAME).toUpperCase())
-                : null;
+                : null);
 
         JsonObject key = object.containsKey(EVENT_KEY)
                 ? object.getJsonObject(EVENT_KEY)
                 : null;
-
-        ModelConfig keyConfig = null;
 
         if (key != null)
         {
@@ -102,14 +102,12 @@ public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicCon
             key.forEach(keyObject::add);
             keyObject.add(SUBJECT, name + "-key");
 
-            keyConfig = converter.adaptFromJson(keyObject.build());
+            topicBuilder.key(converter.adaptFromJson(keyObject.build()));
         }
 
         JsonObject value = object.containsKey(EVENT_VALUE)
                 ? object.getJsonObject(EVENT_VALUE)
                 : null;
-
-        ModelConfig valueConfig = null;
 
         if (value != null)
         {
@@ -118,9 +116,9 @@ public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicCon
             value.forEach(valueObject::add);
             valueObject.add(SUBJECT, name + "-value");
 
-            valueConfig = converter.adaptFromJson(valueObject.build());
+            topicBuilder.value(converter.adaptFromJson(valueObject.build()));
         }
 
-        return new KafkaTopicConfig(name, defaultOffset, deltaType, keyConfig, valueConfig);
+        return topicBuilder.build();
     }
 }

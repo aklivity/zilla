@@ -303,6 +303,12 @@
                 }
             ]
         },
+        "options":
+        {
+            "binding":
+            {
+            }
+        },
         "binding":
         {
             "title": "Binding",

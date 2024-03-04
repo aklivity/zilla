@@ -28,7 +28,8 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaOptionsConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaTopicsConfig;
 
 public class MqttKafkaOptionsConfigAdapterTest
 {
@@ -78,13 +79,15 @@ public class MqttKafkaOptionsConfigAdapterTest
     @Test
     public void shouldWriteOptions()
     {
-        MqttKafkaOptionsConfig options = new MqttKafkaOptionsConfig(
-            new MqttKafkaTopicsConfig(
-                new String16FW("sessions"),
-                new String16FW("messages"),
-                new String16FW("retained")),
-            "mqtt-1.example.com:1883",
-            Arrays.asList("/clients/{identity}/#", "/department/clients/{identity}/#"));
+        MqttKafkaOptionsConfig options = MqttKafkaOptionsConfig.builder()
+            .topics(MqttKafkaTopicsConfig.builder()
+                .sessions("sessions")
+                .messages("messages")
+                .retained("retained")
+                .build())
+            .serverRef("mqtt-1.example.com:1883")
+            .clients(Arrays.asList("/clients/{identity}/#", "/department/clients/{identity}/#"))
+            .build();
 
         String text = jsonb.toJson(options);
 
@@ -131,11 +134,13 @@ public class MqttKafkaOptionsConfigAdapterTest
     @Test
     public void shouldWriteOptionsWithoutClients()
     {
-        MqttKafkaOptionsConfig options = new MqttKafkaOptionsConfig(
-            new MqttKafkaTopicsConfig(
-                new String16FW("sessions"),
-                new String16FW("messages"),
-                new String16FW("retained")), null, null);
+        MqttKafkaOptionsConfig options = MqttKafkaOptionsConfig.builder()
+            .topics(MqttKafkaTopicsConfig.builder()
+                .sessions("sessions")
+                .messages("messages")
+                .retained("retained")
+                .build())
+            .build();
 
         String text = jsonb.toJson(options);
 

@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.binding.kafka.config;
 
 import java.util.Objects;
+import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
@@ -29,7 +30,18 @@ public class KafkaTopicConfig
     public final ModelConfig key;
     public final ModelConfig value;
 
-    public KafkaTopicConfig(
+    public static KafkaTopicConfigBuilder<KafkaTopicConfig> builder()
+    {
+        return new KafkaTopicConfigBuilder<>(KafkaTopicConfig.class::cast);
+    }
+
+    public static <T> KafkaTopicConfigBuilder<T> builder(
+        Function<KafkaTopicConfig, T> mapper)
+    {
+        return new KafkaTopicConfigBuilder<>(mapper);
+    }
+
+    KafkaTopicConfig(
         String name,
         KafkaOffsetType defaultOffset,
         KafkaDeltaType deltaType,

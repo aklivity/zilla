@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>cloud</artifactId>
-    <version>0.9.68</version>
+    <version>0.9.69</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -40,6 +40,24 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>binding-amqp</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>binding-asyncapi</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>binding-openapi</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>binding-openapi-asyncapi</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>
     </dependency>
@@ -220,6 +238,12 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>exporter-prometheus</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>exporter-stdout</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>
     </dependency>

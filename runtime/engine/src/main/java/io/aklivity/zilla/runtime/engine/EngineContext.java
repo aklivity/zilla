@@ -18,12 +18,14 @@ package io.aklivity.zilla.runtime.engine;
 import java.net.InetAddress;
 import java.net.URL;
 import java.nio.channels.SelectableChannel;
+import java.time.Clock;
 import java.util.function.LongSupplier;
 
 import org.agrona.MutableDirectBuffer;
 
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageReader;
 import io.aklivity.zilla.runtime.engine.budget.BudgetCreditor;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
@@ -117,6 +119,9 @@ public interface EngineContext
     String supplyLocalName(
         long namespacedId);
 
+    String supplyQName(
+        long namespacedId);
+
     BindingHandler streamFactory();
 
     GuardHandler supplyGuard(
@@ -148,4 +153,10 @@ public interface EngineContext
 
     void onExporterDetached(
         long exporterId);
+
+    MessageConsumer supplyEventWriter();
+
+    MessageReader supplyEventReader();
+
+    Clock clock();
 }

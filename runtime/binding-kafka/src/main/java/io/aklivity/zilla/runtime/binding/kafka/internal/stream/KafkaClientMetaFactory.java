@@ -1786,7 +1786,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                 String host,
                 int port)
             {
-                newServers.put(brokerId, new KafkaServerConfig(host, port));
+                newServers.put(brokerId, KafkaServerConfig.builder().host(host).port(port).build());
             }
 
             private void onDecodeBrokers()
@@ -1810,6 +1810,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                     newPartitions.clear();
                     break;
                 default:
+                    onDecodeResponseErrorCode(traceId, originId, errorCode);
                     final KafkaResetExFW resetEx = kafkaResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
                                                                  .typeId(kafkaTypeId)
                                                                  .error(errorCode)
@@ -1830,6 +1831,18 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                 {
                     newPartitions.put(partitionId, leaderId);
                 }
+                else
+                {
+                    onDecodeResponseErrorCode(traceId, originId, partitionError);
+                }
+            }
+
+            private void onDecodeResponseErrorCode(
+                long traceId,
+                long originId,
+                int errorCode)
+            {
+                super.onDecodeResponseErrorCode(traceId, originId, METADATA_API_KEY, METADATA_API_VERSION, errorCode);
             }
 
             @Override
