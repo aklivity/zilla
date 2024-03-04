@@ -46,14 +46,14 @@ public class ApicurioOptionsConfigAdapterTest
         String text =
                 "{" +
                     "\"url\": \"http://localhost:8081\"," +
-                    "\"context\": \"default\"," +
+                    "\"group-id\": \"default\"," +
                 "}";
 
         ApicurioOptionsConfig catalog = jsonb.fromJson(text, ApicurioOptionsConfig.class);
 
         assertThat(catalog, not(nullValue()));
         assertThat(catalog.url, equalTo("http://localhost:8081"));
-        assertThat(catalog.context, equalTo("default"));
+        assertThat(catalog.groupId, equalTo("default"));
         assertThat(catalog.maxAge.toSeconds(), equalTo(300L));
     }
 
@@ -62,13 +62,13 @@ public class ApicurioOptionsConfigAdapterTest
     {
         ApicurioOptionsConfig catalog = ApicurioOptionsConfig.builder()
             .url("http://localhost:8081")
-            .context("default")
+            .groupId("default")
             .maxAge(Duration.ofSeconds(300))
             .build();
 
         String text = jsonb.toJson(catalog);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"url\":\"http://localhost:8081\",\"context\":\"default\",\"max-age\":300}"));
+        assertThat(text, equalTo("{\"url\":\"http://localhost:8081\",\"group-id\":\"default\",\"max-age\":300}"));
     }
 }

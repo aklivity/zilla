@@ -27,7 +27,7 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 public class ApicurioOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
     private static final String URL = "url";
-    private static final String CONTEXT = "context";
+    private static final String GROUP_ID = "group-id";
     private static final String MAX_AGE_NAME = "max-age";
 
     @Override
@@ -39,7 +39,7 @@ public class ApicurioOptionsConfigAdapter implements OptionsConfigAdapterSpi, Js
     @Override
     public String type()
     {
-        return "schema-registry";
+        return "apicurio";
     }
 
     @Override
@@ -55,10 +55,10 @@ public class ApicurioOptionsConfigAdapter implements OptionsConfigAdapterSpi, Js
             catalog.add(URL, config.url);
         }
 
-        if (config.context != null &&
-            !config.context.isEmpty())
+        if (config.groupId != null &&
+            !config.groupId.isEmpty())
         {
-            catalog.add(CONTEXT, config.context);
+            catalog.add(GROUP_ID, config.groupId);
         }
 
         Duration maxAge = config.maxAge;
@@ -83,9 +83,9 @@ public class ApicurioOptionsConfigAdapter implements OptionsConfigAdapterSpi, Js
                 options.url(object.getString(URL));
             }
 
-            if (object.containsKey(CONTEXT))
+            if (object.containsKey(GROUP_ID))
             {
-                options.context(object.getString(CONTEXT));
+                options.groupId(object.getString(GROUP_ID));
             }
 
             if (object.containsKey(MAX_AGE_NAME))

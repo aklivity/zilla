@@ -22,7 +22,7 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 public class ApicurioOptionsConfig extends OptionsConfig
 {
     public final String url;
-    public final String context;
+    public final String groupId;
     public final Duration maxAge;
 
     public static ApicurioOptionsConfigBuilder<ApicurioOptionsConfig> builder()
@@ -38,11 +38,11 @@ public class ApicurioOptionsConfig extends OptionsConfig
 
     public ApicurioOptionsConfig(
         String url,
-        String context,
+        String groupId,
         Duration maxAge)
     {
         this.url = url;
-        this.context = context;
+        this.groupId = groupId;
         this.maxAge = maxAge;
     }
 }

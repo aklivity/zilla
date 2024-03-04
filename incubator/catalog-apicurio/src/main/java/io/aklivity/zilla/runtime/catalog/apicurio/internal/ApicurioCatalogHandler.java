@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.catalog.apicurio.internal;
 
+import java.io.StringReader;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -22,30 +23,42 @@ import java.nio.ByteOrder;
 import java.text.MessageFormat;
 import java.util.zip.CRC32C;
 
+import jakarta.json.Json;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonReader;
+import jakarta.json.stream.JsonParsingException;
+
 import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
 import org.agrona.collections.Int2ObjectCache;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.catalog.apicurio.internal.config.ApicurioOptionsConfig;
-import io.aklivity.zilla.runtime.catalog.apicurio.internal.serializer.RegisterSchemaRequest;
+import io.aklivity.zilla.runtime.catalog.apicurio.internal.types.ApicurioPrefixFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 
 public class ApicurioCatalogHandler implements CatalogHandler
 {
-    private static final String SUBJECT_VERSION_PATH = "/subjects/{0}/versions/{1}";
-    private static final String SCHEMA_PATH = "/schemas/ids/{0}";
-    private static final String REGISTER_SCHEMA_PATH = "/subjects/{0}/versions";
+    private static final String GLOBAL_ID = "globalId";
+    private static final String ARTIFACT_VERSION_PATH = "/apis/registry/v2/groups/{0}/artifacts/{1}/versions/{2}/meta";
+    private static final String SPECS_PATH = "/apis/registry/v2/ids/globalIds/{0}";
+    private static final int MAX_PADDING_LENGTH = 5;
+    private static final byte MAGIC_BYTE = 0x1;
+
+    private final ApicurioPrefixFW.Builder prefixRW = new ApicurioPrefixFW.Builder()
+        .wrap(new UnsafeBuffer(new byte[5]), 0, 5);
 
     private final HttpClient client;
     private final String baseUrl;
     private final CRC32C crc32c;
-    private final Int2ObjectCache<String> specs;
-    private final Int2ObjectCache<CachedSchemaId> specIds;
+    private final Int2ObjectCache<String> artifacts;
+    private final Int2ObjectCache<CachedArtifactId> globalIds;
     private final long maxAgeMillis;
     private final ApicurioEventContext event;
     private final long catalogId;
+    private final String groupId;
 
     public ApicurioCatalogHandler(
         ApicurioOptionsConfig config,
@@ -54,82 +67,58 @@ public class ApicurioCatalogHandler implements CatalogHandler
     {
         this.baseUrl = config.url;
         this.client = HttpClient.newHttpClient();
-        //this.request = new RegisterSchemaRequest();
         this.crc32c = new CRC32C();
-        this.specs = new Int2ObjectCache<>(1, 1024, i -> {});
-        this.specIds = new Int2ObjectCache<>(1, 1024, i -> {});
+        this.artifacts = new Int2ObjectCache<>(1, 1024, i -> {});
+        this.globalIds = new Int2ObjectCache<>(1, 1024, i -> {});
         this.maxAgeMillis = config.maxAge.toMillis();
+        this.groupId = config.groupId;
         this.event = new ApicurioEventContext(context);
         this.catalogId = catalogId;
     }
 
     @Override
-    public int register(
-        String subject,
-        String type,
-        String schema)
-    {
-        return -1;
-    }
-
-    @Override
     public String resolve(
-        int schemaId)
+        int globalId)
     {
-        String schema = null;
-        if (specs.containsKey(schemaId))
+        String spec;
+        if (artifacts.containsKey(globalId))
         {
-            schema = specs.get(schemaId);
+            spec = artifacts.get(globalId);
         }
         else
         {
-            String response = sendHttpRequest(MessageFormat.format(SCHEMA_PATH, schemaId));
-            //            schema = response != null ? request.resolveSchemaResponse(response) : null;
-            //            if (schema != null)
-            //            {
-            //                specs.put(schemaId, schema);
-            //            }
-        }
-        return schema;
-    }
-
-    @Override
-    public int resolve(
-        String subject,
-        String version)
-    {
-        int schemaId;
-
-        int checkSum = generateCRC32C(subject, version);
-        if (specIds.containsKey(checkSum) &&
-            (System.currentTimeMillis() - specIds.get(checkSum).timestamp) < maxAgeMillis)
-        {
-            schemaId = specIds.get(checkSum).id;
-        }
-        else
-        {
-            String response = sendHttpRequest(MessageFormat.format(SUBJECT_VERSION_PATH, subject, version));
-            schemaId = response != null ? request.resolveResponse(response) : NO_SCHEMA_ID;
-            if (schemaId != NO_SCHEMA_ID)
+            spec = sendHttpRequest(MessageFormat.format(SPECS_PATH, globalId));
+            if (spec != null)
             {
-                specIds.put(checkSum, new CachedSchemaId(System.currentTimeMillis(), schemaId));
+                artifacts.put(globalId, spec);
             }
         }
-        return schemaId;
+        return spec;
     }
 
     @Override
     public int resolve(
-        DirectBuffer data,
-        int index,
-        int length)
+        String artifact,
+        String version)
     {
-        int schemaId = NO_SCHEMA_ID;
-        if (data.getByte(index) == MAGIC_BYTE)
+        int globalId;
+
+        int checkSum = generateCRC32C(artifact, version);
+        if (globalIds.containsKey(checkSum) &&
+            (System.currentTimeMillis() - globalIds.get(checkSum).timestamp) < maxAgeMillis)
         {
-            schemaId = data.getInt(index + BitUtil.SIZE_OF_BYTE, ByteOrder.BIG_ENDIAN);
+            globalId = globalIds.get(checkSum).id;
         }
-        return schemaId;
+        else
+        {
+            String response = sendHttpRequest(MessageFormat.format(ARTIFACT_VERSION_PATH, groupId, artifact, version));
+            globalId = response != null ? resolveGlobalId(response) : NO_SCHEMA_ID;
+            if (globalId != NO_SCHEMA_ID)
+            {
+                globalIds.put(checkSum, new CachedArtifactId(System.currentTimeMillis(), globalId));
+            }
+        }
+        return globalId;
     }
 
     private String sendHttpRequest(
@@ -139,7 +128,7 @@ public class ApicurioCatalogHandler implements CatalogHandler
                 .newBuilder(toURI(baseUrl, path))
                 .GET()
                 .build();
-        // TODO: introduce interrupt/timeout for request to schema registry
+        // TODO: introduce interrupt/timeout for request to apicurio
 
         try
         {
@@ -159,6 +148,66 @@ public class ApicurioCatalogHandler implements CatalogHandler
         return null;
     }
 
+    @Override
+    public int resolve(
+        DirectBuffer data,
+        int index,
+        int length)
+    {
+        int schemaId = NO_SCHEMA_ID;
+        if (data.getByte(index) == MAGIC_BYTE)
+        {
+            schemaId = data.getInt(index + BitUtil.SIZE_OF_BYTE, ByteOrder.BIG_ENDIAN);
+        }
+        return schemaId;
+    }
+
+    @Override
+    public int decode(
+        DirectBuffer data,
+        int index,
+        int length,
+        ValueConsumer next,
+        Decoder decoder)
+    {
+        int schemaId = NO_SCHEMA_ID;
+        int progress = 0;
+        int valLength = -1;
+        if (data.getByte(index) == MAGIC_BYTE)
+        {
+            progress += BitUtil.SIZE_OF_BYTE;
+            schemaId = data.getInt(index + progress, ByteOrder.BIG_ENDIAN);
+            progress += BitUtil.SIZE_OF_INT;
+        }
+
+        if (schemaId > NO_SCHEMA_ID)
+        {
+            valLength = decoder.accept(schemaId, data, index + progress, length - progress, next);
+        }
+        return valLength;
+    }
+
+    @Override
+    public int encode(
+        int schemaId,
+        DirectBuffer data,
+        int index,
+        int length,
+        ValueConsumer next,
+        Encoder encoder)
+    {
+        ApicurioPrefixFW prefix = prefixRW.rewrap().schemaId(schemaId).build();
+        next.accept(prefix.buffer(), prefix.offset(), prefix.sizeof());
+        int valLength = encoder.accept(schemaId, data, index, length, next);
+        return valLength > 0 ? prefix.sizeof() + valLength : -1;
+    }
+
+    @Override
+    public int encodePadding()
+    {
+        return MAX_PADDING_LENGTH;
+    }
+
     private URI toURI(
         String baseUrl,
         String path)
@@ -174,5 +223,21 @@ public class ApicurioCatalogHandler implements CatalogHandler
         crc32c.reset();
         crc32c.update(bytes, 0, bytes.length);
         return (int) crc32c.getValue();
+    }
+
+    private int resolveGlobalId(
+        String response)
+    {
+        try
+        {
+            JsonReader reader = Json.createReader(new StringReader(response));
+            JsonObject object = reader.readObject();
+
+            return object.containsKey(GLOBAL_ID) ? object.getInt(GLOBAL_ID) : NO_SCHEMA_ID;
+        }
+        catch (JsonParsingException ex)
+        {
+            return NO_SCHEMA_ID;
+        }
     }
 }

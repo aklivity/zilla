@@ -20,5 +20,5 @@ catalogs:
     type: apicurio
     options:
       url: http://localhost:8081
-      context: default
+      group-id: default
       max-age: 30

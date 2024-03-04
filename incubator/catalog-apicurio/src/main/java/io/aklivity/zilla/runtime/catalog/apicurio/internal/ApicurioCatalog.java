@@ -23,7 +23,7 @@ import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
 
 public class ApicurioCatalog implements Catalog
 {
-    public static final String NAME = "schema-registry";
+    public static final String NAME = "apicurio";
 
     public ApicurioCatalog(
         Configuration config)

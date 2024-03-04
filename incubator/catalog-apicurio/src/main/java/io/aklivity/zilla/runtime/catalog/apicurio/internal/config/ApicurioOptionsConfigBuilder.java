@@ -27,7 +27,7 @@ public final class ApicurioOptionsConfigBuilder<T> extends ConfigBuilder<T, Apic
     private final Function<OptionsConfig, T> mapper;
 
     private String url;
-    private String context;
+    private String groupId;
     private Duration maxAge;
 
     ApicurioOptionsConfigBuilder(
@@ -50,10 +50,10 @@ public final class ApicurioOptionsConfigBuilder<T> extends ConfigBuilder<T, Apic
         return this;
     }
 
-    public ApicurioOptionsConfigBuilder<T> context(
-        String context)
+    public ApicurioOptionsConfigBuilder<T> groupId(
+        String groupId)
     {
-        this.context = context;
+        this.groupId = groupId;
         return this;
     }
 
@@ -68,6 +68,6 @@ public final class ApicurioOptionsConfigBuilder<T> extends ConfigBuilder<T, Apic
     public T build()
     {
         Duration maxAge = (this.maxAge != null) ? this.maxAge : MAX_AGE_DEFAULT;
-        return mapper.apply(new ApicurioOptionsConfig(url, context, maxAge));
+        return mapper.apply(new ApicurioOptionsConfig(url, groupId, maxAge));
     }
 }

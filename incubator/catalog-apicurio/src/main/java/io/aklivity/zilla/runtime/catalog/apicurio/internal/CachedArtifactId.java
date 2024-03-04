@@ -14,12 +14,12 @@
  */
 package io.aklivity.zilla.runtime.catalog.apicurio.internal;
 
-public class CachedSchemaId
+public class CachedArtifactId
 {
     public long timestamp;
     public int id;
 
-    public CachedSchemaId(
+    public CachedArtifactId(
         long timestamp,
         int id)
     {

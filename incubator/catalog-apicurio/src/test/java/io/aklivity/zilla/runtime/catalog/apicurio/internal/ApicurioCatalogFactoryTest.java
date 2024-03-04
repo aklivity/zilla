@@ -39,17 +39,17 @@ public class ApicurioCatalogFactoryTest
     {
         Configuration config = new Configuration();
         CatalogFactory factory = CatalogFactory.instantiate();
-        Catalog catalog = factory.create("schema-registry", config);
+        Catalog catalog = factory.create("apicurio", config);
 
         assertThat(catalog, instanceOf(ApicurioCatalog.class));
-        assertEquals("schema-registry", catalog.name());
+        assertEquals("apicurio", catalog.name());
 
         CatalogContext context = catalog.supply(mock(EngineContext.class));
         assertThat(context, instanceOf(ApicurioCatalogContext.class));
 
         ApicurioOptionsConfig catalogConfig = ApicurioOptionsConfig.builder()
-            .url("http://localhost:8081")
-            .context("default")
+            .url("http://localhost:8080")
+            .groupId("myGroup")
             .maxAge(Duration.ofSeconds(100))
             .build();
         CatalogConfig options = new CatalogConfig("test", "catalog0", "schema-registry", catalogConfig);

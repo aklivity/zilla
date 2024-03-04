@@ -35,7 +35,7 @@
                             {
                                 "type": "string"
                             },
-                            "context":
+                            "group-id":
                             {
                                 "type": "string",
                                 "default": "default"
