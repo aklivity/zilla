@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.binding;
 
+import java.util.List;
+
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2LongHashMap;
@@ -24,6 +26,8 @@ import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
+import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig;
+import io.aklivity.zilla.runtime.engine.test.internal.event.TestEventContext;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.OctetsFW;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.BeginFW;
@@ -62,12 +66,17 @@ final class TestBindingFactory implements BindingHandler
 
     private final EngineContext context;
     private final Long2LongHashMap router;
+    private final TestEventContext event;
+
+    private List<TestBindingOptionsConfig.Event> events;
+    private int eventIndex;
 
     TestBindingFactory(
         EngineContext context)
     {
         this.context = context;
         this.router = new Long2LongHashMap(-1L);
+        this.event = new TestEventContext(context);
     }
 
     public void attach(
@@ -82,6 +91,8 @@ final class TestBindingFactory implements BindingHandler
         {
             router.put(binding.id, exit.id);
         }
+
+        this.events = binding.options != null ? ((TestBindingOptionsConfig) binding.options).events : null;
     }
 
     public void detach(
@@ -204,6 +215,13 @@ final class TestBindingFactory implements BindingHandler
             long traceId = begin.traceId();
 
             target.doInitialBegin(traceId);
+
+            while (events != null && eventIndex < events.size())
+            {
+                TestBindingOptionsConfig.Event e = events.get(eventIndex);
+                event.connected(traceId, routedId, e.timestamp, e.message);
+                eventIndex++;
+            }
         }
 
         private void onInitialData(

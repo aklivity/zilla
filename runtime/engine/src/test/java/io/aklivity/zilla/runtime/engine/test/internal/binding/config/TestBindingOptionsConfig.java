@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.binding.config;
 
+import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
@@ -22,6 +23,7 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 public final class TestBindingOptionsConfig extends OptionsConfig
 {
     public final String mode;
+    public final List<Event> events;
 
     public static TestBindingOptionsConfigBuilder<TestBindingOptionsConfig> builder()
     {
@@ -35,8 +37,24 @@ public final class TestBindingOptionsConfig extends OptionsConfig
     }
 
     TestBindingOptionsConfig(
-        String mode)
+        String mode,
+        List<Event> events)
     {
         this.mode = mode;
+        this.events = events;
+    }
+
+    public static final class Event
+    {
+        public final long timestamp;
+        public final String message;
+
+        public Event(
+            long timestamp,
+            String message)
+        {
+            this.timestamp = timestamp;
+            this.message = message;
+        }
     }
 }

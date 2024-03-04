@@ -18,6 +18,7 @@ package io.aklivity.zilla.runtime.engine.test.internal.exporter;
 import java.util.List;
 import java.util.function.LongFunction;
 
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.AttributeConfig;
 import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
@@ -27,14 +28,22 @@ import io.aklivity.zilla.runtime.engine.metrics.Collector;
 
 public class TestExporterContext implements ExporterContext
 {
+    private final EngineContext context;
+
+    public TestExporterContext(
+        EngineContext context)
+    {
+        this.context = context;
+    }
+
     @Override
     public ExporterHandler attach(
-        ExporterConfig config,
+        ExporterConfig exporter,
         List<AttributeConfig> attributes,
         Collector collector,
         LongFunction<KindConfig> resolveKind)
     {
-        return new TestExporterHandler();
+        return new TestExporterHandler(context, exporter);
     }
 
     @Override

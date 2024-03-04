@@ -13,39 +13,24 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.test.internal.binding;
-
-import java.net.URL;
+package io.aklivity.zilla.runtime.engine.test.internal.event;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
-import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.binding.Binding;
+import io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi;
+import io.aklivity.zilla.runtime.engine.test.internal.binding.TestBinding;
 
-public final class TestBinding implements Binding
+public class TestEventFormatterFactory implements EventFormatterFactorySpi
 {
-    public static final String NAME = "test";
-
-    TestBinding(
+    @Override
+    public TestEventFormatter create(
         Configuration config)
     {
+        return new TestEventFormatter(config);
     }
 
     @Override
-    public String name()
+    public String type()
     {
-        return "test";
-    }
-
-    @Override
-    public URL type()
-    {
-        return getClass().getResource("test.schema.patch.json");
-    }
-
-    @Override
-    public TestBindingContext supply(
-        EngineContext context)
-    {
-        return new TestBindingContext(context);
+        return TestBinding.NAME;
     }
 }

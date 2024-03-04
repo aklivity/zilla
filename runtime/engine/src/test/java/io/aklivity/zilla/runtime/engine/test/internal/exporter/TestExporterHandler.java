@@ -15,10 +15,36 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.exporter;
 
+import org.agrona.DirectBuffer;
+
+import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageReader;
+import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
+import io.aklivity.zilla.runtime.engine.event.EventFormatter;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
+import io.aklivity.zilla.runtime.engine.internal.types.event.EventFW;
+import io.aklivity.zilla.runtime.engine.test.internal.exporter.config.TestExporterOptionsConfig;
 
 class TestExporterHandler implements ExporterHandler
 {
+    private final EngineContext context;
+    private final TestExporterOptionsConfig options;
+    private final MessageReader readEvent;
+    private final EventFormatter formatter;
+    private final EventFW eventRO = new EventFW();
+
+    private int eventIndex;
+
+    TestExporterHandler(
+        EngineContext context,
+        ExporterConfig exporter)
+    {
+        this.context = context;
+        this.readEvent = context.supplyEventReader();
+        this.formatter = context.supplyEventFormatter();
+        this.options = (TestExporterOptionsConfig) exporter.options;
+    }
+
     @Override
     public void start()
     {
@@ -27,11 +53,32 @@ class TestExporterHandler implements ExporterHandler
     @Override
     public int export()
     {
-        return 0;
+        return readEvent.read(this::handleEvent, 1);
     }
 
     @Override
     public void stop()
     {
+    }
+
+    private void handleEvent(
+        int msgTypeId,
+        DirectBuffer buffer,
+        int index,
+        int length)
+    {
+        final EventFW event = eventRO.wrap(buffer, index, index + length);
+        String qname = context.supplyQName(event.namespacedId());
+        String message = formatter.format(msgTypeId, buffer, index, length);
+        if (options.events != null && eventIndex < options.events.size())
+        {
+            TestExporterOptionsConfig.Event e = options.events.get(eventIndex);
+            if (!e.qName.equals(qname) || !e.message.equals(message))
+            {
+                throw new IllegalStateException(String.format("event mismatch, expected: %s %s, got: %s %s",
+                    e.qName, e.message, qname, message));
+            }
+            eventIndex++;
+        }
     }
 }

@@ -70,6 +70,25 @@
                                         }
                                     }
                                 ]
+                            },
+                            "events":
+                            {
+                                "type": "array",
+                                "items":
+                                {
+                                    "type": "object",
+                                    "properties":
+                                    {
+                                        "timestamp":
+                                        {
+                                            "type": "integer"
+                                        },
+                                        "message":
+                                        {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
                             }
                         },
                         "additionalProperties": false
