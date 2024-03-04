@@ -21,7 +21,6 @@ import static org.junit.rules.RuleChain.outerRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 import org.kaazing.k3po.junit.annotation.Specification;
@@ -44,8 +43,6 @@ public class EventIT
         .external("app0")
         .clean();
 
-    private final ExpectedException thrown = ExpectedException.none();
-
     @Rule
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
@@ -55,7 +52,7 @@ public class EventIT
         "${net}/event/client",
         "${app}/event/server"
     })
-    public void shouldLogEvent() throws Exception
+    public void shouldLogEvents() throws Exception
     {
         k3po.finish();
     }
