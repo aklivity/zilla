@@ -19,7 +19,7 @@ services:
       - ../../zilla.yaml:/etc/zilla/zilla.yaml
       - ./grpc/echo.proto:/etc/zilla/proto/echo.proto
       - ./grpc/route_guide.proto:/etc/zilla/proto/route_guide.proto
-    command: start -v -e
+    command: start -v -e -Pzilla.binding.kafka.client.connection.pool=false
 
   mqtt-simulator:
     build: https://github.com/vordimous/mqtt-simulator.git#zilla-quickstart
