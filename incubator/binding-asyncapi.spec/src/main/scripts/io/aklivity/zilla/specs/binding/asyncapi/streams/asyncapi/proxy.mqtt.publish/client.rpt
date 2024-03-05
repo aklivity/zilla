@@ -14,7 +14,8 @@
 # under the License.
 #
 
-connect "zilla://streams/asyncapi_proxy0"
+connect await WILL_STREAM_STARTED
+        "zilla://streams/asyncapi_proxy0"
         option zilla:window 8192
         option zilla:transmission "duplex"
 
