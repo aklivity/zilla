@@ -14,22 +14,27 @@
  */
 package io.aklivity.zilla.runtime.guard.jwt.internal;
 
+import static io.aklivity.zilla.runtime.guard.jwt.internal.types.event.JwtEventType.AUTHORIZATION_FAILED;
+
 import java.nio.ByteBuffer;
 import java.time.Clock;
 
-import org.agrona.MutableDirectBuffer;
+import org.agrona.concurrent.AtomicBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
-import io.aklivity.zilla.runtime.guard.jwt.internal.types.event.JwtEventFW;
+import io.aklivity.zilla.runtime.guard.jwt.internal.types.event.EventFW;
+import io.aklivity.zilla.runtime.guard.jwt.internal.types.event.JwtEventExFW;
 
 public class JwtEventContext
 {
     private static final int EVENT_BUFFER_CAPACITY = 1024;
 
-    private final JwtEventFW.Builder jwtEventRW = new JwtEventFW.Builder();
-    private final MutableDirectBuffer eventBuffer = new UnsafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
+    private final AtomicBuffer eventBuffer = new UnsafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
+    private final AtomicBuffer extensionBuffer = new UnsafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
+    private final EventFW.Builder eventRW = new EventFW.Builder();
+    private final JwtEventExFW.Builder jwtEventExRW = new JwtEventExFW.Builder();
     private final int jwtTypeId;
     private final MessageConsumer eventWriter;
     private final Clock clock;
@@ -47,14 +52,19 @@ public class JwtEventContext
         long bindingId,
         String identity)
     {
-        JwtEventFW event = jwtEventRW
-            .wrap(eventBuffer, 0, eventBuffer.capacity())
+        JwtEventExFW extension = jwtEventExRW
+            .wrap(extensionBuffer, 0, extensionBuffer.capacity())
             .authorizationFailed(e -> e
-                .timestamp(clock.millis())
-                .traceId(traceId)
-                .namespacedId(bindingId)
+                .typeId(AUTHORIZATION_FAILED.value())
                 .identity(identity)
             )
+            .build();
+        EventFW event = eventRW
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .timestamp(clock.millis())
+            .traceId(traceId)
+            .namespacedId(bindingId)
+            .extension(extension.buffer(), extension.offset(), extension.limit())
             .build();
         eventWriter.accept(jwtTypeId, event.buffer(), event.offset(), event.limit());
     }

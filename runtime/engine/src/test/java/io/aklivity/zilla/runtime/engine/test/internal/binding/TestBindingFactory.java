@@ -15,6 +15,9 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.binding;
 
+import java.util.LinkedList;
+import java.util.List;
+
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2LongHashMap;
@@ -22,8 +25,13 @@ import org.agrona.collections.Long2LongHashMap;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
+import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
+import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig;
+import io.aklivity.zilla.runtime.engine.test.internal.event.TestEventContext;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.OctetsFW;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.BeginFW;
@@ -62,12 +70,20 @@ final class TestBindingFactory implements BindingHandler
 
     private final EngineContext context;
     private final Long2LongHashMap router;
+    private final TestEventContext event;
+
+    private List<CatalogHandler> catalogs;
+    private GuardHandler guard;
+    private String credentials;
+    private List<TestBindingOptionsConfig.Event> events;
+    private int eventIndex;
 
     TestBindingFactory(
         EngineContext context)
     {
         this.context = context;
         this.router = new Long2LongHashMap(-1L);
+        this.event = new TestEventContext(context);
     }
 
     public void attach(
@@ -81,6 +97,29 @@ final class TestBindingFactory implements BindingHandler
         if (exit != null)
         {
             router.put(binding.id, exit.id);
+        }
+
+        TestBindingOptionsConfig options = (TestBindingOptionsConfig) binding.options;
+        if (options != null)
+        {
+            if (options.catalogs != null)
+            {
+                this.catalogs = new LinkedList<>();
+                for (String catalog : options.catalogs)
+                {
+                    int namespaceId = context.supplyTypeId(binding.namespace);
+                    int catalogId = context.supplyTypeId(catalog);
+                    catalogs.add(context.supplyCatalog(NamespacedId.id(namespaceId, catalogId)));
+                }
+            }
+            if (options.authorization != null)
+            {
+                int namespaceId = context.supplyTypeId(binding.namespace);
+                int guardId = context.supplyTypeId(options.authorization.name);
+                this.guard = context.supplyGuard(NamespacedId.id(namespaceId, guardId));
+                this.credentials = options.authorization.credentials;
+            }
+            this.events = options.events;
         }
     }
 
@@ -204,6 +243,24 @@ final class TestBindingFactory implements BindingHandler
             long traceId = begin.traceId();
 
             target.doInitialBegin(traceId);
+
+            if (catalogs != null)
+            {
+                for (CatalogHandler catalog : catalogs)
+                {
+                    catalog.resolve(0);
+                }
+            }
+            if (guard != null)
+            {
+                guard.reauthorize(traceId, routedId, 0, credentials);
+            }
+            while (events != null && eventIndex < events.size())
+            {
+                TestBindingOptionsConfig.Event e = events.get(eventIndex);
+                event.connected(traceId, routedId, e.timestamp, e.message);
+                eventIndex++;
+            }
         }
 
         private void onInitialData(

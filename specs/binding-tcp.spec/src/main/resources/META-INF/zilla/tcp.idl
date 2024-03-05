@@ -22,14 +22,14 @@ scope tcp
             DNS_FAILED (1)
         }
 
-        struct TcpDnsFailed extends core::event::Event
+        struct TcpDnsFailedEx extends core::stream::Extension
         {
             string16 address;
         }
 
-        union TcpEvent switch (TcpEventType)
+        union TcpEventEx switch (TcpEventType)
         {
-            case DNS_FAILED: TcpDnsFailed dnsFailed;
+            case DNS_FAILED: TcpDnsFailedEx dnsFailed;
         }
     }
 }

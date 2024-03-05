@@ -15,13 +15,20 @@
  */
 package io.aklivity.zilla.runtime.binding.tls.internal;
 
+import static io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsEventType.TLS_FAILED;
+import static io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsEventType.TLS_HANDSHAKE_FAILED;
+import static io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsEventType.TLS_KEY_REJECTED;
+import static io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsEventType.TLS_PEER_NOT_VERIFIED;
+import static io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsEventType.TLS_PROTOCOL_REJECTED;
+
 import java.nio.ByteBuffer;
 import java.time.Clock;
 
-import org.agrona.MutableDirectBuffer;
+import org.agrona.concurrent.AtomicBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
-import io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsEventFW;
+import io.aklivity.zilla.runtime.binding.tls.internal.types.event.EventFW;
+import io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsEventExFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
@@ -29,8 +36,10 @@ public class TlsEventContext
 {
     private static final int EVENT_BUFFER_CAPACITY = 1024;
 
-    private final TlsEventFW.Builder tlsEventRW = new TlsEventFW.Builder();
-    private final MutableDirectBuffer eventBuffer = new UnsafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
+    private final AtomicBuffer eventBuffer = new UnsafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
+    private final AtomicBuffer extensionBuffer = new UnsafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
+    private final EventFW.Builder eventRW = new EventFW.Builder();
+    private final TlsEventExFW.Builder tlsEventExRW = new TlsEventExFW.Builder();
     private final int tlsTypeId;
     private final MessageConsumer eventWriter;
     private final Clock clock;
@@ -47,13 +56,18 @@ public class TlsEventContext
         long traceId,
         long bindingId)
     {
-        TlsEventFW event = tlsEventRW
-            .wrap(eventBuffer, 0, eventBuffer.capacity())
+        TlsEventExFW extension = tlsEventExRW
+            .wrap(extensionBuffer, 0, extensionBuffer.capacity())
             .tlsFailed(e -> e
-                .timestamp(clock.millis())
-                .traceId(traceId)
-                .namespacedId(bindingId)
+                .typeId(TLS_FAILED.value())
             )
+            .build();
+        EventFW event = eventRW
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .timestamp(clock.millis())
+            .traceId(traceId)
+            .namespacedId(bindingId)
+            .extension(extension.buffer(), extension.offset(), extension.limit())
             .build();
         eventWriter.accept(tlsTypeId, event.buffer(), event.offset(), event.limit());
     }
@@ -62,13 +76,18 @@ public class TlsEventContext
         long traceId,
         long bindingId)
     {
-        TlsEventFW event = tlsEventRW
-            .wrap(eventBuffer, 0, eventBuffer.capacity())
+        TlsEventExFW extension = tlsEventExRW
+            .wrap(extensionBuffer, 0, extensionBuffer.capacity())
             .tlsProtocolRejected(e -> e
-                .timestamp(clock.millis())
-                .traceId(traceId)
-                .namespacedId(bindingId)
+                .typeId(TLS_PROTOCOL_REJECTED.value())
             )
+            .build();
+        EventFW event = eventRW
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .timestamp(clock.millis())
+            .traceId(traceId)
+            .namespacedId(bindingId)
+            .extension(extension.buffer(), extension.offset(), extension.limit())
             .build();
         eventWriter.accept(tlsTypeId, event.buffer(), event.offset(), event.limit());
     }
@@ -77,13 +96,18 @@ public class TlsEventContext
         long traceId,
         long bindingId)
     {
-        TlsEventFW event = tlsEventRW
-            .wrap(eventBuffer, 0, eventBuffer.capacity())
+        TlsEventExFW extension = tlsEventExRW
+            .wrap(extensionBuffer, 0, extensionBuffer.capacity())
             .tlsKeyRejected(e -> e
-                .timestamp(clock.millis())
-                .traceId(traceId)
-                .namespacedId(bindingId)
+                .typeId(TLS_KEY_REJECTED.value())
             )
+            .build();
+        EventFW event = eventRW
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .timestamp(clock.millis())
+            .traceId(traceId)
+            .namespacedId(bindingId)
+            .extension(extension.buffer(), extension.offset(), extension.limit())
             .build();
         eventWriter.accept(tlsTypeId, event.buffer(), event.offset(), event.limit());
     }
@@ -92,13 +116,18 @@ public class TlsEventContext
         long traceId,
         long bindingId)
     {
-        TlsEventFW event = tlsEventRW
-            .wrap(eventBuffer, 0, eventBuffer.capacity())
+        TlsEventExFW extension = tlsEventExRW
+            .wrap(extensionBuffer, 0, extensionBuffer.capacity())
             .tlsPeerNotVerified(e -> e
-                .timestamp(clock.millis())
-                .traceId(traceId)
-                .namespacedId(bindingId)
+                .typeId(TLS_PEER_NOT_VERIFIED.value())
             )
+            .build();
+        EventFW event = eventRW
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .timestamp(clock.millis())
+            .traceId(traceId)
+            .namespacedId(bindingId)
+            .extension(extension.buffer(), extension.offset(), extension.limit())
             .build();
         eventWriter.accept(tlsTypeId, event.buffer(), event.offset(), event.limit());
     }
@@ -107,13 +136,18 @@ public class TlsEventContext
         long traceId,
         long bindingId)
     {
-        TlsEventFW event = tlsEventRW
-            .wrap(eventBuffer, 0, eventBuffer.capacity())
+        TlsEventExFW extension = tlsEventExRW
+            .wrap(extensionBuffer, 0, extensionBuffer.capacity())
             .tlsHandshakeFailed(e -> e
-                .timestamp(clock.millis())
-                .traceId(traceId)
-                .namespacedId(bindingId)
+                .typeId(TLS_HANDSHAKE_FAILED.value())
             )
+            .build();
+        EventFW event = eventRW
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .timestamp(clock.millis())
+            .traceId(traceId)
+            .namespacedId(bindingId)
+            .extension(extension.buffer(), extension.offset(), extension.limit())
             .build();
         eventWriter.accept(tlsTypeId, event.buffer(), event.offset(), event.limit());
     }

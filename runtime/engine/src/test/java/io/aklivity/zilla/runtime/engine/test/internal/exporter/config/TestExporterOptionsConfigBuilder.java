@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.exporter.config;
 
+import java.util.LinkedList;
+import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
@@ -25,6 +27,7 @@ public final class TestExporterOptionsConfigBuilder<T> extends ConfigBuilder<T, 
     private final Function<OptionsConfig, T> mapper;
 
     private String mode;
+    private List<TestExporterOptionsConfig.Event> events;
 
     TestExporterOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
@@ -46,9 +49,21 @@ public final class TestExporterOptionsConfigBuilder<T> extends ConfigBuilder<T, 
         return this;
     }
 
+    public TestExporterOptionsConfigBuilder<T> event(
+        String qName,
+        String message)
+    {
+        if (this.events == null)
+        {
+            this.events = new LinkedList<>();
+        }
+        this.events.add(new TestExporterOptionsConfig.Event(qName, message));
+        return this;
+    }
+
     @Override
     public T build()
     {
-        return mapper.apply(new TestExporterOptionsConfig(mode));
+        return mapper.apply(new TestExporterOptionsConfig(mode, events));
     }
 }

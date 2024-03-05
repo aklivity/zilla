@@ -108,6 +108,7 @@ scope core
             int64 timestamp;
             int64 traceId;
             int64 namespacedId;
+            octets extension;
         }
     }
 }

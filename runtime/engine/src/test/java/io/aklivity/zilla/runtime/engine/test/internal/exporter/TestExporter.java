@@ -45,6 +45,6 @@ public class TestExporter implements Exporter
     public ExporterContext supply(
         EngineContext context)
     {
-        return new TestExporterContext();
+        return new TestExporterContext(context);
     }
 }

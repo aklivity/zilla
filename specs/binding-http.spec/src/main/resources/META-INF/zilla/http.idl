@@ -57,7 +57,7 @@ scope http
             REQUEST_ACCEPTED (1)
         }
 
-        struct HttpRequestAccepted extends core::event::Event
+        struct HttpRequestAcceptedEx extends core::stream::Extension
         {
             string8 identity;
             string8 scheme;
@@ -66,9 +66,9 @@ scope http
             string16 path;
         }
 
-        union HttpEvent switch (HttpEventType)
+        union HttpEventEx switch (HttpEventType)
         {
-            case REQUEST_ACCEPTED: HttpRequestAccepted requestAccepted;
+            case REQUEST_ACCEPTED: HttpRequestAcceptedEx requestAccepted;
         }
     }
 }
