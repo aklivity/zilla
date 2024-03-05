@@ -27,12 +27,15 @@ import io.aklivity.zilla.runtime.model.core.config.IntegerModelConfig;
 
 public class IntegerValidatorTest
 {
-    private final IntegerModelConfig config = IntegerModelConfig.builder().build();
-    private final IntegerValidatorHandler handler = new IntegerValidatorHandler(config);
+    public static final String BINARY = "binary";
 
     @Test
     public void shouldVerifyValidIntegerCompleteMessage()
     {
+        IntegerModelConfig config = IntegerModelConfig.builder()
+            .format(BINARY)
+            .build();
+        IntegerValidatorHandler handler = new IntegerValidatorHandler(config);
         DirectBuffer data = new UnsafeBuffer();
 
         byte[] bytes = {0, 0, 0, 42};
@@ -41,11 +44,155 @@ public class IntegerValidatorTest
     }
 
     @Test
-    public void shouldVerifyValidIntegerFragmentedMessage()
+    public void shouldVerifyValidSignedIntegerCompleteMessage()
     {
+        IntegerModelConfig config = IntegerModelConfig.builder()
+            .format(BINARY)
+            .build();
+        IntegerValidatorHandler handler = new IntegerValidatorHandler(config);
         DirectBuffer data = new UnsafeBuffer();
 
-        byte[] bytes = {0, 0, 0, 42};
+        byte[] bytes = {-1, -1, -1, -25};
+        data.wrap(bytes, 0, bytes.length);
+        assertTrue(handler.validate(data, 0, data.capacity(), ValueConsumer.NOP));
+    }
+
+    @Test
+    public void shouldVerifyValidAsciiIntegerCompleteMessage()
+    {
+        IntegerModelConfig config = IntegerModelConfig.builder().build();
+        IntegerValidatorHandler handler = new IntegerValidatorHandler(config);
+        DirectBuffer data = new UnsafeBuffer();
+
+        String payload = "8449999";
+        byte[] bytes = payload.getBytes();
+        data.wrap(bytes, 0, bytes.length);
+        assertTrue(handler.validate(ValidatorHandler.FLAGS_COMPLETE, data, 0, data.capacity(), ValueConsumer.NOP));
+    }
+
+    @Test
+    public void shouldVerifyValidTextIntegerMaxLimit()
+    {
+        IntegerModelConfig config = IntegerModelConfig.builder()
+            .max(999)
+            .build();
+        IntegerValidatorHandler handler = new IntegerValidatorHandler(config);
+        DirectBuffer data = new UnsafeBuffer();
+
+        String payload = "8449999";
+        byte[] bytes = payload.getBytes();
+        data.wrap(bytes, 0, bytes.length);
+        assertFalse(handler.validate(ValidatorHandler.FLAGS_COMPLETE, data, 0, data.capacity(), ValueConsumer.NOP));
+    }
+
+    @Test
+    public void shouldVerifyValidTextIntegerExclusiveMaxLimit()
+    {
+        IntegerModelConfig config = IntegerModelConfig.builder()
+            .max(999)
+            .exclusiveMax(true)
+            .build();
+        IntegerValidatorHandler handler = new IntegerValidatorHandler(config);
+        DirectBuffer data = new UnsafeBuffer();
+
+        String payload = "999";
+        byte[] bytes = payload.getBytes();
+        data.wrap(bytes, 0, bytes.length);
+        assertFalse(handler.validate(ValidatorHandler.FLAGS_COMPLETE, data, 0, data.capacity(), ValueConsumer.NOP));
+    }
+
+    @Test
+    public void shouldVerifyValidTextIntegerExclusiveMinLimit()
+    {
+        IntegerModelConfig config = IntegerModelConfig.builder()
+            .min(999)
+            .exclusiveMin(true)
+            .build();
+        IntegerValidatorHandler handler = new IntegerValidatorHandler(config);
+        DirectBuffer data = new UnsafeBuffer();
+
+        String payload = "999";
+        byte[] bytes = payload.getBytes();
+        data.wrap(bytes, 0, bytes.length);
+        assertFalse(handler.validate(ValidatorHandler.FLAGS_COMPLETE, data, 0, data.capacity(), ValueConsumer.NOP));
+    }
+
+    @Test
+    public void shouldVerifyInvalidAsciiIntegerCompleteMessage()
+    {
+        IntegerModelConfig config = IntegerModelConfig.builder().build();
+        IntegerValidatorHandler handler = new IntegerValidatorHandler(config);
+        DirectBuffer data = new UnsafeBuffer();
+
+        String payload = "-.1a1";
+        byte[] bytes = payload.getBytes();
+        data.wrap(bytes, 0, bytes.length);
+        assertFalse(handler.validate(ValidatorHandler.FLAGS_COMPLETE, data, 0, data.capacity(), ValueConsumer.NOP));
+    }
+
+    @Test
+    public void shouldVerifyValidAsciiNegativeCompleteMessage()
+    {
+        IntegerModelConfig config = IntegerModelConfig.builder().build();
+        IntegerValidatorHandler handler = new IntegerValidatorHandler(config);
+        DirectBuffer data = new UnsafeBuffer();
+
+        String payload = "-125";
+        byte[] bytes = payload.getBytes();
+        data.wrap(bytes, 0, bytes.length);
+        assertTrue(handler.validate(ValidatorHandler.FLAGS_COMPLETE, data, 0, data.capacity(), ValueConsumer.NOP));
+    }
+
+    @Test
+    public void shouldVerifyValidAsciiFragmentedMessage()
+    {
+        IntegerModelConfig config = IntegerModelConfig.builder().build();
+        IntegerValidatorHandler handler = new IntegerValidatorHandler(config);
+        DirectBuffer data = new UnsafeBuffer();
+
+        String payload = "-458";
+        byte[] bytes = payload.getBytes();
+
+        data.wrap(bytes, 0, 2);
+        assertTrue(handler.validate(ValidatorHandler.FLAGS_INIT, data, 0, data.capacity(), ValueConsumer.NOP));
+
+        data.wrap(bytes, 2, 1);
+        assertTrue(handler.validate(0x00, data, 0, data.capacity(), ValueConsumer.NOP));
+
+        data.wrap(bytes, 3, 1);
+        assertTrue(handler.validate(ValidatorHandler.FLAGS_FIN, data, 0, data.capacity(), ValueConsumer.NOP));
+    }
+
+    @Test
+    public void shouldVerifyInvalidAsciiFragmentedMessage()
+    {
+        IntegerModelConfig config = IntegerModelConfig.builder().build();
+        IntegerValidatorHandler handler = new IntegerValidatorHandler(config);
+        DirectBuffer data = new UnsafeBuffer();
+
+        String payload = "-4a4";
+        byte[] bytes = payload.getBytes();
+
+        data.wrap(bytes, 0, 2);
+        assertTrue(handler.validate(ValidatorHandler.FLAGS_INIT, data, 0, data.capacity(), ValueConsumer.NOP));
+
+        data.wrap(bytes, 2, 1);
+        assertFalse(handler.validate(0x00, data, 0, data.capacity(), ValueConsumer.NOP));
+
+        data.wrap(bytes, 3, 1);
+        assertFalse(handler.validate(ValidatorHandler.FLAGS_FIN, data, 0, data.capacity(), ValueConsumer.NOP));
+    }
+
+    @Test
+    public void shouldVerifyValidIntegerFragmentedMessage()
+    {
+        IntegerModelConfig config = IntegerModelConfig.builder()
+            .format(BINARY)
+            .build();
+        IntegerValidatorHandler handler = new IntegerValidatorHandler(config);
+        DirectBuffer data = new UnsafeBuffer();
+
+        byte[] bytes = {0, 0, 1, 42};
 
         data.wrap(bytes, 0, 2);
         assertTrue(handler.validate(ValidatorHandler.FLAGS_INIT, data, 0, data.capacity(), ValueConsumer.NOP));
@@ -60,9 +207,13 @@ public class IntegerValidatorTest
     @Test
     public void shouldVerifyInvalidIntegerCompleteMessage()
     {
+        IntegerModelConfig config = IntegerModelConfig.builder()
+            .format(BINARY)
+            .build();
+        IntegerValidatorHandler handler = new IntegerValidatorHandler(config);
         DirectBuffer data = new UnsafeBuffer();
 
-        byte[] bytes = "Not an Integer".getBytes();
+        byte[] bytes = "Test value".getBytes();
         data.wrap(bytes, 0, bytes.length);
         assertFalse(handler.validate(data, 0, data.capacity(), ValueConsumer.NOP));
     }
@@ -70,6 +221,10 @@ public class IntegerValidatorTest
     @Test
     public void shouldVerifyInValidIntegerFragmentedMessage()
     {
+        IntegerModelConfig config = IntegerModelConfig.builder()
+            .format(BINARY)
+            .build();
+        IntegerValidatorHandler handler = new IntegerValidatorHandler(config);
         DirectBuffer data = new UnsafeBuffer();
 
         byte[] firstFragment = {0, 0, 0};

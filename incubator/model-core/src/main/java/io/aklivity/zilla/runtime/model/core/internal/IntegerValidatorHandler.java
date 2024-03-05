@@ -22,11 +22,24 @@ import io.aklivity.zilla.runtime.model.core.config.IntegerModelConfig;
 
 public class IntegerValidatorHandler implements ValidatorHandler
 {
-    private int pendingBytes;
+    private final int max;
+    private final int min;
+    private final int multiple;
+    private final boolean exclusiveMax;
+    private final boolean exclusiveMin;
+
+    private boolean valid;
+    private IntegerFormat format;
 
     public IntegerValidatorHandler(
         IntegerModelConfig config)
     {
+        this.max = config.max;
+        this.min = config.min;
+        this.exclusiveMax = config.exclusiveMax;
+        this.exclusiveMin = config.exclusiveMin;
+        this.multiple = config.multiple;
+        this.format = IntegerFormat.of(config.format);
     }
 
     @Override
@@ -37,22 +50,15 @@ public class IntegerValidatorHandler implements ValidatorHandler
         int length,
         ValueConsumer next)
     {
-        boolean valid;
-
         if ((flags & FLAGS_INIT) != 0x00)
         {
-            pendingBytes = 4;
+            valid = true;
         }
 
-        pendingBytes = pendingBytes - length;
-
-        if ((flags & FLAGS_FIN) != 0x00)
+        if (valid)
         {
-            valid = pendingBytes == 0;
-        }
-        else
-        {
-            valid = pendingBytes >= 0;
+            valid = format.validate(flags, data, index, length,
+                max, min, exclusiveMax, exclusiveMin, multiple);
         }
         return valid;
     }

@@ -6,7 +6,103 @@
     },
     {
         "op": "add",
+        "path": "/$defs/converter/allOf/-",
+        "value":
+        {
+            "if":
+            {
+                "properties":
+                {
+                    "model":
+                    {
+                        "const": "integer"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "model":
+                    {
+                        "const": "integer"
+                    },
+                    "format":
+                    {
+                        "type": "string",
+                        "enum":
+                        [
+                            "binary",
+                            "text"
+                        ],
+                        "default": "text"
+                    },
+                    "max":
+                    {
+                        "type": "integer"
+                    },
+                    "min":
+                    {
+                        "type": "integer"
+                    },
+                    "exclusiveMax":
+                    {
+                        "type": "boolean",
+                        "default": false
+                    },
+                    "exclusiveMin":
+                    {
+                        "type": "boolean",
+                        "default": false
+                    },
+                    "multiple":
+                    {
+                        "type": "integer"
+                    }
+                },
+                "additionalProperties": false
+            }
+        }
+    },
+    {
+        "op": "add",
         "path": "/$defs/validator/types/enum/-",
-        "value": "integer"
+        "value": "string"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/validator/allOf/-",
+        "value":
+        {
+            "if":
+            {
+                "properties":
+                {
+                    "model":
+                    {
+                        "const": "string"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "model":
+                    {
+                        "const": "string"
+                    },
+                    "encoding":
+                    {
+                        "type": "string",
+                        "enum":
+                        [
+                            "utf_8"
+                        ]
+                    }
+                },
+                "additionalProperties": false
+            }
+        }
     }
 ]

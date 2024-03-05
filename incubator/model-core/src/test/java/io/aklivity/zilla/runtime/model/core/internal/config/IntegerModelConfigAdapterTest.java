@@ -18,6 +18,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
@@ -46,26 +48,47 @@ public class IntegerModelConfigAdapterTest
         // GIVEN
         String json =
             "{" +
-                "\"model\": \"integer\"" +
+                "\"model\":\"integer\"," +
+                "\"format\":\"text\"," +
+                "\"max\":999," +
+                "\"min\":-999," +
+                "\"exclusiveMax\":true," +
+                "\"exclusiveMin\":false," +
+                "\"multiple\":100" +
             "}";
 
         // WHEN
-        IntegerModelConfig converter = jsonb.fromJson(json, IntegerModelConfig.class);
+        IntegerModelConfig model = jsonb.fromJson(json, IntegerModelConfig.class);
 
         // THEN
-        assertThat(converter, not(nullValue()));
-        assertThat(converter.model, equalTo("integer"));
+        assertThat(model, not(nullValue()));
+        assertThat(model.model, equalTo("integer"));
+        assertThat(model.format, equalTo("text"));
+        assertThat(model.max, equalTo(999));
+        assertThat(model.min, equalTo(-999));
+        assertTrue(model.exclusiveMax);
+        assertFalse(model.exclusiveMin);
+        assertThat(model.multiple, equalTo(100));
     }
 
     @Test
     public void shouldWriteIntegerconverter()
     {
         // GIVEN
-        String expectedJson = "\"integer\"";
-        IntegerModelConfig converter = IntegerModelConfig.builder().build();
+        String expectedJson =
+            "{" +
+                "\"model\":\"integer\"," +
+                "\"format\":\"text\"," +
+                "\"max\":2147483647," +
+                "\"min\":-2147483648," +
+                "\"exclusiveMax\":false," +
+                "\"exclusiveMin\":false," +
+                "\"multiple\":1" +
+            "}";
+        IntegerModelConfig model = IntegerModelConfig.builder().build();
 
         // WHEN
-        String json = jsonb.toJson(converter);
+        String json = jsonb.toJson(model);
 
         // THEN
         assertThat(json, not(nullValue()));

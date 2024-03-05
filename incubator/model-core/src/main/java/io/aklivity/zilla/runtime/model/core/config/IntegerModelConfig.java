@@ -20,9 +20,28 @@ import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 
 public class IntegerModelConfig extends ModelConfig
 {
-    public IntegerModelConfig()
+    public final String format;
+    public final int max;
+    public final int min;
+    public final int multiple;
+    public final boolean exclusiveMax;
+    public final boolean exclusiveMin;
+
+    public IntegerModelConfig(
+        String format,
+        int max,
+        int min,
+        boolean exclusiveMax,
+        boolean exclusiveMin,
+        int multiple)
     {
         super("integer");
+        this.format = format;
+        this.max = max;
+        this.min = min;
+        this.exclusiveMax = exclusiveMax;
+        this.exclusiveMin = exclusiveMin;
+        this.multiple = multiple;
     }
 
     public static <T> IntegerModelConfigBuilder<T> builder(

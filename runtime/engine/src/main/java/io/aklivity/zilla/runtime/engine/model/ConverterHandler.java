@@ -21,6 +21,8 @@ import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 
 public interface ConverterHandler
 {
+    int FLAGS_COMPLETE = 0x03;
+
     ConverterHandler NONE = (data, index, length, next) ->
     {
         next.accept(data, index, length);

@@ -22,9 +22,23 @@ import io.aklivity.zilla.runtime.model.core.config.IntegerModelConfig;
 
 public class IntegerConverterHandler implements ConverterHandler
 {
+    private final int max;
+    private final int min;
+    private final int multiple;
+    private final boolean exclusiveMax;
+    private final boolean exclusiveMin;
+
+    private IntegerFormat format;
+
     public IntegerConverterHandler(
         IntegerModelConfig config)
     {
+        this.max = config.max;
+        this.min = config.min;
+        this.exclusiveMax = config.exclusiveMax;
+        this.exclusiveMin = config.exclusiveMin;
+        this.multiple = config.multiple;
+        this.format = IntegerFormat.of(config.format);
     }
 
     @Override
@@ -34,13 +48,7 @@ public class IntegerConverterHandler implements ConverterHandler
         int length,
         ValueConsumer next)
     {
-        boolean valid = length == 4;
-
-        if (valid)
-        {
-            next.accept(data, index, length);
-        }
-
-        return valid ? length : -1;
+        return format.validate(FLAGS_COMPLETE, data, index, length,
+            max, min, exclusiveMax, exclusiveMin, multiple) ? length : -1;
     }
 }

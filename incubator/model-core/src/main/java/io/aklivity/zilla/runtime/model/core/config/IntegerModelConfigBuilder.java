@@ -20,7 +20,17 @@ import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 
 public class IntegerModelConfigBuilder<T> extends ConfigBuilder<T, IntegerModelConfigBuilder<T>>
 {
+    public static final int DEFAULT_MULTIPLE = 1;
+    public static final String DEFAULT_FORMAT = "text";
+
     private final Function<IntegerModelConfig, T> mapper;
+
+    private String format;
+    private int max;
+    private int min;
+    private int multiple;
+    private boolean exclusiveMax;
+    private boolean exclusiveMin;
 
     IntegerModelConfigBuilder(
         Function<IntegerModelConfig, T> mapper)
@@ -35,9 +45,55 @@ public class IntegerModelConfigBuilder<T> extends ConfigBuilder<T, IntegerModelC
         return (Class<IntegerModelConfigBuilder<T>>) getClass();
     }
 
+    public IntegerModelConfigBuilder<T> format(
+        String format)
+    {
+        this.format = format;
+        return this;
+    }
+
+    public IntegerModelConfigBuilder<T> max(
+        int max)
+    {
+        this.max = max;
+        return this;
+    }
+
+    public IntegerModelConfigBuilder<T> min(
+        int min)
+    {
+        this.min = min;
+        return this;
+    }
+
+    public IntegerModelConfigBuilder<T> multiple(
+        int multiple)
+    {
+        this.multiple = multiple;
+        return this;
+    }
+
+    public IntegerModelConfigBuilder<T> exclusiveMax(
+        boolean exclusiveMax)
+    {
+        this.exclusiveMax = exclusiveMax;
+        return this;
+    }
+
+    public IntegerModelConfigBuilder<T> exclusiveMin(
+        boolean exclusiveMin)
+    {
+        this.exclusiveMin = exclusiveMin;
+        return this;
+    }
+
     @Override
     public T build()
     {
-        return mapper.apply(new IntegerModelConfig());
+        String format = this.format != null ? this.format : DEFAULT_FORMAT;
+        int max = this.max != 0 ? this.max : Integer.MAX_VALUE;
+        int min = this.min != 0 ? this.min : Integer.MIN_VALUE;
+        int multiple = this.multiple != 0 ? this.multiple : DEFAULT_MULTIPLE;
+        return mapper.apply(new IntegerModelConfig(format, max, min, exclusiveMax, exclusiveMin, multiple));
     }
 }

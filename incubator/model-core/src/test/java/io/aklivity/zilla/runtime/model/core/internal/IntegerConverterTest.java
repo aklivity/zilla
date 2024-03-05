@@ -25,7 +25,9 @@ import io.aklivity.zilla.runtime.model.core.config.IntegerModelConfig;
 
 public class IntegerConverterTest
 {
-    private final IntegerModelConfig config = new IntegerModelConfig();
+    private final IntegerModelConfig config = IntegerModelConfig.builder()
+        .format("binary")
+        .build();
     private final IntegerConverterHandler converter = new IntegerConverterHandler(config);
 
     @Test
