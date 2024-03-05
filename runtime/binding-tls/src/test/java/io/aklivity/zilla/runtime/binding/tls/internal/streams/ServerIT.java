@@ -318,4 +318,23 @@ public class ServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.event.tls.failed.yaml")
+    @Specification({
+        "${net}/client.hello.malformed/client"})
+    public void shouldLogTlsFailedEvent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.event.handshake.failed.yaml")
+    @Specification({
+        "${net}/server.handshake.timeout/client"})
+    @Configure(name = "zilla.binding.tls.handshake.timeout", value = "1")
+    public void shouldLogHandshakeFailedEvent() throws Exception
+    {
+        k3po.finish();
+    }
 }

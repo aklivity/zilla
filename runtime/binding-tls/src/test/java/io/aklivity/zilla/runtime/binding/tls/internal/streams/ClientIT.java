@@ -377,4 +377,15 @@ public class ClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.event.yaml")
+    @Specification({
+        "${app}/client.handshake.timeout/client",
+        "${net}/client.handshake.timeout/server" })
+    @Configure(name = "zilla.binding.tls.handshake.timeout", value = "1")
+    public void shouldLogHandshakeErrorEvent() throws Exception
+    {
+        k3po.finish();
+    }
 }
