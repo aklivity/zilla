@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.exporter.stdout.internal.events;
 
+import static io.aklivity.zilla.runtime.exporter.stdout.internal.StdoutExporterConfigurationTest.STDOUT_OUTPUT_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -57,7 +58,7 @@ public class EventIT
         "${net}/event/client",
         "${app}/event/server"
     })
-    @Configure(name = "zilla.exporter.stdout.output",
+    @Configure(name = STDOUT_OUTPUT_NAME,
         value = "io.aklivity.zilla.runtime.exporter.stdout.internal.events.StdoutOutputRule.OUT")
     public void shouldLogEvents() throws Exception
     {
