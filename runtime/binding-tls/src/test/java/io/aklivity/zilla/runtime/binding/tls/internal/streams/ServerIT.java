@@ -332,7 +332,7 @@ public class ServerIT
     @Configuration("server.event.handshake.failed.yaml")
     @Specification({
         "${net}/server.handshake.timeout/client"})
-    @Configure(name = "zilla.binding.tls.handshake.timeout", value = "1")
+    @Configure(name = TlsConfigurationTest.TLS_HANDSHAKE_TIMEOUT_NAME, value = "1")
     public void shouldLogHandshakeFailedEvent() throws Exception
     {
         k3po.finish();
