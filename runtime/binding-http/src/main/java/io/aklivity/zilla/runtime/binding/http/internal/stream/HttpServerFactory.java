@@ -2297,7 +2297,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             int limit,
             Flyweight extension)
         {
-            boolean contentValid = exchange.validateContent(buffer, 0, limit - offset);
+            boolean contentValid = exchange.validateContent(buffer, offset, limit - offset);
             int result;
             if (contentValid)
             {

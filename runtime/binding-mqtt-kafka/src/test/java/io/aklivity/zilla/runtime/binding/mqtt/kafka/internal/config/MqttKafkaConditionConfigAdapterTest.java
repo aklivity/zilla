@@ -19,8 +19,6 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
-import java.util.List;
-
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
@@ -88,7 +86,10 @@ public class MqttKafkaConditionConfigAdapterTest
     @Test
     public void shouldWriteSubscribeCondition()
     {
-        MqttKafkaConditionConfig condition = new MqttKafkaConditionConfig(List.of("test"), MqttKafkaConditionKind.SUBSCRIBE);
+        MqttKafkaConditionConfig condition = MqttKafkaConditionConfig.builder()
+            .topic("test")
+            .kind(MqttKafkaConditionKind.SUBSCRIBE)
+            .build();
 
         String text = jsonb.toJson(condition);
 
@@ -107,7 +108,10 @@ public class MqttKafkaConditionConfigAdapterTest
     @Test
     public void shouldWritePublishCondition()
     {
-        MqttKafkaConditionConfig condition = new MqttKafkaConditionConfig(List.of("test"), MqttKafkaConditionKind.PUBLISH);
+        MqttKafkaConditionConfig condition = MqttKafkaConditionConfig.builder()
+            .topic("test")
+            .kind(MqttKafkaConditionKind.PUBLISH)
+            .build();
 
         String text = jsonb.toJson(condition);
 

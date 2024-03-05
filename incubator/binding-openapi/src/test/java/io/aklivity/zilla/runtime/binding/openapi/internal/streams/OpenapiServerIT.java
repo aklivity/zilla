@@ -77,5 +77,4 @@ public class OpenapiServerIT
     {
         k3po.finish();
     }
-
 }

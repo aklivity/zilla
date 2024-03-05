@@ -39,15 +39,15 @@ import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfigBuilder;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiBinding;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenApi;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenApiMediaType;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenApiOperation;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenApiParameter;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenApiSchema;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenApiServer;
-import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenApiPathView;
-import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenApiSchemaView;
-import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenApiServerView;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.Openapi;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiMediaType;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiOperation;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiParameter;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiSchema;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiServer;
+import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiPathView;
+import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiSchemaView;
+import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiServerView;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
@@ -90,7 +90,7 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
         OpenapiOptionsConfig options = (OpenapiOptionsConfig) binding.options;
         OpenapiConfig openapiConfig = options.openapis.get(0);
 
-        final OpenApi openApi = openapiConfig.openapi;
+        final Openapi openApi = openapiConfig.openapi;
         final TlsOptionsConfig tlsOption = options.tls != null ? options.tls : null;
         final HttpOptionsConfig httpOptions = options.http;
         final String guardName = httpOptions != null ? httpOptions.authorization.name : null;
@@ -141,7 +141,7 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
         int[] httpPorts,
         boolean secure)
     {
-        if (secure)
+        if (!secure)
         {
             binding
                 .route()
@@ -206,21 +206,23 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
 
     private <C> HttpOptionsConfigBuilder<C> injectHttpServerRequests(
         HttpOptionsConfigBuilder<C> options,
-        OpenApi openApi)
+        Openapi openapi)
     {
-        for (String pathName : openApi.paths.keySet())
+        for (String pathName : openapi.paths.keySet())
         {
-            OpenApiPathView path = OpenApiPathView.of(openApi.paths.get(pathName));
+            OpenapiPathView path = OpenapiPathView.of(openapi.paths.get(pathName));
             for (String methodName : path.methods().keySet())
             {
-                OpenApiOperation operation = path.methods().get(methodName);
-                if (operation.requestBody != null || operation.parameters != null && !operation.parameters.isEmpty())
+                final OpenapiOperation operation = path.methods().get(methodName);
+                if (operation.requestBody != null ||
+                    operation.parameters != null &&
+                    !operation.parameters.isEmpty())
                 {
                     options
                         .request()
                             .path(pathName)
                             .method(HttpRequestConfig.Method.valueOf(methodName))
-                            .inject(request -> injectContent(request, operation, openApi))
+                            .inject(request -> injectContent(request, operation, openapi))
                             .inject(request -> injectParams(request, operation))
                             .build();
                 }
@@ -231,12 +233,14 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
 
     private <C> HttpRequestConfigBuilder<C> injectContent(
         HttpRequestConfigBuilder<C> request,
-        OpenApiOperation operation,
-        OpenApi openApi)
+        OpenapiOperation operation,
+        Openapi openApi)
     {
-        if (operation.requestBody != null && operation.requestBody.content != null && !operation.requestBody.content.isEmpty())
+        if (operation.requestBody != null &&
+            operation.requestBody.content != null &&
+            !operation.requestBody.content.isEmpty())
         {
-            OpenApiSchemaView schema = resolveSchemaForJsonContentType(operation.requestBody.content, openApi);
+            OpenapiSchemaView schema = resolveSchemaForJsonContentType(operation.requestBody.content, openApi);
             if (schema != null)
             {
                 request.
@@ -245,6 +249,7 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
                         .name(INLINE_CATALOG_NAME)
                         .schema()
                             .subject(schema.refKey())
+                            .version(VERSION_LATEST)
                             .build()
                         .build()
                     .build();
@@ -255,11 +260,11 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
 
     private <C> HttpRequestConfigBuilder<C> injectParams(
         HttpRequestConfigBuilder<C> request,
-        OpenApiOperation operation)
+        OpenapiOperation operation)
     {
         if (operation != null && operation.parameters != null)
         {
-            for (OpenApiParameter parameter : operation.parameters)
+            for (OpenapiParameter parameter : operation.parameters)
             {
                 if (parameter.schema != null && parameter.schema.type != null)
                 {
@@ -299,14 +304,14 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
 
     private <C> BindingConfigBuilder<C> injectHttpServerRoutes(
         BindingConfigBuilder<C> binding,
-        OpenApi openApi,
+        Openapi openApi,
         String qname,
         String guardName,
         Map<String, String> securitySchemes)
     {
         for (String item : openApi.paths.keySet())
         {
-            OpenApiPathView path = OpenApiPathView.of(openApi.paths.get(item));
+            OpenapiPathView path = OpenapiPathView.of(openApi.paths.get(item));
             for (String method : path.methods().keySet())
             {
                 binding
@@ -325,7 +330,7 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
 
     private <C> RouteConfigBuilder<C> injectHttpServerRouteGuarded(
         RouteConfigBuilder<C> route,
-        OpenApiPathView path,
+        OpenapiPathView path,
         String method,
         String guardName,
         Map<String, String> securitySchemes)
@@ -366,7 +371,7 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
 
     private <C> NamespaceConfigBuilder<C> injectCatalog(
         NamespaceConfigBuilder<C> namespace,
-        OpenApi openApi)
+        Openapi openApi)
     {
         if (openApi.components != null &&
             openApi.components.schemas != null &&
@@ -388,17 +393,20 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
 
     private <C> InlineSchemaConfigBuilder<C> injectSubjects(
         InlineSchemaConfigBuilder<C> subjects,
-        OpenApi openApi)
+        Openapi openApi)
     {
         try (Jsonb jsonb = JsonbBuilder.create())
         {
-            for (Map.Entry<String, OpenApiSchema> entry : openApi.components.schemas.entrySet())
+            for (Map.Entry<String, OpenapiSchema> entry : openApi.components.schemas.entrySet())
             {
+                OpenapiSchemaView schemaView = OpenapiSchemaView.of(openApi.components.schemas, entry.getValue());
+                OpenapiSchema schema = schemaView.ref() != null ? schemaView.ref() : entry.getValue();
+
                 subjects
                     .subject(entry.getKey())
-                        .version(VERSION_LATEST)
-                        .schema(jsonb.toJson(openApi.components.schemas))
-                        .build();
+                    .schema(jsonb.toJson(schema))
+                    .version(VERSION_LATEST)
+                    .build();
             }
         }
         catch (Exception ex)
@@ -409,12 +417,12 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
     }
 
     private int[] resolveAllPorts(
-        OpenApi openApi)
+        Openapi openApi)
     {
         int[] ports = new int[openApi.servers.size()];
         for (int i = 0; i < openApi.servers.size(); i++)
         {
-            OpenApiServerView server = OpenApiServerView.of(openApi.servers.get(i));
+            OpenapiServerView server = OpenapiServerView.of(openApi.servers.get(i));
             URI url = server.url();
             ports[i] = url.getPort();
         }
@@ -422,7 +430,7 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
     }
 
     private int[] resolvePortsForScheme(
-        OpenApi openApi,
+        Openapi openApi,
         String scheme)
     {
         requireNonNull(scheme);
@@ -436,14 +444,14 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
     }
 
     private URI findFirstServerUrlWithScheme(
-        OpenApi openApi,
+        Openapi openApi,
         String scheme)
     {
         requireNonNull(scheme);
         URI result = null;
-        for (OpenApiServer item : openApi.servers)
+        for (OpenapiServer item : openApi.servers)
         {
-            OpenApiServerView server = OpenApiServerView.of(item);
+            OpenapiServerView server = OpenapiServerView.of(item);
             if (scheme.equals(server.url().getScheme()))
             {
                 result = server.url();
@@ -454,7 +462,7 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
     }
 
     private Map<String, String> resolveSecuritySchemes(
-        OpenApi openApi)
+        Openapi openApi)
     {
         requireNonNull(openApi);
         Map<String, String> result = new Object2ObjectHashMap<>();
@@ -473,11 +481,11 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
         return result;
     }
 
-    private OpenApiSchemaView resolveSchemaForJsonContentType(
-        Map<String, OpenApiMediaType> content,
-        OpenApi openApi)
+    private OpenapiSchemaView resolveSchemaForJsonContentType(
+        Map<String, OpenapiMediaType> content,
+        Openapi openApi)
     {
-        OpenApiMediaType mediaType = null;
+        OpenapiMediaType mediaType = null;
         if (content != null)
         {
             for (String contentType : content.keySet())
@@ -490,6 +498,6 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
             }
         }
 
-        return mediaType == null ? null : OpenApiSchemaView.of(openApi.components.schemas, mediaType.schema);
+        return mediaType == null ? null : OpenapiSchemaView.of(openApi.components.schemas, mediaType.schema);
     }
 }

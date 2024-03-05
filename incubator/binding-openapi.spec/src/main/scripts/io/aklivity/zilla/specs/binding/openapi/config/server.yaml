@@ -22,5 +22,5 @@ bindings:
     kind: server
     options:
       specs:
-        - openapi/petstore.yaml
+        openapi-id: openapi/petstore.yaml
     exit: openapi0

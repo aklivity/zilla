@@ -85,7 +85,6 @@ public class JsonValidatorHandler extends JsonModelHandler implements ValidatorH
         catch (JsonParsingException ex)
         {
             status = false;
-            ex.printStackTrace();
         }
 
         return status;

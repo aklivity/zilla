@@ -43,6 +43,7 @@ public class AsyncapiFunctionsTest
     {
         final byte[] array = AsyncapiFunctions.beginEx()
             .typeId(0)
+            .apiId(1)
             .operationId("operationId")
             .extension(new byte[] {1})
             .build();
@@ -51,6 +52,7 @@ public class AsyncapiFunctionsTest
         AsyncapiBeginExFW asyncapiBeginEx = new AsyncapiBeginExFW().wrap(buffer, 0, buffer.capacity());
         MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1]);
 
+        assertEquals(1, asyncapiBeginEx.apiId());
         assertEquals("operationId", asyncapiBeginEx.operationId().asString());
         assertEquals(new OctetsFW.Builder().wrap(writeBuffer, 0, 1).set(new byte[] {1}).build(),
             asyncapiBeginEx.extension());
@@ -61,14 +63,16 @@ public class AsyncapiFunctionsTest
     {
         BytesMatcher matcher = AsyncapiFunctions.matchBeginEx()
             .typeId(0x00)
+            .apiId(1L)
             .extension(new byte[] {1})
             .build();
 
-        ByteBuffer byteBuf = ByteBuffer.allocate(11);
+        ByteBuffer byteBuf = ByteBuffer.allocate(15);
         MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1]);
 
         new AsyncapiBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
             .typeId(0x00)
+            .apiId(1L)
             .extension(new OctetsFW.Builder().wrap(writeBuffer, 0, 1).set(new byte[] {1}).build())
             .build();
 
@@ -80,12 +84,12 @@ public class AsyncapiFunctionsTest
     {
         BytesMatcher matcher = AsyncapiFunctions.matchBeginEx()
             .typeId(0x00)
-            .apiId(1)
+            .apiId(1L)
             .operationId("operationId")
             .extension(new byte[] {1})
             .build();
 
-        ByteBuffer byteBuf = ByteBuffer.allocate(22);
+        ByteBuffer byteBuf = ByteBuffer.allocate(26);
         MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1]);
 
         new AsyncapiBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())

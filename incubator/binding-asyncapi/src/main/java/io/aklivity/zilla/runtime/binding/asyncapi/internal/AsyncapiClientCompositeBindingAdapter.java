@@ -44,12 +44,12 @@ public class AsyncapiClientCompositeBindingAdapter extends AsyncapiCompositeBind
         this.qname = binding.qname;
         this.qvault = binding.qvault;
         this.protocol = resolveProtocol(firstServer.protocol(), options);
-        this.compositePorts = protocol.resolvePorts();
         this.isTlsEnabled = protocol.isSecure();
 
         return BindingConfig.builder(binding)
             .composite()
                 .name(String.format("%s.%s", qname, "$composite"))
+                .inject(n -> this.injectCatalog(n, asyncapi))
                 .inject(protocol::injectProtocolClientCache)
                 .binding()
                     .name(String.format("%s_client0", protocol.scheme))

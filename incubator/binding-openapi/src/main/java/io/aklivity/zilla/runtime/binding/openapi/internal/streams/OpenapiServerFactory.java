@@ -154,6 +154,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
 
             if (route != null)
             {
+                final long apiId = binding.options.openapis.get(0).apiId;
                 final String operationId = binding.resolveOperationId(httpBeginEx);
 
                 newStream = new HttpStream(
@@ -164,6 +165,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
                     affinity,
                     authorization,
                     route.id,
+                    apiId,
                     operationId)::onHttpMessage;
             }
 
@@ -204,9 +206,10 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
             long affinity,
             long authorization,
             long resolvedId,
+            long apiId,
             String operationId)
         {
-            this.openapi =  new OpenapiStream(this, routedId, resolvedId, authorization, operationId);
+            this.openapi =  new OpenapiStream(this, routedId, resolvedId, authorization, apiId, operationId);
             this.sender = sender;
             this.originId = originId;
             this.routedId = routedId;
@@ -507,6 +510,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
         private final String operationId;
         private final long originId;
         private final long routedId;
+        private final long apiId;
         private final long authorization;
 
         private final long initialId;
@@ -530,11 +534,13 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
             long originId,
             long routedId,
             long authorization,
+            long apiId,
             String operationId)
         {
             this.delegate = delegate;
             this.originId = originId;
             this.routedId = routedId;
+            this.apiId = apiId;
             this.receiver = MessageConsumer.NOOP;
             this.authorization = authorization;
             this.initialId = supplyInitialId.applyAsLong(routedId);
@@ -730,6 +736,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
                 final OpenapiBeginExFW openapiBeginEx = openapiBeginExRW
                     .wrap(extBuffer, 0, extBuffer.capacity())
                     .typeId(openapiTypeId)
+                    .apiId(apiId)
                     .operationId(operationId)
                     .extension(extension)
                     .build();

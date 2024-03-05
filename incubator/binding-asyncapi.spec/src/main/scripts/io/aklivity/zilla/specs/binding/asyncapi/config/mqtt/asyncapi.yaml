@@ -27,12 +27,12 @@ servers:
 defaultContentType: application/json
 
 channels:
-  smartylighting:
-    address: "smartylighting/streetlights/1/0/event/{streetlightId}/lighting/measured"
+  sensors:
+    address: "sensors/{sensorId}"
     title: MQTT Topic to produce & consume topic.
     parameters:
       streetlightId:
-        $ref: '#/components/parameters/streetlightId'
+        $ref: '#/components/parameters/sensorId'
     messages:
       items:
         $ref: '#/components/messages/item'
@@ -41,17 +41,17 @@ operations:
   sendEvents:
     action: send
     channel:
-      $ref: '#/channels/smartylighting'
+      $ref: '#/channels/sensors'
 
   receiveEvents:
     action: receive
     channel:
-      $ref: '#/channels/smartylighting'
+      $ref: '#/channels/sensors'
 
 components:
   parameters:
-    streetlightId:
-      description: Street Light ID
+    sensorId:
+      description: Sensor ID
       location: $message.header#/id
   messages:
     item:
@@ -64,5 +64,5 @@ components:
             description: Unique identifier for a given event
             type: string
           id:
-            description: Street Light ID
+            description: Sensor ID
             type: string
