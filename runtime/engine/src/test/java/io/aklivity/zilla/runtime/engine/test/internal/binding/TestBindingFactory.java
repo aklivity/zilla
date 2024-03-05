@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.binding;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -28,6 +29,7 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.event.TestEventContext;
@@ -72,6 +74,8 @@ final class TestBindingFactory implements BindingHandler
     private final TestEventContext event;
 
     private List<CatalogHandler> catalogs;
+    private List<GuardHandler> guards;
+    private List<String> guardTokens;
     private List<TestBindingOptionsConfig.Event> events;
     private int eventIndex;
 
@@ -107,6 +111,18 @@ final class TestBindingFactory implements BindingHandler
                     int namespaceId = context.supplyTypeId(binding.namespace);
                     int catalogId = context.supplyTypeId(catalog);
                     catalogs.add(context.supplyCatalog(NamespacedId.id(namespaceId, catalogId)));
+                }
+            }
+            if (options.guards != null)
+            {
+                this.guards = new ArrayList<>();
+                this.guardTokens = new ArrayList<>();
+                for (TestBindingOptionsConfig.Guard g : options.guards)
+                {
+                    int namespaceId = context.supplyTypeId(binding.namespace);
+                    int guardId = context.supplyTypeId(g.guard);
+                    guards.add(context.supplyGuard(NamespacedId.id(namespaceId, guardId)));
+                    guardTokens.add(g.token);
                 }
             }
             this.events = options.events;
@@ -239,6 +255,13 @@ final class TestBindingFactory implements BindingHandler
                 for (CatalogHandler catalog : catalogs)
                 {
                     catalog.resolve(0);
+                }
+            }
+            if (guards != null)
+            {
+                for (int i = 0; i < guards.size(); i++)
+                {
+                    guards.get(i).reauthorize(traceId, routedId, 0, guardTokens.get(i));
                 }
             }
             while (events != null && eventIndex < events.size())

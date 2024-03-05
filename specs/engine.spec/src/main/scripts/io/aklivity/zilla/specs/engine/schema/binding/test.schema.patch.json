@@ -79,6 +79,25 @@
                                     "type": "string"
                                 }
                             },
+                            "guards":
+                            {
+                                "type": "array",
+                                "items":
+                                {
+                                    "type": "object",
+                                    "properties":
+                                    {
+                                        "guard":
+                                        {
+                                            "type": "string"
+                                        },
+                                        "token":
+                                        {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            },
                             "events":
                             {
                                 "type": "array",

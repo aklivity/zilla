@@ -28,6 +28,7 @@ public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, T
 
     private String mode;
     private List<String> catalogs;
+    private List<TestBindingOptionsConfig.Guard> guards;
     private List<TestBindingOptionsConfig.Event> events;
 
     TestBindingOptionsConfigBuilder(
@@ -61,6 +62,18 @@ public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, T
         return this;
     }
 
+    public TestBindingOptionsConfigBuilder<T> guard(
+        String guard,
+        String token)
+    {
+        if (this.guards == null)
+        {
+            this.guards = new LinkedList<>();
+        }
+        this.guards.add(new TestBindingOptionsConfig.Guard(guard, token));
+        return this;
+    }
+
     public TestBindingOptionsConfigBuilder<T> event(
         long timestamp,
         String message)
@@ -76,6 +89,6 @@ public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, T
     @Override
     public T build()
     {
-        return mapper.apply(new TestBindingOptionsConfig(mode, catalogs, events));
+        return mapper.apply(new TestBindingOptionsConfig(mode, catalogs, guards, events));
     }
 }

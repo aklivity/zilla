@@ -30,6 +30,9 @@ public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapt
 {
     private static final String MODE_NAME = "mode";
     private static final String CATALOGS_NAME = "catalogs";
+    private static final String GUARDS_NAME = "guards";
+    private static final String GUARD_NAME = "guard";
+    private static final String TOKEN_NAME = "token";
     private static final String EVENTS_NAME = "events";
     private static final String TIMESTAMP_NAME = "timestamp";
     private static final String MESSAGE_NAME = "message";
@@ -67,6 +70,18 @@ public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapt
             }
             object.add(CATALOGS_NAME, catalogs);
         }
+        if (testOptions.guards != null)
+        {
+            JsonArrayBuilder guards = Json.createArrayBuilder();
+            for (TestBindingOptionsConfig.Guard g : testOptions.guards)
+            {
+                JsonObjectBuilder event = Json.createObjectBuilder();
+                event.add(GUARD_NAME, g.guard);
+                event.add(TOKEN_NAME, g.token);
+                guards.add(event);
+            }
+            object.add(GUARDS_NAME, guards);
+        }
         if (testOptions.events != null)
         {
             JsonArrayBuilder events = Json.createArrayBuilder();
@@ -101,6 +116,18 @@ public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapt
                 for (JsonValue catalog : catalogs)
                 {
                     testOptions.catalog(((JsonString) catalog).getString());
+                }
+            }
+            if (object.containsKey(GUARDS_NAME))
+            {
+                JsonArray guards = object.getJsonArray(GUARDS_NAME);
+                for (JsonValue g : guards)
+                {
+                    JsonObject g0 = g.asJsonObject();
+                    if (g0.containsKey(GUARD_NAME) && g0.containsKey(TOKEN_NAME))
+                    {
+                        testOptions.guard(g0.getString(GUARD_NAME), g0.getString(TOKEN_NAME));
+                    }
                 }
             }
             if (object.containsKey(EVENTS_NAME))

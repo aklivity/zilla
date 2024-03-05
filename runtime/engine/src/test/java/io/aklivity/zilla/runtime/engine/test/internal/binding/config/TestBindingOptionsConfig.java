@@ -24,6 +24,7 @@ public final class TestBindingOptionsConfig extends OptionsConfig
 {
     public final String mode;
     public final List<String> catalogs;
+    public final List<Guard> guards;
     public final List<Event> events;
 
     public static TestBindingOptionsConfigBuilder<TestBindingOptionsConfig> builder()
@@ -40,11 +41,27 @@ public final class TestBindingOptionsConfig extends OptionsConfig
     TestBindingOptionsConfig(
         String mode,
         List<String> catalogs,
+        List<Guard> guards,
         List<Event> events)
     {
         this.mode = mode;
         this.catalogs = catalogs;
+        this.guards = guards;
         this.events = events;
+    }
+
+    public static final class Guard
+    {
+        public final String guard;
+        public final String token;
+
+        public Guard(
+            String guard,
+            String token)
+        {
+            this.guard = guard;
+            this.token = token;
+        }
     }
 
     public static final class Event
