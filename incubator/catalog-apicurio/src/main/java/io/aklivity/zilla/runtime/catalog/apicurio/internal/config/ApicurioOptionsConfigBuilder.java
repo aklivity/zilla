@@ -22,12 +22,17 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public final class ApicurioOptionsConfigBuilder<T> extends ConfigBuilder<T, ApicurioOptionsConfigBuilder<T>>
 {
+    public static final String GLOBAL_ID = "globalId";
+    public static final String DEFAULT_ID_ENCODING = "default"; //other value: legacy
+    private static final String CONTENT_ID = "contentId";
     private static final Duration MAX_AGE_DEFAULT = Duration.ofSeconds(300);
 
     private final Function<OptionsConfig, T> mapper;
 
     private String url;
     private String groupId;
+    private String useId = GLOBAL_ID;
+    private String idEncoding = DEFAULT_ID_ENCODING;
     private Duration maxAge;
 
     ApicurioOptionsConfigBuilder(
@@ -57,6 +62,20 @@ public final class ApicurioOptionsConfigBuilder<T> extends ConfigBuilder<T, Apic
         return this;
     }
 
+    public ApicurioOptionsConfigBuilder<T> useId(
+        String useId)
+    {
+        this.useId = useId;
+        return this;
+    }
+
+    public ApicurioOptionsConfigBuilder<T> idEncoding(
+        String idEncoding)
+    {
+        this.idEncoding = idEncoding;
+        return this;
+    }
+
     public ApicurioOptionsConfigBuilder<T> maxAge(
         Duration maxAge)
     {
@@ -68,6 +87,6 @@ public final class ApicurioOptionsConfigBuilder<T> extends ConfigBuilder<T, Apic
     public T build()
     {
         Duration maxAge = (this.maxAge != null) ? this.maxAge : MAX_AGE_DEFAULT;
-        return mapper.apply(new ApicurioOptionsConfig(url, groupId, maxAge));
+        return mapper.apply(new ApicurioOptionsConfig(url, groupId, useId, idEncoding, maxAge));
     }
 }

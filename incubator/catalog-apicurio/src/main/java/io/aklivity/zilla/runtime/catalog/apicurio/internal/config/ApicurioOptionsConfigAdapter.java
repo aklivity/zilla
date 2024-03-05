@@ -28,6 +28,8 @@ public class ApicurioOptionsConfigAdapter implements OptionsConfigAdapterSpi, Js
 {
     private static final String URL = "url";
     private static final String GROUP_ID = "group-id";
+    private static final String USE_ID = "use-id";
+    private static final String ID_ENCODING = "id-encoding";
     private static final String MAX_AGE_NAME = "max-age";
 
     @Override
@@ -86,6 +88,16 @@ public class ApicurioOptionsConfigAdapter implements OptionsConfigAdapterSpi, Js
             if (object.containsKey(GROUP_ID))
             {
                 options.groupId(object.getString(GROUP_ID));
+            }
+
+            if (object.containsKey(USE_ID))
+            {
+                options.useId(object.getString(USE_ID));
+            }
+
+            if (object.containsKey(ID_ENCODING))
+            {
+                options.idEncoding(object.getString(ID_ENCODING));
             }
 
             if (object.containsKey(MAX_AGE_NAME))

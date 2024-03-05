@@ -49,7 +49,9 @@ public class ApicurioCatalogFactoryTest
 
         ApicurioOptionsConfig catalogConfig = ApicurioOptionsConfig.builder()
             .url("http://localhost:8080")
-            .groupId("myGroup")
+            .groupId("my-group")
+            .useId("contentId")
+            .idEncoding("legacy")
             .maxAge(Duration.ofSeconds(100))
             .build();
         CatalogConfig options = new CatalogConfig("test", "catalog0", "schema-registry", catalogConfig);

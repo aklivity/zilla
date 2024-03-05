@@ -23,6 +23,8 @@ public class ApicurioOptionsConfig extends OptionsConfig
 {
     public final String url;
     public final String groupId;
+    public final String useId;
+    public final String idEncoding;
     public final Duration maxAge;
 
     public static ApicurioOptionsConfigBuilder<ApicurioOptionsConfig> builder()
@@ -36,13 +38,17 @@ public class ApicurioOptionsConfig extends OptionsConfig
         return new ApicurioOptionsConfigBuilder<>(mapper);
     }
 
-    public ApicurioOptionsConfig(
+    ApicurioOptionsConfig(
         String url,
         String groupId,
+        String useId,
+        String idEncoding,
         Duration maxAge)
     {
         this.url = url;
         this.groupId = groupId;
+        this.useId = useId;
+        this.idEncoding = idEncoding;
         this.maxAge = maxAge;
     }
 }

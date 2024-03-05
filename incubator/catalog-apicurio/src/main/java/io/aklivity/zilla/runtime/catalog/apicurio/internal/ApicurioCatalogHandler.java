@@ -38,14 +38,18 @@ import io.aklivity.zilla.runtime.catalog.apicurio.internal.types.ApicurioPrefixF
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
+import static io.aklivity.zilla.runtime.catalog.apicurio.internal.config.ApicurioOptionsConfigBuilder.DEFAULT_ID_ENCODING;
+import static io.aklivity.zilla.runtime.catalog.apicurio.internal.config.ApicurioOptionsConfigBuilder.GLOBAL_ID;
+import static org.agrona.BitUtil.SIZE_OF_BYTE;
+import static org.agrona.BitUtil.SIZE_OF_LONG;
 
 public class ApicurioCatalogHandler implements CatalogHandler
 {
-    private static final String GLOBAL_ID = "globalId";
     private static final String ARTIFACT_VERSION_PATH = "/apis/registry/v2/groups/{0}/artifacts/{1}/versions/{2}/meta";
-    private static final String SPECS_PATH = "/apis/registry/v2/ids/globalIds/{0}";
-    private static final int MAX_PADDING_LENGTH = 5;
-    private static final byte MAGIC_BYTE = 0x1;
+    private static final String ARTIFACT_BY_GLOBAL_ID_PATH = "/apis/registry/v2/ids/globalIds/{0}";
+    private static final String ARTIFACT_BY_CONTENT_ID_PATH = "/apis/registry/v2/ids/contentIds/{0}";
+    private static final int MAX_PADDING_LENGTH = SIZE_OF_BYTE + SIZE_OF_LONG;
+    private static final byte MAGIC_BYTE = 0x0;
 
     private final ApicurioPrefixFW.Builder prefixRW = new ApicurioPrefixFW.Builder()
         .wrap(new UnsafeBuffer(new byte[5]), 0, 5);
@@ -59,6 +63,9 @@ public class ApicurioCatalogHandler implements CatalogHandler
     private final ApicurioEventContext event;
     private final long catalogId;
     private final String groupId;
+    private final String useId;
+    private final String idEncoding;
+    private final String artifactPath;
 
     public ApicurioCatalogHandler(
         ApicurioOptionsConfig config,
@@ -72,28 +79,31 @@ public class ApicurioCatalogHandler implements CatalogHandler
         this.globalIds = new Int2ObjectCache<>(1, 1024, i -> {});
         this.maxAgeMillis = config.maxAge.toMillis();
         this.groupId = config.groupId;
+        this.useId = config.useId;
+        this.idEncoding = config.idEncoding;
+        this.artifactPath = useId.equals(GLOBAL_ID) ? ARTIFACT_BY_GLOBAL_ID_PATH : ARTIFACT_BY_CONTENT_ID_PATH;
         this.event = new ApicurioEventContext(context);
         this.catalogId = catalogId;
     }
 
     @Override
     public String resolve(
-        int globalId)
+        int schemaId)
     {
-        String spec;
-        if (artifacts.containsKey(globalId))
+        String artifact;
+        if (artifacts.containsKey(schemaId))
         {
-            spec = artifacts.get(globalId);
+            artifact = artifacts.get(schemaId);
         }
         else
         {
-            spec = sendHttpRequest(MessageFormat.format(SPECS_PATH, globalId));
-            if (spec != null)
+            artifact = sendHttpRequest(MessageFormat.format(artifactPath, schemaId));
+            if (artifact != null)
             {
-                artifacts.put(globalId, spec);
+                artifacts.put(schemaId, artifact);
             }
         }
-        return spec;
+        return artifact;
     }
 
     @Override
@@ -101,24 +111,24 @@ public class ApicurioCatalogHandler implements CatalogHandler
         String artifact,
         String version)
     {
-        int globalId;
+        int schemaId;
 
         int checkSum = generateCRC32C(artifact, version);
         if (globalIds.containsKey(checkSum) &&
             (System.currentTimeMillis() - globalIds.get(checkSum).timestamp) < maxAgeMillis)
         {
-            globalId = globalIds.get(checkSum).id;
+            schemaId = globalIds.get(checkSum).id;
         }
         else
         {
             String response = sendHttpRequest(MessageFormat.format(ARTIFACT_VERSION_PATH, groupId, artifact, version));
-            globalId = response != null ? resolveGlobalId(response) : NO_SCHEMA_ID;
-            if (globalId != NO_SCHEMA_ID)
+            schemaId = response != null ? resolveId(response) : NO_SCHEMA_ID;
+            if (schemaId != NO_SCHEMA_ID)
             {
-                globalIds.put(checkSum, new CachedArtifactId(System.currentTimeMillis(), globalId));
+                globalIds.put(checkSum, new CachedArtifactId(System.currentTimeMillis(), schemaId));
             }
         }
-        return globalId;
+        return schemaId;
     }
 
     private String sendHttpRequest(
@@ -157,7 +167,8 @@ public class ApicurioCatalogHandler implements CatalogHandler
         int schemaId = NO_SCHEMA_ID;
         if (data.getByte(index) == MAGIC_BYTE)
         {
-            schemaId = data.getInt(index + BitUtil.SIZE_OF_BYTE, ByteOrder.BIG_ENDIAN);
+            schemaId = idEncoding.equals(DEFAULT_ID_ENCODING) ? (int) data.getLong(index + SIZE_OF_BYTE, ByteOrder.BIG_ENDIAN) :
+                data.getInt(index + SIZE_OF_BYTE, ByteOrder.BIG_ENDIAN);
         }
         return schemaId;
     }
@@ -175,8 +186,9 @@ public class ApicurioCatalogHandler implements CatalogHandler
         int valLength = -1;
         if (data.getByte(index) == MAGIC_BYTE)
         {
-            progress += BitUtil.SIZE_OF_BYTE;
-            schemaId = data.getInt(index + progress, ByteOrder.BIG_ENDIAN);
+            progress += SIZE_OF_BYTE;
+            schemaId = idEncoding.equals(DEFAULT_ID_ENCODING) ? (int) data.getLong(index + progress, ByteOrder.BIG_ENDIAN) :
+                data.getInt(index + progress, ByteOrder.BIG_ENDIAN);
             progress += BitUtil.SIZE_OF_INT;
         }
 
@@ -225,7 +237,7 @@ public class ApicurioCatalogHandler implements CatalogHandler
         return (int) crc32c.getValue();
     }
 
-    private int resolveGlobalId(
+    private int resolveId(
         String response)
     {
         try
@@ -233,7 +245,7 @@ public class ApicurioCatalogHandler implements CatalogHandler
             JsonReader reader = Json.createReader(new StringReader(response));
             JsonObject object = reader.readObject();
 
-            return object.containsKey(GLOBAL_ID) ? object.getInt(GLOBAL_ID) : NO_SCHEMA_ID;
+            return object.containsKey(useId) ? object.getInt(useId) : NO_SCHEMA_ID;
         }
         catch (JsonParsingException ex)
         {
