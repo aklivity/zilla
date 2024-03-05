@@ -79,21 +79,24 @@
                                     "type": "string"
                                 }
                             },
-                            "guards":
+                            "authorization":
                             {
-                                "type": "array",
-                                "items":
+                                "type": "object",
+                                "properties":
                                 {
                                     "type": "object",
-                                    "properties":
+                                    "patternProperties":
                                     {
-                                        "guard":
+                                        "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
                                         {
-                                            "type": "string"
-                                        },
-                                        "token":
-                                        {
-                                            "type": "string"
+                                            "type": "object",
+                                            "properties":
+                                            {
+                                                "credentials":
+                                                {
+                                                    "type": "string"
+                                                }
+                                            }
                                         }
                                     }
                                 }

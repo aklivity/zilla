@@ -27,8 +27,8 @@ public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, T
     private final Function<OptionsConfig, T> mapper;
 
     private String mode;
+    private TestAuthorizationConfig authorization;
     private List<String> catalogs;
-    private List<TestBindingOptionsConfig.Guard> guards;
     private List<TestBindingOptionsConfig.Event> events;
 
     TestBindingOptionsConfigBuilder(
@@ -62,15 +62,11 @@ public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, T
         return this;
     }
 
-    public TestBindingOptionsConfigBuilder<T> guard(
-        String guard,
-        String token)
+    public TestBindingOptionsConfigBuilder<T> authorization(
+        String name,
+        String credentials)
     {
-        if (this.guards == null)
-        {
-            this.guards = new LinkedList<>();
-        }
-        this.guards.add(new TestBindingOptionsConfig.Guard(guard, token));
+        this.authorization = new TestAuthorizationConfig(name, credentials);
         return this;
     }
 
@@ -89,6 +85,6 @@ public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, T
     @Override
     public T build()
     {
-        return mapper.apply(new TestBindingOptionsConfig(mode, catalogs, guards, events));
+        return mapper.apply(new TestBindingOptionsConfig(mode, authorization, catalogs, events));
     }
 }

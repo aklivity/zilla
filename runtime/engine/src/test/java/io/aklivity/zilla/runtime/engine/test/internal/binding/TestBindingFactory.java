@@ -15,7 +15,6 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.binding;
 
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -74,8 +73,8 @@ final class TestBindingFactory implements BindingHandler
     private final TestEventContext event;
 
     private List<CatalogHandler> catalogs;
-    private List<GuardHandler> guards;
-    private List<String> guardTokens;
+    private GuardHandler guard;
+    private String credentials;
     private List<TestBindingOptionsConfig.Event> events;
     private int eventIndex;
 
@@ -113,17 +112,12 @@ final class TestBindingFactory implements BindingHandler
                     catalogs.add(context.supplyCatalog(NamespacedId.id(namespaceId, catalogId)));
                 }
             }
-            if (options.guards != null)
+            if (options.authorization != null)
             {
-                this.guards = new ArrayList<>();
-                this.guardTokens = new ArrayList<>();
-                for (TestBindingOptionsConfig.Guard g : options.guards)
-                {
-                    int namespaceId = context.supplyTypeId(binding.namespace);
-                    int guardId = context.supplyTypeId(g.guard);
-                    guards.add(context.supplyGuard(NamespacedId.id(namespaceId, guardId)));
-                    guardTokens.add(g.token);
-                }
+                int namespaceId = context.supplyTypeId(binding.namespace);
+                int guardId = context.supplyTypeId(options.authorization.name);
+                this.guard = context.supplyGuard(NamespacedId.id(namespaceId, guardId));
+                this.credentials = options.authorization.credentials;
             }
             this.events = options.events;
         }
@@ -257,12 +251,9 @@ final class TestBindingFactory implements BindingHandler
                     catalog.resolve(0);
                 }
             }
-            if (guards != null)
+            if (guard != null)
             {
-                for (int i = 0; i < guards.size(); i++)
-                {
-                    guards.get(i).reauthorize(traceId, routedId, 0, guardTokens.get(i));
-                }
+                guard.reauthorize(traceId, routedId, 0, credentials);
             }
             while (events != null && eventIndex < events.size())
             {

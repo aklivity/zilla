@@ -30,9 +30,8 @@ public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapt
 {
     private static final String MODE_NAME = "mode";
     private static final String CATALOGS_NAME = "catalogs";
-    private static final String GUARDS_NAME = "guards";
-    private static final String GUARD_NAME = "guard";
-    private static final String TOKEN_NAME = "token";
+    private static final String AUTHORIZATION_NAME = "authorization";
+    private static final String CREDENTIALS_NAME = "credentials";
     private static final String EVENTS_NAME = "events";
     private static final String TIMESTAMP_NAME = "timestamp";
     private static final String MESSAGE_NAME = "message";
@@ -70,17 +69,13 @@ public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapt
             }
             object.add(CATALOGS_NAME, catalogs);
         }
-        if (testOptions.guards != null)
+        if (testOptions.authorization != null)
         {
-            JsonArrayBuilder guards = Json.createArrayBuilder();
-            for (TestBindingOptionsConfig.Guard g : testOptions.guards)
-            {
-                JsonObjectBuilder event = Json.createObjectBuilder();
-                event.add(GUARD_NAME, g.guard);
-                event.add(TOKEN_NAME, g.token);
-                guards.add(event);
-            }
-            object.add(GUARDS_NAME, guards);
+            JsonObjectBuilder credentials = Json.createObjectBuilder();
+            credentials.add(CREDENTIALS_NAME, testOptions.authorization.credentials);
+            JsonObjectBuilder authorization = Json.createObjectBuilder();
+            authorization.add(testOptions.authorization.name, credentials);
+            object.add(AUTHORIZATION_NAME, authorization);
         }
         if (testOptions.events != null)
         {
@@ -118,15 +113,17 @@ public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapt
                     testOptions.catalog(((JsonString) catalog).getString());
                 }
             }
-            if (object.containsKey(GUARDS_NAME))
+            if (object.containsKey(AUTHORIZATION_NAME))
             {
-                JsonArray guards = object.getJsonArray(GUARDS_NAME);
-                for (JsonValue g : guards)
+                JsonObject authorization = object.getJsonObject(AUTHORIZATION_NAME);
+                String name = authorization.keySet().stream().findFirst().orElse(null);
+                if (name != null)
                 {
-                    JsonObject g0 = g.asJsonObject();
-                    if (g0.containsKey(GUARD_NAME) && g0.containsKey(TOKEN_NAME))
+                    JsonObject guard = authorization.getJsonObject(name);
+                    if (guard.containsKey(CREDENTIALS_NAME))
                     {
-                        testOptions.guard(g0.getString(GUARD_NAME), g0.getString(TOKEN_NAME));
+                        String credentials = guard.getString(CREDENTIALS_NAME);
+                        testOptions.authorization(name, credentials);
                     }
                 }
             }
