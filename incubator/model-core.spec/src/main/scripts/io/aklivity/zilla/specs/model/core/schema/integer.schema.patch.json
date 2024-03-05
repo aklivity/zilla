@@ -67,7 +67,7 @@
     {
         "op": "add",
         "path": "/$defs/validator/types/enum/-",
-        "value": "string"
+        "value": "integer"
     },
     {
         "op": "add",
@@ -80,7 +80,7 @@
                 {
                     "model":
                     {
-                        "const": "string"
+                        "const": "integer"
                     }
                 }
             },
@@ -90,15 +90,39 @@
                 {
                     "model":
                     {
-                        "const": "string"
+                        "const": "integer"
                     },
-                    "encoding":
+                    "format":
                     {
                         "type": "string",
                         "enum":
                         [
-                            "utf_8"
-                        ]
+                            "binary",
+                            "text"
+                        ],
+                        "default": "text"
+                    },
+                    "max":
+                    {
+                        "type": "integer"
+                    },
+                    "min":
+                    {
+                        "type": "integer"
+                    },
+                    "exclusiveMax":
+                    {
+                        "type": "boolean",
+                        "default": false
+                    },
+                    "exclusiveMin":
+                    {
+                        "type": "boolean",
+                        "default": false
+                    },
+                    "multiple":
+                    {
+                        "type": "integer"
                     }
                 },
                 "additionalProperties": false
