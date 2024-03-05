@@ -27,6 +27,7 @@ public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, T
     private final Function<OptionsConfig, T> mapper;
 
     private String mode;
+    private List<String> catalogs;
     private List<TestBindingOptionsConfig.Event> events;
 
     TestBindingOptionsConfigBuilder(
@@ -49,6 +50,17 @@ public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, T
         return this;
     }
 
+    public TestBindingOptionsConfigBuilder<T> catalog(
+        String catalog)
+    {
+        if (this.catalogs == null)
+        {
+            this.catalogs = new LinkedList<>();
+        }
+        this.catalogs.add(catalog);
+        return this;
+    }
+
     public TestBindingOptionsConfigBuilder<T> event(
         long timestamp,
         String message)
@@ -64,6 +76,6 @@ public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, T
     @Override
     public T build()
     {
-        return mapper.apply(new TestBindingOptionsConfig(mode, events));
+        return mapper.apply(new TestBindingOptionsConfig(mode, catalogs, events));
     }
 }

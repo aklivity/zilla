@@ -20,6 +20,7 @@ import jakarta.json.JsonArray;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
@@ -28,6 +29,7 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapterSpi
 {
     private static final String MODE_NAME = "mode";
+    private static final String CATALOGS_NAME = "catalogs";
     private static final String EVENTS_NAME = "events";
     private static final String TIMESTAMP_NAME = "timestamp";
     private static final String MESSAGE_NAME = "message";
@@ -56,7 +58,15 @@ public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapt
         {
             object.add(MODE_NAME, testOptions.mode);
         }
-
+        if (testOptions.catalogs != null)
+        {
+            JsonArrayBuilder catalogs = Json.createArrayBuilder();
+            for (String catalog : testOptions.catalogs)
+            {
+                catalogs.add(catalog);
+            }
+            object.add(CATALOGS_NAME, catalogs);
+        }
         if (testOptions.events != null)
         {
             JsonArrayBuilder events = Json.createArrayBuilder();
@@ -84,6 +94,14 @@ public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapt
             if (object.containsKey(MODE_NAME))
             {
                 testOptions.mode(object.getString(MODE_NAME));
+            }
+            if (object.containsKey(CATALOGS_NAME))
+            {
+                JsonArray catalogs = object.getJsonArray(CATALOGS_NAME);
+                for (JsonValue catalog : catalogs)
+                {
+                    testOptions.catalog(((JsonString) catalog).getString());
+                }
             }
             if (object.containsKey(EVENTS_NAME))
             {

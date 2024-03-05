@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.binding;
 
+import java.util.LinkedList;
 import java.util.List;
 
 import org.agrona.DirectBuffer;
@@ -24,8 +25,10 @@ import org.agrona.collections.Long2LongHashMap;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
+import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.event.TestEventContext;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.OctetsFW;
@@ -68,6 +71,7 @@ final class TestBindingFactory implements BindingHandler
     private final Long2LongHashMap router;
     private final TestEventContext event;
 
+    private List<CatalogHandler> catalogs;
     private List<TestBindingOptionsConfig.Event> events;
     private int eventIndex;
 
@@ -92,7 +96,21 @@ final class TestBindingFactory implements BindingHandler
             router.put(binding.id, exit.id);
         }
 
-        this.events = binding.options != null ? ((TestBindingOptionsConfig) binding.options).events : null;
+        TestBindingOptionsConfig options = (TestBindingOptionsConfig) binding.options;
+        if (options != null)
+        {
+            if (options.catalogs != null)
+            {
+                this.catalogs = new LinkedList<>();
+                for (String catalog : options.catalogs)
+                {
+                    int namespaceId = context.supplyTypeId(binding.namespace);
+                    int catalogId = context.supplyTypeId(catalog);
+                    catalogs.add(context.supplyCatalog(NamespacedId.id(namespaceId, catalogId)));
+                }
+            }
+            this.events = options.events;
+        }
     }
 
     public void detach(
@@ -216,6 +234,13 @@ final class TestBindingFactory implements BindingHandler
 
             target.doInitialBegin(traceId);
 
+            if (catalogs != null)
+            {
+                for (CatalogHandler catalog : catalogs)
+                {
+                    catalog.resolve(0);
+                }
+            }
             while (events != null && eventIndex < events.size())
             {
                 TestBindingOptionsConfig.Event e = events.get(eventIndex);

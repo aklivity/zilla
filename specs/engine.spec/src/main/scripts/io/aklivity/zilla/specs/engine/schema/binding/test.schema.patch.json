@@ -71,6 +71,14 @@
                                     }
                                 ]
                             },
+                            "catalogs":
+                            {
+                                "type": "array",
+                                "items":
+                                {
+                                    "type": "string"
+                                }
+                            },
                             "events":
                             {
                                 "type": "array",
