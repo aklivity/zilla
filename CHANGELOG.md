@@ -1,5 +1,14 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.69...HEAD)
+
+**Fixed bugs:**
+
+- Using parameter expansion in bash doesn't work in the docker containers.  [\#829](https://github.com/aklivity/zilla/issues/829)
+- Zilla crashes when a lot of MQTT clients are connected [\#762](https://github.com/aklivity/zilla/issues/762)
+
 ## [0.9.69](https://github.com/aklivity/zilla/tree/0.9.69) (2024-03-04)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.68...0.9.69)
