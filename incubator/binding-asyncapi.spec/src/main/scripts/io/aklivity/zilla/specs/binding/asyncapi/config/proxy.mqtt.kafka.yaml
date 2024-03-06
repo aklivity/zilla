@@ -24,7 +24,7 @@ bindings:
       specs:
         mqtt_api: mqtt/asyncapi.yaml
         kafka_api: kafka/sensor.asyncapi.yaml
-      mqtt_kafka:
+      mqtt-kafka:
         channels:
           sessions: mqttSessions
           retained: mqttRetained
