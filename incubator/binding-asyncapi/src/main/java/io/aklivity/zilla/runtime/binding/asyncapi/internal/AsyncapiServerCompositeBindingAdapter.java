@@ -19,7 +19,6 @@ import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiServerView;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiView;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
@@ -45,7 +44,6 @@ public class AsyncapiServerCompositeBindingAdapter extends AsyncapiCompositeBind
         AsyncapiOptionsConfig options = (AsyncapiOptionsConfig) binding.options;
         AsyncapiConfig asyncapiConfig = options.specs.get(0);
         this.asyncapi = asyncapiConfig.asyncapi;
-        AsyncapiView view = AsyncapiView.of(asyncapi);
 
         //TODO: add composite for all servers
         AsyncapiServerView firstServer = AsyncapiServerView.of(asyncapi.servers.entrySet().iterator().next().getValue());
@@ -53,7 +51,6 @@ public class AsyncapiServerCompositeBindingAdapter extends AsyncapiCompositeBind
         this.qname = binding.qname;
         this.qvault = binding.qvault;
         this.protocol = resolveProtocol(firstServer.protocol(), options);
-        int[] allPorts = view.resolveAllPorts();
         this.compositePorts = protocol.resolvePorts();
         this.isTlsEnabled = protocol.isSecure();
 
@@ -67,7 +64,7 @@ public class AsyncapiServerCompositeBindingAdapter extends AsyncapiCompositeBind
                     .kind(SERVER)
                     .options(TcpOptionsConfig::builder)
                         .host("0.0.0.0")
-                        .ports(allPorts)
+                        .ports(compositePorts)
                         .build()
                     .inject(this::injectPlainTcpRoute)
                     .inject(this::injectTlsTcpRoute)

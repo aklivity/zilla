@@ -23,6 +23,7 @@ import java.util.regex.Pattern;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiMessage;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiServer;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiMessageView;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiServerView;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
@@ -118,10 +119,12 @@ public abstract class AsyncapiProtocol
     {
         requireNonNull(scheme);
         int[] ports = null;
-        URI url = findFirstServerUrlWithScheme(scheme);
-        if (url != null)
+
+        for (AsyncapiServer s : asyncApi.servers.values())
         {
-            ports = new int[] {url.getPort()};
+            String[] hostAndPort = s.host.split(":");
+            ports = new int[] {Integer.parseInt(hostAndPort[1])};
+            break;
         }
         return ports;
     }

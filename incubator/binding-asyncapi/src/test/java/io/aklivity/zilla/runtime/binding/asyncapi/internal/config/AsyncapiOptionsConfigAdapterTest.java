@@ -204,7 +204,7 @@ public class AsyncapiOptionsConfigAdapterTest
                          "\"password\":\"password\"" +
                      "}" +
                  "}," +
-                "\"mqtt_kafka\":" +
+                "\"mqtt-kafka\":" +
                 "{" +
                     "\"channels\":" +
                     "{" +
@@ -338,7 +338,7 @@ public class AsyncapiOptionsConfigAdapterTest
                         "\"http\"" +
                     "]" +
                 "}," +
-                "\"mqtt_kafka\":" +
+                "\"mqtt-kafka\":" +
                 "{" +
                     "\"channels\":" +
                     "{" +
@@ -476,7 +476,7 @@ public class AsyncapiOptionsConfigAdapterTest
                          "\"password\":\"password\"" +
                      "}" +
                  "}," +
-                "\"mqtt_kafka\":" +
+                "\"mqtt-kafka\":" +
                 "{" +
                     "\"channels\":" +
                     "{" +
@@ -498,7 +498,7 @@ public class AsyncapiOptionsConfigAdapterTest
                     "{" +
                         "\"mqtt-api\":\"mqtt/asyncapi.yaml\"" +
                     "}," +
-                    "\"mqtt_kafka\":" +
+                    "\"mqtt-kafka\":" +
                     "{" +
                         "\"channels\":" +
                         "{" +
@@ -548,7 +548,7 @@ public class AsyncapiOptionsConfigAdapterTest
                     "{" +
                         "\"mqtt-api\":\"mqtt/asyncapi.yaml\"" +
                     "}," +
-                    "\"mqtt_kafka\":" +
+                    "\"mqtt-kafka\":" +
                     "{" +
                         "\"channels\":" +
                         "{" +

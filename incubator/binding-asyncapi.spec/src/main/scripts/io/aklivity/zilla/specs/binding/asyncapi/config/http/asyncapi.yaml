@@ -22,7 +22,7 @@ info:
   version: 1.0.0
 servers:
   plain:
-    host: http://localhost:8080
+    host: localhost:8080
     protocol: http
     protocolVersion: '2.0'
 defaultContentType: application/json
