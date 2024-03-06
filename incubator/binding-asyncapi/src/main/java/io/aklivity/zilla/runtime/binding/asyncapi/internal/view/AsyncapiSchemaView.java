@@ -40,6 +40,11 @@ public final class AsyncapiSchemaView extends AsyncapiResolvable<AsyncapiSchema>
         return schema.type;
     }
 
+    public String refKey()
+    {
+        return key;
+    }
+
     public AsyncapiSchemaView getItems()
     {
         return schema.items == null ? null : AsyncapiSchemaView.of(schemas, schema.items);

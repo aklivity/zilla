@@ -18,8 +18,11 @@ package io.aklivity.zilla.runtime.engine.test.internal.exporter.config;
 import static java.util.function.Function.identity;
 
 import jakarta.json.Json;
+import jakarta.json.JsonArray;
+import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonValue;
 
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
@@ -27,6 +30,9 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 public final class TestExporterOptionsConfigAdapter implements OptionsConfigAdapterSpi
 {
     private static final String MODE_NAME = "mode";
+    private static final String EVENTS_NAME = "events";
+    private static final String QNAME_NAME = "qname";
+    private static final String MESSAGE_NAME = "message";
 
     @Override
     public Kind kind()
@@ -48,7 +54,23 @@ public final class TestExporterOptionsConfigAdapter implements OptionsConfigAdap
 
         JsonObjectBuilder object = Json.createObjectBuilder();
 
-        object.add(MODE_NAME, testOptions.mode);
+        if (testOptions.mode != null)
+        {
+            object.add(MODE_NAME, testOptions.mode);
+        }
+
+        if (testOptions.events != null)
+        {
+            JsonArrayBuilder events = Json.createArrayBuilder();
+            for (TestExporterOptionsConfig.Event e : testOptions.events)
+            {
+                JsonObjectBuilder event = Json.createObjectBuilder();
+                event.add(QNAME_NAME, e.qName);
+                event.add(MESSAGE_NAME, e.message);
+                events.add(event);
+            }
+            object.add(EVENTS_NAME, events);
+        }
 
         return object.build();
     }
@@ -65,6 +87,18 @@ public final class TestExporterOptionsConfigAdapter implements OptionsConfigAdap
             if (object.containsKey(MODE_NAME))
             {
                 testOptions.mode(object.getString(MODE_NAME));
+            }
+            if (object.containsKey(EVENTS_NAME))
+            {
+                JsonArray events = object.getJsonArray(EVENTS_NAME);
+                for (JsonValue e : events)
+                {
+                    JsonObject e0 = e.asJsonObject();
+                    if (e0.containsKey(QNAME_NAME) && e0.containsKey(MESSAGE_NAME))
+                    {
+                        testOptions.event(e0.getString(QNAME_NAME), e0.getString(MESSAGE_NAME));
+                    }
+                }
             }
         }
 

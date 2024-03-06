@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal;
 
+import static io.aklivity.zilla.runtime.binding.http.internal.types.event.HttpEventType.REQUEST_ACCEPTED;
+
 import java.nio.ByteBuffer;
 import java.time.Clock;
 import java.util.Map;
@@ -25,7 +27,8 @@ import org.agrona.concurrent.UnsafeBuffer;
 import io.aklivity.zilla.runtime.binding.http.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
-import io.aklivity.zilla.runtime.binding.http.internal.types.event.HttpEventFW;
+import io.aklivity.zilla.runtime.binding.http.internal.types.event.EventFW;
+import io.aklivity.zilla.runtime.binding.http.internal.types.event.HttpEventExFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
@@ -39,7 +42,9 @@ public class HttpEventContext
     private static final String8FW HEADER_PATH = new String8FW(":path");
 
     private final AtomicBuffer eventBuffer = new UnsafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
-    private final HttpEventFW.Builder httpEventRW = new HttpEventFW.Builder();
+    private final AtomicBuffer extensionBuffer = new UnsafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
+    private final EventFW.Builder eventRW = new EventFW.Builder();
+    private final HttpEventExFW.Builder httpEventExRW = new HttpEventExFW.Builder();
     private final int httpTypeId;
     private final MessageConsumer eventWriter;
     private final Clock clock;
@@ -60,18 +65,23 @@ public class HttpEventContext
         Map<String, String> headers)
     {
         String identity = guard == null ? null : guard.identity(authorization);
-        HttpEventFW event = httpEventRW
-            .wrap(eventBuffer, 0, eventBuffer.capacity())
+        HttpEventExFW extension = httpEventExRW
+            .wrap(extensionBuffer, 0, extensionBuffer.capacity())
             .requestAccepted(e -> e
-                .timestamp(clock.millis())
-                .traceId(traceId)
-                .namespacedId(bindingId)
+                .typeId(REQUEST_ACCEPTED.value())
                 .identity(identity)
                 .scheme(headers.get(":scheme"))
                 .method(headers.get(":method"))
                 .authority(headers.get(":authority"))
                 .path(headers.get(":path"))
             )
+            .build();
+        EventFW event = eventRW
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .timestamp(clock.millis())
+            .traceId(traceId)
+            .namespacedId(bindingId)
+            .extension(extension.buffer(), extension.offset(), extension.limit())
             .build();
         eventWriter.accept(httpTypeId, event.buffer(), event.offset(), event.limit());
     }
@@ -84,18 +94,23 @@ public class HttpEventContext
         Array32FW<HttpHeaderFW> headers)
     {
         String identity = guard == null ? null : guard.identity(authorization);
-        HttpEventFW event = httpEventRW
-            .wrap(eventBuffer, 0, eventBuffer.capacity())
+        HttpEventExFW extension = httpEventExRW
+            .wrap(extensionBuffer, 0, extensionBuffer.capacity())
             .requestAccepted(e -> e
-                .timestamp(clock.millis())
-                .traceId(traceId)
-                .namespacedId(bindingId)
+                .typeId(REQUEST_ACCEPTED.value())
                 .identity(identity)
                 .scheme(headers.matchFirst(h -> HEADER_SCHEME.equals(h.name())).value().asString())
                 .method(headers.matchFirst(h -> HEADER_METHOD.equals(h.name())).value().asString())
                 .authority(headers.matchFirst(h -> HEADER_AUTHORITY.equals(h.name())).value().asString())
                 .path(headers.matchFirst(h -> HEADER_PATH.equals(h.name())).value().asString())
             )
+            .build();
+        EventFW event = eventRW
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .timestamp(clock.millis())
+            .traceId(traceId)
+            .namespacedId(bindingId)
+            .extension(extension.buffer(), extension.offset(), extension.limit())
             .build();
         eventWriter.accept(httpTypeId, event.buffer(), event.offset(), event.limit());
     }

@@ -65,11 +65,13 @@ public class JsonReadConverterHandler extends JsonModelHandler implements Conver
             }
         }
 
-        if (validate(schemaId, data, index, length))
+        if (schemaId != NO_SCHEMA_ID &&
+            validate(schemaId, data, index, length))
         {
             next.accept(data, index, length);
             valLength = length;
         }
+
         return valLength;
     }
 }

@@ -2271,7 +2271,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 final HttpHeaderFW connection = beginEx.headers().matchFirst(h -> HEADER_CONNECTION.equals(h.name()));
                 exchange.responseClosing = connection != null && connectionClose.reset(connection.value().asString()).matches();
 
-                event.requestAccepted(traceId, routedId, guard, authorization, beginEx.headers());
+                event.requestAccepted(traceId, originId, guard, authorization, beginEx.headers());
                 this.exchange = exchange;
             }
             return headersValid;
@@ -2297,7 +2297,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             int limit,
             Flyweight extension)
         {
-            boolean contentValid = exchange.validateContent(buffer, 0, limit - offset);
+            boolean contentValid = exchange.validateContent(buffer, offset, limit - offset);
             int result;
             if (contentValid)
             {

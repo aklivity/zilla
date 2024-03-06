@@ -708,7 +708,7 @@ public abstract class KafkaClientSaslHandshaker
                 final int errorCode = authenticateResponse.errorCode();
                 if (errorCode != ERROR_NONE)
                 {
-                    event.authorizationFailed(traceId, client.originId);
+                    event.authorizationFailed(traceId, client.originId, client.sasl.username);
                 }
 
                 progress = authenticateResponse.limit();
@@ -746,7 +746,7 @@ public abstract class KafkaClientSaslHandshaker
                 final int errorCode = authenticateResponse.errorCode();
                 if (errorCode != ERROR_NONE)
                 {
-                    event.authorizationFailed(traceId, client.originId);
+                    event.authorizationFailed(traceId, client.originId, client.sasl.username);
                 }
 
                 progress = authenticateResponse.limit();

@@ -15,13 +15,16 @@
  */
 package io.aklivity.zilla.runtime.binding.tcp.internal;
 
+import static io.aklivity.zilla.runtime.binding.tcp.internal.types.event.TcpEventType.DNS_FAILED;
+
 import java.nio.ByteBuffer;
 import java.time.Clock;
 
-import org.agrona.MutableDirectBuffer;
+import org.agrona.concurrent.AtomicBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
-import io.aklivity.zilla.runtime.binding.tcp.internal.types.event.TcpEventFW;
+import io.aklivity.zilla.runtime.binding.tcp.internal.types.event.EventFW;
+import io.aklivity.zilla.runtime.binding.tcp.internal.types.event.TcpEventExFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
@@ -29,8 +32,11 @@ public class TcpEventContext
 {
     private static final int EVENT_BUFFER_CAPACITY = 1024;
 
-    private final TcpEventFW.Builder tcpEventRW = new TcpEventFW.Builder();
-    private final MutableDirectBuffer eventBuffer = new UnsafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
+    private final AtomicBuffer eventBuffer = new UnsafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
+    private final AtomicBuffer extensionBuffer = new UnsafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
+    private final EventFW.Builder eventRW = new EventFW.Builder();
+    private final TcpEventExFW.Builder tcpEventExRW = new TcpEventExFW.Builder();
+
     private final int tcpTypeId;
     private final MessageConsumer eventWriter;
     private final Clock clock;
@@ -48,14 +54,19 @@ public class TcpEventContext
         long bindingId,
         String address)
     {
-        TcpEventFW event = tcpEventRW
-            .wrap(eventBuffer, 0, eventBuffer.capacity())
+        TcpEventExFW extension = tcpEventExRW
+            .wrap(extensionBuffer, 0, extensionBuffer.capacity())
             .dnsFailed(e -> e
-                .timestamp(clock.millis())
-                .traceId(traceId)
-                .namespacedId(bindingId)
+                .typeId(DNS_FAILED.value())
                 .address(address)
             )
+            .build();
+        EventFW event = eventRW
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .timestamp(clock.millis())
+            .traceId(traceId)
+            .namespacedId(bindingId)
+            .extension(extension.buffer(), extension.offset(), extension.limit())
             .build();
         eventWriter.accept(tcpTypeId, event.buffer(), event.offset(), event.limit());
     }

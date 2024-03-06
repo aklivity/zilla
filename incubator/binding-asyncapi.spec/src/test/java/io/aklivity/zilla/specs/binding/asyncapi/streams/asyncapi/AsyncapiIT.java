@@ -83,6 +83,8 @@ public class AsyncapiIT
     })
     public void shouldProxyPublishMessageMqtt() throws Exception
     {
+        k3po.start();
+        k3po.notifyBarrier("WILL_STREAM_STARTED");
         k3po.finish();
     }
 }

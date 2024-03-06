@@ -26,6 +26,33 @@ read zilla:begin.ext ${asyncapi:matchBeginEx()
                              .extension(kafka:beginEx()
                                             .typeId(zilla:id("kafka"))
                                             .merged()
+                                                .capabilities("PRODUCE_AND_FETCH")
+                                                .topic("mqtt-sessions")
+                                                .filter()
+                                                    .header("type", "will-signal")
+                                                    .build()
+                                                .filter()
+                                                    .header("type", "expiry-signal")
+                                                    .build()
+                                                .evaluation("LAZY")
+                                                .isolation("READ_COMMITTED")
+                                                .deltaType("NONE")
+                                                .ackMode("LEADER_ONLY")
+                                                .build()
+                                            .build())
+                             .build()}
+
+connected
+read notify WILL_STREAM_STARTED
+
+accepted
+
+read zilla:begin.ext ${asyncapi:matchBeginEx()
+                             .typeId(zilla:id("asyncapi"))
+                             .apiId(810158698)
+                             .extension(kafka:beginEx()
+                                            .typeId(zilla:id("kafka"))
+                                            .merged()
                                                 .capabilities("PRODUCE_ONLY")
                                                 .topic("sensors")
                                                 .partition(-1, -2)
