@@ -15,11 +15,11 @@
  */
 package io.aklivity.zilla.runtime.engine.catalog;
 
+import java.util.function.Function;
+
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
-
-import java.util.function.Function;
 
 public interface CatalogHandler
 {
@@ -66,11 +66,11 @@ public interface CatalogHandler
         String subject,
         String version);
 
-    //TODO: add         Function<String, DirectBuffer> resolveMeta,
     default int resolve(
         DirectBuffer data,
         int index,
-        int length)
+        int length,
+        Function<String, DirectBuffer> resolveMeta)
     {
         return NO_SCHEMA_ID;
     }

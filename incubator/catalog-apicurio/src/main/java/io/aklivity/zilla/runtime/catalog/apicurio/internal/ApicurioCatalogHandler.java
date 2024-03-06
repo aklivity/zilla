@@ -14,6 +14,11 @@
  */
 package io.aklivity.zilla.runtime.catalog.apicurio.internal;
 
+import static io.aklivity.zilla.runtime.catalog.apicurio.internal.config.ApicurioOptionsConfigBuilder.DEFAULT_ID_ENCODING;
+import static io.aklivity.zilla.runtime.catalog.apicurio.internal.config.ApicurioOptionsConfigBuilder.GLOBAL_ID;
+import static org.agrona.BitUtil.SIZE_OF_BYTE;
+import static org.agrona.BitUtil.SIZE_OF_LONG;
+
 import java.io.StringReader;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -21,6 +26,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.ByteOrder;
 import java.text.MessageFormat;
+import java.util.function.Function;
 import java.util.zip.CRC32C;
 
 import jakarta.json.Json;
@@ -38,16 +44,13 @@ import io.aklivity.zilla.runtime.catalog.apicurio.internal.types.ApicurioPrefixF
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
-import static io.aklivity.zilla.runtime.catalog.apicurio.internal.config.ApicurioOptionsConfigBuilder.DEFAULT_ID_ENCODING;
-import static io.aklivity.zilla.runtime.catalog.apicurio.internal.config.ApicurioOptionsConfigBuilder.GLOBAL_ID;
-import static org.agrona.BitUtil.SIZE_OF_BYTE;
-import static org.agrona.BitUtil.SIZE_OF_LONG;
 
 public class ApicurioCatalogHandler implements CatalogHandler
 {
     private static final String ARTIFACT_VERSION_PATH = "/apis/registry/v2/groups/{0}/artifacts/{1}/versions/{2}/meta";
     private static final String ARTIFACT_BY_GLOBAL_ID_PATH = "/apis/registry/v2/ids/globalIds/{0}";
     private static final String ARTIFACT_BY_CONTENT_ID_PATH = "/apis/registry/v2/ids/contentIds/{0}";
+    private static final String APICURIO_VALUE = "apicurio.value.";
     private static final int MAX_PADDING_LENGTH = SIZE_OF_BYTE + SIZE_OF_LONG;
     private static final byte MAGIC_BYTE = 0x0;
 
@@ -58,14 +61,16 @@ public class ApicurioCatalogHandler implements CatalogHandler
     private final String baseUrl;
     private final CRC32C crc32c;
     private final Int2ObjectCache<String> artifacts;
-    private final Int2ObjectCache<CachedArtifactId> globalIds;
+    private final Int2ObjectCache<CachedArtifactId> schemaIds;
     private final long maxAgeMillis;
     private final ApicurioEventContext event;
     private final long catalogId;
     private final String groupId;
     private final String useId;
+    private final String useIdHeaderName;
     private final String idEncoding;
     private final String artifactPath;
+    private boolean headersEnabled = true;
 
     public ApicurioCatalogHandler(
         ApicurioOptionsConfig config,
@@ -76,10 +81,11 @@ public class ApicurioCatalogHandler implements CatalogHandler
         this.client = HttpClient.newHttpClient();
         this.crc32c = new CRC32C();
         this.artifacts = new Int2ObjectCache<>(1, 1024, i -> {});
-        this.globalIds = new Int2ObjectCache<>(1, 1024, i -> {});
+        this.schemaIds = new Int2ObjectCache<>(1, 1024, i -> {});
         this.maxAgeMillis = config.maxAge.toMillis();
         this.groupId = config.groupId;
         this.useId = config.useId;
+        this.useIdHeaderName = APICURIO_VALUE + useId;
         this.idEncoding = config.idEncoding;
         this.artifactPath = useId.equals(GLOBAL_ID) ? ARTIFACT_BY_GLOBAL_ID_PATH : ARTIFACT_BY_CONTENT_ID_PATH;
         this.event = new ApicurioEventContext(context);
@@ -114,10 +120,10 @@ public class ApicurioCatalogHandler implements CatalogHandler
         int schemaId;
 
         int checkSum = generateCRC32C(artifact, version);
-        if (globalIds.containsKey(checkSum) &&
-            (System.currentTimeMillis() - globalIds.get(checkSum).timestamp) < maxAgeMillis)
+        if (schemaIds.containsKey(checkSum) &&
+            (System.currentTimeMillis() - schemaIds.get(checkSum).timestamp) < maxAgeMillis)
         {
-            schemaId = globalIds.get(checkSum).id;
+            schemaId = schemaIds.get(checkSum).id;
         }
         else
         {
@@ -125,7 +131,7 @@ public class ApicurioCatalogHandler implements CatalogHandler
             schemaId = response != null ? resolveId(response) : NO_SCHEMA_ID;
             if (schemaId != NO_SCHEMA_ID)
             {
-                globalIds.put(checkSum, new CachedArtifactId(System.currentTimeMillis(), schemaId));
+                schemaIds.put(checkSum, new CachedArtifactId(System.currentTimeMillis(), schemaId));
             }
         }
         return schemaId;
@@ -162,13 +168,21 @@ public class ApicurioCatalogHandler implements CatalogHandler
     public int resolve(
         DirectBuffer data,
         int index,
-        int length)
+        int length,
+        Function<String, DirectBuffer> resolveMeta)
     {
-        int schemaId = NO_SCHEMA_ID;
+        int schemaId;
         if (data.getByte(index) == MAGIC_BYTE)
         {
             schemaId = idEncoding.equals(DEFAULT_ID_ENCODING) ? (int) data.getLong(index + SIZE_OF_BYTE, ByteOrder.BIG_ENDIAN) :
                 data.getInt(index + SIZE_OF_BYTE, ByteOrder.BIG_ENDIAN);
+            this.headersEnabled = false;
+        }
+        else
+        {
+            final DirectBuffer headerValue = resolveMeta.apply(useIdHeaderName);
+            schemaId = idEncoding.equals(DEFAULT_ID_ENCODING) ? (int) headerValue.getLong(0, ByteOrder.BIG_ENDIAN) :
+                data.getInt(0, ByteOrder.BIG_ENDIAN);
         }
         return schemaId;
     }
@@ -189,10 +203,10 @@ public class ApicurioCatalogHandler implements CatalogHandler
             progress += SIZE_OF_BYTE;
             schemaId = idEncoding.equals(DEFAULT_ID_ENCODING) ? (int) data.getLong(index + progress, ByteOrder.BIG_ENDIAN) :
                 data.getInt(index + progress, ByteOrder.BIG_ENDIAN);
-            progress += BitUtil.SIZE_OF_INT;
+            progress += idEncoding.equals(DEFAULT_ID_ENCODING) ? SIZE_OF_LONG : BitUtil.SIZE_OF_INT;
         }
 
-        if (schemaId > NO_SCHEMA_ID)
+        if (headersEnabled || schemaId > NO_SCHEMA_ID)
         {
             valLength = decoder.accept(schemaId, data, index + progress, length - progress, next);
         }
@@ -217,7 +231,7 @@ public class ApicurioCatalogHandler implements CatalogHandler
     @Override
     public int encodePadding()
     {
-        return MAX_PADDING_LENGTH;
+        return headersEnabled ? 0 : MAX_PADDING_LENGTH;
     }
 
     private URI toURI(

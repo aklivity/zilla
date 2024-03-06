@@ -40,6 +40,18 @@
                                 "type": "string",
                                 "default": "default"
                             },
+                            "use-id":
+                            {
+                                "type": "string",
+                                "enum": [ "globalId", "contentId" ],
+                                "default": "globalId"
+                            },
+                            "id-encoding":
+                            {
+                                "type": "string",
+                                "enum": [ "default", "legacy" ],
+                                "default": "default"
+                            },
                             "max-age":
                             {
                                 "title": "Max Age",

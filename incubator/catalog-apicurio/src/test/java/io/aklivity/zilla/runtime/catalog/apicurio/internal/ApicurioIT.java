@@ -186,7 +186,7 @@ public class ApicurioIT
     {
         ApicurioCatalogHandler catalog = new ApicurioCatalogHandler(config, context, 0L);
 
-        assertEquals(5, catalog.encodePadding());
+        assertEquals(9, catalog.encodePadding());
     }
 
     @Test
@@ -212,7 +212,7 @@ public class ApicurioIT
 
         DirectBuffer data = new UnsafeBuffer();
 
-        byte[] bytes = {0x01, 0x00, 0x00, 0x00, 0x09, 0x06, 0x69, 0x64,
+        byte[] bytes = {0x00, 0x00, 0x00, 0x00, 0x09, 0x06, 0x69, 0x64,
             0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
         data.wrap(bytes, 0, bytes.length);
 
@@ -228,11 +228,11 @@ public class ApicurioIT
 
         DirectBuffer data = new UnsafeBuffer();
 
-        byte[] bytes = {0x01, 0x00, 0x00, 0x00, 0x09, 0x06, 0x69, 0x64,
+        byte[] bytes = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x09, 0x06, 0x69, 0x64,
             0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
         data.wrap(bytes, 0, bytes.length);
 
-        int schemaId = catalog.resolve(data, 0, data.capacity());
+        int schemaId = catalog.resolve(data, 0, data.capacity(), s -> null);
 
         assertEquals(9, schemaId);
     }

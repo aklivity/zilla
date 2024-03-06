@@ -18,6 +18,7 @@ import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_
 
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.util.function.Function;
 import java.util.function.LongFunction;
 
 import org.agrona.DirectBuffer;
@@ -52,12 +53,13 @@ public class ProtobufReadConverterHandler extends ProtobufModelHandler implement
     public int padding(
         DirectBuffer data,
         int index,
-        int length)
+        int length,
+        Function<String, DirectBuffer> resolveMeta)
     {
         int padding = 0;
         if (VIEW_JSON.equals(view))
         {
-            int schemaId = handler.resolve(data, index, length);
+            int schemaId = handler.resolve(data, index, length, s -> null);
 
             if (schemaId == NO_SCHEMA_ID)
             {

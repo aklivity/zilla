@@ -21,4 +21,6 @@ catalogs:
     options:
       url: http://localhost:8081
       group-id: default
+      use-id: globalId
+      id-encoding: default
       max-age: 30

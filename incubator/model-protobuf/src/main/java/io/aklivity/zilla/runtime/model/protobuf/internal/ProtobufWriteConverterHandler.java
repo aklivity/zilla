@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.model.protobuf.internal;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.function.Function;
 import java.util.function.LongFunction;
 
 import org.agrona.DirectBuffer;
@@ -53,7 +54,8 @@ public class ProtobufWriteConverterHandler extends ProtobufModelHandler implemen
     public int padding(
         DirectBuffer data,
         int index,
-        int length)
+        int length,
+        Function<String, DirectBuffer> resolveMeta)
     {
         int schemaId = catalog != null && catalog.id > 0
                 ? catalog.id
