@@ -12,25 +12,23 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-scope apicurio
+package io.aklivity.zilla.runtime.catalog.apicurio.internal;
+
+import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi;
+
+public final class ApicurioEventFormatterFactory implements EventFormatterFactorySpi
 {
-    scope event
+    @Override
+    public ApicurioEventFormatter create(
+        Configuration config)
     {
-        enum ApicurioEventType (uint8)
-        {
-            REMOTE_ACCESS_REJECTED (1)
-        }
+        return new ApicurioEventFormatter(config);
+    }
 
-        struct ApicurioRemoteAccessRejectedEx extends core::stream::Extension
-        {
-            string8 method;
-            string16 url;
-            int16 status;
-        }
-
-        union ApicurioEventEx switch (ApicurioEventType)
-        {
-            case REMOTE_ACCESS_REJECTED: ApicurioRemoteAccessRejectedEx remoteAccessRejected;
-        }
+    @Override
+    public String type()
+    {
+        return ApicurioCatalog.NAME;
     }
 }

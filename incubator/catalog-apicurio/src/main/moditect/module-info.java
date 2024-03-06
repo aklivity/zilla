@@ -22,4 +22,7 @@ module io.aklivity.zilla.runtime.catalog.apicurio
 
     provides io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi
         with io.aklivity.zilla.runtime.catalog.apicurio.internal.config.ApicurioOptionsConfigAdapter;
+
+    provides io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi
+        with io.aklivity.zilla.runtime.catalog.apicurio.internal.ApicurioEventFormatterFactory;
 }
