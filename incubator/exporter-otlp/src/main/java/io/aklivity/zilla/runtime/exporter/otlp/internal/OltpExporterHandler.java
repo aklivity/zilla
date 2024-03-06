@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.exporter.otlp.internal;
 
+import static io.aklivity.zilla.runtime.exporter.otlp.config.OtlpOptionsConfig.OtlpSignalsConfig.LOGS;
 import static io.aklivity.zilla.runtime.exporter.otlp.config.OtlpOptionsConfig.OtlpSignalsConfig.METRICS;
 
 import java.net.HttpURLConnection;
@@ -36,6 +37,7 @@ import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.reader.MetricsReader;
 import io.aklivity.zilla.runtime.exporter.otlp.config.OtlpOptionsConfig;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpExporterConfig;
+import io.aklivity.zilla.runtime.exporter.otlp.internal.serializer.OtlpLogsSerializer;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.serializer.OtlpMetricsSerializer;
 
 public class OltpExporterHandler implements ExporterHandler
@@ -49,6 +51,7 @@ public class OltpExporterHandler implements ExporterHandler
     private final Set<OtlpOptionsConfig.OtlpSignalsConfig> signals;
     private final String protocol;
     private final URI metricsEndpoint;
+    private final URI logsEndpoint;
     private final long interval;
     private final Collector collector;
     private final LongFunction<KindConfig> resolveKind;
@@ -56,11 +59,13 @@ public class OltpExporterHandler implements ExporterHandler
     private final HttpClient httpClient;
     private final Consumer<HttpResponse<String>> responseHandler;
 
-    private OtlpMetricsSerializer serializer;
+    private OtlpMetricsSerializer metricsSerializer;
+    private OtlpLogsSerializer logsSerializer;
     private long nextAttempt;
     private long lastSuccess;
     private boolean warningLogged;
-    private CompletableFuture<HttpResponse<String>> response;
+    private CompletableFuture<HttpResponse<String>> metricsResponse;
+    private CompletableFuture<HttpResponse<String>> logsResponse;
 
     public OltpExporterHandler(
         OltpConfiguration config,
@@ -75,6 +80,7 @@ public class OltpExporterHandler implements ExporterHandler
         this.warningInterval = config.warningInterval().toMillis();
         this.context = context;
         this.metricsEndpoint = exporter.resolveMetrics();
+        this.logsEndpoint = exporter.resolveLogs();
         this.signals = exporter.resolveSignals();
         this.protocol = exporter.resolveProtocol();
         this.interval = exporter.resolveInterval();
@@ -88,11 +94,11 @@ public class OltpExporterHandler implements ExporterHandler
     @Override
     public void start()
     {
-        assert signals.contains(METRICS);
         assert HTTP.equals(protocol);
 
         MetricsReader metrics = new MetricsReader(collector, context::supplyLocalName);
-        serializer = new OtlpMetricsSerializer(metrics.records(), attributes, context::resolveMetric, resolveKind);
+        metricsSerializer = new OtlpMetricsSerializer(metrics.records(), attributes, context::resolveMetric, resolveKind);
+        logsSerializer = new OtlpLogsSerializer(attributes);
         lastSuccess = System.currentTimeMillis();
         nextAttempt = lastSuccess + interval;
     }
@@ -104,17 +110,30 @@ public class OltpExporterHandler implements ExporterHandler
         long now = System.currentTimeMillis();
         if (now >= nextAttempt)
         {
-            if (response == null || response.isDone())
+            if (signals.contains(METRICS) && (metricsResponse == null || metricsResponse.isDone()))
             {
-                String json = serializer.serializeAll();
-                HttpRequest request = HttpRequest.newBuilder()
+                String metricsJson = metricsSerializer.serializeAll();
+                HttpRequest metricsRequest = HttpRequest.newBuilder()
                     .uri(metricsEndpoint)
                     .header("Content-Type", "application/json")
-                    .POST(HttpRequest.BodyPublishers.ofString(json))
+                    .POST(HttpRequest.BodyPublishers.ofString(metricsJson))
                     .timeout(timeoutInterval)
                     .build();
-                response = httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString());
-                response.thenAccept(responseHandler);
+                metricsResponse = httpClient.sendAsync(metricsRequest, HttpResponse.BodyHandlers.ofString());
+                metricsResponse.thenAccept(responseHandler);
+                nextAttempt = now + retryInterval;
+            }
+            if (signals.contains(LOGS) && (logsResponse == null || logsResponse.isDone()))
+            {
+                String logsJson = logsSerializer.serializeAll();
+                HttpRequest logsRequest = HttpRequest.newBuilder()
+                    .uri(logsEndpoint)
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(logsJson))
+                    .timeout(timeoutInterval)
+                    .build();
+                logsResponse = httpClient.sendAsync(logsRequest, HttpResponse.BodyHandlers.ofString());
+                logsResponse.thenAccept(responseHandler);
                 nextAttempt = now + retryInterval;
             }
             if (!warningLogged && now - lastSuccess > warningInterval)
