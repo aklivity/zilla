@@ -72,7 +72,6 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaHeaderFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaKeyFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Varint32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheDeltaFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW;
@@ -354,7 +353,7 @@ public final class KafkaCachePartition
         final long keyHash = computeHash(key);
         final int valueLength = value != null ? value.sizeof() : -1;
         writeEntryStart(context, bindingId, offset, entryMark, valueMark, timestamp, producerId, key,
-            keyHash, valueLength, ancestor, entryFlags, deltaType, headers, value, convertKey, convertValue, verbose);
+            keyHash, valueLength, ancestor, entryFlags, deltaType, value, convertKey, convertValue, verbose);
         writeEntryContinue(context, bindingId, FLAGS_COMPLETE, offset, entryMark, valueMark, value, convertValue, verbose);
         writeEntryFinish(headers, deltaType);
     }
@@ -373,7 +372,6 @@ public final class KafkaCachePartition
         KafkaCacheEntryFW ancestor,
         int entryFlags,
         KafkaDeltaType deltaType,
-        ArrayFW<KafkaHeaderFW> headers,
         OctetsFW payload,
         ConverterHandler convertKey,
         ConverterHandler convertValue,
@@ -412,8 +410,7 @@ public final class KafkaCachePartition
         int convertedPos = NO_CONVERTED_POSITION;
         if (convertValue != ConverterHandler.NONE)
         {
-            int convertedPadding = convertValue.padding(payload.buffer(), payload.offset(), payload.sizeof(),
-                getHeaderByName(headers));
+            int convertedPadding = convertValue.padding(payload.buffer(), payload.offset(), payload.sizeof());
             int convertedMaxLength = valueMaxLength + convertedPadding;
 
             convertedPos = convertedFile.capacity();
@@ -480,19 +477,6 @@ public final class KafkaCachePartition
         final int deltaBaseOffset = 0;
         final long keyEntry = keyHash << 32 | deltaBaseOffset;
         keysFile.appendLong(keyEntry);
-    }
-
-    private static Function<String, DirectBuffer> getHeaderByName(
-        ArrayFW<KafkaHeaderFW> headers)
-    {
-        return s ->
-        {
-            final String8FW headerName = new String8FW(s);
-            final OctetsFW headerNameOctets = new OctetsFW().wrap(headerName.value(), 0, headerName.length());
-            final KafkaHeaderFW header = headers.matchFirst(h -> h.name().equals(headerNameOctets));
-            final OctetsFW value = header != null ? header.value() : null;
-            return value != null ? value.value() : null;
-        };
     }
 
     public void writeEntryContinue(
@@ -674,8 +658,7 @@ public final class KafkaCachePartition
         int convertedPos = NO_CONVERTED_POSITION;
         if (convertValue != ConverterHandler.NONE)
         {
-            int convertedPadding = convertValue.padding(payload.buffer(), payload.offset(), payload.sizeof(),
-                getHeaderByName(headers));
+            int convertedPadding = convertValue.padding(payload.buffer(), payload.offset(), payload.sizeof());
             int convertedMaxLength = valueMaxLength + convertedPadding;
 
             convertedPos = convertedFile.capacity();

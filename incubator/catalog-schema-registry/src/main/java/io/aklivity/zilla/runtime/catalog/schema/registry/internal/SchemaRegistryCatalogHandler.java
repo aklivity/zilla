@@ -20,7 +20,6 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.ByteOrder;
 import java.text.MessageFormat;
-import java.util.function.Function;
 import java.util.zip.CRC32C;
 
 import org.agrona.BitUtil;
@@ -122,8 +121,7 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
     public int resolve(
         DirectBuffer data,
         int index,
-        int length,
-        Function<String, DirectBuffer> resolveMeta)
+        int length)
     {
         int schemaId = NO_SCHEMA_ID;
         if (data.getByte(index) == MAGIC_BYTE)

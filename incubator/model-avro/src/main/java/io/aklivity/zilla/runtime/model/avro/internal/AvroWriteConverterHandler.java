@@ -15,7 +15,6 @@
 package io.aklivity.zilla.runtime.model.avro.internal;
 
 import java.io.IOException;
-import java.util.function.Function;
 import java.util.function.LongFunction;
 
 import org.agrona.DirectBuffer;
@@ -43,8 +42,7 @@ public class AvroWriteConverterHandler extends AvroModelHandler implements Conve
     public int padding(
         DirectBuffer data,
         int index,
-        int length,
-        Function<String, DirectBuffer> resolveMeta)
+        int length)
     {
         return handler.encodePadding();
     }

@@ -351,7 +351,7 @@ public class ProtobufModelTest
 
         DirectBuffer data = new UnsafeBuffer();
 
-        assertEquals(71, converter.padding(data, 0, data.capacity(), s -> null));
+        assertEquals(71, converter.padding(data, 0, data.capacity()));
     }
 
     @Test
@@ -378,7 +378,7 @@ public class ProtobufModelTest
 
         DirectBuffer data = new UnsafeBuffer();
 
-        assertEquals(3, converter.padding(data, 0, data.capacity(), s -> null));
+        assertEquals(3, converter.padding(data, 0, data.capacity()));
 
     }
 }

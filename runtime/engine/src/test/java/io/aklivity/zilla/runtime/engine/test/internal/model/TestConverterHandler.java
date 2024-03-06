@@ -15,7 +15,6 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.model;
 
-import java.util.function.Function;
 import java.util.function.LongFunction;
 
 import org.agrona.DirectBuffer;
@@ -53,8 +52,7 @@ public class TestConverterHandler implements ConverterHandler
     public int padding(
         DirectBuffer data,
         int index,
-        int length,
-        Function<String, DirectBuffer> resolveMeta)
+        int length)
     {
         return handler.encodePadding();
     }

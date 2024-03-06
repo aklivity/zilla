@@ -839,7 +839,6 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 final long producerId = kafkaFetchDataEx.producerId();
                 final KafkaKeyFW key = kafkaFetchDataEx.key();
                 final KafkaDeltaFW delta = kafkaFetchDataEx.delta();
-                final ArrayFW<KafkaHeaderFW> headers = kafkaFetchDataEx.headers();
                 final int valueLength = valueFragment != null ? valueFragment.sizeof() + deferred : -1;
 
                 assert delta.type().get() == KafkaDeltaType.NONE;
@@ -881,8 +880,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 final long keyHash = partition.computeKeyHash(key);
                 final KafkaCacheEntryFW ancestor = findAndMarkAncestor(key, nextHead, (int) keyHash, partitionOffset);
                 partition.writeEntryStart(context, routedId, partitionOffset, entryMark, valueMark, timestamp, producerId,
-                    key, keyHash, valueLength, ancestor, entryFlags, deltaType, headers, valueFragment,
-                    convertKey, convertValue, verbose);
+                    key, keyHash, valueLength, ancestor, entryFlags, deltaType, valueFragment, convertKey, convertValue, verbose);
             }
 
             if (valueFragment != null)

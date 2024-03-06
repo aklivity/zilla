@@ -15,8 +15,6 @@
  */
 package io.aklivity.zilla.runtime.engine.model;
 
-import java.util.function.Function;
-
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
@@ -38,8 +36,7 @@ public interface ConverterHandler
     default int padding(
         DirectBuffer data,
         int index,
-        int length,
-        Function<String, DirectBuffer> resolveMeta)
+        int length)
     {
         return 0;
     }

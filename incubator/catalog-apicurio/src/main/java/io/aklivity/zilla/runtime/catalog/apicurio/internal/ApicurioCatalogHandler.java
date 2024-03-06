@@ -26,7 +26,6 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.ByteOrder;
 import java.text.MessageFormat;
-import java.util.function.Function;
 import java.util.zip.CRC32C;
 
 import jakarta.json.Json;
@@ -168,21 +167,14 @@ public class ApicurioCatalogHandler implements CatalogHandler
     public int resolve(
         DirectBuffer data,
         int index,
-        int length,
-        Function<String, DirectBuffer> resolveMeta)
+        int length)
     {
-        int schemaId;
+        int schemaId = NO_SCHEMA_ID;
         if (data.getByte(index) == MAGIC_BYTE)
         {
             schemaId = idEncoding.equals(DEFAULT_ID_ENCODING) ? (int) data.getLong(index + SIZE_OF_BYTE, ByteOrder.BIG_ENDIAN) :
                 data.getInt(index + SIZE_OF_BYTE, ByteOrder.BIG_ENDIAN);
             this.headersEnabled = false;
-        }
-        else
-        {
-            final DirectBuffer headerValue = resolveMeta.apply(useIdHeaderName);
-            schemaId = idEncoding.equals(DEFAULT_ID_ENCODING) ? (int) headerValue.getLong(0, ByteOrder.BIG_ENDIAN) :
-                data.getInt(0, ByteOrder.BIG_ENDIAN);
         }
         return schemaId;
     }
