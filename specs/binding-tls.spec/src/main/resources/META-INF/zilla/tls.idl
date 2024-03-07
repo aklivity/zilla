@@ -26,13 +26,13 @@ scope tls
             TLS_HANDSHAKE_FAILED (5)
         }
 
-        union TlsEvent switch (TlsEventType)
+        union TlsEventEx switch (TlsEventType)
         {
-            case TLS_FAILED: core::event::Event tlsFailed;
-            case TLS_PROTOCOL_REJECTED: core::event::Event tlsProtocolRejected;
-            case TLS_KEY_REJECTED: core::event::Event tlsKeyRejected;
-            case TLS_PEER_NOT_VERIFIED: core::event::Event tlsPeerNotVerified;
-            case TLS_HANDSHAKE_FAILED: core::event::Event tlsHandshakeFailed;
+            case TLS_FAILED: core::stream::Extension tlsFailed;
+            case TLS_PROTOCOL_REJECTED: core::stream::Extension tlsProtocolRejected;
+            case TLS_KEY_REJECTED: core::stream::Extension tlsKeyRejected;
+            case TLS_PEER_NOT_VERIFIED: core::stream::Extension tlsPeerNotVerified;
+            case TLS_HANDSHAKE_FAILED: core::stream::Extension tlsHandshakeFailed;
         }
     }
 }

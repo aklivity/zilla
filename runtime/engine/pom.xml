@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>runtime</artifactId>
-    <version>0.9.69</version>
+    <version>0.9.70</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -253,6 +253,7 @@
                 <include>io/aklivity/zilla/runtime/engine/test/internal/**/*.schema.patch.json</include>
                 <include>io/aklivity/zilla/runtime/engine/test/internal/binding/**/*.class</include>
                 <include>io/aklivity/zilla/runtime/engine/test/internal/catalog/**/*.class</include>
+                <include>io/aklivity/zilla/runtime/engine/test/internal/event/**/*.class</include>
                 <include>io/aklivity/zilla/runtime/engine/test/internal/exporter/**/*.class</include>
                 <include>io/aklivity/zilla/runtime/engine/test/internal/guard/**/*.class</include>
                 <include>io/aklivity/zilla/runtime/engine/test/internal/metrics/**/*.class</include>

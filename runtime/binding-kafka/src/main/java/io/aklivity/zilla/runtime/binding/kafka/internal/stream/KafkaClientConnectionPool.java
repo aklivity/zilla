@@ -1756,15 +1756,18 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
                 final long streamId = requests.peekLong();
                 KafkaClientStream stream = streamsByInitialId.get(streamId);
 
-                long streamAck = stream.initialAck;
-
-                stream.doStreamWindow(authorization, traceId);
-
-                credit = Math.max(credit - (int)(streamAck - stream.initialAck), 0);
-
-                if (stream.initialAck != stream.initialSeq)
+                if (stream != null)
                 {
-                    break;
+                    long streamAck = stream.initialAck;
+
+                    stream.doStreamWindow(authorization, traceId);
+
+                    credit = Math.max(credit - (int)(streamAck - stream.initialAck), 0);
+
+                    if (stream.initialAck != stream.initialSeq)
+                    {
+                        break;
+                    }
                 }
 
                 requests.removeLong();

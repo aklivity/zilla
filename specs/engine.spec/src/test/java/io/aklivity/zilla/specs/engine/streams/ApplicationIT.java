@@ -128,4 +128,14 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/event/server",
+        "${app}/event/client",
+    })
+    public void shouldConnect() throws Exception
+    {
+        k3po.finish();
+    }
 }

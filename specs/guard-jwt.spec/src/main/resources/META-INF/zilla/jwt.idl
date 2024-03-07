@@ -21,14 +21,14 @@ scope jwt
             AUTHORIZATION_FAILED (1)
         }
 
-        struct JwtAuthorizationFailed extends core::event::Event
+        struct JwtAuthorizationFailedEx extends core::stream::Extension
         {
             string8 identity;
         }
 
-        union JwtEvent switch (JwtEventType)
+        union JwtEventEx switch (JwtEventType)
         {
-            case AUTHORIZATION_FAILED: JwtAuthorizationFailed authorizationFailed;
+            case AUTHORIZATION_FAILED: JwtAuthorizationFailedEx authorizationFailed;
         }
     }
 }

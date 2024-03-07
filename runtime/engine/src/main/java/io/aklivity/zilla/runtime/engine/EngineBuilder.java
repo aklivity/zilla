@@ -27,6 +27,7 @@ import io.aklivity.zilla.runtime.engine.binding.Binding;
 import io.aklivity.zilla.runtime.engine.binding.BindingFactory;
 import io.aklivity.zilla.runtime.engine.catalog.Catalog;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogFactory;
+import io.aklivity.zilla.runtime.engine.event.EventFormatterFactory;
 import io.aklivity.zilla.runtime.engine.exporter.Exporter;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterFactory;
 import io.aklivity.zilla.runtime.engine.guard.Guard;
@@ -139,9 +140,11 @@ public class EngineBuilder
             models.add(model);
         }
 
+        EventFormatterFactory eventFormatterFactory = EventFormatterFactory.instantiate();
+
         final ErrorHandler errorHandler = requireNonNull(this.errorHandler, "errorHandler");
 
         return new Engine(config, bindings, exporters, guards, metricGroups, vaults,
-                catalogs, models, errorHandler, affinities, readonly);
+                catalogs, models, eventFormatterFactory, errorHandler, affinities, readonly);
     }
 }

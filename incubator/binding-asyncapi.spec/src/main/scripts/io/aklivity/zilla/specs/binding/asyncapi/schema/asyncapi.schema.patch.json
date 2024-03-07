@@ -74,7 +74,7 @@
                                 },
                                 "additionalProperties": false
                             },
-                            "mqtt_kafka":
+                            "mqtt-kafka":
                             {
                                 "title": "MQTT-Kafka",
                                 "type": "object",

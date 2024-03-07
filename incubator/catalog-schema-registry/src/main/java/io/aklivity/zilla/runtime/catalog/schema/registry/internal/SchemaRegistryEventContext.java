@@ -14,14 +14,17 @@
  */
 package io.aklivity.zilla.runtime.catalog.schema.registry.internal;
 
+import static io.aklivity.zilla.runtime.catalog.schema.registry.internal.types.event.SchemaRegistryEventType.REMOTE_ACCESS_REJECTED;
+
 import java.net.http.HttpRequest;
 import java.nio.ByteBuffer;
 import java.time.Clock;
 
-import org.agrona.MutableDirectBuffer;
+import org.agrona.concurrent.AtomicBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
-import io.aklivity.zilla.runtime.catalog.schema.registry.internal.types.event.SchemaRegistryEventFW;
+import io.aklivity.zilla.runtime.catalog.schema.registry.internal.types.event.EventFW;
+import io.aklivity.zilla.runtime.catalog.schema.registry.internal.types.event.SchemaRegistryEventExFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
@@ -29,8 +32,10 @@ public class SchemaRegistryEventContext
 {
     private static final int EVENT_BUFFER_CAPACITY = 1024;
 
-    private final SchemaRegistryEventFW.Builder schemaRegistryEventRW = new SchemaRegistryEventFW.Builder();
-    private final MutableDirectBuffer eventBuffer = new UnsafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
+    private final AtomicBuffer eventBuffer = new UnsafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
+    private final AtomicBuffer extensionBuffer = new UnsafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
+    private final EventFW.Builder eventRW = new EventFW.Builder();
+    private final SchemaRegistryEventExFW.Builder schemaRegistryEventExRW = new SchemaRegistryEventExFW.Builder();
     private final int schemaRegistryTypeId;
     private final MessageConsumer eventWriter;
     private final Clock clock;
@@ -48,16 +53,21 @@ public class SchemaRegistryEventContext
         HttpRequest httpRequest,
         int status)
     {
-        SchemaRegistryEventFW event = schemaRegistryEventRW
-            .wrap(eventBuffer, 0, eventBuffer.capacity())
+        SchemaRegistryEventExFW extension = schemaRegistryEventExRW
+            .wrap(extensionBuffer, 0, extensionBuffer.capacity())
             .remoteAccessRejected(e -> e
-                .timestamp(clock.millis())
-                .traceId(0L)
-                .namespacedId(catalogId)
+                .typeId(REMOTE_ACCESS_REJECTED.value())
                 .method(httpRequest.method())
                 .url(httpRequest.uri().toString())
                 .status((short) status)
             )
+            .build();
+        EventFW event = eventRW
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .timestamp(clock.millis())
+            .traceId(0L)
+            .namespacedId(catalogId)
+            .extension(extension.buffer(), extension.offset(), extension.limit())
             .build();
         eventWriter.accept(schemaRegistryTypeId, event.buffer(), event.offset(), event.limit());
     }
