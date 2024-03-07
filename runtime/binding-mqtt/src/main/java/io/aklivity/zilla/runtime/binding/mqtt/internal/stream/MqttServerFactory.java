@@ -1478,7 +1478,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             int publishablePayloadSize =
                 Math.min(Math.min(server.publishPayloadBytes, publisher.initialBudget()), length);
 
-            final OctetsFW payload = payloadRO.wrap(buffer, offset, limit);
+            final OctetsFW payload = payloadRO.wrap(buffer, offset, offset + publishablePayloadSize);
 
             boolean canPublish = MqttState.initialOpened(publisher.state);
 
