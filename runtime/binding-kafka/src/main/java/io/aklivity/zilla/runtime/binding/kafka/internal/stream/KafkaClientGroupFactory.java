@@ -3274,6 +3274,978 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         }
     }
 
+    private final class JoinGroupClient extends KafkaGroupClient
+    {
+        private final LongLongConsumer encodeSaslHandshakeRequest = this::doEncodeSaslHandshakeRequest;
+        private final LongLongConsumer encodeSaslAuthenticateRequest = this::doEncodeSaslAuthenticateRequest;
+        private final LongLongConsumer encodeJoinGroupRequest = this::doEncodeJoinGroupRequest;
+
+        private final KafkaGroupStream delegate;
+        private final List<MemberProtocol> members;
+        private final ArrayDeque<LongLongConsumer> encoders;
+
+        private BudgetDebitor initialDeb;
+        private KafkaGroupCoordinatorClientDecoder decoder;
+        private OctetsFW assignment = EMPTY_OCTETS;
+        private MessageConsumer network;
+        private int state;
+        private long authorization;
+        private short errorCode = ERROR_EXISTS;
+
+        private long initialSeq;
+        private long initialAck;
+        private int initialMin;
+        private int initialMax;
+        private int initialPad;
+        private long initialBudgetId = NO_BUDGET_ID;
+        private long initialDebIndex = NO_CREDITOR_INDEX;
+
+        private long replySeq;
+        private long replyAck;
+        private int replyMax;
+
+        private int encodeSlot = NO_SLOT;
+        private int encodeSlotOffset;
+        private long encodeSlotTraceId;
+
+        private int decodeSlot = NO_SLOT;
+        private int decodeSlotOffset;
+        private int decodeSlotReserved;
+
+        private int nextResponseId;
+        private int generationId;
+
+        JoinGroupClient(
+            long originId,
+            long routedId,
+            KafkaServerConfig server,
+            KafkaSaslConfig sasl,
+            KafkaGroupStream delegate)
+        {
+            super(server, sasl, originId, routedId);
+
+            this.delegate = delegate;
+            this.decoder = decodeCoordinatorReject;
+            this.members = new ArrayList<>();
+            this.encoders = new ArrayDeque<>();
+            encoders.add(sasl != null ? encodeSaslHandshakeRequest : encodeJoinGroupRequest);
+        }
+
+        private void onNetwork(
+            int msgTypeId,
+            DirectBuffer buffer,
+            int index,
+            int length)
+        {
+            switch (msgTypeId)
+            {
+            case BeginFW.TYPE_ID:
+                final BeginFW begin = beginRO.wrap(buffer, index, index + length);
+                onNetworkBegin(begin);
+                break;
+            case DataFW.TYPE_ID:
+                final DataFW data = dataRO.wrap(buffer, index, index + length);
+                onNetworkData(data);
+                break;
+            case EndFW.TYPE_ID:
+                final EndFW end = endRO.wrap(buffer, index, index + length);
+                onNetworkEnd(end);
+                break;
+            case AbortFW.TYPE_ID:
+                final AbortFW abort = abortRO.wrap(buffer, index, index + length);
+                onNetworkAbort(abort);
+                break;
+            case ResetFW.TYPE_ID:
+                final ResetFW reset = resetRO.wrap(buffer, index, index + length);
+                onNetworkReset(reset);
+                break;
+            case WindowFW.TYPE_ID:
+                final WindowFW window = windowRO.wrap(buffer, index, index + length);
+                onNetworkWindow(window);
+                break;
+            case SignalFW.TYPE_ID:
+                final SignalFW signal = signalRO.wrap(buffer, index, index + length);
+                onNetworkSignal(signal);
+                break;
+            default:
+                break;
+            }
+        }
+
+        private void onNetworkBegin(
+            BeginFW begin)
+        {
+            final long traceId = begin.traceId();
+
+            authorization = begin.authorization();
+            state = KafkaState.openingReply(state);
+
+            doNetworkWindow(traceId, 0L, 0, 0, decodePool.slotCapacity());
+        }
+
+        private void onNetworkData(
+            DataFW data)
+        {
+            final long sequence = data.sequence();
+            final long acknowledge = data.acknowledge();
+            final long traceId = data.traceId();
+            final long budgetId = data.budgetId();
+
+            assert acknowledge <= sequence;
+            assert sequence >= replySeq;
+
+            replySeq = sequence + data.reserved();
+            authorization = data.authorization();
+
+            assert replyAck <= replySeq;
+
+            if (replySeq > replyAck + replyMax)
+            {
+                onNetworkError(traceId);
+            }
+            else
+            {
+                if (decodeSlot == NO_SLOT)
+                {
+                    decodeSlot = decodePool.acquire(initialId);
+                }
+
+                if (decodeSlot == NO_SLOT)
+                {
+                    onNetworkError(traceId);
+                }
+                else
+                {
+                    final OctetsFW payload = data.payload();
+                    int reserved = data.reserved();
+                    int offset = payload.offset();
+                    int limit = payload.limit();
+
+                    final MutableDirectBuffer buffer = decodePool.buffer(decodeSlot);
+                    buffer.putBytes(decodeSlotOffset, payload.buffer(), offset, limit - offset);
+                    decodeSlotOffset += limit - offset;
+                    decodeSlotReserved += reserved;
+
+                    offset = 0;
+                    limit = decodeSlotOffset;
+                    reserved = decodeSlotReserved;
+
+                    decodeNetwork(traceId, authorization, budgetId, reserved, buffer, offset, limit);
+                }
+            }
+        }
+
+        private void onNetworkEnd(
+            EndFW end)
+        {
+            final long traceId = end.traceId();
+
+            state = KafkaState.closedReply(state);
+
+            cleanupDecodeSlotIfNecessary();
+
+            if (!delegate.isStreamReplyOpen())
+            {
+                //onError(traceId);
+            }
+        }
+
+        private void onNetworkAbort(
+            AbortFW abort)
+        {
+            final long traceId = abort.traceId();
+
+            state = KafkaState.closedReply(state);
+
+            onNetworkError(traceId);
+        }
+
+        private void onNetworkReset(
+            ResetFW reset)
+        {
+            final long traceId = reset.traceId();
+
+            state = KafkaState.closedInitial(state);
+
+            onNetworkError(traceId);
+        }
+
+        private void onNetworkWindow(
+            WindowFW window)
+        {
+            final long sequence = window.sequence();
+            final long acknowledge = window.acknowledge();
+            final int minimum = window.minimum();
+            final int maximum = window.maximum();
+            final long traceId = window.traceId();
+            final long budgetId = window.budgetId();
+            final int padding = window.padding();
+
+            assert acknowledge <= sequence;
+            assert sequence <= initialSeq;
+            assert acknowledge >= initialAck;
+            assert maximum + acknowledge >= initialMax + initialAck;
+
+            this.initialAck = acknowledge;
+            this.initialMax = maximum;
+            this.initialPad = padding;
+            this.initialMin = minimum;
+            this.initialBudgetId = budgetId;
+
+            assert initialAck <= initialSeq;
+
+            this.authorization = window.authorization();
+
+            state = KafkaState.openedInitial(state);
+
+            if (initialBudgetId != NO_BUDGET_ID && initialDebIndex == NO_DEBITOR_INDEX)
+            {
+                initialDeb = supplyDebitor.apply(initialBudgetId);
+                initialDebIndex = initialDeb.acquire(initialBudgetId, initialId, this::doNetworkDataIfNecessary);
+                assert initialDebIndex != NO_DEBITOR_INDEX;
+            }
+
+            doNetworkDataIfNecessary(budgetId);
+
+            doEncodeRequestIfNecessary(traceId, budgetId);
+        }
+
+        private void doNetworkDataIfNecessary(long budgetId)
+        {
+            if (encodeSlot != NO_SLOT)
+            {
+                final MutableDirectBuffer buffer = encodePool.buffer(encodeSlot);
+                final int limit = encodeSlotOffset;
+
+                encodeNetwork(encodeSlotTraceId, authorization, budgetId, buffer, 0, limit);
+            }
+        }
+
+        private void onNetworkSignal(
+            SignalFW signal)
+        {
+            final long traceId = signal.traceId();
+            final int signalId = signal.signalId();
+
+            assert signalId == SIGNAL_NEXT_REQUEST;
+            doEncodeRequestIfNecessary(traceId, initialBudgetId);
+        }
+
+        @Override
+        protected void doNetworkBegin(
+            long traceId,
+            long authorization,
+            long affinity)
+        {
+            if (KafkaState.closed(state))
+            {
+                initialSeq = 0;
+                initialAck = 0;
+                replyAck = 0;
+                replySeq = 0;
+                state = 0;
+                encoders.clear();
+                encoders.add(sasl != null ? encodeSaslHandshakeRequest : encodeJoinGroupRequest);
+                nextRequestId = 0;
+                nextResponseId = 0;
+            }
+
+            if (!KafkaState.initialOpening(state))
+            {
+                this.initialId = supplyInitialId.applyAsLong(routedId);
+                this.replyId = supplyReplyId.applyAsLong(initialId);
+
+                state = KafkaState.openingInitial(state);
+
+                Consumer<OctetsFW.Builder> extension =  e -> e.set((b, o, l) -> proxyBeginExRW.wrap(b, o, l)
+                    .typeId(proxyTypeId)
+                    .address(a -> a.inet(i -> i.protocol(p -> p.set(STREAM))
+                        .source("0.0.0.0")
+                        .destination(server.host)
+                        .sourcePort(0)
+                        .destinationPort(server.port)))
+                    .infos(i -> i.item(ii -> ii.authority(server.host)))
+                    .build()
+                    .sizeof());
+
+                network = newStream(this::onNetwork, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, authorization, affinity, extension);
+            }
+        }
+
+        @Override
+        protected void doNetworkData(
+            long traceId,
+            long budgetId,
+            DirectBuffer buffer,
+            int offset,
+            int limit)
+        {
+            if (encodeSlot != NO_SLOT)
+            {
+                final MutableDirectBuffer encodeBuffer = encodePool.buffer(encodeSlot);
+                encodeBuffer.putBytes(encodeSlotOffset, buffer, offset, limit - offset);
+                encodeSlotOffset += limit - offset;
+                encodeSlotTraceId = traceId;
+
+                buffer = encodeBuffer;
+                offset = 0;
+                limit = encodeSlotOffset;
+            }
+
+            encodeNetwork(traceId, authorization, budgetId, buffer, offset, limit);
+        }
+
+        private void doNetworkEnd(
+            long traceId,
+            long authorization)
+        {
+            if (KafkaState.initialOpening(state) && !KafkaState.initialClosed(state))
+            {
+                state = KafkaState.closedInitial(state);
+
+                doEnd(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, authorization, EMPTY_EXTENSION);
+            }
+
+            cleanupEncodeSlotIfNecessary();
+            cleanupBudgetIfNecessary();
+
+        }
+
+        @Override
+        protected void doNetworkAbort(
+            long traceId)
+        {
+            if (KafkaState.initialOpening(state) &&
+                !KafkaState.initialClosed(state))
+            {
+                doAbort(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, authorization, EMPTY_EXTENSION);
+                state = KafkaState.closedInitial(state);
+            }
+
+            cleanupEncodeSlotIfNecessary();
+            cleanupBudgetIfNecessary();
+        }
+
+        @Override
+        protected void doNetworkReset(
+            long traceId)
+        {
+            if (KafkaState.replyOpening(state) && !KafkaState.replyClosed(state))
+            {
+                doReset(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                    traceId, authorization, EMPTY_OCTETS);
+                state = KafkaState.closedReply(state);
+            }
+
+            cleanupDecodeSlotIfNecessary();
+        }
+
+        private void doNetworkWindow(
+            long traceId,
+            long budgetId,
+            int minReplyNoAck,
+            int minReplyPad,
+            int minReplyMax)
+        {
+            final long newReplyAck = Math.max(replySeq - minReplyNoAck, replyAck);
+
+            if (newReplyAck > replyAck || minReplyMax > replyMax || !KafkaState.replyOpened(state))
+            {
+                replyAck = newReplyAck;
+                assert replyAck <= replySeq;
+
+                replyMax = minReplyMax;
+
+                state = KafkaState.openedReply(state);
+
+                doWindow(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                    traceId, authorization, budgetId, minReplyPad);
+            }
+        }
+
+
+        @Override
+        protected void onStreamMigrate(
+            long traceId)
+        {
+            doJoinGroupRequest(traceId);
+        }
+
+        @Override
+        protected void onStreamData(
+            long traceId,
+            long budgetId,
+            OctetsFW payload)
+        {
+            doSyncGroupRequest(traceId, budgetId, payload);
+        }
+
+        @Override
+        protected void onStreamFlush(
+            long traceId,
+            long budgetId,
+            OctetsFW extension)
+        {
+            if (extension.sizeof() > 0)
+            {
+                doJoinGroupRequest(traceId);
+            }
+            else
+            {
+                doHeartbeatRequest(traceId);
+            }
+        }
+
+        @Override
+        protected void onStreamEnd(
+            long traceId)
+        {
+            doLeaveGroupRequest(traceId);
+        }
+
+        @Override
+        protected void onStreamError(
+            long traceId,
+            long authorization,
+            int error)
+        {
+            delegate.cleanupStream(traceId, error);
+            cleanupNetwork(traceId, authorization);
+        }
+
+        private void doEncodeRequestIfNecessary(
+            long traceId,
+            long budgetId)
+        {
+            if (nextRequestId == nextResponseId && !encoders.isEmpty())
+            {
+                LongLongConsumer encoder = encoders.remove();
+                encoder.accept(traceId, budgetId);
+            }
+        }
+
+        private void doEncodeJoinGroupRequest(
+            long traceId,
+            long budgetId)
+        {
+            final MutableDirectBuffer encodeBuffer = writeBuffer;
+            final int encodeOffset = DataFW.FIELD_OFFSET_PAYLOAD;
+            final int encodeLimit = encodeBuffer.capacity();
+
+            int encodeProgress = encodeOffset;
+
+            final RequestHeaderFW requestHeader = requestHeaderRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
+                .length(0)
+                .apiKey(JOIN_GROUP_API_KEY)
+                .apiVersion(JOIN_GROUP_VERSION)
+                .correlationId(0)
+                .clientId(clientId)
+                .build();
+
+            encodeProgress = requestHeader.limit();
+
+            final String memberId = delegate.groupMembership.memberIds.getOrDefault(delegate.groupId, UNKNOWN_MEMBER_ID);
+
+            final JoinGroupRequestFW joinGroupRequest =
+                joinGroupRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
+                    .groupId(delegate.groupId)
+                    .sessionTimeoutMillis(delegate.timeout)
+                    .rebalanceTimeoutMillis((int) rebalanceTimeout.toMillis())
+                    .memberId(memberId)
+                    .groupInstanceId(delegate.groupMembership.instanceId)
+                    .protocolType("consumer")
+                    .protocolCount(1)
+                    .build();
+
+            encodeProgress = joinGroupRequest.limit();
+
+            final int metadataLimit = delegate.topicMetadataLimit > 0 ? doGenerateSubscriptionMetadata() :
+                doGenerateEmptySubscriptionMetadata();
+
+            final ProtocolMetadataFW protocolMetadata =
+                protocolMetadataRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
+                    .name(delegate.protocol)
+                    .metadata(extBuffer, 0, metadataLimit)
+                    .build();
+
+            encodeProgress = protocolMetadata.limit();
+
+            final int requestId = nextRequestId++;
+            final int requestSize = encodeProgress - encodeOffset - RequestHeaderFW.FIELD_OFFSET_API_KEY;
+
+            requestHeaderRW.wrap(encodeBuffer, requestHeader.offset(), requestHeader.limit())
+                .length(requestSize)
+                .apiKey(requestHeader.apiKey())
+                .apiVersion(requestHeader.apiVersion())
+                .correlationId(requestId)
+                .clientId(requestHeader.clientId())
+                .build();
+
+            doNetworkData(traceId, budgetId, encodeBuffer, encodeOffset, encodeProgress);
+
+            decoder = decodeJoinGroupResponse;
+
+            delegate.doStreamBeginIfNecessary(traceId, authorization, server);
+        }
+
+        private int doGenerateSubscriptionMetadata()
+        {
+            final MutableDirectBuffer encodeBuffer = extBuffer;
+            final int encodeOffset = 0;
+            final int encodeLimit = encodeBuffer.capacity();
+
+            final MutableInteger encodeProgress = new MutableInteger(encodeOffset);
+
+            KafkaGroupMemberMetadataFW memberMetadata = kafkaMemberMetadataRO
+                .wrap(delegate.metadataBuffer, 0, delegate.topicMetadataLimit);
+
+            ConsumerSubscriptionMetadataFW metadata = groupSubscriptionMetadataRW
+                .wrap(encodeBuffer, encodeProgress.get(), encodeLimit)
+                .version(METADATA_LOWEST_VERSION)
+                .metadataTopicCount(memberMetadata.topics().fieldCount())
+                .build();
+
+            encodeProgress.set(metadata.limit());
+
+            memberMetadata.topics().forEach(t ->
+            {
+                ConsumerMetadataTopicFW metadataTopic = metadataTopicRW
+                    .wrap(encodeBuffer, encodeProgress.get(), encodeLimit)
+                    .name(t.topic())
+                    .build();
+                encodeProgress.set(metadataTopic.limit());
+            });
+
+            memberMetadata.topics().forEach(t ->
+            {
+                final ConsumerSubscriptionUserdataFW userdata = subscriptionUserdataRW
+                    .wrap(encodeBuffer, encodeProgress.get(), encodeLimit)
+                    .userdata(delegate.metadataBuffer, 0, delegate.topicMetadataLimit)
+                    .ownedPartitions(0)
+                    .build();
+
+                encodeProgress.set(userdata.limit());
+            });
+
+            return encodeProgress.get();
+        }
+
+        private int doGenerateEmptySubscriptionMetadata()
+        {
+            final MutableDirectBuffer encodeBuffer = extBuffer;
+            final int encodeOffset = 0;
+            final int encodeLimit = encodeBuffer.capacity();
+
+            final MutableInteger encodeProgress = new MutableInteger(encodeOffset);
+
+            ConsumerSubscriptionMetadataFW metadata = groupSubscriptionMetadataRW
+                .wrap(encodeBuffer, encodeProgress.get(), encodeLimit)
+                .version(METADATA_LOWEST_VERSION)
+                .metadataTopicCount(0)
+                .build();
+
+            encodeProgress.set(metadata.limit());
+
+            final ConsumerSubscriptionUserdataFW userdata = subscriptionUserdataRW
+                .wrap(encodeBuffer, encodeProgress.get(), encodeLimit)
+                .userdata(delegate.metadataBuffer, 0, delegate.topicMetadataLimit)
+                .ownedPartitions(0)
+                .build();
+
+            encodeProgress.set(userdata.limit());
+
+            return encodeProgress.get();
+        }
+
+        private int doGenerateAssignmentMetadata(
+            Array32FW<TopicAssignmentFW> topicPartitions,
+            ConsumerAssignmentTopicsUserdataFW.Builder assignmentTopicsUserdataRW,
+            int progressOffset)
+        {
+            final MutableDirectBuffer encodeBuffer = extBuffer;
+            final int encodeOffset = progressOffset;
+            final int encodeLimit = encodeBuffer.capacity();
+
+            final MutableInteger encodeProgress = new MutableInteger(encodeOffset);
+
+            ConsumerAssignmentMetadataFW metadata = assignmentMetadataRW
+                .wrap(encodeBuffer, encodeProgress.get(), encodeLimit)
+                .version(METADATA_LOWEST_VERSION)
+                .metadataTopicCount(topicPartitions.fieldCount())
+                .build();
+
+            encodeProgress.set(metadata.limit());
+
+            topicPartitions.forEach(t ->
+            {
+                final Array32FW<TopicPartitionFW> partitions = t.partitions();
+
+                ConsumerTopicPartitionFW topicPartition = topicPartitionRW
+                    .wrap(encodeBuffer, encodeProgress.get(), encodeLimit)
+                    .topic(t.topic())
+                    .partitionCount(partitions.fieldCount())
+                    .build();
+                encodeProgress.set(topicPartition.limit());
+
+                partitions.forEach(p ->
+                {
+                    ConsumerPartitionFW partition = partitionRW.wrap(encodeBuffer, encodeProgress.get(), encodeLimit)
+                        .partitionId(p.partitionId())
+                        .build();
+                    encodeProgress.set(partition.limit());
+                });
+
+                Array32FW<ConsumerAssignmentFW> assignmentUserdata = t.userdata();
+                assignmentTopicsUserdataRW.topicsUserdataItem(u -> u
+                    .topic(t.topic())
+                    .userdata(assignmentUserdata.buffer(), assignmentUserdata.offset(), assignmentUserdata.sizeof()));
+            });
+
+            ConsumerAssignmentTopicsUserdataFW topicUserdata = assignmentTopicsUserdataRW.build();
+            final ConsumerAssignmentUserdataFW userdata = assignmentUserdataRW
+                .wrap(encodeBuffer, encodeProgress.get(), encodeLimit)
+                .userdata(topicUserdata.buffer(), topicUserdata.offset(), topicUserdata.sizeof())
+                .build();
+
+            encodeProgress.set(userdata.limit());
+
+            return encodeProgress.get();
+        }
+
+        private void encodeNetwork(
+            long traceId,
+            long authorization,
+            long budgetId,
+            DirectBuffer buffer,
+            int offset,
+            int limit)
+        {
+            final int length = limit - offset;
+            final int initialBudget = Math.max(initialMax - (int)(initialSeq - initialAck), 0);
+            final int reservedMax = Math.max(Math.min(length + initialPad, initialBudget), initialMin);
+
+            int reserved = reservedMax;
+
+            flush:
+            if (reserved > 0)
+            {
+
+                boolean claimed = false;
+
+                if (initialDebIndex != NO_DEBITOR_INDEX)
+                {
+                    reserved = initialDeb.claim(traceId, initialDebIndex, initialId, reserved, reserved, 0);
+                    claimed = reserved > 0;
+                }
+
+                if (reserved < initialPad || reserved == initialPad && length > 0)
+                {
+                    break flush;
+                }
+
+                doData(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, authorization, budgetId, reserved, buffer, offset, length, EMPTY_EXTENSION);
+
+                initialSeq += reserved;
+
+                assert initialAck <= initialSeq;
+            }
+
+            final int flushed = Math.max(reserved - initialPad, 0);
+            final int remaining = length - flushed;
+            if (remaining > 0)
+            {
+                if (encodeSlot == NO_SLOT)
+                {
+                    encodeSlot = encodePool.acquire(initialId);
+                }
+
+                if (encodeSlot == NO_SLOT)
+                {
+                    onNetworkError(traceId);
+                }
+                else
+                {
+                    final MutableDirectBuffer encodeBuffer = encodePool.buffer(encodeSlot);
+                    encodeBuffer.putBytes(0, buffer, offset + flushed, remaining);
+                    encodeSlotOffset = remaining;
+                }
+            }
+            else
+            {
+                cleanupEncodeSlotIfNecessary();
+            }
+        }
+
+        private void decodeNetwork(
+            long traceId,
+            long authorization,
+            long budgetId,
+            int reserved,
+            MutableDirectBuffer buffer,
+            int offset,
+            int limit)
+        {
+            KafkaGroupCoordinatorClientDecoder previous = null;
+            int progress = offset;
+            while (progress <= limit && previous != decoder)
+            {
+                previous = decoder;
+                progress = decoder.decode(this, traceId, authorization, budgetId, reserved, buffer, offset, progress, limit);
+            }
+
+            if (progress < limit)
+            {
+                if (decodeSlot == NO_SLOT)
+                {
+                    decodeSlot = decodePool.acquire(initialId);
+                }
+
+                if (decodeSlot == NO_SLOT)
+                {
+                    onNetworkError(traceId);
+                }
+                else
+                {
+                    final MutableDirectBuffer decodeBuffer = decodePool.buffer(decodeSlot);
+                    decodeBuffer.putBytes(0, buffer, progress, limit - progress);
+                    decodeSlotOffset = limit - progress;
+                    decodeSlotReserved = (limit - progress) * reserved / (limit - offset);
+                }
+
+                doNetworkWindow(traceId, budgetId, decodeSlotOffset, 0, replyMax);
+            }
+            else
+            {
+                cleanupDecodeSlotIfNecessary();
+
+                if (reserved > 0)
+                {
+                    doNetworkWindow(traceId, budgetId, 0, 0, replyMax);
+                }
+            }
+        }
+
+        @Override
+        protected void doDecodeSaslHandshakeResponse(
+            long traceId)
+        {
+            decoder = decodeCoordinatorSaslHandshakeResponse;
+        }
+
+        @Override
+        protected void doDecodeSaslHandshake(
+            long traceId)
+        {
+            decoder = decodeCoordinatorSaslHandshake;
+        }
+
+        @Override
+        protected void doDecodeSaslHandshakeMechanisms(
+            long traceId)
+        {
+            decoder = decodeCoordinatorSaslHandshakeMechanisms;
+        }
+
+        @Override
+        protected void doDecodeSaslHandshakeMechansim(
+            long traceId)
+        {
+            decoder = decodeCoordinatorSaslHandshakeMechanism;
+        }
+
+        @Override
+        protected void doDecodeSaslAuthenticateResponse(
+            long traceId)
+        {
+            decoder = decodeCoordinatorSaslAuthenticateResponse;
+        }
+
+        @Override
+        protected void doDecodeSaslAuthenticate(
+            long traceId)
+        {
+            decoder = decodeCoordinatorSaslAuthenticate;
+        }
+
+        @Override
+        protected void onDecodeSaslHandshakeResponse(
+            long traceId,
+            long authorization,
+            int errorCode)
+        {
+            switch (errorCode)
+            {
+            case ERROR_NONE:
+                encoders.add(encodeSaslAuthenticateRequest);
+                decoder = decodeCoordinatorSaslAuthenticateResponse;
+                break;
+            default:
+                delegate.cleanupStream(traceId, errorCode);
+                doNetworkEnd(traceId, authorization);
+                break;
+            }
+        }
+
+        @Override
+        protected void onDecodeSaslAuthenticateResponse(
+            long traceId,
+            long authorization,
+            int errorCode)
+        {
+            switch (errorCode)
+            {
+            case ERROR_NONE:
+                encoders.add(encodeJoinGroupRequest);
+                decoder = decodeJoinGroupResponse;
+                break;
+            default:
+                delegate.cleanupStream(traceId, errorCode);
+                doNetworkEnd(traceId, authorization);
+                break;
+            }
+        }
+
+        @Override
+        protected void onDecodeSaslResponse(
+            long traceId)
+        {
+            nextResponseId++;
+            signaler.signalNow(originId, routedId, initialId, traceId, SIGNAL_NEXT_REQUEST, 0);
+        }
+
+        private void onNotCoordinatorError(
+            long traceId,
+            long authorization)
+        {
+            nextResponseId++;
+
+            cleanupNetwork(traceId, authorization);
+
+            delegate.onNotCoordinatorError(traceId, authorization);
+        }
+
+        private void onJoinGroupMemberIdError(
+            long traceId,
+            long authorization,
+            String memberId)
+        {
+            nextResponseId++;
+
+            delegate.groupMembership.memberIds.put(delegate.groupId, memberId);
+
+            encoders.add(encodeJoinGroupRequest);
+            signaler.signalNow(originId, routedId, initialId, traceId, SIGNAL_NEXT_REQUEST, 0);
+        }
+
+        private void onJoinGroupResponse(
+            long traceId,
+            long authorization,
+            String leaderId,
+            String memberId)
+        {
+            nextResponseId++;
+
+            delegate.groupMembership.memberIds.put(delegate.groupId, memberId);
+
+            delegate.doStreamFlush(traceId, authorization,
+                ex -> ex.set((b, o, l) -> kafkaFlushExRW.wrap(b, o, l)
+                    .typeId(kafkaTypeId)
+                    .group(g -> g
+                        .generationId(generationId)
+                        .leaderId(leaderId)
+                        .memberId(memberId)
+                        .members(gm -> members.forEach(m ->
+                        {
+                            OctetsFW metadata = m.metadata;
+                            DirectBuffer buffer = metadata.value();
+                            final int limit = metadata.sizeof();
+
+                            int progress = 0;
+
+                            ConsumerSubscriptionMetadataFW newGroupMetadata = subscriptionMetadataRO
+                                .wrap(buffer, 0, metadata.sizeof());
+                            progress = newGroupMetadata.limit();
+
+                            for (int i = 0; i < newGroupMetadata.metadataTopicCount(); i++)
+                            {
+                                ConsumerMetadataTopicFW topic = metadataTopicRO.wrap(buffer, progress, limit);
+                                progress = topic.limit();
+                            }
+
+                            ConsumerSubscriptionUserdataFW userdata = subscriptionUserdataRO.wrap(buffer, progress, limit);
+
+                            gm.item(i ->
+                            {
+                                KafkaGroupMemberFW.Builder builder = i.id(m.memberId);
+                                OctetsFW newUserdata = userdata.userdata();
+                                if (newUserdata.sizeof() > 0)
+                                {
+                                    builder.metadataLen(newUserdata.sizeof()).metadata(newUserdata);
+                                }
+                            });
+                        })))
+                    .build()
+                    .sizeof()));
+
+            if (!encoders.isEmpty())
+            {
+                signaler.signalNow(originId, routedId, initialId, traceId, SIGNAL_NEXT_REQUEST, 0);
+            }
+        }
+
+        private void cleanupNetwork(
+            long traceId,
+            long authorization)
+        {
+            doNetworkEnd(traceId, authorization);
+            doNetworkReset(traceId);
+        }
+
+        private void onNetworkError(
+            long traceId)
+        {
+            doNetworkAbort(traceId);
+            doNetworkReset(traceId);
+
+            delegate.cleanupStream(traceId, errorCode);
+        }
+
+        private void cleanupDecodeSlotIfNecessary()
+        {
+            if (decodeSlot != NO_SLOT)
+            {
+                decodePool.release(decodeSlot);
+                decodeSlot = NO_SLOT;
+                decodeSlotOffset = 0;
+                decodeSlotReserved = 0;
+            }
+        }
+
+        private void cleanupEncodeSlotIfNecessary()
+        {
+            if (encodeSlot != NO_SLOT)
+            {
+                encodePool.release(encodeSlot);
+                encodeSlot = NO_SLOT;
+                encodeSlotOffset = 0;
+                encodeSlotTraceId = 0;
+            }
+        }
+
+        private void cleanupBudgetIfNecessary()
+        {
+            if (initialDebIndex != NO_DEBITOR_INDEX)
+            {
+                initialDeb.release(initialDebIndex, initialId);
+                initialDebIndex = NO_DEBITOR_INDEX;
+            }
+        }
+    }
+
     private final class CoordinatorClient extends KafkaGroupClient
     {
         private final LongLongConsumer encodeSaslHandshakeRequest = this::doEncodeSaslHandshakeRequest;
