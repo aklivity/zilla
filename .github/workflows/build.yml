@@ -37,9 +37,9 @@ jobs:
       uses: actions/upload-artifact@v4
       if: failure()
       with:
-        name: zilla-dump
+        name: zilla-build-${{ github.event.number }}
         path: |
-          incubator/*/target/zilla-itests/
-          incubator/*/target/failsafe-reports/
-          runtime/*/target/zilla-itests/
-          runtime/*/target/failsafe-reports/
+          **/hs_err_pid*.log
+          **/target/surefire-reports/
+          **/target/zilla-itests/
+          **/target/failsafe-reports/
