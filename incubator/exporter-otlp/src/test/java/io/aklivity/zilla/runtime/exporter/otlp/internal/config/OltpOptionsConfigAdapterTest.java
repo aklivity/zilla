@@ -98,7 +98,7 @@ public class OltpOptionsConfigAdapterTest
                         "\"overrides\":" +
                             "{" +
                                 "\"metrics\":\"/v1/metrics\"," +
-                                "\"logs\": \"/v1/logs\"\n" +
+                                "\"logs\":\"/v1/logs\"" +
                             "}" +
                     "}" +
             "}";
