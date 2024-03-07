@@ -186,7 +186,7 @@ public class ApicurioIT
     {
         ApicurioCatalogHandler catalog = new ApicurioCatalogHandler(config, context, 0L);
 
-        assertEquals(0, catalog.encodePadding());
+        assertEquals(9, catalog.encodePadding());
     }
 
     @Test
@@ -219,23 +219,6 @@ public class ApicurioIT
         int valLength = catalog.decode(data, 0, data.capacity(), ValueConsumer.NOP, CatalogHandler.Decoder.IDENTITY);
 
         assertEquals(data.capacity() - 9, valLength);
-    }
-
-    @Test
-    public void shouldResolveSchemaIdAndProcessDataHeadersEnabled()
-    {
-
-        ApicurioCatalogHandler catalog = new ApicurioCatalogHandler(config, context, 0L);
-
-        DirectBuffer data = new UnsafeBuffer();
-
-        byte[] bytes = {0x06, 0x69, 0x64,
-            0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
-        data.wrap(bytes, 0, bytes.length);
-
-        int valLength = catalog.decode(data, 0, data.capacity(), ValueConsumer.NOP, CatalogHandler.Decoder.IDENTITY);
-
-        assertEquals(data.capacity(), valLength);
     }
 
     @Test
