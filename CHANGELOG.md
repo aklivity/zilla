@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.9.70](https://github.com/aklivity/zilla/tree/0.9.70) (2024-03-07)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.69...0.9.70)
+
+**Fixed bugs:**
+
+- Using parameter expansion in bash doesn't work in the docker containers.  [\#829](https://github.com/aklivity/zilla/issues/829)
+- Zilla crashes when a lot of MQTT clients are connected [\#762](https://github.com/aklivity/zilla/issues/762)
+
+**Merged pull requests:**
+
+- Fix options name, port resolving [\#833](https://github.com/aklivity/zilla/pull/833) ([bmaidics](https://github.com/bmaidics))
+- Stabilize Asyncapi test with race condition [\#832](https://github.com/aklivity/zilla/pull/832) ([bmaidics](https://github.com/bmaidics))
+- Simplify zilla shell script logic for sh on container images [\#831](https://github.com/aklivity/zilla/pull/831) ([jfallows](https://github.com/jfallows))
+- Fix NPE in connection pool due to race condition [\#828](https://github.com/aklivity/zilla/pull/828) ([akrambek](https://github.com/akrambek))
+- Refactoring event logs [\#821](https://github.com/aklivity/zilla/pull/821) ([attilakreiner](https://github.com/attilakreiner))
+
 ## [0.9.69](https://github.com/aklivity/zilla/tree/0.9.69) (2024-03-04)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.68...0.9.69)
