@@ -23,8 +23,9 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 public final class ApicurioOptionsConfigBuilder<T> extends ConfigBuilder<T, ApicurioOptionsConfigBuilder<T>>
 {
     public static final String GLOBAL_ID = "globalId";
-    public static final String DEFAULT_ID_ENCODING = "default"; //other value: legacy
-    private static final String CONTENT_ID = "contentId";
+    public static final String DEFAULT_ID_ENCODING = "default";
+    public static final String LEGACY_ID_ENCODING = "legacy";
+    public static final String CONTENT_ID = "contentId";
     private static final Duration MAX_AGE_DEFAULT = Duration.ofSeconds(300);
 
     private final Function<OptionsConfig, T> mapper;

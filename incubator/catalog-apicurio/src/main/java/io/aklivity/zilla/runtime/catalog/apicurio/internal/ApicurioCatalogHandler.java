@@ -14,9 +14,10 @@
  */
 package io.aklivity.zilla.runtime.catalog.apicurio.internal;
 
-import static io.aklivity.zilla.runtime.catalog.apicurio.internal.config.ApicurioOptionsConfigBuilder.DEFAULT_ID_ENCODING;
-import static io.aklivity.zilla.runtime.catalog.apicurio.internal.config.ApicurioOptionsConfigBuilder.GLOBAL_ID;
+import static io.aklivity.zilla.runtime.catalog.apicurio.internal.config.ApicurioOptionsConfigBuilder.CONTENT_ID;
+import static io.aklivity.zilla.runtime.catalog.apicurio.internal.config.ApicurioOptionsConfigBuilder.LEGACY_ID_ENCODING;
 import static org.agrona.BitUtil.SIZE_OF_BYTE;
+import static org.agrona.BitUtil.SIZE_OF_INT;
 import static org.agrona.BitUtil.SIZE_OF_LONG;
 
 import java.io.StringReader;
@@ -26,6 +27,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.ByteOrder;
 import java.text.MessageFormat;
+import java.util.function.BiFunction;
 import java.util.zip.CRC32C;
 
 import jakarta.json.Json;
@@ -33,7 +35,6 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonReader;
 import jakarta.json.stream.JsonParsingException;
 
-import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
 import org.agrona.collections.Int2ObjectCache;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -49,7 +50,6 @@ public class ApicurioCatalogHandler implements CatalogHandler
     private static final String ARTIFACT_VERSION_PATH = "/apis/registry/v2/groups/{0}/artifacts/{1}/versions/{2}/meta";
     private static final String ARTIFACT_BY_GLOBAL_ID_PATH = "/apis/registry/v2/ids/globalIds/{0}";
     private static final String ARTIFACT_BY_CONTENT_ID_PATH = "/apis/registry/v2/ids/contentIds/{0}";
-    private static final String APICURIO_VALUE = "apicurio.value.";
     private static final int MAX_PADDING_LENGTH = SIZE_OF_BYTE + SIZE_OF_LONG;
     private static final byte MAGIC_BYTE = 0x0;
 
@@ -66,10 +66,9 @@ public class ApicurioCatalogHandler implements CatalogHandler
     private final long catalogId;
     private final String groupId;
     private final String useId;
-    private final String useIdHeaderName;
-    private final String idEncoding;
+    private final BiFunction<DirectBuffer, Integer, Integer> encodeId;
+    private final int idSize;
     private final String artifactPath;
-    private boolean headersEnabled = true;
 
     public ApicurioCatalogHandler(
         ApicurioOptionsConfig config,
@@ -84,9 +83,9 @@ public class ApicurioCatalogHandler implements CatalogHandler
         this.maxAgeMillis = config.maxAge.toMillis();
         this.groupId = config.groupId;
         this.useId = config.useId;
-        this.useIdHeaderName = APICURIO_VALUE + useId;
-        this.idEncoding = config.idEncoding;
-        this.artifactPath = useId.equals(GLOBAL_ID) ? ARTIFACT_BY_GLOBAL_ID_PATH : ARTIFACT_BY_CONTENT_ID_PATH;
+        this.encodeId = config.idEncoding.equals(LEGACY_ID_ENCODING) ? this::encodeLegacyId : this::encodeDefaultId;
+        this.idSize = config.idEncoding.equals(LEGACY_ID_ENCODING) ? SIZE_OF_INT : SIZE_OF_LONG;
+        this.artifactPath = useId.equals(CONTENT_ID) ?  ARTIFACT_BY_CONTENT_ID_PATH : ARTIFACT_BY_GLOBAL_ID_PATH;
         this.event = new ApicurioEventContext(context);
         this.catalogId = catalogId;
     }
@@ -172,9 +171,7 @@ public class ApicurioCatalogHandler implements CatalogHandler
         int schemaId = NO_SCHEMA_ID;
         if (data.getByte(index) == MAGIC_BYTE)
         {
-            schemaId = idEncoding.equals(DEFAULT_ID_ENCODING) ? (int) data.getLong(index + SIZE_OF_BYTE, ByteOrder.BIG_ENDIAN) :
-                data.getInt(index + SIZE_OF_BYTE, ByteOrder.BIG_ENDIAN);
-            this.headersEnabled = false;
+            schemaId = encodeId.apply(data, index + SIZE_OF_BYTE);
         }
         return schemaId;
     }
@@ -193,12 +190,11 @@ public class ApicurioCatalogHandler implements CatalogHandler
         if (data.getByte(index) == MAGIC_BYTE)
         {
             progress += SIZE_OF_BYTE;
-            schemaId = idEncoding.equals(DEFAULT_ID_ENCODING) ? (int) data.getLong(index + progress, ByteOrder.BIG_ENDIAN) :
-                data.getInt(index + progress, ByteOrder.BIG_ENDIAN);
-            progress += idEncoding.equals(DEFAULT_ID_ENCODING) ? SIZE_OF_LONG : BitUtil.SIZE_OF_INT;
+            schemaId = encodeId.apply(data, index + progress);
+            progress += idSize;
         }
 
-        if (headersEnabled || schemaId > NO_SCHEMA_ID)
+        if (schemaId > NO_SCHEMA_ID)
         {
             valLength = decoder.accept(schemaId, data, index + progress, length - progress, next);
         }
@@ -223,7 +219,7 @@ public class ApicurioCatalogHandler implements CatalogHandler
     @Override
     public int encodePadding()
     {
-        return headersEnabled ? 0 : MAX_PADDING_LENGTH;
+        return MAX_PADDING_LENGTH;
     }
 
     private URI toURI(
@@ -257,5 +253,19 @@ public class ApicurioCatalogHandler implements CatalogHandler
         {
             return NO_SCHEMA_ID;
         }
+    }
+
+    private int encodeDefaultId(
+        DirectBuffer data,
+        int index)
+    {
+        return (int) data.getLong(index, ByteOrder.BIG_ENDIAN);
+    }
+
+    private int encodeLegacyId(
+        DirectBuffer data,
+        int index)
+    {
+        return data.getInt(index, ByteOrder.BIG_ENDIAN);
     }
 }
