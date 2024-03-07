@@ -27,7 +27,6 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.ByteOrder;
 import java.text.MessageFormat;
-import java.util.function.BiFunction;
 import java.util.zip.CRC32C;
 
 import jakarta.json.Json;
@@ -66,7 +65,7 @@ public class ApicurioCatalogHandler implements CatalogHandler
     private final long catalogId;
     private final String groupId;
     private final String useId;
-    private final BiFunction<DirectBuffer, Integer, Integer> encodeId;
+    private final IdEncoder encodeId;
     private final int idSize;
     private final String artifactPath;
 
@@ -171,7 +170,7 @@ public class ApicurioCatalogHandler implements CatalogHandler
         int schemaId = NO_SCHEMA_ID;
         if (data.getByte(index) == MAGIC_BYTE)
         {
-            schemaId = encodeId.apply(data, index + SIZE_OF_BYTE);
+            schemaId = encodeId.encode(data, index + SIZE_OF_BYTE);
         }
         return schemaId;
     }
@@ -190,7 +189,7 @@ public class ApicurioCatalogHandler implements CatalogHandler
         if (data.getByte(index) == MAGIC_BYTE)
         {
             progress += SIZE_OF_BYTE;
-            schemaId = encodeId.apply(data, index + progress);
+            schemaId = encodeId.encode(data, index + progress);
             progress += idSize;
         }
 
@@ -267,5 +266,11 @@ public class ApicurioCatalogHandler implements CatalogHandler
         int index)
     {
         return data.getInt(index, ByteOrder.BIG_ENDIAN);
+    }
+
+    @FunctionalInterface
+    private interface IdEncoder
+    {
+        int encode(DirectBuffer data, int index);
     }
 }
