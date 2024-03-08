@@ -37,6 +37,7 @@ import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.reader.MetricsReader;
 import io.aklivity.zilla.runtime.exporter.otlp.config.OtlpOptionsConfig;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpExporterConfig;
+import io.aklivity.zilla.runtime.exporter.otlp.internal.serializer.EventReader;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.serializer.OtlpLogsSerializer;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.serializer.OtlpMetricsSerializer;
 
@@ -98,7 +99,8 @@ public class OltpExporterHandler implements ExporterHandler
 
         MetricsReader metrics = new MetricsReader(collector, context::supplyLocalName);
         metricsSerializer = new OtlpMetricsSerializer(metrics.records(), attributes, context::resolveMetric, resolveKind);
-        logsSerializer = new OtlpLogsSerializer(attributes);
+        EventReader eventReader = new EventReader(context);
+        logsSerializer = new OtlpLogsSerializer(attributes, eventReader);
         lastSuccess = System.currentTimeMillis();
         nextAttempt = lastSuccess + interval;
     }

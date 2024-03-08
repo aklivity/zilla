@@ -31,7 +31,7 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
-public class OtlpExporterIT
+public class MetricsIT
 {
     private static final String ENGINE_DIRECTORY = "target/zilla-itests";
 
@@ -50,11 +50,11 @@ public class OtlpExporterIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("exporter.otlp.yaml")
+    @Configuration("metrics.yaml")
     @Specification({
-        "client"
+        "metrics/server"
     })
-    public void shouldPostToOtlpCollector() throws Exception
+    public void shouldPostMetricsToOtlpCollector() throws Exception
     {
         // GIVEN
         int namespaceId = engine.supplyLabelId("test");

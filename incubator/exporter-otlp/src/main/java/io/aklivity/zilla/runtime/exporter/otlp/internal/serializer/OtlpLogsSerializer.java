@@ -14,14 +14,12 @@
  */
 package io.aklivity.zilla.runtime.exporter.otlp.internal.serializer;
 
-import java.io.StringReader;
 import java.util.List;
 
 import jakarta.json.Json;
 import jakarta.json.JsonArray;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
-import jakarta.json.JsonReader;
 
 import io.aklivity.zilla.runtime.engine.config.AttributeConfig;
 
@@ -31,49 +29,21 @@ public class OtlpLogsSerializer
     private static final String SCOPE_VERSION = "1.0.0";
 
     private final List<AttributeConfig> attributes;
+    private final EventReader eventReader;
 
     public OtlpLogsSerializer(
-        List<AttributeConfig> attributes)
+        List<AttributeConfig> attributes,
+        EventReader eventReader)
     {
         this.attributes = attributes;
+        this.eventReader = eventReader;
     }
 
     public String serializeAll()
     {
         JsonArrayBuilder attributesArray = Json.createArrayBuilder();
         attributes.forEach(attr -> attributesArray.add(attributeToJson(attr)));
-        //JsonArrayBuilder logsArray = Json.createArrayBuilder();
-        String logRecords =
-            "[\n" +
-            "            {\n" +
-            "              \"timeUnixNano\": \"1544712660300000000\",\n" +
-            "              \"observedTimeUnixNano\": \"1544712660300000000\",\n" +
-            "              \"severityNumber\": 10,\n" +
-            "              \"severityText\": \"Information\",\n" +
-            "              \"traceId\": \"5B8EFFF798038103D269B633813FC60C\",\n" +
-            "              \"spanId\": \"EEE19B7EC3C1B174\",\n" +
-            "              \"body\": {\n" +
-            "                \"stringValue\": \"1st Example log record\"\n" +
-            "              },\n" +
-            "              \"attributes\": [\n" +
-            "                {\n" +
-            "                  \"key\": \"string.attribute\",\n" +
-            "                  \"value\": {\n" +
-            "                    \"stringValue\": \"jo napot\"\n" +
-            "                  }\n" +
-            "                },\n" +
-            "                {\n" +
-            "                  \"key\": \"int.attribute\",\n" +
-            "                  \"value\": {\n" +
-            "                    \"intValue\": \"77\"\n" +
-            "                  }\n" +
-            "                }\n" +
-            "              ]\n" +
-            "            }\n" +
-            "]";
-        JsonReader reader = Json.createReader(new StringReader(logRecords));
-        JsonArray logsArray = reader.readArray();
-        // TODO: Ati - serialize logs to logsArray
+        JsonArray logsArray = eventReader.readEvents();
         return createJson(attributesArray, logsArray);
     }
 
@@ -91,7 +61,6 @@ public class OtlpLogsSerializer
 
     private String createJson(
         JsonArrayBuilder attributes,
-        //JsonArrayBuilder logsArray)
         JsonArray logsArray)
     {
         JsonObject resource = Json.createObjectBuilder()
