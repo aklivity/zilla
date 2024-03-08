@@ -13,7 +13,7 @@ You will need a running kafka broker. To start one locally you will find instruc
 Wether you chose [compose](./docker/compose) or [helm](./k8s/helm), the `setup.sh` script will:
 
 - create the necessary kafka topics
-- create an MQTT broker at `http://localhost:7183`
+- create an MQTT broker at `mqtt://localhost:7183`
 
 ```bash
 ./setup.sh

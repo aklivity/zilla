@@ -3,4 +3,4 @@ name: zilla
 description: zilla mqtt.proxy example
 type: application
 version: 0.1.0
-appVersion: "develop-SNAPSHOT"
+appVersion: "latest"

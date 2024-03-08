@@ -1,0 +1,56 @@
+name: example
+bindings:
+  north_tcp_server:
+    type: tcp
+    kind: server
+    options:
+      host: 0.0.0.0
+      port: 7183
+    routes:
+    - exit: north_mqtt_server
+      when:
+      - port: 7183
+  north_mqtt_server:
+    type: mqtt
+    kind: server
+    options:
+      topics:
+      - name: smartylighting/streetlights/1/0/event/1/lighting/measured
+        content:
+          type: json
+          catalog:
+            inline_schema:
+            - subject: item
+    routes:
+    - exit: south_mqtt_client
+      when:
+      - publish:
+        - topic: smartylighting/streetlights/1/0/event/1/lighting/measured
+      - subscribe:
+        - topic: smartylighting/streetlights/1/0/event/1/lighting/measured
+  south_mqtt_client:
+    type: mqtt
+    kind: client
+    exit: south_tcp_client
+  south_tcp_client:
+    type: tcp
+    kind: client
+    options:
+      host: ${{env.MOSQUITTO_BROKER_HOST}}
+      port: ${{env.MOSQUITTO_BROKER_PORT}}
+catalogs:
+  inline_schema:
+    type: inline
+    options:
+      subjects:
+        item:
+          schema: |
+            properties:
+              id:
+                type: string
+              status:
+                type: string
+            required:
+            - id
+            - status
+          version: latest

@@ -1,0 +1,66 @@
+#
+# Copyright 2021-2023 Aklivity Inc.
+#
+# Aklivity licenses this file to you under the Apache License,
+# version 2.0 (the "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+
+asyncapi: 3.0.0
+info:
+  title: Zilla Kafka Proxy
+  version: 1.0.0
+  license:
+    name: Aklivity Community License
+servers:
+  plain:
+    host: host.docker.internal:9092
+    protocol: kafka
+
+operations:
+  onSensorData:
+    action: receive
+    channel:
+      $ref: '#/channels/sensorData'
+  toSensorData:
+    action: send
+    channel:
+      $ref: '#/channels/sensorData'
+
+channels:
+  sensorData:
+    description: This channel contains a message for sensors.
+    address: sensors
+    messages:
+      sensorData:
+        $ref: '#/components/messages/sensorData'
+  mqttSessions:
+    description: This channel contains MQTT sessions.
+    address: mqtt-sessions
+  mqttMessages:
+    description: This channel contains MQTT messages.
+    address: mqtt-messages
+  mqttRetained:
+    description: This channel contains MQTT retained messages.
+    address: mqtt-retained
+
+components:
+  messages:
+    sensorData:
+      payload:
+        type: object
+        properties:
+          sensorId:
+            type: integer
+            description: This property describes the id of the sensor
+          message:
+            type: string
+            description: This property describes message of the sensor

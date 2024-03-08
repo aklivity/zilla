@@ -3,6 +3,8 @@ extraEnv:
     value: mosquitto
   - name: MOSQUITTO_BROKER_PORT
     value: "1883"
+  - name: JAVA_OPTIONS
+    value: "-Dzilla.incubator.enabled=true"
 
 livenessProbePort: 7183
 readinessProbePort: 7183

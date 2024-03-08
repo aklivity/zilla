@@ -1,0 +1,23 @@
+version: '3'
+services:
+  zilla:
+    image: ghcr.io/aklivity/zilla
+    container_name: zilla
+    pull_policy: always
+    restart: unless-stopped
+    ports:
+      - 7183:7183
+    environment:
+      KEYSTORE_PASSWORD: generated
+      KAFKA_HOST: ${KAFKA_HOST}
+      KAFKA_PORT: ${KAFKA_PORT}
+      JAVA_OPTIONS: -Dzilla.incubator.enabled=true
+    volumes:
+      - ../../zilla.yaml:/etc/zilla/zilla.yaml
+      - ../../mqtt/asyncapi.yaml:/etc/zilla/mqtt/mqtt-asyncapi.yaml
+      - ../../kafka/asyncapi.yaml:/etc/zilla/kafka/kafka-asyncapi.yaml
+    command: start -v -e
+
+networks:
+  default:
+    driver: bridge
