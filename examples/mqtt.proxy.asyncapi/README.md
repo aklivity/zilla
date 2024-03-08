@@ -8,7 +8,7 @@ For example:
 
 ```bash
 cat asyncapi.yaml | \
-  docker run --rm -e JAVA_OPTIONS='-Dzilla.incubator.enabled=true' -i ghcr.io/aklivity/zilla \
+  docker run --rm -e ZILLA_INCUBATOR_ENABLED='true' -i ghcr.io/aklivity/zilla \
     generate --template asyncapi.mqtt.proxy --input /dev/stdin --output /dev/stdout | \
   tee zilla.yaml
 ```

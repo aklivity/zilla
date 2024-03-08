@@ -11,7 +11,7 @@ services:
       KEYSTORE_PASSWORD: generated
       KAFKA_HOST: ${KAFKA_HOST}
       KAFKA_PORT: ${KAFKA_PORT}
-      JAVA_OPTIONS: -Dzilla.incubator.enabled=true
+      ZILLA_INCUBATOR_ENABLED: "true"
     volumes:
       - ../../zilla.yaml:/etc/zilla/zilla.yaml
       - ../../mqtt/asyncapi.yaml:/etc/zilla/mqtt/mqtt-asyncapi.yaml

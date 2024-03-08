@@ -5,8 +5,8 @@ extraEnv:
     value: ""
   - name: KAFKA_PORT
     value: ""
-  - name: JAVA_OPTIONS
-    value: "-Dzilla.incubator.enabled=true"
+  - name: ZILLA_INCUBATOR_ENABLED
+    value: "true"
 
 livenessProbePort: 7183
 readinessProbePort: 7183
