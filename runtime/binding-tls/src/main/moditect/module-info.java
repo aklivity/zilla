@@ -29,4 +29,7 @@ module io.aklivity.zilla.runtime.binding.tls
 
     provides io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi
         with io.aklivity.zilla.runtime.binding.tls.internal.config.TlsConditionConfigAdapter;
+
+    provides io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi
+        with io.aklivity.zilla.runtime.binding.tls.internal.TlsEventFormatterFactory;
 }

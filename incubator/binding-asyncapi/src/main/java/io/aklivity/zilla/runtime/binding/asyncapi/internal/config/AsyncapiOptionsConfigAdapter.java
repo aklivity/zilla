@@ -55,7 +55,7 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
     private static final String TLS_NAME = "tls";
     private static final String HTTP_NAME = "http";
     private static final String KAFKA_NAME = "kafka";
-    private static final String MQTT_KAFKA_NAME = "mqtt_kafka";
+    private static final String MQTT_KAFKA_NAME = "mqtt-kafka";
     private static final String CHANNELS_NAME = "channels";
     private static final String SESSIONS_NAME = "sessions";
     private static final String MESSAGES_NAME = "messages";

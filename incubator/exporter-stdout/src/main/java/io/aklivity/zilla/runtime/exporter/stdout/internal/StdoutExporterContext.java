@@ -22,6 +22,7 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageReader;
 import io.aklivity.zilla.runtime.engine.config.AttributeConfig;
 import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
+import io.aklivity.zilla.runtime.engine.event.EventFormatter;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterContext;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
 import io.aklivity.zilla.runtime.engine.metrics.Collector;
@@ -63,10 +64,9 @@ public class StdoutExporterContext implements ExporterContext
         return context.supplyQName(namespacedId);
     }
 
-    public int supplyTypeId(
-        String name)
+    public EventFormatter supplyEventFormatter()
     {
-        return context.supplyTypeId(name);
+        return context.supplyEventFormatter();
     }
 
     public MessageReader supplyEventReader()

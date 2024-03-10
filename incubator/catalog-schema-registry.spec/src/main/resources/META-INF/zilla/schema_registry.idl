@@ -21,16 +21,16 @@ scope schema_registry
             REMOTE_ACCESS_REJECTED (1)
         }
 
-        struct SchemaRegistryRemoteAccessRejected extends core::event::Event
+        struct SchemaRegistryRemoteAccessRejectedEx extends core::stream::Extension
         {
             string8 method;
             string16 url;
             int16 status;
         }
 
-        union SchemaRegistryEvent switch (SchemaRegistryEventType)
+        union SchemaRegistryEventEx switch (SchemaRegistryEventType)
         {
-            case REMOTE_ACCESS_REJECTED: SchemaRegistryRemoteAccessRejected remoteAccessRejected;
+            case REMOTE_ACCESS_REJECTED: SchemaRegistryRemoteAccessRejectedEx remoteAccessRejected;
         }
     }
 }

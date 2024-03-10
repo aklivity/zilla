@@ -15,23 +15,28 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal;
 
+import static io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaEventType.API_VERSION_REJECTED;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaEventType.AUTHORIZATION_FAILED;
+
 import java.nio.ByteBuffer;
 import java.time.Clock;
 
-import org.agrona.MutableDirectBuffer;
+import org.agrona.concurrent.AtomicBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaEventFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.EventFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaEventExFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
 public class KafkaEventContext
 {
     private static final int EVENT_BUFFER_CAPACITY = 1024;
-    private static final int ERROR_NONE = 0;
 
-    private final KafkaEventFW.Builder kafkaEventRW = new KafkaEventFW.Builder();
-    private final MutableDirectBuffer eventBuffer = new UnsafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
+    private final AtomicBuffer eventBuffer = new UnsafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
+    private final AtomicBuffer extensionBuffer = new UnsafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
+    private final EventFW.Builder eventRW = new EventFW.Builder();
+    private final KafkaEventExFW.Builder kafkaEventExRW = new KafkaEventExFW.Builder();
     private final int kafkaTypeId;
     private final MessageConsumer eventWriter;
     private final Clock clock;
@@ -46,15 +51,22 @@ public class KafkaEventContext
 
     public void authorizationFailed(
         long traceId,
-        long bindingId)
+        long bindingId,
+        String identity)
     {
-        KafkaEventFW event = kafkaEventRW
-            .wrap(eventBuffer, 0, eventBuffer.capacity())
+        KafkaEventExFW extension = kafkaEventExRW
+            .wrap(extensionBuffer, 0, extensionBuffer.capacity())
             .authorizationFailed(e -> e
-                .timestamp(clock.millis())
-                .traceId(traceId)
-                .namespacedId(bindingId)
+                .typeId(AUTHORIZATION_FAILED.value())
+                .identity(identity)
             )
+            .build();
+        EventFW event = eventRW
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .timestamp(clock.millis())
+            .traceId(traceId)
+            .namespacedId(bindingId)
+            .extension(extension.buffer(), extension.offset(), extension.limit())
             .build();
         eventWriter.accept(kafkaTypeId, event.buffer(), event.offset(), event.limit());
     }
@@ -65,15 +77,20 @@ public class KafkaEventContext
         int apiKey,
         int apiVersion)
     {
-        KafkaEventFW event = kafkaEventRW
-            .wrap(eventBuffer, 0, eventBuffer.capacity())
+        KafkaEventExFW extension = kafkaEventExRW
+            .wrap(extensionBuffer, 0, extensionBuffer.capacity())
             .apiVersionRejected(e -> e
-                .timestamp(clock.millis())
-                .traceId(traceId)
-                .namespacedId(bindingId)
+                .typeId(API_VERSION_REJECTED.value())
                 .apiKey(apiKey)
                 .apiVersion(apiVersion)
             )
+            .build();
+        EventFW event = eventRW
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .timestamp(clock.millis())
+            .traceId(traceId)
+            .namespacedId(bindingId)
+            .extension(extension.buffer(), extension.offset(), extension.limit())
             .build();
         eventWriter.accept(kafkaTypeId, event.buffer(), event.offset(), event.limit());
     }
