@@ -1,0 +1,20 @@
+---
+name: zilla-openapi-proxy
+bindings:
+  north_openapi_server:
+    type: openapi
+    kind: server
+    options:
+      specs:
+        my-openapi-spec: schema.json
+    exit: south_openapi_lcient
+  south_openapi_lcient:
+    type: openapi
+    kind: client
+    options:
+      specs:
+        my-openapi-spec: schema.json
+      tcp:
+        host: openapi-mock
+        port:
+          - 5000
