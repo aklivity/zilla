@@ -22,21 +22,12 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.exporter.otlp.config.OtlpEndpointConfig;
-import io.aklivity.zilla.runtime.exporter.otlp.config.OtlpOverridesConfig;
 
 public class OtlpEndpointAdapter implements JsonbAdapter<OtlpEndpointConfig, JsonObject>
 {
     private static final String PROTOCOL_NAME = "protocol";
     private static final String PROTOCOL_DEFAULT = "http";
     private static final String LOCATION_NAME = "location";
-    private static final String OVERRIDES_NAME = "overrides";
-
-    private final OtlpOverridesAdapter overrides;
-
-    public OtlpEndpointAdapter()
-    {
-        this.overrides = new OtlpOverridesAdapter();
-    }
 
     @Override
     public JsonObject adaptToJson(
@@ -51,10 +42,6 @@ public class OtlpEndpointAdapter implements JsonbAdapter<OtlpEndpointConfig, Jso
         {
             object.add(LOCATION_NAME, endpoint.location.toString());
         }
-        if (endpoint.overrides != null)
-        {
-            object.add(OVERRIDES_NAME, overrides.adaptToJson(endpoint.overrides));
-        }
         return object.build();
     }
 
@@ -66,9 +53,6 @@ public class OtlpEndpointAdapter implements JsonbAdapter<OtlpEndpointConfig, Jso
             ? object.getString(PROTOCOL_NAME)
             : PROTOCOL_DEFAULT;
         URI url = URI.create(object.getString(LOCATION_NAME));
-        OtlpOverridesConfig overridesConfig = object.containsKey(OVERRIDES_NAME)
-            ? overrides.adaptFromJson(object.getJsonObject(OVERRIDES_NAME))
-            : null;
-        return new OtlpEndpointConfig(protocol, url, overridesConfig);
+        return new OtlpEndpointConfig(protocol, url);
     }
 }

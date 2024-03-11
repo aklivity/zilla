@@ -39,7 +39,8 @@ public class OtlpExporterConfig
         this.options = (OtlpOptionsConfig)exporter.options;
     }
 
-    public URI resolveMetrics()
+    public URI resolveMetrics(
+        String override)
     {
         assert options != null;
         assert options.endpoint != null;
@@ -47,9 +48,9 @@ public class OtlpExporterConfig
 
         URI result;
         URI location = options.endpoint.location;
-        if (options.endpoint.overrides != null && options.endpoint.overrides.metrics != null)
+        if (override != null)
         {
-            result = location.resolve(options.endpoint.overrides.metrics);
+            result = location.resolve(override);
         }
         else
         {
@@ -58,7 +59,8 @@ public class OtlpExporterConfig
         return result;
     }
 
-    public URI resolveLogs()
+    public URI resolveLogs(
+        String override)
     {
         assert options != null;
         assert options.endpoint != null;
@@ -66,9 +68,9 @@ public class OtlpExporterConfig
 
         URI result;
         URI location = options.endpoint.location;
-        if (options.endpoint.overrides != null && options.endpoint.overrides.logs != null)
+        if (override != null)
         {
-            result = location.resolve(options.endpoint.overrides.logs);
+            result = location.resolve(override);
         }
         else
         {

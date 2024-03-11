@@ -80,8 +80,8 @@ public class OltpExporterHandler implements ExporterHandler
         this.timeoutInterval = config.timeoutInterval();
         this.warningInterval = config.warningInterval().toMillis();
         this.context = context;
-        this.metricsEndpoint = exporter.resolveMetrics();
-        this.logsEndpoint = exporter.resolveLogs();
+        this.metricsEndpoint = exporter.resolveMetrics(config.metricsOverride());
+        this.logsEndpoint = exporter.resolveLogs(config.logsOverride());
         this.signals = exporter.resolveSignals();
         this.protocol = exporter.resolveProtocol();
         this.interval = exporter.resolveInterval();

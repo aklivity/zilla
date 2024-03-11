@@ -23,6 +23,8 @@ public class OltpConfiguration extends Configuration
     public static final PropertyDef<Duration> OTLP_EXPORTER_RETRY_INTERVAL;
     public static final PropertyDef<Duration> OTLP_EXPORTER_TIMEOUT_INTERVAL;
     public static final PropertyDef<Duration> OTLP_EXPORTER_WARNING_INTERVAL;
+    public static final PropertyDef<String> OTLP_EXPORTER_METRICS_OVERRIDE;
+    public static final PropertyDef<String> OTLP_EXPORTER_LOGS_OVERRIDE;
 
     private static final ConfigurationDef OTLP_EXPORTER_CONFIG;
 
@@ -35,6 +37,8 @@ public class OltpConfiguration extends Configuration
             (c, v) -> Duration.parse(v), "PT30S");
         OTLP_EXPORTER_WARNING_INTERVAL = config.property(Duration.class, "warning.interval",
             (c, v) -> Duration.parse(v), "PT5M");
+        OTLP_EXPORTER_METRICS_OVERRIDE = config.property("metrics.override");
+        OTLP_EXPORTER_LOGS_OVERRIDE = config.property("logs.override");
         OTLP_EXPORTER_CONFIG = config;
     }
 
@@ -57,5 +61,16 @@ public class OltpConfiguration extends Configuration
     public Duration warningInterval()
     {
         return OTLP_EXPORTER_WARNING_INTERVAL.get(this);
+    }
+
+    // TODO: Ati
+    public String metricsOverride()
+    {
+        return OTLP_EXPORTER_METRICS_OVERRIDE.get(this);
+    }
+
+    public String logsOverride()
+    {
+        return OTLP_EXPORTER_LOGS_OVERRIDE.get(this);
     }
 }

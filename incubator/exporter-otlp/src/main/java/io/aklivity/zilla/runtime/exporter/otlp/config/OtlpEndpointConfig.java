@@ -20,15 +20,12 @@ public class OtlpEndpointConfig
 {
     public String protocol;
     public URI location;
-    public OtlpOverridesConfig overrides;
 
     public OtlpEndpointConfig(
         String protocol,
-        URI location,
-        OtlpOverridesConfig overrides)
+        URI location)
     {
         this.protocol = protocol;
         this.location = location;
-        this.overrides = overrides;
     }
 }
