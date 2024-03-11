@@ -35,7 +35,7 @@ public class EventIT
 
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("net", "io/aklivity/zilla/specs/engine/streams/network")
-        .addScriptRoot("app", "io/aklivity/zilla/specs/engine/streams/application");
+        .addScriptRoot("app", "io/aklivity/zilla/specs/exporter/otlp/application");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 

@@ -25,7 +25,7 @@ connected
 write http:method "POST"
 write http:version "HTTP/1.1"
 write http:header "Host" "localhost:4318"
-write http:header "Content-Length" "439"
+write http:header "Content-Length" "366"
 write
 '{'
     '"resourceLogs":['
@@ -50,8 +50,6 @@ write
                         '{'
                             '"timeUnixNano":42000000,'
                             '"observedTimeUnixNano":42000000,'
-                            '"traceId":"00000000000000008000000000000001",'
-                            '"spanId":"0000000100000004",'
                             '"body":{'
                                 '"stringValue":"test event message"'
                             '},'
