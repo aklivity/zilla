@@ -73,6 +73,7 @@ public class KafkaConfiguration extends Configuration
     public static final PropertyDef<Duration> KAFKA_CLIENT_GROUP_REBALANCE_TIMEOUT;
     public static final IntPropertyDef KAFKA_CLIENT_GROUP_MIN_SESSION_TIMEOUT_DEFAULT;
     public static final IntPropertyDef KAFKA_CLIENT_GROUP_MAX_SESSION_TIMEOUT_DEFAULT;
+    public static final IntPropertyDef KAFKA_CLIENT_GROUP_INITIAL_REBALANCE_DELAY_DEFAULT;
     public static final PropertyDef<String> KAFKA_CLIENT_ID;
     public static final PropertyDef<InstanceIdSupplier> KAFKA_CLIENT_INSTANCE_ID;
     public static final BooleanPropertyDef KAFKA_CLIENT_CONNECTION_POOL;
@@ -105,6 +106,8 @@ public class KafkaConfiguration extends Configuration
             (int) Duration.ofSeconds(6).toMillis());
         KAFKA_CLIENT_GROUP_MAX_SESSION_TIMEOUT_DEFAULT = config.property("client.group.max.session.timeout.default",
             (int) Duration.ofMinutes(5).toMillis());
+        KAFKA_CLIENT_GROUP_INITIAL_REBALANCE_DELAY_DEFAULT = config.property("client.group.initial.rebalance.delay.default",
+            0);
         KAFKA_CACHE_DIRECTORY = config.property(Path.class, "cache.directory",
             KafkaConfiguration::cacheDirectory, KafkaBinding.NAME);
         KAFKA_CACHE_SERVER_BOOTSTRAP = config.property("cache.server.bootstrap", true);
@@ -313,6 +316,11 @@ public class KafkaConfiguration extends Configuration
     public int clientGroupMaxSessionTimeoutDefault()
     {
         return KAFKA_CLIENT_GROUP_MAX_SESSION_TIMEOUT_DEFAULT.get(this);
+    }
+
+    public int clientGroupInitialRebalanceDelayDefault()
+    {
+        return KAFKA_CLIENT_GROUP_INITIAL_REBALANCE_DELAY_DEFAULT.get(this);
     }
 
     private static boolean supplyVerbose(

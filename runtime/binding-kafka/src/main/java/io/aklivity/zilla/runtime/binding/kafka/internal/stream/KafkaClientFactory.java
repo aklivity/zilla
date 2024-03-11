@@ -15,7 +15,9 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
+import java.util.function.Function;
 import java.util.function.LongFunction;
+import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
 import org.agrona.DirectBuffer;
@@ -62,8 +64,14 @@ public final class KafkaClientFactory implements KafkaStreamFactory
         final BindingHandler streamFactory = config.clientConnectionPool() ? connectionPool.streamFactory() :
                 context.streamFactory();
 
+        final Function<Integer, BindingHandler> streamFactorySupplier = d ->
+            d == 0 ? streamFactory : context.streamFactory();
+
         final UnaryOperator<KafkaSaslConfig> resolveSasl = config.clientConnectionPool() ? c -> null :
             UnaryOperator.identity();
+
+        final Function<Integer, UnaryOperator<KafkaSaslConfig>> resolveSaslSupplier = d ->
+            d == 0 ? resolveSasl : UnaryOperator.identity();
 
         final Signaler signaler = config.clientConnectionPool() ? connectionPool.signaler() :
                 context.signaler();
@@ -76,8 +84,8 @@ public final class KafkaClientFactory implements KafkaStreamFactory
                 config, context, bindings::get, accountant::supplyDebitor, signaler, streamFactory, resolveSasl);
 
         final KafkaClientGroupFactory clientGroupFactory = new KafkaClientGroupFactory(
-            config, context, bindings::get, accountant::supplyDebitor, signaler, streamFactory,
-            resolveSasl, supplyClientRoute);
+            config, context, bindings::get, accountant::supplyDebitor, signaler, streamFactorySupplier,
+            resolveSaslSupplier, supplyClientRoute);
 
         final KafkaClientFetchFactory clientFetchFactory = new KafkaClientFetchFactory(
                 config, context, bindings::get, accountant::supplyDebitor, supplyClientRoute);
