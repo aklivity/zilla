@@ -13,21 +13,20 @@
 # specific language governing permissions and limitations under the License.
 #
 
-accept "zilla://streams/app0"
+connect "zilla://streams/app0"
     option zilla:window 8192
-accepted
+
 connected
 
 
-accept "http://localhost:4318/v1/logs"
-accepted
+connect "http://localhost:4318/v1/logs"
 connected
 
-read http:method "POST"
-read http:version "HTTP/1.1"
-read http:header "Host" "localhost:4318"
-read http:header "Content-Length" "439"
-read
+write http:method "POST"
+write http:version "HTTP/1.1"
+write http:header "Host" "localhost:4318"
+write http:header "Content-Length" "439"
+write
 '{'
     '"resourceLogs":['
         '{'
@@ -71,7 +70,6 @@ read
         '}'
     ']'
 '}'
-read closed
-
-write http:status "200" "OK"
 write close
+
+read http:status "200" "OK"

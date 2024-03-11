@@ -41,7 +41,6 @@ public class EventReader
     private static final String ATTRIBUTES = "attributes";
     private static final String BODY_FORMAT = "{\"stringValue\": \"%s\"}";
     private static final String STRING_ATTRIBUTE_FORMAT = "{\"key\":\"%s\", \"value\":{\"stringValue\": \"%s\"}}";
-    private static final String INT_ATTRIBUTE_FORMAT = "{\"key\":\"%s\", \"value\":{\"intValue\": \"%d\"}}";
 
     private final EngineContext context;
     private final MessageReader readEvent;
@@ -79,18 +78,14 @@ public class EventReader
         long nanos = TimeUnit.MILLISECONDS.toNanos(event.timestamp());
         eventJson.add(TIME_UNIX_NANO, nanos);
         eventJson.add(OBSERVED_TIME_UNIX_NANO, nanos);
-        eventJson.add(TRACE_ID, String.format("%x", event.traceId()));
-        eventJson.add(SPAN_ID, String.format("%x", event.namespacedId()));
-        addBody("body");
-        eventAttributesJson = Json.createArrayBuilder();
-        addStringAttribute("event.name", "test.test");
+        eventJson.add(TRACE_ID, String.format("%032x", event.traceId()));
+        eventJson.add(SPAN_ID, String.format("%016x", event.namespacedId()));
         String extension = formatter.format(msgTypeId, buffer, index, length);
-        addStringAttribute("extension", extension);
-        //addIntAttribute("id", 42);
+        addBody(extension);
+        eventAttributesJson = Json.createArrayBuilder();
+        addStringAttribute("qname", qname);
         eventJson.add(ATTRIBUTES, eventAttributesJson);
         eventsJson.add(eventJson);
-        System.out.println(eventJson);
-        System.out.printf("%s 0x%016x [%d]\n", qname, event.traceId(), event.timestamp());
     }
 
     private void addBody(
@@ -106,15 +101,6 @@ public class EventReader
         String value)
     {
         String json = String.format(STRING_ATTRIBUTE_FORMAT, key, value);
-        JsonReader reader = Json.createReader(new StringReader(json));
-        eventAttributesJson.add(reader.readObject());
-    }
-
-    private void addIntAttribute(
-        String key,
-        int value)
-    {
-        String json = String.format(INT_ATTRIBUTE_FORMAT, key, value);
         JsonReader reader = Json.createReader(new StringReader(json));
         eventAttributesJson.add(reader.readObject());
     }
