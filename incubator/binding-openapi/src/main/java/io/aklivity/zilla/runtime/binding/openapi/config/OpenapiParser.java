@@ -22,6 +22,8 @@ import java.io.StringReader;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
@@ -45,8 +47,8 @@ public class OpenapiParser
     public OpenapiParser()
     {
         Map<String, JsonSchema> schemas = new Object2ObjectHashMap<>();
-        schemas.put("3.0.0", schema("3.0.0"));
-        schemas.put("3.1.0", schema("3.1.0"));
+        schemas.put("3.0", schema("3.0.3"));
+        schemas.put("3.1", schema("3.1.0"));
         this.schemas = unmodifiableMap(schemas);
     }
 
@@ -89,22 +91,12 @@ public class OpenapiParser
     private JsonSchema schema(
         String version)
     {
-        InputStream schemaInput = null;
-        boolean detect = true;
+        final String schemaName = String.format("schema/openapi.%s.schema.json", version);
+        final InputStream schemaInput = OpenapiBinding.class.getResourceAsStream(schemaName);
+        final boolean detect = !version.startsWith("3.1");
 
-        if (version.startsWith("3.0"))
-        {
-            schemaInput = OpenapiBinding.class.getResourceAsStream("schema/openapi.3.0.schema.json");
-        }
-        else if (version.startsWith("3.1"))
-        {
-            schemaInput =  OpenapiBinding.class.getResourceAsStream("schema/openapi.3.1.schema.json");
-            detect = false;
-        }
-
-        JsonValidationService service = JsonValidationService.newInstance();
-
-        return service.createSchemaReaderFactoryBuilder()
+        return JsonValidationService.newInstance()
+                .createSchemaReaderFactoryBuilder()
                 .withSpecVersionDetection(detect)
                 .build()
                 .createSchemaReader(schemaInput)
@@ -119,7 +111,13 @@ public class OpenapiParser
             JsonObject json = reader.readObject();
             if (json.containsKey("openapi"))
             {
-                return json.getString("openapi");
+                final String versionString = json.getString("openapi");
+                final String regex = "(\\d+\\.\\d+)\\.\\d+";
+                final Pattern pattern = Pattern.compile(regex);
+                final Matcher matcher = pattern.matcher(versionString);
+
+                final String majorMinorVersion = matcher.find() ? matcher.group(1) : null;
+                return majorMinorVersion;
             }
             else
             {

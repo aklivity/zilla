@@ -22,6 +22,8 @@ import java.io.StringReader;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
@@ -45,8 +47,8 @@ public class AsyncapiParser
     public AsyncapiParser()
     {
         Map<String, JsonSchema> schemas = new Object2ObjectHashMap<>();
-        schemas.put("2.6.0", schema("2.6.0"));
-        schemas.put("3.0.0", schema("3.0.0"));
+        schemas.put("2.6", schema("2.6.0"));
+        schemas.put("3.0", schema("3.0.1"));
         this.schemas = unmodifiableMap(schemas);
     }
 
@@ -89,20 +91,11 @@ public class AsyncapiParser
     private JsonSchema schema(
         String version)
     {
-        InputStream schemaInput = null;
+        final String schemaName = String.format("schema/asyncapi.%s.schema.json", version);
+        final InputStream schemaInput =  AsyncapiBinding.class.getResourceAsStream(schemaName);
 
-        if (version.startsWith("2.6"))
-        {
-            schemaInput =  AsyncapiBinding.class.getResourceAsStream("schema/asyncapi.2.6.schema.json");
-        }
-        else if (version.startsWith("3.0"))
-        {
-            schemaInput = AsyncapiBinding.class.getResourceAsStream("schema/asyncapi.3.0.schema.json");
-        }
-
-        JsonValidationService service = JsonValidationService.newInstance();
-
-        return service.createSchemaReaderFactoryBuilder()
+        return JsonValidationService.newInstance()
+                .createSchemaReaderFactoryBuilder()
                 .withSpecVersionDetection(true)
                 .build()
                 .createSchemaReader(schemaInput)
@@ -110,14 +103,20 @@ public class AsyncapiParser
     }
 
     private String detectAsyncApiVersion(
-        String openapiText)
+        String asyncapiText)
     {
-        try (JsonReader reader = Json.createReader(new StringReader(openapiText)))
+        try (JsonReader reader = Json.createReader(new StringReader(asyncapiText)))
         {
             JsonObject json = reader.readObject();
             if (json.containsKey("asyncapi"))
             {
-                return json.getString("asyncapi");
+                final String versionString = json.getString("asyncapi");
+                final String regex = "(\\d+\\.\\d+)\\.\\d+";
+                final Pattern pattern = Pattern.compile(regex);
+                final Matcher matcher = pattern.matcher(versionString);
+
+                final String majorMinorVersion = matcher.find() ? matcher.group(1) : null;
+                return majorMinorVersion;
             }
             else
             {
