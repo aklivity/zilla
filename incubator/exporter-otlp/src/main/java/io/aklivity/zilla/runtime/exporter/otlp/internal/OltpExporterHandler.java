@@ -112,32 +112,8 @@ public class OltpExporterHandler implements ExporterHandler
         long now = System.currentTimeMillis();
         if (now >= nextAttempt)
         {
-            if (signals.contains(METRICS) && (metricsResponse == null || metricsResponse.isDone()))
-            {
-                String metricsJson = metricsSerializer.serializeAll();
-                HttpRequest metricsRequest = HttpRequest.newBuilder()
-                    .uri(metricsEndpoint)
-                    .header("Content-Type", "application/json")
-                    .POST(HttpRequest.BodyPublishers.ofString(metricsJson))
-                    .timeout(timeoutInterval)
-                    .build();
-                metricsResponse = httpClient.sendAsync(metricsRequest, HttpResponse.BodyHandlers.ofString());
-                metricsResponse.thenAccept(responseHandler);
-                nextAttempt = now + retryInterval;
-            }
-            if (signals.contains(LOGS) && (logsResponse == null || logsResponse.isDone()))
-            {
-                String logsJson = logsSerializer.serializeAll();
-                HttpRequest logsRequest = HttpRequest.newBuilder()
-                    .uri(logsEndpoint)
-                    .header("Content-Type", "application/json")
-                    .POST(HttpRequest.BodyPublishers.ofString(logsJson))
-                    .timeout(timeoutInterval)
-                    .build();
-                logsResponse = httpClient.sendAsync(logsRequest, HttpResponse.BodyHandlers.ofString());
-                logsResponse.thenAccept(responseHandler);
-                nextAttempt = now + retryInterval;
-            }
+            exportMetrics(now);
+            exportLogs(now);
             if (!warningLogged && now - lastSuccess > warningInterval)
             {
                 System.out.format(
@@ -148,6 +124,42 @@ public class OltpExporterHandler implements ExporterHandler
             workDone = 1;
         }
         return workDone;
+    }
+
+    private void exportMetrics(
+        long now)
+    {
+        if (signals.contains(METRICS) && (metricsResponse == null || metricsResponse.isDone()))
+        {
+            String metricsJson = metricsSerializer.serializeAll();
+            HttpRequest metricsRequest = HttpRequest.newBuilder()
+                .uri(metricsEndpoint)
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(metricsJson))
+                .timeout(timeoutInterval)
+                .build();
+            metricsResponse = httpClient.sendAsync(metricsRequest, HttpResponse.BodyHandlers.ofString());
+            metricsResponse.thenAccept(responseHandler);
+            nextAttempt = now + retryInterval;
+        }
+    }
+
+    private void exportLogs(
+        long now)
+    {
+        if (signals.contains(LOGS) && (logsResponse == null || logsResponse.isDone()))
+        {
+            String logsJson = logsSerializer.serializeAll();
+            HttpRequest logsRequest = HttpRequest.newBuilder()
+                .uri(logsEndpoint)
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(logsJson))
+                .timeout(timeoutInterval)
+                .build();
+            logsResponse = httpClient.sendAsync(logsRequest, HttpResponse.BodyHandlers.ofString());
+            logsResponse.thenAccept(responseHandler);
+            nextAttempt = now + retryInterval;
+        }
     }
 
     private void handleResponse(
