@@ -35,8 +35,6 @@ public class EventReader
     private static final int MESSAGE_COUNT_LIMIT = 100;
     private static final String TIME_UNIX_NANO = "timeUnixNano";
     private static final String OBSERVED_TIME_UNIX_NANO = "observedTimeUnixNano";
-    private static final String TRACE_ID = "traceId";
-    private static final String SPAN_ID = "spanId";
     private static final String BODY = "body";
     private static final String ATTRIBUTES = "attributes";
     private static final String BODY_FORMAT = "{\"stringValue\": \"%s\"}";
@@ -78,8 +76,6 @@ public class EventReader
         long nanos = TimeUnit.MILLISECONDS.toNanos(event.timestamp());
         eventJson.add(TIME_UNIX_NANO, nanos);
         eventJson.add(OBSERVED_TIME_UNIX_NANO, nanos);
-        eventJson.add(TRACE_ID, String.format("%032x", event.traceId()));
-        eventJson.add(SPAN_ID, String.format("%016x", event.namespacedId()));
         String extension = formatter.format(msgTypeId, buffer, index, length);
         addBody(extension);
         eventAttributesJson = Json.createArrayBuilder();
