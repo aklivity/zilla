@@ -64,17 +64,6 @@
                                     "location":
                                     {
                                         "type": "string"
-                                    },
-                                    "overrides":
-                                    {
-                                        "type": "object",
-                                        "properties":
-                                        {
-                                            "metrics":
-                                            {
-                                                "type": "string"
-                                            }
-                                        }
                                     }
                                 },
                                 "required":
