@@ -34,8 +34,8 @@ public class EventIT
     private static final String ENGINE_DIRECTORY = "target/zilla-itests";
 
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/runtime/exporter/otlp/internal/network")
-        .addScriptRoot("app", "io/aklivity/zilla/runtime/exporter/otlp/internal/application");
+        .addScriptRoot("net", "io/aklivity/zilla/specs/engine/streams/network")
+        .addScriptRoot("app", "io/aklivity/zilla/specs/engine/streams/application");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
