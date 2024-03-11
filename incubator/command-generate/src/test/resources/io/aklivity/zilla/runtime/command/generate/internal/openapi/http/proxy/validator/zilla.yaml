@@ -21,7 +21,14 @@ bindings:
         method: GET
         params:
           query:
-            limit: integer
+            limit:
+              model: int32
+              format: text
+              max: 2147483647
+              min: -2147483648
+              exclusiveMax: false
+              exclusiveMin: false
+              multiple: 1
       - path: /items
         method: POST
         content:
@@ -37,12 +44,26 @@ bindings:
       - path: "/items/{id}"
         method: PUT
         headers:
-          hello: integer
+          hello:
+            model: int32
+            format: text
+            max: 2147483647
+            min: -2147483648
+            exclusiveMax: false
+            exclusiveMin: false
+            multiple: 1
         params:
           path:
             id: string
           query:
-            limit: integer
+            limit:
+              model: int32
+              format: text
+              max: 2147483647
+              min: -2147483648
+              exclusiveMax: false
+              exclusiveMin: false
+              multiple: 1
             ciao: string
       - path: "/items/{id}"
         method: DELETE
@@ -87,7 +108,14 @@ bindings:
           content-type:
           - application/json
           headers:
-            x-pages: integer
+            x-pages:
+              model: int32
+              format: text
+              max: 2147483647
+              min: -2147483648
+              exclusiveMax: false
+              exclusiveMin: false
+              multiple: 1
             x-next: string
           content:
             model: json

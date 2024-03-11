@@ -25,18 +25,18 @@ import org.junit.Test;
 
 import io.aklivity.zilla.specs.engine.config.ConfigSchemaRule;
 
-public class IntegerSchemaTest
+public class Int32SchemaTest
 {
     @Rule
     public final ConfigSchemaRule schema = new ConfigSchemaRule()
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/binding/test.schema.patch.json")
-        .schemaPatch("io/aklivity/zilla/specs/model/core/schema/integer.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/specs/model/core/schema/int32.schema.patch.json")
         .configurationRoot("io/aklivity/zilla/specs/model/core/config");
 
     @Test
     public void shouldValidateCatalog()
     {
-        JsonObject config = schema.validate("integer.model.yaml");
+        JsonObject config = schema.validate("int32.model.yaml");
 
         assertThat(config, not(nullValue()));
     }

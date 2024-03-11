@@ -21,7 +21,7 @@ bindings:
     type: test
     options:
       value:
-        model: integer
+        model: int32
         format: text
         max: 1234
         min: -1234

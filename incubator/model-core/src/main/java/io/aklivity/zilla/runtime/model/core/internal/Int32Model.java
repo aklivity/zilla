@@ -20,9 +20,9 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.Model;
 import io.aklivity.zilla.runtime.engine.model.ModelContext;
 
-public class IntegerModel implements Model
+public class Int32Model implements Model
 {
-    public static final String NAME = "integer";
+    public static final String NAME = "int32";
 
     @Override
     public String name()
@@ -34,12 +34,12 @@ public class IntegerModel implements Model
     public ModelContext supply(
         EngineContext context)
     {
-        return new IntegerModelContext(context);
+        return new Int32ModelContext(context);
     }
 
     @Override
     public URL type()
     {
-        return getClass().getResource("schema/integer.schema.patch.json");
+        return getClass().getResource("schema/int32.schema.patch.json");
     }
 }

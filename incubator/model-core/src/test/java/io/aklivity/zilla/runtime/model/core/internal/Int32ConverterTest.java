@@ -21,14 +21,14 @@ import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
-import io.aklivity.zilla.runtime.model.core.config.IntegerModelConfig;
+import io.aklivity.zilla.runtime.model.core.config.Int32ModelConfig;
 
-public class IntegerConverterTest
+public class Int32ConverterTest
 {
-    private final IntegerModelConfig config = IntegerModelConfig.builder()
+    private final Int32ModelConfig config = Int32ModelConfig.builder()
         .format("binary")
         .build();
-    private final IntegerConverterHandler converter = new IntegerConverterHandler(config);
+    private final Int32ConverterHandler converter = new Int32ConverterHandler(config);
 
     @Test
     public void shouldVerifyValidInteger()

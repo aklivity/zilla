@@ -18,27 +18,16 @@ import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
-import io.aklivity.zilla.runtime.model.core.config.IntegerModelConfig;
+import io.aklivity.zilla.runtime.model.core.config.Int32ModelConfig;
 
-public class IntegerConverterHandler implements ConverterHandler
+public class Int32ConverterHandler implements ConverterHandler
 {
-    private final int max;
-    private final int min;
-    private final int multiple;
-    private final boolean exclusiveMax;
-    private final boolean exclusiveMin;
+    private final Int32ValidatorHandler handler;
 
-    private IntegerFormat format;
-
-    public IntegerConverterHandler(
-        IntegerModelConfig config)
+    public Int32ConverterHandler(
+        Int32ModelConfig config)
     {
-        this.max = config.max;
-        this.min = config.min;
-        this.exclusiveMax = config.exclusiveMax;
-        this.exclusiveMin = config.exclusiveMin;
-        this.multiple = config.multiple;
-        this.format = IntegerFormat.of(config.format);
+        this.handler = new Int32ValidatorHandler(config);
     }
 
     @Override
@@ -48,7 +37,6 @@ public class IntegerConverterHandler implements ConverterHandler
         int length,
         ValueConsumer next)
     {
-        return format.validate(FLAGS_COMPLETE, data, index, length,
-            max, min, exclusiveMax, exclusiveMin, multiple) ? length : -1;
+        return handler.validate(FLAGS_COMPLETE, data, index, length, next) ? length : -1;
     }
 }

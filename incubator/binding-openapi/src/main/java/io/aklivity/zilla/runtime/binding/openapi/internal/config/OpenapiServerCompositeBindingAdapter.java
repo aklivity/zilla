@@ -60,7 +60,7 @@ import io.aklivity.zilla.runtime.engine.config.GuardedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
-import io.aklivity.zilla.runtime.model.core.config.IntegerModelConfig;
+import io.aklivity.zilla.runtime.model.core.config.Int32ModelConfig;
 import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
 import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
@@ -74,7 +74,7 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
     private final Matcher jsonContentType = JSON_CONTENT_TYPE.matcher("");
     private final Map<String, ModelConfig> models = Map.of(
         "string", StringModelConfig.builder().build(),
-        "integer", IntegerModelConfig.builder().build()
+        "integer", Int32ModelConfig.builder().build()
     );
 
     @Override

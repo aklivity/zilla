@@ -28,9 +28,9 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.model.core.config.IntegerModelConfig;
+import io.aklivity.zilla.runtime.model.core.config.Int32ModelConfig;
 
-public class IntegerModelConfigAdapterTest
+public class Int32ModelConfigAdapterTest
 {
     private Jsonb jsonb;
 
@@ -38,7 +38,7 @@ public class IntegerModelConfigAdapterTest
     public void initJson()
     {
         JsonbConfig config = new JsonbConfig()
-            .withAdapters(new IntegerModelConfigAdapter());
+            .withAdapters(new Int32ModelConfigAdapter());
         jsonb = JsonbBuilder.create(config);
     }
 
@@ -48,7 +48,7 @@ public class IntegerModelConfigAdapterTest
         // GIVEN
         String json =
             "{" +
-                "\"model\":\"integer\"," +
+                "\"model\":\"int32\"," +
                 "\"format\":\"text\"," +
                 "\"max\":999," +
                 "\"min\":-999," +
@@ -58,11 +58,11 @@ public class IntegerModelConfigAdapterTest
             "}";
 
         // WHEN
-        IntegerModelConfig model = jsonb.fromJson(json, IntegerModelConfig.class);
+        Int32ModelConfig model = jsonb.fromJson(json, Int32ModelConfig.class);
 
         // THEN
         assertThat(model, not(nullValue()));
-        assertThat(model.model, equalTo("integer"));
+        assertThat(model.model, equalTo("int32"));
         assertThat(model.format, equalTo("text"));
         assertThat(model.max, equalTo(999));
         assertThat(model.min, equalTo(-999));
@@ -77,7 +77,7 @@ public class IntegerModelConfigAdapterTest
         // GIVEN
         String expectedJson =
             "{" +
-                "\"model\":\"integer\"," +
+                "\"model\":\"int32\"," +
                 "\"format\":\"text\"," +
                 "\"max\":2147483647," +
                 "\"min\":-2147483648," +
@@ -85,7 +85,7 @@ public class IntegerModelConfigAdapterTest
                 "\"exclusiveMin\":false," +
                 "\"multiple\":1" +
             "}";
-        IntegerModelConfig model = IntegerModelConfig.builder().build();
+        Int32ModelConfig model = Int32ModelConfig.builder().build();
 
         // WHEN
         String json = jsonb.toJson(model);

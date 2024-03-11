@@ -42,7 +42,7 @@ import io.aklivity.zilla.runtime.engine.config.CatalogedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
-import io.aklivity.zilla.runtime.model.core.config.IntegerModelConfig;
+import io.aklivity.zilla.runtime.model.core.config.Int32ModelConfig;
 import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
 import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
@@ -50,7 +50,7 @@ public class AsyncapiHttpProtocol extends AsyncapiProtocol
 {
     private static final Map<String, ModelConfig> MODELS = Map.of(
         "string", StringModelConfig.builder().build(),
-        "integer", IntegerModelConfig.builder().build()
+        "integer", Int32ModelConfig.builder().build()
     );
     private static final String SCHEME = "http";
     private static final String SECURE_SCHEME = "https";

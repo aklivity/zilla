@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.model.core.internal.config;
 
+import static io.aklivity.zilla.runtime.model.core.config.Int32ModelConfig.INT_32;
+
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
@@ -23,11 +25,10 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfigAdapterSpi;
-import io.aklivity.zilla.runtime.model.core.config.IntegerModelConfig;
+import io.aklivity.zilla.runtime.model.core.config.Int32ModelConfig;
 
-public class IntegerModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdapter<ModelConfig, JsonValue>
+public class Int32ModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdapter<ModelConfig, JsonValue>
 {
-    private static final String INTEGER = "integer";
     private static final String MODEL_NAME = "model";
     private static final String FORMAT_NAME = "format";
     private static final String MAX_NAME = "max";
@@ -39,17 +40,17 @@ public class IntegerModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAd
     @Override
     public String type()
     {
-        return INTEGER;
+        return INT_32;
     }
 
     @Override
     public JsonValue adaptToJson(
         ModelConfig options)
     {
-        IntegerModelConfig config = (IntegerModelConfig) options;
+        Int32ModelConfig config = (Int32ModelConfig) options;
         JsonObjectBuilder builder = Json.createObjectBuilder();
 
-        builder.add(MODEL_NAME, INTEGER);
+        builder.add(MODEL_NAME, INT_32);
         builder.add(FORMAT_NAME, config.format);
         builder.add(MAX_NAME, config.max);
         builder.add(MIN_NAME, config.min);
@@ -64,10 +65,10 @@ public class IntegerModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAd
     public ModelConfig adaptFromJson(
         JsonValue value)
     {
-        IntegerModelConfig result = null;
+        Int32ModelConfig result = null;
         if (value instanceof JsonString)
         {
-            result = IntegerModelConfig.builder().build();
+            result = Int32ModelConfig.builder().build();
         }
         else if (value instanceof JsonObject)
         {
@@ -96,7 +97,7 @@ public class IntegerModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAd
                 ? object.getInt(MULTIPLE_NAME)
                 : 0;
 
-            result = new IntegerModelConfig(format, max, min, exclusiveMax, exclusiveMin, multiple);
+            result = new Int32ModelConfig(format, max, min, exclusiveMax, exclusiveMin, multiple);
         }
         else
         {

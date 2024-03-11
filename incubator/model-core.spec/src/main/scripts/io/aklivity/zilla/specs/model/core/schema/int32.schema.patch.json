@@ -2,7 +2,7 @@
     {
         "op": "add",
         "path": "/$defs/converter/types/enum/-",
-        "value": "integer"
+        "value": "int32"
     },
     {
         "op": "add",
@@ -15,7 +15,7 @@
                 {
                     "model":
                     {
-                        "const": "integer"
+                        "const": "int32"
                     }
                 }
             },
@@ -25,7 +25,7 @@
                 {
                     "model":
                     {
-                        "const": "integer"
+                        "const": "int32"
                     },
                     "format":
                     {
@@ -67,7 +67,7 @@
     {
         "op": "add",
         "path": "/$defs/validator/types/enum/-",
-        "value": "integer"
+        "value": "int32"
     },
     {
         "op": "add",
@@ -80,7 +80,7 @@
                 {
                     "model":
                     {
-                        "const": "integer"
+                        "const": "int32"
                     }
                 }
             },
@@ -90,7 +90,7 @@
                 {
                     "model":
                     {
-                        "const": "integer"
+                        "const": "int32"
                     },
                     "format":
                     {

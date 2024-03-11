@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.model.core.internal;
 
+import static io.aklivity.zilla.runtime.model.core.internal.Int32Model.NAME;
+
 import java.net.URL;
 
 import io.aklivity.zilla.runtime.common.feature.Incubating;
@@ -22,24 +24,24 @@ import io.aklivity.zilla.runtime.engine.model.Model;
 import io.aklivity.zilla.runtime.engine.model.ModelFactorySpi;
 
 @Incubating
-public class IntegerModelFactorySpi implements ModelFactorySpi
+public class Int32ModelFactorySpi implements ModelFactorySpi
 {
     @Override
     public String type()
     {
-        return IntegerModel.NAME;
+        return NAME;
     }
 
     @Override
     public URL schema()
     {
-        return getClass().getResource("schema/integer.schema.patch.json");
+        return getClass().getResource("schema/int32.schema.patch.json");
     }
 
     @Override
     public Model create(
         Configuration config)
     {
-        return new IntegerModel();
+        return new Int32Model();
     }
 }

@@ -26,24 +26,24 @@ import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.model.Model;
 import io.aklivity.zilla.runtime.engine.model.ModelContext;
 import io.aklivity.zilla.runtime.engine.model.ModelFactory;
-import io.aklivity.zilla.runtime.model.core.config.IntegerModelConfig;
+import io.aklivity.zilla.runtime.model.core.config.Int32ModelConfig;
 
-public class IntegerModelFactoryTest
+public class Int32ModelFactoryTest
 {
     @Test
     public void shouldCreateReader()
     {
         Configuration config = new Configuration();
         ModelFactory factory = ModelFactory.instantiate();
-        Model model = factory.create("integer", config);
+        Model model = factory.create("int32", config);
 
-        ModelContext context = new IntegerModelContext(mock(EngineContext.class));
+        ModelContext context = new Int32ModelContext(mock(EngineContext.class));
 
-        ModelConfig modelConfig = IntegerModelConfig.builder().build();
+        ModelConfig modelConfig = Int32ModelConfig.builder().build();
 
-        assertThat(model, instanceOf(IntegerModel.class));
-        assertThat(context.supplyReadConverterHandler(modelConfig), instanceOf(IntegerConverterHandler.class));
-        assertThat(context.supplyWriteConverterHandler(modelConfig), instanceOf(IntegerConverterHandler.class));
-        assertThat(context.supplyValidatorHandler(modelConfig), instanceOf(IntegerValidatorHandler.class));
+        assertThat(model, instanceOf(Int32Model.class));
+        assertThat(context.supplyReadConverterHandler(modelConfig), instanceOf(Int32ConverterHandler.class));
+        assertThat(context.supplyWriteConverterHandler(modelConfig), instanceOf(Int32ConverterHandler.class));
+        assertThat(context.supplyValidatorHandler(modelConfig), instanceOf(Int32ValidatorHandler.class));
     }
 }

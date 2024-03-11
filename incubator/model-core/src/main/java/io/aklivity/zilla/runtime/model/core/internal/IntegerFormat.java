@@ -14,161 +14,105 @@
  */
 package io.aklivity.zilla.runtime.model.core.internal;
 
-import static io.aklivity.zilla.runtime.engine.model.ValidatorHandler.FLAGS_FIN;
-import static io.aklivity.zilla.runtime.engine.model.ValidatorHandler.FLAGS_INIT;
-
-import org.agrona.BitUtil;
-import org.agrona.DirectBuffer;
-
 public enum IntegerFormat
 {
     TEXT
     {
-        private boolean number;
-        private boolean sign;
-        int decimalPlaces;
-        private int value;
+        @Override
+        public int decode(
+            int value,
+            byte digit)
+        {
+            return value * 10 + (digit - '0');
+        }
 
         @Override
-        public boolean validate(
-            int flags,
-            DirectBuffer data,
-            int index,
-            int length,
-            int max,
-            int min,
-            boolean exclusiveMax,
-            boolean exclusiveMin,
-            int multiple)
+        public boolean digit(
+            byte digit)
         {
-            boolean valid = false;
+            return digit >= '0' && digit <= '9';
+        }
 
-            int progress = 0;
-            if ((flags & FLAGS_INIT) != 0x00)
-            {
-                value = 0;
-                decimalPlaces = 0;
-                sign = false;
-                number = false;
-                byte digit = data.getByte(index);
-                if (digit == '-')
-                {
-                    progress += BitUtil.SIZE_OF_BYTE;
-                    sign = true;
-                }
-            }
+        @Override
+        public boolean negative(
+            byte digit)
+        {
+            return digit == '-';
+        }
 
-            for (int numByteIndex = index + progress; numByteIndex < index + length; numByteIndex++)
-            {
-                byte digit = data.getByte(numByteIndex);
+        @Override
+        public boolean validateFin(
+            int pendingBytes,
+            boolean number)
+        {
+            return number;
+        }
 
-                if (digit >= '0' && digit <= '9')
-                {
-                    value = value * 10 + (digit - '0');
-                    number = true;
-                }
-                else
-                {
-                    break;
-                }
-                progress += BitUtil.SIZE_OF_BYTE;
-            }
-
-            if ((flags & FLAGS_FIN) != 0x00 && number)
-            {
-                if (sign)
-                {
-                    value *= -1;
-                }
-                if (conditions(value, max, min, exclusiveMax, exclusiveMin, multiple))
-                {
-                    valid = true;
-                }
-            }
-            else
-            {
-                valid = length == progress;
-            }
-
-            return valid;
+        @Override
+        public boolean validateContinue(
+            int pendingBytes,
+            int length,
+            int progress)
+        {
+            return length == progress;
         }
     },
 
     BINARY
     {
-        private int pendingBytes;
-        private int value;
+        @Override
+        public int decode(
+            int value,
+            byte digit)
+        {
+            value <<= 8;
+            value |= digit & 0xFF;
+
+            return value;
+        }
 
         @Override
-        public boolean validate(
-            int flags,
-            DirectBuffer data,
-            int index,
-            int length,
-            int max,
-            int min,
-            boolean exclusiveMax,
-            boolean exclusiveMin,
-            int multiple)
+        public boolean validateFin(
+            int pendingBytes,
+            boolean number)
         {
-            boolean valid;
+            return pendingBytes == 0;
+        }
 
-            if ((flags & FLAGS_INIT) != 0x00)
-            {
-                value = 0;
-                pendingBytes = 4;
-            }
-
-            pendingBytes = pendingBytes - length;
-
-            for (int numByteIndex = index; numByteIndex < index + length; numByteIndex++)
-            {
-                value <<= 8;
-                value |= data.getByte(numByteIndex) & 0xFF;
-            }
-
-            if ((flags & FLAGS_FIN) != 0x00 && pendingBytes == 0)
-            {
-                valid = conditions(value, max, min, exclusiveMax, exclusiveMin, multiple);
-            }
-            else
-            {
-                valid = pendingBytes >= 0;
-            }
-            return valid;
+        @Override
+        public boolean validateContinue(
+            int pendingBytes,
+            int length,
+            int progress)
+        {
+            return pendingBytes >= 0;
         }
     };
 
-    private static boolean conditions(
+    public abstract int decode(
         int value,
-        int max,
-        int min,
-        boolean exclusiveMax,
-        boolean exclusiveMin,
-        int multiple)
+        byte digit);
+
+    public abstract boolean validateFin(
+        int pendingBytes,
+        boolean number);
+
+    public abstract boolean validateContinue(
+        int pendingBytes,
+        int length,
+        int progress);
+
+    public boolean negative(
+        byte digit)
     {
-        boolean valid = false;
-
-        if ((exclusiveMax ? value < max : value <= max) &&
-            (exclusiveMin ? value > min : value >= min) &&
-            value % multiple == 0)
-        {
-            valid = true;
-        }
-
-        return valid;
+        return false;
     }
 
-    public abstract boolean validate(
-        int flags,
-        DirectBuffer data,
-        int index,
-        int length,
-        int max,
-        int min,
-        boolean exclusiveMax,
-        boolean exclusiveMin,
-        int multiple);
+    public boolean digit(
+        byte digit)
+    {
+        return true;
+    }
 
     public static IntegerFormat of(
         String format)

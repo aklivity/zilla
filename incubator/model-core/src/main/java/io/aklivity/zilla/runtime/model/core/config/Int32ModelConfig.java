@@ -18,8 +18,10 @@ import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 
-public class IntegerModelConfig extends ModelConfig
+public class Int32ModelConfig extends ModelConfig
 {
+    public static final String INT_32 = "int32";
+
     public final String format;
     public final int max;
     public final int min;
@@ -27,7 +29,7 @@ public class IntegerModelConfig extends ModelConfig
     public final boolean exclusiveMax;
     public final boolean exclusiveMin;
 
-    public IntegerModelConfig(
+    public Int32ModelConfig(
         String format,
         int max,
         int min,
@@ -35,7 +37,7 @@ public class IntegerModelConfig extends ModelConfig
         boolean exclusiveMin,
         int multiple)
     {
-        super("integer");
+        super(INT_32);
         this.format = format;
         this.max = max;
         this.min = min;
@@ -44,14 +46,14 @@ public class IntegerModelConfig extends ModelConfig
         this.multiple = multiple;
     }
 
-    public static <T> IntegerModelConfigBuilder<T> builder(
+    public static <T> Int32ModelConfigBuilder<T> builder(
         Function<ModelConfig, T> mapper)
     {
-        return new IntegerModelConfigBuilder<>(mapper::apply);
+        return new Int32ModelConfigBuilder<>(mapper::apply);
     }
 
-    public static IntegerModelConfigBuilder<IntegerModelConfig> builder()
+    public static Int32ModelConfigBuilder<Int32ModelConfig> builder()
     {
-        return new IntegerModelConfigBuilder<>(IntegerModelConfig.class::cast);
+        return new Int32ModelConfigBuilder<>(Int32ModelConfig.class::cast);
     }
 }
