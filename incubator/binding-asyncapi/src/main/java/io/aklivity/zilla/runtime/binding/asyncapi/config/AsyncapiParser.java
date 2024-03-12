@@ -42,7 +42,7 @@ import io.aklivity.zilla.runtime.engine.config.ConfigException;
 
 public class AsyncapiParser
 {
-    private static final Pattern VERSION_PATTERN = Pattern.compile("(\\d+\\.\\d+)\\.\\d+");
+    private static final Pattern VERSION_PATTERN = Pattern.compile("(\\d\\.\\d)\\.\\d+");
 
     private final Map<String, JsonSchema> schemas;
 
