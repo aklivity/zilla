@@ -47,19 +47,12 @@ public enum IntegerFormat
         {
             return number;
         }
-
-        @Override
-        public boolean validateContinue(
-            int pendingBytes,
-            int length,
-            int progress)
-        {
-            return length == progress;
-        }
     },
 
     BINARY
     {
+        private static final int INT_32_SIZE = 4;
+
         @Override
         public int decode(
             int value,
@@ -76,16 +69,14 @@ public enum IntegerFormat
             int pendingBytes,
             boolean number)
         {
-            return pendingBytes == 0;
+            return pendingBytes == INT_32_SIZE;
         }
 
         @Override
         public boolean validateContinue(
-            int pendingBytes,
-            int length,
             int progress)
         {
-            return pendingBytes >= 0;
+            return progress <= INT_32_SIZE;
         }
     };
 
@@ -97,10 +88,11 @@ public enum IntegerFormat
         int pendingBytes,
         boolean number);
 
-    public abstract boolean validateContinue(
-        int pendingBytes,
-        int length,
-        int progress);
+    public boolean validateContinue(
+        int progress)
+    {
+        return true;
+    }
 
     public boolean negative(
         byte digit)

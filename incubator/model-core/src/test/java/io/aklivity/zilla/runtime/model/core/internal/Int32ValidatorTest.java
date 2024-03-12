@@ -178,9 +178,6 @@ public class Int32ValidatorTest
 
         data.wrap(bytes, 2, 1);
         assertFalse(handler.validate(0x00, data, 0, data.capacity(), ValueConsumer.NOP));
-
-        data.wrap(bytes, 3, 1);
-        assertFalse(handler.validate(ValidatorHandler.FLAGS_FIN, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test

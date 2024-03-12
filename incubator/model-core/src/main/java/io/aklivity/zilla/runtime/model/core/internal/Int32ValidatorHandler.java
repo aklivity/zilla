@@ -28,14 +28,12 @@ public class Int32ValidatorHandler implements ValidatorHandler
     private final int multiple;
     private final boolean exclusiveMax;
     private final boolean exclusiveMin;
+    private final IntegerFormat format;
 
-    private boolean valid;
-    private IntegerFormat format;
     private boolean number;
     private boolean sign;
-    int decimalPlaces;
     private int value;
-    private int pendingBytes;
+    private int progress;
 
     public Int32ValidatorHandler(
         Int32ModelConfig config)
@@ -56,42 +54,41 @@ public class Int32ValidatorHandler implements ValidatorHandler
         int length,
         ValueConsumer next)
     {
-        int progress = 0;
+        int position = 0;
+        boolean valid = true;
         if ((flags & FLAGS_INIT) != 0x00)
         {
-            valid = true;
             value = 0;
-            pendingBytes = 4;
-            decimalPlaces = 0;
+            progress = 0;
             sign = false;
             number = false;
             byte digit = data.getByte(index);
             if (format.negative(digit))
             {
-                progress += BitUtil.SIZE_OF_BYTE;
+                position += BitUtil.SIZE_OF_BYTE;
                 sign = true;
             }
         }
 
+        for (int numByteIndex = index + position; numByteIndex < index + length; numByteIndex++)
+        {
+            byte digit = data.getByte(numByteIndex);
+            if (format.digit(digit))
+            {
+                value = format.decode(value, digit);
+                number = true;
+            }
+            else
+            {
+                valid = false;
+                break;
+            }
+            progress += BitUtil.SIZE_OF_BYTE;
+        }
+
         if (valid)
         {
-            pendingBytes = pendingBytes - length;
-            for (int numByteIndex = index + progress; numByteIndex < index + length; numByteIndex++)
-            {
-                byte digit = data.getByte(numByteIndex);
-                if (format.digit(digit))
-                {
-                    value = format.decode(value, digit);
-                    number = true;
-                }
-                else
-                {
-                    break;
-                }
-                progress += BitUtil.SIZE_OF_BYTE;
-            }
-
-            if ((flags & FLAGS_FIN) != 0x00 && format.validateFin(pendingBytes, number))
+            if ((flags & FLAGS_FIN) != 0x00 && format.validateFin(progress, number))
             {
                 if (sign)
                 {
@@ -101,7 +98,7 @@ public class Int32ValidatorHandler implements ValidatorHandler
             }
             else
             {
-                valid = format.validateContinue(pendingBytes, length, progress);
+                valid = format.validateContinue(progress);
             }
         }
         return valid;
