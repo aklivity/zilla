@@ -35,6 +35,7 @@
     "io.aklivity.zilla:binding-tcp",
     "io.aklivity.zilla:binding-tls",
     "io.aklivity.zilla:binding-ws",
+    "io.aklivity.zilla:catalog-apicurio",
     "io.aklivity.zilla:catalog-inline",
     "io.aklivity.zilla:catalog-schema-registry",
     "io.aklivity.zilla:common",

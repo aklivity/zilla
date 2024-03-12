@@ -1204,6 +1204,13 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                         final int deferred = remaining - length;
                         assert deferred >= 0 : String.format("%d >= 0", deferred);
 
+                        if (messageOffset == 0 &&
+                            length == 0 &&
+                            deferred > 0)
+                        {
+                            break produce;
+                        }
+
                         int flags = 0x00;
                         if (messageOffset == 0)
                         {

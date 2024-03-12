@@ -73,7 +73,7 @@ connect await ROUTED_DESCRIBE_SERVER
 
 connected
 
-write 87                                                 # size
+write 121                                                 # size
       32s                                                # describe configs
       0s                                                 # v0
       ${newRequestId}
@@ -81,9 +81,10 @@ write 87                                                 # size
       1                                                  # resources
         [0x04]                                           # broker resource
         1s "0"                                           # "node" topic
-        2                                                # configs
+        3                                                # configs
           28s "group.min.session.timeout.ms"             # name
           28s "group.max.session.timeout.ms"             # name
+          32s "group.initial.rebalance.delay.ms"         # name
 
 read  24                                                # size
       (int:newRequestId)
