@@ -42,6 +42,7 @@ import io.aklivity.zilla.runtime.engine.config.ConfigException;
 
 public class OpenapiParser
 {
+    private static final Pattern VERSION_PATTERN = Pattern.compile("(\\d+\\.\\d+)\\.\\d+");
     private final Map<String, JsonSchema> schemas;
 
     public OpenapiParser()
@@ -112,11 +113,10 @@ public class OpenapiParser
             if (json.containsKey("openapi"))
             {
                 final String versionString = json.getString("openapi");
-                final String regex = "(\\d+\\.\\d+)\\.\\d+";
-                final Pattern pattern = Pattern.compile(regex);
-                final Matcher matcher = pattern.matcher(versionString);
 
-                final String majorMinorVersion = matcher.find() ? matcher.group(1) : null;
+                final Matcher matcher = VERSION_PATTERN.matcher(versionString);
+
+                final String majorMinorVersion = matcher.matches() ? matcher.group(1) : null;
                 return majorMinorVersion;
             }
             else
