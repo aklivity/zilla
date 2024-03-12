@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
-import java.util.function.Function;
+import java.util.function.IntFunction;
 import java.util.function.LongFunction;
 import java.util.function.UnaryOperator;
 
@@ -63,19 +63,19 @@ public final class KafkaClientFactory implements KafkaStreamFactory
         final BindingHandler streamFactory = config.clientConnectionPool() ? connectionPool.streamFactory() :
                 context.streamFactory();
 
-        final Function<Integer, BindingHandler> streamFactorySupplier = d ->
+        final IntFunction<BindingHandler> streamFactorySupplier = d ->
             d == 0 ? streamFactory : context.streamFactory();
 
         final UnaryOperator<KafkaSaslConfig> resolveSasl = config.clientConnectionPool() ? c -> null :
             UnaryOperator.identity();
 
-        final Function<Integer, UnaryOperator<KafkaSaslConfig>> resolveSaslSupplier = d ->
+        final IntFunction<UnaryOperator<KafkaSaslConfig>> resolveSaslSupplier = d ->
             d == 0 ? resolveSasl : UnaryOperator.identity();
 
         final Signaler signaler = config.clientConnectionPool() ? connectionPool.signaler() :
                 context.signaler();
 
-        final Function<Integer, Signaler> signalSupplier = d -> d == 0 ? signaler : context.signaler();
+        final IntFunction<Signaler> signalSupplier = d -> d == 0 ? signaler : context.signaler();
 
         final KafkaClientMetaFactory clientMetaFactory = new KafkaClientMetaFactory(
                 config, context, bindings::get, accountant::supplyDebitor, supplyClientRoute,
