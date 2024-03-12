@@ -84,7 +84,7 @@ public class KafkaConfiguration extends Configuration
     static
     {
         final ConfigurationDef config = new ConfigurationDef("zilla.binding.kafka");
-        KAFKA_CLIENT_ID = config.property("client.id", "zilla");
+        KAFKA_CLIENT_ID = config.property("client.id");
         KAFKA_CLIENT_INSTANCE_ID = config.property(InstanceIdSupplier.class, "client.instance.id",
             KafkaConfiguration::decodeInstanceId, KafkaConfiguration::defaultInstanceId);
         KAFKA_CLIENT_MAX_IDLE_MILLIS = config.property("client.max.idle.ms", 1 * 60 * 1000);

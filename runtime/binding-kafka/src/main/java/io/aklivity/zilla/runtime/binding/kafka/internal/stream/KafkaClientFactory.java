@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
 import java.util.function.Function;
 import java.util.function.LongFunction;
-import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
 import org.agrona.DirectBuffer;
@@ -76,6 +75,8 @@ public final class KafkaClientFactory implements KafkaStreamFactory
         final Signaler signaler = config.clientConnectionPool() ? connectionPool.signaler() :
                 context.signaler();
 
+        final Function<Integer, Signaler> signalSupplier = d -> d == 0 ? signaler : context.signaler();
+
         final KafkaClientMetaFactory clientMetaFactory = new KafkaClientMetaFactory(
                 config, context, bindings::get, accountant::supplyDebitor, supplyClientRoute,
                 signaler, streamFactory, resolveSasl);
@@ -84,7 +85,7 @@ public final class KafkaClientFactory implements KafkaStreamFactory
                 config, context, bindings::get, accountant::supplyDebitor, signaler, streamFactory, resolveSasl);
 
         final KafkaClientGroupFactory clientGroupFactory = new KafkaClientGroupFactory(
-            config, context, bindings::get, accountant::supplyDebitor, signaler, streamFactorySupplier,
+            config, context, bindings::get, accountant::supplyDebitor, signalSupplier, streamFactorySupplier,
             resolveSaslSupplier, supplyClientRoute);
 
         final KafkaClientFetchFactory clientFetchFactory = new KafkaClientFetchFactory(
