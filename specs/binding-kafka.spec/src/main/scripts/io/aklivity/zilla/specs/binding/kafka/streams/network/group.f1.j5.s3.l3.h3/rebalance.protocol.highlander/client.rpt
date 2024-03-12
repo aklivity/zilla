@@ -56,7 +56,7 @@ connect await ROUTED_DESCRIBE_SERVER
 
 connected
 
-write 87                                                 # size
+write 121                                                 # size
       32s                                                # describe configs
       0s                                                 # v0
       ${newRequestId}
@@ -64,11 +64,12 @@ write 87                                                 # size
       1                                                  # resources
         [0x04]                                           # broker resource
         1s "0"                                           # "node" topic
-        2                                                # configs
+        3                                                # configs
           28s "group.min.session.timeout.ms"             # name
           28s "group.max.session.timeout.ms"             # name
+          32s "group.initial.rebalance.delay.ms"         # name
 
-read 103                                                # size
+read 143                                                # size
       (int:newRequestId)
       0
       1                                                  # resources
@@ -76,7 +77,7 @@ read 103                                                # size
         -1s                                              # error message
         [0x04]                                           # broker resource
         1s "0"                                           # "0" nodeId
-        2                                                # configs
+        3                                                # configs
           28s "group.min.session.timeout.ms"             # name
           4s "6000"                                      # value
           [0x00]                                          # not read only
@@ -84,6 +85,11 @@ read 103                                                # size
           [0x00]                                          # not sensitive
           28s "group.max.session.timeout.ms"             # name
           5s "30000"                                     # value
+          [0x00]                                          # not read only
+          [0x00]                                          # not default
+          [0x00]                                          # not sensitive
+          32s "group.initial.rebalance.delay.ms"          # name
+          1s "0"                                          # value
           [0x00]                                          # not read only
           [0x00]                                          # not default
           [0x00]                                          # not sensitive

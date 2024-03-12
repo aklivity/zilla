@@ -3909,7 +3909,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         private void doJoinGroupRequest(
             long traceId)
         {
-            if (!KafkaState.initialOpening(state))
+            if (!KafkaState.initialOpening(state) ||
+                KafkaState.closed(state))
             {
                 doNetworkBegin(traceId, authorization, 0);
             }
@@ -4985,9 +4986,17 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             final int offset = 0;
             final int sizeof = assignment.sizeof();
 
-            encoders.add(encodeSyncGroupRequest);
-            signaler.signalNow(originId, routedId, initialId, traceId, SIGNAL_SYNC_GROUP_REQUEST, 0,
-                buffer, offset, sizeof);
+            if (!KafkaState.initialOpening(state) ||
+                KafkaState.closed(state))
+            {
+                doNetworkBegin(traceId, authorization, 0);
+            }
+            else
+            {
+                encoders.add(encodeSyncGroupRequest);
+                signaler.signalNow(originId, routedId, initialId, traceId, SIGNAL_SYNC_GROUP_REQUEST, 0,
+                    buffer, offset, sizeof);
+            }
         }
 
 
@@ -5383,8 +5392,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             this.generationId = generationId;
             this.members = members;
-
-            doNetworkBegin(traceId, authorization, 0);
         }
 
         private void cleanupNetwork(
