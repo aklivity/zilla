@@ -63,7 +63,6 @@ public class OltpConfiguration extends Configuration
         return OTLP_EXPORTER_WARNING_INTERVAL.get(this);
     }
 
-    // TODO: Ati
     public String metricsOverride()
     {
         return OTLP_EXPORTER_METRICS_OVERRIDE.get(this);
