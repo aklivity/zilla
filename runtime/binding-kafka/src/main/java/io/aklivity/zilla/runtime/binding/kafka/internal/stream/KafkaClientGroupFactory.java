@@ -3269,7 +3269,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             int timeoutMax =
                 Integer.valueOf(newConfigs.getOrDefault(GROUP_MAX_SESSION_TIMEOUT, groupMaxSessionTimeoutDefault));
             int delay =
-                Integer.valueOf(newConfigs.getOrDefault(GROUP_INITIAL_REBALANCE_DELAY, groupMaxSessionTimeoutDefault));
+                Integer.valueOf(newConfigs.getOrDefault(GROUP_INITIAL_REBALANCE_DELAY, groupInitialRebalanceDelayDefault));
             if (delegate.timeout < timeoutMin)
             {
                 delegate.timeout = timeoutMin;
@@ -4312,7 +4312,10 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             this.delegate = delegate;
             this.decoder = decodeCoordinatorReject;
             this.encoders = new ArrayDeque<>();
-            encoders.add(sasl != null ? encodeSaslHandshakeRequest : encodeSyncGroupRequest);
+            if (sasl != null)
+            {
+                encoders.add(encodeSaslHandshakeRequest);
+            }
         }
 
         private void onNetwork(
@@ -4552,7 +4555,10 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 replySeq = 0;
                 state = 0;
                 encoders.clear();
-                encoders.add(sasl != null ? encodeSaslHandshakeRequest : encodeSyncGroupRequest);
+                if (sasl != null)
+                {
+                    encoders.add(encodeSaslHandshakeRequest);
+                }
                 nextRequestId = 0;
                 nextResponseId = 0;
             }
@@ -4986,17 +4992,9 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             final int offset = 0;
             final int sizeof = assignment.sizeof();
 
-            if (!KafkaState.initialOpening(state) ||
-                KafkaState.closed(state))
-            {
-                doNetworkBegin(traceId, authorization, 0);
-            }
-            else
-            {
-                encoders.add(encodeSyncGroupRequest);
-                signaler.signalNow(originId, routedId, initialId, traceId, SIGNAL_SYNC_GROUP_REQUEST, 0,
-                    buffer, offset, sizeof);
-            }
+            encoders.add(encodeSyncGroupRequest);
+            signaler.signalNow(originId, routedId, initialId, traceId, SIGNAL_SYNC_GROUP_REQUEST, 0,
+                buffer, offset, sizeof);
         }
 
 
@@ -5213,8 +5211,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             switch (errorCode)
             {
             case ERROR_NONE:
-                encoders.add(encodeSyncGroupRequest);
-                decoder = decodeSyncGroupResponse;
                 break;
             default:
                 delegate.cleanupStream(traceId, errorCode);
@@ -5392,6 +5388,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             this.generationId = generationId;
             this.members = members;
+
+            doNetworkBegin(traceId, authorization, 0);
         }
 
         private void cleanupNetwork(
