@@ -22,6 +22,7 @@ telemetry:
       options:
         events:
           - qname: test.catalog0
+            id: catalog.apicurio.remote.access.rejected
             message: REMOTE_ACCESS_REJECTED GET http://localhost:8081/apis/registry/v2/ids/globalIds/0 0
 catalogs:
   catalog0:
