@@ -34,6 +34,7 @@ public class TestEventContext
     private final AtomicBuffer eventBuffer = new UnsafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
     private final EventFW.Builder eventRW = new EventFW.Builder();
     private final int testTypeId;
+    private final int connectedEventId;
     private final MessageConsumer eventWriter;
     private final Clock clock;
 
@@ -41,6 +42,7 @@ public class TestEventContext
         EngineContext context)
     {
         this.testTypeId = context.supplyTypeId(TestBinding.NAME);
+        this.connectedEventId = context.supplyEventId("binding.test.connected");
         this.eventWriter = context.supplyEventWriter();
         this.clock = context.clock();
     }
@@ -54,6 +56,7 @@ public class TestEventContext
         String8FW extension = new String8FW(message);
         EventFW event = eventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .id(connectedEventId)
             .timestamp(timestamp)
             .traceId(traceId)
             .namespacedId(bindingId)

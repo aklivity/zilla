@@ -468,6 +468,13 @@ public class EngineWorker implements EngineContext, Agent
     }
 
     @Override
+    public int supplyEventId(
+        String name)
+    {
+        return labels.supplyLabelId(name);
+    }
+
+    @Override
     public int supplyTypeId(
         String name)
     {

@@ -36,6 +36,7 @@ public class JwtEventContext
     private final EventFW.Builder eventRW = new EventFW.Builder();
     private final JwtEventExFW.Builder jwtEventExRW = new JwtEventExFW.Builder();
     private final int jwtTypeId;
+    private final int authorizationFailedEventId;
     private final MessageConsumer eventWriter;
     private final Clock clock;
 
@@ -43,6 +44,7 @@ public class JwtEventContext
         EngineContext context)
     {
         this.jwtTypeId = context.supplyTypeId(JwtGuard.NAME);
+        this.authorizationFailedEventId = context.supplyEventId("guard.jwt.authorization.failed");
         this.eventWriter = context.supplyEventWriter();
         this.clock = context.clock();
     }
@@ -61,6 +63,7 @@ public class JwtEventContext
             .build();
         EventFW event = eventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .id(authorizationFailedEventId)
             .timestamp(clock.millis())
             .traceId(traceId)
             .namespacedId(bindingId)
