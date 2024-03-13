@@ -45,12 +45,6 @@ bindings:
           query:
             limit:
               model: int32
-              format: text
-              max: 2147483647
-              min: -2147483648
-              exclusiveMax: false
-              exclusiveMin: false
-              multiple: 1
       - path: /items
         method: POST
         content:
@@ -119,12 +113,6 @@ bindings:
           headers:
             x-pages:
               model: int32
-              format: text
-              max: 2147483647
-              min: -2147483648
-              exclusiveMax: false
-              exclusiveMin: false
-              multiple: 1
             x-next: string
           content:
             model: json

@@ -14,8 +14,10 @@
  */
 package io.aklivity.zilla.runtime.model.core.internal;
 
-import org.agrona.BitUtil;
+import java.util.function.IntPredicate;
+
 import org.agrona.DirectBuffer;
+import org.agrona.collections.MutableInteger;
 
 import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
@@ -25,25 +27,23 @@ public class Int32ValidatorHandler implements ValidatorHandler
 {
     private final int max;
     private final int min;
-    private final int multiple;
-    private final boolean exclusiveMax;
-    private final boolean exclusiveMin;
     private final IntegerFormat format;
-
-    private boolean number;
-    private boolean sign;
-    private int value;
-    private int progress;
+    private final IntPredicate check;
+    private final MutableInteger decoded;
+    private final MutableInteger processed;
 
     public Int32ValidatorHandler(
         Int32ModelConfig config)
     {
         this.max = config.max;
         this.min = config.min;
-        this.exclusiveMax = config.exclusiveMax;
-        this.exclusiveMin = config.exclusiveMin;
-        this.multiple = config.multiple;
+        IntPredicate checkMax = config.exclusiveMax ? v -> v < max : v -> v <= max;
+        IntPredicate checkMin = config.exclusiveMin ? v -> v > min : v -> v >= min;
+        IntPredicate checkMultiple = v -> v % config.multiple == 0;
+        this.check = checkMax.and(checkMin).and(checkMultiple);
         this.format = IntegerFormat.of(config.format);
+        this.decoded = new MutableInteger();
+        this.processed = new MutableInteger();
     }
 
     @Override
@@ -54,73 +54,18 @@ public class Int32ValidatorHandler implements ValidatorHandler
         int length,
         ValueConsumer next)
     {
-        int position = 0;
-        boolean valid = true;
         if ((flags & FLAGS_INIT) != 0x00)
         {
-            value = 0;
-            progress = 0;
-            sign = false;
-            number = false;
-            byte digit = data.getByte(index);
-            if (format.negative(digit))
-            {
-                position += BitUtil.SIZE_OF_BYTE;
-                sign = true;
-            }
+            decoded.value = 0;
+            processed.value = 0;
         }
-
-        for (int numByteIndex = index + position; numByteIndex < index + length; numByteIndex++)
+        int progress = format.decode(decoded, processed, data, index, length);
+        boolean valid = progress != IntegerFormat.INVALID_INDEX;
+        if ((flags & FLAGS_FIN) != 0x00)
         {
-            byte digit = data.getByte(numByteIndex);
-            if (format.digit(digit))
-            {
-                value = format.decode(value, digit);
-                number = true;
-            }
-            else
-            {
-                valid = false;
-                break;
-            }
-            progress += BitUtil.SIZE_OF_BYTE;
+            valid &= format.valid(decoded, processed);
+            valid &= check.test(decoded.value);
         }
-
-        if (valid)
-        {
-            if ((flags & FLAGS_FIN) != 0x00 && format.validateFin(progress, number))
-            {
-                if (sign)
-                {
-                    value *= -1;
-                }
-                valid = conditions(value, max, min, exclusiveMax, exclusiveMin, multiple);
-            }
-            else
-            {
-                valid = format.validateContinue(progress);
-            }
-        }
-        return valid;
-    }
-
-    private boolean conditions(
-        int value,
-        int max,
-        int min,
-        boolean exclusiveMax,
-        boolean exclusiveMin,
-        int multiple)
-    {
-        boolean valid = false;
-
-        if ((exclusiveMax ? value < max : value <= max) &&
-            (exclusiveMin ? value > min : value >= min) &&
-            value % multiple == 0)
-        {
-            valid = true;
-        }
-
         return valid;
     }
 }

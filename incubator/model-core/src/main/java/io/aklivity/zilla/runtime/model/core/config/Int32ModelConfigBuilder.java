@@ -26,11 +26,11 @@ public class Int32ModelConfigBuilder<T> extends ConfigBuilder<T, Int32ModelConfi
     private final Function<Int32ModelConfig, T> mapper;
 
     private String format;
-    private int max;
-    private int min;
-    private int multiple;
-    private boolean exclusiveMax;
-    private boolean exclusiveMin;
+    private Integer max;
+    private Integer min;
+    private Integer multiple;
+    private Boolean exclusiveMax;
+    private Boolean exclusiveMin;
 
     Int32ModelConfigBuilder(
         Function<Int32ModelConfig, T> mapper)
@@ -91,9 +91,11 @@ public class Int32ModelConfigBuilder<T> extends ConfigBuilder<T, Int32ModelConfi
     public T build()
     {
         String format = this.format != null ? this.format : DEFAULT_FORMAT;
-        int max = this.max != 0 ? this.max : Integer.MAX_VALUE;
-        int min = this.min != 0 ? this.min : Integer.MIN_VALUE;
-        int multiple = this.multiple != 0 ? this.multiple : DEFAULT_MULTIPLE;
+        int max = this.max != null ? this.max : Integer.MAX_VALUE;
+        int min = this.min != null ? this.min : Integer.MIN_VALUE;
+        int multiple = this.multiple != null ? this.multiple : DEFAULT_MULTIPLE;
+        boolean exclusiveMax = this.exclusiveMax != null ? this.exclusiveMax : false;
+        boolean exclusiveMin = this.exclusiveMin != null ? this.exclusiveMin : false;
         return mapper.apply(new Int32ModelConfig(format, max, min, exclusiveMax, exclusiveMin, multiple));
     }
 }

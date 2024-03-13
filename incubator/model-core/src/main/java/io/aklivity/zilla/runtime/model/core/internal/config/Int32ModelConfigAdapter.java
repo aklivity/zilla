@@ -26,6 +26,7 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfigAdapterSpi;
 import io.aklivity.zilla.runtime.model.core.config.Int32ModelConfig;
+import io.aklivity.zilla.runtime.model.core.config.Int32ModelConfigBuilder;
 
 public class Int32ModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdapter<ModelConfig, JsonValue>
 {
@@ -51,12 +52,36 @@ public class Int32ModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdap
         JsonObjectBuilder builder = Json.createObjectBuilder();
 
         builder.add(MODEL_NAME, INT_32);
-        builder.add(FORMAT_NAME, config.format);
-        builder.add(MAX_NAME, config.max);
-        builder.add(MIN_NAME, config.min);
-        builder.add(EXCLUSIVE_MAX_NAME, config.exclusiveMax);
-        builder.add(EXCLUSIVE_MIN_NAME, config.exclusiveMin);
-        builder.add(MULTIPLE_NAME, config.multiple);
+
+        if (!config.format.equals(Int32ModelConfigBuilder.DEFAULT_FORMAT))
+        {
+            builder.add(FORMAT_NAME, config.format);
+        }
+
+        if (config.max != Integer.MAX_VALUE)
+        {
+            builder.add(MAX_NAME, config.max);
+        }
+
+        if (config.min != Integer.MIN_VALUE)
+        {
+            builder.add(MIN_NAME, config.min);
+        }
+
+        if (config.exclusiveMax)
+        {
+            builder.add(EXCLUSIVE_MAX_NAME, config.exclusiveMax);
+        }
+
+        if (config.exclusiveMin)
+        {
+            builder.add(EXCLUSIVE_MIN_NAME, config.exclusiveMin);
+        }
+
+        if (config.multiple != Int32ModelConfigBuilder.DEFAULT_MULTIPLE)
+        {
+            builder.add(MULTIPLE_NAME, config.multiple);
+        }
 
         return builder.build();
     }

@@ -37,6 +37,6 @@ public class Int32ConverterHandler implements ConverterHandler
         int length,
         ValueConsumer next)
     {
-        return handler.validate(FLAGS_COMPLETE, data, index, length, next) ? length : -1;
+        return handler.validate(FLAGS_COMPLETE, data, index, length, next) ? length : VALIDATION_FAILURE;
     }
 }

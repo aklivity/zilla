@@ -77,13 +77,7 @@ public class Int32ModelConfigAdapterTest
         // GIVEN
         String expectedJson =
             "{" +
-                "\"model\":\"int32\"," +
-                "\"format\":\"text\"," +
-                "\"max\":2147483647," +
-                "\"min\":-2147483648," +
-                "\"exclusiveMax\":false," +
-                "\"exclusiveMin\":false," +
-                "\"multiple\":1" +
+                "\"model\":\"int32\"" +
             "}";
         Int32ModelConfig model = Int32ModelConfig.builder().build();
 

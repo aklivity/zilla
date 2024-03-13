@@ -14,97 +14,141 @@
  */
 package io.aklivity.zilla.runtime.model.core.internal;
 
+import org.agrona.DirectBuffer;
+import org.agrona.collections.MutableInteger;
+
 public enum IntegerFormat
 {
+
     TEXT
     {
         @Override
         public int decode(
-            int value,
-            byte digit)
+            MutableInteger decoded,
+            MutableInteger processed,
+            DirectBuffer data,
+            int index,
+            int length)
         {
-            return value * 10 + (digit - '0');
+            int progress = index;
+            int limit = index + length;
+
+            for (; progress < limit; progress++)
+            {
+                int digit = data.getByte(progress);
+
+                if (digit < '0' || '9' < digit)
+                {
+                    if (processed.value == 0)
+                    {
+                        switch (digit)
+                        {
+                        case '-':
+                            decoded.value = Integer.MIN_VALUE;
+                            processed.value++;
+                            continue;
+                        case '+':
+                            decoded.value = Integer.MAX_VALUE;
+                            processed.value++;
+                            continue;
+                        default:
+                            break;
+                        }
+                    }
+
+                    progress = INVALID_INDEX;
+                    break;
+                }
+
+                int multipler = 10;
+
+                if (processed.value == 1)
+                {
+                    switch (decoded.value)
+                    {
+                    case Integer.MIN_VALUE:
+                        decoded.value = -1;
+                        multipler = 1;
+                        break;
+                    case Integer.MAX_VALUE:
+                        decoded.value = 1;
+                        multipler = 1;
+                        break;
+                    default:
+                        break;
+                    }
+                }
+
+                decoded.value = decoded.value * multipler + (digit - '0');
+                processed.value++;
+            }
+
+            return progress;
         }
 
         @Override
-        public boolean digit(
-            byte digit)
+        public boolean valid(
+            MutableInteger decoded,
+            MutableInteger processed)
         {
-            return digit >= '0' && digit <= '9';
-        }
-
-        @Override
-        public boolean negative(
-            byte digit)
-        {
-            return digit == '-';
-        }
-
-        @Override
-        public boolean validateFin(
-            int pendingBytes,
-            boolean number)
-        {
-            return number;
+            return processed.value > 1 || decoded.value != Integer.MIN_VALUE || decoded.value != Integer.MAX_VALUE;
         }
     },
 
     BINARY
     {
-        private static final int INT_32_SIZE = 4;
+        private static final int INT32_SIZE = 4;
 
         @Override
         public int decode(
-            int value,
-            byte digit)
+            MutableInteger decoded,
+            MutableInteger processed,
+            DirectBuffer data,
+            int index,
+            int length)
         {
-            value <<= 8;
-            value |= digit & 0xFF;
+            int progress = index;
+            int limit = index + length;
 
-            return value;
+            for (; progress < limit; progress++)
+            {
+                int digit = data.getByte(progress);
+
+                if (processed.value >= INT32_SIZE)
+                {
+                    progress = INVALID_INDEX;
+                    break;
+                }
+
+                decoded.value <<= 8;
+                decoded.value |= digit & 0xFF;
+                processed.value++;
+            }
+
+            return progress;
         }
 
         @Override
-        public boolean validateFin(
-            int pendingBytes,
-            boolean number)
+        public boolean valid(
+            MutableInteger decoded,
+            MutableInteger processed)
         {
-            return pendingBytes == INT_32_SIZE;
-        }
-
-        @Override
-        public boolean validateContinue(
-            int progress)
-        {
-            return progress <= INT_32_SIZE;
+            return processed.value == INT32_SIZE;
         }
     };
 
+    public static final int INVALID_INDEX = -1;
+
     public abstract int decode(
-        int value,
-        byte digit);
+        MutableInteger decoded,
+        MutableInteger processed,
+        DirectBuffer data,
+        int index,
+        int length);
 
-    public abstract boolean validateFin(
-        int pendingBytes,
-        boolean number);
-
-    public boolean validateContinue(
-        int progress)
-    {
-        return true;
-    }
-
-    public boolean negative(
-        byte digit)
-    {
-        return false;
-    }
-
-    public boolean digit(
-        byte digit)
-    {
-        return true;
-    }
+    public abstract boolean valid(
+        MutableInteger decoded,
+        MutableInteger processed);
 
     public static IntegerFormat of(
         String format)
