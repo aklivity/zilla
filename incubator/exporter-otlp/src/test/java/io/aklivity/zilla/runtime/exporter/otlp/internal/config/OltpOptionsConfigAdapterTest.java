@@ -33,6 +33,7 @@ import org.junit.Test;
 
 import io.aklivity.zilla.runtime.exporter.otlp.config.OtlpEndpointConfig;
 import io.aklivity.zilla.runtime.exporter.otlp.config.OtlpOptionsConfig;
+import io.aklivity.zilla.runtime.exporter.otlp.config.OtlpOverridesConfig;
 
 public class OltpOptionsConfigAdapterTest
 {
@@ -59,7 +60,12 @@ public class OltpOptionsConfigAdapterTest
                     "],\n" +
                 "\"endpoint\":\n" +
                     "{\n" +
-                        "\"location\": \"http://localhost:4317\"\n" +
+                        "\"location\": \"http://localhost:4317\",\n" +
+                        "\"overrides\": \n" +
+                            "{\n" +
+                                "\"metrics\": \"/v1/metricsOverride\",\n" +
+                                "\"logs\": \"/v1/logsOverride\"\n" +
+                            "}\n" +
                     "}\n" +
             "}";
 
@@ -71,6 +77,8 @@ public class OltpOptionsConfigAdapterTest
         assertThat(options.interval, equalTo(30L));
         assertThat(options.signals, containsInAnyOrder(METRICS));
         assertThat(options.endpoint.location, equalTo(URI.create("http://localhost:4317")));
+        assertThat(options.endpoint.overrides.metrics, equalTo(URI.create("/v1/metricsOverride")));
+        assertThat(options.endpoint.overrides.logs, equalTo(URI.create("/v1/logsOverride")));
     }
 
     @Test
@@ -86,10 +94,16 @@ public class OltpOptionsConfigAdapterTest
                     "]," +
                 "\"endpoint\":" +
                     "{" +
-                        "\"location\":\"http://localhost:4317\"" +
+                        "\"location\":\"http://localhost:4317\"," +
+                        "\"overrides\":" +
+                            "{" +
+                                "\"metrics\":\"/v1/metrics\"," +
+                                "\"logs\":\"/v1/logs\"" +
+                            "}" +
                     "}" +
             "}";
-        OtlpEndpointConfig endpoint = new OtlpEndpointConfig("http", URI.create("http://localhost:4317"));
+        OtlpOverridesConfig overrides = new OtlpOverridesConfig(URI.create("/v1/metrics"), URI.create("/v1/logs"));
+        OtlpEndpointConfig endpoint = new OtlpEndpointConfig("http", URI.create("http://localhost:4317"), overrides);
         OtlpOptionsConfig config = new OtlpOptionsConfig(30, Set.of(METRICS), endpoint);
 
         // WHEN

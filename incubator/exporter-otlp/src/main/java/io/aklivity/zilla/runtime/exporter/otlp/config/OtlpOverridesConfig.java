@@ -16,19 +16,16 @@ package io.aklivity.zilla.runtime.exporter.otlp.config;
 
 import java.net.URI;
 
-public class OtlpEndpointConfig
+public class OtlpOverridesConfig
 {
-    public String protocol;
-    public URI location;
-    public OtlpOverridesConfig overrides;
+    public URI metrics;
+    public URI logs;
 
-    public OtlpEndpointConfig(
-        String protocol,
-        URI location,
-        OtlpOverridesConfig overrides)
+    public OtlpOverridesConfig(
+        URI metrics,
+        URI logs)
     {
-        this.protocol = protocol;
-        this.location = location;
-        this.overrides = overrides;
+        this.metrics = metrics;
+        this.logs = logs;
     }
 }
