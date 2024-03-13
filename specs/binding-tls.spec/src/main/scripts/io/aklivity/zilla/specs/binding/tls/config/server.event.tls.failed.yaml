@@ -23,6 +23,7 @@ telemetry:
             options:
                 events:
                     - qname: test.net0
+                      id: binding.tls.tls.failed
                       message: TLS_FAILED
 vaults:
     server:
