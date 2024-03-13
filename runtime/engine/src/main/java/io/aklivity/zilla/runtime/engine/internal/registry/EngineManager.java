@@ -19,6 +19,7 @@ import java.net.URL;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -396,8 +397,10 @@ public class EngineManager
                 .directory(config.directory())
                 .build())
         {
-            for (NamespaceConfig namespace : engine.namespaces)
+            LinkedList<NamespaceConfig> namespaces = new LinkedList<>(engine.namespaces);
+            for (int i = 0; i < namespaces.size(); i++)
             {
+                NamespaceConfig namespace = namespaces.get(i);
                 for (BindingConfig binding : namespace.bindings)
                 {
                     long typeId = binding.resolveId.applyAsLong(binding.type);
@@ -406,6 +409,10 @@ public class EngineManager
                     long originTypeId = binding.resolveId.applyAsLong(typed.originType(binding.kind));
                     long routedTypeId = binding.resolveId.applyAsLong(typed.routedType(binding.kind));
                     layout.writeBindingInfo(binding.id, typeId, kindId, originTypeId, routedTypeId);
+                    if (binding.composites != null)
+                    {
+                        namespaces.addAll(binding.composites);
+                    }
                 }
             }
         }
