@@ -129,6 +129,17 @@ public class ClientGroupIT
     @Test
     @Configuration("client.yaml")
     @Specification({
+        "${app}/leader.assignment/client",
+        "${net}/initial.delay.config/server"})
+    public void shouldCreateConnectionForJoinGroup() throws Exception
+    {
+        k3po.finish();
+    }
+
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
         "${app}/rebalance.protocol.highlander.migrate.leader/client",
         "${net}/rebalance.protocol.highlander.migrate.leader/server"})
     public void shouldRebalanceProtocolHighlanderMigrateLeader() throws Exception

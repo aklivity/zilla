@@ -208,7 +208,10 @@
                   </fileMappers>
                 </artifactItem>
               </artifactItems>
-              <includes>io/aklivity/zilla/specs/binding/asyncapi/schema/*.json</includes>
+              <includes>io/aklivity/zilla/specs/binding/asyncapi/schema/asyncapi.schema.patch.json,
+                io/aklivity/zilla/specs/binding/asyncapi/schema/asyncapi.2.6.0.schema.json,
+                io/aklivity/zilla/specs/binding/asyncapi/schema/asyncapi.3.0.1.schema.json
+              </includes>
               <outputDirectory>${project.build.directory}/classes</outputDirectory>
             </configuration>
           </execution>

@@ -39,15 +39,6 @@ public class InlineCatalogHandler implements CatalogHandler
     }
 
     @Override
-    public int register(
-        String subject,
-        String type,
-        String schema)
-    {
-        return NO_SCHEMA_ID;
-    }
-
-    @Override
     public String resolve(
         int schemaId)
     {
