@@ -19,10 +19,13 @@ import java.net.URI;
 public class OtlpOverridesConfig
 {
     public URI metrics;
+    public URI logs;
 
     public OtlpOverridesConfig(
-        URI metrics)
+        URI metrics,
+        URI logs)
     {
         this.metrics = metrics;
+        this.logs = logs;
     }
 }

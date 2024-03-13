@@ -23,6 +23,7 @@ telemetry:
       options:
         events:
           - qname: test.app0
+            id: binding.kafka.api.version.rejected
             message: API_VERSION_REJECTED 32 0
 bindings:
   app0:

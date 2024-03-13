@@ -37,6 +37,7 @@ public class SchemaRegistryEventContext
     private final EventFW.Builder eventRW = new EventFW.Builder();
     private final SchemaRegistryEventExFW.Builder schemaRegistryEventExRW = new SchemaRegistryEventExFW.Builder();
     private final int schemaRegistryTypeId;
+    private final int remoteAccessRejectedEventId;
     private final MessageConsumer eventWriter;
     private final Clock clock;
 
@@ -44,6 +45,7 @@ public class SchemaRegistryEventContext
         EngineContext context)
     {
         this.schemaRegistryTypeId = context.supplyTypeId(SchemaRegistryCatalog.NAME);
+        this.remoteAccessRejectedEventId = context.supplyEventId("catalog.schema.registry.remote.access.rejected");
         this.eventWriter = context.supplyEventWriter();
         this.clock = context.clock();
     }
@@ -64,6 +66,7 @@ public class SchemaRegistryEventContext
             .build();
         EventFW event = eventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .id(remoteAccessRejectedEventId)
             .timestamp(clock.millis())
             .traceId(0L)
             .namespacedId(catalogId)

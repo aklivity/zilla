@@ -27,6 +27,8 @@ telemetry:
             type: otlp
             options:
                 interval: 1
+                signals:
+                    - metrics
                 endpoint:
                     location: http://localhost:4318
 bindings:

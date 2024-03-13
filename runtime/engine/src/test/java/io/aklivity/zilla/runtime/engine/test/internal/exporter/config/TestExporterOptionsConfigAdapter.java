@@ -32,6 +32,7 @@ public final class TestExporterOptionsConfigAdapter implements OptionsConfigAdap
     private static final String MODE_NAME = "mode";
     private static final String EVENTS_NAME = "events";
     private static final String QNAME_NAME = "qname";
+    private static final String ID_NAME = "id";
     private static final String MESSAGE_NAME = "message";
 
     @Override
@@ -66,6 +67,7 @@ public final class TestExporterOptionsConfigAdapter implements OptionsConfigAdap
             {
                 JsonObjectBuilder event = Json.createObjectBuilder();
                 event.add(QNAME_NAME, e.qName);
+                event.add(ID_NAME, e.id);
                 event.add(MESSAGE_NAME, e.message);
                 events.add(event);
             }
@@ -96,7 +98,7 @@ public final class TestExporterOptionsConfigAdapter implements OptionsConfigAdap
                     JsonObject e0 = e.asJsonObject();
                     if (e0.containsKey(QNAME_NAME) && e0.containsKey(MESSAGE_NAME))
                     {
-                        testOptions.event(e0.getString(QNAME_NAME), e0.getString(MESSAGE_NAME));
+                        testOptions.event(e0.getString(QNAME_NAME), e0.getString(ID_NAME), e0.getString(MESSAGE_NAME));
                     }
                 }
             }

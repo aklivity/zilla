@@ -23,6 +23,7 @@ public class OtlpOptionsConfig extends OptionsConfig
     public enum OtlpSignalsConfig
     {
         METRICS,
+        LOGS,
     }
 
     public long interval;

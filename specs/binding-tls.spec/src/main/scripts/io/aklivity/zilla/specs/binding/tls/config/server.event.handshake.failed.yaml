@@ -23,6 +23,7 @@ telemetry:
             options:
                 events:
                     - qname: test.net0
+                      id: binding.tls.handshake.failed
                       message: HANDSHAKE_FAILED
 vaults:
     server:

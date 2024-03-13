@@ -176,7 +176,8 @@
                 </artifactItem>
               </artifactItems>
               <includes>
-                io/aklivity/zilla/specs/exporter/otlp/application/*,
+                io/aklivity/zilla/specs/exporter/otlp/application/**/*,
+                io/aklivity/zilla/specs/exporter/otlp/network/**/*,
                 io/aklivity/zilla/specs/exporter/otlp/config/*
               </includes>
               <outputDirectory>${project.build.directory}/test-classes</outputDirectory>

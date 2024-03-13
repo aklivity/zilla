@@ -16,24 +16,23 @@
 ---
 name: test
 telemetry:
-  exporters:
-    exporter0:
-      type: test
-      options:
-        events:
-          - qname: test.catalog0
-            id: catalog.schema.registry.remote.access.rejected
-            message: REMOTE_ACCESS_REJECTED GET http://localhost:8081/schemas/ids/0 0
-catalogs:
-  catalog0:
-    type: schema-registry
-    options:
-      url: http://localhost:8081
+    attributes:
+        service.namespace: example
+    exporters:
+        test0:
+            type: otlp
+            options:
+                interval: 1
+                signals:
+                    - logs
+                endpoint:
+                    location: http://localhost:4318
 bindings:
-  net0:
-    type: test
-    kind: server
-    options:
-      catalogs:
-        - catalog0
-    exit: app0
+    net0:
+        type: test
+        kind: server
+        options:
+            events:
+                - timestamp: 42
+                  message: test event message
+        exit: app0
