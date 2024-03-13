@@ -76,6 +76,7 @@ public class JsonValidatorTest
                     .build()
                 .build()
             .build();
+    private EngineContext engine;
     private CatalogContext context;
 
     @Before
@@ -85,7 +86,8 @@ public class JsonValidatorTest
         properties.setProperty(ENGINE_DIRECTORY.name(), "target/zilla-itests");
         Configuration config = new Configuration(properties);
         Catalog catalog = new TestCatalog(config);
-        context = catalog.supply(mock(EngineContext.class));
+        engine = mock(EngineContext.class);
+        context = catalog.supply(engine);
     }
 
     @Test
@@ -97,7 +99,7 @@ public class JsonValidatorTest
                 .schema(OBJECT_SCHEMA)
                 .build());
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        JsonValidatorHandler validator = new JsonValidatorHandler(config, handler);
+        JsonValidatorHandler validator = new JsonValidatorHandler(config, engine, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -109,7 +111,7 @@ public class JsonValidatorTest
         byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
 
-        assertTrue(validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertTrue(validator.validate(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -121,7 +123,7 @@ public class JsonValidatorTest
                         .schema(OBJECT_SCHEMA)
                         .build());
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        JsonValidatorHandler validator = new JsonValidatorHandler(config, handler);
+        JsonValidatorHandler validator = new JsonValidatorHandler(config, engine, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -133,7 +135,7 @@ public class JsonValidatorTest
         byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
 
-        assertFalse(validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertFalse(validator.validate(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -145,7 +147,7 @@ public class JsonValidatorTest
                 .schema(OBJECT_SCHEMA)
                 .build());
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        JsonValidatorHandler validator = new JsonValidatorHandler(config, handler);
+        JsonValidatorHandler validator = new JsonValidatorHandler(config, engine, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -157,8 +159,8 @@ public class JsonValidatorTest
         byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
 
-        assertTrue(validator.validate(FLAGS_INIT, data, 0, 12, ValueConsumer.NOP));
-        assertTrue(validator.validate(FLAGS_FIN, data, 12, data.capacity() - 12, ValueConsumer.NOP));
+        assertTrue(validator.validate(0L, 0L, FLAGS_INIT, data, 0, 12, ValueConsumer.NOP));
+        assertTrue(validator.validate(0L, 0L, FLAGS_FIN, data, 12, data.capacity() - 12, ValueConsumer.NOP));
     }
 
     @Test
@@ -170,7 +172,7 @@ public class JsonValidatorTest
                 .schema(OBJECT_SCHEMA)
                 .build());
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        JsonValidatorHandler validator = new JsonValidatorHandler(config, handler);
+        JsonValidatorHandler validator = new JsonValidatorHandler(config, engine, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -182,8 +184,8 @@ public class JsonValidatorTest
         byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
 
-        assertTrue(validator.validate(FLAGS_INIT, data, 0, 12, ValueConsumer.NOP));
-        assertFalse(validator.validate(FLAGS_FIN, data, 12, data.capacity() - 12, ValueConsumer.NOP));
+        assertTrue(validator.validate(0L, 0L, FLAGS_INIT, data, 0, 12, ValueConsumer.NOP));
+        assertFalse(validator.validate(0L, 0L, FLAGS_FIN, data, 12, data.capacity() - 12, ValueConsumer.NOP));
     }
 
     @Test
@@ -195,7 +197,7 @@ public class JsonValidatorTest
                 .schema(ARRAY_SCHEMA)
                 .build());
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        JsonValidatorHandler validator = new JsonValidatorHandler(config, handler);
+        JsonValidatorHandler validator = new JsonValidatorHandler(config, engine, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -209,6 +211,6 @@ public class JsonValidatorTest
         byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
 
-        assertTrue(validator.validate(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertTrue(validator.validate(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 }

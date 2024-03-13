@@ -26,13 +26,15 @@ public interface CatalogHandler
     @FunctionalInterface
     interface Decoder
     {
-        Decoder IDENTITY = (schemaId, data, index, length, next) ->
+        Decoder IDENTITY = (traceId, bindingId, schemaId, data, index, length, next) ->
         {
             next.accept(data, index, length);
             return length;
         };
 
         int accept(
+            long traceId,
+            long bindingId,
             int schemaId,
             DirectBuffer data,
             int index,
@@ -73,13 +75,15 @@ public interface CatalogHandler
     }
 
     default int decode(
+        long traceId,
+        long bindingId,
         DirectBuffer data,
         int index,
         int length,
         ValueConsumer next,
         Decoder decoder)
     {
-        return decoder.accept(NO_SCHEMA_ID, data, index, length, next);
+        return decoder.accept(traceId, bindingId, NO_SCHEMA_ID, data, index, length, next);
     }
 
     default int encode(

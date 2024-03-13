@@ -18,6 +18,7 @@ import java.util.function.LongFunction;
 
 import org.agrona.DirectBuffer;
 
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
@@ -27,9 +28,10 @@ public class JsonWriteConverterHandler extends JsonModelHandler implements Conve
 {
     public JsonWriteConverterHandler(
         JsonModelConfig config,
+        EngineContext context,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        super(config, supplyCatalog);
+        super(config, context, supplyCatalog);
     }
 
     @Override
@@ -43,6 +45,8 @@ public class JsonWriteConverterHandler extends JsonModelHandler implements Conve
 
     @Override
     public int convert(
+        long traceId,
+        long bindingId,
         DirectBuffer data,
         int index,
         int length,
@@ -54,7 +58,7 @@ public class JsonWriteConverterHandler extends JsonModelHandler implements Conve
             ? catalog.id
             : handler.resolve(subject, catalog.version);
 
-        if (validate(schemaId, data, index, length))
+        if (validate(traceId, bindingId, schemaId, data, index, length))
         {
             valLength = handler.encode(schemaId, data, index, length, next, CatalogHandler.Encoder.IDENTITY);
         }

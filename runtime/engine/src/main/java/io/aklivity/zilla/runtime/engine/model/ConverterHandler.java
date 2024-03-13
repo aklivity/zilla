@@ -21,13 +21,15 @@ import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 
 public interface ConverterHandler
 {
-    ConverterHandler NONE = (data, index, length, next) ->
+    ConverterHandler NONE = (traceId, bindingId, data, index, length, next) ->
     {
         next.accept(data, index, length);
         return length;
     };
 
     int convert(
+        long traceId,
+        long bindingId,
         DirectBuffer data,
         int index,
         int length,

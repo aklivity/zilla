@@ -74,6 +74,7 @@ public class JsonConverterTest
                         .build()
                 .build()
             .build();
+    private EngineContext engine;
     private CatalogContext context;
 
     @Before
@@ -83,7 +84,8 @@ public class JsonConverterTest
         properties.setProperty(ENGINE_DIRECTORY.name(), "target/zilla-itests");
         EngineConfiguration config = new EngineConfiguration(properties);
         Catalog catalog = new TestCatalog(config);
-        context = catalog.supply(mock(EngineContext.class));
+        engine = mock(EngineContext.class);
+        context = catalog.supply(engine);
     }
 
     @Test
@@ -95,7 +97,7 @@ public class JsonConverterTest
                 .schema(OBJECT_SCHEMA)
                 .build());
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        JsonReadConverterHandler converter = new JsonReadConverterHandler(config, handler);
+        JsonReadConverterHandler converter = new JsonReadConverterHandler(config, engine, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -106,7 +108,7 @@ public class JsonConverterTest
                 "}";
         byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
-        assertEquals(data.capacity(), converter.convert(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertEquals(data.capacity(), converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -118,7 +120,7 @@ public class JsonConverterTest
                 .schema(ARRAY_SCHEMA)
                 .build());
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        JsonWriteConverterHandler converter = new JsonWriteConverterHandler(config, handler);
+        JsonWriteConverterHandler converter = new JsonWriteConverterHandler(config, engine, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -132,7 +134,7 @@ public class JsonConverterTest
         byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
 
-        assertEquals(data.capacity(), converter.convert(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertEquals(data.capacity(), converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -144,7 +146,7 @@ public class JsonConverterTest
                 .schema(OBJECT_SCHEMA)
                 .build());
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        JsonReadConverterHandler converter = new JsonReadConverterHandler(config, handler);
+        JsonReadConverterHandler converter = new JsonReadConverterHandler(config, engine, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -160,7 +162,7 @@ public class JsonConverterTest
         value.putBytes(0, new byte[]{0x00, 0x00, 0x00, 0x00, 0x01});
         value.putBytes(5, bytes);
 
-        assertEquals(-1, converter.convert(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertEquals(-1, converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -172,7 +174,7 @@ public class JsonConverterTest
                 .schema(OBJECT_SCHEMA)
                 .build());
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        JsonWriteConverterHandler converter = new JsonWriteConverterHandler(config, handler);
+        JsonWriteConverterHandler converter = new JsonWriteConverterHandler(config, engine, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -184,7 +186,7 @@ public class JsonConverterTest
         byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
 
-        assertEquals(data.capacity(), converter.convert(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertEquals(data.capacity(), converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -196,7 +198,7 @@ public class JsonConverterTest
                 .schema(ARRAY_SCHEMA)
                 .build());
         LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        JsonWriteConverterHandler converter = new JsonWriteConverterHandler(config, handler);
+        JsonWriteConverterHandler converter = new JsonWriteConverterHandler(config, engine, handler);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -210,6 +212,6 @@ public class JsonConverterTest
         byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
 
-        assertEquals(-1, converter.convert(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertEquals(-1, converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 }
