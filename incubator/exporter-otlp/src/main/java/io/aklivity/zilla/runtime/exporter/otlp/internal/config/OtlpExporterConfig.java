@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.exporter.otlp.internal.config;
 
+import static io.aklivity.zilla.runtime.exporter.otlp.config.OtlpOptionsConfig.OtlpSignalsConfig.LOGS;
 import static io.aklivity.zilla.runtime.exporter.otlp.config.OtlpOptionsConfig.OtlpSignalsConfig.METRICS;
 
 import java.net.URI;
@@ -26,7 +27,8 @@ import io.aklivity.zilla.runtime.exporter.otlp.config.OtlpOptionsConfig;
 public class OtlpExporterConfig
 {
     private static final String DEFAULT_METRICS_PATH = "/v1/metrics";
-    private static final Set<OtlpOptionsConfig.OtlpSignalsConfig> DEFAULT_SIGNALS = Set.of(METRICS);
+    private static final String DEFAULT_LOGS_PATH = "/v1/logs";
+    private static final Set<OtlpOptionsConfig.OtlpSignalsConfig> DEFAULT_SIGNALS = Set.of(METRICS, LOGS);
     private static final long DEFAULT_INTERVAL = Duration.ofSeconds(30).toMillis();
 
     private final OtlpOptionsConfig options;
@@ -52,6 +54,25 @@ public class OtlpExporterConfig
         else
         {
             result = location.resolve(DEFAULT_METRICS_PATH);
+        }
+        return result;
+    }
+
+    public URI resolveLogs()
+    {
+        assert options != null;
+        assert options.endpoint != null;
+        assert options.endpoint.location != null;
+
+        URI result;
+        URI location = options.endpoint.location;
+        if (options.endpoint.overrides != null && options.endpoint.overrides.logs != null)
+        {
+            result = location.resolve(options.endpoint.overrides.logs);
+        }
+        else
+        {
+            result = location.resolve(DEFAULT_LOGS_PATH);
         }
         return result;
     }

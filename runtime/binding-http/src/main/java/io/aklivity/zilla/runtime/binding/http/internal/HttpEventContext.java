@@ -46,6 +46,7 @@ public class HttpEventContext
     private final EventFW.Builder eventRW = new EventFW.Builder();
     private final HttpEventExFW.Builder httpEventExRW = new HttpEventExFW.Builder();
     private final int httpTypeId;
+    private final int requestAcceptedEventId;
     private final MessageConsumer eventWriter;
     private final Clock clock;
 
@@ -53,6 +54,7 @@ public class HttpEventContext
         EngineContext context)
     {
         this.httpTypeId = context.supplyTypeId(HttpBinding.NAME);
+        this.requestAcceptedEventId = context.supplyEventId("binding.http.request.accepted");
         this.eventWriter = context.supplyEventWriter();
         this.clock = context.clock();
     }
@@ -78,6 +80,7 @@ public class HttpEventContext
             .build();
         EventFW event = eventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .id(requestAcceptedEventId)
             .timestamp(clock.millis())
             .traceId(traceId)
             .namespacedId(bindingId)
@@ -107,6 +110,7 @@ public class HttpEventContext
             .build();
         EventFW event = eventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .id(requestAcceptedEventId)
             .timestamp(clock.millis())
             .traceId(traceId)
             .namespacedId(bindingId)

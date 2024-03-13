@@ -26,6 +26,7 @@ import io.aklivity.zilla.runtime.exporter.otlp.config.OtlpOverridesConfig;
 public class OtlpOverridesAdapter implements JsonbAdapter<OtlpOverridesConfig, JsonObject>
 {
     private static final String METRICS_NAME = "metrics";
+    private static final String LOGS_NAME = "logs";
 
     @Override
     public JsonObject adaptToJson(
@@ -35,6 +36,10 @@ public class OtlpOverridesAdapter implements JsonbAdapter<OtlpOverridesConfig, J
         if (overrides.metrics != null)
         {
             object.add(METRICS_NAME, overrides.metrics.toString());
+        }
+        if (overrides.logs != null)
+        {
+            object.add(LOGS_NAME, overrides.logs.toString());
         }
         return object.build();
     }
@@ -46,6 +51,9 @@ public class OtlpOverridesAdapter implements JsonbAdapter<OtlpOverridesConfig, J
         URI metrics = object.containsKey(METRICS_NAME)
             ? URI.create(object.getString(METRICS_NAME))
             : null;
-        return new OtlpOverridesConfig(metrics);
+        URI logs = object.containsKey(LOGS_NAME)
+            ? URI.create(object.getString(LOGS_NAME))
+            : null;
+        return new OtlpOverridesConfig(metrics, logs);
     }
 }

@@ -40,9 +40,13 @@
                                     "type": "object",
                                     "properties":
                                     {
-                                        "timestamp":
+                                        "qname":
                                         {
-                                            "type": "integer"
+                                            "type": "string"
+                                        },
+                                        "id":
+                                        {
+                                            "type": "string"
                                         },
                                         "message":
                                         {

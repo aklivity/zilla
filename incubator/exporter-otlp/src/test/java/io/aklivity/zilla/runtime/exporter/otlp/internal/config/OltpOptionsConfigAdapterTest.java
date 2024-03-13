@@ -63,7 +63,8 @@ public class OltpOptionsConfigAdapterTest
                         "\"location\": \"http://localhost:4317\",\n" +
                         "\"overrides\": \n" +
                             "{\n" +
-                                "\"metrics\": \"/v1/metricsOverride\"\n" +
+                                "\"metrics\": \"/v1/metricsOverride\",\n" +
+                                "\"logs\": \"/v1/logsOverride\"\n" +
                             "}\n" +
                     "}\n" +
             "}";
@@ -77,6 +78,7 @@ public class OltpOptionsConfigAdapterTest
         assertThat(options.signals, containsInAnyOrder(METRICS));
         assertThat(options.endpoint.location, equalTo(URI.create("http://localhost:4317")));
         assertThat(options.endpoint.overrides.metrics, equalTo(URI.create("/v1/metricsOverride")));
+        assertThat(options.endpoint.overrides.logs, equalTo(URI.create("/v1/logsOverride")));
     }
 
     @Test
@@ -95,11 +97,12 @@ public class OltpOptionsConfigAdapterTest
                         "\"location\":\"http://localhost:4317\"," +
                         "\"overrides\":" +
                             "{" +
-                                "\"metrics\":\"/v1/metrics\"" +
+                                "\"metrics\":\"/v1/metrics\"," +
+                                "\"logs\":\"/v1/logs\"" +
                             "}" +
                     "}" +
             "}";
-        OtlpOverridesConfig overrides = new OtlpOverridesConfig(URI.create("/v1/metrics"));
+        OtlpOverridesConfig overrides = new OtlpOverridesConfig(URI.create("/v1/metrics"), URI.create("/v1/logs"));
         OtlpEndpointConfig endpoint = new OtlpEndpointConfig("http", URI.create("http://localhost:4317"), overrides);
         OtlpOptionsConfig config = new OtlpOptionsConfig(30, Set.of(METRICS), endpoint);
 
