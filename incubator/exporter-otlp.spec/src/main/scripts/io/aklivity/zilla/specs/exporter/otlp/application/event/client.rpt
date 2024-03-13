@@ -25,7 +25,7 @@ connected
 write http:method "POST"
 write http:version "HTTP/1.1"
 write http:header "Host" "localhost:4318"
-write http:header "Content-Length" "366"
+write http:header "Content-Length" "394"
 write
 '{'
     '"resourceLogs":['
@@ -51,13 +51,13 @@ write
                             '"timeUnixNano":42000000,'
                             '"observedTimeUnixNano":42000000,'
                             '"body":{'
-                                '"stringValue":"test event message"'
+                                '"stringValue":"test.net0 test event message"'
                             '},'
                             '"attributes":['
                                 '{'
-                                    '"key":"qname",'
+                                    '"key":"event.name",'
                                     '"value":{'
-                                        '"stringValue":"test.net0"'
+                                        '"stringValue":"binding.test.connected"'
                                     '}'
                                 '}'
                             ']'

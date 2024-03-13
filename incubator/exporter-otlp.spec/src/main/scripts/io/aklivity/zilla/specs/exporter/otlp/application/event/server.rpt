@@ -26,7 +26,7 @@ connected
 read http:method "POST"
 read http:version "HTTP/1.1"
 read http:header "Host" "localhost:4318"
-read http:header "Content-Length" "366"
+read http:header "Content-Length" "394"
 read
 '{'
     '"resourceLogs":['
@@ -52,13 +52,13 @@ read
                             '"timeUnixNano":42000000,'
                             '"observedTimeUnixNano":42000000,'
                             '"body":{'
-                                '"stringValue":"test event message"'
+                                '"stringValue":"test.net0 test event message"'
                             '},'
                             '"attributes":['
                                 '{'
-                                    '"key":"qname",'
+                                    '"key":"event.name",'
                                     '"value":{'
-                                        '"stringValue":"test.net0"'
+                                        '"stringValue":"binding.test.connected"'
                                     '}'
                                 '}'
                             ']'

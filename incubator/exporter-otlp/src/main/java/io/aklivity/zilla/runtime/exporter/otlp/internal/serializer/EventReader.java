@@ -37,7 +37,7 @@ public class EventReader
     private static final String OBSERVED_TIME_UNIX_NANO = "observedTimeUnixNano";
     private static final String BODY = "body";
     private static final String ATTRIBUTES = "attributes";
-    private static final String BODY_FORMAT = "{\"stringValue\": \"%s\"}";
+    private static final String BODY_FORMAT = "{\"stringValue\": \"%s %s\"}";
     private static final String STRING_ATTRIBUTE_FORMAT = "{\"key\":\"%s\", \"value\":{\"stringValue\": \"%s\"}}";
 
     private final EngineContext context;
@@ -71,23 +71,24 @@ public class EventReader
         int length)
     {
         final EventFW event = eventRO.wrap(buffer, index, index + length);
-        String qname = context.supplyQName(event.namespacedId());
         eventJson = Json.createObjectBuilder();
         long nanos = TimeUnit.MILLISECONDS.toNanos(event.timestamp());
         eventJson.add(TIME_UNIX_NANO, nanos);
         eventJson.add(OBSERVED_TIME_UNIX_NANO, nanos);
+        String qname = context.supplyQName(event.namespacedId());
         String extension = formatter.format(msgTypeId, buffer, index, length);
-        addBody(extension);
+        addBody(qname, extension);
         eventAttributesJson = Json.createArrayBuilder();
-        addStringAttribute("qname", qname);
+        addStringAttribute("event.name", context.supplyLocalName(event.id()));
         eventJson.add(ATTRIBUTES, eventAttributesJson);
         eventsJson.add(eventJson);
     }
 
     private void addBody(
-        String body)
+        String qname,
+        String extension)
     {
-        String json = String.format(BODY_FORMAT, body);
+        String json = String.format(BODY_FORMAT, qname, extension);
         JsonReader reader = Json.createReader(new StringReader(json));
         eventJson.add(BODY, reader.readObject());
     }
