@@ -15,7 +15,6 @@
 package io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config;
 
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.PROXY;
-import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
@@ -194,15 +193,15 @@ public final class OpenapiAsyncCompositeBindingAdapter implements CompositeBindi
                     .build());
                 break merge;
             }
-
-            if (includeKey)
-            {
-                fetch.filters(List.of(HttpKafkaWithFetchFilterConfig.builder()
-                    .key("${params.id}")
-                    .headers(emptyList())
-                    .build()));
-            }
         }
+
+        if (includeKey)
+        {
+            fetch.filters(List.of(HttpKafkaWithFetchFilterConfig.builder()
+                .key("${params.id}")
+                .build()));
+        }
+
         return fetch;
     }
 

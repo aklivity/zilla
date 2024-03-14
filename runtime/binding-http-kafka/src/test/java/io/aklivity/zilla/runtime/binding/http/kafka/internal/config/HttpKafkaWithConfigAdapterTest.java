@@ -131,11 +131,13 @@ public class HttpKafkaWithConfigAdapterTest
         HttpKafkaWithConfig with = HttpKafkaWithConfig.builder()
             .fetch(HttpKafkaWithFetchConfig.builder()
                 .topic("test")
-                .filters(singletonList(new HttpKafkaWithFetchFilterConfig(
-                        "fixed-key",
-                        singletonList(new HttpKafkaWithFetchFilterHeaderConfig(
-                            "tag",
-                            "fixed-tag")))))
+                .filters(singletonList(HttpKafkaWithFetchFilterConfig.builder()
+                    .key("fixed-key")
+                    .headers(singletonList(HttpKafkaWithFetchFilterHeaderConfig.builder()
+                        .name("tag")
+                        .value("fixed-tag")
+                        .build()))
+                    .build()))
                 .merged(null)
                 .build())
             .build();
