@@ -165,7 +165,7 @@ public final class TcpClientRouter
         }
         catch (TcpDnsFailedException ex)
         {
-            event.dnsResolutionFailed(traceId, binding.id, ex.hostname);
+            event.dnsFailed(traceId, binding.id, ex.hostname);
         }
         return resolved;
     }

@@ -38,6 +38,8 @@ public class KafkaEventContext
     private final EventFW.Builder eventRW = new EventFW.Builder();
     private final KafkaEventExFW.Builder kafkaEventExRW = new KafkaEventExFW.Builder();
     private final int kafkaTypeId;
+    private final int authorizationFailedEventId;
+    private final int apiVersionRejectedEventId;
     private final MessageConsumer eventWriter;
     private final Clock clock;
 
@@ -45,6 +47,8 @@ public class KafkaEventContext
         EngineContext context)
     {
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
+        this.authorizationFailedEventId = context.supplyEventId("binding.kafka.authorization.failed");
+        this.apiVersionRejectedEventId = context.supplyEventId("binding.kafka.api.version.rejected");
         this.eventWriter = context.supplyEventWriter();
         this.clock = context.clock();
     }
@@ -63,6 +67,7 @@ public class KafkaEventContext
             .build();
         EventFW event = eventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .id(authorizationFailedEventId)
             .timestamp(clock.millis())
             .traceId(traceId)
             .namespacedId(bindingId)
@@ -87,6 +92,7 @@ public class KafkaEventContext
             .build();
         EventFW event = eventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .id(apiVersionRejectedEventId)
             .timestamp(clock.millis())
             .traceId(traceId)
             .namespacedId(bindingId)

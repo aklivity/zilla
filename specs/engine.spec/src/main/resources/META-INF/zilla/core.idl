@@ -105,6 +105,7 @@ scope core
     {
         struct Event
         {
+            int32 id;
             int64 timestamp;
             int64 traceId;
             int64 namespacedId;

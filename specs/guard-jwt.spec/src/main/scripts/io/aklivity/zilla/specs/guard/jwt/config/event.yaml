@@ -22,6 +22,7 @@ telemetry:
       options:
         events:
           - qname: test.net0
+            id: guard.jwt.authorization.failed
             message: AUTHORIZATION_FAILED user
 guards:
   jwt0:
