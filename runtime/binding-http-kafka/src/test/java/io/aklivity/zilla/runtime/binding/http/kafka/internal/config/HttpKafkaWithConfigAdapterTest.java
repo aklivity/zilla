@@ -18,7 +18,6 @@ import static com.github.npathai.hamcrestopt.OptionalMatchers.isEmpty;
 import static com.github.npathai.hamcrestopt.OptionalMatchers.isPresent;
 import static com.github.npathai.hamcrestopt.OptionalMatchers.isPresentAnd;
 import static com.vtence.hamcrest.jpa.HasFieldWithValue.hasField;
-import static io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaAckMode.LEADER_ONLY;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
@@ -38,7 +37,6 @@ import org.junit.Test;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchFilterConfig;
-import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchFilterHeaderConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchMergeConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithProduceAsyncHeaderConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithProduceConfig;
@@ -133,10 +131,7 @@ public class HttpKafkaWithConfigAdapterTest
                 .topic("test")
                 .filters(singletonList(HttpKafkaWithFetchFilterConfig.builder()
                     .key("fixed-key")
-                    .headers(singletonList(HttpKafkaWithFetchFilterHeaderConfig.builder()
-                        .name("tag")
-                        .value("fixed-tag")
-                        .build()))
+                    .header("tag", "fixed-tag")
                     .build()))
                 .merged(null)
                 .build())

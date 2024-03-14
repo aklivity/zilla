@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.http.kafka.config;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
@@ -44,6 +45,23 @@ public final class HttpKafkaWithFetchFilterConfigBuilder<T> extends
         List<HttpKafkaWithFetchFilterHeaderConfig> headers)
     {
         this.headers = headers;
+        return this;
+    }
+
+    public HttpKafkaWithFetchFilterConfigBuilder<T> header(
+        String name,
+        String value)
+    {
+        if (headers != null)
+        {
+            headers = new ArrayList<>();
+        }
+
+        headers.add(HttpKafkaWithFetchFilterHeaderConfig.builder()
+                        .name(name)
+                        .value(value)
+                        .build());
+
         return this;
     }
 
