@@ -51,7 +51,7 @@ import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
 public final class OpenapiAsyncCompositeBindingAdapter implements CompositeBindingAdapterSpi
 {
     private static final Pattern JSON_CONTENT_TYPE = Pattern.compile("^application/(?:.+\\+)?json$");
-    private static final Pattern PARAMETER_PATTERN = Pattern.compile("\\{([^}]*)\\}");
+    private static final Pattern PARAMETER_PATTERN = Pattern.compile("\\{([^}]+)\\}");
 
     private final Matcher jsonContentType = JSON_CONTENT_TYPE.matcher("");
     private final Matcher parameters = PARAMETER_PATTERN.matcher("");
