@@ -52,7 +52,7 @@ public final class HttpKafkaWithFetchFilterConfigBuilder<T> extends
         String name,
         String value)
     {
-        if (headers != null)
+        if (headers == null)
         {
             headers = new ArrayList<>();
         }

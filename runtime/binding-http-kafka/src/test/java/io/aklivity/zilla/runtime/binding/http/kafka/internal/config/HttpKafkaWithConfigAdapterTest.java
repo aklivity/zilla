@@ -18,6 +18,7 @@ import static com.github.npathai.hamcrestopt.OptionalMatchers.isEmpty;
 import static com.github.npathai.hamcrestopt.OptionalMatchers.isPresent;
 import static com.github.npathai.hamcrestopt.OptionalMatchers.isPresentAnd;
 import static com.vtence.hamcrest.jpa.HasFieldWithValue.hasField;
+import static io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaAckMode.LEADER_ONLY;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
