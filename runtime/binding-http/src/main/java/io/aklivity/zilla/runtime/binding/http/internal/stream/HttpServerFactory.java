@@ -3171,7 +3171,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                             {
                                 String16FW value = header.value();
                                 valid.value &=
-                                    validator.validate(value.value(), value.offset(), value.length(), ValueConsumer.NOP);
+                                    validator.validate(0L, 0L, value.value(), value.offset(), value.length(), ValueConsumer.NOP);
                             }
                         }
                     });
@@ -3194,7 +3194,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     {
                         String8FW value0 = new String8FW(value);
                         ValidatorHandler validator = requestType.pathParams.get(name);
-                        if (!validator.validate(value0.value(), value0.offset(), value0.length(), ValueConsumer.NOP))
+                        if (!validator.validate(0L, 0L, value0.value(), value0.offset(), value0.length(), ValueConsumer.NOP))
                         {
                             valid = false;
                             break;
@@ -3216,7 +3216,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     if (validator != null)
                     {
                         String8FW value = new String8FW(matcher.group(2));
-                        valid &= validator.validate(value.value(), value.offset(), value.length(), ValueConsumer.NOP);
+                        valid &= validator.validate(0L, 0L, value.value(), value.offset(), value.length(), ValueConsumer.NOP);
                     }
                 }
                 return valid;
@@ -3228,7 +3228,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 int length)
             {
                 return contentType == null ||
-                    contentType.validate(buffer, index, length, ValueConsumer.NOP);
+                    contentType.validate(0L, 0L, buffer, index, length, ValueConsumer.NOP);
             }
 
             private void cleanupExpiringIfNecessary()
@@ -6291,7 +6291,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                             {
                                 String16FW value = header.value();
                                 valid.value &=
-                                    validator.validate(value.value(), value.offset(), value.length(), ValueConsumer.NOP);
+                                    validator.validate(0L, 0L, value.value(), value.offset(), value.length(), ValueConsumer.NOP);
                             }
                         }
                     });
@@ -6314,7 +6314,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     {
                         String8FW value0 = new String8FW(value);
                         ValidatorHandler validator = requestType.pathParams.get(name);
-                        if (!validator.validate(value0.value(), value0.offset(), value0.length(), ValueConsumer.NOP))
+                        if (!validator.validate(0L, 0L, value0.value(), value0.offset(), value0.length(), ValueConsumer.NOP))
                         {
                             valid = false;
                             break;
@@ -6336,7 +6336,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     if (validator != null)
                     {
                         String8FW value = new String8FW(matcher.group(2));
-                        valid &= validator.validate(value.value(), value.offset(), value.length(), ValueConsumer.NOP);
+                        valid &= validator.validate(0L, 0L, value.value(), value.offset(), value.length(), ValueConsumer.NOP);
                     }
                 }
                 return valid;
@@ -6348,7 +6348,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 int length)
             {
                 return contentType == null ||
-                    contentType.validate(buffer, index, length, ValueConsumer.NOP);
+                    contentType.validate(0L, 0L, buffer, index, length, ValueConsumer.NOP);
             }
 
             private void removeStreamIfNecessary()

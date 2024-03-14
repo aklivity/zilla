@@ -29,6 +29,8 @@ public class IntegerConverterHandler implements ConverterHandler
 
     @Override
     public int convert(
+        long traceId,
+        long bindingId,
         DirectBuffer data,
         int index,
         int length,

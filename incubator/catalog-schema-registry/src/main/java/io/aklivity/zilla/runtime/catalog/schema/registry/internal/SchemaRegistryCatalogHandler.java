@@ -133,6 +133,8 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
 
     @Override
     public int decode(
+        long traceId,
+        long bindingId,
         DirectBuffer data,
         int index,
         int length,
@@ -151,7 +153,7 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
 
         if (schemaId > NO_SCHEMA_ID)
         {
-            valLength = decoder.accept(schemaId, data, index + progress, length - progress, next);
+            valLength = decoder.accept(traceId, bindingId, schemaId, data, index + progress, length - progress, next);
         }
         return valLength;
     }

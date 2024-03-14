@@ -37,7 +37,7 @@ public class IntegerValidatorTest
 
         byte[] bytes = {0, 0, 0, 42};
         data.wrap(bytes, 0, bytes.length);
-        assertTrue(handler.validate(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertTrue(handler.validate(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -48,13 +48,13 @@ public class IntegerValidatorTest
         byte[] bytes = {0, 0, 0, 42};
 
         data.wrap(bytes, 0, 2);
-        assertTrue(handler.validate(ValidatorHandler.FLAGS_INIT, data, 0, data.capacity(), ValueConsumer.NOP));
+        assertTrue(handler.validate(0L, 0L, ValidatorHandler.FLAGS_INIT, data, 0, data.capacity(), ValueConsumer.NOP));
 
         data.wrap(bytes, 2, 1);
-        assertTrue(handler.validate(0x00, data, 0, data.capacity(), ValueConsumer.NOP));
+        assertTrue(handler.validate(0L, 0L, 0x00, data, 0, data.capacity(), ValueConsumer.NOP));
 
         data.wrap(bytes, 3, 1);
-        assertTrue(handler.validate(ValidatorHandler.FLAGS_FIN, data, 0, data.capacity(), ValueConsumer.NOP));
+        assertTrue(handler.validate(0L, 0L, ValidatorHandler.FLAGS_FIN, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -64,7 +64,7 @@ public class IntegerValidatorTest
 
         byte[] bytes = "Not an Integer".getBytes();
         data.wrap(bytes, 0, bytes.length);
-        assertFalse(handler.validate(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertFalse(handler.validate(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -74,14 +74,14 @@ public class IntegerValidatorTest
 
         byte[] firstFragment = {0, 0, 0};
         data.wrap(firstFragment, 0, firstFragment.length);
-        assertTrue(handler.validate(ValidatorHandler.FLAGS_INIT, data, 0, data.capacity(), ValueConsumer.NOP));
+        assertTrue(handler.validate(0L, 0L, ValidatorHandler.FLAGS_INIT, data, 0, data.capacity(), ValueConsumer.NOP));
 
         byte[] secondFragment = {0, 0};
         data.wrap(secondFragment, 0, secondFragment.length);
-        assertFalse(handler.validate(0x00, data, 0, data.capacity(), ValueConsumer.NOP));
+        assertFalse(handler.validate(0L, 0L, 0x00, data, 0, data.capacity(), ValueConsumer.NOP));
 
         byte[] finalFragment = {42};
         data.wrap(finalFragment, 0, finalFragment.length);
-        assertFalse(handler.validate(ValidatorHandler.FLAGS_FIN, data, 0, data.capacity(), ValueConsumer.NOP));
+        assertFalse(handler.validate(0L, 0L, ValidatorHandler.FLAGS_FIN, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 }

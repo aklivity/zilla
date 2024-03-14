@@ -4967,7 +4967,8 @@ public final class MqttServerFactory implements MqttStreamFactory
             OctetsFW payload)
         {
             return contentType == null ||
-                contentType.validate(payload.buffer(), payload.offset(), payload.sizeof(), ValueConsumer.NOP);
+                contentType.validate(supplyTraceId.getAsLong(), routedId, payload.buffer(), payload.offset(),
+                    payload.sizeof(), ValueConsumer.NOP);
         }
 
         private final class Subscription

@@ -70,15 +70,19 @@ public class AvroReadConverterHandler extends AvroModelHandler implements Conver
 
     @Override
     public int convert(
+        long traceId,
+        long bindingId,
         DirectBuffer data,
         int index,
         int length,
         ValueConsumer next)
     {
-        return handler.decode(data, index, length, next, this::decodePayload);
+        return handler.decode(traceId, bindingId, data, index, length, next, this::decodePayload);
     }
 
     private int decodePayload(
+        long traceId,
+        long bindingId,
         int schemaId,
         DirectBuffer data,
         int index,

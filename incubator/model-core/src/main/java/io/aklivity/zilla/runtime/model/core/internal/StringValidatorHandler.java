@@ -32,6 +32,8 @@ public class StringValidatorHandler implements ValidatorHandler
 
     @Override
     public boolean validate(
+        long traceId,
+        long bindingId,
         int flags,
         DirectBuffer data,
         int index,

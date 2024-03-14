@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.model.json.internal;
 
-import static io.aklivity.zilla.runtime.model.json.internal.types.event.JsonModelEventType.VALIDATION_FAILURE;;
+import static io.aklivity.zilla.runtime.model.json.internal.types.event.JsonModelEventType.VALIDATION_FAILURE;
 
 import java.nio.ByteBuffer;
 import java.time.Clock;
@@ -22,9 +22,9 @@ import java.time.Clock;
 import org.agrona.concurrent.AtomicBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
-import io.aklivity.zilla.runtime.model.json.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.model.json.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.model.json.internal.types.event.JsonModelEventExFW;
 
 public class JsonModelEventContext
@@ -36,6 +36,7 @@ public class JsonModelEventContext
     private final EventFW.Builder eventRW = new EventFW.Builder();
     private final JsonModelEventExFW.Builder jsonModelEventExRW = new JsonModelEventExFW.Builder();
     private final int jsonModelTypeId;
+    private final int validationFailureEventId;
     private final MessageConsumer eventWriter;
     private final Clock clock;
 
@@ -43,6 +44,7 @@ public class JsonModelEventContext
         EngineContext context)
     {
         this.jsonModelTypeId = context.supplyTypeId(JsonModel.NAME);
+        this.validationFailureEventId = context.supplyEventId("model.json.validation.failure");
         this.eventWriter = context.supplyEventWriter();
         this.clock = context.clock();
     }
@@ -61,6 +63,7 @@ public class JsonModelEventContext
             .build();
         EventFW event = eventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .id(validationFailureEventId)
             .timestamp(clock.millis())
             .traceId(traceId)
             .namespacedId(bindingId)

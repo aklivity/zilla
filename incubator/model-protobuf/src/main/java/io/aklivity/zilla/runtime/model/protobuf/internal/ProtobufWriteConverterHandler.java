@@ -64,6 +64,8 @@ public class ProtobufWriteConverterHandler extends ProtobufModelHandler implemen
 
     @Override
     public int convert(
+        long traceId,
+        long bindingId,
         DirectBuffer data,
         int index,
         int length,

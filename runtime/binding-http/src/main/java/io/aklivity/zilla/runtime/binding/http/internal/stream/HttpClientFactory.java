@@ -5094,7 +5094,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                         {
                             String16FW value = header.value();
                             valid.value &=
-                                validator.validate(value.value(), value.offset(), value.length(), ValueConsumer.NOP);
+                                validator.validate(0L, 0L, value.value(), value.offset(), value.length(), ValueConsumer.NOP);
                         }
                     }
                 });
@@ -5108,7 +5108,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             int length)
         {
             return contentType == null ||
-                contentType.validate(buffer, index, length, ValueConsumer.NOP);
+                contentType.validate(0L, 0L, buffer, index, length, ValueConsumer.NOP);
         }
 
         private void onResponseInvalid(

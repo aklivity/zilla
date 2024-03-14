@@ -81,7 +81,7 @@ public class AvroModelTest
         byte[] bytes = {0x06, 0x69, 0x64,
             0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
         data.wrap(bytes, 0, bytes.length);
-        assertEquals(data.capacity(), converter.convert(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertEquals(data.capacity(), converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -100,7 +100,7 @@ public class AvroModelTest
         byte[] bytes = {0x06, 0x69, 0x64, 0x30, 0x10, 0x70, 0x6f,
             0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
         data.wrap(bytes, 0, bytes.length);
-        assertEquals(data.capacity(), converter.convert(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertEquals(data.capacity(), converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -118,7 +118,7 @@ public class AvroModelTest
 
         byte[] bytes = {0x06, 0x69, 0x64, 0x30, 0x10};
         data.wrap(bytes, 0, bytes.length);
-        assertEquals(-1, converter.convert(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertEquals(-1, converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -158,10 +158,10 @@ public class AvroModelTest
         DirectBuffer expected = new UnsafeBuffer();
         expected.wrap(json.getBytes(), 0, json.getBytes().length);
 
-        int progress = converter.convert(data, 0, data.capacity(), ValueConsumer.NOP);
+        int progress = converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP);
         assertEquals(expected.capacity(), progress);
 
-        assertEquals(expected.capacity(), converter.convert(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertEquals(expected.capacity(), converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -200,10 +200,10 @@ public class AvroModelTest
 
         DirectBuffer data = new UnsafeBuffer();
         data.wrap(payload.getBytes(), 0, payload.getBytes().length);
-        int progress = converter.convert(data, 0, data.capacity(), ValueConsumer.NOP);
+        int progress = converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP);
         assertEquals(expected.capacity(), progress);
 
-        assertEquals(expected.capacity(), converter.convert(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertEquals(expected.capacity(), converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
