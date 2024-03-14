@@ -44,6 +44,7 @@ import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.ConfigException;
 import io.aklivity.zilla.runtime.engine.config.EngineConfig;
 import io.aklivity.zilla.runtime.engine.config.EngineConfigReader;
+import io.aklivity.zilla.runtime.engine.config.EngineConfigWriter;
 import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
 import io.aklivity.zilla.runtime.engine.config.GuardConfig;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
@@ -192,6 +193,14 @@ public class EngineManager
             for (NamespaceConfig namespace : engine.namespaces)
             {
                 process(namespace, namespaceReadURL);
+            }
+
+            if (config.verboseComposites())
+            {
+                EngineConfigWriter writer = new EngineConfigWriter(null);
+                engine.namespaces.stream()
+                    .flatMap(n -> n.bindings.stream().flatMap(b -> b.composites.stream()))
+                    .forEach(n -> System.out.println(writer.write(n)));
             }
         }
         catch (Throwable ex)

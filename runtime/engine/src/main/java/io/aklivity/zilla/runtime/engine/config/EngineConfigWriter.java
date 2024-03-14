@@ -84,6 +84,14 @@ public final class EngineConfigWriter
         return writer.toString();
     }
 
+    public String write(
+        NamespaceConfig config)
+    {
+        StringWriter writer = new StringWriter();
+        write0(config, writer, NOOP_PATCH);
+        return writer.toString();
+    }
+
     private void write0(
         EngineConfig engine,
         Writer writer,
@@ -107,21 +115,7 @@ public final class EngineConfigWriter
 
             for (NamespaceConfig namespace : engine.namespaces)
             {
-                String jsonText = jsonb.toJson(namespace, NamespaceConfig.class);
-
-                JsonObject jsonObject = provider.createReader(new StringReader(jsonText)).readObject();
-                JsonObject patched = patch.apply(jsonObject);
-                StringWriter patchedText = new StringWriter();
-                JsonWriter jsonWriter = provider.createWriter(patchedText);
-                jsonWriter.write(patched);
-                String patchedJson = patchedText.toString();
-
-                JsonNode json = new ObjectMapper().readTree(patchedJson);
-                YAMLMapper mapper = YAMLMapper.builder()
-                    .disable(WRITE_DOC_START_MARKER)
-                    .enable(MINIMIZE_QUOTES)
-                    .build();
-                mapper.writeValue(writer, json);
+                write0(namespace, writer, patch, provider, jsonb);
 
                 if (!errors.isEmpty())
                 {
@@ -140,5 +134,70 @@ public final class EngineConfigWriter
             errors.forEach(ex::addSuppressed);
             rethrowUnchecked(ex);
         }
+    }
+
+    private void write0(
+        NamespaceConfig namespace,
+        Writer writer,
+        JsonPatch patch)
+    {
+        List<Exception> errors = new LinkedList<>();
+
+        write:
+        try
+        {
+            // TODO: YamlProvider (supporting YamlGenerator)
+            JsonProvider provider = JsonProvider.provider();
+
+            JsonbConfig config = new JsonbConfig()
+                .withAdapters(new NamespaceAdapter(context))
+                .withFormatting(true);
+            Jsonb jsonb = JsonbBuilder.newBuilder()
+                .withProvider(provider)
+                .withConfig(config)
+                .build();
+
+            write0(namespace, writer, patch, provider, jsonb);
+
+            if (!errors.isEmpty())
+            {
+                break write;
+            }
+        }
+        catch (Exception ex)
+        {
+            errors.add(ex);
+        }
+
+        if (!errors.isEmpty())
+        {
+            Exception ex = errors.remove(0);
+            errors.forEach(ex::addSuppressed);
+            rethrowUnchecked(ex);
+        }
+    }
+
+    private void write0(
+        NamespaceConfig config,
+        Writer writer,
+        JsonPatch patch,
+        JsonProvider provider,
+        Jsonb jsonb) throws Exception
+    {
+        String jsonText = jsonb.toJson(config, NamespaceConfig.class);
+
+        JsonObject jsonObject = provider.createReader(new StringReader(jsonText)).readObject();
+        JsonObject patched = patch.apply(jsonObject);
+        StringWriter patchedText = new StringWriter();
+        JsonWriter jsonWriter = provider.createWriter(patchedText);
+        jsonWriter.write(patched);
+        String patchedJson = patchedText.toString();
+
+        JsonNode json = new ObjectMapper().readTree(patchedJson);
+        YAMLMapper mapper = YAMLMapper.builder()
+            .disable(WRITE_DOC_START_MARKER)
+            .enable(MINIMIZE_QUOTES)
+            .build();
+        mapper.writeValue(writer, json);
     }
 }
