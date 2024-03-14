@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.binding.http.kafka.config;
 import java.util.List;
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.binding.http.kafka.internal.config.HttpKafkaWithFetchFilterConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 
 public final class HttpKafkaWithFetchConfigBuilder<T> extends ConfigBuilder<T, HttpKafkaWithFetchConfigBuilder<T>>

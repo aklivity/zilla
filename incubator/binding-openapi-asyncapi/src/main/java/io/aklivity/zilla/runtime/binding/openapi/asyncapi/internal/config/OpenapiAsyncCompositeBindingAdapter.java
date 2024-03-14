@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config;
 
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.PROXY;
+import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
@@ -30,6 +31,7 @@ import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithConfigBuilder;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchConfigBuilder;
+import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchFilterConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchMergeConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithProduceConfig;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.config.OpenapiAsyncapiOptionsConfig;
@@ -49,8 +51,10 @@ import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
 public final class OpenapiAsyncCompositeBindingAdapter implements CompositeBindingAdapterSpi
 {
     private static final Pattern JSON_CONTENT_TYPE = Pattern.compile("^application/(?:.+\\+)?json$");
+    private static final Pattern PATH_ID_PATTERN = Pattern.compile("\\{id\\}");
 
     private final Matcher jsonContentType = JSON_CONTENT_TYPE.matcher("");
+    private final Matcher pathId = PATH_ID_PATTERN.matcher("");
 
     @Override
     public String type()
@@ -119,6 +123,8 @@ public final class OpenapiAsyncCompositeBindingAdapter implements CompositeBindi
                         final AsyncapiChannelView channel = AsyncapiChannelView
                             .of(asyncapi.channels, asyncapiOperation.channel);
 
+                        final boolean includeKey = pathId.reset(item).find();
+
                         binding
                             .route()
                                 .exit(qname)
@@ -127,7 +133,7 @@ public final class OpenapiAsyncCompositeBindingAdapter implements CompositeBindi
                                     .path(item)
                                     .build()
                                 .inject(r -> injectHttpKafkaRouteWith(r, openapi, openapiOperation,
-                                    asyncapiOperation.action, channel.address()))
+                                    asyncapiOperation.action, channel.address(), includeKey))
                                 .build();
                     }
                 }
@@ -142,7 +148,8 @@ public final class OpenapiAsyncCompositeBindingAdapter implements CompositeBindi
         Openapi openapi,
         OpenapiOperation operation,
         String action,
-        String address)
+        String address,
+        boolean includeKey)
     {
         final HttpKafkaWithConfigBuilder<HttpKafkaWithConfig> newWith = HttpKafkaWithConfig.builder();
 
@@ -151,7 +158,7 @@ public final class OpenapiAsyncCompositeBindingAdapter implements CompositeBindi
         case "receive":
             newWith.fetch(HttpKafkaWithFetchConfig.builder()
                 .topic(address)
-                .inject(with -> this.injectHttpKafkaRouteFetchWith(with, openapi, operation))
+                .inject(with -> this.injectHttpKafkaRouteFetchWith(with, openapi, operation, includeKey))
                 .build());
             break;
         case "send":
@@ -170,7 +177,8 @@ public final class OpenapiAsyncCompositeBindingAdapter implements CompositeBindi
     private <C> HttpKafkaWithFetchConfigBuilder<C> injectHttpKafkaRouteFetchWith(
         HttpKafkaWithFetchConfigBuilder<C> fetch,
         Openapi openapi,
-        OpenapiOperation operation)
+        OpenapiOperation operation,
+        boolean includeKey)
     {
         merge:
         for (Map.Entry<String, OpenapiResponseByContentType> response : operation.responses.entrySet())
@@ -181,10 +189,19 @@ public final class OpenapiAsyncCompositeBindingAdapter implements CompositeBindi
             {
                 fetch.merged(HttpKafkaWithFetchMergeConfig.builder()
                     .contentType("application/json")
+                    .initial("[]")
+                    .path("/-")
                     .build());
                 break merge;
             }
 
+            if (includeKey)
+            {
+                fetch.filters(List.of(HttpKafkaWithFetchFilterConfig.builder()
+                    .key("${params.id}")
+                    .headers(emptyList())
+                    .build()));
+            }
         }
         return fetch;
     }
