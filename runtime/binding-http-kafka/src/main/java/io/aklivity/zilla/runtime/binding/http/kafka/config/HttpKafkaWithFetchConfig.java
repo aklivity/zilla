@@ -18,8 +18,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.binding.http.kafka.internal.config.HttpKafkaWithFetchFilterConfig;
-
 public final class HttpKafkaWithFetchConfig
 {
     public final String topic;
