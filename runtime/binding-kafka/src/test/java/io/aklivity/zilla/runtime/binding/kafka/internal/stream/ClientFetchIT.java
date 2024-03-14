@@ -566,4 +566,15 @@ public class ClientFetchIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.when.topic.yaml")
+    @Specification({
+        "${app}/no.message.value/client",
+        "${net}/no.message.value/server"})
+    public void shouldReceiveNoMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
 }
