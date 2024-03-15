@@ -41,6 +41,11 @@ public class TlsEventContext
     private final EventFW.Builder eventRW = new EventFW.Builder();
     private final TlsEventExFW.Builder tlsEventExRW = new TlsEventExFW.Builder();
     private final int tlsTypeId;
+    private final int tlsFailedEventId;
+    private final int tlsProtocolRejectedEventId;
+    private final int tlsKeyRejectedEventId;
+    private final int tlsPeerNotVerifiedEventId;
+    private final int tlsHandshakeFailedEventId;
     private final MessageConsumer eventWriter;
     private final Clock clock;
 
@@ -48,6 +53,11 @@ public class TlsEventContext
         EngineContext context)
     {
         this.tlsTypeId = context.supplyTypeId(TlsBinding.NAME);
+        this.tlsFailedEventId = context.supplyEventId("binding.tls.tls.failed");
+        this.tlsProtocolRejectedEventId = context.supplyEventId("binding.tls.protocol.rejected");
+        this.tlsKeyRejectedEventId = context.supplyEventId("binding.tls.key.rejected");
+        this.tlsPeerNotVerifiedEventId = context.supplyEventId("binding.tls.peer.not.verified");
+        this.tlsHandshakeFailedEventId = context.supplyEventId("binding.tls.handshake.failed");
         this.eventWriter = context.supplyEventWriter();
         this.clock = context.clock();
     }
@@ -64,6 +74,7 @@ public class TlsEventContext
             .build();
         EventFW event = eventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .id(tlsFailedEventId)
             .timestamp(clock.millis())
             .traceId(traceId)
             .namespacedId(bindingId)
@@ -84,6 +95,7 @@ public class TlsEventContext
             .build();
         EventFW event = eventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .id(tlsProtocolRejectedEventId)
             .timestamp(clock.millis())
             .traceId(traceId)
             .namespacedId(bindingId)
@@ -104,6 +116,7 @@ public class TlsEventContext
             .build();
         EventFW event = eventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .id(tlsKeyRejectedEventId)
             .timestamp(clock.millis())
             .traceId(traceId)
             .namespacedId(bindingId)
@@ -124,6 +137,7 @@ public class TlsEventContext
             .build();
         EventFW event = eventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .id(tlsPeerNotVerifiedEventId)
             .timestamp(clock.millis())
             .traceId(traceId)
             .namespacedId(bindingId)
@@ -144,6 +158,7 @@ public class TlsEventContext
             .build();
         EventFW event = eventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .id(tlsHandshakeFailedEventId)
             .timestamp(clock.millis())
             .traceId(traceId)
             .namespacedId(bindingId)

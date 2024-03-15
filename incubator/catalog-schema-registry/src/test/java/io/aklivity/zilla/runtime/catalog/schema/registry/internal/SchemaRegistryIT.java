@@ -106,24 +106,6 @@ public class SchemaRegistryIT
 
     @Test
     @Specification({
-        "${local}/register.schema" })
-    public void shouldRegisterSchema() throws Exception
-    {
-        String schema = "{\"type\": \"record\",\"name\": \"test\",\"fields\":[{\"type\": \"string\",\"name\": \"field1\"}," +
-                "{\"type\": \"com.acme.Referenced\",\"name\": \"int\"}]}";
-
-        SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config, context, 0L);
-
-        int schemaId = catalog.register("items-snapshots-value", "avro", schema);
-
-        k3po.finish();
-
-        assertThat(schemaId, not(nullValue()));
-        assertEquals(schemaId, 1);
-    }
-
-    @Test
-    @Specification({
         "${local}/resolve.schema.via.schema.id" })
     public void shouldResolveSchemaViaSchemaIdFromCache() throws Exception
     {

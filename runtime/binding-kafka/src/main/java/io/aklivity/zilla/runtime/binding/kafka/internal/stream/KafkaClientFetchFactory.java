@@ -2763,6 +2763,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
 
                 doNetworkData(traceId, budgetId, encodeBuffer, encodeOffset, encodeProgress);
 
+                client.decodeRecordBatchLastOffset = nextOffset - 1;
+
                 this.decoder = decodeFetchResponse;
             }
 

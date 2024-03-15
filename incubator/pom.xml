@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>zilla</artifactId>
-    <version>0.9.70</version>
+    <version>0.9.71</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -21,6 +21,7 @@
     <module>binding-asyncapi.spec</module>
     <module>binding-openapi.spec</module>
     <module>binding-openapi-asyncapi.spec</module>
+    <module>catalog-apicurio.spec</module>
     <module>catalog-inline.spec</module>
     <module>catalog-schema-registry.spec</module>
     <module>exporter-otlp.spec</module>
@@ -35,6 +36,7 @@
     <module>binding-openapi</module>
     <module>binding-openapi-asyncapi</module>
 
+    <module>catalog-apicurio</module>
     <module>catalog-inline</module>
     <module>catalog-schema-registry</module>
 
@@ -72,6 +74,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>binding-openapi-asyncapi</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>catalog-apicurio</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

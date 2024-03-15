@@ -22,6 +22,7 @@ telemetry:
       options:
         events:
           - qname: test.catalog0
+            id: catalog.schema.registry.remote.access.rejected
             message: REMOTE_ACCESS_REJECTED GET http://localhost:8081/schemas/ids/0 0
 catalogs:
   catalog0:

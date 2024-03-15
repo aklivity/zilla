@@ -686,4 +686,13 @@ public class FetchIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/no.message.value/client",
+        "${app}/no.message.value/server"})
+    public void shouldReceiveNoMessage() throws Exception
+    {
+        k3po.finish();
+    }
 }

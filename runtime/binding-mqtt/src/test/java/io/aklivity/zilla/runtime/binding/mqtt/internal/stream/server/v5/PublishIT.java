@@ -67,6 +67,16 @@ public class PublishIT
     }
 
     @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.one.message.disconnect/client",
+        "${app}/publish.one.message.properties/server"})
+    public void shouldPublishOneMessageAndDisconnect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.validator.yaml")
     @Specification({
         "${net}/publish.invalid.message/client",

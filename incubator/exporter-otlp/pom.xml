@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>incubator</artifactId>
-    <version>0.9.70</version>
+    <version>0.9.71</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -176,7 +176,8 @@
                 </artifactItem>
               </artifactItems>
               <includes>
-                io/aklivity/zilla/specs/exporter/otlp/application/*,
+                io/aklivity/zilla/specs/exporter/otlp/application/**/*,
+                io/aklivity/zilla/specs/exporter/otlp/network/**/*,
                 io/aklivity/zilla/specs/exporter/otlp/config/*
               </includes>
               <outputDirectory>${project.build.directory}/test-classes</outputDirectory>

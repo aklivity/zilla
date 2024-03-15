@@ -34,7 +34,7 @@ public class OtlpExporterConfigTest
     public void shouldCreateDefaultMetricsUrl()
     {
         // GIVEN
-        OtlpOverridesConfig overrides = new OtlpOverridesConfig(null);
+        OtlpOverridesConfig overrides = new OtlpOverridesConfig(null, null);
         OtlpEndpointConfig endpoint = new OtlpEndpointConfig("http", URI.create("http://example.com"), overrides);
         OtlpOptionsConfig options = new OtlpOptionsConfig(30L, Set.of(METRICS), endpoint);
         ExporterConfig exporter = ExporterConfig.builder()
@@ -47,16 +47,19 @@ public class OtlpExporterConfigTest
 
         // WHEN
         URI metrics = oltpExporter.resolveMetrics();
+        URI logs = oltpExporter.resolveLogs();
 
         // THEN
         assertThat(metrics, equalTo(URI.create("http://example.com/v1/metrics")));
+        assertThat(logs, equalTo(URI.create("http://example.com/v1/logs")));
     }
 
     @Test
     public void shouldOverrideAbsoluteMetricsUrl()
     {
         // GIVEN
-        OtlpOverridesConfig overrides = new OtlpOverridesConfig(URI.create("http://overridden.com/metrics"));
+        OtlpOverridesConfig overrides = new OtlpOverridesConfig(URI.create("http://overridden.com/metrics"),
+            URI.create("http://overridden.com/logs"));
         OtlpEndpointConfig endpoint = new OtlpEndpointConfig("http", URI.create("http://example.com"), overrides);
         OtlpOptionsConfig options = new OtlpOptionsConfig(30L, Set.of(METRICS), endpoint);
         ExporterConfig exporter = ExporterConfig.builder()
@@ -69,16 +72,18 @@ public class OtlpExporterConfigTest
 
         // WHEN
         URI metrics = oltpExporter.resolveMetrics();
+        URI logs = oltpExporter.resolveLogs();
 
         // THEN
         assertThat(metrics, equalTo(URI.create("http://overridden.com/metrics")));
+        assertThat(logs, equalTo(URI.create("http://overridden.com/logs")));
     }
 
     @Test
     public void shouldOverrideRelativeMetricsUrl()
     {
         // GIVEN
-        OtlpOverridesConfig overrides = new OtlpOverridesConfig(URI.create("/v42/metrix"));
+        OtlpOverridesConfig overrides = new OtlpOverridesConfig(URI.create("/v42/metrix"), URI.create("/v42/logz"));
         OtlpEndpointConfig endpoint = new OtlpEndpointConfig("http", URI.create("http://example.com"), overrides);
         OtlpOptionsConfig options = new OtlpOptionsConfig(30L, Set.of(METRICS), endpoint);
         ExporterConfig exporter = ExporterConfig.builder()
@@ -91,8 +96,10 @@ public class OtlpExporterConfigTest
 
         // WHEN
         URI metrics = oltpExporter.resolveMetrics();
+        URI logs = oltpExporter.resolveLogs();
 
         // THEN
         assertThat(metrics, equalTo(URI.create("http://example.com/v42/metrix")));
+        assertThat(logs, equalTo(URI.create("http://example.com/v42/logz")));
     }
 }

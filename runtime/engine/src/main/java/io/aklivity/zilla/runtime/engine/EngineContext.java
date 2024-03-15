@@ -125,6 +125,9 @@ public interface EngineContext
     String supplyQName(
         long namespacedId);
 
+    int supplyEventId(
+        String name);
+
     BindingHandler streamFactory();
 
     GuardHandler supplyGuard(

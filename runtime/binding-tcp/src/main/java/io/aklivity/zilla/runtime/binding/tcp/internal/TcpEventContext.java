@@ -38,6 +38,7 @@ public class TcpEventContext
     private final TcpEventExFW.Builder tcpEventExRW = new TcpEventExFW.Builder();
 
     private final int tcpTypeId;
+    private final int dnsFailedEventId;
     private final MessageConsumer eventWriter;
     private final Clock clock;
 
@@ -45,11 +46,12 @@ public class TcpEventContext
         EngineContext context)
     {
         this.tcpTypeId = context.supplyTypeId(TcpBinding.NAME);
+        this.dnsFailedEventId = context.supplyEventId("binding.tcp.dns.failed");
         this.eventWriter = context.supplyEventWriter();
         this.clock = context.clock();
     }
 
-    public void dnsResolutionFailed(
+    public void dnsFailed(
         long traceId,
         long bindingId,
         String address)
@@ -63,6 +65,7 @@ public class TcpEventContext
             .build();
         EventFW event = eventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .id(dnsFailedEventId)
             .timestamp(clock.millis())
             .traceId(traceId)
             .namespacedId(bindingId)

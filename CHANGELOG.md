@@ -2,12 +2,35 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.69...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.70...HEAD)
+
+**Implemented enhancements:**
+
+- Support `apicurio` as `catalog` for specifications [\#812](https://github.com/aklivity/zilla/issues/812)
+- Support remote logging of events via `otlp` [\#785](https://github.com/aklivity/zilla/issues/785)
+
+**Fixed bugs:**
+
+- Openapi and asyncapi parsers throw a null pointer when a none 0 patch version is used. [\#841](https://github.com/aklivity/zilla/issues/841)
+- mosquitto\_pub qos 0 fails validation with a valid message [\#838](https://github.com/aklivity/zilla/issues/838)
+- Zilla Quickstart gRPC RouteGuide service hangs after lots of messages [\#719](https://github.com/aklivity/zilla/issues/719)
+
+## [0.9.70](https://github.com/aklivity/zilla/tree/0.9.70) (2024-03-07)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.69...0.9.70)
 
 **Fixed bugs:**
 
 - Using parameter expansion in bash doesn't work in the docker containers.  [\#829](https://github.com/aklivity/zilla/issues/829)
 - Zilla crashes when a lot of MQTT clients are connected [\#762](https://github.com/aklivity/zilla/issues/762)
+
+**Merged pull requests:**
+
+- Fix options name, port resolving [\#833](https://github.com/aklivity/zilla/pull/833) ([bmaidics](https://github.com/bmaidics))
+- Stabilize Asyncapi test with race condition [\#832](https://github.com/aklivity/zilla/pull/832) ([bmaidics](https://github.com/bmaidics))
+- Simplify zilla shell script logic for sh on container images [\#831](https://github.com/aklivity/zilla/pull/831) ([jfallows](https://github.com/jfallows))
+- Fix NPE in connection pool due to race condition [\#828](https://github.com/aklivity/zilla/pull/828) ([akrambek](https://github.com/akrambek))
+- Refactoring event logs [\#821](https://github.com/aklivity/zilla/pull/821) ([attilakreiner](https://github.com/attilakreiner))
 
 ## [0.9.69](https://github.com/aklivity/zilla/tree/0.9.69) (2024-03-04)
 
