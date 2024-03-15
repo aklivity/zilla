@@ -14,33 +14,34 @@
  */
 package io.aklivity.zilla.runtime.model.core.internal;
 
-import java.util.function.IntPredicate;
+import java.util.function.LongPredicate;
 
 import org.agrona.DirectBuffer;
 import org.agrona.collections.MutableInteger;
+import org.agrona.collections.MutableLong;
 
 import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
-import io.aklivity.zilla.runtime.model.core.config.Int32ModelConfig;
+import io.aklivity.zilla.runtime.model.core.config.Int64ModelConfig;
 
-public class Int32ValidatorHandler implements ValidatorHandler
+public class Int64ValidatorHandler implements ValidatorHandler
 {
-    private final Int32Format format;
-    private final IntPredicate check;
-    private final MutableInteger decoded;
+    private final Int64Format format;
+    private final LongPredicate check;
+    private final MutableLong decoded;
     private final MutableInteger processed;
 
-    public Int32ValidatorHandler(
-        Int32ModelConfig config)
+    public Int64ValidatorHandler(
+        Int64ModelConfig config)
     {
-        int max = config.max;
-        int min = config.min;
-        IntPredicate checkMax = config.exclusiveMax ? v -> v < max : v -> v <= max;
-        IntPredicate checkMin = config.exclusiveMin ? v -> v > min : v -> v >= min;
-        IntPredicate checkMultiple = v -> v % config.multiple == 0;
+        long max = config.max;
+        long min = config.min;
+        LongPredicate checkMax = config.exclusiveMax ? v -> v < max : v -> v <= max;
+        LongPredicate checkMin = config.exclusiveMin ? v -> v > min : v -> v >= min;
+        LongPredicate checkMultiple = v -> v % config.multiple == 0;
         this.check = checkMax.and(checkMin).and(checkMultiple);
-        this.format = Int32Format.of(config.format);
-        this.decoded = new MutableInteger();
+        this.format = Int64Format.of(config.format);
+        this.decoded = new MutableLong();
         this.processed = new MutableInteger();
     }
 

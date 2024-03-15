@@ -20,9 +20,11 @@ module io.aklivity.zilla.runtime.model.core
 
     provides io.aklivity.zilla.runtime.engine.config.ModelConfigAdapterSpi
         with io.aklivity.zilla.runtime.model.core.internal.config.Int32ModelConfigAdapter,
+            io.aklivity.zilla.runtime.model.core.internal.config.Int64ModelConfigAdapter,
             io.aklivity.zilla.runtime.model.core.internal.config.StringModelConfigAdapter;
 
     provides io.aklivity.zilla.runtime.engine.model.ModelFactorySpi
         with io.aklivity.zilla.runtime.model.core.internal.Int32ModelFactorySpi,
+            io.aklivity.zilla.runtime.model.core.internal.Int64ModelFactorySpi,
             io.aklivity.zilla.runtime.model.core.internal.StringModelFactorySpi;
 }

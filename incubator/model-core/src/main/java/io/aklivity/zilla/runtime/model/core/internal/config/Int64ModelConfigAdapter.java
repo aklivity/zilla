@@ -14,21 +14,20 @@
  */
 package io.aklivity.zilla.runtime.model.core.internal.config;
 
-import static io.aklivity.zilla.runtime.model.core.config.Int32ModelConfig.INT_32;
+import static io.aklivity.zilla.runtime.model.core.config.Int64ModelConfig.INT_64;
 
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
-import jakarta.json.JsonValue.ValueType;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfigAdapterSpi;
-import io.aklivity.zilla.runtime.model.core.config.Int32ModelConfig;
-import io.aklivity.zilla.runtime.model.core.config.Int32ModelConfigBuilder;
+import io.aklivity.zilla.runtime.model.core.config.Int64ModelConfig;
+import io.aklivity.zilla.runtime.model.core.config.Int64ModelConfigBuilder;
 
-public class Int32ModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdapter<ModelConfig, JsonValue>
+public class Int64ModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdapter<ModelConfig, JsonValue>
 {
     private static final String MODEL_NAME = "model";
     private static final String FORMAT_NAME = "format";
@@ -41,19 +40,19 @@ public class Int32ModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdap
     @Override
     public String type()
     {
-        return INT_32;
+        return INT_64;
     }
 
     @Override
     public JsonValue adaptToJson(
         ModelConfig options)
     {
-        Int32ModelConfig config = (Int32ModelConfig) options;
+        Int64ModelConfig config = (Int64ModelConfig) options;
         JsonObjectBuilder builder = Json.createObjectBuilder();
 
-        builder.add(MODEL_NAME, INT_32);
+        builder.add(MODEL_NAME, INT_64);
 
-        if (!config.format.equals(Int32ModelConfigBuilder.DEFAULT_FORMAT))
+        if (!config.format.equals(Int64ModelConfigBuilder.DEFAULT_FORMAT))
         {
             builder.add(FORMAT_NAME, config.format);
         }
@@ -78,7 +77,7 @@ public class Int32ModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdap
             builder.add(EXCLUSIVE_MIN_NAME, config.exclusiveMin);
         }
 
-        if (config.multiple != Int32ModelConfigBuilder.DEFAULT_MULTIPLE)
+        if (config.multiple != Int64ModelConfigBuilder.DEFAULT_MULTIPLE)
         {
             builder.add(MULTIPLE_NAME, config.multiple);
         }
@@ -90,8 +89,8 @@ public class Int32ModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdap
     public ModelConfig adaptFromJson(
         JsonValue value)
     {
-        ValueType valueType = value.getValueType();
-        Int32ModelConfigBuilder<Int32ModelConfig> builder = Int32ModelConfig.builder();
+        JsonValue.ValueType valueType = value.getValueType();
+        Int64ModelConfigBuilder<Int64ModelConfig> builder = Int64ModelConfig.builder();
 
         switch (valueType)
         {
@@ -106,12 +105,12 @@ public class Int32ModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdap
 
             if (object.containsKey(MAX_NAME))
             {
-                builder.max(object.getInt(MAX_NAME));
+                builder.max(object.getJsonNumber(MAX_NAME).longValue());
             }
 
             if (object.containsKey(MIN_NAME))
             {
-                builder.min(object.getInt(MIN_NAME));
+                builder.min(object.getJsonNumber(MIN_NAME).longValue());
             }
 
             if (object.containsKey(EXCLUSIVE_MAX_NAME))
@@ -126,13 +125,12 @@ public class Int32ModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdap
 
             if (object.containsKey(MULTIPLE_NAME))
             {
-                builder.multiple(object.getInt(MULTIPLE_NAME));
+                builder.multiple(object.getJsonNumber(MULTIPLE_NAME).longValue());
             }
             break;
         default:
             throw new IllegalArgumentException("Unexpected type: " + valueType);
         }
-
         return builder.build();
     }
 }

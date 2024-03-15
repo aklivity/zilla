@@ -16,15 +16,16 @@ package io.aklivity.zilla.runtime.model.core.internal;
 
 import org.agrona.DirectBuffer;
 import org.agrona.collections.MutableInteger;
+import org.agrona.collections.MutableLong;
 
-public enum IntegerFormat
+public enum Int64Format
 {
 
     TEXT
     {
         @Override
         public int decode(
-            MutableInteger decoded,
+            MutableLong decoded,
             MutableInteger processed,
             DirectBuffer data,
             int index,
@@ -44,11 +45,11 @@ public enum IntegerFormat
                         switch (digit)
                         {
                         case '-':
-                            decoded.value = Integer.MIN_VALUE;
+                            decoded.value = Long.MIN_VALUE;
                             processed.value++;
                             continue;
                         case '+':
-                            decoded.value = Integer.MAX_VALUE;
+                            decoded.value = Long.MAX_VALUE;
                             processed.value++;
                             continue;
                         default:
@@ -60,22 +61,19 @@ public enum IntegerFormat
                     break;
                 }
 
-                int multipler = 10;
+                long multipler = 10L;
 
                 if (processed.value == 1)
                 {
-                    switch (decoded.value)
+                    if (decoded.value == Long.MIN_VALUE)
                     {
-                    case Integer.MIN_VALUE:
-                        decoded.value = -1;
-                        multipler = 1;
-                        break;
-                    case Integer.MAX_VALUE:
-                        decoded.value = 1;
-                        multipler = 1;
-                        break;
-                    default:
-                        break;
+                        decoded.value = -1L;
+                        multipler = 1L;
+                    }
+                    else if (decoded.value == Long.MAX_VALUE)
+                    {
+                        decoded.value = 1L;
+                        multipler = 1L;
                     }
                 }
 
@@ -88,20 +86,20 @@ public enum IntegerFormat
 
         @Override
         public boolean valid(
-            MutableInteger decoded,
+            MutableLong decoded,
             MutableInteger processed)
         {
-            return processed.value > 1 || decoded.value != Integer.MIN_VALUE || decoded.value != Integer.MAX_VALUE;
+            return processed.value > 1 || decoded.value != Long.MIN_VALUE || decoded.value != Long.MAX_VALUE;
         }
     },
 
     BINARY
     {
-        private static final int INT32_SIZE = 4;
+        private static final int INT64_SIZE = 8;
 
         @Override
         public int decode(
-            MutableInteger decoded,
+            MutableLong decoded,
             MutableInteger processed,
             DirectBuffer data,
             int index,
@@ -114,7 +112,7 @@ public enum IntegerFormat
             {
                 int digit = data.getByte(progress);
 
-                if (processed.value >= INT32_SIZE)
+                if (processed.value >= INT64_SIZE)
                 {
                     progress = INVALID_INDEX;
                     break;
@@ -130,27 +128,27 @@ public enum IntegerFormat
 
         @Override
         public boolean valid(
-            MutableInteger decoded,
+            MutableLong decoded,
             MutableInteger processed)
         {
-            return processed.value == INT32_SIZE;
+            return processed.value == INT64_SIZE;
         }
     };
 
     public static final int INVALID_INDEX = -1;
 
     public abstract int decode(
-        MutableInteger decoded,
+        MutableLong decoded,
         MutableInteger processed,
         DirectBuffer data,
         int index,
         int length);
 
     public abstract boolean valid(
-        MutableInteger decoded,
+        MutableLong decoded,
         MutableInteger processed);
 
-    public static IntegerFormat of(
+    public static Int64Format of(
         String format)
     {
         switch (format)
