@@ -1,5 +1,20 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.70...HEAD)
+
+**Implemented enhancements:**
+
+- Support `apicurio` as `catalog` for specifications [\#812](https://github.com/aklivity/zilla/issues/812)
+- Support remote logging of events via `otlp` [\#785](https://github.com/aklivity/zilla/issues/785)
+
+**Fixed bugs:**
+
+- Openapi and asyncapi parsers throw a null pointer when a none 0 patch version is used. [\#841](https://github.com/aklivity/zilla/issues/841)
+- mosquitto\_pub qos 0 fails validation with a valid message [\#838](https://github.com/aklivity/zilla/issues/838)
+- Zilla Quickstart gRPC RouteGuide service hangs after lots of messages [\#719](https://github.com/aklivity/zilla/issues/719)
+
 ## [0.9.70](https://github.com/aklivity/zilla/tree/0.9.70) (2024-03-07)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.69...0.9.70)
