@@ -12,7 +12,9 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.http.kafka.internal.config;
+package io.aklivity.zilla.runtime.binding.http.kafka.config;
+
+import java.util.function.Function;
 
 public final class HttpKafkaWithFetchFilterHeaderConfig
 {
@@ -25,5 +27,16 @@ public final class HttpKafkaWithFetchFilterHeaderConfig
     {
         this.name = name;
         this.value = value;
+    }
+
+    public static HttpKafkaWithFetchFilterHeaderConfigBuilder<HttpKafkaWithFetchFilterHeaderConfig> builder()
+    {
+        return new HttpKafkaWithFetchFilterHeaderConfigBuilder<>(HttpKafkaWithFetchFilterHeaderConfig.class::cast);
+    }
+
+    public static <T> HttpKafkaWithFetchFilterHeaderConfigBuilder<T> builder(
+        Function<HttpKafkaWithFetchFilterHeaderConfig, T> mapper)
+    {
+        return new HttpKafkaWithFetchFilterHeaderConfigBuilder<>(mapper);
     }
 }

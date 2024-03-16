@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.PROXY;
 import static java.util.stream.Collectors.toList;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -30,6 +31,7 @@ import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithConfigBuilder;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchConfigBuilder;
+import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchFilterConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchMergeConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithProduceConfig;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.config.OpenapiAsyncapiOptionsConfig;
@@ -49,8 +51,10 @@ import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
 public final class OpenapiAsyncCompositeBindingAdapter implements CompositeBindingAdapterSpi
 {
     private static final Pattern JSON_CONTENT_TYPE = Pattern.compile("^application/(?:.+\\+)?json$");
+    private static final Pattern PARAMETER_PATTERN = Pattern.compile("\\{([^}]+)\\}");
 
     private final Matcher jsonContentType = JSON_CONTENT_TYPE.matcher("");
+    private final Matcher parameters = PARAMETER_PATTERN.matcher("");
 
     @Override
     public String type()
@@ -119,6 +123,13 @@ public final class OpenapiAsyncCompositeBindingAdapter implements CompositeBindi
                         final AsyncapiChannelView channel = AsyncapiChannelView
                             .of(asyncapi.channels, asyncapiOperation.channel);
 
+                        List<String> paramNames = new ArrayList<>();
+                        Matcher matcher = parameters.reset(item);
+                        while (matcher.find())
+                        {
+                            paramNames.add(parameters.group(1));
+                        }
+
                         binding
                             .route()
                                 .exit(qname)
@@ -127,7 +138,7 @@ public final class OpenapiAsyncCompositeBindingAdapter implements CompositeBindi
                                     .path(item)
                                     .build()
                                 .inject(r -> injectHttpKafkaRouteWith(r, openapi, openapiOperation,
-                                    asyncapiOperation.action, channel.address()))
+                                    asyncapiOperation.action, channel.address(), paramNames))
                                 .build();
                     }
                 }
@@ -142,7 +153,8 @@ public final class OpenapiAsyncCompositeBindingAdapter implements CompositeBindi
         Openapi openapi,
         OpenapiOperation operation,
         String action,
-        String address)
+        String address,
+        List<String> paramNames)
     {
         final HttpKafkaWithConfigBuilder<HttpKafkaWithConfig> newWith = HttpKafkaWithConfig.builder();
 
@@ -151,7 +163,7 @@ public final class OpenapiAsyncCompositeBindingAdapter implements CompositeBindi
         case "receive":
             newWith.fetch(HttpKafkaWithFetchConfig.builder()
                 .topic(address)
-                .inject(with -> this.injectHttpKafkaRouteFetchWith(with, openapi, operation))
+                .inject(with -> this.injectHttpKafkaRouteFetchWith(with, openapi, operation, paramNames))
                 .build());
             break;
         case "send":
@@ -170,7 +182,8 @@ public final class OpenapiAsyncCompositeBindingAdapter implements CompositeBindi
     private <C> HttpKafkaWithFetchConfigBuilder<C> injectHttpKafkaRouteFetchWith(
         HttpKafkaWithFetchConfigBuilder<C> fetch,
         Openapi openapi,
-        OpenapiOperation operation)
+        OpenapiOperation operation,
+        List<String> paramNames)
     {
         merge:
         for (Map.Entry<String, OpenapiResponseByContentType> response : operation.responses.entrySet())
@@ -181,11 +194,20 @@ public final class OpenapiAsyncCompositeBindingAdapter implements CompositeBindi
             {
                 fetch.merged(HttpKafkaWithFetchMergeConfig.builder()
                     .contentType("application/json")
+                    .initial("[]")
+                    .path("/-")
                     .build());
                 break merge;
             }
-
         }
+
+        if (!paramNames.isEmpty())
+        {
+            fetch.filters(List.of(HttpKafkaWithFetchFilterConfig.builder()
+                .key(String.format("${params.%s}", paramNames.get(0)))
+                .build()));
+        }
+
         return fetch;
     }
 

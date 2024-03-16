@@ -37,6 +37,7 @@ import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchConfig;
+import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchFilterConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchMergeConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithProduceAsyncHeaderConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithProduceConfig;
@@ -129,11 +130,10 @@ public class HttpKafkaWithConfigAdapterTest
         HttpKafkaWithConfig with = HttpKafkaWithConfig.builder()
             .fetch(HttpKafkaWithFetchConfig.builder()
                 .topic("test")
-                .filters(singletonList(new HttpKafkaWithFetchFilterConfig(
-                        "fixed-key",
-                        singletonList(new HttpKafkaWithFetchFilterHeaderConfig(
-                            "tag",
-                            "fixed-tag")))))
+                .filters(singletonList(HttpKafkaWithFetchFilterConfig.builder()
+                    .key("fixed-key")
+                    .header("tag", "fixed-tag")
+                    .build()))
                 .merged(null)
                 .build())
             .build();
