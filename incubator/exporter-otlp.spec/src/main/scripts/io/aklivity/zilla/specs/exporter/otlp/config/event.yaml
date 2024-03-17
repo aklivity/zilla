@@ -27,6 +27,8 @@ telemetry:
                     - logs
                 endpoint:
                     location: http://localhost:4318
+                    overrides:
+                        logs: /v1/logs
 bindings:
     net0:
         type: test

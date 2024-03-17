@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.9.72](https://github.com/aklivity/zilla/tree/0.9.72) (2024-03-17)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.71...0.9.72)
+
+**Merged pull requests:**
+
+- Log http access event before validation in both http/1.1 and h2 [\#856](https://github.com/aklivity/zilla/pull/856) ([jfallows](https://github.com/jfallows))
+- Fail when failed to acquire budget index [\#855](https://github.com/aklivity/zilla/pull/855) ([bmaidics](https://github.com/bmaidics))
+- Conditionally release buffer slot on clean up [\#854](https://github.com/aklivity/zilla/pull/854) ([akrambek](https://github.com/akrambek))
+- Fix exporter-otlp schema [\#852](https://github.com/aklivity/zilla/pull/852) ([attilakreiner](https://github.com/attilakreiner))
+
 ## [0.9.71](https://github.com/aklivity/zilla/tree/0.9.71) (2024-03-15)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.70...0.9.71)

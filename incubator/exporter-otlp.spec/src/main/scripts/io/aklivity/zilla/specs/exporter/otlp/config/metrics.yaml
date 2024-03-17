@@ -31,6 +31,8 @@ telemetry:
                     - metrics
                 endpoint:
                     location: http://localhost:4318
+                    overrides:
+                        metrics: /v1/metrics
 bindings:
     net0:
         type: test
