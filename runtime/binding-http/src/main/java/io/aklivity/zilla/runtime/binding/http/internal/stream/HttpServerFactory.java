@@ -2260,6 +2260,8 @@ public final class HttpServerFactory implements HttpStreamFactory
             HttpBeginExFW beginEx,
             HttpRequestType requestType)
         {
+            event.requestAccepted(traceId, originId, guard, authorization, beginEx.headers());
+
             final HttpExchange exchange = new HttpExchange(originId, routedId, authorization,
                 traceId, policy, origin, requestType);
             boolean headersValid = exchange.validateHeaders(beginEx);
@@ -2271,7 +2273,6 @@ public final class HttpServerFactory implements HttpStreamFactory
                 final HttpHeaderFW connection = beginEx.headers().matchFirst(h -> HEADER_CONNECTION.equals(h.name()));
                 exchange.responseClosing = connection != null && connectionClose.reset(connection.value().asString()).matches();
 
-                event.requestAccepted(traceId, originId, guard, authorization, beginEx.headers());
                 this.exchange = exchange;
             }
             return headersValid;
