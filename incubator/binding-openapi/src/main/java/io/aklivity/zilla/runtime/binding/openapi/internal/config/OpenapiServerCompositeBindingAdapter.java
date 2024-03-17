@@ -118,7 +118,7 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
                     .inject(b -> this.injectPlainTcpRoute(b, httpPorts, secure))
                     .inject(b -> this.injectTlsTcpRoute(b, httpsPorts, secure))
                     .build()
-                .inject(n -> this.injectTlsServer(n, tlsOption, secure))
+                .inject(n -> this.injectTlsServer(n, binding.qvault, tlsOption, secure))
                 .binding()
                     .name("http_server0")
                     .type("http")
@@ -174,6 +174,7 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
 
     private <C> NamespaceConfigBuilder<C> injectTlsServer(
         NamespaceConfigBuilder<C> namespace,
+        String vault,
         TlsOptionsConfig tls,
         boolean secure)
     {
@@ -185,7 +186,7 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
                     .type("tls")
                     .kind(SERVER)
                     .options(tls)
-                    .vault("server")
+                    .vault(vault)
                     .exit("http_server0")
                     .build();
         }
