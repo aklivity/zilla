@@ -2339,8 +2339,13 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             {
                 willRetainProducer.doKafkaEnd(traceId, authorization);
             }
-            bufferPool.release(dataSlot);
-            dataSlot = NO_SLOT;
+
+            if (dataSlot != NO_SLOT)
+            {
+                bufferPool.release(dataSlot);
+                dataSlot = NO_SLOT;
+            }
+
             messageSlotOffset = 0;
         }
     }

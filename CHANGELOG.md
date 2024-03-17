@@ -1,8 +1,8 @@
 # Changelog
 
-## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+## [0.9.71](https://github.com/aklivity/zilla/tree/0.9.71) (2024-03-15)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.70...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.70...0.9.71)
 
 **Implemented enhancements:**
 
@@ -14,6 +14,19 @@
 - Openapi and asyncapi parsers throw a null pointer when a none 0 patch version is used. [\#841](https://github.com/aklivity/zilla/issues/841)
 - mosquitto\_pub qos 0 fails validation with a valid message [\#838](https://github.com/aklivity/zilla/issues/838)
 - Zilla Quickstart gRPC RouteGuide service hangs after lots of messages [\#719](https://github.com/aklivity/zilla/issues/719)
+
+**Merged pull requests:**
+
+- Add key filter support in openapi asyncapi mapping [\#851](https://github.com/aklivity/zilla/pull/851) ([akrambek](https://github.com/akrambek))
+- Support verbose output of internally generated composite namespaces [\#850](https://github.com/aklivity/zilla/pull/850) ([jfallows](https://github.com/jfallows))
+- Use correct offset when response has no record set [\#849](https://github.com/aklivity/zilla/pull/849) ([akrambek](https://github.com/akrambek))
+- Fix binding metadata for composite bindings [\#847](https://github.com/aklivity/zilla/pull/847) ([attilakreiner](https://github.com/attilakreiner))
+- CacheProduceIT.shouldRejectMessageValues nondeterministic failure fix [\#845](https://github.com/aklivity/zilla/pull/845) ([aDaemonThread](https://github.com/aDaemonThread))
+- Implement JoinGroup request as first class stream [\#844](https://github.com/aklivity/zilla/pull/844) ([akrambek](https://github.com/akrambek))
+- Fix patch detection in openapi and asyncapi [\#843](https://github.com/aklivity/zilla/pull/843) ([akrambek](https://github.com/akrambek))
+- Fix mosquitto\_pub fails validation with a valid message [\#840](https://github.com/aklivity/zilla/pull/840) ([bmaidics](https://github.com/bmaidics))
+- Add event logs to open telemetry exporter [\#839](https://github.com/aklivity/zilla/pull/839) ([attilakreiner](https://github.com/attilakreiner))
+- Add Apicurio catalog [\#827](https://github.com/aklivity/zilla/pull/827) ([bmaidics](https://github.com/bmaidics))
 
 ## [0.9.70](https://github.com/aklivity/zilla/tree/0.9.70) (2024-03-07)
 
