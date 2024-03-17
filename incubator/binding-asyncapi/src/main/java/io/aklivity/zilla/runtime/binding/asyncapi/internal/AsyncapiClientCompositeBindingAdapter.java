@@ -25,6 +25,7 @@ import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 
 public class AsyncapiClientCompositeBindingAdapter extends AsyncapiCompositeBindingAdapter implements CompositeBindingAdapterSpi
 {
+
     @Override
     public String type()
     {
@@ -43,6 +44,7 @@ public class AsyncapiClientCompositeBindingAdapter extends AsyncapiCompositeBind
         AsyncapiServerView firstServer = AsyncapiServerView.of(asyncapi.servers.entrySet().iterator().next().getValue());
         this.qname = binding.qname;
         this.qvault = binding.qvault;
+        this.vault = binding.vault;
         this.protocol = resolveProtocol(firstServer.protocol(), options);
         this.isTlsEnabled = protocol.isSecure();
 
@@ -81,7 +83,7 @@ public class AsyncapiClientCompositeBindingAdapter extends AsyncapiCompositeBind
                     .type("tls")
                     .kind(CLIENT)
                     .options(options.tls)
-                    .vault(qvault)
+                    .vault(String.format("%s:%s", qname, vault))
                     .exit("tcp_client0")
                     .build();
         }

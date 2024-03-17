@@ -51,7 +51,7 @@ public class AsyncapiCompositeBindingAdapter
     protected AsyncapiProtocol protocol;
     protected String qname;
     protected String qvault;
-
+    protected String vault;
 
     protected AsyncapiProtocol resolveProtocol(
         String protocolName,
