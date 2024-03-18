@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.registry;
 
+import static java.util.stream.Collectors.toList;
+
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Collection;
@@ -190,9 +192,14 @@ public class EngineManager
 
             engine = reader.read(configText);
 
+            final List<GuardConfig> guards = engine.namespaces.stream()
+                .map(n -> n.guards)
+                .flatMap(gs -> gs.stream())
+                .collect(toList());
+
             for (NamespaceConfig namespace : engine.namespaces)
             {
-                process(namespace, namespaceReadURL);
+                process(guards, namespace, namespaceReadURL);
             }
 
             if (config.verboseComposites())
@@ -212,6 +219,7 @@ public class EngineManager
     }
 
     private void process(
+        List<GuardConfig> guards,
         NamespaceConfig namespace,
         Function<String, String> readURL)
     {
@@ -291,14 +299,14 @@ public class EngineManager
                     {
                         guarded.id = resolver.resolve(guarded.name);
 
-                        LongPredicate authorizer = namespace.guards.stream()
+                        LongPredicate authorizer = guards.stream()
                             .filter(g -> g.id == guarded.id)
                             .findFirst()
                             .map(g -> guardByType.apply(g.type))
                             .map(g -> g.verifier(EngineWorker::indexOfId, guarded))
                             .orElse(session -> false);
 
-                        LongFunction<String> identifier = namespace.guards.stream()
+                        LongFunction<String> identifier = guards.stream()
                             .filter(g -> g.id == guarded.id)
                             .findFirst()
                             .map(g -> guardByType.apply(g.type))
@@ -306,6 +314,7 @@ public class EngineManager
                             .orElse(session -> null);
 
                         guarded.identity = identifier;
+                        guarded.qname = resolver.format(guarded.id);
 
                         route.authorized = route.authorized.and(authorizer);
                     }
@@ -335,7 +344,7 @@ public class EngineManager
 
             for (NamespaceConfig composite : binding.composites)
             {
-                process(composite, readURL);
+                process(guards, composite, readURL);
             }
 
             long affinity = tuning.affinity(binding.id);

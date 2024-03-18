@@ -25,6 +25,7 @@ public class GuardedConfig
 {
     public transient long id;
     public transient LongFunction<String> identity;
+    public transient String qname;
 
     public final String name;
     public final List<String> roles;

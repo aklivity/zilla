@@ -50,8 +50,9 @@ public class AsyncapiCompositeBindingAdapter
     protected boolean isTlsEnabled;
     protected AsyncapiProtocol protocol;
     protected String qname;
+    protected String namespace;
     protected String qvault;
-
+    protected String vault;
 
     protected AsyncapiProtocol resolveProtocol(
         String protocolName,
