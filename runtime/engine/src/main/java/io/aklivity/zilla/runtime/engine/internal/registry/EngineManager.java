@@ -306,6 +306,7 @@ public class EngineManager
                             .orElse(session -> null);
 
                         guarded.identity = identifier;
+                        guarded.qname = resolver.format(guarded.id);
 
                         route.authorized = route.authorized.and(authorizer);
                     }
