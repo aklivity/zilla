@@ -16,10 +16,14 @@
 
 ---
 name: test
+vaults:
+  test0:
+    type: test
 bindings:
   asyncapi0:
     type: asyncapi
     kind: client
+    vault: test0
     options:
       specs:
         kafka_api: kafka/asyncapi.yaml

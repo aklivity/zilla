@@ -26,7 +26,7 @@ defaultContentType: application/json
 servers:
   scram-connections:
     host: 'test.mykafkacluster.org:18092'
-    protocol: kafka
+    protocol: kafka-secure
     description: Test broker secured with scramSha256
     security:
       - $ref: '#/components/securitySchemes/saslScram'

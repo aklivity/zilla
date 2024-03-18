@@ -43,6 +43,7 @@ public class AsyncapiClientCompositeBindingAdapter extends AsyncapiCompositeBind
         //TODO: add composite for all servers
         AsyncapiServerView firstServer = AsyncapiServerView.of(asyncapi.servers.entrySet().iterator().next().getValue());
         this.qname = binding.qname;
+        this.namespace = binding.namespace;
         this.qvault = binding.qvault;
         this.vault = binding.vault;
         this.protocol = resolveProtocol(firstServer.protocol(), options);
@@ -83,7 +84,7 @@ public class AsyncapiClientCompositeBindingAdapter extends AsyncapiCompositeBind
                     .type("tls")
                     .kind(CLIENT)
                     .options(options.tls)
-                    .vault(String.format("%s:%s", qname, vault))
+                    .vault(String.format("%s:%s", this.namespace, vault))
                     .exit("tcp_client0")
                     .build();
         }
