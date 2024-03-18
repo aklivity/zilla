@@ -70,7 +70,7 @@ public class AsyncapiHttpProtocol extends AsyncapiProtocol
         this.authorizationHeader = resolveAuthorizationHeader();
         this.isJwtEnabled = !securitySchemes.isEmpty();
         final HttpOptionsConfig httpOptions = options.http;
-        this.guardName = httpOptions != null ? httpOptions.authorization.name : null;
+        this.guardName = httpOptions != null ? String.format("%s:%s", qname, httpOptions.authorization.name) : null;
         this.authorization = httpOptions != null ?  httpOptions.authorization : null;
     }
 
