@@ -102,6 +102,7 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
         final boolean secure = httpsPorts != null;
         final Map<String, String> securitySchemes = resolveSecuritySchemes(openApi);
         final boolean hasJwt = !securitySchemes.isEmpty();
+        binding.qvault = String.format("%s:%s", binding.namespace, binding.vault);
 
         return BindingConfig.builder(binding)
             .composite()
@@ -337,7 +338,7 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
         Map<String, String> securitySchemes)
     {
         final List<Map<String, List<String>>> security = path.methods().get(method).security;
-        final boolean hasJwt = securitySchemes.isEmpty();
+        final boolean hasJwt = !securitySchemes.isEmpty();
 
         if (security != null)
         {
