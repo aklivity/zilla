@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.model.core.internal;
 
+import static io.aklivity.zilla.runtime.engine.model.ValidatorHandler.FLAGS_FIN;
+
 import org.agrona.DirectBuffer;
 import org.agrona.collections.MutableInteger;
 import org.agrona.collections.MutableLong;
@@ -27,6 +29,7 @@ public enum Int64Format
         public int decode(
             MutableLong decoded,
             MutableInteger processed,
+            int flags,
             DirectBuffer data,
             int index,
             int length)
@@ -37,6 +40,12 @@ public enum Int64Format
             for (; progress < limit; progress++)
             {
                 int digit = data.getByte(progress);
+
+                if ((flags & FLAGS_FIN) != 0x00 && progress == limit - 1 && digit == 'L')
+                {
+                    processed.value++;
+                    break;
+                }
 
                 if (digit < '0' || '9' < digit)
                 {
@@ -67,17 +76,23 @@ public enum Int64Format
                 {
                     if (decoded.value == Long.MIN_VALUE)
                     {
-                        decoded.value = -1L;
-                        multipler = 1L;
+                        decoded.value = -1L * (digit - '0');
                     }
                     else if (decoded.value == Long.MAX_VALUE)
                     {
-                        decoded.value = 1L;
-                        multipler = 1L;
+                        decoded.value = digit - '0';
+                    }
+                    else
+                    {
+                        decoded.value = decoded.value * multipler + (digit - '0');
                     }
                 }
-
-                decoded.value = decoded.value * multipler + (digit - '0');
+                else
+                {
+                    decoded.value = decoded.value < 0
+                        ? decoded.value * multipler - (digit - '0')
+                        : decoded.value * multipler + (digit - '0');
+                }
                 processed.value++;
             }
 
@@ -101,6 +116,7 @@ public enum Int64Format
         public int decode(
             MutableLong decoded,
             MutableInteger processed,
+            int flags,
             DirectBuffer data,
             int index,
             int length)
@@ -140,6 +156,7 @@ public enum Int64Format
     public abstract int decode(
         MutableLong decoded,
         MutableInteger processed,
+        int flags,
         DirectBuffer data,
         int index,
         int length);

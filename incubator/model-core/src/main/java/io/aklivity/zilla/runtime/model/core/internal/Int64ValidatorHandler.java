@@ -58,9 +58,9 @@ public class Int64ValidatorHandler implements ValidatorHandler
             decoded.value = 0;
             processed.value = 0;
         }
-        int progress = format.decode(decoded, processed, data, index, length);
+        int progress = format.decode(decoded, processed, flags, data, index, length);
         boolean valid = progress != Int32Format.INVALID_INDEX;
-        if ((flags & FLAGS_FIN) != 0x00)
+        if ((flags & FLAGS_FIN) != 0x00 && valid)
         {
             valid &= format.valid(decoded, processed);
             valid &= check.test(decoded.value);

@@ -67,19 +67,22 @@ public enum Int32Format
                     switch (decoded.value)
                     {
                     case Integer.MIN_VALUE:
-                        decoded.value = -1;
-                        multipler = 1;
+                        decoded.value = -1 * (digit - '0');
                         break;
                     case Integer.MAX_VALUE:
-                        decoded.value = 1;
-                        multipler = 1;
+                        decoded.value = digit - '0';
                         break;
                     default:
+                        decoded.value = decoded.value * multipler + (digit - '0');
                         break;
                     }
                 }
-
-                decoded.value = decoded.value * multipler + (digit - '0');
+                else
+                {
+                    decoded.value = decoded.value < 0
+                        ? decoded.value * multipler - (digit - '0')
+                        : decoded.value * multipler + (digit - '0');
+                }
                 processed.value++;
             }
 

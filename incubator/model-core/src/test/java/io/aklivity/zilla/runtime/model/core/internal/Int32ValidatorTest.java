@@ -64,7 +64,20 @@ public class Int32ValidatorTest
         Int32ValidatorHandler handler = new Int32ValidatorHandler(config);
         DirectBuffer data = new UnsafeBuffer();
 
-        String payload = "8449999";
+        String payload = "+8449999";
+        byte[] bytes = payload.getBytes();
+        data.wrap(bytes, 0, bytes.length);
+        assertTrue(handler.validate(ValidatorHandler.FLAGS_COMPLETE, data, 0, data.capacity(), ValueConsumer.NOP));
+    }
+
+    @Test
+    public void shouldVerifyValidSignedAsciiIntegerCompleteMessage()
+    {
+        Int32ModelConfig config = Int32ModelConfig.builder().build();
+        Int32ValidatorHandler handler = new Int32ValidatorHandler(config);
+        DirectBuffer data = new UnsafeBuffer();
+
+        String payload = "-99";
         byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
         assertTrue(handler.validate(ValidatorHandler.FLAGS_COMPLETE, data, 0, data.capacity(), ValueConsumer.NOP));
