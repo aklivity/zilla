@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.9.74](https://github.com/aklivity/zilla/tree/0.9.74) (2024-03-19)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.73...0.9.74)
+
+**Merged pull requests:**
+
+- Fix http header value offset [\#865](https://github.com/aklivity/zilla/pull/865) ([akrambek](https://github.com/akrambek))
+- Support non-404 status codes on authorization failure [\#864](https://github.com/aklivity/zilla/pull/864) ([jfallows](https://github.com/jfallows))
+
 ## [0.9.73](https://github.com/aklivity/zilla/tree/0.9.73) (2024-03-18)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.72...0.9.73)
