@@ -65,7 +65,7 @@ public final class OpenapiClientCompositeBindingAdapter extends OpenapiComposite
         return BindingConfig.builder(binding)
             .composite()
                 .name(String.format(binding.qname, "$composite"))
-                .inject(this::injectNamespaceMetric)
+                .inject(n -> this.injectNamespaceMetric(n, !metricRefs.isEmpty()))
                 .binding()
                     .name("http_client0")
                     .type("http")

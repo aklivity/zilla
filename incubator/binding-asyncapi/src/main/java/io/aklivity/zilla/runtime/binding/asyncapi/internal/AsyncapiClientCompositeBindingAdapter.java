@@ -58,7 +58,7 @@ public class AsyncapiClientCompositeBindingAdapter extends AsyncapiCompositeBind
         return BindingConfig.builder(binding)
             .composite()
                 .name(String.format("%s.%s", qname, "$composite"))
-                .inject(this::injectNamespaceMetric)
+                .inject(n -> this.injectNamespaceMetric(n, !metricRefs.isEmpty()))
                 .inject(n -> this.injectCatalog(n, asyncapi))
                 .inject(n -> protocol.injectProtocolClientCache(n, metricRefs))
                 .binding()

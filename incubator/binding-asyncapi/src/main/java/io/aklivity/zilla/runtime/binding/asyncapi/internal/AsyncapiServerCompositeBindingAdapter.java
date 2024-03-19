@@ -63,7 +63,7 @@ public class AsyncapiServerCompositeBindingAdapter extends AsyncapiCompositeBind
         return BindingConfig.builder(binding)
             .composite()
                 .name(String.format("%s/%s", qname, protocol.scheme))
-                .inject(this::injectNamespaceMetric)
+                .inject(n -> this.injectNamespaceMetric(n, !metricRefs.isEmpty()))
                 .inject(n -> this.injectCatalog(n, asyncapi))
                 .binding()
                     .name("tcp_server0")

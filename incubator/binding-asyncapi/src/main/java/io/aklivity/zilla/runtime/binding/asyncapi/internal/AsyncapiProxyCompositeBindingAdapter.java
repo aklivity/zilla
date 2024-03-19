@@ -87,7 +87,7 @@ public class AsyncapiProxyCompositeBindingAdapter extends AsyncapiCompositeBindi
         return BindingConfig.builder(binding)
             .composite()
                 .name(String.format("%s/%s", qname, "mqtt-kafka"))
-                .inject(this::injectNamespaceMetric)
+                .inject(n -> this.injectNamespaceMetric(n, !metricRefs.isEmpty()))
                 .binding()
                     .name("mqtt_kafka_proxy0")
                     .type("mqtt-kafka")

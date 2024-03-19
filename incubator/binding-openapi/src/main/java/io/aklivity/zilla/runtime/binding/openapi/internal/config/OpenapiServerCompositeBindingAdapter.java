@@ -88,7 +88,7 @@ public final class OpenapiServerCompositeBindingAdapter extends OpenapiComposite
         return BindingConfig.builder(binding)
             .composite()
                 .name(String.format("%s/http", binding.qname))
-                .inject(this::injectNamespaceMetric)
+                .inject(namespace -> injectNamespaceMetric(namespace, !metricRefs.isEmpty()))
                 .inject(n -> this.injectCatalog(n, openApi))
                 .binding()
                     .name("tcp_server0")
