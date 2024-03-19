@@ -33,5 +33,5 @@ bindings:
             keys:
                 - localhost
             sni:
-                - localhost
+                -
         exit: app0
