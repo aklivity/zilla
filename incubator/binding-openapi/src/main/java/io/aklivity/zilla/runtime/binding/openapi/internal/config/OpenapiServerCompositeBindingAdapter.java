@@ -102,6 +102,7 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
         final boolean secure = httpsPorts != null;
         final Map<String, String> securitySchemes = resolveSecuritySchemes(openApi);
         final boolean hasJwt = !securitySchemes.isEmpty();
+        final String qvault = String.format("%s:%s", binding.namespace, binding.vault);
 
         return BindingConfig.builder(binding)
             .composite()
@@ -118,7 +119,7 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
                     .inject(b -> this.injectPlainTcpRoute(b, httpPorts, secure))
                     .inject(b -> this.injectTlsTcpRoute(b, httpsPorts, secure))
                     .build()
-                .inject(n -> this.injectTlsServer(n, tlsOption, secure))
+                .inject(n -> this.injectTlsServer(n, qvault, tlsOption, secure))
                 .binding()
                     .name("http_server0")
                     .type("http")
@@ -174,6 +175,7 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
 
     private <C> NamespaceConfigBuilder<C> injectTlsServer(
         NamespaceConfigBuilder<C> namespace,
+        String vault,
         TlsOptionsConfig tls,
         boolean secure)
     {
@@ -185,7 +187,7 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
                     .type("tls")
                     .kind(SERVER)
                     .options(tls)
-                    .vault("server")
+                    .vault(vault)
                     .exit("http_server0")
                     .build();
         }
@@ -336,7 +338,7 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
         Map<String, String> securitySchemes)
     {
         final List<Map<String, List<String>>> security = path.methods().get(method).security;
-        final boolean hasJwt = securitySchemes.isEmpty();
+        final boolean hasJwt = !securitySchemes.isEmpty();
 
         if (security != null)
         {

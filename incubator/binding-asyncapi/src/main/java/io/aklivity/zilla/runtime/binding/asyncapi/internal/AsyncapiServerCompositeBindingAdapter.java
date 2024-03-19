@@ -129,7 +129,7 @@ public class AsyncapiServerCompositeBindingAdapter extends AsyncapiCompositeBind
                         .sni(options.tls.sni)
                         .alpn(options.tls.alpn)
                         .build()
-                    .vault(qvault)
+                    .vault(String.format("%s:%s", this.namespace, vault))
                     .exit(String.format("%s_server0", protocol.scheme))
                     .build();
         }

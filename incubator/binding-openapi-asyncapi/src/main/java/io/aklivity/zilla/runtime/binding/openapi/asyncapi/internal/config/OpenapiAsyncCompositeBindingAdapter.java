@@ -167,9 +167,11 @@ public final class OpenapiAsyncCompositeBindingAdapter implements CompositeBindi
                 .build());
             break;
         case "send":
+            String key = !paramNames.isEmpty() ? String.format("${params.%s}", paramNames.get(0)) : "${idempotencyKey}";
             newWith.produce(HttpKafkaWithProduceConfig.builder()
                 .topic(address)
                 .acks("in_sync_replicas")
+                .key(key)
                 .build());
             break;
         }
@@ -190,7 +192,7 @@ public final class OpenapiAsyncCompositeBindingAdapter implements CompositeBindi
         {
             OpenapiSchemaView schema = resolveSchemaForJsonContentType(response.getValue().content, openapi);
 
-            if ("array".equals(schema.getType()))
+            if (schema != null && "array".equals(schema.getType()))
             {
                 fetch.merged(HttpKafkaWithFetchMergeConfig.builder()
                     .contentType("application/json")
