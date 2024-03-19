@@ -14,43 +14,105 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.config;
 
-import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
-import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
-import static java.util.function.UnaryOperator.identity;
 
-import java.util.EnumMap;
+import static java.util.stream.Collectors.toList;
+
+import java.util.List;
 import java.util.Map;
-import java.util.function.UnaryOperator;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-import io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiBinding;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.CompositeBindingAdapterSpi;
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
+import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
+import io.aklivity.zilla.runtime.engine.config.MetricRefConfig;
+import io.aklivity.zilla.runtime.engine.config.ModelConfig;
+import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
+import io.aklivity.zilla.runtime.engine.config.TelemetryRefConfigBuilder;
+import io.aklivity.zilla.runtime.model.core.config.IntegerModelConfig;
+import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
 
-public final class OpenapiCompositeBindingAdapter implements CompositeBindingAdapterSpi
+public abstract class OpenapiCompositeBindingAdapter
 {
-    private final UnaryOperator<BindingConfig> composite;
+    protected static final String INLINE_CATALOG_NAME = "catalog0";
+    protected static final String INLINE_CATALOG_TYPE = "inline";
+    protected static final String VERSION_LATEST = "latest";
+    protected static final Pattern JSON_CONTENT_TYPE = Pattern.compile("^application/(?:.+\\+)?json$");
 
-    @Override
-    public String type()
+    protected final Matcher jsonContentType = JSON_CONTENT_TYPE.matcher("");
+    protected final Map<String, ModelConfig> models = Map.of(
+        "string", StringModelConfig.builder().build(),
+        "integer", IntegerModelConfig.builder().build()
+    );
+
+    protected NamespaceConfigBuilder<BindingConfigBuilder<BindingConfig>> injectNamespaceMetric(
+        NamespaceConfigBuilder<BindingConfigBuilder<BindingConfig>> namespace)
     {
-        return OpenapiBinding.NAME;
+        namespace
+            .telemetry()
+                .metric()
+                    .group("stream")
+                    .name("stream.active.received")
+                    .build()
+                .metric()
+                    .group("stream")
+                    .name("stream.active.sent")
+                    .build()
+                .metric()
+                    .group("stream")
+                    .name("stream.opens.received")
+                    .build()
+                .metric()
+                    .group("stream")
+                    .name("stream.opens.sent")
+                    .build()
+                .metric()
+                    .group("stream")
+                    .name("stream.data.received")
+                    .build()
+                .metric()
+                    .group("stream")
+                    .name("stream.data.sent")
+                    .build()
+                .metric()
+                    .group("stream")
+                    .name("stream.errors.received")
+                    .build()
+                .metric()
+                    .group("stream")
+                    .name("stream.errors.sent")
+                    .build()
+                .metric()
+                    .group("stream")
+                    .name("stream.closes.received")
+                    .build()
+                .metric()
+                    .group("stream")
+                    .name("stream.closes.sent")
+                    .build()
+                .build();
+
+        return namespace;
     }
 
-    public OpenapiCompositeBindingAdapter()
+    protected  <C> BindingConfigBuilder<C> injectMetrics(
+        BindingConfigBuilder<C> binding,
+        List<MetricRefConfig> metricRefs,
+        String protocol)
     {
-        Map<KindConfig, UnaryOperator<BindingConfig>> composites = new EnumMap<>(KindConfig.class);
-        composites.put(SERVER, new OpenapiServerCompositeBindingAdapter()::adapt);
-        composites.put(CLIENT, new OpenapiClientCompositeBindingAdapter()::adapt);
-        UnaryOperator<BindingConfig> composite = binding -> composites
-            .getOrDefault(binding.kind, identity()).apply(binding);
-        this.composite = composite;
+        List<MetricRefConfig> metrics = metricRefs.stream()
+            .filter(m -> m.name.startsWith("stream."))
+            .collect(toList());
+
+        if (!metrics.isEmpty())
+        {
+            final TelemetryRefConfigBuilder<BindingConfigBuilder<C>> telemetry = binding.telemetry();
+            metrics.forEach(telemetry::metric);
+            telemetry.build();
+        }
+
+        return binding;
     }
 
-    @Override
-    public BindingConfig adapt(
-        BindingConfig binding)
-    {
-        return composite.apply(binding);
-    }
+    public abstract BindingConfig adapt(
+        BindingConfig binding);
 }

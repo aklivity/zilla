@@ -15,9 +15,11 @@
 package io.aklivity.zilla.runtime.binding.openapi.internal.config;
 
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
+import static java.util.Collections.emptyList;
 import static java.util.Objects.requireNonNull;
 
 import java.net.URI;
+import java.util.List;
 import java.util.Map;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
@@ -27,7 +29,6 @@ import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfigBuilder;
 import io.aklivity.zilla.runtime.binding.http.config.HttpResponseConfigBuilder;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
-import io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiBinding;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.Openapi;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiHeader;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiResponse;
@@ -41,38 +42,21 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiServerView
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.CompositeBindingAdapterSpi;
+import io.aklivity.zilla.runtime.engine.config.MetricRefConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
-import io.aklivity.zilla.runtime.model.core.config.IntegerModelConfig;
-import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
 import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
-public final class OpenapiClientCompositeBindingAdapter implements CompositeBindingAdapterSpi
+public final class OpenapiClientCompositeBindingAdapter extends OpenapiCompositeBindingAdapter
 {
-    private static final String INLINE_CATALOG_NAME = "catalog0";
-
-    private final Map<String, ModelConfig> models = Map.of(
-        "string", StringModelConfig.builder().build(),
-        "integer", IntegerModelConfig.builder().build()
-    );
-
-    @Override
-    public String type()
-    {
-        return OpenapiBinding.NAME;
-    }
-
-    public OpenapiClientCompositeBindingAdapter()
-    {
-    }
-
     @Override
     public BindingConfig adapt(
         BindingConfig binding)
     {
-        OpenapiOptionsConfig options = (OpenapiOptionsConfig) binding.options;
-        OpenapiConfig openapiConfig = options.openapis.get(0);
+        final OpenapiOptionsConfig options = (OpenapiOptionsConfig) binding.options;
+        final OpenapiConfig openapiConfig = options.openapis.get(0);
+        final List<MetricRefConfig> metricRefs = binding.telemetryRef != null ?
+            binding.telemetryRef.metricRefs : emptyList();
 
         final Openapi openApi = openapiConfig.openapi;
         final int[] httpsPorts = resolvePortsForScheme(openApi, "https");
@@ -81,19 +65,22 @@ public final class OpenapiClientCompositeBindingAdapter implements CompositeBind
         return BindingConfig.builder(binding)
             .composite()
                 .name(String.format(binding.qname, "$composite"))
+                .inject(this::injectNamespaceMetric)
                 .binding()
                     .name("http_client0")
                     .type("http")
                     .kind(CLIENT)
                     .inject(b -> this.injectHttpClientOptions(b, openApi))
+                    .inject(b -> this.injectMetrics(b, metricRefs, "http"))
                     .exit(secure ? "tls_client0" : "tcp_client0")
                     .build()
-                .inject(b -> this.injectTlsClient(b, options.tls, secure))
+                .inject(b -> this.injectTlsClient(b, options.tls, secure, metricRefs))
                 .binding()
                     .name("tcp_client0")
                     .type("tcp")
                     .kind(CLIENT)
                     .options(options.tcp)
+                    .inject(b -> this.injectMetrics(b, metricRefs, "tcp"))
                     .build()
                 .build()
             .build();
@@ -235,7 +222,8 @@ public final class OpenapiClientCompositeBindingAdapter implements CompositeBind
     private <C> NamespaceConfigBuilder<C> injectTlsClient(
         NamespaceConfigBuilder<C> namespace,
         TlsOptionsConfig tlsConfig,
-        boolean secure)
+        boolean secure,
+        List<MetricRefConfig> metricRefs)
     {
         if (secure)
         {
@@ -246,10 +234,10 @@ public final class OpenapiClientCompositeBindingAdapter implements CompositeBind
                     .kind(CLIENT)
                     .options(tlsConfig)
                     .vault("client")
+                    .inject(b -> injectMetrics(b, metricRefs, "tls"))
                     .exit("tcp_client0")
                     .build();
         }
         return namespace;
     }
-
 }

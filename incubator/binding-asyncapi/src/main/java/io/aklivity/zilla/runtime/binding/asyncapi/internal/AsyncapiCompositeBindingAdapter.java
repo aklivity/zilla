@@ -16,8 +16,10 @@ package io.aklivity.zilla.runtime.binding.asyncapi.internal;
 
 import static com.fasterxml.jackson.dataformat.yaml.YAMLGenerator.Feature.MINIMIZE_QUOTES;
 import static com.fasterxml.jackson.dataformat.yaml.YAMLGenerator.Feature.WRITE_DOC_START_MARKER;
+import static java.util.stream.Collectors.toList;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -36,7 +38,11 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiSchema;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiSchemaView;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineSchemaConfigBuilder;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
+import io.aklivity.zilla.runtime.engine.config.MetricRefConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
+import io.aklivity.zilla.runtime.engine.config.TelemetryRefConfigBuilder;
 
 public class AsyncapiCompositeBindingAdapter
 {
@@ -148,5 +154,74 @@ public class AsyncapiCompositeBindingAdapter
             rethrowUnchecked(ex);
         }
         return result;
+    }
+
+    protected  <C> BindingConfigBuilder<C> injectMetrics(
+        BindingConfigBuilder<C> binding,
+        List<MetricRefConfig> metricRefs,
+        String protocol)
+    {
+        List<MetricRefConfig> metrics = metricRefs.stream()
+            .filter(m -> m.name.startsWith("stream."))
+            .collect(toList());
+
+        if (!metrics.isEmpty())
+        {
+            final TelemetryRefConfigBuilder<BindingConfigBuilder<C>> telemetry = binding.telemetry();
+            metrics.forEach(telemetry::metric);
+            telemetry.build();
+        }
+
+        return binding;
+    }
+
+    protected NamespaceConfigBuilder<BindingConfigBuilder<BindingConfig>> injectNamespaceMetric(
+        NamespaceConfigBuilder<BindingConfigBuilder<BindingConfig>> namespace)
+    {
+        namespace
+            .telemetry()
+                .metric()
+                    .group("stream")
+                    .name("stream.active.received")
+                    .build()
+                .metric()
+                    .group("stream")
+                    .name("stream.active.sent")
+                    .build()
+                .metric()
+                    .group("stream")
+                    .name("stream.opens.received")
+                    .build()
+                .metric()
+                    .group("stream")
+                    .name("stream.opens.sent")
+                    .build()
+                .metric()
+                    .group("stream")
+                    .name("stream.data.received")
+                    .build()
+                .metric()
+                    .group("stream")
+                    .name("stream.data.sent")
+                    .build()
+                .metric()
+                    .group("stream")
+                    .name("stream.errors.received")
+                    .build()
+                .metric()
+                    .group("stream")
+                    .name("stream.errors.sent")
+                    .build()
+                .metric()
+                    .group("stream")
+                    .name("stream.closes.received")
+                    .build()
+                .metric()
+                    .group("stream")
+                    .name("stream.closes.sent")
+                    .build()
+                .build();
+
+        return namespace;
     }
 }

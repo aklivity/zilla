@@ -17,9 +17,11 @@ package io.aklivity.zilla.runtime.binding.asyncapi.internal;
 import static java.util.Objects.requireNonNull;
 
 import java.net.URI;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiMessage;
@@ -28,7 +30,9 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiMessageV
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiServerView;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfigBuilder;
+import io.aklivity.zilla.runtime.engine.config.MetricRefConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
+import io.aklivity.zilla.runtime.engine.config.TelemetryRefConfigBuilder;
 
 public abstract class AsyncapiProtocol
 {
@@ -62,7 +66,8 @@ public abstract class AsyncapiProtocol
         BindingConfigBuilder<C> binding);
 
     public <C> NamespaceConfigBuilder<C> injectProtocolClientCache(
-        NamespaceConfigBuilder<C> namespace)
+        NamespaceConfigBuilder<C> namespace,
+        List<MetricRefConfig> metricRefs)
     {
         return namespace;
     }
@@ -144,5 +149,19 @@ public abstract class AsyncapiProtocol
             }
         }
         return result;
+    }
+
+    protected <C> BindingConfigBuilder<C> injectMetrics(
+        BindingConfigBuilder<C> binding,
+        List<MetricRefConfig> metricRefs,
+        String protocol)
+    {
+        final TelemetryRefConfigBuilder<BindingConfigBuilder<C>> telemetry = binding.telemetry();
+        metricRefs.stream()
+            .filter(m -> m.name.startsWith("stream."))
+            .collect(Collectors.toList())
+            .forEach(m -> telemetry.metric(m));
+        telemetry.build();
+        return binding;
     }
 }
