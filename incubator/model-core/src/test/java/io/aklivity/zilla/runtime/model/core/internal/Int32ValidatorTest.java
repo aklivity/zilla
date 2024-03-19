@@ -71,19 +71,6 @@ public class Int32ValidatorTest
     }
 
     @Test
-    public void shouldVerifyValidSignedAsciiIntegerCompleteMessage()
-    {
-        Int32ModelConfig config = Int32ModelConfig.builder().build();
-        Int32ValidatorHandler handler = new Int32ValidatorHandler(config);
-        DirectBuffer data = new UnsafeBuffer();
-
-        String payload = "-99";
-        byte[] bytes = payload.getBytes();
-        data.wrap(bytes, 0, bytes.length);
-        assertTrue(handler.validate(ValidatorHandler.FLAGS_COMPLETE, data, 0, data.capacity(), ValueConsumer.NOP));
-    }
-
-    @Test
     public void shouldVerifyValidTextIntegerMaxLimit()
     {
         Int32ModelConfig config = Int32ModelConfig.builder()

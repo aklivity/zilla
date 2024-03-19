@@ -17,18 +17,17 @@ package io.aklivity.zilla.runtime.model.core.internal;
 import static io.aklivity.zilla.runtime.engine.model.ValidatorHandler.FLAGS_FIN;
 
 import org.agrona.DirectBuffer;
-import org.agrona.collections.MutableInteger;
-import org.agrona.collections.MutableLong;
 
 public enum Int64Format
 {
 
     TEXT
     {
+        private static final long MULTIPLER = 10L;
+
         @Override
         public int decode(
-            MutableLong decoded,
-            MutableInteger processed,
+            Int64State state,
             int flags,
             DirectBuffer data,
             int index,
@@ -43,57 +42,55 @@ public enum Int64Format
 
                 if ((flags & FLAGS_FIN) != 0x00 && progress == limit - 1 && digit == 'L')
                 {
-                    processed.value++;
+                    state.processed++;
                     break;
                 }
 
                 if (digit < '0' || '9' < digit)
                 {
-                    if (processed.value == 0)
+                    if (state.processed == 0)
                     {
                         switch (digit)
                         {
                         case '-':
-                            decoded.value = Long.MIN_VALUE;
-                            processed.value++;
+                            state.decoded = Long.MIN_VALUE;
+                            state.processed++;
                             continue;
                         case '+':
-                            decoded.value = Long.MAX_VALUE;
-                            processed.value++;
+                            state.decoded = Long.MAX_VALUE;
+                            state.processed++;
                             continue;
                         default:
                             break;
                         }
                     }
-
                     progress = INVALID_INDEX;
                     break;
                 }
 
-                long multipler = 10L;
-
-                if (processed.value == 1)
+                if (state.processed == 1)
                 {
-                    if (decoded.value == Long.MIN_VALUE)
+                    if (state.decoded == Long.MIN_VALUE)
                     {
-                        decoded.value = -1L * (digit - '0');
+                        state.decoded = -1L * (digit - '0');
                     }
-                    else if (decoded.value == Long.MAX_VALUE)
+                    else if (state.decoded == Long.MAX_VALUE)
                     {
-                        decoded.value = digit - '0';
+                        state.decoded = digit - '0';
                     }
                     else
                     {
-                        decoded.value = decoded.value * multipler + (digit - '0');
+                        state.decoded = state.decoded * MULTIPLER + (digit - '0');
                     }
                 }
                 else
                 {
-                    decoded.value = decoded.value < 0
-                        ? decoded.value * multipler - (digit - '0')
-                        : decoded.value * multipler + (digit - '0');
+                    state.decoded *= MULTIPLER;
+                    state.decoded = state.decoded < 0
+                        ? state.decoded - (digit - '0')
+                        : state.decoded + (digit - '0');
                 }
-                processed.value++;
+                state.processed++;
             }
 
             return progress;
@@ -101,10 +98,9 @@ public enum Int64Format
 
         @Override
         public boolean valid(
-            MutableLong decoded,
-            MutableInteger processed)
+            Int64State state)
         {
-            return processed.value > 1 || decoded.value != Long.MIN_VALUE || decoded.value != Long.MAX_VALUE;
+            return state.processed > 1 || state.decoded != Long.MIN_VALUE || state.decoded != Long.MAX_VALUE;
         }
     },
 
@@ -114,8 +110,7 @@ public enum Int64Format
 
         @Override
         public int decode(
-            MutableLong decoded,
-            MutableInteger processed,
+            Int64State state,
             int flags,
             DirectBuffer data,
             int index,
@@ -128,15 +123,15 @@ public enum Int64Format
             {
                 int digit = data.getByte(progress);
 
-                if (processed.value >= INT64_SIZE)
+                if (state.processed >= INT64_SIZE)
                 {
                     progress = INVALID_INDEX;
                     break;
                 }
 
-                decoded.value <<= 8;
-                decoded.value |= digit & 0xFF;
-                processed.value++;
+                state.decoded <<= 8;
+                state.decoded |= digit & 0xFF;
+                state.processed++;
             }
 
             return progress;
@@ -144,26 +139,23 @@ public enum Int64Format
 
         @Override
         public boolean valid(
-            MutableLong decoded,
-            MutableInteger processed)
+            Int64State state)
         {
-            return processed.value == INT64_SIZE;
+            return state.processed == INT64_SIZE;
         }
     };
 
     public static final int INVALID_INDEX = -1;
 
     public abstract int decode(
-        MutableLong decoded,
-        MutableInteger processed,
+        Int64State state,
         int flags,
         DirectBuffer data,
         int index,
         int length);
 
     public abstract boolean valid(
-        MutableLong decoded,
-        MutableInteger processed);
+        Int64State state);
 
     public static Int64Format of(
         String format)

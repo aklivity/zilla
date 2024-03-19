@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.model.core.internal;
 import java.util.function.IntPredicate;
 
 import org.agrona.DirectBuffer;
-import org.agrona.collections.MutableInteger;
 
 import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
@@ -27,8 +26,7 @@ public class Int32ValidatorHandler implements ValidatorHandler
 {
     private final Int32Format format;
     private final IntPredicate check;
-    private final MutableInteger decoded;
-    private final MutableInteger processed;
+    private final Int32State state;
 
     public Int32ValidatorHandler(
         Int32ModelConfig config)
@@ -40,8 +38,7 @@ public class Int32ValidatorHandler implements ValidatorHandler
         IntPredicate checkMultiple = v -> v % config.multiple == 0;
         this.check = checkMax.and(checkMin).and(checkMultiple);
         this.format = Int32Format.of(config.format);
-        this.decoded = new MutableInteger();
-        this.processed = new MutableInteger();
+        this.state = new Int32State();
     }
 
     @Override
@@ -54,15 +51,15 @@ public class Int32ValidatorHandler implements ValidatorHandler
     {
         if ((flags & FLAGS_INIT) != 0x00)
         {
-            decoded.value = 0;
-            processed.value = 0;
+            state.decoded = 0;
+            state.processed = 0;
         }
-        int progress = format.decode(decoded, processed, data, index, length);
+        int progress = format.decode(state, data, index, length);
         boolean valid = progress != Int32Format.INVALID_INDEX;
         if ((flags & FLAGS_FIN) != 0x00 && valid)
         {
-            valid &= format.valid(decoded, processed);
-            valid &= check.test(decoded.value);
+            valid &= format.valid(state);
+            valid &= check.test(state.decoded);
         }
         return valid;
     }

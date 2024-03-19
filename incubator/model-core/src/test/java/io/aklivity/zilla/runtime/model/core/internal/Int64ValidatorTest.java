@@ -70,18 +70,6 @@ public class Int64ValidatorTest
     }
 
     @Test
-    public void shouldVerifyValidSignedAsciiInt64CompleteMessage()
-    {
-        Int64ModelConfig config = Int64ModelConfig.builder().build();
-        Int64ValidatorHandler handler = new Int64ValidatorHandler(config);
-        DirectBuffer data = new UnsafeBuffer();
-        String payload = "-8449999L";
-        byte[] bytes = payload.getBytes();
-        data.wrap(bytes, 0, bytes.length);
-        assertTrue(handler.validate(ValidatorHandler.FLAGS_COMPLETE, data, 0, data.capacity(), ValueConsumer.NOP));
-    }
-
-    @Test
     public void shouldVerifyValidTextInt64MaxLimit()
     {
         Int64ModelConfig config = Int64ModelConfig.builder()

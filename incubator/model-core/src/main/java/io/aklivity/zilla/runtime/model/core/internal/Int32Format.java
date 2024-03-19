@@ -15,17 +15,17 @@
 package io.aklivity.zilla.runtime.model.core.internal;
 
 import org.agrona.DirectBuffer;
-import org.agrona.collections.MutableInteger;
 
 public enum Int32Format
 {
 
     TEXT
     {
+        private static final int MULTIPLER = 10;
+
         @Override
         public int decode(
-            MutableInteger decoded,
-            MutableInteger processed,
+            Int32State state,
             DirectBuffer data,
             int index,
             int length)
@@ -39,17 +39,17 @@ public enum Int32Format
 
                 if (digit < '0' || '9' < digit)
                 {
-                    if (processed.value == 0)
+                    if (state.processed == 0)
                     {
                         switch (digit)
                         {
                         case '-':
-                            decoded.value = Integer.MIN_VALUE;
-                            processed.value++;
+                            state.decoded = Integer.MIN_VALUE;
+                            state.processed++;
                             continue;
                         case '+':
-                            decoded.value = Integer.MAX_VALUE;
-                            processed.value++;
+                            state.decoded = Integer.MAX_VALUE;
+                            state.processed++;
                             continue;
                         default:
                             break;
@@ -60,30 +60,29 @@ public enum Int32Format
                     break;
                 }
 
-                int multipler = 10;
-
-                if (processed.value == 1)
+                if (state.processed == 1)
                 {
-                    switch (decoded.value)
+                    switch (state.decoded)
                     {
                     case Integer.MIN_VALUE:
-                        decoded.value = -1 * (digit - '0');
+                        state.decoded = -1 * (digit - '0');
                         break;
                     case Integer.MAX_VALUE:
-                        decoded.value = digit - '0';
+                        state.decoded = digit - '0';
                         break;
                     default:
-                        decoded.value = decoded.value * multipler + (digit - '0');
+                        state.decoded = state.decoded * MULTIPLER + (digit - '0');
                         break;
                     }
                 }
                 else
                 {
-                    decoded.value = decoded.value < 0
-                        ? decoded.value * multipler - (digit - '0')
-                        : decoded.value * multipler + (digit - '0');
+                    state.decoded *= MULTIPLER;
+                    state.decoded = state.decoded < 0
+                        ? state.decoded - (digit - '0')
+                        : state.decoded + (digit - '0');
                 }
-                processed.value++;
+                state.processed++;
             }
 
             return progress;
@@ -91,10 +90,9 @@ public enum Int32Format
 
         @Override
         public boolean valid(
-            MutableInteger decoded,
-            MutableInteger processed)
+            Int32State state)
         {
-            return processed.value > 1 || decoded.value != Integer.MIN_VALUE || decoded.value != Integer.MAX_VALUE;
+            return state.processed > 1 || state.decoded != Integer.MIN_VALUE || state.decoded != Integer.MAX_VALUE;
         }
     },
 
@@ -104,8 +102,7 @@ public enum Int32Format
 
         @Override
         public int decode(
-            MutableInteger decoded,
-            MutableInteger processed,
+            Int32State state,
             DirectBuffer data,
             int index,
             int length)
@@ -117,15 +114,15 @@ public enum Int32Format
             {
                 int digit = data.getByte(progress);
 
-                if (processed.value >= INT32_SIZE)
+                if (state.processed >= INT32_SIZE)
                 {
                     progress = INVALID_INDEX;
                     break;
                 }
 
-                decoded.value <<= 8;
-                decoded.value |= digit & 0xFF;
-                processed.value++;
+                state.decoded <<= 8;
+                state.decoded |= digit & 0xFF;
+                state.processed++;
             }
 
             return progress;
@@ -133,25 +130,22 @@ public enum Int32Format
 
         @Override
         public boolean valid(
-            MutableInteger decoded,
-            MutableInteger processed)
+            Int32State state)
         {
-            return processed.value == INT32_SIZE;
+            return state.processed == INT32_SIZE;
         }
     };
 
     public static final int INVALID_INDEX = -1;
 
     public abstract int decode(
-        MutableInteger decoded,
-        MutableInteger processed,
+        Int32State state,
         DirectBuffer data,
         int index,
         int length);
 
     public abstract boolean valid(
-        MutableInteger decoded,
-        MutableInteger processed);
+        Int32State state);
 
     public static Int32Format of(
         String format)
