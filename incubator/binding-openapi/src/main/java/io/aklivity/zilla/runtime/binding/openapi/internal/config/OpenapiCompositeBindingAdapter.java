@@ -28,7 +28,7 @@ import io.aklivity.zilla.runtime.engine.config.MetricRefConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.TelemetryRefConfigBuilder;
-import io.aklivity.zilla.runtime.model.core.config.IntegerModelConfig;
+import io.aklivity.zilla.runtime.model.core.config.Int32ModelConfig;
 import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
 
 public abstract class OpenapiCompositeBindingAdapter
@@ -41,7 +41,7 @@ public abstract class OpenapiCompositeBindingAdapter
     protected final Matcher jsonContentType = JSON_CONTENT_TYPE.matcher("");
     protected final Map<String, ModelConfig> models = Map.of(
         "string", StringModelConfig.builder().build(),
-        "integer", IntegerModelConfig.builder().build()
+        "integer", Int32ModelConfig.builder().build()
     );
 
     protected NamespaceConfigBuilder<BindingConfigBuilder<BindingConfig>> injectNamespaceMetric(
