@@ -249,6 +249,7 @@ public final class HttpServerFactory implements HttpStreamFactory
     private static final String16FW STATUS_204 = new String16FW("204");
     private static final String16FW STATUS_304 = new String16FW("304");
     private static final String16FW STATUS_400 = new String16FW("400");
+    private static final String16FW STATUS_401 = new String16FW("401");
     private static final String16FW STATUS_403 = new String16FW("403");
     private static final String16FW STATUS_404 = new String16FW("404");
     private static final String16FW TRANSFER_ENCODING_CHUNKED = new String16FW("chunked");
@@ -404,9 +405,11 @@ public final class HttpServerFactory implements HttpStreamFactory
     private final Array32FW<HttpHeaderFW> headers200;
     private final Array32FW<HttpHeaderFW> headers204;
     private final Array32FW<HttpHeaderFW> headers400;
+    private final Array32FW<HttpHeaderFW> headers401;
     private final Array32FW<HttpHeaderFW> headers403;
     private final Array32FW<HttpHeaderFW> headers404;
     private final DirectBuffer response400;
+    private final DirectBuffer response401;
     private final DirectBuffer response403;
     private final DirectBuffer response404;
 
@@ -583,9 +586,11 @@ public final class HttpServerFactory implements HttpStreamFactory
         this.headers200 = initHeaders(config, STATUS_200);
         this.headers204 = initHeaders(config, STATUS_204);
         this.headers400 = initHeadersEmpty(config, STATUS_400);
+        this.headers401 = initHeaders(config, STATUS_401);
         this.headers403 = initHeaders(config, STATUS_403);
         this.headers404 = initHeadersEmpty(config, STATUS_404);
         this.response400 = initResponse(config, 400, "Bad Request");
+        this.response401 = initResponse(config, 401, "Unauthorized");
         this.response403 = initResponse(config, 403, "Forbidden");
         this.response404 = initResponse(config, 404, "Not Found");
     }
@@ -1053,9 +1058,11 @@ public final class HttpServerFactory implements HttpStreamFactory
                     else
                     {
                         long exchangeAuth = authorization;
+                        String credentialsMatch = null;
+
                         if (guard != null)
                         {
-                            final String credentialsMatch = server.credentials.apply(headers::get);
+                            credentialsMatch = server.credentials.apply(headers::get);
                             if (credentialsMatch != null)
                             {
                                 exchangeAuth = guard.reauthorize(traceId, server.routedId, server.initialId, credentialsMatch);
@@ -1088,7 +1095,9 @@ public final class HttpServerFactory implements HttpStreamFactory
                         }
                         else
                         {
-                            error = response404;
+                            error = guard != null && exchangeAuth == NOT_AUTHORIZED
+                                ? credentialsMatch != null ? response403 : response401
+                                : response404;
                         }
                     }
                 }
@@ -4968,9 +4977,11 @@ public final class HttpServerFactory implements HttpStreamFactory
                     else
                     {
                         long exchangeAuth = authorization;
+                        String credentialsMatch = null;
+
                         if (guard != null)
                         {
-                            final String credentialsMatch = credentials.apply(headers::get);
+                            credentialsMatch = credentials.apply(headers::get);
                             if (credentialsMatch != null)
                             {
                                 exchangeAuth = guard.reauthorize(traceId, routedId, initialId, credentialsMatch);
@@ -4980,7 +4991,11 @@ public final class HttpServerFactory implements HttpStreamFactory
                         final HttpRouteConfig route = binding.resolve(exchangeAuth, headers::get);
                         if (route == null)
                         {
-                            doEncodeHeaders(traceId, authorization, streamId, headers404, true);
+                            Array32FW<HttpHeaderFW> headers40x =
+                                guard != null && exchangeAuth == NOT_AUTHORIZED
+                                    ? credentialsMatch != null ? headers403 : headers401
+                                    : headers404;
+                            doEncodeHeaders(traceId, authorization, streamId, headers40x, true);
                         }
                         else
                         {
