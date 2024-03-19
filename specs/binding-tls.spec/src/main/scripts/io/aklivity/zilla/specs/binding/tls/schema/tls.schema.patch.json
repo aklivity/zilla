@@ -31,7 +31,10 @@
                     {
                         "enum": [ "client", "server", "proxy" ]
                     },
-                    "options": "$defs/binding/tls/options",
+                    "options":
+                    {
+                        "$ref": "#/$defs/options/binding/tls"
+                    },
                     "routes":
                     {
                         "items":
@@ -113,11 +116,9 @@
     },
     {
         "op": "add",
-        "path": "/$defs/binding/tls",
+        "path": "/$defs/options/binding/tls",
         "value":
         {
-            "options":
-            {
                 "properties":
                 {
                     "version":
@@ -183,7 +184,6 @@
                     }
                 },
                 "additionalProperties": false
-            }
         }
     }
 ]
