@@ -12,32 +12,34 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.model.core.config;
+package io.aklivity.zilla.runtime.model.core.internal;
 
-import java.util.function.Function;
+import java.net.URL;
 
-import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
+import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.model.Model;
+import io.aklivity.zilla.runtime.engine.model.ModelContext;
 
-public class IntegerModelConfigBuilder<T> extends ConfigBuilder<T, IntegerModelConfigBuilder<T>>
+public class Int32Model implements Model
 {
-    private final Function<IntegerModelConfig, T> mapper;
+    public static final String NAME = "int32";
 
-    IntegerModelConfigBuilder(
-        Function<IntegerModelConfig, T> mapper)
+    @Override
+    public String name()
     {
-        this.mapper = mapper;
+        return NAME;
     }
 
     @Override
-    @SuppressWarnings("unchecked")
-    protected Class<IntegerModelConfigBuilder<T>> thisType()
+    public ModelContext supply(
+        EngineContext context)
     {
-        return (Class<IntegerModelConfigBuilder<T>>) getClass();
+        return new Int32ModelContext(context);
     }
 
     @Override
-    public T build()
+    public URL type()
     {
-        return mapper.apply(new IntegerModelConfig());
+        return getClass().getResource("schema/int32.schema.patch.json");
     }
 }

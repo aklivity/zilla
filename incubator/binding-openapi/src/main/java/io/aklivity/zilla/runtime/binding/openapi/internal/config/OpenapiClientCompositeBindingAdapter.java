@@ -44,7 +44,7 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.CompositeBindingAdapterSpi;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
-import io.aklivity.zilla.runtime.model.core.config.IntegerModelConfig;
+import io.aklivity.zilla.runtime.model.core.config.Int32ModelConfig;
 import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
 import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
@@ -54,7 +54,7 @@ public final class OpenapiClientCompositeBindingAdapter implements CompositeBind
 
     private final Map<String, ModelConfig> models = Map.of(
         "string", StringModelConfig.builder().build(),
-        "integer", IntegerModelConfig.builder().build()
+        "integer", Int32ModelConfig.builder().build()
     );
 
     @Override

@@ -19,11 +19,11 @@ import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelContext;
 import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
-import io.aklivity.zilla.runtime.model.core.config.IntegerModelConfig;
+import io.aklivity.zilla.runtime.model.core.config.Int32ModelConfig;
 
-public class IntegerModelContext implements ModelContext
+public class Int32ModelContext implements ModelContext
 {
-    public IntegerModelContext(
+    public Int32ModelContext(
         EngineContext context)
     {
     }
@@ -46,12 +46,12 @@ public class IntegerModelContext implements ModelContext
     public ValidatorHandler supplyValidatorHandler(
         ModelConfig config)
     {
-        return new IntegerValidatorHandler(IntegerModelConfig.class.cast(config));
+        return new Int32ValidatorHandler(Int32ModelConfig.class.cast(config));
     }
 
-    private IntegerConverterHandler supply(
+    private Int32ConverterHandler supply(
         ModelConfig config)
     {
-        return new IntegerConverterHandler(IntegerModelConfig.class.cast(config));
+        return new Int32ConverterHandler(Int32ModelConfig.class.cast(config));
     }
 }
