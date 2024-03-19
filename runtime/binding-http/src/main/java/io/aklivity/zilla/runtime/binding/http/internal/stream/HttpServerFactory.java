@@ -6292,7 +6292,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                             {
                                 String16FW value = header.value();
                                 valid.value &=
-                                    validator.validate(value.value(), value.offset(), value.length(), ValueConsumer.NOP);
+                                    validator.validate(value.value(), 0, value.length(), ValueConsumer.NOP);
                             }
                         }
                     });
