@@ -82,6 +82,16 @@ public class AuthorizationIT
     @Test
     @Configuration("server.authorization.credentials.yaml")
     @Specification({
+        "${net}/reject.credentials.missing/client",
+    })
+    public void shouldRejectCredentialsMissing() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.authorization.credentials.yaml")
+    @Specification({
         "${net}/authorize.credentials.cookie/client",
         "${app}/authorize.credentials.cookie/server",
     })
