@@ -29,7 +29,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
-import io.aklivity.zilla.runtime.model.core.config.IntegerModelConfig;
+import io.aklivity.zilla.runtime.model.core.config.Int32ModelConfig;
 import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
 
 public abstract class ConfigGenerator
@@ -42,7 +42,7 @@ public abstract class ConfigGenerator
 
     protected final Map<String, ModelConfig> models = Map.of(
         "string", StringModelConfig.builder().build(),
-        "integer", IntegerModelConfig.builder().build()
+        "integer", Int32ModelConfig.builder().build()
     );
     protected final Matcher jsonContentType = JSON_CONTENT_TYPE.matcher("");
 

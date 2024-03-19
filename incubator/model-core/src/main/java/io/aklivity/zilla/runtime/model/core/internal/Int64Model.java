@@ -16,30 +16,30 @@ package io.aklivity.zilla.runtime.model.core.internal;
 
 import java.net.URL;
 
-import io.aklivity.zilla.runtime.common.feature.Incubating;
-import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.Model;
-import io.aklivity.zilla.runtime.engine.model.ModelFactorySpi;
+import io.aklivity.zilla.runtime.engine.model.ModelContext;
 
-@Incubating
-public class IntegerModelFactorySpi implements ModelFactorySpi
+public class Int64Model implements Model
 {
+    public static final String NAME = "int64";
+
     @Override
-    public String type()
+    public String name()
     {
-        return IntegerModel.NAME;
+        return NAME;
     }
 
     @Override
-    public URL schema()
+    public ModelContext supply(
+        EngineContext context)
     {
-        return getClass().getResource("schema/integer.schema.patch.json");
+        return new Int64ModelContext(context);
     }
 
     @Override
-    public Model create(
-        Configuration config)
+    public URL type()
     {
-        return new IntegerModel();
+        return getClass().getResource("schema/int64.schema.patch.json");
     }
 }

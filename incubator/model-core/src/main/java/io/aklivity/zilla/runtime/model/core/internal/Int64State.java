@@ -14,32 +14,8 @@
  */
 package io.aklivity.zilla.runtime.model.core.internal;
 
-import java.net.URL;
-
-import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.model.Model;
-import io.aklivity.zilla.runtime.engine.model.ModelContext;
-
-public class IntegerModel implements Model
+public final class Int64State
 {
-    public static final String NAME = "integer";
-
-    @Override
-    public String name()
-    {
-        return NAME;
-    }
-
-    @Override
-    public ModelContext supply(
-        EngineContext context)
-    {
-        return new IntegerModelContext(context);
-    }
-
-    @Override
-    public URL type()
-    {
-        return getClass().getResource("schema/integer.schema.patch.json");
-    }
+    public long decoded;
+    public int processed;
 }
