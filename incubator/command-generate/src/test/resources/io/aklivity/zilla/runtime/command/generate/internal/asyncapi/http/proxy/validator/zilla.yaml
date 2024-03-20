@@ -21,7 +21,8 @@ bindings:
         method: GET
         params:
           path:
-            id: string
+            id:
+              model: string
         content:
           model: json
           catalog:

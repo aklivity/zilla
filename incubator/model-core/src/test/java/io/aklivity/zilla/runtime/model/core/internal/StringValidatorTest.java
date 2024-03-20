@@ -42,6 +42,37 @@ public class StringValidatorTest
     }
 
     @Test
+    public void shouldVerifyValidUtf8WithPattern()
+    {
+        StringModelConfig config = StringModelConfig.builder()
+            .encoding("utf_8")
+            .pattern("^[a-zA-Z\\s]+$")
+            .build();
+        StringValidatorHandler handler = new StringValidatorHandler(config);
+        DirectBuffer data = new UnsafeBuffer();
+
+        byte[] bytes = "Hello123".getBytes();
+        data.wrap(bytes, 0, bytes.length);
+        assertFalse(handler.validate(data, 0, data.capacity(), ValueConsumer.NOP));
+    }
+
+    @Test
+    public void shouldVerifyValidUtf8WithInvalidLength()
+    {
+        StringModelConfig config = StringModelConfig.builder()
+            .encoding("utf_8")
+            .minLength(1)
+            .maxLength(10)
+            .build();
+        StringValidatorHandler handler = new StringValidatorHandler(config);
+        DirectBuffer data = new UnsafeBuffer();
+
+        byte[] bytes = "Valid String".getBytes();
+        data.wrap(bytes, 0, bytes.length);
+        assertFalse(handler.validate(data, 0, data.capacity(), ValueConsumer.NOP));
+    }
+
+    @Test
     public void shouldVerifyFragmentedValidUtf8()
     {
         StringModelConfig config = StringModelConfig.builder()
