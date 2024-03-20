@@ -16,7 +16,9 @@ This project includes:
   org.leadpony.justify under The Apache Software License, Version 2.0
   zilla::specs::binding-http.spec under The Apache Software License, Version 2.0
   zilla::specs::binding-proxy.spec under The Apache Software License, Version 2.0
+  zilla::specs::binding-tls.spec under The Apache Software License, Version 2.0
   zilla::specs::engine.spec under The Apache Software License, Version 2.0
+  zilla::specs::vault-filesystem.spec under The Apache Software License, Version 2.0
 
 
 This project also includes code under copyright of the following entities:
