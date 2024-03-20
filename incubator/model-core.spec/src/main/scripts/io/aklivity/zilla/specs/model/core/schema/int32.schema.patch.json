@@ -1,0 +1,132 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/converter/types/enum/-",
+        "value": "int32"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/converter/allOf/-",
+        "value":
+        {
+            "if":
+            {
+                "properties":
+                {
+                    "model":
+                    {
+                        "const": "int32"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "model":
+                    {
+                        "const": "int32"
+                    },
+                    "format":
+                    {
+                        "type": "string",
+                        "enum":
+                        [
+                            "binary",
+                            "text"
+                        ],
+                        "default": "text"
+                    },
+                    "max":
+                    {
+                        "type": "integer"
+                    },
+                    "min":
+                    {
+                        "type": "integer"
+                    },
+                    "exclusiveMax":
+                    {
+                        "type": "boolean",
+                        "default": false
+                    },
+                    "exclusiveMin":
+                    {
+                        "type": "boolean",
+                        "default": false
+                    },
+                    "multiple":
+                    {
+                        "type": "integer"
+                    }
+                },
+                "additionalProperties": false
+            }
+        }
+    },
+    {
+        "op": "add",
+        "path": "/$defs/validator/types/enum/-",
+        "value": "int32"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/validator/allOf/-",
+        "value":
+        {
+            "if":
+            {
+                "properties":
+                {
+                    "model":
+                    {
+                        "const": "int32"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "model":
+                    {
+                        "const": "int32"
+                    },
+                    "format":
+                    {
+                        "type": "string",
+                        "enum":
+                        [
+                            "binary",
+                            "text"
+                        ],
+                        "default": "text"
+                    },
+                    "max":
+                    {
+                        "type": "integer"
+                    },
+                    "min":
+                    {
+                        "type": "integer"
+                    },
+                    "exclusiveMax":
+                    {
+                        "type": "boolean",
+                        "default": false
+                    },
+                    "exclusiveMin":
+                    {
+                        "type": "boolean",
+                        "default": false
+                    },
+                    "multiple":
+                    {
+                        "type": "integer"
+                    }
+                },
+                "additionalProperties": false
+            }
+        }
+    }
+]

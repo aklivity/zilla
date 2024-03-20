@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.9.74](https://github.com/aklivity/zilla/tree/0.9.74) (2024-03-19)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.73...0.9.74)
+
+**Merged pull requests:**
+
+- Fix http header value offset [\#865](https://github.com/aklivity/zilla/pull/865) ([akrambek](https://github.com/akrambek))
+- Support non-404 status codes on authorization failure [\#864](https://github.com/aklivity/zilla/pull/864) ([jfallows](https://github.com/jfallows))
+
+## [0.9.73](https://github.com/aklivity/zilla/tree/0.9.73) (2024-03-18)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.72...0.9.73)
+
+**Merged pull requests:**
+
+- Read buffer pool size from file when readonly [\#863](https://github.com/aklivity/zilla/pull/863) ([jfallows](https://github.com/jfallows))
+- Resolve top level namespace guards in composite namespaces [\#862](https://github.com/aklivity/zilla/pull/862) ([jfallows](https://github.com/jfallows))
+- Openapi bug fixes [\#861](https://github.com/aklivity/zilla/pull/861) ([akrambek](https://github.com/akrambek))
+- Populate guarded qname for composite namespaces [\#860](https://github.com/aklivity/zilla/pull/860) ([jfallows](https://github.com/jfallows))
+- Fix qvault on asyncapi composite binding [\#858](https://github.com/aklivity/zilla/pull/858) ([bmaidics](https://github.com/bmaidics))
+- Support guarded qname for composite namespaces [\#857](https://github.com/aklivity/zilla/pull/857) ([jfallows](https://github.com/jfallows))
+
 ## [0.9.72](https://github.com/aklivity/zilla/tree/0.9.72) (2024-03-17)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.71...0.9.72)

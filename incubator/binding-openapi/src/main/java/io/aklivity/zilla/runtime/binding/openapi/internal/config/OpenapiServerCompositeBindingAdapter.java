@@ -16,14 +16,13 @@ package io.aklivity.zilla.runtime.binding.openapi.internal.config;
 
 import static io.aklivity.zilla.runtime.binding.http.config.HttpPolicyConfig.CROSS_ORIGIN;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
+import static java.util.Collections.emptyList;
 import static java.util.Objects.requireNonNull;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
@@ -38,7 +37,6 @@ import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfigBuilder;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
-import io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiBinding;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.Openapi;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiMediaType;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiOperation;
@@ -55,40 +53,23 @@ import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineSchemaConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.CompositeBindingAdapterSpi;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfigBuilder;
+import io.aklivity.zilla.runtime.engine.config.MetricRefConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
-import io.aklivity.zilla.runtime.model.core.config.IntegerModelConfig;
-import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
 import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
-public final class OpenapiServerCompositeBindingAdapter implements CompositeBindingAdapterSpi
+public final class OpenapiServerCompositeBindingAdapter extends OpenapiCompositeBindingAdapter
 {
-    private static final String INLINE_CATALOG_NAME = "catalog0";
-    private static final String INLINE_CATALOG_TYPE = "inline";
-    private static final String VERSION_LATEST = "latest";
-    private static final Pattern JSON_CONTENT_TYPE = Pattern.compile("^application/(?:.+\\+)?json$");
-
-    private final Matcher jsonContentType = JSON_CONTENT_TYPE.matcher("");
-    private final Map<String, ModelConfig> models = Map.of(
-        "string", StringModelConfig.builder().build(),
-        "integer", IntegerModelConfig.builder().build()
-    );
-
-    @Override
-    public String type()
-    {
-        return OpenapiBinding.NAME;
-    }
-
     @Override
     public BindingConfig adapt(
         BindingConfig binding)
     {
-        OpenapiOptionsConfig options = (OpenapiOptionsConfig) binding.options;
-        OpenapiConfig openapiConfig = options.openapis.get(0);
+        final OpenapiOptionsConfig options = (OpenapiOptionsConfig) binding.options;
+        final OpenapiConfig openapiConfig = options.openapis.get(0);
+        final List<MetricRefConfig> metricRefs = binding.telemetryRef != null ?
+            binding.telemetryRef.metricRefs : emptyList();
 
         final Openapi openApi = openapiConfig.openapi;
         final TlsOptionsConfig tlsOption = options.tls != null ? options.tls : null;
@@ -102,10 +83,12 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
         final boolean secure = httpsPorts != null;
         final Map<String, String> securitySchemes = resolveSecuritySchemes(openApi);
         final boolean hasJwt = !securitySchemes.isEmpty();
+        final String qvault = String.format("%s:%s", binding.namespace, binding.vault);
 
         return BindingConfig.builder(binding)
             .composite()
                 .name(String.format("%s/http", binding.qname))
+                .inject(namespace -> injectNamespaceMetric(namespace, !metricRefs.isEmpty()))
                 .inject(n -> this.injectCatalog(n, openApi))
                 .binding()
                     .name("tcp_server0")
@@ -117,8 +100,9 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
                         .build()
                     .inject(b -> this.injectPlainTcpRoute(b, httpPorts, secure))
                     .inject(b -> this.injectTlsTcpRoute(b, httpsPorts, secure))
+                    .inject(b -> this.injectMetrics(b, metricRefs, "tcp"))
                     .build()
-                .inject(n -> this.injectTlsServer(n, tlsOption, secure))
+                .inject(n -> this.injectTlsServer(n, qvault, tlsOption, secure, metricRefs))
                 .binding()
                     .name("http_server0")
                     .type("http")
@@ -131,6 +115,7 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
                         .inject(r -> this.injectHttpServerRequests(r, openApi))
                         .build()
                     .inject(b -> this.injectHttpServerRoutes(b, openApi, binding.qname, guardName, securitySchemes))
+                    .inject(b -> this.injectMetrics(b, metricRefs, "http"))
                     .build()
                 .build()
             .build();
@@ -174,8 +159,9 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
 
     private <C> NamespaceConfigBuilder<C> injectTlsServer(
         NamespaceConfigBuilder<C> namespace,
+        String vault,
         TlsOptionsConfig tls,
-        boolean secure)
+        boolean secure, List<MetricRefConfig> metricRefs)
     {
         if (secure)
         {
@@ -185,8 +171,9 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
                     .type("tls")
                     .kind(SERVER)
                     .options(tls)
-                    .vault("server")
+                    .vault(vault)
                     .exit("http_server0")
+                    .inject(b -> this.injectMetrics(b, metricRefs, "tls"))
                     .build();
         }
         return namespace;
@@ -336,7 +323,7 @@ public final class OpenapiServerCompositeBindingAdapter implements CompositeBind
         Map<String, String> securitySchemes)
     {
         final List<Map<String, List<String>>> security = path.methods().get(method).security;
-        final boolean hasJwt = securitySchemes.isEmpty();
+        final boolean hasJwt = !securitySchemes.isEmpty();
 
         if (security != null)
         {

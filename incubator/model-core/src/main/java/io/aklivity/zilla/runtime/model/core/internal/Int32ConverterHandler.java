@@ -16,44 +16,27 @@ package io.aklivity.zilla.runtime.model.core.internal;
 
 import org.agrona.DirectBuffer;
 
-import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
+import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
-import io.aklivity.zilla.runtime.model.core.config.IntegerModelConfig;
+import io.aklivity.zilla.runtime.model.core.config.Int32ModelConfig;
 
-public class IntegerValidatorHandler implements ValidatorHandler
+public class Int32ConverterHandler implements ConverterHandler
 {
-    private int pendingBytes;
+    private final Int32ValidatorHandler handler;
 
-    public IntegerValidatorHandler(
-        IntegerModelConfig config)
+    public Int32ConverterHandler(
+        Int32ModelConfig config)
     {
+        this.handler = new Int32ValidatorHandler(config);
     }
 
     @Override
-    public boolean validate(
-        int flags,
+    public int convert(
         DirectBuffer data,
         int index,
         int length,
         ValueConsumer next)
     {
-        boolean valid;
-
-        if ((flags & FLAGS_INIT) != 0x00)
-        {
-            pendingBytes = 4;
-        }
-
-        pendingBytes = pendingBytes - length;
-
-        if ((flags & FLAGS_FIN) != 0x00)
-        {
-            valid = pendingBytes == 0;
-        }
-        else
-        {
-            valid = pendingBytes >= 0;
-        }
-        return valid;
+        return handler.validate(FLAGS_COMPLETE, data, index, length, next) ? length : VALIDATION_FAILURE;
     }
 }

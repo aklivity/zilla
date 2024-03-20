@@ -18,13 +18,16 @@ import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
-import io.aklivity.zilla.runtime.model.core.config.IntegerModelConfig;
+import io.aklivity.zilla.runtime.model.core.config.Int64ModelConfig;
 
-public class IntegerConverterHandler implements ConverterHandler
+public class Int64ConverterHandler implements ConverterHandler
 {
-    public IntegerConverterHandler(
-        IntegerModelConfig config)
+    private final Int64ValidatorHandler handler;
+
+    public Int64ConverterHandler(
+        Int64ModelConfig config)
     {
+        this.handler = new Int64ValidatorHandler(config);
     }
 
     @Override
@@ -34,13 +37,6 @@ public class IntegerConverterHandler implements ConverterHandler
         int length,
         ValueConsumer next)
     {
-        boolean valid = length == 4;
-
-        if (valid)
-        {
-            next.accept(data, index, length);
-        }
-
-        return valid ? length : -1;
+        return handler.validate(FLAGS_COMPLETE, data, index, length, next) ? length : VALIDATION_FAILURE;
     }
 }
