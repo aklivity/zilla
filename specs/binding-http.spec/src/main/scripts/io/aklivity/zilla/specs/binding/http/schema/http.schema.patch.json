@@ -147,7 +147,10 @@
                                     }
                                 ]
                             },
-                            "authorization": "$defs/options/binding/http/authorization",
+                            "authorization":
+                            {
+                                "$ref": "#/$defs/options/binding/http/authorization"
+                            },
                             "overrides":
                             {
                                 "title": "Overrides",

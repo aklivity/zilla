@@ -101,7 +101,10 @@
                                     "pattern": "([^\\:]+):(\\d+)"
                                 }
                             },
-                            "sasl": "$defs/options/binding/kafka/sasl"
+                            "sasl":
+                            {
+                                "$ref": "#/$defs/options/binding/kafka/sasl"
+                            }
                         },
                         "additionalProperties": false
                     },
