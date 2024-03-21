@@ -68,7 +68,7 @@ public class StringValidatorHandler implements ValidatorHandler
 
         boolean valid = encoding.validate(state, flags, data, index, length);
 
-        if (pattern != null &&  (flags & FLAGS_FIN) != 0x00)
+        if (pattern != null && valid && (flags & FLAGS_FIN) != 0x00)
         {
             valid = pattern.matcher(buffer.getStringWithoutLengthUtf8(0, state.length)).matches();
         }
