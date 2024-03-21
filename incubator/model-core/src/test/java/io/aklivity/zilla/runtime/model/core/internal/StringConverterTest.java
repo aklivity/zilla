@@ -39,7 +39,7 @@ public class StringConverterTest
 
         byte[] bytes = "Valid String".getBytes();
         data.wrap(bytes, 0, bytes.length);
-        assertEquals(data.capacity(), converter.convert(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertEquals(data.capacity(), converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -54,7 +54,7 @@ public class StringConverterTest
 
         byte[] bytes = {(byte) 0xc0};
         data.wrap(bytes, 0, bytes.length);
-        assertEquals(-1, converter.convert(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertEquals(-1, converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -70,7 +70,7 @@ public class StringConverterTest
         byte[] bytes = "Valid String".getBytes(StandardCharsets.UTF_16);
         data.wrap(bytes, 0, bytes.length);
 
-        assertEquals(data.capacity(), converter.convert(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertEquals(data.capacity(), converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -85,7 +85,7 @@ public class StringConverterTest
 
         byte[] bytes = {0x48};
         data.wrap(bytes, 0, bytes.length);
-        assertEquals(-1, converter.convert(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertEquals(-1, converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -100,7 +100,7 @@ public class StringConverterTest
 
         byte[] bytes = {(byte) 0xD8, (byte) 0x00};
         data.wrap(bytes, 0, bytes.length);
-        assertEquals(-1, converter.convert(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertEquals(-1, converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -115,7 +115,7 @@ public class StringConverterTest
 
         byte[] bytes = {(byte) 0xDC, (byte) 0x01};
         data.wrap(bytes, 0, bytes.length);
-        assertEquals(-1, converter.convert(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertEquals(-1, converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -130,7 +130,7 @@ public class StringConverterTest
 
         byte[] bytes = {(byte) 0xDC, (byte) 0x80};
         data.wrap(bytes, 0, bytes.length);
-        assertEquals(-1, converter.convert(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertEquals(-1, converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -145,6 +145,6 @@ public class StringConverterTest
 
         byte[] bytes = {0, 72, 0, 101, 0, 108, 0, 108, 0, 111, 65, 66, 67};
         data.wrap(bytes, 0, bytes.length);
-        assertEquals(-1, converter.convert(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertEquals(-1, converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 }

@@ -20,6 +20,7 @@ import java.util.function.LongFunction;
 
 import org.agrona.DirectBuffer;
 
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
@@ -29,22 +30,27 @@ public class JsonReadConverterHandler extends JsonModelHandler implements Conver
 {
     public JsonReadConverterHandler(
         JsonModelConfig config,
+        EngineContext context,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        super(config, supplyCatalog);
+        super(config, context, supplyCatalog);
     }
 
     @Override
     public int convert(
+        long traceId,
+        long bindingId,
         DirectBuffer data,
         int index,
         int length,
         ValueConsumer next)
     {
-        return handler.decode(data, index, length, next, this::decodePayload);
+        return handler.decode(traceId, bindingId, data, index, length, next, this::decodePayload);
     }
 
     private int decodePayload(
+        long traceId,
+        long bindingId,
         int schemaId,
         DirectBuffer data,
         int index,
@@ -66,7 +72,7 @@ public class JsonReadConverterHandler extends JsonModelHandler implements Conver
         }
 
         if (schemaId != NO_SCHEMA_ID &&
-            validate(schemaId, data, index, length))
+            validate(traceId, bindingId, schemaId, data, index, length))
         {
             next.accept(data, index, length);
             valLength = length;

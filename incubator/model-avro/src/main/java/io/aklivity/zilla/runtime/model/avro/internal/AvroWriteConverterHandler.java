@@ -49,6 +49,8 @@ public class AvroWriteConverterHandler extends AvroModelHandler implements Conve
 
     @Override
     public int convert(
+        long traceId,
+        long bindingId,
         DirectBuffer data,
         int index,
         int length,

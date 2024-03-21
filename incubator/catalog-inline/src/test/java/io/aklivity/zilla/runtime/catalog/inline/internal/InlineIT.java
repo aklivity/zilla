@@ -75,7 +75,7 @@ public class InlineIT
         byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
 
-        int valLength = catalog.decode(data, 0, data.capacity(), ValueConsumer.NOP, CatalogHandler.Decoder.IDENTITY);
+        int valLength = catalog.decode(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP, CatalogHandler.Decoder.IDENTITY);
 
         assertEquals(data.capacity(), valLength);
     }

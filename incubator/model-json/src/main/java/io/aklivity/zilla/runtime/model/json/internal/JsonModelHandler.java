@@ -30,6 +30,7 @@ import org.leadpony.justify.api.JsonValidatingException;
 import org.leadpony.justify.api.JsonValidationService;
 import org.leadpony.justify.api.ProblemHandler;
 
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
@@ -40,6 +41,7 @@ public abstract class JsonModelHandler
     protected final SchemaConfig catalog;
     protected final CatalogHandler handler;
     protected final String subject;
+    protected final JsonModelEventContext event;
 
     private final Int2ObjectCache<JsonSchema> schemas;
     private final Int2ObjectCache<JsonProvider> providers;
@@ -50,6 +52,7 @@ public abstract class JsonModelHandler
 
     public JsonModelHandler(
         JsonModelConfig config,
+        EngineContext context,
         LongFunction<CatalogHandler> supplyCatalog)
     {
         this.schemaProvider = JsonProvider.provider();
@@ -64,9 +67,12 @@ public abstract class JsonModelHandler
         this.schemas = new Int2ObjectCache<>(1, 1024, i -> {});
         this.providers = new Int2ObjectCache<>(1, 1024, i -> {});
         this.in = new DirectBufferInputStream();
+        this.event = new JsonModelEventContext(context);
     }
 
     protected final boolean validate(
+        long traceId,
+        long bindingId,
         int schemaId,
         DirectBuffer buffer,
         int index,
@@ -82,6 +88,7 @@ public abstract class JsonModelHandler
         catch (JsonValidatingException ex)
         {
             status = false;
+            event.validationFailure(traceId, bindingId, ex.getMessage());
         }
         return status;
     }

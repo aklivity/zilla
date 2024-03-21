@@ -24,6 +24,7 @@ import org.agrona.DirectBuffer;
 import org.agrona.ExpandableDirectByteBuffer;
 import org.agrona.io.DirectBufferInputStream;
 
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
@@ -39,15 +40,18 @@ public class JsonValidatorHandler extends JsonModelHandler implements ValidatorH
 
     public JsonValidatorHandler(
         JsonModelConfig config,
+        EngineContext context,
         LongFunction<CatalogHandler> supplyCatalog)
     {
-        super(config, supplyCatalog);
+        super(config, context, supplyCatalog);
         this.buffer = new ExpandableDirectByteBuffer();
         this.in = new DirectBufferInputStream(buffer);
     }
 
     @Override
     public boolean validate(
+        long traceId,
+        long bindingId,
         int flags,
         DirectBuffer data,
         int index,
@@ -85,6 +89,7 @@ public class JsonValidatorHandler extends JsonModelHandler implements ValidatorH
         catch (JsonParsingException ex)
         {
             status = false;
+            event.validationFailure(traceId, bindingId, ex.getMessage());
         }
 
         return status;

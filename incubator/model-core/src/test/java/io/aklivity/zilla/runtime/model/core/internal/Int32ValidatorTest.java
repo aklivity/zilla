@@ -40,7 +40,7 @@ public class Int32ValidatorTest
 
         byte[] bytes = {0, 0, 0, 42};
         data.wrap(bytes, 0, bytes.length);
-        assertTrue(handler.validate(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertTrue(handler.validate(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -54,7 +54,7 @@ public class Int32ValidatorTest
 
         byte[] bytes = {-1, -1, -1, -25};
         data.wrap(bytes, 0, bytes.length);
-        assertTrue(handler.validate(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertTrue(handler.validate(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -67,7 +67,7 @@ public class Int32ValidatorTest
         String payload = "+8449999";
         byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
-        assertTrue(handler.validate(ValidatorHandler.FLAGS_COMPLETE, data, 0, data.capacity(), ValueConsumer.NOP));
+        assertTrue(handler.validate(0L, 0L, ValidatorHandler.FLAGS_COMPLETE, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -82,7 +82,7 @@ public class Int32ValidatorTest
         String payload = "8449999";
         byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
-        assertFalse(handler.validate(ValidatorHandler.FLAGS_COMPLETE, data, 0, data.capacity(), ValueConsumer.NOP));
+        assertFalse(handler.validate(0L, 0L, ValidatorHandler.FLAGS_COMPLETE, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -98,7 +98,7 @@ public class Int32ValidatorTest
         String payload = "999";
         byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
-        assertFalse(handler.validate(ValidatorHandler.FLAGS_COMPLETE, data, 0, data.capacity(), ValueConsumer.NOP));
+        assertFalse(handler.validate(0L, 0L, ValidatorHandler.FLAGS_COMPLETE, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -114,7 +114,7 @@ public class Int32ValidatorTest
         String payload = "999";
         byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
-        assertFalse(handler.validate(ValidatorHandler.FLAGS_COMPLETE, data, 0, data.capacity(), ValueConsumer.NOP));
+        assertFalse(handler.validate(0L, 0L, ValidatorHandler.FLAGS_COMPLETE, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -127,7 +127,7 @@ public class Int32ValidatorTest
         String payload = "-.1a1";
         byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
-        assertFalse(handler.validate(ValidatorHandler.FLAGS_COMPLETE, data, 0, data.capacity(), ValueConsumer.NOP));
+        assertFalse(handler.validate(0L, 0L, ValidatorHandler.FLAGS_COMPLETE, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -140,7 +140,7 @@ public class Int32ValidatorTest
         String payload = "-125";
         byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
-        assertTrue(handler.validate(ValidatorHandler.FLAGS_COMPLETE, data, 0, data.capacity(), ValueConsumer.NOP));
+        assertTrue(handler.validate(0L, 0L, ValidatorHandler.FLAGS_COMPLETE, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -154,13 +154,13 @@ public class Int32ValidatorTest
         byte[] bytes = payload.getBytes();
 
         data.wrap(bytes, 0, 2);
-        assertTrue(handler.validate(ValidatorHandler.FLAGS_INIT, data, 0, data.capacity(), ValueConsumer.NOP));
+        assertTrue(handler.validate(0L, 0L, ValidatorHandler.FLAGS_INIT, data, 0, data.capacity(), ValueConsumer.NOP));
 
         data.wrap(bytes, 2, 1);
-        assertTrue(handler.validate(0x00, data, 0, data.capacity(), ValueConsumer.NOP));
+        assertTrue(handler.validate(0L, 0L, 0x00, data, 0, data.capacity(), ValueConsumer.NOP));
 
         data.wrap(bytes, 3, 1);
-        assertTrue(handler.validate(ValidatorHandler.FLAGS_FIN, data, 0, data.capacity(), ValueConsumer.NOP));
+        assertTrue(handler.validate(0L, 0L, ValidatorHandler.FLAGS_FIN, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -174,10 +174,10 @@ public class Int32ValidatorTest
         byte[] bytes = payload.getBytes();
 
         data.wrap(bytes, 0, 2);
-        assertTrue(handler.validate(ValidatorHandler.FLAGS_INIT, data, 0, data.capacity(), ValueConsumer.NOP));
+        assertTrue(handler.validate(0L, 0L, ValidatorHandler.FLAGS_INIT, data, 0, data.capacity(), ValueConsumer.NOP));
 
         data.wrap(bytes, 2, 1);
-        assertFalse(handler.validate(0x00, data, 0, data.capacity(), ValueConsumer.NOP));
+        assertFalse(handler.validate(0L, 0L, 0x00, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -192,13 +192,13 @@ public class Int32ValidatorTest
         byte[] bytes = {0, 0, 1, 42};
 
         data.wrap(bytes, 0, 2);
-        assertTrue(handler.validate(ValidatorHandler.FLAGS_INIT, data, 0, data.capacity(), ValueConsumer.NOP));
+        assertTrue(handler.validate(0L, 0L, ValidatorHandler.FLAGS_INIT, data, 0, data.capacity(), ValueConsumer.NOP));
 
         data.wrap(bytes, 2, 1);
-        assertTrue(handler.validate(0x00, data, 0, data.capacity(), ValueConsumer.NOP));
+        assertTrue(handler.validate(0L, 0L, 0x00, data, 0, data.capacity(), ValueConsumer.NOP));
 
         data.wrap(bytes, 3, 1);
-        assertTrue(handler.validate(ValidatorHandler.FLAGS_FIN, data, 0, data.capacity(), ValueConsumer.NOP));
+        assertTrue(handler.validate(0L, 0L, ValidatorHandler.FLAGS_FIN, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -212,7 +212,7 @@ public class Int32ValidatorTest
 
         byte[] bytes = "Test value".getBytes();
         data.wrap(bytes, 0, bytes.length);
-        assertFalse(handler.validate(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertFalse(handler.validate(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -226,14 +226,14 @@ public class Int32ValidatorTest
 
         byte[] firstFragment = {0, 0, 0};
         data.wrap(firstFragment, 0, firstFragment.length);
-        assertTrue(handler.validate(ValidatorHandler.FLAGS_INIT, data, 0, data.capacity(), ValueConsumer.NOP));
+        assertTrue(handler.validate(0L, 0L, ValidatorHandler.FLAGS_INIT, data, 0, data.capacity(), ValueConsumer.NOP));
 
         byte[] secondFragment = {0, 0};
         data.wrap(secondFragment, 0, secondFragment.length);
-        assertFalse(handler.validate(0x00, data, 0, data.capacity(), ValueConsumer.NOP));
+        assertFalse(handler.validate(0L, 0L, 0x00, data, 0, data.capacity(), ValueConsumer.NOP));
 
         byte[] finalFragment = {42};
         data.wrap(finalFragment, 0, finalFragment.length);
-        assertFalse(handler.validate(ValidatorHandler.FLAGS_FIN, data, 0, data.capacity(), ValueConsumer.NOP));
+        assertFalse(handler.validate(0L, 0L, ValidatorHandler.FLAGS_FIN, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 }

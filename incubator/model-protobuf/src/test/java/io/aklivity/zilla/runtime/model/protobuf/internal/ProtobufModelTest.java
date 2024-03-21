@@ -113,9 +113,9 @@ public class ProtobufModelTest
 
         byte[] bytes = {0x0a, 0x02, 0x4f, 0x4b, 0x12, 0x08, 0x30, 0x31, 0x30, 0x31, 0x32, 0x30, 0x32, 0x34};
         data.wrap(bytes, 0, bytes.length);
-        assertEquals(data.capacity() + 1, converter.convert(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertEquals(data.capacity() + 1, converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
 
-        assertEquals(data.capacity() + 1, converter.convert(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertEquals(data.capacity() + 1, converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -145,7 +145,7 @@ public class ProtobufModelTest
 
         byte[] bytes = {0x0a, 0x02, 0x4f, 0x4b, 0x12, 0x08, 0x30, 0x31, 0x30, 0x31, 0x32, 0x30, 0x32, 0x34};
         data.wrap(bytes, 0, bytes.length);
-        assertEquals(data.capacity() + 3, converter.convert(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertEquals(data.capacity() + 3, converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -175,7 +175,7 @@ public class ProtobufModelTest
 
         byte[] bytes = {0x0a, 0x02, 0x4f, 0x4b, 0x12, 0x08, 0x30, 0x31, 0x30, 0x31, 0x32, 0x30, 0x32, 0x34};
         data.wrap(bytes, 0, bytes.length);
-        assertEquals(-1, converter.convert(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertEquals(-1, converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -204,9 +204,9 @@ public class ProtobufModelTest
 
         byte[] bytes = {0x00, 0x0a, 0x02, 0x4f, 0x4b, 0x12, 0x08, 0x30, 0x31, 0x30, 0x31, 0x32, 0x30, 0x32, 0x34};
         data.wrap(bytes, 0, bytes.length);
-        assertEquals(data.capacity() - 1, converter.convert(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertEquals(data.capacity() - 1, converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
 
-        assertEquals(data.capacity() - 1, converter.convert(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertEquals(data.capacity() - 1, converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -235,7 +235,7 @@ public class ProtobufModelTest
 
         byte[] bytes = {0x04, 0x02, 0x04, 0x0a, 0x02, 0x4f, 0x4b, 0x12, 0x08, 0x30, 0x31, 0x30, 0x31, 0x32, 0x30, 0x32, 0x34};
         data.wrap(bytes, 0, bytes.length);
-        assertEquals(data.capacity() - 3, converter.convert(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertEquals(data.capacity() - 3, converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -279,9 +279,9 @@ public class ProtobufModelTest
             buffer.getBytes(index, jsonBytes);
             assertEquals(json, new String(jsonBytes, StandardCharsets.UTF_8));
         };
-        converter.convert(data, 0, data.capacity(), consumer);
+        converter.convert(0L, 0L, data, 0, data.capacity(), consumer);
 
-        converter.convert(data, 0, data.capacity(), consumer);
+        converter.convert(0L, 0L, data, 0, data.capacity(), consumer);
     }
 
     @Test
@@ -322,9 +322,9 @@ public class ProtobufModelTest
         DirectBuffer expected = new UnsafeBuffer();
         expected.wrap(expectedBytes, 0, expectedBytes.length);
 
-        assertEquals(expected.capacity(), converter.convert(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertEquals(expected.capacity(), converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
 
-        assertEquals(expected.capacity(), converter.convert(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertEquals(expected.capacity(), converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test

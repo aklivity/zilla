@@ -32,11 +32,15 @@ public class Int32ConverterHandler implements ConverterHandler
 
     @Override
     public int convert(
+        long traceId,
+        long bindingId,
         DirectBuffer data,
         int index,
         int length,
         ValueConsumer next)
     {
-        return handler.validate(FLAGS_COMPLETE, data, index, length, next) ? length : VALIDATION_FAILURE;
+        return handler.validate(traceId, bindingId, FLAGS_COMPLETE, data, index, length, next)
+            ? length
+            : VALIDATION_FAILURE;
     }
 }

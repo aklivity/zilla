@@ -27,30 +27,32 @@ import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 public class JsonModelContext implements ModelContext
 {
     private final LongFunction<CatalogHandler> supplyCatalog;
+    private final EngineContext context;
 
     public JsonModelContext(EngineContext context)
     {
         this.supplyCatalog = context::supplyCatalog;
+        this.context = context;
     }
 
     @Override
     public ConverterHandler supplyReadConverterHandler(
         ModelConfig config)
     {
-        return new JsonReadConverterHandler(JsonModelConfig.class.cast(config), supplyCatalog);
+        return new JsonReadConverterHandler(JsonModelConfig.class.cast(config), context, supplyCatalog);
     }
 
     @Override
     public ConverterHandler supplyWriteConverterHandler(
         ModelConfig config)
     {
-        return new JsonWriteConverterHandler(JsonModelConfig.class.cast(config), supplyCatalog);
+        return new JsonWriteConverterHandler(JsonModelConfig.class.cast(config), context, supplyCatalog);
     }
 
     @Override
     public ValidatorHandler supplyValidatorHandler(
         ModelConfig config)
     {
-        return new JsonValidatorHandler(JsonModelConfig.class.cast(config), supplyCatalog);
+        return new JsonValidatorHandler(JsonModelConfig.class.cast(config), context, supplyCatalog);
     }
 }

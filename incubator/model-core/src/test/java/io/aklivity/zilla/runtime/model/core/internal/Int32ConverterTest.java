@@ -37,7 +37,7 @@ public class Int32ConverterTest
 
         byte[] bytes = {0, 0, 0, 42};
         data.wrap(bytes, 0, bytes.length);
-        assertEquals(data.capacity(), converter.convert(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertEquals(data.capacity(), converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -47,6 +47,6 @@ public class Int32ConverterTest
 
         byte[] bytes = "Not an Integer".getBytes();
         data.wrap(bytes, 0, bytes.length);
-        assertEquals(-1, converter.convert(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertEquals(-1, converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 }
