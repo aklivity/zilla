@@ -11,7 +11,7 @@
         {
             "if":
             {
-               "properties":
+                "properties":
                 {
                     "type":
                     {
@@ -43,7 +43,34 @@
                             },
                             "topics":
                             {
-                                "$ref": "#/$defs/options/binding/mqtt-kafka/topics"
+                                "title": "Topics",
+                                "type": "object",
+                                "properties":
+                                {
+                                    "sessions":
+                                    {
+                                        "title": "Kafka Sessions Topic",
+                                        "type": "string"
+                                    },
+                                    "messages":
+                                    {
+                                        "title": "Kafka Messages Topic",
+                                        "type": "string"
+                                    },
+                                    "retained":
+                                    {
+                                        "title": "Kafka Retained Topic",
+                                        "type": "string"
+                                    },
+                                    "additionalProperties": false
+                                },
+                                "required":
+                                [
+                                    "sessions",
+                                    "retained",
+                                    "messages"
+                                ],
+                                "additionalProperties": false
                             },
                             "clients":
                             {
@@ -159,44 +186,6 @@
                         ]
                     }
                 ]
-            }
-        }
-    },
-    {
-        "op": "add",
-        "path": "/$defs/options/binding/mqtt-kafka",
-        "value":
-        {
-            "topics":
-            {
-                "title": "Topics",
-                "type": "object",
-                "properties":
-                {
-                    "sessions":
-                    {
-                        "title": "Kafka Sessions Topic",
-                        "type": "string"
-                    },
-                    "messages":
-                    {
-                        "title": "Kafka Messages Topic",
-                        "type": "string"
-                    },
-                    "retained":
-                    {
-                        "title": "Kafka Retained Topic",
-                        "type": "string"
-                    },
-                    "additionalProperties": false
-                },
-                "required":
-                [
-                    "sessions",
-                    "retained",
-                    "messages"
-                ],
-                "additionalProperties": false
             }
         }
     }

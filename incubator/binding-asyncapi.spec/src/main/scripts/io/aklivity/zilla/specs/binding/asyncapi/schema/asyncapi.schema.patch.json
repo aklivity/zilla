@@ -94,7 +94,28 @@
                                 {
                                     "channels":
                                     {
-                                        "$ref": "#/$defs/options/binding/mqtt-kafka/topics"
+                                        "title": "Channels",
+                                        "type": "object",
+                                        "properties":
+                                        {
+                                            "sessions":
+                                            {
+                                                "title": "Kafka Sessions Channel",
+                                                "type": "string"
+                                            },
+                                            "messages":
+                                            {
+                                                "title": "Kafka Messages Channel",
+                                                "type": "string"
+                                            },
+                                            "retained":
+                                            {
+                                                "title": "Kafka Retained Channel",
+                                                "type": "string"
+                                            },
+                                            "additionalProperties": false
+                                        },
+                                        "additionalProperties": false
                                     }
                                 },
                                 "additionalProperties": false
