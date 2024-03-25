@@ -56,17 +56,20 @@ bindings:
         method: GET
         params:
           path:
-            id: string
+            id:
+              model: string
       - path: "/items/{id}"
         method: PUT
         params:
           path:
-            id: string
+            id:
+              model: string
       - path: "/items/{id}"
         method: DELETE
         params:
           path:
-            id: string
+            id:
+              model: string
     routes:
     - exit: http_client0
       when:
@@ -113,7 +116,8 @@ bindings:
           headers:
             x-pages:
               model: int32
-            x-next: string
+            x-next:
+              model: string
           content:
             model: json
             catalog:

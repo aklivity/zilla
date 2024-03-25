@@ -20,9 +20,14 @@ import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 
 public class StringModelConfigBuilder<T> extends ConfigBuilder<T, StringModelConfigBuilder<T>>
 {
+    public static final String DEFAULT_ENCODING = "utf_8";
+
     private final Function<StringModelConfig, T> mapper;
 
     private String encoding;
+    private String pattern;
+    private int maxLength;
+    private int minLength;
 
     StringModelConfigBuilder(
         Function<StringModelConfig, T> mapper)
@@ -44,9 +49,31 @@ public class StringModelConfigBuilder<T> extends ConfigBuilder<T, StringModelCon
         return this;
     }
 
+    public StringModelConfigBuilder<T> pattern(
+        String pattern)
+    {
+        this.pattern = pattern;
+        return this;
+    }
+
+    public StringModelConfigBuilder<T> maxLength(
+        int maxLength)
+    {
+        this.maxLength = maxLength;
+        return this;
+    }
+
+    public StringModelConfigBuilder<T> minLength(
+        int minLength)
+    {
+        this.minLength = minLength;
+        return this;
+    }
+
     @Override
     public T build()
     {
-        return mapper.apply(new StringModelConfig(encoding));
+        String encoding = this.encoding != null ? this.encoding : DEFAULT_ENCODING;
+        return mapper.apply(new StringModelConfig(encoding, pattern, maxLength, minLength));
     }
 }
