@@ -577,16 +577,9 @@ public final class KafkaCacheClientDescribeFactory implements BindingHandler
 
             state = KafkaState.openedReply(state);
 
-            if (KafkaState.replyClosing(state))
-            {
-                doDescribeFanoutReplyResetIfNecessary(traceId);
-            }
-            else
-            {
-                members.forEach(s -> s.doDescribeReplyBeginIfNecessary(traceId));
+            members.forEach(s -> s.doDescribeReplyBeginIfNecessary(traceId));
 
-                doDescribeFanoutReplyWindow(traceId, 0, bufferPool.slotCapacity());
-            }
+            doDescribeFanoutReplyWindow(traceId, 0, bufferPool.slotCapacity());
         }
 
         private void onDescribeFanoutReplyData(
@@ -651,9 +644,7 @@ public final class KafkaCacheClientDescribeFactory implements BindingHandler
         private void doDescribeFanoutReplyResetIfNecessary(
             long traceId)
         {
-            state = KafkaState.closingReply(state);
-
-            if (KafkaState.replyOpening(state) && !KafkaState.replyClosed(state))
+            if (!KafkaState.replyClosed(state))
             {
                 doDescribeFanoutReplyReset(traceId);
             }
@@ -663,7 +654,7 @@ public final class KafkaCacheClientDescribeFactory implements BindingHandler
             long traceId)
         {
             doReset(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                traceId, authorization);
+                    traceId, authorization);
 
             state = KafkaState.closedReply(state);
         }
@@ -932,7 +923,7 @@ public final class KafkaCacheClientDescribeFactory implements BindingHandler
         {
             final long traceId = reset.traceId();
 
-            state = KafkaState.closedReply(state);
+            state = KafkaState.closedInitial(state);
 
             group.onDescribeFanoutMemberClosed(traceId, this);
 
