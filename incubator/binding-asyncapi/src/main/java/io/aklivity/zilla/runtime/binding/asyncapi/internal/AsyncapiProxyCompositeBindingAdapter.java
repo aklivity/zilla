@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.asyncapi.internal;
 
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.PROXY;
+import static java.util.Collections.emptyList;
 
 import java.util.Collections;
 import java.util.List;
@@ -33,6 +34,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaWithConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.CompositeBindingAdapterSpi;
+import io.aklivity.zilla.runtime.engine.config.MetricRefConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
 
 public class AsyncapiProxyCompositeBindingAdapter extends AsyncapiCompositeBindingAdapter implements CompositeBindingAdapterSpi
@@ -58,6 +60,8 @@ public class AsyncapiProxyCompositeBindingAdapter extends AsyncapiCompositeBindi
             .collect(Collectors.toList());
         this.asyncApis = options.specs.stream().collect(Collectors.toUnmodifiableMap(a -> a.apiLabel, a -> a.asyncapi));
         this.qname = binding.qname;
+        final List<MetricRefConfig> metricRefs = binding.telemetryRef != null ?
+            binding.telemetryRef.metricRefs : emptyList();
 
         String sessions = "";
         String messages = "";
@@ -83,10 +87,12 @@ public class AsyncapiProxyCompositeBindingAdapter extends AsyncapiCompositeBindi
         return BindingConfig.builder(binding)
             .composite()
                 .name(String.format("%s/%s", qname, "mqtt-kafka"))
+                .inject(n -> this.injectNamespaceMetric(n, !metricRefs.isEmpty()))
                 .binding()
                     .name("mqtt_kafka_proxy0")
                     .type("mqtt-kafka")
                     .kind(PROXY)
+                    .inject(b -> this.injectMetrics(b, metricRefs, "mqtt-kafka"))
                     .options(MqttKafkaOptionsConfig::builder)
                         .topics()
                             .sessions(sessions)

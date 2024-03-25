@@ -15,12 +15,16 @@
 package io.aklivity.zilla.runtime.binding.asyncapi.internal;
 
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
+import static java.util.Collections.emptyList;
+
+import java.util.List;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiServerView;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.CompositeBindingAdapterSpi;
+import io.aklivity.zilla.runtime.engine.config.MetricRefConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 
 public class AsyncapiClientCompositeBindingAdapter extends AsyncapiCompositeBindingAdapter implements CompositeBindingAdapterSpi
@@ -39,6 +43,8 @@ public class AsyncapiClientCompositeBindingAdapter extends AsyncapiCompositeBind
         AsyncapiOptionsConfig options = (AsyncapiOptionsConfig) binding.options;
         AsyncapiConfig asyncapiConfig = options.specs.get(0);
         this.asyncapi = asyncapiConfig.asyncapi;
+        final List<MetricRefConfig> metricRefs = binding.telemetryRef != null ?
+            binding.telemetryRef.metricRefs : emptyList();
 
         //TODO: add composite for all servers
         AsyncapiServerView firstServer = AsyncapiServerView.of(asyncapi.servers.entrySet().iterator().next().getValue());
@@ -52,20 +58,23 @@ public class AsyncapiClientCompositeBindingAdapter extends AsyncapiCompositeBind
         return BindingConfig.builder(binding)
             .composite()
                 .name(String.format("%s.%s", qname, "$composite"))
+                .inject(n -> this.injectNamespaceMetric(n, !metricRefs.isEmpty()))
                 .inject(n -> this.injectCatalog(n, asyncapi))
-                .inject(protocol::injectProtocolClientCache)
+                .inject(n -> protocol.injectProtocolClientCache(n, metricRefs))
                 .binding()
                     .name(String.format("%s_client0", protocol.scheme))
                     .type(protocol.scheme)
                     .kind(CLIENT)
+                    .inject(b -> this.injectMetrics(b, metricRefs, protocol.scheme))
                     .inject(protocol::injectProtocolClientOptions)
                     .exit(isTlsEnabled ? "tls_client0" : "tcp_client0")
                     .build()
-                .inject(n -> injectTlsClient(n, options))
+                .inject(n -> injectTlsClient(n, options, metricRefs))
                 .binding()
                     .name("tcp_client0")
                     .type("tcp")
                     .kind(CLIENT)
+                    .inject(b -> this.injectMetrics(b, metricRefs, "tcp"))
                     .options(options.tcp)
                     .build()
                 .build()
@@ -74,7 +83,8 @@ public class AsyncapiClientCompositeBindingAdapter extends AsyncapiCompositeBind
 
     private <C> NamespaceConfigBuilder<C> injectTlsClient(
         NamespaceConfigBuilder<C> namespace,
-        AsyncapiOptionsConfig options)
+        AsyncapiOptionsConfig options,
+        List<MetricRefConfig> metricRefs)
     {
         if (isTlsEnabled)
         {
@@ -83,6 +93,7 @@ public class AsyncapiClientCompositeBindingAdapter extends AsyncapiCompositeBind
                     .name("tls_client0")
                     .type("tls")
                     .kind(CLIENT)
+                    .inject(b -> this.injectMetrics(b, metricRefs, "tls"))
                     .options(options.tls)
                     .vault(String.format("%s:%s", this.namespace, vault))
                     .exit("tcp_client0")

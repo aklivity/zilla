@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config;
 
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.PROXY;
+import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
 
 import java.util.ArrayList;
@@ -46,7 +47,10 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiSchemaView
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.CompositeBindingAdapterSpi;
+import io.aklivity.zilla.runtime.engine.config.MetricRefConfig;
+import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
+import io.aklivity.zilla.runtime.engine.config.TelemetryRefConfigBuilder;
 
 public final class OpenapiAsyncCompositeBindingAdapter implements CompositeBindingAdapterSpi
 {
@@ -66,7 +70,9 @@ public final class OpenapiAsyncCompositeBindingAdapter implements CompositeBindi
     public BindingConfig adapt(
         BindingConfig binding)
     {
-        OpenapiAsyncapiOptionsConfig options = (OpenapiAsyncapiOptionsConfig) binding.options;
+        final OpenapiAsyncapiOptionsConfig options = (OpenapiAsyncapiOptionsConfig) binding.options;
+        final List<MetricRefConfig> metricRefs = binding.telemetryRef != null ?
+            binding.telemetryRef.metricRefs : emptyList();
 
         List<OpenapiAsyncapiRouteConfig> routes = binding.routes.stream()
             .map(r -> new OpenapiAsyncapiRouteConfig(r, options::resolveOpenapiApiId))
@@ -75,10 +81,12 @@ public final class OpenapiAsyncCompositeBindingAdapter implements CompositeBindi
         return BindingConfig.builder(binding)
                 .composite()
                     .name(String.format("%s/http_kafka", binding.qname))
+                    .inject(n -> this.injectNamespaceMetric(n, !metricRefs.isEmpty()))
                     .binding()
                         .name("http_kafka0")
                         .type("http-kafka")
                         .kind(PROXY)
+                        .inject(b -> this.injectMetrics(b, metricRefs, "http-kafka"))
                         .inject(b -> this.injectHttpKafkaRoutes(b, binding.qname, options.specs, routes))
                         .build()
                     .build()
@@ -211,6 +219,79 @@ public final class OpenapiAsyncCompositeBindingAdapter implements CompositeBindi
         }
 
         return fetch;
+    }
+
+    protected NamespaceConfigBuilder<BindingConfigBuilder<BindingConfig>> injectNamespaceMetric(
+        NamespaceConfigBuilder<BindingConfigBuilder<BindingConfig>> namespace,
+        boolean hasMetrics)
+    {
+        if (hasMetrics)
+        {
+            namespace
+                .telemetry()
+                    .metric()
+                        .group("stream")
+                        .name("stream.active.received")
+                        .build()
+                    .metric()
+                        .group("stream")
+                        .name("stream.active.sent")
+                        .build()
+                    .metric()
+                        .group("stream")
+                        .name("stream.opens.received")
+                        .build()
+                    .metric()
+                        .group("stream")
+                        .name("stream.opens.sent")
+                        .build()
+                    .metric()
+                        .group("stream")
+                        .name("stream.data.received")
+                        .build()
+                    .metric()
+                        .group("stream")
+                        .name("stream.data.sent")
+                        .build()
+                    .metric()
+                        .group("stream")
+                        .name("stream.errors.received")
+                        .build()
+                    .metric()
+                        .group("stream")
+                        .name("stream.errors.sent")
+                        .build()
+                    .metric()
+                        .group("stream")
+                        .name("stream.closes.received")
+                        .build()
+                    .metric()
+                        .group("stream")
+                        .name("stream.closes.sent")
+                        .build()
+                    .build();
+        }
+
+        return namespace;
+    }
+
+    protected  <C> BindingConfigBuilder<C> injectMetrics(
+        BindingConfigBuilder<C> binding,
+        List<MetricRefConfig> metricRefs,
+        String protocol)
+    {
+        List<MetricRefConfig> metrics = metricRefs.stream()
+            .filter(m -> m.name.startsWith("stream."))
+            .collect(toList());
+
+        if (!metrics.isEmpty())
+        {
+            final TelemetryRefConfigBuilder<BindingConfigBuilder<C>> telemetry = binding.telemetry();
+            metrics.forEach(telemetry::metric);
+            telemetry.build();
+        }
+
+        return binding;
     }
 
     private OpenapiSchemaView resolveSchemaForJsonContentType(

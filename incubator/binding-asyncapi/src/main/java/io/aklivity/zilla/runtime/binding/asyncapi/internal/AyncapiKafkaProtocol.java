@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal;
 
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -34,6 +35,7 @@ import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
+import io.aklivity.zilla.runtime.engine.config.MetricRefConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
@@ -60,13 +62,15 @@ public class AyncapiKafkaProtocol extends AsyncapiProtocol
 
     @Override
     public <C> NamespaceConfigBuilder<C> injectProtocolClientCache(
-        NamespaceConfigBuilder<C> namespace)
+        NamespaceConfigBuilder<C> namespace,
+        List<MetricRefConfig> metricRefs)
     {
         return namespace
                 .binding()
                     .name("kafka_cache_client0")
                     .type("kafka")
                     .kind(KindConfig.CACHE_CLIENT)
+                    .inject(b -> this.injectMetrics(b, metricRefs, "kafka"))
                     .options(KafkaOptionsConfig::builder)
                         .inject(this::injectKafkaTopicOptions)
                         .build()
@@ -76,6 +80,7 @@ public class AyncapiKafkaProtocol extends AsyncapiProtocol
                     .name("kafka_cache_server0")
                     .type("kafka")
                     .kind(KindConfig.CACHE_SERVER)
+                    .inject(b -> this.injectMetrics(b, metricRefs, "kafka"))
                     .options(KafkaOptionsConfig::builder)
                         .inject(this::injectKafkaBootstrapOptions)
                         .inject(this::injectKafkaTopicOptions)
