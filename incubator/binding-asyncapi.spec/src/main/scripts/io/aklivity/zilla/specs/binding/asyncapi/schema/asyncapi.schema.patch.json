@@ -52,15 +52,24 @@
                                     "maxProperties": 1
                                 }
                             },
-                            "tcp": "#/$defs/binding/tcp/options",
-                            "tls": "#/$defs/binding/tls/options",
+                            "tcp":
+                            {
+                                "$ref": "#/$defs/options/binding/tcp"
+                            },
+                            "tls":
+                            {
+                                "$ref": "#/$defs/options/binding/tls"
+                            },
                             "http":
                             {
                                 "title": "Http",
                                 "type": "object",
                                 "properties":
                                 {
-                                    "authorization": "$defs/options/binding/http/authorization"
+                                    "authorization":
+                                    {
+                                        "$ref": "#/$defs/options/binding/http/authorization"
+                                    }
                                 },
                                 "additionalProperties": false
                             },
@@ -70,7 +79,10 @@
                                 "type": "object",
                                 "properties":
                                 {
-                                    "sasl": "$defs/options/binding/kafka/sasl"
+                                    "sasl":
+                                    {
+                                        "$ref": "#/$defs/options/binding/kafka/sasl"
+                                    }
                                 },
                                 "additionalProperties": false
                             },

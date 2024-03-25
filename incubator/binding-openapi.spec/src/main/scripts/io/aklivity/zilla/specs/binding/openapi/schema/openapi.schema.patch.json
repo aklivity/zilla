@@ -35,15 +35,24 @@
                     {
                         "properties":
                         {
-                            "tcp": "#/$defs/binding/tcp/options",
-                            "tls": "#/$defs/binding/tls/options",
+                            "tcp":
+                            {
+                                "$ref": "#/$defs/options/binding/tcp"
+                            },
+                            "tls":
+                            {
+                                "$ref": "#/$defs/options/binding/tls"
+                            },
                             "http":
                             {
                                 "title": "Http",
                                 "type": "object",
                                 "properties":
                                 {
-                                    "authorization": "$defs/options/binding/http/authorization"
+                                    "authorization":
+                                    {
+                                        "$ref": "#/$defs/options/binding/http/authorization"
+                                    }
                                 },
                                 "additionalProperties": false
                             },
