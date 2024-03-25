@@ -48,6 +48,7 @@ When Zilla is deployed alongside Apache Kafka®, any application or service can 
 The fastest way to try out Zilla is via the [Quickstart](https://docs.aklivity.io/zilla/latest/tutorials/quickstart/kafka-proxies.html), which walks you through publishing and subscribing to Kafka through `REST`, `gRPC`, `SSE` and `MQTT` API entry points. The Quickstart uses Aklivity’s public [Postman Workspace](https://www.postman.com/aklivity-zilla/workspace/aklivity-zilla-quickstart/overview) with pre-defined API endpoints and a Docker Compose stack running pre-configured Zilla and Kafka instances to make things as easy as possible.
 
 ## <a name="key-features"> Key Features
+Find the full list of features and integrations in the [docs](https://docs.aklivity.io/zilla/latest/concepts/config-intro.html).
 
 Find the complete list of features and integrations in the [docs](https://docs.aklivity.io/zilla/latest/concepts/config-intro.html).
 
