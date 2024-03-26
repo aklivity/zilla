@@ -1,3 +1,4 @@
 io.aklivity.zilla.runtime.model.core.internal.config.Int32ModelConfigAdapter
 io.aklivity.zilla.runtime.model.core.internal.config.Int64ModelConfigAdapter
+io.aklivity.zilla.runtime.model.core.internal.config.FloatModelConfigAdapter
 io.aklivity.zilla.runtime.model.core.internal.config.StringModelConfigAdapter

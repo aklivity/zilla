@@ -63,7 +63,7 @@ public class Int64ValidatorTest
         Int64ModelConfig config = Int64ModelConfig.builder().build();
         Int64ValidatorHandler handler = new Int64ValidatorHandler(config);
         DirectBuffer data = new UnsafeBuffer();
-        String payload = "+8449999L";
+        String payload = "+8449999l";
         byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
         assertTrue(handler.validate(ValidatorHandler.FLAGS_COMPLETE, data, 0, data.capacity(), ValueConsumer.NOP));

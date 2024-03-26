@@ -18,16 +18,16 @@ import static io.aklivity.zilla.runtime.engine.model.ValidatorHandler.FLAGS_FIN;
 
 import org.agrona.DirectBuffer;
 
-public enum Int64Format
+public enum FloatFormat
 {
 
     TEXT
     {
-        private static final long MULTIPLER = 10L;
+        private static final float MULTIPLER = 10.0F;
 
         @Override
         public int decode(
-            Int64State state,
+            FloatState state,
             int flags,
             DirectBuffer data,
             int index,
@@ -40,10 +40,28 @@ public enum Int64Format
             {
                 int digit = data.getByte(progress);
 
-                if ((flags & FLAGS_FIN) != 0x00 && progress == limit - 1 && (digit == 'L' || digit == 'l') && state.processed > 0)
+                if ((flags & FLAGS_FIN) != 0x00 &&
+                    progress == limit - 1 &&
+                    (digit == 'F' || digit == 'f') &&
+                    state.processed > 0)
                 {
                     state.processed++;
                     break;
+                }
+
+                if (digit == '.')
+                {
+                    if (state.divider == 0)
+                    {
+                        state.divider = MULTIPLER;
+                        state.processed++;
+                        continue;
+                    }
+                    else
+                    {
+                        progress = INVALID_INDEX;
+                        break;
+                    }
                 }
 
                 if (digit < '0' || '9' < digit)
@@ -53,11 +71,11 @@ public enum Int64Format
                         switch (digit)
                         {
                         case '-':
-                            state.decoded = Long.MIN_VALUE;
+                            state.value = Float.MIN_VALUE;
                             state.processed++;
                             continue;
                         case '+':
-                            state.decoded = Long.MAX_VALUE;
+                            state.value = Float.MAX_VALUE;
                             state.processed++;
                             continue;
                         default:
@@ -68,27 +86,32 @@ public enum Int64Format
                     break;
                 }
 
-                if (state.processed == 1)
+                if (state.value == Float.MIN_VALUE)
                 {
-                    if (state.decoded == Long.MIN_VALUE)
-                    {
-                        state.decoded = -1L * (digit - '0');
-                    }
-                    else if (state.decoded == Long.MAX_VALUE)
-                    {
-                        state.decoded = digit - '0';
-                    }
-                    else
-                    {
-                        state.decoded = state.decoded * MULTIPLER + (digit - '0');
-                    }
+                    state.value *= -1.0F;
+                }
+
+                if (state.value == Float.MIN_VALUE || state.value == Float.MAX_VALUE)
+                {
+                    state.value = state.divider != 0 ? (digit - '0') / state.divider : (digit - '0');
+                    state.divider *= MULTIPLER;
                 }
                 else
                 {
-                    state.decoded *= MULTIPLER;
-                    state.decoded = state.decoded < 0
-                        ? state.decoded - (digit - '0')
-                        : state.decoded + (digit - '0');
+                    if (state.divider != 0)
+                    {
+                        state.value = state.value < 0
+                            ? state.value - (digit - '0') / state.divider
+                            : state.value + (digit - '0') / state.divider;
+                        state.divider *= MULTIPLER;
+                    }
+                    else
+                    {
+                        state.value *= MULTIPLER;
+                        state.value = state.value < 0
+                            ? state.value - (digit - '0')
+                            : state.value + (digit - '0');
+                    }
                 }
                 state.processed++;
             }
@@ -98,19 +121,19 @@ public enum Int64Format
 
         @Override
         public boolean valid(
-            Int64State state)
+            FloatState state)
         {
-            return state.processed > 1 || state.decoded != Long.MIN_VALUE || state.decoded != Long.MAX_VALUE;
+            return state.processed > 1 || state.value != Float.MIN_VALUE || state.value != Float.MAX_VALUE;
         }
     },
 
     BINARY
     {
-        private static final int INT64_SIZE = 8;
+        private static final int FLOAT_SIZE = 4;
 
         @Override
         public int decode(
-            Int64State state,
+            FloatState state,
             int flags,
             DirectBuffer data,
             int index,
@@ -123,7 +146,7 @@ public enum Int64Format
             {
                 int digit = data.getByte(progress);
 
-                if (state.processed >= INT64_SIZE)
+                if (state.processed >= FLOAT_SIZE)
                 {
                     progress = INVALID_INDEX;
                     break;
@@ -134,30 +157,35 @@ public enum Int64Format
                 state.processed++;
             }
 
+            if ((flags & FLAGS_FIN) != 0x00)
+            {
+                state.value = Float.intBitsToFloat(state.decoded);
+            }
+
             return progress;
         }
 
         @Override
         public boolean valid(
-            Int64State state)
+            FloatState state)
         {
-            return state.processed == INT64_SIZE;
+            return state.processed == FLOAT_SIZE;
         }
     };
 
     public static final int INVALID_INDEX = -1;
 
     public abstract int decode(
-        Int64State state,
+        FloatState state,
         int flags,
         DirectBuffer data,
         int index,
         int length);
 
     public abstract boolean valid(
-        Int64State state);
+        FloatState state);
 
-    public static Int64Format of(
+    public static FloatFormat of(
         String format)
     {
         switch (format)
