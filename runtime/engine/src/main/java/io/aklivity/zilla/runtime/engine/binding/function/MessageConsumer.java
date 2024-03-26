@@ -42,6 +42,13 @@ public interface MessageConsumer extends MessageHandler, AutoCloseable
         {
             return requireNonNull(after);
         }
+
+        @Override
+        public MessageConsumer filter(
+            MessagePredicate condition)
+        {
+            return NOOP;
+        }
     };
 
     void accept(
@@ -73,6 +80,19 @@ public interface MessageConsumer extends MessageHandler, AutoCloseable
         {
             accept(msgTypeId, buffer, index, length);
             after.accept(msgTypeId, buffer, index, length);
+        };
+    }
+
+    default MessageConsumer filter(
+        MessagePredicate condition)
+    {
+        requireNonNull(condition);
+        return (int msgTypeId, DirectBuffer buffer, int index, int length) ->
+        {
+            if (condition.test(msgTypeId, buffer, index, length))
+            {
+                accept(msgTypeId, buffer, index, length);
+            }
         };
     }
 }

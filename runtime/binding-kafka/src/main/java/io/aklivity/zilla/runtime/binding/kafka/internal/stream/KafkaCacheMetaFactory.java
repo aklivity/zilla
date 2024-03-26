@@ -1076,7 +1076,7 @@ public final class KafkaCacheMetaFactory implements BindingHandler
         {
             final long traceId = reset.traceId();
 
-            state = KafkaState.closedInitial(state);
+            state = KafkaState.closedReply(state);
 
             group.onMetaFanoutMemberClosed(traceId, this);
 

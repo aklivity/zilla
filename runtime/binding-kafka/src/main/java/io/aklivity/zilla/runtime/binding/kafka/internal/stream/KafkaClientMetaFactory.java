@@ -974,7 +974,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
         {
             final long traceId = reset.traceId();
 
-            state = KafkaState.closedInitial(state);
+            state = KafkaState.closedReply(state);
 
             client.doNetworkResetIfNecessary(traceId);
         }
@@ -1029,10 +1029,13 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
         private void doApplicationEnd(
             long traceId)
         {
-            state = KafkaState.closedReply(state);
-            //client.stream = nullIfClosed(state, client.stream);
-            doEnd(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, client.authorization, EMPTY_EXTENSION);
+            if (!KafkaState.replyClosed(state))
+            {
+                state = KafkaState.closedReply(state);
+                //client.stream = nullIfClosed(state, client.stream);
+                doEnd(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                        traceId, client.authorization, EMPTY_EXTENSION);
+            }
         }
 
         private void doApplicationAbort(
