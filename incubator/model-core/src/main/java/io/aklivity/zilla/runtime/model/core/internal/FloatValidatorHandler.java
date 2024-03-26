@@ -14,31 +14,31 @@
  */
 package io.aklivity.zilla.runtime.model.core.internal;
 
-import java.util.function.LongPredicate;
+import java.util.function.DoublePredicate;
 
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
-import io.aklivity.zilla.runtime.model.core.config.Int64ModelConfig;
+import io.aklivity.zilla.runtime.model.core.config.FloatModelConfig;
 
-public class Int64ValidatorHandler implements ValidatorHandler
+public class FloatValidatorHandler implements ValidatorHandler
 {
-    private final Int64Format format;
-    private final LongPredicate check;
-    private final Int64State state;
+    private final FloatFormat format;
+    private final DoublePredicate check;
+    private final FloatState state;
 
-    public Int64ValidatorHandler(
-        Int64ModelConfig config)
+    public FloatValidatorHandler(
+        FloatModelConfig config)
     {
-        long max = config.max;
-        long min = config.min;
-        LongPredicate checkMax = config.exclusiveMax ? v -> v < max : v -> v <= max;
-        LongPredicate checkMin = config.exclusiveMin ? v -> v > min : v -> v >= min;
-        LongPredicate checkMultiple = v -> v % config.multiple == 0;
+        float max = config.max;
+        float min = config.min;
+        DoublePredicate checkMax = config.exclusiveMax ? v -> v < max : v -> v <= max;
+        DoublePredicate checkMin = config.exclusiveMin ? v -> v > min : v -> v >= min;
+        DoublePredicate checkMultiple = config.multiple != null ? v -> v % config.multiple == 0 : v -> true;
         this.check = checkMax.and(checkMin).and(checkMultiple);
-        this.format = Int64Format.of(config.format);
-        this.state = new Int64State();
+        this.format = FloatFormat.of(config.format);
+        this.state = new FloatState();
     }
 
     @Override
@@ -53,13 +53,15 @@ public class Int64ValidatorHandler implements ValidatorHandler
         {
             state.decoded = 0;
             state.processed = 0;
+            state.value = 0;
+            state.divider = 0;
         }
         int progress = format.decode(state, flags, data, index, length);
-        boolean valid = progress != Int64Format.INVALID_INDEX;
+        boolean valid = progress != FloatFormat.INVALID_INDEX;
         if ((flags & FLAGS_FIN) != 0x00 && valid)
         {
             valid &= format.valid(state);
-            valid &= check.test(state.decoded);
+            valid &= check.test(state.value);
         }
         return valid;
     }
