@@ -88,6 +88,7 @@ public class AsyncapiOptionsConfigAdapterTest
                     "{" +
                         "\"mqtt-api\":\"mqtt/asyncapi.yaml\"," +
                     "}," +
+                    "\"server\":\"plain\"," +
                     "\"tcp\":" +
                     "{" +
                         "\"host\":\"localhost\"," +
@@ -121,6 +122,7 @@ public class AsyncapiOptionsConfigAdapterTest
         AsyncapiConfig asyncapi = options.specs.get(0);
         assertThat(asyncapi.location, equalTo("mqtt/asyncapi.yaml"));
         assertThat(asyncapi.asyncapi, instanceOf(Asyncapi.class));
+        assertThat(options.server, equalTo("plain"));
         assertThat(options.tcp.host, equalTo("localhost"));
         assertThat(options.tcp.ports, equalTo(new int[] { 7183 }));
         assertThat(options.tls.keys, equalTo(asList("localhost")));
@@ -141,6 +143,7 @@ public class AsyncapiOptionsConfigAdapterTest
         AsyncapiOptionsConfig options = AsyncapiOptionsConfig.builder()
             .inject(Function.identity())
             .specs(specs)
+            .server("plain")
             .tcp(TcpOptionsConfig.builder()
                 .host("localhost")
                 .ports(new int[] { 7183 })
@@ -170,6 +173,7 @@ public class AsyncapiOptionsConfigAdapterTest
                 "{" +
                     "\"mqtt-api\":\"mqtt/asyncapi.yaml\"" +
                 "}," +
+                "\"server\":\"plain\"," +
                 "\"tcp\":" +
                 "{" +
                     "\"host\":\"localhost\"," +

@@ -51,6 +51,7 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
     private static final String SPECS_NAME = "specs";
+    private static final String SERVER_NAME = "server";
     private static final String TCP_NAME = "tcp";
     private static final String TLS_NAME = "tls";
     private static final String HTTP_NAME = "http";
@@ -100,6 +101,11 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
             JsonObjectBuilder specs = Json.createObjectBuilder();
             asyncapiOptions.specs.forEach(p -> specs.add(p.apiLabel, p.location));
             object.add(SPECS_NAME, specs);
+        }
+
+        if (asyncapiOptions.server != null)
+        {
+            object.add(SERVER_NAME, asyncapiOptions.server);
         }
 
         if (asyncapiOptions.tcp != null)
@@ -170,6 +176,11 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
             ? asListAsyncapis(object.getJsonObject(SPECS_NAME))
             : null;
         asyncapiOptions.specs(specs);
+
+        if (object.containsKey(SERVER_NAME))
+        {
+            asyncapiOptions.server(object.getString(SERVER_NAME));
+        }
 
         if (object.containsKey(TCP_NAME))
         {

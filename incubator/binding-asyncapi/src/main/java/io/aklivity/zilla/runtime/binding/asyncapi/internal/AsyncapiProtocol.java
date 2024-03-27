@@ -25,7 +25,6 @@ import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiMessage;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiServer;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiMessageView;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiServerView;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
@@ -119,20 +118,6 @@ public abstract class AsyncapiProtocol
     }
 
     protected abstract boolean isSecure();
-
-    protected int[] resolvePorts()
-    {
-        requireNonNull(scheme);
-        int[] ports = null;
-
-        for (AsyncapiServer s : asyncApi.servers.values())
-        {
-            String[] hostAndPort = s.host.split(":");
-            ports = new int[] {Integer.parseInt(hostAndPort[1])};
-            break;
-        }
-        return ports;
-    }
 
     protected URI findFirstServerUrlWithScheme(
         String scheme)
