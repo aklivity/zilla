@@ -27,6 +27,11 @@ bindings:
     options:
       specs:
         http_api: http/asyncapi.yaml
+      server: plain
+      tcp:
+        host: localhost
+        port:
+          - 8080
       tls:
         keys:
           - localhost

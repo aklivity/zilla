@@ -17,10 +17,12 @@ package io.aklivity.zilla.runtime.binding.asyncapi.internal;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 import static java.util.Collections.emptyList;
 
+import java.util.Collections;
 import java.util.List;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiServer;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiServerView;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
@@ -33,6 +35,7 @@ import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 
 public class AsyncapiServerCompositeBindingAdapter extends AsyncapiCompositeBindingAdapter implements CompositeBindingAdapterSpi
 {
+    private List<String> sni;
     private int[] compositePorts;
 
     @Override
@@ -52,12 +55,16 @@ public class AsyncapiServerCompositeBindingAdapter extends AsyncapiCompositeBind
             binding.telemetryRef.metricRefs : emptyList();
 
         //TODO: add composite for all servers
-        AsyncapiServerView firstServer = AsyncapiServerView.of(asyncapi.servers.entrySet().iterator().next().getValue());
+        final AsyncapiServer server = asyncapi.servers
+            .getOrDefault(options.server, asyncapi.servers.entrySet().iterator().next().getValue());
+        AsyncapiServerView serverView = AsyncapiServerView.of(server);
+        final String[] hostAndPort = server.host.split(":");
 
         this.qname = binding.qname;
         this.qvault = binding.qvault;
-        this.protocol = resolveProtocol(firstServer.protocol(), options);
-        this.compositePorts = protocol.resolvePorts();
+        this.protocol = resolveProtocol(serverView.protocol(), options);
+        this.sni = options.tls != null ? options.tls.sni : Collections.singletonList(hostAndPort[0]);
+        this.compositePorts = options.tcp != null ? options.tcp.ports : new int[] {Integer.parseInt(hostAndPort[1])};
         this.isTlsEnabled = protocol.isSecure();
 
         return BindingConfig.builder(binding)

@@ -21,6 +21,7 @@ import java.util.List;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiServer;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiServerView;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.CompositeBindingAdapterSpi;
@@ -47,12 +48,14 @@ public class AsyncapiClientCompositeBindingAdapter extends AsyncapiCompositeBind
             binding.telemetryRef.metricRefs : emptyList();
 
         //TODO: add composite for all servers
-        AsyncapiServerView firstServer = AsyncapiServerView.of(asyncapi.servers.entrySet().iterator().next().getValue());
+        final AsyncapiServer server = asyncapi.servers
+            .getOrDefault(options.server, asyncapi.servers.entrySet().iterator().next().getValue());
+        AsyncapiServerView serverView = AsyncapiServerView.of(server);
         this.qname = binding.qname;
         this.namespace = binding.namespace;
         this.qvault = binding.qvault;
         this.vault = binding.vault;
-        this.protocol = resolveProtocol(firstServer.protocol(), options);
+        this.protocol = resolveProtocol(serverView.protocol(), options);
         this.isTlsEnabled = protocol.isSecure();
 
         return BindingConfig.builder(binding)

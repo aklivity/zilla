@@ -26,6 +26,7 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 public final class AsyncapiOptionsConfig extends OptionsConfig
 {
     public final List<AsyncapiConfig> specs;
+    public final String server;
     public final TcpOptionsConfig tcp;
     public final TlsOptionsConfig tls;
     public final HttpOptionsConfig http;
@@ -45,6 +46,7 @@ public final class AsyncapiOptionsConfig extends OptionsConfig
 
     public AsyncapiOptionsConfig(
         List<AsyncapiConfig> specs,
+        String server,
         TcpOptionsConfig tcp,
         TlsOptionsConfig tls,
         HttpOptionsConfig http,
@@ -52,6 +54,7 @@ public final class AsyncapiOptionsConfig extends OptionsConfig
         AsyncapiMqttKafkaConfig mqttKafka)
     {
         this.specs = specs;
+        this.server = server;
         this.http = http;
         this.tcp = tcp;
         this.tls = tls;

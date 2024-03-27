@@ -52,6 +52,11 @@
                                     "maxProperties": 1
                                 }
                             },
+                            "server":
+                            {
+                                "title": "AsyncAPI Server",
+                                "type": "string"
+                            },
                             "tcp":
                             {
                                 "$ref": "#/$defs/options/binding/tcp"
