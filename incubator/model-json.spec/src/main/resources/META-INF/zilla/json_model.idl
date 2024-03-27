@@ -18,17 +18,17 @@ scope json_model
     {
         enum JsonModelEventType (uint8)
         {
-            VALIDATION_FAILURE (1)
+            VALIDATION_FAILED (1)
         }
 
-        struct JsonModelValidationFailureEx extends core::stream::Extension
+        struct JsonModelValidationFailedEx extends core::stream::Extension
         {
             string8 error;
         }
 
         union JsonModelEventEx switch (JsonModelEventType)
         {
-            case VALIDATION_FAILURE: JsonModelValidationFailureEx validationFailure;
+            case VALIDATION_FAILED: JsonModelValidationFailedEx validationFailed;
         }
     }
 }

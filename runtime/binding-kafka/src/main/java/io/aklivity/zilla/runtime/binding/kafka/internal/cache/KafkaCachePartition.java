@@ -334,6 +334,7 @@ public final class KafkaCachePartition
 
     public void writeEntry(
         EngineContext context,
+        long traceId,
         long bindingId,
         long offset,
         MutableInteger entryMark,
@@ -352,14 +353,16 @@ public final class KafkaCachePartition
     {
         final long keyHash = computeHash(key);
         final int valueLength = value != null ? value.sizeof() : -1;
-        writeEntryStart(context, bindingId, offset, entryMark, valueMark, timestamp, producerId, key,
+        writeEntryStart(context, traceId, bindingId, offset, entryMark, valueMark, timestamp, producerId, key,
             keyHash, valueLength, ancestor, entryFlags, deltaType, value, convertKey, convertValue, verbose);
-        writeEntryContinue(context, bindingId, FLAGS_COMPLETE, offset, entryMark, valueMark, value, convertValue, verbose);
+        writeEntryContinue(context, traceId, bindingId, FLAGS_COMPLETE, offset, entryMark, valueMark, value,
+            convertValue, verbose);
         writeEntryFinish(headers, deltaType);
     }
 
     public void writeEntryStart(
         EngineContext context,
+        long traceId,
         long bindingId,
         long offset,
         MutableInteger entryMark,
@@ -448,7 +451,7 @@ public final class KafkaCachePartition
                 logFile.appendBytes(buffer, index, length);
             };
             OctetsFW value = key.value();
-            int converted = convertKey.convert(context.supplyTraceId(), bindingId, value.buffer(), value.offset(),
+            int converted = convertKey.convert(traceId, bindingId, value.buffer(), value.offset(),
                 value.sizeof(), writeKey);
             if (converted == -1)
             {
@@ -482,6 +485,7 @@ public final class KafkaCachePartition
 
     public void writeEntryContinue(
         EngineContext context,
+        long traceId,
         long bindingId,
         int flags,
         long offset,
@@ -527,7 +531,7 @@ public final class KafkaCachePartition
 
             if ((flags & FLAGS_FIN) != 0x00 && (entryFlags & CACHE_ENTRY_FLAGS_ABORTED) == 0x00)
             {
-                int converted = convertValue.convert(context.supplyTraceId(), bindingId, logFile.buffer(),
+                int converted = convertValue.convert(traceId, bindingId, logFile.buffer(),
                     valueMark.value, valueLength, consumeConverted);
                 if (converted == -1)
                 {
@@ -625,7 +629,7 @@ public final class KafkaCachePartition
     }
 
     public int writeProduceEntryStart(
-        EngineContext context,
+        long traceId,
         long bindingId,
         long offset,
         Node head,
@@ -707,7 +711,7 @@ public final class KafkaCachePartition
                     logFile.appendBytes(buffer, index, length);
                 };
 
-                converted = convertKey.convert(context.supplyTraceId(), bindingId, value.buffer(),
+                converted = convertKey.convert(traceId, bindingId, value.buffer(),
                     value.offset(), value.sizeof(), writeKey);
 
                 if (converted == -1)
@@ -740,7 +744,7 @@ public final class KafkaCachePartition
     }
 
     public int writeProduceEntryContinue(
-        EngineContext context,
+        long traceId,
         long bindingId,
         int flags,
         Node head,
@@ -780,7 +784,7 @@ public final class KafkaCachePartition
                 final int valueLength = valueLimit.value - valueMark.value;
                 if ((flags & FLAGS_FIN) != 0x00)
                 {
-                    converted = convertValue.convert(context.supplyTraceId(), bindingId, logFile.buffer(),
+                    converted = convertValue.convert(traceId, bindingId, logFile.buffer(),
                         valueMark.value, valueLength, consumeConverted);
                 }
             }

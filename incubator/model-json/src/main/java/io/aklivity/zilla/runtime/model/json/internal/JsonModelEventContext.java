@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.model.json.internal;
 
-import static io.aklivity.zilla.runtime.model.json.internal.types.event.JsonModelEventType.VALIDATION_FAILURE;
+import static io.aklivity.zilla.runtime.model.json.internal.types.event.JsonModelEventType.VALIDATION_FAILED;
 
 import java.nio.ByteBuffer;
 import java.time.Clock;
@@ -36,7 +36,7 @@ public class JsonModelEventContext
     private final EventFW.Builder eventRW = new EventFW.Builder();
     private final JsonModelEventExFW.Builder jsonModelEventExRW = new JsonModelEventExFW.Builder();
     private final int jsonModelTypeId;
-    private final int validationFailureEventId;
+    private final int validationFailedEventId;
     private final MessageConsumer eventWriter;
     private final Clock clock;
 
@@ -44,7 +44,7 @@ public class JsonModelEventContext
         EngineContext context)
     {
         this.jsonModelTypeId = context.supplyTypeId(JsonModel.NAME);
-        this.validationFailureEventId = context.supplyEventId("model.json.validation.failure");
+        this.validationFailedEventId = context.supplyEventId("model.json.validation.failed");
         this.eventWriter = context.supplyEventWriter();
         this.clock = context.clock();
     }
@@ -56,14 +56,14 @@ public class JsonModelEventContext
     {
         JsonModelEventExFW extension = jsonModelEventExRW
             .wrap(extensionBuffer, 0, extensionBuffer.capacity())
-            .validationFailure(e -> e
-                .typeId(VALIDATION_FAILURE.value())
+            .validationFailed(e -> e
+                .typeId(VALIDATION_FAILED.value())
                 .error(error)
             )
             .build();
         EventFW event = eventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
-            .id(validationFailureEventId)
+            .id(validationFailedEventId)
             .timestamp(clock.millis())
             .traceId(traceId)
             .namespacedId(bindingId)

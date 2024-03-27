@@ -712,7 +712,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                         : String.format("%d >= 0 && %d >= %d", partitionOffset, partitionOffset, nextOffset);
 
                     final long keyHash = partition.computeKeyHash(key);
-                    if (partition.writeProduceEntryStart(context, routedId, partitionOffset, stream.segment,
+                    if (partition.writeProduceEntryStart(traceId, routedId, partitionOffset, stream.segment,
                         stream.entryMark, stream.valueMark, stream.valueLimit, timestamp, stream.initialId,
                         producerId, producerEpoch, sequence, ackMode, key, keyHash, valueLength,
                         headers, trailersSizeMax, valueFragment, convertKey, convertValue) == -1)
@@ -731,7 +731,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
             if (valueFragment != null && error == NO_ERROR)
             {
-                if (partition.writeProduceEntryContinue(context, routedId, flags, stream.segment,
+                if (partition.writeProduceEntryContinue(traceId, routedId, flags, stream.segment,
                         stream.entryMark, stream.valueMark, stream.valueLimit,
                         valueFragment, convertValue) == -1)
                 {
@@ -792,7 +792,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                     : String.format("%d >= 0 && %d >= %d", partitionOffset, partitionOffset, nextOffset);
 
                 final long keyHash = partition.computeKeyHash(EMPTY_KEY);
-                partition.writeProduceEntryStart(context, routedId, partitionOffset, stream.segment, stream.entryMark,
+                partition.writeProduceEntryStart(traceId, routedId, partitionOffset, stream.segment, stream.entryMark,
                     stream.valueMark, stream.valueLimit, now().toEpochMilli(), stream.initialId, PRODUCE_FLUSH_PRODUCER_ID,
                     PRODUCE_FLUSH_PRODUCER_EPOCH, PRODUCE_FLUSH_SEQUENCE, KafkaAckMode.LEADER_ONLY, EMPTY_KEY, keyHash,
                     0, EMPTY_TRAILERS, trailersSizeMax, EMPTY_OCTETS, convertKey, convertValue);

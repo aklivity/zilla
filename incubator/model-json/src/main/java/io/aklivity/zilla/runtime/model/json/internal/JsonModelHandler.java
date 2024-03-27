@@ -15,7 +15,6 @@
 package io.aklivity.zilla.runtime.model.json.internal;
 
 import java.io.StringReader;
-import java.util.function.LongFunction;
 
 import jakarta.json.spi.JsonProvider;
 import jakarta.json.stream.JsonParser;
@@ -52,15 +51,14 @@ public abstract class JsonModelHandler
 
     public JsonModelHandler(
         JsonModelConfig config,
-        EngineContext context,
-        LongFunction<CatalogHandler> supplyCatalog)
+        EngineContext context)
     {
         this.schemaProvider = JsonProvider.provider();
         this.service = JsonValidationService.newInstance();
         this.factory = schemaProvider.createParserFactory(null);
         CatalogedConfig cataloged = config.cataloged.get(0);
         this.catalog = cataloged.schemas.size() != 0 ? cataloged.schemas.get(0) : null;
-        this.handler = supplyCatalog.apply(cataloged.id);
+        this.handler = context.supplyCatalog(cataloged.id);
         this.subject = catalog != null && catalog.subject != null
                 ? catalog.subject
                 : config.subject;

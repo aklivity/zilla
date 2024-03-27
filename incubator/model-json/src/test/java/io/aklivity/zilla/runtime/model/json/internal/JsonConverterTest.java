@@ -14,12 +14,11 @@
  */
 package io.aklivity.zilla.runtime.model.json.internal;
 
-import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DIRECTORY;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-import java.util.Properties;
-import java.util.function.LongFunction;
+import java.time.Clock;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
@@ -27,14 +26,11 @@ import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.catalog.Catalog;
-import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
-import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
-import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalog;
+import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalogHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogOptionsConfig;
 import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
@@ -74,30 +70,24 @@ public class JsonConverterTest
                         .build()
                 .build()
             .build();
-    private CatalogContext context;
-    private EngineContext engine;
+    private EngineContext context;
 
     @Before
     public void init()
     {
-        Properties properties = new Properties();
-        properties.setProperty(ENGINE_DIRECTORY.name(), "target/zilla-itests");
-        EngineConfiguration config = new EngineConfiguration(properties);
-        Catalog catalog = new TestCatalog(config);
-        engine = mock(EngineContext.class);
-        context = catalog.supply(engine);
+        context = mock(EngineContext.class);
     }
 
     @Test
     public void shouldVerifyValidJsonObject()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test",
-            TestCatalogOptionsConfig.builder()
-                .id(9)
-                .schema(OBJECT_SCHEMA)
-                .build());
-        LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        JsonReadConverterHandler converter = new JsonReadConverterHandler(config, engine, handler);
+        TestCatalogOptionsConfig testCatalogOptionsConfig = TestCatalogOptionsConfig.builder()
+            .id(9)
+            .schema(OBJECT_SCHEMA)
+            .build();
+        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test", testCatalogOptionsConfig);
+        when(context.supplyCatalog(catalogConfig.id)).thenReturn(new TestCatalogHandler(testCatalogOptionsConfig));
+        JsonReadConverterHandler converter = new JsonReadConverterHandler(config, context);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -114,13 +104,13 @@ public class JsonConverterTest
     @Test
     public void shouldVerifyValidJsonArray()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test",
-            TestCatalogOptionsConfig.builder()
-                .id(9)
-                .schema(ARRAY_SCHEMA)
-                .build());
-        LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        JsonWriteConverterHandler converter = new JsonWriteConverterHandler(config, engine, handler);
+        TestCatalogOptionsConfig testCatalogOptionsConfig = TestCatalogOptionsConfig.builder()
+            .id(9)
+            .schema(ARRAY_SCHEMA)
+            .build();
+        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test", testCatalogOptionsConfig);
+        when(context.supplyCatalog(catalogConfig.id)).thenReturn(new TestCatalogHandler(testCatalogOptionsConfig));
+        JsonWriteConverterHandler converter = new JsonWriteConverterHandler(config, context);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -140,13 +130,15 @@ public class JsonConverterTest
     @Test
     public void shouldVerifyInvalidJsonObject()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test",
-            TestCatalogOptionsConfig.builder()
-                .id(9)
-                .schema(OBJECT_SCHEMA)
-                .build());
-        LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        JsonReadConverterHandler converter = new JsonReadConverterHandler(config, engine, handler);
+        TestCatalogOptionsConfig testCatalogOptionsConfig = TestCatalogOptionsConfig.builder()
+            .id(9)
+            .schema(OBJECT_SCHEMA)
+            .build();
+        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test", testCatalogOptionsConfig);
+        when(context.supplyCatalog(catalogConfig.id)).thenReturn(new TestCatalogHandler(testCatalogOptionsConfig));
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
+        JsonReadConverterHandler converter = new JsonReadConverterHandler(config, context);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -168,13 +160,13 @@ public class JsonConverterTest
     @Test
     public void shouldWriteValidJsonData()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test",
-            TestCatalogOptionsConfig.builder()
-                .id(9)
-                .schema(OBJECT_SCHEMA)
-                .build());
-        LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        JsonWriteConverterHandler converter = new JsonWriteConverterHandler(config, engine, handler);
+        TestCatalogOptionsConfig testCatalogOptionsConfig = TestCatalogOptionsConfig.builder()
+            .id(9)
+            .schema(OBJECT_SCHEMA)
+            .build();
+        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test", testCatalogOptionsConfig);
+        when(context.supplyCatalog(catalogConfig.id)).thenReturn(new TestCatalogHandler(testCatalogOptionsConfig));
+        JsonWriteConverterHandler converter = new JsonWriteConverterHandler(config, context);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -192,13 +184,15 @@ public class JsonConverterTest
     @Test
     public void shouldVerifyInvalidJsonArray()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test",
-            TestCatalogOptionsConfig.builder()
-                .id(9)
-                .schema(ARRAY_SCHEMA)
-                .build());
-        LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        JsonWriteConverterHandler converter = new JsonWriteConverterHandler(config, engine, handler);
+        TestCatalogOptionsConfig testCatalogOptionsConfig = TestCatalogOptionsConfig.builder()
+            .id(9)
+            .schema(ARRAY_SCHEMA)
+            .build();
+        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test", testCatalogOptionsConfig);
+        when(context.supplyCatalog(catalogConfig.id)).thenReturn(new TestCatalogHandler(testCatalogOptionsConfig));
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
+        JsonWriteConverterHandler converter = new JsonWriteConverterHandler(config, context);
 
         DirectBuffer data = new UnsafeBuffer();
 

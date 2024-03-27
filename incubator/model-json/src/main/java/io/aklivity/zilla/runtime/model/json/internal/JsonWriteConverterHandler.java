@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.runtime.model.json.internal;
 
-import java.util.function.LongFunction;
-
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -28,10 +26,9 @@ public class JsonWriteConverterHandler extends JsonModelHandler implements Conve
 {
     public JsonWriteConverterHandler(
         JsonModelConfig config,
-        EngineContext context,
-        LongFunction<CatalogHandler> supplyCatalog)
+        EngineContext context)
     {
-        super(config, context, supplyCatalog);
+        super(config, context);
     }
 
     @Override

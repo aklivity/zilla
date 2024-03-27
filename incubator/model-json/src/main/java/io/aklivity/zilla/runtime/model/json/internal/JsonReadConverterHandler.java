@@ -16,12 +16,9 @@ package io.aklivity.zilla.runtime.model.json.internal;
 
 import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
 
-import java.util.function.LongFunction;
-
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
@@ -30,10 +27,9 @@ public class JsonReadConverterHandler extends JsonModelHandler implements Conver
 {
     public JsonReadConverterHandler(
         JsonModelConfig config,
-        EngineContext context,
-        LongFunction<CatalogHandler> supplyCatalog)
+        EngineContext context)
     {
-        super(config, context, supplyCatalog);
+        super(config, context);
     }
 
     @Override
