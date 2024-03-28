@@ -774,7 +774,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                     entryFlags |= CACHE_ENTRY_FLAGS_ABORTED;
                 }
 
-                partition.writeEntry(context, routedId, partitionOffset, entryMark, valueMark, 0L, producerId,
+                partition.writeEntry(context, traceId, routedId, partitionOffset, entryMark, valueMark, 0L, producerId,
                         EMPTY_KEY, EMPTY_HEADERS, EMPTY_OCTETS, null,
                         entryFlags, KafkaDeltaType.NONE, convertKey, convertValue, verbose);
 
@@ -879,13 +879,14 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 final int entryFlags = (flags & FLAGS_SKIP) != 0x00 ? CACHE_ENTRY_FLAGS_ABORTED : 0x00;
                 final long keyHash = partition.computeKeyHash(key);
                 final KafkaCacheEntryFW ancestor = findAndMarkAncestor(key, nextHead, (int) keyHash, partitionOffset);
-                partition.writeEntryStart(context, routedId, partitionOffset, entryMark, valueMark, timestamp, producerId,
-                    key, keyHash, valueLength, ancestor, entryFlags, deltaType, valueFragment, convertKey, convertValue, verbose);
+                partition.writeEntryStart(context, traceId, routedId, partitionOffset, entryMark, valueMark, timestamp,
+                    producerId, key, keyHash, valueLength, ancestor, entryFlags, deltaType, valueFragment, convertKey,
+                    convertValue, verbose);
             }
 
             if (valueFragment != null)
             {
-                partition.writeEntryContinue(context, routedId, flags, partitionOffset, entryMark, valueMark,
+                partition.writeEntryContinue(context, traceId, routedId, flags, partitionOffset, entryMark, valueMark,
                     valueFragment, convertValue, verbose);
             }
 

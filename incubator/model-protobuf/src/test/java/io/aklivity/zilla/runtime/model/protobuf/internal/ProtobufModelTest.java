@@ -14,27 +14,23 @@
  */
 package io.aklivity.zilla.runtime.model.protobuf.internal;
 
-import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DIRECTORY;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Properties;
-import java.util.function.LongFunction;
+import java.time.Clock;
 
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.catalog.Catalog;
-import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
-import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
-import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalog;
+import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalogHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogOptionsConfig;
 import io.aklivity.zilla.runtime.model.protobuf.config.ProtobufModelConfig;
 
@@ -74,27 +70,23 @@ public class ProtobufModelTest
                                             "optional string date_time = 2;" +
                                         "}" +
                                     "}";
-    private CatalogContext context;
+    private EngineContext context;
 
     @Before
     public void init()
     {
-        Properties properties = new Properties();
-        properties.setProperty(ENGINE_DIRECTORY.name(), "target/zilla-itests");
-        Configuration config = new Configuration(properties);
-        Catalog catalog = new TestCatalog(config);
-        context = catalog.supply(mock(EngineContext.class));
+        context = mock(EngineContext.class);
+        TestCatalogOptionsConfig testCatalogOptionsConfig = TestCatalogOptionsConfig.builder()
+            .id(1)
+            .schema(SCHEMA)
+            .build();
+        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test", testCatalogOptionsConfig);
+        when(context.supplyCatalog(catalogConfig.id)).thenReturn(new TestCatalogHandler(testCatalogOptionsConfig));
     }
 
     @Test
     public void shouldWriteValidProtobufEvent()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test",
-            TestCatalogOptionsConfig.builder()
-                .id(1)
-                .schema(SCHEMA)
-                .build());
-
         ProtobufModelConfig config = ProtobufModelConfig.builder()
                 .catalog()
                     .name("test0")
@@ -106,27 +98,20 @@ public class ProtobufModelTest
                         .build()
                     .build()
                 .build();
-        LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        ProtobufWriteConverterHandler converter = new ProtobufWriteConverterHandler(config, handler);
+        ProtobufWriteConverterHandler converter = new ProtobufWriteConverterHandler(config, context);
 
         DirectBuffer data = new UnsafeBuffer();
 
         byte[] bytes = {0x0a, 0x02, 0x4f, 0x4b, 0x12, 0x08, 0x30, 0x31, 0x30, 0x31, 0x32, 0x30, 0x32, 0x34};
         data.wrap(bytes, 0, bytes.length);
-        assertEquals(data.capacity() + 1, converter.convert(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertEquals(data.capacity() + 1, converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
 
-        assertEquals(data.capacity() + 1, converter.convert(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertEquals(data.capacity() + 1, converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
     public void shouldWriteValidProtobufEventNestedMessage()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test",
-            TestCatalogOptionsConfig.builder()
-                .id(1)
-                .schema(SCHEMA)
-                .build());
-
         ProtobufModelConfig config = ProtobufModelConfig.builder()
                 .catalog()
                     .name("test0")
@@ -138,25 +123,18 @@ public class ProtobufModelTest
                         .build()
                     .build()
                 .build();
-        LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        ProtobufWriteConverterHandler converter = new ProtobufWriteConverterHandler(config, handler);
+        ProtobufWriteConverterHandler converter = new ProtobufWriteConverterHandler(config, context);
 
         DirectBuffer data = new UnsafeBuffer();
 
         byte[] bytes = {0x0a, 0x02, 0x4f, 0x4b, 0x12, 0x08, 0x30, 0x31, 0x30, 0x31, 0x32, 0x30, 0x32, 0x34};
         data.wrap(bytes, 0, bytes.length);
-        assertEquals(data.capacity() + 3, converter.convert(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertEquals(data.capacity() + 3, converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
     public void shouldWriteValidProtobufEventIncorrectRecordName()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test",
-            TestCatalogOptionsConfig.builder()
-                .id(1)
-                .schema(SCHEMA)
-                .build());
-
         ProtobufModelConfig config = ProtobufModelConfig.builder()
                 .catalog()
                     .name("test0")
@@ -168,25 +146,18 @@ public class ProtobufModelTest
                         .build()
                     .build()
                 .build();
-        LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        ProtobufWriteConverterHandler converter = new ProtobufWriteConverterHandler(config, handler);
+        ProtobufWriteConverterHandler converter = new ProtobufWriteConverterHandler(config, context);
 
         DirectBuffer data = new UnsafeBuffer();
 
         byte[] bytes = {0x0a, 0x02, 0x4f, 0x4b, 0x12, 0x08, 0x30, 0x31, 0x30, 0x31, 0x32, 0x30, 0x32, 0x34};
         data.wrap(bytes, 0, bytes.length);
-        assertEquals(-1, converter.convert(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertEquals(-1, converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
     public void shouldReadValidProtobufEvent()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test",
-            TestCatalogOptionsConfig.builder()
-                .id(1)
-                .schema(SCHEMA)
-                .build());
-
         ProtobufModelConfig config = ProtobufModelConfig.builder()
                 .catalog()
                     .name("test0")
@@ -197,27 +168,20 @@ public class ProtobufModelTest
                         .build()
                     .build()
                 .build();
-        LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        ProtobufReadConverterHandler converter = new ProtobufReadConverterHandler(config, handler);
+        ProtobufReadConverterHandler converter = new ProtobufReadConverterHandler(config, context);
 
         DirectBuffer data = new UnsafeBuffer();
 
         byte[] bytes = {0x00, 0x0a, 0x02, 0x4f, 0x4b, 0x12, 0x08, 0x30, 0x31, 0x30, 0x31, 0x32, 0x30, 0x32, 0x34};
         data.wrap(bytes, 0, bytes.length);
-        assertEquals(data.capacity() - 1, converter.convert(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertEquals(data.capacity() - 1, converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
 
-        assertEquals(data.capacity() - 1, converter.convert(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertEquals(data.capacity() - 1, converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
     public void shouldReadValidProtobufEventNestedMessage()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test",
-            TestCatalogOptionsConfig.builder()
-                .id(1)
-                .schema(SCHEMA)
-                .build());
-
         ProtobufModelConfig config = ProtobufModelConfig.builder()
                 .catalog()
                     .name("test0")
@@ -228,25 +192,18 @@ public class ProtobufModelTest
                         .build()
                     .build()
                 .build();
-        LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        ProtobufReadConverterHandler converter = new ProtobufReadConverterHandler(config, handler);
+        ProtobufReadConverterHandler converter = new ProtobufReadConverterHandler(config, context);
 
         DirectBuffer data = new UnsafeBuffer();
 
         byte[] bytes = {0x04, 0x02, 0x04, 0x0a, 0x02, 0x4f, 0x4b, 0x12, 0x08, 0x30, 0x31, 0x30, 0x31, 0x32, 0x30, 0x32, 0x34};
         data.wrap(bytes, 0, bytes.length);
-        assertEquals(data.capacity() - 3, converter.convert(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertEquals(data.capacity() - 3, converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
     public void shouldReadValidProtobufEventFormatJson()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test",
-            TestCatalogOptionsConfig.builder()
-                .id(1)
-                .schema(SCHEMA)
-                .build());
-
         ProtobufModelConfig config = ProtobufModelConfig.builder()
                 .view("json")
                 .catalog()
@@ -259,8 +216,7 @@ public class ProtobufModelTest
                     .build()
                 .build();
 
-        LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        ProtobufReadConverterHandler converter = new ProtobufReadConverterHandler(config, handler);
+        ProtobufReadConverterHandler converter = new ProtobufReadConverterHandler(config, context);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -279,20 +235,14 @@ public class ProtobufModelTest
             buffer.getBytes(index, jsonBytes);
             assertEquals(json, new String(jsonBytes, StandardCharsets.UTF_8));
         };
-        converter.convert(data, 0, data.capacity(), consumer);
+        converter.convert(0L, 0L, data, 0, data.capacity(), consumer);
 
-        converter.convert(data, 0, data.capacity(), consumer);
+        converter.convert(0L, 0L, data, 0, data.capacity(), consumer);
     }
 
     @Test
     public void shouldWriteValidProtobufEventFormatJson()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test",
-            TestCatalogOptionsConfig.builder()
-                .id(1)
-                .schema(SCHEMA)
-                .build());
-
         ProtobufModelConfig config = ProtobufModelConfig.builder()
                 .view("json")
                 .catalog()
@@ -306,8 +256,7 @@ public class ProtobufModelTest
                     .build()
                 .build();
 
-        LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        ProtobufWriteConverterHandler converter = new ProtobufWriteConverterHandler(config, handler);
+        ProtobufWriteConverterHandler converter = new ProtobufWriteConverterHandler(config, context);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -322,20 +271,49 @@ public class ProtobufModelTest
         DirectBuffer expected = new UnsafeBuffer();
         expected.wrap(expectedBytes, 0, expectedBytes.length);
 
-        assertEquals(expected.capacity(), converter.convert(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertEquals(expected.capacity(), converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
 
-        assertEquals(expected.capacity(), converter.convert(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertEquals(expected.capacity(), converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
+    }
+
+    @Test
+    public void shouldWriteInvalidProtobufEventFormatJson()
+    {
+        ProtobufModelConfig config = ProtobufModelConfig.builder()
+            .view("json")
+            .catalog()
+                .name("test0")
+                .schema()
+                    .strategy("topic")
+                    .version("latest")
+                    .subject("test-value")
+                    .record("SimpleMessage")
+                    .build()
+                .build()
+            .build();
+
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
+
+        ProtobufWriteConverterHandler converter = new ProtobufWriteConverterHandler(config, context);
+
+        DirectBuffer data = new UnsafeBuffer();
+
+        String json =
+            "{" +
+                "\"content\":\"OK\"," +
+                "\"date\":\"01012024\"" +
+            "}";
+        data.wrap(json.getBytes(), 0, json.getBytes().length);
+
+        assertEquals(-1, converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
+
+        assertEquals(-1, converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
     public void shouldVerifyJsonFormatPaddingLength()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test",
-                TestCatalogOptionsConfig.builder()
-                        .id(9)
-                        .schema(SCHEMA)
-                        .build());
-        LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
         ProtobufModelConfig config = ProtobufModelConfig.builder()
                 .view("json")
                 .catalog()
@@ -347,7 +325,7 @@ public class ProtobufModelTest
                         .build()
                     .build()
                 .build();
-        ProtobufReadConverterHandler converter = new ProtobufReadConverterHandler(config, handler);
+        ProtobufReadConverterHandler converter = new ProtobufReadConverterHandler(config, context);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -357,12 +335,6 @@ public class ProtobufModelTest
     @Test
     public void shouldVerifyIndexPaddingLength()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test",
-                TestCatalogOptionsConfig.builder()
-                        .id(9)
-                        .schema(SCHEMA)
-                        .build());
-        LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
         ProtobufModelConfig config = ProtobufModelConfig.builder()
                 .catalog()
                     .name("test0")
@@ -374,7 +346,7 @@ public class ProtobufModelTest
                         .build()
                     .build()
                 .build();
-        ProtobufWriteConverterHandler converter = new ProtobufWriteConverterHandler(config, handler);
+        ProtobufWriteConverterHandler converter = new ProtobufWriteConverterHandler(config, context);
 
         DirectBuffer data = new UnsafeBuffer();
 

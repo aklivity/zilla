@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.model.protobuf.internal;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.function.LongFunction;
 
 import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
@@ -38,6 +37,7 @@ import com.google.protobuf.Descriptors.DescriptorValidationException;
 import com.google.protobuf.Descriptors.FileDescriptor;
 import com.google.protobuf.DynamicMessage;
 
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
@@ -60,6 +60,7 @@ public class ProtobufModelHandler
     protected final List<Integer> indexes;
     protected final DirectBufferInputStream in;
     protected final ExpandableDirectBufferOutputStream out;
+    protected final ProtobufModelEventContext event;
 
     private final Int2ObjectCache<FileDescriptor> descriptors;
     private final Int2ObjectCache<DescriptorTree> tree;
@@ -69,10 +70,10 @@ public class ProtobufModelHandler
 
     protected ProtobufModelHandler(
         ProtobufModelConfig config,
-        LongFunction<CatalogHandler> supplyCatalog)
+        EngineContext context)
     {
         CatalogedConfig cataloged = config.cataloged.get(0);
-        this.handler = supplyCatalog.apply(cataloged.id);
+        this.handler = context.supplyCatalog(cataloged.id);
         this.catalog = cataloged.schemas.size() != 0 ? cataloged.schemas.get(0) : null;
         this.subject = catalog != null && catalog.subject != null
                 ? catalog.subject
@@ -86,6 +87,7 @@ public class ProtobufModelHandler
         this.indexes = new LinkedList<>();
         this.paddings = new Int2IntHashMap(-1);
         this.out = new ExpandableDirectBufferOutputStream(new ExpandableDirectByteBuffer());
+        this.event = new ProtobufModelEventContext(context);
     }
 
     protected FileDescriptor supplyDescriptor(

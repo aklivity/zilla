@@ -78,7 +78,7 @@
         <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <scopeNames>core</scopeNames>
+          <scopeNames>core core_model</scopeNames>
           <packageName>io.aklivity.zilla.specs.model.core.internal.types</packageName>
         </configuration>
         <executions>

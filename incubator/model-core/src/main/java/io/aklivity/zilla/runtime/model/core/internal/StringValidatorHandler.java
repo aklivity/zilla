@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.model.core.internal;
 
 import org.agrona.DirectBuffer;
 
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
@@ -23,21 +24,33 @@ import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
 public class StringValidatorHandler implements ValidatorHandler
 {
     private final StringValidatorEncoding encoding;
+    private final CoreModelEventContext event;
 
     public StringValidatorHandler(
-        StringModelConfig config)
+        StringModelConfig config,
+        EngineContext context)
     {
         this.encoding = StringValidatorEncoding.of(config.encoding);
+        this.event = new CoreModelEventContext(context);
     }
 
     @Override
     public boolean validate(
+        long traceId,
+        long bindingId,
         int flags,
         DirectBuffer data,
         int index,
         int length,
         ValueConsumer next)
     {
-        return encoding.validate(flags, data, index, length);
+        boolean valid = encoding.validate(flags, data, index, length);
+
+        if (!valid)
+        {
+            event.validationFailure(traceId, bindingId, StringModel.NAME);
+        }
+
+        return valid;
     }
 }

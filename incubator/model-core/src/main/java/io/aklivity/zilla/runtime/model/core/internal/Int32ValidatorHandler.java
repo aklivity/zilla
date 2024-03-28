@@ -18,6 +18,7 @@ import java.util.function.IntPredicate;
 
 import org.agrona.DirectBuffer;
 
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.model.core.config.Int32ModelConfig;
@@ -27,9 +28,11 @@ public class Int32ValidatorHandler implements ValidatorHandler
     private final Int32Format format;
     private final IntPredicate check;
     private final Int32State state;
+    private final CoreModelEventContext event;
 
     public Int32ValidatorHandler(
-        Int32ModelConfig config)
+        Int32ModelConfig config,
+        EngineContext context)
     {
         int max = config.max;
         int min = config.min;
@@ -39,10 +42,13 @@ public class Int32ValidatorHandler implements ValidatorHandler
         this.check = checkMax.and(checkMin).and(checkMultiple);
         this.format = Int32Format.of(config.format);
         this.state = new Int32State();
+        this.event = new CoreModelEventContext(context);
     }
 
     @Override
     public boolean validate(
+        long traceId,
+        long bindingId,
         int flags,
         DirectBuffer data,
         int index,
@@ -60,6 +66,11 @@ public class Int32ValidatorHandler implements ValidatorHandler
         {
             valid &= format.valid(state);
             valid &= check.test(state.decoded);
+        }
+
+        if (!valid)
+        {
+            event.validationFailure(traceId, bindingId, Int32Model.NAME);
         }
         return valid;
     }

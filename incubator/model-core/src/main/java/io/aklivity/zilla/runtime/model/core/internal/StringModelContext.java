@@ -23,9 +23,12 @@ import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
 
 public class StringModelContext implements ModelContext
 {
+    private final EngineContext context;
+
     public StringModelContext(
         EngineContext context)
     {
+        this.context = context;
     }
 
     @Override
@@ -46,12 +49,12 @@ public class StringModelContext implements ModelContext
     public ValidatorHandler supplyValidatorHandler(
         ModelConfig config)
     {
-        return new StringValidatorHandler(StringModelConfig.class.cast(config));
+        return new StringValidatorHandler(StringModelConfig.class.cast(config), context);
     }
 
     private StringConverterHandler supply(
         ModelConfig config)
     {
-        return new StringConverterHandler(StringModelConfig.class.cast(config));
+        return new StringConverterHandler(StringModelConfig.class.cast(config), context);
     }
 }

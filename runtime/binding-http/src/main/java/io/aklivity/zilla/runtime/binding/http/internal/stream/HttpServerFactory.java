@@ -2738,6 +2738,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             private MessageConsumer application;
             private final long originId;
             private final long routedId;
+            private final long traceId;
             private final long requestId;
             private final long responseId;
             private final long sessionId;
@@ -2776,6 +2777,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             {
                 this.originId = originId;
                 this.routedId = routedId;
+                this.traceId = traceId;
                 this.sessionId = sessionId;
                 this.policy = policy;
                 this.origin = origin;
@@ -3181,7 +3183,8 @@ public final class HttpServerFactory implements HttpStreamFactory
                             {
                                 String16FW value = header.value();
                                 valid.value &=
-                                    validator.validate(value.value(), value.offset(), value.length(), ValueConsumer.NOP);
+                                    validator.validate(traceId, routedId, value.value(),
+                                        value.offset(), value.length(), ValueConsumer.NOP);
                             }
                         }
                     });
@@ -3204,7 +3207,8 @@ public final class HttpServerFactory implements HttpStreamFactory
                     {
                         String8FW value0 = new String8FW(value);
                         ValidatorHandler validator = requestType.pathParams.get(name);
-                        if (!validator.validate(value0.value(), value0.offset(), value0.length(), ValueConsumer.NOP))
+                        if (!validator.validate(traceId, routedId, value0.value(),
+                            value0.offset(), value0.length(), ValueConsumer.NOP))
                         {
                             valid = false;
                             break;
@@ -3226,7 +3230,8 @@ public final class HttpServerFactory implements HttpStreamFactory
                     if (validator != null)
                     {
                         String8FW value = new String8FW(matcher.group(2));
-                        valid &= validator.validate(value.value(), value.offset(), value.length(), ValueConsumer.NOP);
+                        valid &= validator.validate(traceId, routedId, value.value(),
+                            value.offset(), value.length(), ValueConsumer.NOP);
                     }
                 }
                 return valid;
@@ -3238,7 +3243,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 int length)
             {
                 return contentType == null ||
-                    contentType.validate(buffer, index, length, ValueConsumer.NOP);
+                    contentType.validate(traceId, routedId, buffer, index, length, ValueConsumer.NOP);
             }
 
             private void cleanupExpiringIfNecessary()
@@ -5685,6 +5690,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             private MessageConsumer application;
             private final long originId;
             private final long routedId;
+            private final long traceId;
             private final long requestId;
             private final long responseId;
             private final int streamId;
@@ -5734,6 +5740,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             {
                 this.originId = originId;
                 this.routedId = routedId;
+                this.traceId = traceId;
                 this.streamId = streamId;
                 this.sessionId = authorization;
                 this.policy = policy;
@@ -6307,7 +6314,8 @@ public final class HttpServerFactory implements HttpStreamFactory
                             {
                                 String16FW value = header.value();
                                 valid.value &=
-                                    validator.validate(value.value(), 0, value.length(), ValueConsumer.NOP);
+                                    validator.validate(traceId, routedId, value.value(), 0, value.length(),
+                                        ValueConsumer.NOP);
                             }
                         }
                     });
@@ -6330,7 +6338,8 @@ public final class HttpServerFactory implements HttpStreamFactory
                     {
                         String8FW value0 = new String8FW(value);
                         ValidatorHandler validator = requestType.pathParams.get(name);
-                        if (!validator.validate(value0.value(), value0.offset(), value0.length(), ValueConsumer.NOP))
+                        if (!validator.validate(traceId, routedId, value0.value(), value0.offset(),
+                            value0.length(), ValueConsumer.NOP))
                         {
                             valid = false;
                             break;
@@ -6352,7 +6361,8 @@ public final class HttpServerFactory implements HttpStreamFactory
                     if (validator != null)
                     {
                         String8FW value = new String8FW(matcher.group(2));
-                        valid &= validator.validate(value.value(), value.offset(), value.length(), ValueConsumer.NOP);
+                        valid &= validator.validate(traceId, routedId, value.value(), value.offset(),
+                            value.length(), ValueConsumer.NOP);
                     }
                 }
                 return valid;
@@ -6364,7 +6374,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 int length)
             {
                 return contentType == null ||
-                    contentType.validate(buffer, index, length, ValueConsumer.NOP);
+                    contentType.validate(traceId, routedId, buffer, index, length, ValueConsumer.NOP);
             }
 
             private void removeStreamIfNecessary()

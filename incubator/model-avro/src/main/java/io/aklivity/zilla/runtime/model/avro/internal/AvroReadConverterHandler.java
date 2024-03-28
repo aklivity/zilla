@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.model.avro.internal;
 import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
 
 import java.io.IOException;
-import java.util.function.LongFunction;
 
 import org.agrona.DirectBuffer;
 import org.apache.avro.AvroRuntimeException;
@@ -27,7 +26,7 @@ import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.JsonEncoder;
 
-import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.model.avro.config.AvroModelConfig;
@@ -36,9 +35,9 @@ public class AvroReadConverterHandler extends AvroModelHandler implements Conver
 {
     public AvroReadConverterHandler(
         AvroModelConfig config,
-        LongFunction<CatalogHandler> supplyCatalog)
+        EngineContext context)
     {
-        super(config, supplyCatalog);
+        super(config, context);
     }
 
     @Override
@@ -70,15 +69,19 @@ public class AvroReadConverterHandler extends AvroModelHandler implements Conver
 
     @Override
     public int convert(
+        long traceId,
+        long bindingId,
         DirectBuffer data,
         int index,
         int length,
         ValueConsumer next)
     {
-        return handler.decode(data, index, length, next, this::decodePayload);
+        return handler.decode(traceId, bindingId, data, index, length, next, this::decodePayload);
     }
 
     private int decodePayload(
+        long traceId,
+        long bindingId,
         int schemaId,
         DirectBuffer data,
         int index,
@@ -101,7 +104,7 @@ public class AvroReadConverterHandler extends AvroModelHandler implements Conver
 
         if (VIEW_JSON.equals(view))
         {
-            deserializeRecord(schemaId, data, index, length);
+            deserializeRecord(traceId, bindingId, schemaId, data, index, length);
             int recordLength = expandable.position();
             if (recordLength > 0)
             {
@@ -109,7 +112,7 @@ public class AvroReadConverterHandler extends AvroModelHandler implements Conver
                 valLength = recordLength;
             }
         }
-        else if (validate(schemaId, data, index, length))
+        else if (validate(traceId, bindingId, schemaId, data, index, length))
         {
             next.accept(data, index, length);
             valLength = length;
@@ -118,6 +121,8 @@ public class AvroReadConverterHandler extends AvroModelHandler implements Conver
     }
 
     private void deserializeRecord(
+        long traceId,
+        long bindingId,
         int schemaId,
         DirectBuffer buffer,
         int index,
@@ -141,7 +146,7 @@ public class AvroReadConverterHandler extends AvroModelHandler implements Conver
         }
         catch (IOException | AvroRuntimeException ex)
         {
-            ex.printStackTrace();
+            event.validationFailure(traceId, bindingId, ex.getMessage());
         }
     }
 }

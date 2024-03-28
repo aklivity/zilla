@@ -14,26 +14,22 @@
  */
 package io.aklivity.zilla.runtime.model.avro.internal;
 
-import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DIRECTORY;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-import java.util.Properties;
-import java.util.function.LongFunction;
+import java.time.Clock;
 
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.catalog.Catalog;
-import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
-import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
-import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalog;
+import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalogHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogOptionsConfig;
 import io.aklivity.zilla.runtime.model.avro.config.AvroModelConfig;
 
@@ -53,83 +49,81 @@ public class AvroModelTest
                         .build()
                 .build()
             .build();
-    private CatalogContext context;
+    private EngineContext context;
 
     @Before
     public void init()
     {
-        Properties properties = new Properties();
-        properties.setProperty(ENGINE_DIRECTORY.name(), "target/zilla-itests");
-        Configuration config = new Configuration(properties);
-        Catalog catalog = new TestCatalog(config);
-        context = catalog.supply(mock(EngineContext.class));
+        context = mock(EngineContext.class);
     }
 
     @Test
     public void shouldVerifyValidAvroEvent()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test",
-            TestCatalogOptionsConfig.builder()
-                .id(9)
-                .schema(SCHEMA)
-                .build());
-        LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        AvroReadConverterHandler converter = new AvroReadConverterHandler(avroConfig, handler);
+        TestCatalogOptionsConfig testCatalogOptionsConfig = TestCatalogOptionsConfig.builder()
+            .id(9)
+            .schema(SCHEMA)
+            .build();
+        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test", testCatalogOptionsConfig);
+        when(context.supplyCatalog(catalogConfig.id)).thenReturn(new TestCatalogHandler(testCatalogOptionsConfig));
+        AvroReadConverterHandler converter = new AvroReadConverterHandler(avroConfig, context);
 
         DirectBuffer data = new UnsafeBuffer();
 
         byte[] bytes = {0x06, 0x69, 0x64,
             0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
         data.wrap(bytes, 0, bytes.length);
-        assertEquals(data.capacity(), converter.convert(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertEquals(data.capacity(), converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
     public void shouldWriteValidAvroEvent()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test",
-            TestCatalogOptionsConfig.builder()
-                .id(1)
-                .schema(SCHEMA)
-                .build());
-        LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        AvroWriteConverterHandler converter = new AvroWriteConverterHandler(avroConfig, handler);
+        TestCatalogOptionsConfig testCatalogOptionsConfig = TestCatalogOptionsConfig.builder()
+            .id(1)
+            .schema(SCHEMA)
+            .build();
+        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test", testCatalogOptionsConfig);
+        when(context.supplyCatalog(catalogConfig.id)).thenReturn(new TestCatalogHandler(testCatalogOptionsConfig));
+        AvroWriteConverterHandler converter = new AvroWriteConverterHandler(avroConfig, context);
 
         DirectBuffer data = new UnsafeBuffer();
 
         byte[] bytes = {0x06, 0x69, 0x64, 0x30, 0x10, 0x70, 0x6f,
             0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
         data.wrap(bytes, 0, bytes.length);
-        assertEquals(data.capacity(), converter.convert(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertEquals(data.capacity(), converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
     public void shouldVerifyInvalidAvroEvent()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test",
-            TestCatalogOptionsConfig.builder()
-                .id(9)
-                .schema(SCHEMA)
-                .build());
-        LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
-        AvroReadConverterHandler converter = new AvroReadConverterHandler(avroConfig, handler);
+        TestCatalogOptionsConfig testCatalogOptionsConfig = TestCatalogOptionsConfig.builder()
+            .id(9)
+            .schema(SCHEMA)
+            .build();
+        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test", testCatalogOptionsConfig);
+        when(context.supplyCatalog(catalogConfig.id)).thenReturn(new TestCatalogHandler(testCatalogOptionsConfig));
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
+        AvroReadConverterHandler converter = new AvroReadConverterHandler(avroConfig, context);
 
         DirectBuffer data = new UnsafeBuffer();
 
         byte[] bytes = {0x06, 0x69, 0x64, 0x30, 0x10};
         data.wrap(bytes, 0, bytes.length);
-        assertEquals(-1, converter.convert(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertEquals(-1, converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
     public void shouldReadAvroEventExpectJson()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test",
-            TestCatalogOptionsConfig.builder()
-                .id(9)
-                .schema(SCHEMA)
-                .build());
-        LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
+        TestCatalogOptionsConfig testCatalogOptionsConfig = TestCatalogOptionsConfig.builder()
+            .id(9)
+            .schema(SCHEMA)
+            .build();
+        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test", testCatalogOptionsConfig);
+        when(context.supplyCatalog(catalogConfig.id)).thenReturn(new TestCatalogHandler(testCatalogOptionsConfig));
         AvroModelConfig config = AvroModelConfig.builder()
                 .view("json")
                 .catalog()
@@ -141,7 +135,7 @@ public class AvroModelTest
                         .build()
                     .build()
                 .build();
-        AvroReadConverterHandler converter = new AvroReadConverterHandler(config, handler);
+        AvroReadConverterHandler converter = new AvroReadConverterHandler(config, context);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -158,21 +152,21 @@ public class AvroModelTest
         DirectBuffer expected = new UnsafeBuffer();
         expected.wrap(json.getBytes(), 0, json.getBytes().length);
 
-        int progress = converter.convert(data, 0, data.capacity(), ValueConsumer.NOP);
+        int progress = converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP);
         assertEquals(expected.capacity(), progress);
 
-        assertEquals(expected.capacity(), converter.convert(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertEquals(expected.capacity(), converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
     public void shouldWriteJsonEventExpectAvro()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test",
-            TestCatalogOptionsConfig.builder()
-                .id(9)
-                .schema(SCHEMA)
-                .build());
-        LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
+        TestCatalogOptionsConfig testCatalogOptionsConfig = TestCatalogOptionsConfig.builder()
+            .id(9)
+            .schema(SCHEMA)
+            .build();
+        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test", testCatalogOptionsConfig);
+        when(context.supplyCatalog(catalogConfig.id)).thenReturn(new TestCatalogHandler(testCatalogOptionsConfig));
         AvroModelConfig config = AvroModelConfig.builder()
                 .view("json")
                 .catalog()
@@ -184,7 +178,7 @@ public class AvroModelTest
                         .build()
                     .build()
                 .build();
-        AvroWriteConverterHandler converter = new AvroWriteConverterHandler(config, handler);
+        AvroWriteConverterHandler converter = new AvroWriteConverterHandler(config, context);
 
         DirectBuffer expected = new UnsafeBuffer();
 
@@ -200,21 +194,21 @@ public class AvroModelTest
 
         DirectBuffer data = new UnsafeBuffer();
         data.wrap(payload.getBytes(), 0, payload.getBytes().length);
-        int progress = converter.convert(data, 0, data.capacity(), ValueConsumer.NOP);
+        int progress = converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP);
         assertEquals(expected.capacity(), progress);
 
-        assertEquals(expected.capacity(), converter.convert(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertEquals(expected.capacity(), converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
     public void shouldVerifyPaddingLength()
     {
-        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test",
-            TestCatalogOptionsConfig.builder()
-                .id(9)
-                .schema(SCHEMA)
-                .build());
-        LongFunction<CatalogHandler> handler = value -> context.attach(catalogConfig);
+        TestCatalogOptionsConfig testCatalogOptionsConfig = TestCatalogOptionsConfig.builder()
+            .id(9)
+            .schema(SCHEMA)
+            .build();
+        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test", testCatalogOptionsConfig);
+        when(context.supplyCatalog(catalogConfig.id)).thenReturn(new TestCatalogHandler(testCatalogOptionsConfig));
         AvroModelConfig config = AvroModelConfig.builder()
                 .view("json")
                 .catalog()
@@ -226,7 +220,7 @@ public class AvroModelTest
                         .build()
                     .build()
                 .build();
-        AvroReadConverterHandler converter = new AvroReadConverterHandler(config, handler);
+        AvroReadConverterHandler converter = new AvroReadConverterHandler(config, context);
 
         DirectBuffer data = new UnsafeBuffer();
 

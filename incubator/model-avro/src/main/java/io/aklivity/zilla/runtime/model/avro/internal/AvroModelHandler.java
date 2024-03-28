@@ -19,7 +19,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.function.LongFunction;
 
 import org.agrona.DirectBuffer;
 import org.agrona.ExpandableDirectByteBuffer;
@@ -38,6 +37,7 @@ import org.apache.avro.io.BinaryEncoder;
 import org.apache.avro.io.DecoderFactory;
 import org.apache.avro.io.EncoderFactory;
 
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
@@ -61,6 +61,7 @@ public abstract class AvroModelHandler
     protected final String view;
     protected final ExpandableDirectBufferOutputStream expandable;
     protected final DirectBufferInputStream in;
+    protected final AvroModelEventContext event;
 
     private final Int2ObjectCache<Schema> schemas;
     private final Int2ObjectCache<GenericDatumReader<GenericRecord>> readers;
@@ -70,14 +71,14 @@ public abstract class AvroModelHandler
 
     protected AvroModelHandler(
         AvroModelConfig config,
-        LongFunction<CatalogHandler> supplyCatalog)
+        EngineContext context)
     {
         this.decoderFactory = DecoderFactory.get();
         this.decoder = decoderFactory.binaryDecoder(EMPTY_INPUT_STREAM, null);
         this.encoderFactory = EncoderFactory.get();
         this.encoder = encoderFactory.binaryEncoder(EMPTY_OUTPUT_STREAM, null);
         CatalogedConfig cataloged = config.cataloged.get(0);
-        this.handler = supplyCatalog.apply(cataloged.id);
+        this.handler = context.supplyCatalog(cataloged.id);
         this.catalog = cataloged.schemas.size() != 0 ? cataloged.schemas.get(0) : null;
         this.view = config.view;
         this.subject = catalog != null && catalog.subject != null
@@ -90,9 +91,12 @@ public abstract class AvroModelHandler
         this.paddings = new Int2IntHashMap(-1);
         this.expandable = new ExpandableDirectBufferOutputStream(new ExpandableDirectByteBuffer());
         this.in = new DirectBufferInputStream();
+        this.event = new AvroModelEventContext(context);
     }
 
     protected final boolean validate(
+        long traceId,
+        long bindingId,
         int schemaId,
         DirectBuffer buffer,
         int index,
@@ -112,7 +116,7 @@ public abstract class AvroModelHandler
         }
         catch (IOException | AvroRuntimeException ex)
         {
-            ex.printStackTrace();
+            event.validationFailure(traceId, bindingId, ex.getMessage());
         }
         return status;
     }

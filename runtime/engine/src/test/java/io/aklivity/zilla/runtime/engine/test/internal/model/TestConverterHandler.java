@@ -59,6 +59,8 @@ public class TestConverterHandler implements ConverterHandler
 
     @Override
     public int convert(
+        long traceId,
+        long bindingId,
         DirectBuffer data,
         int index,
         int length,

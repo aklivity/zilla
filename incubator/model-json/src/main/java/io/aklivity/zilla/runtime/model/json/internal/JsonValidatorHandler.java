@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.runtime.model.json.internal;
 
-import java.util.function.LongFunction;
-
 import jakarta.json.spi.JsonProvider;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParsingException;
@@ -24,7 +22,7 @@ import org.agrona.DirectBuffer;
 import org.agrona.ExpandableDirectByteBuffer;
 import org.agrona.io.DirectBufferInputStream;
 
-import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
@@ -39,15 +37,17 @@ public class JsonValidatorHandler extends JsonModelHandler implements ValidatorH
 
     public JsonValidatorHandler(
         JsonModelConfig config,
-        LongFunction<CatalogHandler> supplyCatalog)
+        EngineContext context)
     {
-        super(config, supplyCatalog);
+        super(config, context);
         this.buffer = new ExpandableDirectByteBuffer();
         this.in = new DirectBufferInputStream(buffer);
     }
 
     @Override
     public boolean validate(
+        long traceId,
+        long bindingId,
         int flags,
         DirectBuffer data,
         int index,
@@ -85,6 +85,7 @@ public class JsonValidatorHandler extends JsonModelHandler implements ValidatorH
         catch (JsonParsingException ex)
         {
             status = false;
+            event.validationFailure(traceId, bindingId, ex.getMessage());
         }
 
         return status;

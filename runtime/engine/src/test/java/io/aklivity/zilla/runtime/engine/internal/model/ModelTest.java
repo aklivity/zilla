@@ -53,6 +53,6 @@ public class ModelTest
 
         byte[] bytes = {0, 0, 0, 42};
         data.wrap(bytes, 0, bytes.length);
-        assertEquals(data.capacity(), handler.convert(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertEquals(data.capacity(), handler.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 }
