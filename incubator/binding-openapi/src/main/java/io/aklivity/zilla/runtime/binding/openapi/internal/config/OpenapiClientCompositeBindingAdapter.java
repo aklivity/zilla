@@ -15,12 +15,15 @@
 package io.aklivity.zilla.runtime.binding.openapi.internal.config;
 
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.emptyList;
 import static java.util.Objects.requireNonNull;
 
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
+
+import jakarta.json.JsonString;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfigBuilder;
@@ -54,7 +57,7 @@ public final class OpenapiClientCompositeBindingAdapter extends OpenapiComposite
         BindingConfig binding)
     {
         final OpenapiOptionsConfig options = (OpenapiOptionsConfig) binding.options;
-        final OpenapiConfig openapiConfig = options.openapis.get(0);
+        final OpenapiConfig openapiConfig = convertToOpenapi(binding.catalogs).get(0);
         final List<MetricRefConfig> metricRefs = binding.telemetryRef != null ?
             binding.telemetryRef.metricRefs : emptyList();
 

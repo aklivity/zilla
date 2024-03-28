@@ -14,21 +14,15 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.config;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import java.util.function.Function;
-import java.util.zip.CRC32C;
 
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.JsonString;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
-import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
-import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiParser;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenpaiOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiBinding;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
@@ -43,10 +37,6 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
     private static final String TCP_NAME = "tcp";
     private static final String TLS_NAME = "tls";
     private static final String HTTP_NAME = "http";
-    private static final String SPECS_NAME = "specs";
-
-    private final OpenapiParser parser;
-    private final CRC32C crc;
 
     private OptionsConfigAdapter tcpOptions;
     private OptionsConfigAdapter tlsOptions;
@@ -55,8 +45,6 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
 
     public OpenapiOptionsConfigAdapter()
     {
-        this.parser = new OpenapiParser();
-        this.crc = new CRC32C();
     }
 
     @Override
@@ -97,13 +85,6 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
             object.add(HTTP_NAME, httpOptions.adaptToJson(http));
         }
 
-        if (openapiOptions.openapis != null)
-        {
-            JsonObjectBuilder openapi = Json.createObjectBuilder();
-            openapiOptions.openapis.forEach(o -> openapi.add(o.apiLabel, o.location));
-            object.add(SPECS_NAME, openapi);
-        }
-
         return object.build();
     }
 
@@ -133,21 +114,6 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
 
             final HttpOptionsConfig httpOptions = (HttpOptionsConfig) this.httpOptions.adaptFromJson(http);
             openapiOptions.http(httpOptions);
-        }
-
-        if (object.containsKey(SPECS_NAME))
-        {
-            JsonObject openapi = object.getJsonObject(SPECS_NAME);
-            openapi.forEach((n, v) ->
-            {
-                final String location = JsonString.class.cast(v).getString();
-                final String specText = readURL.apply(location);
-                final String apiLabel = n;
-                crc.reset();
-                crc.update(specText.getBytes(UTF_8));
-                final long apiId = crc.getValue();
-                openapiOptions.openapi(new OpenapiConfig(apiLabel, apiId, location, parser.parse(specText)));
-            });
         }
 
         return openapiOptions.build();
