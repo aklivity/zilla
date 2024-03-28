@@ -45,13 +45,15 @@ public interface CatalogHandler
     @FunctionalInterface
     interface Encoder
     {
-        Encoder IDENTITY = (schemaId, data, index, length, next) ->
+        Encoder IDENTITY = (traceId, bindingId, schemaId, data, index, length, next) ->
         {
             next.accept(data, index, length);
             return length;
         };
 
         int accept(
+            long traceId,
+            long bindingId,
             int schemaId,
             DirectBuffer data,
             int index,
@@ -87,6 +89,8 @@ public interface CatalogHandler
     }
 
     default int encode(
+        long traceId,
+        long bindingId,
         int schemaId,
         DirectBuffer data,
         int index,
@@ -94,7 +98,7 @@ public interface CatalogHandler
         ValueConsumer next,
         Encoder encoder)
     {
-        return encoder.accept(schemaId, data, index, length, next);
+        return encoder.accept(traceId, bindingId, schemaId, data, index, length, next);
     }
 
     default int encodePadding()

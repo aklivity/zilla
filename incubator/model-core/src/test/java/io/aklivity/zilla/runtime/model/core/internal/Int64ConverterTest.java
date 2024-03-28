@@ -15,20 +15,27 @@
 package io.aklivity.zilla.runtime.model.core.internal;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.time.Clock;
 
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.model.core.config.Int64ModelConfig;
 
 public class Int64ConverterTest
 {
+    private final EngineContext context = mock(EngineContext.class);
     private final Int64ModelConfig config = Int64ModelConfig.builder()
         .format("binary")
         .build();
-    private final Int64ConverterHandler converter = new Int64ConverterHandler(config);
+    private final Int64ConverterHandler converter = new Int64ConverterHandler(config, context);
 
     @Test
     public void shouldVerifyValidInt64()
@@ -43,6 +50,9 @@ public class Int64ConverterTest
     @Test
     public void shouldVerifyInvalidInt64()
     {
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
+        Int64ConverterHandler converter = new Int64ConverterHandler(config, context);
         DirectBuffer data = new UnsafeBuffer();
 
         byte[] bytes = "Not an Int64".getBytes();

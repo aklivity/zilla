@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.model.core.internal;
 
 import org.agrona.DirectBuffer;
 
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.model.core.config.Int32ModelConfig;
@@ -25,9 +26,10 @@ public class Int32ConverterHandler implements ConverterHandler
     private final Int32ValidatorHandler handler;
 
     public Int32ConverterHandler(
-        Int32ModelConfig config)
+        Int32ModelConfig config,
+        EngineContext context)
     {
-        this.handler = new Int32ValidatorHandler(config);
+        this.handler = new Int32ValidatorHandler(config, context);
     }
 
     @Override

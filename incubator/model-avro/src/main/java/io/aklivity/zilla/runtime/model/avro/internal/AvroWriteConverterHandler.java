@@ -15,7 +15,6 @@
 package io.aklivity.zilla.runtime.model.avro.internal;
 
 import java.io.IOException;
-import java.util.function.LongFunction;
 
 import org.agrona.DirectBuffer;
 import org.apache.avro.AvroRuntimeException;
@@ -24,6 +23,7 @@ import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
 
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
@@ -33,9 +33,9 @@ public class AvroWriteConverterHandler extends AvroModelHandler implements Conve
 {
     public AvroWriteConverterHandler(
         AvroModelConfig config,
-        LongFunction<CatalogHandler> supplyCatalog)
+        EngineContext context)
     {
-        super(config, supplyCatalog);
+        super(config, context);
     }
 
     @Override
@@ -64,16 +64,18 @@ public class AvroWriteConverterHandler extends AvroModelHandler implements Conve
 
         if (VIEW_JSON.equals(view))
         {
-            valLength = handler.encode(schemaId, data, index, length, next, this::serializeJsonRecord);
+            valLength = handler.encode(traceId, bindingId, schemaId, data, index, length, next, this::serializeJsonRecord);
         }
-        else if (validate(schemaId, data, index, length))
+        else if (validate(traceId, bindingId, schemaId, data, index, length))
         {
-            valLength = handler.encode(schemaId, data, index, length, next, CatalogHandler.Encoder.IDENTITY);
+            valLength = handler.encode(traceId, bindingId, schemaId, data, index, length, next, CatalogHandler.Encoder.IDENTITY);
         }
         return valLength;
     }
 
     private int serializeJsonRecord(
+        long traceId,
+        long bindingId,
         int schemaId,
         DirectBuffer buffer,
         int index,
@@ -99,7 +101,7 @@ public class AvroWriteConverterHandler extends AvroModelHandler implements Conve
         }
         catch (IOException | AvroRuntimeException ex)
         {
-            ex.printStackTrace();
+            event.validationFailure(traceId, bindingId, ex.getMessage());
         }
         return expandable.position();
     }

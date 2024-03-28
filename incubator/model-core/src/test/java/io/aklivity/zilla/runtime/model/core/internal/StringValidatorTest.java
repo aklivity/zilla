@@ -16,24 +16,32 @@ package io.aklivity.zilla.runtime.model.core.internal;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.time.Clock;
 
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
 
 public class StringValidatorTest
 {
+    private final EngineContext context = mock(EngineContext.class);
+
     @Test
     public void shouldVerifyValidUtf8()
     {
         StringModelConfig config = StringModelConfig.builder()
             .encoding("utf_8")
             .build();
-        StringValidatorHandler handler = new StringValidatorHandler(config);
+        StringValidatorHandler handler = new StringValidatorHandler(config, context);
         DirectBuffer data = new UnsafeBuffer();
 
         byte[] bytes = "Valid String".getBytes();
@@ -47,7 +55,7 @@ public class StringValidatorTest
         StringModelConfig config = StringModelConfig.builder()
                 .encoding("utf_8")
                 .build();
-        StringValidatorHandler handler = new StringValidatorHandler(config);
+        StringValidatorHandler handler = new StringValidatorHandler(config, context);
         DirectBuffer data = new UnsafeBuffer();
 
         byte[] bytes = "Valid String".getBytes();
@@ -68,7 +76,9 @@ public class StringValidatorTest
         StringModelConfig config = StringModelConfig.builder()
                 .encoding("utf_8")
                 .build();
-        StringValidatorHandler handler = new StringValidatorHandler(config);
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
+        StringValidatorHandler handler = new StringValidatorHandler(config, context);
         DirectBuffer data = new UnsafeBuffer();
 
         byte[] bytes = {
@@ -93,7 +103,7 @@ public class StringValidatorTest
         StringModelConfig config = StringModelConfig.builder()
             .encoding("utf_8")
             .build();
-        StringValidatorHandler handler = new StringValidatorHandler(config);
+        StringValidatorHandler handler = new StringValidatorHandler(config, context);
         UnsafeBuffer data = new UnsafeBuffer();
 
         byte[] bytes = {(byte) 0xc3, (byte) 0xa4};

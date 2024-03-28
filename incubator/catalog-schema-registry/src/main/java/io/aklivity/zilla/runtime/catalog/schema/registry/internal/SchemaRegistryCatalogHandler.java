@@ -160,6 +160,8 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
 
     @Override
     public int encode(
+        long traceId,
+        long bindingId,
         int schemaId,
         DirectBuffer data,
         int index,

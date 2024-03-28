@@ -15,25 +15,32 @@
 package io.aklivity.zilla.runtime.model.core.internal;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Clock;
 
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
 
 public class StringConverterTest
 {
+    private final EngineContext context = mock(EngineContext.class);
+
     @Test
     public void shouldVerifyValidUtf8()
     {
         StringModelConfig config = StringModelConfig.builder()
                 .encoding("utf_8")
                 .build();
-        StringConverterHandler converter = new StringConverterHandler(config);
+        StringConverterHandler converter = new StringConverterHandler(config, context);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -48,7 +55,9 @@ public class StringConverterTest
         StringModelConfig config = StringModelConfig.builder()
                 .encoding("utf_8")
                 .build();
-        StringConverterHandler converter = new StringConverterHandler(config);
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
+        StringConverterHandler converter = new StringConverterHandler(config, context);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -63,7 +72,7 @@ public class StringConverterTest
         StringModelConfig config = StringModelConfig.builder()
                 .encoding("utf_16")
                 .build();
-        StringConverterHandler converter = new StringConverterHandler(config);
+        StringConverterHandler converter = new StringConverterHandler(config, context);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -79,7 +88,9 @@ public class StringConverterTest
         StringModelConfig config = StringModelConfig.builder()
                 .encoding("utf_16")
                 .build();
-        StringConverterHandler converter = new StringConverterHandler(config);
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
+        StringConverterHandler converter = new StringConverterHandler(config, context);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -94,7 +105,9 @@ public class StringConverterTest
         StringModelConfig config = StringModelConfig.builder()
                 .encoding("utf_16")
                 .build();
-        StringConverterHandler converter = new StringConverterHandler(config);
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
+        StringConverterHandler converter = new StringConverterHandler(config, context);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -109,7 +122,9 @@ public class StringConverterTest
         StringModelConfig config = StringModelConfig.builder()
                 .encoding("utf_16")
                 .build();
-        StringConverterHandler converter = new StringConverterHandler(config);
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
+        StringConverterHandler converter = new StringConverterHandler(config, context);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -124,7 +139,9 @@ public class StringConverterTest
         StringModelConfig config = StringModelConfig.builder()
                 .encoding("utf_16")
                 .build();
-        StringConverterHandler converter = new StringConverterHandler(config);
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
+        StringConverterHandler converter = new StringConverterHandler(config, context);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -139,7 +156,9 @@ public class StringConverterTest
         StringModelConfig config = StringModelConfig.builder()
                 .encoding("utf_16")
                 .build();
-        StringConverterHandler converter = new StringConverterHandler(config);
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
+        StringConverterHandler converter = new StringConverterHandler(config, context);
 
         DirectBuffer data = new UnsafeBuffer();
 
