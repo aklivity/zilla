@@ -215,7 +215,7 @@ public class ApicurioCatalogHandler implements CatalogHandler
     {
         ApicurioPrefixFW prefix = prefixRW.rewrap().schemaId(schemaId).build();
         next.accept(prefix.buffer(), prefix.offset(), prefix.sizeof());
-        int valLength = encoder.accept(schemaId, data, index, length, next);
+        int valLength = encoder.accept(traceId, bindingId, schemaId, data, index, length, next);
         return valLength > 0 ? prefix.sizeof() + valLength : -1;
     }
 

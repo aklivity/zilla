@@ -57,7 +57,7 @@ public class JsonWriteConverterHandler extends JsonModelHandler implements Conve
 
         if (validate(traceId, bindingId, schemaId, data, index, length))
         {
-            valLength = handler.encode(schemaId, data, index, length, next, CatalogHandler.Encoder.IDENTITY);
+            valLength = handler.encode(traceId, bindingId, schemaId, data, index, length, next, CatalogHandler.Encoder.IDENTITY);
         }
         return valLength;
     }
