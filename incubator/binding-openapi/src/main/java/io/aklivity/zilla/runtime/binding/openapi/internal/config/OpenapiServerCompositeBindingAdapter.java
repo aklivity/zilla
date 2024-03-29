@@ -72,11 +72,6 @@ public final class OpenapiServerCompositeBindingAdapter extends OpenapiComposite
             binding.telemetryRef.metricRefs : emptyList();
 
         final Openapi openApi = openapiConfig.openapi;
-        final TlsOptionsConfig tlsOption = options.tls != null ? options.tls : null;
-        final HttpOptionsConfig httpOptions = options.http;
-        final String guardName = httpOptions != null ? httpOptions.authorization.name : null;
-        final HttpAuthorizationConfig authorization = httpOptions != null ?  httpOptions.authorization : null;
-
         final int[] allPorts = resolveAllPorts(openApi);
         final int[] httpPorts = resolvePortsForScheme(openApi, "http");
         final int[] httpsPorts = resolvePortsForScheme(openApi, "https");
@@ -84,6 +79,16 @@ public final class OpenapiServerCompositeBindingAdapter extends OpenapiComposite
         final Map<String, String> securitySchemes = resolveSecuritySchemes(openApi);
         final boolean hasJwt = !securitySchemes.isEmpty();
         final String qvault = String.format("%s:%s", binding.namespace, binding.vault);
+
+        final TcpOptionsConfig tcpOption = options.tcp != null ? options.tcp :
+            TcpOptionsConfig.builder()
+                .host("0.0.0.0")
+                .ports(allPorts)
+                .build();
+        final TlsOptionsConfig tlsOption = options.tls != null ? options.tls : null;
+        final HttpOptionsConfig httpOptions = options.http;
+        final String guardName = httpOptions != null ? httpOptions.authorization.name : null;
+        final HttpAuthorizationConfig authorization = httpOptions != null ?  httpOptions.authorization : null;
 
         return BindingConfig.builder(binding)
             .composite()
@@ -94,10 +99,7 @@ public final class OpenapiServerCompositeBindingAdapter extends OpenapiComposite
                     .name("tcp_server0")
                     .type("tcp")
                     .kind(SERVER)
-                    .options(TcpOptionsConfig::builder)
-                        .host("0.0.0.0")
-                        .ports(allPorts)
-                        .build()
+                    .options(tcpOption)
                     .inject(b -> this.injectPlainTcpRoute(b, httpPorts, secure))
                     .inject(b -> this.injectTlsTcpRoute(b, httpsPorts, secure))
                     .inject(b -> this.injectMetrics(b, metricRefs, "tcp"))
@@ -160,8 +162,9 @@ public final class OpenapiServerCompositeBindingAdapter extends OpenapiComposite
     private <C> NamespaceConfigBuilder<C> injectTlsServer(
         NamespaceConfigBuilder<C> namespace,
         String vault,
-        TlsOptionsConfig tls,
-        boolean secure, List<MetricRefConfig> metricRefs)
+        TlsOptionsConfig tlsOption,
+        boolean secure,
+        List<MetricRefConfig> metricRefs)
     {
         if (secure)
         {
@@ -170,7 +173,7 @@ public final class OpenapiServerCompositeBindingAdapter extends OpenapiComposite
                     .name("tls_server0")
                     .type("tls")
                     .kind(SERVER)
-                    .options(tls)
+                    .options(tlsOption)
                     .vault(vault)
                     .exit("http_server0")
                     .inject(b -> this.injectMetrics(b, metricRefs, "tls"))

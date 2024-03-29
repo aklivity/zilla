@@ -221,7 +221,7 @@ public final class OpenapiClientCompositeBindingAdapter extends OpenapiComposite
 
     private <C> NamespaceConfigBuilder<C> injectTlsClient(
         NamespaceConfigBuilder<C> namespace,
-        TlsOptionsConfig tlsConfig,
+        TlsOptionsConfig tlsOption,
         boolean secure,
         List<MetricRefConfig> metricRefs)
     {
@@ -232,7 +232,7 @@ public final class OpenapiClientCompositeBindingAdapter extends OpenapiComposite
                     .name("tls_client0")
                     .type("tls")
                     .kind(CLIENT)
-                    .options(tlsConfig)
+                    .options(tlsOption)
                     .vault("client")
                     .inject(b -> injectMetrics(b, metricRefs, "tls"))
                     .exit("tcp_client0")
