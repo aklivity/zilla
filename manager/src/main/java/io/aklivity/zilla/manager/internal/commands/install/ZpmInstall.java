@@ -443,12 +443,22 @@ public final class ZpmInstall extends ZpmCommand
                     expandJar(generatedModuleDir, artifactPath);
 
                     ToolProvider javac = ToolProvider.findFirst("javac").get();
+
+                    List<String> args = new ArrayList<>();
+                    if (atLeastVersion(javac, 21))
+                    {
+                        args.add("-proc:none");
+                    }
+
+                    args.add("-d");
+                    args.add(generatedModuleDir.toString());
+
+                    args.add(generatedModuleInfo.toString());
+
                     javac.run(
                             nullOutput,
                             nullOutput,
-                            "-proc:none",
-                            "-d", generatedModuleDir.toString(),
-                            generatedModuleInfo.toString());
+                            args.toArray(String[]::new));
 
                     Path compiledModuleInfo = generatedModuleDir.resolve(MODULE_INFO_CLASS_FILENAME);
                     assert Files.exists(compiledModuleInfo);
@@ -609,12 +619,22 @@ public final class ZpmInstall extends ZpmCommand
         expandJar(generatedDelegateDir, generatedDelegatePath);
 
         ToolProvider javac = ToolProvider.findFirst("javac").get();
+
+        List<String> args = new ArrayList<>();
+        if (atLeastVersion(javac, 21))
+        {
+            args.add("-proc:none");
+        }
+
+        args.add("-d");
+        args.add(generatedDelegateDir.toString());
+
+        args.add(generatedModuleInfo.toString());
+
         javac.run(
                 System.out,
                 System.err,
-                "-proc:none",
-                "-d", generatedDelegateDir.toString(),
-                generatedModuleInfo.toString());
+                args.toArray(String[]::new));
 
         Path compiledModuleInfo = generatedDelegateDir.resolve(MODULE_INFO_CLASS_FILENAME);
         assert Files.exists(compiledModuleInfo);
@@ -643,13 +663,25 @@ public final class ZpmInstall extends ZpmCommand
                         "}"));
 
                 ToolProvider javac = ToolProvider.findFirst("javac").get();
+
+                List<String> args = new ArrayList<>();
+                if (atLeastVersion(javac, 21))
+                {
+                    args.add("-proc:none");
+                }
+
+                args.add("-d");
+                args.add(generatedModuleDir.toString());
+
+                args.add("--module-path");
+                args.add(modulesDir.toString());
+
+                args.add(generatedModuleInfo.toString());
+
                 javac.run(
                         System.out,
                         System.err,
-                        "-proc:none",
-                        "-d", generatedModuleDir.toString(),
-                        "--module-path", modulesDir.toString(),
-                        generatedModuleInfo.toString());
+                        args.toArray(String[]::new));
 
                 Path modulePath = modulePath(module);
                 try (JarOutputStream jar = new JarOutputStream(Files.newOutputStream(modulePath)))
@@ -669,17 +701,7 @@ public final class ZpmInstall extends ZpmCommand
     {
         ToolProvider jlink = ToolProvider.findFirst("jlink").get();
 
-        StringWriter out = new StringWriter();
-        StringWriter err = new StringWriter();
-        jlink.run(
-                new PrintWriter(out),
-                new PrintWriter(err),
-                "--version");
-
-        Matcher matcher = PATTERN_MAJOR_VERSION.matcher(out.toString());
-        String compress = matcher.find() && parseInt(matcher.group("major")) >= 21
-                ? "zip-6"
-                : "2";
+        String compress = atLeastVersion(jlink, 21) ? "zip-6" : "2";
 
         List<String> extraModuleNames = new ArrayList<>();
         if (debug)
@@ -834,6 +856,21 @@ public final class ZpmInstall extends ZpmCommand
     {
         return ofNullable(credentials.realm)
             .orElse(DEFAULT_REALMS.get(credentials.host));
+    }
+
+    private static boolean atLeastVersion(
+        ToolProvider tool,
+        int major)
+    {
+        StringWriter out = new StringWriter();
+        StringWriter err = new StringWriter();
+        tool.run(
+                new PrintWriter(out),
+                new PrintWriter(err),
+                "--version");
+
+        Matcher matcher = PATTERN_MAJOR_VERSION.matcher(out.toString());
+        return matcher.find() && parseInt(matcher.group("major")) >= major;
     }
 
     private static Map<String, String> initDefaultRealms()
