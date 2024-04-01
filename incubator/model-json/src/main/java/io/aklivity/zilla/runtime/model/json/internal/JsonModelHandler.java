@@ -76,8 +76,15 @@ public abstract class JsonModelHandler
         try
         {
             JsonProvider provider = supplyProvider(schemaId);
-            in.wrap(buffer, index, length);
-            provider.createReader(in).readValue();
+            if (provider != null)
+            {
+                in.wrap(buffer, index, length);
+                provider.createReader(in).readValue();
+            }
+            else
+            {
+                status = false;
+            }
         }
         catch (JsonValidatingException ex)
         {
