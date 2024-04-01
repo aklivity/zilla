@@ -17,6 +17,7 @@ package io.aklivity.zilla.manager.internal.commands.install;
 
 import static io.aklivity.zilla.manager.internal.settings.ZpmSecrets.decryptSecret;
 import static java.io.OutputStream.nullOutputStream;
+import static java.lang.Integer.parseInt;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.Files.createDirectories;
 import static java.nio.file.Files.getLastModifiedTime;
@@ -36,6 +37,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.lang.module.ModuleDescriptor;
 import java.lang.module.ModuleFinder;
 import java.lang.module.ModuleReference;
@@ -98,6 +101,8 @@ public final class ZpmInstall extends ZpmCommand
 {
     private static final String MODULE_INFO_JAVA_FILENAME = "module-info.java";
     private static final String MODULE_INFO_CLASS_FILENAME = "module-info.class";
+
+    private static final Pattern PATTERN_MAJOR_VERSION = Pattern.compile("(?<major>\\d+)\\.[^\\.]+\\.[^\\.]+");
 
     private static final Map<String, String> DEFAULT_REALMS = initDefaultRealms();
 
@@ -441,6 +446,7 @@ public final class ZpmInstall extends ZpmCommand
                     javac.run(
                             nullOutput,
                             nullOutput,
+                            "-proc:none",
                             "-d", generatedModuleDir.toString(),
                             generatedModuleInfo.toString());
 
@@ -606,6 +612,7 @@ public final class ZpmInstall extends ZpmCommand
         javac.run(
                 System.out,
                 System.err,
+                "-proc:none",
                 "-d", generatedDelegateDir.toString(),
                 generatedModuleInfo.toString());
 
@@ -639,6 +646,7 @@ public final class ZpmInstall extends ZpmCommand
                 javac.run(
                         System.out,
                         System.err,
+                        "-proc:none",
                         "-d", generatedModuleDir.toString(),
                         "--module-path", modulesDir.toString(),
                         generatedModuleInfo.toString());
@@ -661,6 +669,18 @@ public final class ZpmInstall extends ZpmCommand
     {
         ToolProvider jlink = ToolProvider.findFirst("jlink").get();
 
+        StringWriter out = new StringWriter();
+        StringWriter err = new StringWriter();
+        jlink.run(
+                new PrintWriter(out),
+                new PrintWriter(err),
+                "--version");
+
+        Matcher matcher = PATTERN_MAJOR_VERSION.matcher(out.toString());
+        String compress = matcher.find() && parseInt(matcher.group("major")) >= 21
+                ? "zip-6"
+                : "2";
+
         List<String> extraModuleNames = new ArrayList<>();
         if (debug)
         {
@@ -678,7 +698,7 @@ public final class ZpmInstall extends ZpmCommand
             "--output", imageDir.toString(),
             "--no-header-files",
             "--no-man-pages",
-            "--compress", "2",
+            "--compress", compress,
             "--add-modules", moduleNames.collect(Collectors.joining(","))));
 
         args.add("--ignore-signing-information");
