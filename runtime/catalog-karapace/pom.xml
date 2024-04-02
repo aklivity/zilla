@@ -11,7 +11,7 @@
   </parent>
 
   <artifactId>catalog-karapace</artifactId>
-  <name>zilla::incubator::catalog-karapace</name>
+  <name>zilla::runtime::catalog-karapace</name>
 
   <licenses>
     <license>

@@ -13,7 +13,7 @@
   </parent>
 
   <artifactId>catalog-karapace.spec</artifactId>
-  <name>zilla::incubator::catalog-karapace.spec</name>
+  <name>zilla::specs::catalog-karapace.spec</name>
 
   <licenses>
     <license>

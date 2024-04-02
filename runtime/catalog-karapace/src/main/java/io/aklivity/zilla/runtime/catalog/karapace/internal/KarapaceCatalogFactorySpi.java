@@ -14,12 +14,10 @@
  */
 package io.aklivity.zilla.runtime.catalog.karapace.internal;
 
-import io.aklivity.zilla.runtime.common.feature.Incubating;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.catalog.Catalog;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogFactorySpi;
 
-@Incubating
 public class KarapaceCatalogFactorySpi implements CatalogFactorySpi
 {
     @Override
