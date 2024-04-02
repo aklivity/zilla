@@ -451,7 +451,7 @@ public class EngineManager
         }
     }
 
-    private void attachComposite(
+    private NamespaceConfig attachComposite(
         BindingConfig binding,
         NamespaceConfig composite)
     {
@@ -474,6 +474,8 @@ public class EngineManager
         }
 
         attached.refs.incrementAndGet();
+
+        return attached;
     }
 
     private void detachComposite(

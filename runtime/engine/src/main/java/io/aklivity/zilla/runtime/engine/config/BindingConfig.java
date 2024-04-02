@@ -23,6 +23,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.ToLongFunction;
+import java.util.function.UnaryOperator;
 
 public class BindingConfig
 {
@@ -36,7 +37,7 @@ public class BindingConfig
 
     public transient long[] metricIds;
 
-    public transient Consumer<NamespaceConfig> attach;
+    public transient UnaryOperator<NamespaceConfig> attach;
     public transient Consumer<NamespaceConfig> detach;
 
     public final String namespace;
