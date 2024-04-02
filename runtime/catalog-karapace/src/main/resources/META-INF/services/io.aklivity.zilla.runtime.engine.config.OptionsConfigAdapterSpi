@@ -1,1 +1,1 @@
-io.aklivity.zilla.runtime.catalog.schema.registry.internal.config.KarapaceOptionsConfigAdapter
+io.aklivity.zilla.runtime.catalog.karapace.internal.config.KarapaceOptionsConfigAdapter

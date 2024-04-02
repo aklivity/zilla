@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.catalog.schema.registry.internal;
+package io.aklivity.zilla.runtime.catalog.karapace.internal;
 
 
 import static io.aklivity.zilla.runtime.catalog.karapace.internal.types.event.KarapaceEventType.REMOTE_ACCESS_REJECTED;
@@ -36,8 +36,8 @@ public class KarapaceEventContext
     private final AtomicBuffer eventBuffer = new UnsafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
     private final AtomicBuffer extensionBuffer = new UnsafeBuffer(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
     private final EventFW.Builder eventRW = new EventFW.Builder();
-    private final KarapaceEventExFW.Builder schemaRegistryEventExRW = new KarapaceEventExFW.Builder();
-    private final int schemaRegistryTypeId;
+    private final KarapaceEventExFW.Builder karapaceEventExRW = new KarapaceEventExFW.Builder();
+    private final int karapaceTypeId;
     private final int remoteAccessRejectedEventId;
     private final MessageConsumer eventWriter;
     private final Clock clock;
@@ -45,8 +45,8 @@ public class KarapaceEventContext
     public KarapaceEventContext(
         EngineContext context)
     {
-        this.schemaRegistryTypeId = context.supplyTypeId(KarapaceCatalog.NAME);
-        this.remoteAccessRejectedEventId = context.supplyEventId("catalog.schema.registry.remote.access.rejected");
+        this.karapaceTypeId = context.supplyTypeId(KarapaceCatalog.NAME);
+        this.remoteAccessRejectedEventId = context.supplyEventId("catalog.karapace.remote.access.rejected");
         this.eventWriter = context.supplyEventWriter();
         this.clock = context.clock();
     }
@@ -56,7 +56,7 @@ public class KarapaceEventContext
         HttpRequest httpRequest,
         int status)
     {
-        KarapaceEventExFW extension = schemaRegistryEventExRW
+        KarapaceEventExFW extension = karapaceEventExRW
             .wrap(extensionBuffer, 0, extensionBuffer.capacity())
             .remoteAccessRejected(e -> e
                 .typeId(REMOTE_ACCESS_REJECTED.value())
@@ -73,6 +73,6 @@ public class KarapaceEventContext
             .namespacedId(catalogId)
             .extension(extension.buffer(), extension.offset(), extension.limit())
             .build();
-        eventWriter.accept(schemaRegistryTypeId, event.buffer(), event.offset(), event.limit());
+        eventWriter.accept(karapaceTypeId, event.buffer(), event.offset(), event.limit());
     }
 }

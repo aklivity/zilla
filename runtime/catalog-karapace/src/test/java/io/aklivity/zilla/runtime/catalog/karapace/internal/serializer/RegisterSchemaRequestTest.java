@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.catalog.schema.registry.internal.serializer;
+package io.aklivity.zilla.runtime.catalog.karapace.internal.serializer;
 
 import static org.junit.Assert.assertEquals;
 

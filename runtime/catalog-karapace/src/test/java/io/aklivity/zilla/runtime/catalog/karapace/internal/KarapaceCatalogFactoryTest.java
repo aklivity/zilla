@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.catalog.schema.registry.internal;
+package io.aklivity.zilla.runtime.catalog.karapace.internal;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -23,7 +23,7 @@ import java.time.Duration;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.catalog.schema.registry.internal.config.KarapaceOptionsConfig;
+import io.aklivity.zilla.runtime.catalog.karapace.internal.config.KarapaceOptionsConfig;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.Catalog;
