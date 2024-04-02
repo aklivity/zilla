@@ -30,6 +30,6 @@ public class EncoderTest
     {
         CatalogHandler.Encoder encoder = CatalogHandler.Encoder.IDENTITY;
 
-        assertEquals(1, encoder.accept(1, new UnsafeBuffer(), 1, 1, ValueConsumer.NOP));
+        assertEquals(1, encoder.accept(0L, 0L, 1, new UnsafeBuffer(), 1, 1, ValueConsumer.NOP));
     }
 }
