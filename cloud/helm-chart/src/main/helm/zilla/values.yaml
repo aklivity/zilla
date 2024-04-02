@@ -16,7 +16,7 @@
 replicaCount: 1
 
 image:
-  repository: nginx
+  repository: ghcr.io/aklivity/zilla
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tag: ""
@@ -27,7 +27,7 @@ fullnameOverride: ""
 
 serviceAccount:
   # Specifies whether a service account should be created
-  create: true
+  create: false
   # Automatically mount a ServiceAccount's API credentials?
   automount: true
   # Annotations to add to the service account
@@ -50,9 +50,17 @@ securityContext: {}
   # runAsNonRoot: true
   # runAsUser: 1000
 
+initContainers: []
+
+args: ["start", "-v", "-e"]
+extraEnv: []
+configPath: /etc/zilla
+configMaps: {}
+secrets: {}
+
 service:
   type: ClusterIP
-  port: 80
+  ports: []
 
 ingress:
   enabled: false
@@ -82,19 +90,13 @@ resources: {}
   #   cpu: 100m
   #   memory: 128Mi
 
-livenessProbe:
-  httpGet:
-    path: /
-    port: http
-readinessProbe:
-  httpGet:
-    path: /
-    port: http
+livenessProbePort: 0
+readinessProbePort: 0
 
 autoscaling:
   enabled: false
   minReplicas: 1
-  maxReplicas: 100
+  maxReplicas: 10
   targetCPUUtilizationPercentage: 80
   # targetMemoryUtilizationPercentage: 80
 
@@ -111,8 +113,13 @@ volumeMounts: []
 #   mountPath: "/etc/foo"
 #   readOnly: true
 
+persistentVolumeClaims: {}
+
 nodeSelector: {}
 
 tolerations: []
 
 affinity: {}
+
+zilla.yaml: |
+  name: example

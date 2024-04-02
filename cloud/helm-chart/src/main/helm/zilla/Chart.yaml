@@ -14,26 +14,28 @@
 #
 
 apiVersion: v2
+appVersion: 0.0.0 # helm-maven-plugin -> configuration -> appVersion
 name: zilla
-description: A Helm chart for Kubernetes
-
-# A chart can be either an 'application' or a 'library' chart.
-#
-# Application charts are a collection of templates that can be packaged into versioned archives
-# to be deployed.
-#
-# Library charts provide useful utilities or functions for the chart developer. They're included as
-# a dependency of application charts to inject those utilities and functions into the rendering
-# pipeline. Library charts do not define any templates and therefore cannot be deployed.
 type: application
-
-# This is the chart version. This version number should be incremented each time you make changes
-# to the chart and its templates, including the app version.
-# Versions are expected to follow Semantic Versioning (https://semver.org/)
-version: 0.1.0
-
-# This is the version number of the application being deployed. This version number should be
-# incremented each time you make changes to the application. Versions are not expected to
-# follow Semantic Versioning. They should reflect the version the application is using.
-# It is recommended to use it with quotes.
-appVersion: "1.16.0"
+version: 0.0.0 # helm-maven-plugin -> configuration -> chartVersion
+description: A multi-protocol edge/service proxy for interfacing apps and services to streaming data.
+icon: https://raw.githubusercontent.com/aklivity/zilla/develop/cloud/helm-chart/src/main/helm/logo.png
+home: https://github.com/aklivity/zilla
+sources:
+  - https://github.com/aklivity/zilla/tree/develop/cloud/helm-chart/src/main/helm
+annotations:
+  category: Streaming and messaging
+keywords:
+  - ingress
+  - egress
+  - mqtt
+  - kafka
+  - cqrs
+  - rest
+  - api-gateway
+  - grpc
+  - server-sent-events
+  - streaming-api
+maintainers:
+  - name: Aklivity
+    email: inquiry@aklivity.io

@@ -75,3 +75,10 @@ Create the name of the service account to use
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
+
+{{/*
+Check if we have a service port defined
+*/}}
+{{- define "zilla.isServicePortDefined" -}}
+{{- default false (gt (len .Values.service.ports) 0) }}
+{{- end }}

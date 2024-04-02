@@ -13,21 +13,25 @@
 # specific language governing permissions and limitations under the License.
 #
 
-{{- if eq (include "zilla.isServicePortDefined" .) "true" }}
+{{- if index .Values "zilla.yaml" }}
 apiVersion: v1
-kind: Service
+kind: ConfigMap
 metadata:
   name: {{ include "zilla.fullname" . }}
-  labels:
-    {{- include "zilla.labels" . | nindent 4 }}
-spec:
-  type: {{ .Values.service.type }}
-  ports:
-  {{- range $port := .Values.service.ports }}
-  - port: {{ $port.port }}
-    protocol: TCP
-    name: {{ $port.name }}
-  {{- end }}
-  selector:
-    {{- include "zilla.selectorLabels" . | nindent 4 }}
+data:
+  zilla.yaml: |
+{{ index .Values "zilla.yaml" | indent 4 }}
+{{- end }}
+
+{{ range $name, $configMap := .Values.configMaps }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $name }}
+data:
+{{- range $key, $value := $configMap.data }}
+{{ $key | indent 2 }}: |
+{{ $value  | indent 4 }}
+{{- end }}
 {{- end }}

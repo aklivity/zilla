@@ -33,42 +33,70 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        {{- include "zilla.labels" . | nindent 8 }}
-        {{- with .Values.podLabels }}
-        {{- toYaml . | nindent 8 }}
-        {{- end }}
+        {{- include "zilla.selectorLabels" . | nindent 8 }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "zilla.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      initContainers:
+        {{- toYaml .Values.initContainers | nindent 8 }}
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
+          args:
+            {{- toYaml .Values.args | nindent 12 }}
+          env:
+            - name: ZILLA_VERSION
+              value: "{{ .Values.image.tag | default .Chart.AppVersion }}"
+          {{- range $env := .Values.env }}
+          - name: {{ $env.name }}
+            value: {{ $env.value }}
+          {{- end }}
+          {{- if .Values.extraEnv }}
+          {{- toYaml .Values.extraEnv | nindent 12 }}
+          {{- end }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
-            - name: http
-              containerPort: {{ .Values.service.port }}
-              protocol: TCP
+          {{- range $port := .Values.service.ports }}
+          - name: {{ $port.name }}
+            containerPort: {{ $port.port }}
+            protocol: TCP
+          {{- end}}
+          {{- if .Values.livenessProbePort }}
           livenessProbe:
-            {{- toYaml .Values.livenessProbe | nindent 12 }}
+            tcpSocket:
+              port: {{ .Values.livenessProbePort }}
+          {{- end}}
+          {{- if .Values.readinessProbePort }}
           readinessProbe:
-            {{- toYaml .Values.readinessProbe | nindent 12 }}
+            tcpSocket:
+              port: {{ .Values.readinessProbePort }}
+          {{- end}}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-          {{- with .Values.volumeMounts }}
           volumeMounts:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-      {{- with .Values.volumes }}
-      volumes:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+            {{- if index .Values "zilla.yaml" }}
+            - name: {{ include "zilla.fullname" . }}
+              mountPath: {{ .Values.configPath }}
+            {{- end }}
+            {{- $configPath := .Values.configPath }}
+            {{- range $name, $configMap := .Values.configMaps }}
+            - name: {{ $name }}
+              mountPath: {{ $configPath }}/{{ $configMap.mountPath | default $name }}
+            {{- end }}
+            {{- range $name, $secret := .Values.secrets }}
+            - name: {{ $name }}
+              mountPath: {{ $configPath }}/{{ $secret.mountPath | default $name }}
+            {{- end }}
+            {{- range $name, $pvc := .Values.persistentVolumeClaims }}
+            - name: {{ $name }}
+              mountPath: {{ $pvc.mountPath }}
+            {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -81,3 +109,24 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      volumes:
+        {{- if index .Values "zilla.yaml" }}
+        - name: {{ include "zilla.fullname" . }}
+          configMap:
+            name: {{ include "zilla.fullname" . }}
+        {{- end }}
+        {{- range $name, $_ := .Values.configMaps }}
+        - name: {{ $name }}
+          configMap:
+            name: {{ $name }}
+        {{- end }}
+        {{- range $name, $_ := .Values.secrets }}
+        - name: {{ $name }}
+          secret:
+            secretName: {{ $name }}
+        {{- end }}
+        {{- range $name, $pvc := .Values.persistentVolumeClaims }}
+        - name: {{ $name }}
+          persistentVolumeClaim:
+            claimName: {{ $name }}
+        {{- end }}
