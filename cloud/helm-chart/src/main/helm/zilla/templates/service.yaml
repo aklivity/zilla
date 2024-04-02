@@ -13,12 +13,18 @@
 # specific language governing permissions and limitations under the License.
 #
 
-{{ range $name, $pvc := .Values.persistentVolumeClaims }}
----
 apiVersion: v1
-kind: PersistentVolumeClaim
+kind: Service
 metadata:
-  name: {{ $name }}
+  name: {{ include "zilla.fullname" . }}
+  labels:
+    {{- include "zilla.labels" . | nindent 4 }}
 spec:
-  {{- toYaml $pvc.spec | nindent 2 }}
-{{- end }}
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "zilla.selectorLabels" . | nindent 4 }}
