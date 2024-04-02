@@ -91,6 +91,6 @@ public class AsyncapiBingingFactorySpiTest
         Assert.assertEquals(0, config.composites.size());
         BindingConfig newConfig = adapter.adapt(config);
         Assert.assertEquals(1, newConfig.composites.size());
-        Assert.assertEquals(2, newConfig.composites.get(0).bindings.size());
+        Assert.assertEquals(2, newConfig.composites.get("example:asyncapi0/mqtt").bindings.size());
     }
 }

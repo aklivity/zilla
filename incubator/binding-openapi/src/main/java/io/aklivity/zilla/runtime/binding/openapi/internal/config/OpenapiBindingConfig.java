@@ -80,7 +80,7 @@ public final class OpenapiBindingConfig
 
         this.routes = binding.routes.stream().map(OpenapiRouteConfig::new).collect(toList());
 
-        this.resolvedIds = binding.composites.stream()
+        this.resolvedIds = binding.composites.values().stream()
             .map(c -> c.bindings)
             .flatMap(List::stream)
             .filter(b -> b.type.equals("http"))
@@ -91,7 +91,7 @@ public final class OpenapiBindingConfig
                 IDENTITY_FINISH
             ));
 
-        this.httpOrigins = binding.composites.stream()
+        this.httpOrigins = binding.composites.values().stream()
             .map(c -> c.bindings)
             .flatMap(List::stream)
             .filter(b -> b.type.equals("http"))

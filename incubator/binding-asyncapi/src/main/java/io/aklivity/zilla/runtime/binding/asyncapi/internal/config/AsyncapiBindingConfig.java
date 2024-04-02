@@ -67,7 +67,7 @@ public final class AsyncapiBindingConfig
         this.overrideRouteId = overrideRouteId;
         this.options = AsyncapiOptionsConfig.class.cast(binding.options);
         this.routes = binding.routes.stream().map(r -> new AsyncapiRouteConfig(r, options::resolveApiId)).collect(toList());
-        this.compositeResolvedIds = binding.composites.stream()
+        this.compositeResolvedIds = binding.composites.values().stream()
             .map(c -> c.bindings)
             .flatMap(List::stream)
             .filter(b -> b.type.equals("mqtt") || b.type.equals("http") ||
@@ -79,7 +79,7 @@ public final class AsyncapiBindingConfig
                 IDENTITY_FINISH
             ));
         this.composites = new Int2ObjectHashMap<>();
-        binding.composites.stream()
+        binding.composites.values().stream()
             .map(c -> c.bindings)
             .flatMap(List::stream)
             .filter(b -> b.type.equals("mqtt") || b.type.equals("http") || b.type.equals("kafka") && b.kind == CACHE_CLIENT ||

@@ -19,6 +19,8 @@ import static java.util.Objects.requireNonNull;
 import static java.util.function.Function.identity;
 
 import java.util.List;
+import java.util.concurrent.ConcurrentMap;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.ToLongFunction;
 
@@ -27,11 +29,15 @@ public class BindingConfig
     public transient long id;
     public transient long entryId;
     public transient ToLongFunction<String> resolveId;
+    public transient Function<String, String> readURL;
 
     public transient long vaultId;
     public transient String qvault;
 
     public transient long[] metricIds;
+
+    public transient Consumer<NamespaceConfig> attach;
+    public transient Consumer<NamespaceConfig> detach;
 
     public final String namespace;
     public final String name;
@@ -44,7 +50,7 @@ public class BindingConfig
     public final List<CatalogedConfig> catalogs;
     public final List<RouteConfig> routes;
     public final TelemetryRefConfig telemetryRef;
-    public final List<NamespaceConfig> composites;
+    public final ConcurrentMap<String, NamespaceConfig> composites;
 
     public static BindingConfigBuilder<BindingConfig> builder()
     {
@@ -71,7 +77,7 @@ public class BindingConfig
             .catalogs(binding.catalogs)
             .routes(binding.routes)
             .telemetry(binding.telemetryRef)
-            .composites(binding.composites);
+            .composites(binding.composites.values());
     }
 
     BindingConfig(
@@ -85,7 +91,7 @@ public class BindingConfig
         List<CatalogedConfig> catalogs,
         List<RouteConfig> routes,
         TelemetryRefConfig telemetryRef,
-        List<NamespaceConfig> namespaces)
+        ConcurrentMap<String, NamespaceConfig> composites)
     {
         this.namespace = requireNonNull(namespace);
         this.name = requireNonNull(name);
@@ -98,6 +104,6 @@ public class BindingConfig
         this.routes = routes;
         this.catalogs = catalogs;
         this.telemetryRef = telemetryRef;
-        this.composites = namespaces;
+        this.composites = composites;
     }
 }
