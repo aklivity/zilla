@@ -18,11 +18,11 @@ module io.aklivity.zilla.runtime.catalog.schema.registry
     requires io.aklivity.zilla.runtime.engine;
 
     provides io.aklivity.zilla.runtime.engine.catalog.CatalogFactorySpi
-        with io.aklivity.zilla.runtime.catalog.schema.registry.internal.KarapaceCatalogFactorySpi;
+        with io.aklivity.zilla.runtime.catalog.karapace.internal.KarapaceCatalogFactorySpi;
 
     provides io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi
-        with io.aklivity.zilla.runtime.catalog.schema.registry.internal.config.KarapaceOptionsConfigAdapter;
+        with io.aklivity.zilla.runtime.catalog.karapace.internal.config.KarapaceOptionsConfigAdapter;
 
     provides io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi
-        with io.aklivity.zilla.runtime.catalog.schema.registry.internal.KarapaceEventFormatterFactory;
+        with io.aklivity.zilla.runtime.catalog.karapace.internal.KarapaceEventFormatterFactory;
 }
