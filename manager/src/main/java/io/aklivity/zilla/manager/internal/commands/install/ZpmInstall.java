@@ -17,6 +17,7 @@ package io.aklivity.zilla.manager.internal.commands.install;
 
 import static io.aklivity.zilla.manager.internal.settings.ZpmSecrets.decryptSecret;
 import static java.io.OutputStream.nullOutputStream;
+import static java.lang.Integer.parseInt;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.Files.createDirectories;
 import static java.nio.file.Files.getLastModifiedTime;
@@ -36,6 +37,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.lang.module.ModuleDescriptor;
 import java.lang.module.ModuleFinder;
 import java.lang.module.ModuleReference;
@@ -98,6 +101,8 @@ public final class ZpmInstall extends ZpmCommand
 {
     private static final String MODULE_INFO_JAVA_FILENAME = "module-info.java";
     private static final String MODULE_INFO_CLASS_FILENAME = "module-info.class";
+
+    private static final Pattern PATTERN_MAJOR_VERSION = Pattern.compile("(?<major>\\d+)\\.[^\\.]+\\.[^\\.]+");
 
     private static final Map<String, String> DEFAULT_REALMS = initDefaultRealms();
 
@@ -438,11 +443,22 @@ public final class ZpmInstall extends ZpmCommand
                     expandJar(generatedModuleDir, artifactPath);
 
                     ToolProvider javac = ToolProvider.findFirst("javac").get();
+
+                    List<String> args = new ArrayList<>();
+                    if (atLeastVersion(javac, 21))
+                    {
+                        args.add("-proc:none");
+                    }
+
+                    args.add("-d");
+                    args.add(generatedModuleDir.toString());
+
+                    args.add(generatedModuleInfo.toString());
+
                     javac.run(
                             nullOutput,
                             nullOutput,
-                            "-d", generatedModuleDir.toString(),
-                            generatedModuleInfo.toString());
+                            args.toArray(String[]::new));
 
                     Path compiledModuleInfo = generatedModuleDir.resolve(MODULE_INFO_CLASS_FILENAME);
                     assert Files.exists(compiledModuleInfo);
@@ -603,11 +619,22 @@ public final class ZpmInstall extends ZpmCommand
         expandJar(generatedDelegateDir, generatedDelegatePath);
 
         ToolProvider javac = ToolProvider.findFirst("javac").get();
+
+        List<String> args = new ArrayList<>();
+        if (atLeastVersion(javac, 21))
+        {
+            args.add("-proc:none");
+        }
+
+        args.add("-d");
+        args.add(generatedDelegateDir.toString());
+
+        args.add(generatedModuleInfo.toString());
+
         javac.run(
                 System.out,
                 System.err,
-                "-d", generatedDelegateDir.toString(),
-                generatedModuleInfo.toString());
+                args.toArray(String[]::new));
 
         Path compiledModuleInfo = generatedDelegateDir.resolve(MODULE_INFO_CLASS_FILENAME);
         assert Files.exists(compiledModuleInfo);
@@ -636,12 +663,25 @@ public final class ZpmInstall extends ZpmCommand
                         "}"));
 
                 ToolProvider javac = ToolProvider.findFirst("javac").get();
+
+                List<String> args = new ArrayList<>();
+                if (atLeastVersion(javac, 21))
+                {
+                    args.add("-proc:none");
+                }
+
+                args.add("-d");
+                args.add(generatedModuleDir.toString());
+
+                args.add("--module-path");
+                args.add(modulesDir.toString());
+
+                args.add(generatedModuleInfo.toString());
+
                 javac.run(
                         System.out,
                         System.err,
-                        "-d", generatedModuleDir.toString(),
-                        "--module-path", modulesDir.toString(),
-                        generatedModuleInfo.toString());
+                        args.toArray(String[]::new));
 
                 Path modulePath = modulePath(module);
                 try (JarOutputStream jar = new JarOutputStream(Files.newOutputStream(modulePath)))
@@ -661,6 +701,8 @@ public final class ZpmInstall extends ZpmCommand
     {
         ToolProvider jlink = ToolProvider.findFirst("jlink").get();
 
+        String compress = atLeastVersion(jlink, 21) ? "zip-6" : "2";
+
         List<String> extraModuleNames = new ArrayList<>();
         if (debug)
         {
@@ -678,7 +720,7 @@ public final class ZpmInstall extends ZpmCommand
             "--output", imageDir.toString(),
             "--no-header-files",
             "--no-man-pages",
-            "--compress", "2",
+            "--compress", compress,
             "--add-modules", moduleNames.collect(Collectors.joining(","))));
 
         args.add("--ignore-signing-information");
@@ -814,6 +856,21 @@ public final class ZpmInstall extends ZpmCommand
     {
         return ofNullable(credentials.realm)
             .orElse(DEFAULT_REALMS.get(credentials.host));
+    }
+
+    private static boolean atLeastVersion(
+        ToolProvider tool,
+        int major)
+    {
+        StringWriter out = new StringWriter();
+        StringWriter err = new StringWriter();
+        tool.run(
+                new PrintWriter(out),
+                new PrintWriter(err),
+                "--version");
+
+        Matcher matcher = PATTERN_MAJOR_VERSION.matcher(out.toString());
+        return matcher.find() && parseInt(matcher.group("major")) >= major;
     }
 
     private static Map<String, String> initDefaultRealms()

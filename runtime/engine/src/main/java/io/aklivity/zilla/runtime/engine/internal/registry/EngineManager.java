@@ -185,10 +185,11 @@ public class EngineManager
             final Function<String, String> namespaceReadURL = l -> readURL.apply(configURL, l);
 
             EngineConfigReader reader = new EngineConfigReader(
+                config,
                 new NamespaceConfigAdapterContext(namespaceReadURL),
                 expressions,
                 schemaTypes,
-                config.verboseSchema() ? logger : null);
+                logger);
 
             engine = reader.read(configText);
 

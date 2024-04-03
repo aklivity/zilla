@@ -31,6 +31,9 @@ public class SchemaTest
     @Rule
     public final ConfigSchemaRule schema = new ConfigSchemaRule()
         .schemaPatch("io/aklivity/zilla/specs/binding/openapi/schema/openapi.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/specs/binding/tls/schema/tls.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/specs/binding/tcp/schema/tcp.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/specs/binding/http/schema/http.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/vault/test.schema.patch.json")
         .configurationRoot("io/aklivity/zilla/specs/binding/openapi/config");
 
@@ -38,6 +41,14 @@ public class SchemaTest
     public void shouldValidateServer()
     {
         JsonObject config = schema.validate("server.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateServerSecure()
+    {
+        JsonObject config = schema.validate("server-secure.yaml");
 
         assertThat(config, not(nullValue()));
     }
