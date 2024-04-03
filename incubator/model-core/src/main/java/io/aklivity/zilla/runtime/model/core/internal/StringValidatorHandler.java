@@ -20,6 +20,7 @@ import java.util.regex.Pattern;
 import org.agrona.DirectBuffer;
 import org.agrona.ExpandableDirectByteBuffer;
 
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
@@ -31,9 +32,11 @@ public class StringValidatorHandler implements ValidatorHandler
     private final StringState state;
     private final Pattern pattern;
     private final ExpandableDirectByteBuffer buffer;
+    private final CoreModelEventContext event;
 
     public StringValidatorHandler(
-        StringModelConfig config)
+        StringModelConfig config,
+        EngineContext context)
     {
         this.encoding = StringValidatorEncoding.of(config.encoding);
         this.state = new StringState();
@@ -45,10 +48,13 @@ public class StringValidatorHandler implements ValidatorHandler
         String exp = config.pattern;
         this.pattern = exp != null ? Pattern.compile(exp) : null;
         this.buffer = new ExpandableDirectByteBuffer();
+        this.event = new CoreModelEventContext(context);
     }
 
     @Override
     public boolean validate(
+        long traceId,
+        long bindingId,
         int flags,
         DirectBuffer data,
         int index,
@@ -73,8 +79,15 @@ public class StringValidatorHandler implements ValidatorHandler
             valid = pattern.matcher(buffer.getStringWithoutLengthUtf8(0, state.length)).matches();
         }
 
-        return (flags & FLAGS_FIN) == 0x00
+        valid = (flags & FLAGS_FIN) == 0x00
             ? valid
             : state.processed == 0 && valid && check.test(state.length);
+
+        if (!valid)
+        {
+            event.validationFailure(traceId, bindingId, StringModel.NAME);
+        }
+
+        return valid;
     }
 }

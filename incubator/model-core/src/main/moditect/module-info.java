@@ -27,4 +27,7 @@ module io.aklivity.zilla.runtime.model.core
         with io.aklivity.zilla.runtime.model.core.internal.Int32ModelFactorySpi,
             io.aklivity.zilla.runtime.model.core.internal.Int64ModelFactorySpi,
             io.aklivity.zilla.runtime.model.core.internal.StringModelFactorySpi;
+
+    provides io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi
+        with io.aklivity.zilla.runtime.model.core.internal.CoreModelEventFormatterFactory;
 }

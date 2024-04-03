@@ -34,45 +34,7 @@
                     "vault": false,
                     "options":
                     {
-                        "properties":
-                        {
-                            "host":
-                            {
-                                "title": "Host",
-                                "type": "string"
-                            },
-                            "port":
-                            {
-                                "title": "Port",
-                                "oneOf":
-                                [
-                                    {
-                                        "type": "integer"
-                                    },
-                                    {
-                                        "type": "string",
-                                        "pattern": "^\\d+(-\\d+)?$"
-                                    },
-                                    {
-                                        "type": "array",
-                                        "items":
-                                        {
-                                            "oneOf":
-                                            [
-                                                {
-                                                    "type": "integer"
-                                                },
-                                                {
-                                                    "type": "string",
-                                                    "pattern": "^\\d+(-\\d+)?$"
-                                                }
-                                            ]
-                                        }
-                                    }
-                                ]
-                            }
-                        },
-                        "additionalProperties": false
+                        "$ref": "#/$defs/options/binding/tcp"
                     },
                     "routes":
                     {
@@ -194,6 +156,52 @@
                     }
                 ]
             }
+        }
+    },
+    {
+        "op": "add",
+        "path": "/$defs/options/binding/tcp",
+        "value":
+        {
+            "properties":
+            {
+                "host":
+                {
+                    "title": "Host",
+                    "type": "string"
+                },
+                "port":
+                {
+                    "title": "Port",
+                    "oneOf":
+                    [
+                        {
+                            "type": "integer"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\d+(-\\d+)?$"
+                        },
+                        {
+                            "type": "array",
+                            "items":
+                            {
+                                "oneOf":
+                                [
+                                    {
+                                        "type": "integer"
+                                    },
+                                    {
+                                        "type": "string",
+                                        "pattern": "^\\d+(-\\d+)?$"
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            },
+            "additionalProperties": false
         }
     }
 ]
