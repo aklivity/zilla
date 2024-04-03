@@ -37,32 +37,44 @@ public final class StringModelConfigAdapter implements ModelConfigAdapterSpi, Js
     public JsonValue adaptToJson(
         ModelConfig config)
     {
-        JsonObjectBuilder builder = Json.createObjectBuilder();
+        JsonValue result;
         StringModelConfig options = (StringModelConfig) config;
 
-        builder.add(MODEL_NAME, type());
-
-        if (!options.encoding.equals(StringModelConfigBuilder.DEFAULT_ENCODING))
+        if (options.encoding.equals(StringModelConfigBuilder.DEFAULT_ENCODING) &&
+            options.pattern == null &&
+            options.maxLength == 0 &&
+            options.minLength == 0)
         {
-            builder.add(ENCODING_NAME, options.encoding);
+            result = Json.createValue(type());
         }
-
-        if (options.pattern != null)
+        else
         {
-            builder.add(PATTERN_NAME, options.pattern);
-        }
+            JsonObjectBuilder builder = Json.createObjectBuilder();
+            builder.add(MODEL_NAME, type());
 
-        if (options.maxLength != 0)
-        {
-            builder.add(MAX_NAME, options.maxLength);
-        }
+            if (!options.encoding.equals(StringModelConfigBuilder.DEFAULT_ENCODING))
+            {
+                builder.add(ENCODING_NAME, options.encoding);
+            }
 
-        if (options.minLength != 0)
-        {
-            builder.add(MIN_NAME, options.minLength);
-        }
+            if (options.pattern != null)
+            {
+                builder.add(PATTERN_NAME, options.pattern);
+            }
 
-        return builder.build();
+            if (options.maxLength != 0)
+            {
+                builder.add(MAX_NAME, options.maxLength);
+            }
+
+            if (options.minLength != 0)
+            {
+                builder.add(MIN_NAME, options.minLength);
+            }
+
+            result = builder.build();
+        }
+        return result;
     }
 
     @Override

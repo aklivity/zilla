@@ -91,4 +91,37 @@ public class StringModelConfigAdapterTest
         assertThat(json, not(nullValue()));
         assertThat(json, equalTo(expectedJson));
     }
+
+    @Test
+    public void shouldWriteDefaultConfig()
+    {
+        // GIVEN
+        String expectedJson = "\"string\"";
+        StringModelConfig model = StringModelConfig.builder()
+            .build();
+
+        // WHEN
+        String json = jsonb.toJson(model);
+
+        // THEN
+        assertThat(json, not(nullValue()));
+        assertThat(json, equalTo(expectedJson));
+    }
+
+    @Test
+    public void shouldReadDefaultConfig()
+    {
+        // GIVEN
+        String json = "string";
+
+        // WHEN
+        StringModelConfig model = jsonb.fromJson(json, StringModelConfig.class);
+
+        // THEN
+        assertThat(model, not(nullValue()));
+        assertThat(model.model, equalTo("string"));
+        assertThat(model.encoding, equalTo("utf_8"));
+        assertThat(model.maxLength, equalTo(0));
+        assertThat(model.minLength, equalTo(0));
+    }
 }

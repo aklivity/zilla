@@ -43,8 +43,7 @@ bindings:
         method: GET
         params:
           query:
-            limit:
-              model: int32
+            limit: int32
       - path: /items
         method: POST
         content:
@@ -56,20 +55,17 @@ bindings:
         method: GET
         params:
           path:
-            id:
-              model: string
+            id: string
       - path: "/items/{id}"
         method: PUT
         params:
           path:
-            id:
-              model: string
+            id: string
       - path: "/items/{id}"
         method: DELETE
         params:
           path:
-            id:
-              model: string
+            id: string
     routes:
     - exit: http_client0
       when:
@@ -114,10 +110,8 @@ bindings:
           content-type:
           - application/json
           headers:
-            x-pages:
-              model: int32
-            x-next:
-              model: string
+            x-pages: int32
+            x-next: string
           content:
             model: json
             catalog:

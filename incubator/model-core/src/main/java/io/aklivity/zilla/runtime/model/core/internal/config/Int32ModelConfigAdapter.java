@@ -48,42 +48,57 @@ public class Int32ModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdap
     public JsonValue adaptToJson(
         ModelConfig options)
     {
+        JsonValue result;
         Int32ModelConfig config = (Int32ModelConfig) options;
-        JsonObjectBuilder builder = Json.createObjectBuilder();
 
-        builder.add(MODEL_NAME, INT_32);
-
-        if (!config.format.equals(Int32ModelConfigBuilder.DEFAULT_FORMAT))
+        if (config.format.equals(Int32ModelConfigBuilder.DEFAULT_FORMAT) &&
+            config.max == Integer.MAX_VALUE &&
+            config.min == Integer.MIN_VALUE &&
+            !config.exclusiveMax &&
+            !config.exclusiveMin &&
+            config.multiple == Int32ModelConfigBuilder.DEFAULT_MULTIPLE)
         {
-            builder.add(FORMAT_NAME, config.format);
+            result = Json.createValue(type());
         }
-
-        if (config.max != Integer.MAX_VALUE)
+        else
         {
-            builder.add(MAX_NAME, config.max);
-        }
+            JsonObjectBuilder builder = Json.createObjectBuilder();
 
-        if (config.min != Integer.MIN_VALUE)
-        {
-            builder.add(MIN_NAME, config.min);
-        }
+            builder.add(MODEL_NAME, INT_32);
 
-        if (config.exclusiveMax)
-        {
-            builder.add(EXCLUSIVE_MAX_NAME, config.exclusiveMax);
-        }
+            if (!config.format.equals(Int32ModelConfigBuilder.DEFAULT_FORMAT))
+            {
+                builder.add(FORMAT_NAME, config.format);
+            }
 
-        if (config.exclusiveMin)
-        {
-            builder.add(EXCLUSIVE_MIN_NAME, config.exclusiveMin);
-        }
+            if (config.max != Integer.MAX_VALUE)
+            {
+                builder.add(MAX_NAME, config.max);
+            }
 
-        if (config.multiple != Int32ModelConfigBuilder.DEFAULT_MULTIPLE)
-        {
-            builder.add(MULTIPLE_NAME, config.multiple);
-        }
+            if (config.min != Integer.MIN_VALUE)
+            {
+                builder.add(MIN_NAME, config.min);
+            }
 
-        return builder.build();
+            if (config.exclusiveMax)
+            {
+                builder.add(EXCLUSIVE_MAX_NAME, config.exclusiveMax);
+            }
+
+            if (config.exclusiveMin)
+            {
+                builder.add(EXCLUSIVE_MIN_NAME, config.exclusiveMin);
+            }
+
+            if (config.multiple != Int32ModelConfigBuilder.DEFAULT_MULTIPLE)
+            {
+                builder.add(MULTIPLE_NAME, config.multiple);
+            }
+
+            result = builder.build();
+        }
+        return result;
     }
 
     @Override
