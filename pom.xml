@@ -366,7 +366,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-compiler-plugin</artifactId>
-          <version>3.12.1</version>
+          <version>3.13.0</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
@@ -693,6 +693,17 @@
           </plugin>
         </plugins>
       </build>
+    </profile>
+
+    <profile>
+      <id>jdk21plus</id>
+      <activation>
+        <jdk>[21.0,)</jdk>
+      </activation>
+
+      <properties>
+        <maven.compiler.proc>full</maven.compiler.proc>
+      </properties>
     </profile>
   </profiles>
 </project>

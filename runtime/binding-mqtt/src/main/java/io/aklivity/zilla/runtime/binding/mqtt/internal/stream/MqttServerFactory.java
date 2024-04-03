@@ -3228,7 +3228,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 reasonCode = PAYLOAD_FORMAT_INVALID;
             }
 
-            if (model != null && !validContent(model, payload))
+            if (model != null && !validContent(traceId, model, payload))
             {
                 reasonCode = PAYLOAD_FORMAT_INVALID;
             }
@@ -4963,11 +4963,13 @@ public final class MqttServerFactory implements MqttStreamFactory
         }
 
         private boolean validContent(
+            long traceId,
             ValidatorHandler contentType,
             OctetsFW payload)
         {
             return contentType == null ||
-                contentType.validate(payload.buffer(), payload.offset(), payload.sizeof(), ValueConsumer.NOP);
+                contentType.validate(traceId, routedId, payload.buffer(), payload.offset(),
+                    payload.sizeof(), ValueConsumer.NOP);
         }
 
         private final class Subscription
