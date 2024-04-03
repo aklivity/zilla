@@ -814,7 +814,7 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
         {
             final long traceId = reset.traceId();
 
-            state = KafkaState.closedInitial(state);
+            state = KafkaState.closedReply(state);
 
             client.doNetworkResetIfNecessary(traceId);
         }
