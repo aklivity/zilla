@@ -389,6 +389,24 @@ public class MergedIT
 
     @Test
     @Specification({
+        "${app}/merged.fetch.server.sent.reset/client",
+        "${app}/merged.fetch.server.sent.reset/server"})
+    public void shouldMergedFetchServerSentReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/merged.fetch.server.sent.reset.with.message/client",
+        "${app}/merged.fetch.server.sent.reset.with.message/server"})
+    public void shouldMergedFetchServerSentResetWithMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/merged.fetch.server.sent.abort/client",
         "${app}/merged.fetch.server.sent.abort/server"})
     public void shouldMergedFetchServerSentAbort() throws Exception

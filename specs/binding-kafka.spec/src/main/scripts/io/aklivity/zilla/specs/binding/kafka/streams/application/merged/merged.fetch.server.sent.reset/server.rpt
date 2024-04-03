@@ -34,21 +34,6 @@ read zilla:begin.ext ${kafka:beginEx()
 
 connected
 
-write zilla:data.ext ${kafka:dataEx()
-                              .typeId(zilla:id("kafka"))
-                              .merged()
-                                .fetch()
-                                  .timestamp(newTimestamp)
-                                  .partition(0, 1, 2)
-                                  .progress(0, 2)
-                                  .key("key1")
-                                  .header("header2", "value2")
-                                  .build()
-                              .build()}
-write "Hello, world #A1"
-
-write flush
+read abort
 
 write abort
-
-read abort

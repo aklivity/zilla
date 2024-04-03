@@ -29,20 +29,6 @@ write zilla:begin.ext ${kafka:beginEx()
 
 connected
 
-read zilla:data.ext ${kafka:matchDataEx()
-                             .typeId(zilla:id("kafka"))
-                             .merged()
-                                .fetch()
-                                 .partition(0, 1, 2)
-                                 .progress(0, 2)
-                                 .key("key1")
-                                 .header("header2", "value2")
-                                 .build()
-                             .build()}
-read "Hello, world #A1"
-
-write notify RECEIVED_MESSAGE
+write aborted
 
 read aborted
-
-write aborted
