@@ -24,6 +24,7 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public final class OpenapiOptionsConfig extends OptionsConfig
 {
+    public final List<String> servers;
     public final TcpOptionsConfig tcp;
     public final TlsOptionsConfig tls;
     public final HttpOptionsConfig http;
@@ -41,11 +42,13 @@ public final class OpenapiOptionsConfig extends OptionsConfig
     }
 
     public OpenapiOptionsConfig(
+        List<String> servers,
         TcpOptionsConfig tcp,
         TlsOptionsConfig tls,
         HttpOptionsConfig http,
         List<OpenapiConfig> openapis)
     {
+        this.servers = servers;
         this.tcp = tcp;
         this.tls = tls;
         this.http = http;

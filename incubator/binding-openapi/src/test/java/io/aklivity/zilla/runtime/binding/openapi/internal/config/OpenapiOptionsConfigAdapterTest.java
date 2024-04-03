@@ -24,6 +24,7 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
 
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
@@ -120,8 +121,8 @@ public class OpenapiOptionsConfigAdapterTest
     @Test
     public void shouldWriteOptions()
     {
-        String expected = "{\"tcp\":{\"host\":\"localhost\",\"port\":8080},\"tls\":{\"sni\":[\"example.net\"]}," +
-            "\"specs\":{\"openapi-id\":\"openapi/petstore.yaml\"}}";
+        String expected = "{\"servers\":[\"http://localhost:8080\"],\"tcp\":{\"host\":\"localhost\",\"port\":8080}," +
+            "\"tls\":{\"sni\":[\"example.net\"]},\"specs\":{\"openapi-id\":\"openapi/petstore.yaml\"}}";
 
         TcpOptionsConfig tcp = TcpOptionsConfig.builder()
             .inject(identity())
@@ -134,8 +135,8 @@ public class OpenapiOptionsConfigAdapterTest
             .sni(asList("example.net"))
             .build();
 
-        OpenapiOptionsConfig options = new OpenapiOptionsConfig(tcp, tls, null, asList(
-            new OpenapiConfig("openapi-id", 1L, "openapi/petstore.yaml", new Openapi())));
+        OpenapiOptionsConfig options = new OpenapiOptionsConfig(List.of("http://localhost:8080"), tcp, tls, null,
+            asList(new OpenapiConfig("openapi-id", 1L, "openapi/petstore.yaml", new Openapi())));
 
         String text = jsonb.toJson(options);
 

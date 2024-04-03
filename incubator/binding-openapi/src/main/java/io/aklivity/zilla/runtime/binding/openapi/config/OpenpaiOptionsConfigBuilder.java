@@ -28,6 +28,7 @@ public final class OpenpaiOptionsConfigBuilder<T> extends ConfigBuilder<T, Openp
 {
     private final Function<OptionsConfig, T> mapper;
 
+    private List<String> servers;
     private TcpOptionsConfig tcp;
     private TlsOptionsConfig tls;
     private HttpOptionsConfig http;
@@ -44,6 +45,18 @@ public final class OpenpaiOptionsConfigBuilder<T> extends ConfigBuilder<T, Openp
     protected Class<OpenpaiOptionsConfigBuilder<T>> thisType()
     {
         return (Class<OpenpaiOptionsConfigBuilder<T>>) getClass();
+    }
+
+    public OpenpaiOptionsConfigBuilder<T> server(
+        String server)
+    {
+        if (servers == null)
+        {
+            this.servers = new ArrayList<>();
+        }
+        servers.add(server);
+
+        return this;
     }
 
     public OpenpaiOptionsConfigBuilder<T> tcp(
@@ -81,6 +94,6 @@ public final class OpenpaiOptionsConfigBuilder<T> extends ConfigBuilder<T, Openp
     @Override
     public T build()
     {
-        return mapper.apply(new OpenapiOptionsConfig(tcp, tls, http, openapis));
+        return mapper.apply(new OpenapiOptionsConfig(servers, tcp, tls, http, openapis));
     }
 }

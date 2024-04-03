@@ -18,6 +18,7 @@ import static io.aklivity.zilla.runtime.binding.http.config.HttpPolicyConfig.CRO
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 import static java.util.Collections.emptyList;
 import static java.util.Objects.requireNonNull;
+import static java.util.stream.Collectors.toList;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.net.URI;
@@ -42,7 +43,6 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiMediaType
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiOperation;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiParameter;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiSchema;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiServer;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiPathView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiSchemaView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiServerView;
@@ -67,58 +67,18 @@ public final class OpenapiServerCompositeBindingAdapter extends OpenapiComposite
         BindingConfig binding)
     {
         final OpenapiOptionsConfig options = (OpenapiOptionsConfig) binding.options;
-        final OpenapiConfig openapiConfig = options.openapis.get(0);
         final List<MetricRefConfig> metricRefs = binding.telemetryRef != null ?
             binding.telemetryRef.metricRefs : emptyList();
-
-        final Openapi openApi = openapiConfig.openapi;
-        final int[] allPorts = resolveAllPorts(openApi);
-        final int[] httpPorts = resolvePortsForScheme(openApi, "http");
-        final int[] httpsPorts = resolvePortsForScheme(openApi, "https");
-        final boolean secure = httpsPorts != null;
-        final Map<String, String> securitySchemes = resolveSecuritySchemes(openApi);
-        final boolean hasJwt = !securitySchemes.isEmpty();
         final String qvault = String.format("%s:%s", binding.namespace, binding.vault);
-
-        final TcpOptionsConfig tcpOption = options.tcp != null ? options.tcp :
-            TcpOptionsConfig.builder()
-                .host("0.0.0.0")
-                .ports(allPorts)
-                .build();
-        final TlsOptionsConfig tlsOption = options.tls != null ? options.tls : null;
-        final HttpOptionsConfig httpOptions = options.http;
-        final String guardName = httpOptions != null ? httpOptions.authorization.name : null;
-        final HttpAuthorizationConfig authorization = httpOptions != null ?  httpOptions.authorization : null;
 
         return BindingConfig.builder(binding)
             .composite()
                 .name(String.format("%s/http", binding.qname))
                 .inject(namespace -> injectNamespaceMetric(namespace, !metricRefs.isEmpty()))
-                .inject(n -> this.injectCatalog(n, openApi))
-                .binding()
-                    .name("tcp_server0")
-                    .type("tcp")
-                    .kind(SERVER)
-                    .options(tcpOption)
-                    .inject(b -> this.injectPlainTcpRoute(b, httpPorts, secure))
-                    .inject(b -> this.injectTlsTcpRoute(b, httpsPorts, secure))
-                    .inject(b -> this.injectMetrics(b, metricRefs, "tcp"))
-                    .build()
-                .inject(n -> this.injectTlsServer(n, qvault, tlsOption, secure, metricRefs))
-                .binding()
-                    .name("http_server0")
-                    .type("http")
-                    .kind(SERVER)
-                    .options(HttpOptionsConfig::builder)
-                        .access()
-                            .policy(CROSS_ORIGIN)
-                            .build()
-                        .inject(o -> this.injectHttpServerOptions(o, authorization, hasJwt))
-                        .inject(r -> this.injectHttpServerRequests(r, openApi))
-                        .build()
-                    .inject(b -> this.injectHttpServerRoutes(b, openApi, binding.qname, guardName, securitySchemes))
-                    .inject(b -> this.injectMetrics(b, metricRefs, "http"))
-                    .build()
+                .inject(n -> injectCatalog(n, options))
+                .inject(n -> injectTcpServer(n, options, metricRefs))
+                .inject(n -> injectTlsServer(n, qvault, options, metricRefs))
+                .inject(n -> injectHttpServer(n, binding.qname, options, metricRefs))
                 .build()
             .build();
     }
@@ -128,7 +88,7 @@ public final class OpenapiServerCompositeBindingAdapter extends OpenapiComposite
         int[] httpPorts,
         boolean secure)
     {
-        if (!secure)
+        if (secure)
         {
             binding
                 .route()
@@ -143,10 +103,9 @@ public final class OpenapiServerCompositeBindingAdapter extends OpenapiComposite
 
     private <C> BindingConfigBuilder<C> injectTlsTcpRoute(
         BindingConfigBuilder<C> binding,
-        int[] httpsPorts,
-        boolean secure)
+        int[] httpsPorts)
     {
-        if (secure)
+        if (httpsPorts.length > 0)
         {
             binding
                 .route()
@@ -162,12 +121,18 @@ public final class OpenapiServerCompositeBindingAdapter extends OpenapiComposite
     private <C> NamespaceConfigBuilder<C> injectTlsServer(
         NamespaceConfigBuilder<C> namespace,
         String vault,
-        TlsOptionsConfig tlsOption,
-        boolean secure,
+        OpenapiOptionsConfig options,
         List<MetricRefConfig> metricRefs)
     {
+        final List<String> servers = options.servers;
+        final OpenapiConfig openapiConfig = options.openapis.get(0);
+        final Openapi openapi = openapiConfig.openapi;
+        final int[] httpsPorts = resolvePortsForScheme(openapi, "https", servers);
+        final boolean secure =  httpsPorts.length > 0;
+
         if (secure)
         {
+            final TlsOptionsConfig tlsOption = options.tls != null ? options.tls : null;
             namespace
                 .binding()
                     .name("tls_server0")
@@ -294,27 +259,38 @@ public final class OpenapiServerCompositeBindingAdapter extends OpenapiComposite
 
     private <C> BindingConfigBuilder<C> injectHttpServerRoutes(
         BindingConfigBuilder<C> binding,
+        List<URI> serverUrls,
         Openapi openApi,
         String qname,
         String guardName,
         Map<String, String> securitySchemes)
     {
-        for (String item : openApi.paths.keySet())
+        final List<String> basePaths = serverUrls.stream()
+            .map(u -> u.getPath().replaceAll("/$", ""))
+            .distinct()
+            .collect(toList());
+
+        for (String basePath : basePaths)
         {
-            OpenapiPathView path = OpenapiPathView.of(openApi.paths.get(item));
-            for (String method : path.methods().keySet())
+            for (String item : openApi.paths.keySet())
             {
-                binding
-                    .route()
-                        .exit(qname)
-                        .when(HttpConditionConfig::builder)
-                            .header(":path", item.replaceAll("\\{[^}]+\\}", "*"))
-                            .header(":method", method)
-                            .build()
-                        .inject(route -> injectHttpServerRouteGuarded(route, path, method, guardName, securitySchemes))
-                        .build();
+                item = String.format("%s%s", basePath, item);
+                OpenapiPathView path = OpenapiPathView.of(openApi.paths.get(item));
+                for (String method : path.methods().keySet())
+                {
+                    binding
+                        .route()
+                            .exit(qname)
+                            .when(HttpConditionConfig::builder)
+                                .header(":path", item.replaceAll("\\{[^}]+\\}", "*"))
+                                .header(":method", method)
+                                .build()
+                            .inject(route -> injectHttpServerRouteGuarded(route, path, method, guardName, securitySchemes))
+                            .build();
+                }
             }
         }
+
         return binding;
     }
 
@@ -361,11 +337,14 @@ public final class OpenapiServerCompositeBindingAdapter extends OpenapiComposite
 
     private <C> NamespaceConfigBuilder<C> injectCatalog(
         NamespaceConfigBuilder<C> namespace,
-        Openapi openApi)
+        OpenapiOptionsConfig options)
     {
-        if (openApi.components != null &&
-            openApi.components.schemas != null &&
-            !openApi.components.schemas.isEmpty())
+        final OpenapiConfig openapiConfig = options.openapis.get(0);
+        final Openapi openapi = openapiConfig.openapi;
+
+        if (openapi.components != null &&
+            openapi.components.schemas != null &&
+            !openapi.components.schemas.isEmpty())
         {
             namespace
                 .catalog()
@@ -373,11 +352,82 @@ public final class OpenapiServerCompositeBindingAdapter extends OpenapiComposite
                     .type(INLINE_CATALOG_TYPE)
                     .options(InlineOptionsConfig::builder)
                         .subjects()
-                            .inject(s -> this.injectSubjects(s, openApi))
+                            .inject(s -> this.injectSubjects(s, openapi))
                             .build()
                         .build()
                     .build();
         }
+
+        return namespace;
+    }
+
+    private <C> NamespaceConfigBuilder<C> injectTcpServer(
+        NamespaceConfigBuilder<C> namespace,
+        OpenapiOptionsConfig options,
+        List<MetricRefConfig> metricRefs)
+    {
+        final List<String> servers = options.servers;
+        final OpenapiConfig openapiConfig = options.openapis.get(0);
+        final Openapi openapi = openapiConfig.openapi;
+
+        final int[] allPorts = resolveAllPorts(openapi, servers);
+        final int[] httpPorts = resolvePortsForScheme(openapi, "http", servers);
+        final int[] httpsPorts = resolvePortsForScheme(openapi, "https", servers);
+        final boolean secure =  httpsPorts.length > 0;
+
+        final TcpOptionsConfig tcpOption = options.tcp != null ? options.tcp :
+            TcpOptionsConfig.builder()
+                .host("0.0.0.0")
+                .ports(allPorts)
+                .build();
+
+        namespace
+            .binding()
+                .name("tcp_server0")
+                .type("tcp")
+                .kind(SERVER)
+                .options(tcpOption)
+                .inject(b -> this.injectPlainTcpRoute(b, httpPorts, secure))
+                .inject(b -> this.injectTlsTcpRoute(b, httpsPorts))
+                .inject(b -> this.injectMetrics(b, metricRefs, "tcp"))
+                .build();
+
+        return namespace;
+    }
+
+    private <C> NamespaceConfigBuilder<C> injectHttpServer(
+        NamespaceConfigBuilder<C> namespace,
+        String qname,
+        OpenapiOptionsConfig options,
+        List<MetricRefConfig> metricRefs)
+    {
+        final List<String> servers = options.servers;
+        final OpenapiConfig openapiConfig = options.openapis.get(0);
+        final Openapi openapi = openapiConfig.openapi;
+
+        final Map<String, String> securitySchemes = resolveSecuritySchemes(openapi);
+        final boolean hasJwt = !securitySchemes.isEmpty();
+        final HttpOptionsConfig httpOptions = options.http;
+        final String guardName = httpOptions != null ? httpOptions.authorization.name : null;
+        final HttpAuthorizationConfig authorization = httpOptions != null ?  httpOptions.authorization : null;
+        final List<URI> serverUrls = findServersUrlWithScheme(openapi, null, servers);
+
+        namespace
+            .binding()
+                .name("http_server0")
+                .type("http")
+                .kind(SERVER)
+                .options(HttpOptionsConfig::builder)
+                    .access()
+                        .policy(CROSS_ORIGIN)
+                        .build()
+                    .inject(o -> this.injectHttpServerOptions(o, authorization, hasJwt))
+                    .inject(r -> this.injectHttpServerRequests(r, openapi))
+                    .build()
+                .inject(b -> this.injectHttpServerRoutes(b, serverUrls, openapi, qname, guardName, securitySchemes))
+                .inject(b -> this.injectMetrics(b, metricRefs, "http"))
+                .build();
+
         return namespace;
     }
 
@@ -407,48 +457,20 @@ public final class OpenapiServerCompositeBindingAdapter extends OpenapiComposite
     }
 
     private int[] resolveAllPorts(
-        Openapi openApi)
+        Openapi openApi,
+        List<String> serverUrl)
     {
         int[] ports = new int[openApi.servers.size()];
         for (int i = 0; i < openApi.servers.size(); i++)
         {
             OpenapiServerView server = OpenapiServerView.of(openApi.servers.get(i));
             URI url = server.url();
-            ports[i] = url.getPort();
-        }
-        return ports;
-    }
-
-    private int[] resolvePortsForScheme(
-        Openapi openApi,
-        String scheme)
-    {
-        requireNonNull(scheme);
-        int[] ports = null;
-        URI url = findFirstServerUrlWithScheme(openApi, scheme);
-        if (url != null)
-        {
-            ports = new int[] {url.getPort()};
-        }
-        return ports;
-    }
-
-    private URI findFirstServerUrlWithScheme(
-        Openapi openApi,
-        String scheme)
-    {
-        requireNonNull(scheme);
-        URI result = null;
-        for (OpenapiServer item : openApi.servers)
-        {
-            OpenapiServerView server = OpenapiServerView.of(item);
-            if (scheme.equals(server.url().getScheme()))
+            if (serverUrl == null || serverUrl.equals(url.toASCIIString()))
             {
-                result = server.url();
-                break;
+                ports[i] = url.getPort();
             }
         }
-        return result;
+        return ports;
     }
 
     private Map<String, String> resolveSecuritySchemes(

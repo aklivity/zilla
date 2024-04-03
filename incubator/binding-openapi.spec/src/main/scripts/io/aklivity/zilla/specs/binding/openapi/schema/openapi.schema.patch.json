@@ -35,6 +35,16 @@
                     {
                         "properties":
                         {
+                            "servers":
+                            {
+                                "title": "Servers",
+                                "type": "array",
+                                "items":
+                                {
+                                    "type": "string",
+                                    "pattern": "/^https?:\\/\\/(?:www\\.)?[-a-zA-Z0-9@:%._\\+~#=]{1,256}\\.[a-zA-Z0-9()]{1,6}\\b(?:[-a-zA-Z0-9()@:%_\\+.~#?&\\/=]*)$/"
+                                }
+                            },
                             "tcp":
                             {
                                 "$ref": "#/$defs/options/binding/tcp"

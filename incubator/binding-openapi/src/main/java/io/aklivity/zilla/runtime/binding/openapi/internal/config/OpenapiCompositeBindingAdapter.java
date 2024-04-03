@@ -17,11 +17,18 @@ package io.aklivity.zilla.runtime.binding.openapi.internal.config;
 
 import static java.util.stream.Collectors.toList;
 
+import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.agrona.collections.MutableInteger;
+
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.Openapi;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiServer;
+import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiServerView;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.MetricRefConfig;
@@ -115,6 +122,36 @@ public abstract class OpenapiCompositeBindingAdapter
         }
 
         return binding;
+    }
+
+    protected int[] resolvePortsForScheme(
+        Openapi openApi,
+        String scheme,
+        List<String> serverUrls)
+    {
+        List<URI> servers = findServersUrlWithScheme(openApi, scheme, serverUrls);
+        int[] ports = new int[servers.size()];
+        MutableInteger index = new MutableInteger();
+        servers.forEach(s -> ports[index.value++] = s.getPort());
+        return ports;
+    }
+
+    protected List<URI> findServersUrlWithScheme(
+        Openapi openApi,
+        String scheme,
+        List<String> serverUrl)
+    {
+        final List<URI> servers = new ArrayList<>();
+        for (OpenapiServer item : openApi.servers)
+        {
+            OpenapiServerView server = OpenapiServerView.of(item);
+            if ((scheme == null || scheme.equals(server.url().getScheme())) &&
+                (serverUrl == null || serverUrl.contains(server.url().toASCIIString())))
+            {
+                servers.add(server.url());
+            }
+        }
+        return servers;
     }
 
     public abstract BindingConfig adapt(

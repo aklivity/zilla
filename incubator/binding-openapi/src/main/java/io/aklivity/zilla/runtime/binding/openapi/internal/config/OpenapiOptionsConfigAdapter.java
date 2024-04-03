@@ -20,9 +20,12 @@ import java.util.function.Function;
 import java.util.zip.CRC32C;
 
 import jakarta.json.Json;
+import jakarta.json.JsonArray;
+import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
+import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
@@ -40,6 +43,7 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
 public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
+    private static final String SERVERS_NAME = "servers";
     private static final String TCP_NAME = "tcp";
     private static final String TLS_NAME = "tls";
     private static final String HTTP_NAME = "http";
@@ -79,6 +83,13 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
 
         JsonObjectBuilder object = Json.createObjectBuilder();
 
+        if (openapiOptions.servers != null)
+        {
+            JsonArrayBuilder servers = Json.createArrayBuilder();
+            openapiOptions.servers.forEach(servers::add);
+            object.add(SERVERS_NAME, servers);
+        }
+
         if (openapiOptions.tcp != null)
         {
             final TcpOptionsConfig tcp = ((OpenapiOptionsConfig) options).tcp;
@@ -112,6 +123,15 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
         JsonObject object)
     {
         OpenpaiOptionsConfigBuilder<OpenapiOptionsConfig> openapiOptions = OpenapiOptionsConfig.builder();
+
+        if (object.containsKey(SERVERS_NAME))
+        {
+            JsonArray servers = object.getJsonArray(SERVERS_NAME);
+            for (JsonValue server : servers)
+            {
+                openapiOptions.server(server.toString());
+            }
+        }
 
         if (object.containsKey(TCP_NAME))
         {

@@ -16,9 +16,7 @@ package io.aklivity.zilla.runtime.binding.openapi.internal.config;
 
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
 import static java.util.Collections.emptyList;
-import static java.util.Objects.requireNonNull;
 
-import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
@@ -33,12 +31,10 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.model.Openapi;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiHeader;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiResponse;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiResponseByContentType;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiServer;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiOperationView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiOperationsView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiPathView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiSchemaView;
-import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiServerView;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
@@ -57,9 +53,10 @@ public final class OpenapiClientCompositeBindingAdapter extends OpenapiComposite
         final OpenapiConfig openapiConfig = options.openapis.get(0);
         final List<MetricRefConfig> metricRefs = binding.telemetryRef != null ?
             binding.telemetryRef.metricRefs : emptyList();
+        final List<String> servers = options.servers;
 
         final Openapi openApi = openapiConfig.openapi;
-        final int[] httpsPorts = resolvePortsForScheme(openApi, "https");
+        final int[] httpsPorts = resolvePortsForScheme(openApi, "https", servers);
         final boolean secure = httpsPorts != null;
 
         return BindingConfig.builder(binding)
@@ -84,38 +81,6 @@ public final class OpenapiClientCompositeBindingAdapter extends OpenapiComposite
                     .build()
                 .build()
             .build();
-    }
-
-    private int[] resolvePortsForScheme(
-        Openapi openApi,
-        String scheme)
-    {
-        requireNonNull(scheme);
-        int[] ports = null;
-        URI url = findFirstServerUrlWithScheme(openApi, scheme);
-        if (url != null)
-        {
-            ports = new int[] {url.getPort()};
-        }
-        return ports;
-    }
-
-    private URI findFirstServerUrlWithScheme(
-        Openapi openApi,
-        String scheme)
-    {
-        requireNonNull(scheme);
-        URI result = null;
-        for (OpenapiServer item : openApi.servers)
-        {
-            OpenapiServerView server = OpenapiServerView.of(item);
-            if (scheme.equals(server.url().getScheme()))
-            {
-                result = server.url();
-                break;
-            }
-        }
-        return result;
     }
 
     private <C> BindingConfigBuilder<C> injectHttpClientOptions(
