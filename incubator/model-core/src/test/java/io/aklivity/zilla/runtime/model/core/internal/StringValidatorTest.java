@@ -56,12 +56,14 @@ public class StringValidatorTest
             .encoding("utf_8")
             .pattern("^[a-zA-Z\\s]+$")
             .build();
-        StringValidatorHandler handler = new StringValidatorHandler(config);
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
+        StringValidatorHandler handler = new StringValidatorHandler(config, context);
         DirectBuffer data = new UnsafeBuffer();
 
         byte[] bytes = "Hello123".getBytes();
         data.wrap(bytes, 0, bytes.length);
-        assertFalse(handler.validate(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertFalse(handler.validate(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -72,12 +74,14 @@ public class StringValidatorTest
             .minLength(1)
             .maxLength(10)
             .build();
-        StringValidatorHandler handler = new StringValidatorHandler(config);
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
+        StringValidatorHandler handler = new StringValidatorHandler(config, context);
         DirectBuffer data = new UnsafeBuffer();
 
         byte[] bytes = "Valid String".getBytes();
         data.wrap(bytes, 0, bytes.length);
-        assertFalse(handler.validate(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertFalse(handler.validate(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
