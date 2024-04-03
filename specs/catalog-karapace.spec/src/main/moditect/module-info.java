@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-open module io.aklivity.zilla.specs.catalog.schema.registry
+open module io.aklivity.zilla.specs.catalog.karapace
 {
     requires transitive io.aklivity.zilla.specs.engine;
 }

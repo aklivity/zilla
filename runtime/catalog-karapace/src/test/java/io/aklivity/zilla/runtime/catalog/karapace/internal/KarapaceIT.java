@@ -40,7 +40,7 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 
-public class SchemaRegistryIT
+public class KarapaceIT
 {
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("local", "io/aklivity/zilla/runtime/catalog/karapace/internal");
