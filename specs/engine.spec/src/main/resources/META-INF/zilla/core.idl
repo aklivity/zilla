@@ -34,8 +34,8 @@ scope core
             int64 streamId;
             int64 sequence;
             int64 acknowledge;
-            int32 maximum;
             int32 state = 0;
+            int32 maximum;
             int64 timestamp = 0;
             int64 traceId = 0;
             int64 authorization = 0;
