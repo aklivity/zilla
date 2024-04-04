@@ -44,29 +44,43 @@ public class FloatModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdap
     public JsonValue adaptToJson(
         ModelConfig options)
     {
+        JsonValue result;
         FloatModelConfig config = (FloatModelConfig) options;
-        JsonObjectBuilder builder = Json.createObjectBuilder();
 
-        builder.add(MODEL_NAME, type());
-
-        if (!config.format.equals(FloatModelConfigBuilder.DEFAULT_FORMAT))
+        if (config.format.equals(FloatModelConfigBuilder.DEFAULT_FORMAT) &&
+            config.max == Float.POSITIVE_INFINITY &&
+            config.min == Float.NEGATIVE_INFINITY &&
+            !config.exclusiveMax &&
+            !config.exclusiveMin &&
+            config.multiple == null)
         {
-            builder.add(FORMAT_NAME, config.format);
+            result = Json.createValue(type());
         }
-
-        String max = config.max != Float.POSITIVE_INFINITY ? String.valueOf(config.max) : null;
-        String min = config.min != Float.NEGATIVE_INFINITY ? String.valueOf(config.min) : null;
-        boolean exclusiveMax = config.exclusiveMax;
-        boolean exclusiveMin = config.exclusiveMin;
-        RangeConfigAdapter range = new RangeConfigAdapter(max, min, exclusiveMax, exclusiveMin);
-        builder.add(RANGE_NAME, range.toString());
-
-        if (config.multiple != null)
+        else
         {
-            builder.add(MULTIPLE_NAME, config.multiple);
-        }
+            JsonObjectBuilder builder = Json.createObjectBuilder();
+            builder.add(MODEL_NAME, type());
 
-        return builder.build();
+            if (!config.format.equals(FloatModelConfigBuilder.DEFAULT_FORMAT))
+            {
+                builder.add(FORMAT_NAME, config.format);
+            }
+
+            String max = config.max != Float.POSITIVE_INFINITY ? String.valueOf(config.max) : null;
+            String min = config.min != Float.NEGATIVE_INFINITY ? String.valueOf(config.min) : null;
+            boolean exclusiveMax = config.exclusiveMax;
+            boolean exclusiveMin = config.exclusiveMin;
+            RangeConfigAdapter range = new RangeConfigAdapter(max, min, exclusiveMax, exclusiveMin);
+            builder.add(RANGE_NAME, range.toString());
+
+            if (config.multiple != null)
+            {
+                builder.add(MULTIPLE_NAME, config.multiple);
+            }
+
+            result = builder.build();
+        }
+        return result;
     }
 
     @Override

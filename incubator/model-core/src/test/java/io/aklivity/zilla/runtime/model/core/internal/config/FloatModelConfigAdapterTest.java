@@ -88,4 +88,20 @@ public class FloatModelConfigAdapterTest
         assertThat(json, not(nullValue()));
         assertThat(json, equalTo(expectedJson));
     }
+
+    @Test
+    public void shouldWriteDefault()
+    {
+        // GIVEN
+        String expectedJson = "\"float\"";
+
+        FloatModelConfig model = FloatModelConfig.builder().build();
+
+        // WHEN
+        String json = jsonb.toJson(model);
+
+        // THEN
+        assertThat(json, not(nullValue()));
+        assertThat(json, equalTo(expectedJson));
+    }
 }

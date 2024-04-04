@@ -37,23 +37,9 @@
                         ],
                         "default": "text"
                     },
-                    "max":
+                    "range":
                     {
-                        "type": "number"
-                    },
-                    "min":
-                    {
-                        "type": "number"
-                    },
-                    "exclusiveMax":
-                    {
-                        "type": "boolean",
-                        "default": false
-                    },
-                    "exclusiveMin":
-                    {
-                        "type": "boolean",
-                        "default": false
+                        "type": "string"
                     },
                     "multiple":
                     {
@@ -97,23 +83,9 @@
                         ],
                         "default": "text"
                     },
-                    "max":
+                    "range":
                     {
-                        "type": "number"
-                    },
-                    "min":
-                    {
-                        "type": "number"
-                    },
-                    "exclusiveMax":
-                    {
-                        "type": "boolean",
-                        "default": false
-                    },
-                    "exclusiveMin":
-                    {
-                        "type": "boolean",
-                        "default": false
+                        "type": "string"
                     },
                     "multiple":
                     {
