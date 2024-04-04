@@ -18,6 +18,7 @@ import java.util.function.DoublePredicate;
 
 import org.agrona.DirectBuffer;
 
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.model.core.config.FloatModelConfig;
@@ -27,9 +28,11 @@ public class FloatValidatorHandler implements ValidatorHandler
     private final FloatFormat format;
     private final DoublePredicate check;
     private final FloatState state;
+    private final CoreModelEventContext event;
 
     public FloatValidatorHandler(
-        FloatModelConfig config)
+        FloatModelConfig config,
+        EngineContext context)
     {
         float max = config.max;
         float min = config.min;
@@ -39,10 +42,13 @@ public class FloatValidatorHandler implements ValidatorHandler
         this.check = checkMax.and(checkMin).and(checkMultiple);
         this.format = FloatFormat.of(config.format);
         this.state = new FloatState();
+        this.event = new CoreModelEventContext(context);
     }
 
     @Override
     public boolean validate(
+        long traceId,
+        long bindingId,
         int flags,
         DirectBuffer data,
         int index,
@@ -63,6 +69,12 @@ public class FloatValidatorHandler implements ValidatorHandler
             valid &= format.valid(state);
             valid &= check.test(state.value);
         }
+
+        if (!valid)
+        {
+            event.validationFailure(traceId, bindingId, FloatModel.NAME);
+        }
+
         return valid;
     }
 }

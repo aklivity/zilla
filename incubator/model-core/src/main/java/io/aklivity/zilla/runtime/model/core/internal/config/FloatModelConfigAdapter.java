@@ -31,11 +31,8 @@ public class FloatModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdap
 {
     private static final String MODEL_NAME = "model";
     private static final String FORMAT_NAME = "format";
-    private static final String MAX_NAME = "max";
-    private static final String MIN_NAME = "min";
-    private static final String EXCLUSIVE_MAX_NAME = "exclusiveMax";
-    private static final String EXCLUSIVE_MIN_NAME = "exclusiveMin";
     private static final String MULTIPLE_NAME = "multiple";
+    private static final String RANGE_NAME = "range";
 
     @Override
     public String type()
@@ -57,25 +54,12 @@ public class FloatModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdap
             builder.add(FORMAT_NAME, config.format);
         }
 
-        if (config.max != Float.POSITIVE_INFINITY)
-        {
-            builder.add(MAX_NAME, config.max);
-        }
-
-        if (config.min != Float.NEGATIVE_INFINITY)
-        {
-            builder.add(MIN_NAME, config.min);
-        }
-
-        if (config.exclusiveMax)
-        {
-            builder.add(EXCLUSIVE_MAX_NAME, config.exclusiveMax);
-        }
-
-        if (config.exclusiveMin)
-        {
-            builder.add(EXCLUSIVE_MIN_NAME, config.exclusiveMin);
-        }
+        String max = config.max != Float.POSITIVE_INFINITY ? String.valueOf(config.max) : null;
+        String min = config.min != Float.NEGATIVE_INFINITY ? String.valueOf(config.min) : null;
+        boolean exclusiveMax = config.exclusiveMax;
+        boolean exclusiveMin = config.exclusiveMin;
+        RangeConfigAdapter range = new RangeConfigAdapter(max, min, exclusiveMax, exclusiveMin);
+        builder.add(RANGE_NAME, range.toString());
 
         if (config.multiple != null)
         {
@@ -103,24 +87,13 @@ public class FloatModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdap
                 builder.format(object.getString(FORMAT_NAME));
             }
 
-            if (object.containsKey(MAX_NAME))
+            if (object.containsKey(RANGE_NAME))
             {
-                builder.max(object.getJsonNumber(MAX_NAME).bigDecimalValue().floatValue());
-            }
-
-            if (object.containsKey(MIN_NAME))
-            {
-                builder.min(object.getJsonNumber(MIN_NAME).bigDecimalValue().floatValue());
-            }
-
-            if (object.containsKey(EXCLUSIVE_MAX_NAME))
-            {
-                builder.exclusiveMax(object.getBoolean(EXCLUSIVE_MAX_NAME));
-            }
-
-            if (object.containsKey(EXCLUSIVE_MIN_NAME))
-            {
-                builder.exclusiveMin(object.getBoolean(EXCLUSIVE_MIN_NAME));
+                RangeConfigAdapter range = new RangeConfigAdapter(object.getString(RANGE_NAME));
+                builder.exclusiveMin(range.exclusiveMin);
+                builder.exclusiveMax(range.exclusiveMax);
+                builder.min(Float.parseFloat(range.min));
+                builder.max(Float.parseFloat(range.max));
             }
 
             if (object.containsKey(MULTIPLE_NAME))

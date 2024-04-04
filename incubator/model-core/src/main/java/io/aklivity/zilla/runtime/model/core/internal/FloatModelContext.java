@@ -23,9 +23,12 @@ import io.aklivity.zilla.runtime.model.core.config.FloatModelConfig;
 
 public class FloatModelContext implements ModelContext
 {
+    private final EngineContext context;
+
     public FloatModelContext(
         EngineContext context)
     {
+        this.context = context;
     }
 
     @Override
@@ -46,12 +49,12 @@ public class FloatModelContext implements ModelContext
     public ValidatorHandler supplyValidatorHandler(
         ModelConfig config)
     {
-        return new FloatValidatorHandler(FloatModelConfig.class.cast(config));
+        return new FloatValidatorHandler(FloatModelConfig.class.cast(config), context);
     }
 
     private FloatConverterHandler supply(
         ModelConfig config)
     {
-        return new FloatConverterHandler(FloatModelConfig.class.cast(config));
+        return new FloatConverterHandler(FloatModelConfig.class.cast(config), context);
     }
 }

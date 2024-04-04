@@ -16,11 +16,17 @@ package io.aklivity.zilla.runtime.model.core.internal;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.time.Clock;
 
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.model.core.config.FloatModelConfig;
@@ -29,18 +35,20 @@ public class FloatValidatorTest
 {
     public static final String BINARY = "binary";
 
+    private final EngineContext context = mock(EngineContext.class);
+
     @Test
     public void shouldVerifyValidFloatCompleteMessage()
     {
         FloatModelConfig config = FloatModelConfig.builder()
             .format(BINARY)
             .build();
-        FloatValidatorHandler handler = new FloatValidatorHandler(config);
+        FloatValidatorHandler handler = new FloatValidatorHandler(config, context);
         DirectBuffer data = new UnsafeBuffer();
 
         byte[] bytes = {62, -128, 5, 8};
         data.wrap(bytes, 0, bytes.length);
-        assertTrue(handler.validate(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertTrue(handler.validate(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -48,13 +56,13 @@ public class FloatValidatorTest
     {
         FloatModelConfig config = FloatModelConfig.builder()
             .build();
-        FloatValidatorHandler handler = new FloatValidatorHandler(config);
+        FloatValidatorHandler handler = new FloatValidatorHandler(config, context);
         DirectBuffer data = new UnsafeBuffer();
 
         String payload = "+10.1119f";
         byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
-        assertTrue(handler.validate(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertTrue(handler.validate(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -62,13 +70,13 @@ public class FloatValidatorTest
     {
         FloatModelConfig config = FloatModelConfig.builder()
             .build();
-        FloatValidatorHandler handler = new FloatValidatorHandler(config);
+        FloatValidatorHandler handler = new FloatValidatorHandler(config, context);
         DirectBuffer data = new UnsafeBuffer();
 
         String payload = "-.1119f";
         byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
-        assertTrue(handler.validate(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertTrue(handler.validate(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -76,13 +84,15 @@ public class FloatValidatorTest
     {
         FloatModelConfig config = FloatModelConfig.builder()
             .build();
-        FloatValidatorHandler handler = new FloatValidatorHandler(config);
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
+        FloatValidatorHandler handler = new FloatValidatorHandler(config, context);
         DirectBuffer data = new UnsafeBuffer();
 
         String payload = "-.11.19f";
         byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
-        assertFalse(handler.validate(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertFalse(handler.validate(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -92,13 +102,15 @@ public class FloatValidatorTest
             .max(99.99f)
             .exclusiveMax(true)
             .build();
-        FloatValidatorHandler handler = new FloatValidatorHandler(config);
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
+        FloatValidatorHandler handler = new FloatValidatorHandler(config, context);
         DirectBuffer data = new UnsafeBuffer();
 
         String payload = "99.99f";
         byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
-        assertFalse(handler.validate(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertFalse(handler.validate(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -107,13 +119,13 @@ public class FloatValidatorTest
         FloatModelConfig config = FloatModelConfig.builder()
             .max(99.99f)
             .build();
-        FloatValidatorHandler handler = new FloatValidatorHandler(config);
+        FloatValidatorHandler handler = new FloatValidatorHandler(config, context);
         DirectBuffer data = new UnsafeBuffer();
 
         String payload = "99.99f";
         byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
-        assertTrue(handler.validate(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertTrue(handler.validate(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -121,20 +133,20 @@ public class FloatValidatorTest
     {
         FloatModelConfig config = FloatModelConfig.builder()
             .build();
-        FloatValidatorHandler handler = new FloatValidatorHandler(config);
+        FloatValidatorHandler handler = new FloatValidatorHandler(config, context);
         DirectBuffer data = new UnsafeBuffer();
 
         String payload = "-99.99f";
         byte[] bytes = payload.getBytes();
 
         data.wrap(bytes, 0, 2);
-        assertTrue(handler.validate(ValidatorHandler.FLAGS_INIT, data, 0, data.capacity(), ValueConsumer.NOP));
+        assertTrue(handler.validate(0L, 0L, ValidatorHandler.FLAGS_INIT, data, 0, data.capacity(), ValueConsumer.NOP));
 
         data.wrap(bytes, 2, 1);
-        assertTrue(handler.validate(0x00, data, 0, data.capacity(), ValueConsumer.NOP));
+        assertTrue(handler.validate(0L, 0L, 0x00, data, 0, data.capacity(), ValueConsumer.NOP));
 
         data.wrap(bytes, 3, 4);
-        assertTrue(handler.validate(ValidatorHandler.FLAGS_FIN, data, 0, data.capacity(), ValueConsumer.NOP));
+        assertTrue(handler.validate(0L, 0L, ValidatorHandler.FLAGS_FIN, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -142,20 +154,22 @@ public class FloatValidatorTest
     {
         FloatModelConfig config = FloatModelConfig.builder()
             .build();
-        FloatValidatorHandler handler = new FloatValidatorHandler(config);
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
+        FloatValidatorHandler handler = new FloatValidatorHandler(config, context);
         DirectBuffer data = new UnsafeBuffer();
 
         String payload = "-.99.99f";
         byte[] bytes = payload.getBytes();
 
         data.wrap(bytes, 0, 2);
-        assertTrue(handler.validate(ValidatorHandler.FLAGS_INIT, data, 0, data.capacity(), ValueConsumer.NOP));
+        assertTrue(handler.validate(0L, 0L, ValidatorHandler.FLAGS_INIT, data, 0, data.capacity(), ValueConsumer.NOP));
 
         data.wrap(bytes, 2, 1);
-        assertTrue(handler.validate(0x00, data, 0, data.capacity(), ValueConsumer.NOP));
+        assertTrue(handler.validate(0L, 0L, 0x00, data, 0, data.capacity(), ValueConsumer.NOP));
 
         data.wrap(bytes, 3, 5);
-        assertFalse(handler.validate(ValidatorHandler.FLAGS_FIN, data, 0, data.capacity(), ValueConsumer.NOP));
+        assertFalse(handler.validate(0L, 0L, ValidatorHandler.FLAGS_FIN, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -164,19 +178,19 @@ public class FloatValidatorTest
         FloatModelConfig config = FloatModelConfig.builder()
             .format(BINARY)
             .build();
-        FloatValidatorHandler handler = new FloatValidatorHandler(config);
+        FloatValidatorHandler handler = new FloatValidatorHandler(config, context);
         DirectBuffer data = new UnsafeBuffer();
 
         byte[] bytes = {-13, -96, 0, 0};
 
         data.wrap(bytes, 0, 2);
-        assertTrue(handler.validate(ValidatorHandler.FLAGS_INIT, data, 0, data.capacity(), ValueConsumer.NOP));
+        assertTrue(handler.validate(0L, 0L, ValidatorHandler.FLAGS_INIT, data, 0, data.capacity(), ValueConsumer.NOP));
 
         data.wrap(bytes, 2, 1);
-        assertTrue(handler.validate(0x00, data, 0, data.capacity(), ValueConsumer.NOP));
+        assertTrue(handler.validate(0L, 0L, 0x00, data, 0, data.capacity(), ValueConsumer.NOP));
 
         data.wrap(bytes, 3, 1);
-        assertTrue(handler.validate(ValidatorHandler.FLAGS_FIN, data, 0, data.capacity(), ValueConsumer.NOP));
+        assertTrue(handler.validate(0L, 0L, ValidatorHandler.FLAGS_FIN, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -185,20 +199,22 @@ public class FloatValidatorTest
         FloatModelConfig config = FloatModelConfig.builder()
             .format(BINARY)
             .build();
-        FloatValidatorHandler handler = new FloatValidatorHandler(config);
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
+        FloatValidatorHandler handler = new FloatValidatorHandler(config, context);
         DirectBuffer data = new UnsafeBuffer();
 
         byte[] firstFragment = {0, 0, 0};
         data.wrap(firstFragment, 0, firstFragment.length);
-        assertTrue(handler.validate(ValidatorHandler.FLAGS_INIT, data, 0, data.capacity(), ValueConsumer.NOP));
+        assertTrue(handler.validate(0L, 0L, ValidatorHandler.FLAGS_INIT, data, 0, data.capacity(), ValueConsumer.NOP));
 
         byte[] secondFragment = {0, 0};
         data.wrap(secondFragment, 0, secondFragment.length);
-        assertFalse(handler.validate(0x00, data, 0, data.capacity(), ValueConsumer.NOP));
+        assertFalse(handler.validate(0L, 0L, 0x00, data, 0, data.capacity(), ValueConsumer.NOP));
 
         byte[] finalFragment = {42};
         data.wrap(finalFragment, 0, finalFragment.length);
-        assertFalse(handler.validate(ValidatorHandler.FLAGS_FIN, data, 0, data.capacity(), ValueConsumer.NOP));
+        assertFalse(handler.validate(0L, 0L, ValidatorHandler.FLAGS_FIN, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
 }

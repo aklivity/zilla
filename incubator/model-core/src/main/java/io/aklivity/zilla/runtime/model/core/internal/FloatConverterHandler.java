@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.model.core.internal;
 
 import org.agrona.DirectBuffer;
 
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.model.core.config.FloatModelConfig;
@@ -25,18 +26,23 @@ public class FloatConverterHandler implements ConverterHandler
     private final FloatValidatorHandler handler;
 
     public FloatConverterHandler(
-        FloatModelConfig config)
+        FloatModelConfig config,
+        EngineContext context)
     {
-        this.handler = new FloatValidatorHandler(config);
+        this.handler = new FloatValidatorHandler(config, context);
     }
 
     @Override
     public int convert(
+        long traceId,
+        long bindingId,
         DirectBuffer data,
         int index,
         int length,
         ValueConsumer next)
     {
-        return handler.validate(FLAGS_COMPLETE, data, index, length, next) ? length : VALIDATION_FAILURE;
+        return handler.validate(traceId, bindingId, FLAGS_COMPLETE, data, index, length, next)
+            ? length
+            : VALIDATION_FAILURE;
     }
 }

@@ -50,10 +50,7 @@ public class FloatModelConfigAdapterTest
             "{" +
                 "\"model\":\"float\"," +
                 "\"format\":\"text\"," +
-                "\"max\":999.99," +
-                "\"min\":-999.98," +
-                "\"exclusiveMax\":true," +
-                "\"exclusiveMin\":false," +
+                "\"range\":\"[-999.98,999.99)\"," +
                 "\"multiple\":100" +
             "}";
 
@@ -77,9 +74,12 @@ public class FloatModelConfigAdapterTest
         // GIVEN
         String expectedJson =
             "{" +
-                "\"model\":\"float\"" +
+                "\"model\":\"float\"," +
+                "\"range\":\"[,99.99]\"" +
             "}";
-        FloatModelConfig model = FloatModelConfig.builder().build();
+        FloatModelConfig model = FloatModelConfig.builder()
+            .max(99.99f)
+            .build();
 
         // WHEN
         String json = jsonb.toJson(model);
