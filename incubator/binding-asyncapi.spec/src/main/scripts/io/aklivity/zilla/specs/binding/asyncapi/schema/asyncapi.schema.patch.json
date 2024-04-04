@@ -39,23 +39,58 @@
                             {
                                 "title": "Specifications",
                                 "type": "object",
-                                "apiId":
+                                "patternProperties":
                                 {
-                                    "type": "object",
-                                    "patternProperties":
+                                    "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
                                     {
-                                        "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                                        "type": "object",
+                                        "properties":
                                         {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "maxProperties": 1
-                                }
-                            },
-                            "server":
-                            {
-                                "title": "AsyncAPI Server",
-                                "type": "string"
+                                            "location":
+                                            {
+                                                "title": "Location",
+                                                "type": "string"
+                                            },
+                                            "servers":
+                                            {
+                                                "title": "Servers",
+                                                "type": "array",
+                                                "items":
+                                                {
+                                                    "type": "object",
+                                                    "properties":
+                                                    {
+                                                        "name":
+                                                        {
+                                                            "title": "Server Name",
+                                                            "type": "string"
+                                                        },
+                                                        "url":
+                                                        {
+                                                            "title": "URL",
+                                                            "type": "string",
+                                                            "pattern": "^([a-zA-Z0-9\\\\.-]+)(:(\\\\{[a-zA-Z_]+\\\\}|[0-9]+))?$"
+                                                        },
+                                                        "host":
+                                                        {
+                                                            "title": "Host",
+                                                            "type": "string",
+                                                            "pattern": "^([a-zA-Z0-9\\\\.-]+)(:(\\\\{[a-zA-Z_]+\\\\}|[0-9]+))?$"
+                                                        },
+                                                        "pathname":
+                                                        {
+                                                            "title": "Path Name",
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "additionalProperties": false
+                                                }
+                                            }
+                                        },
+                                        "additionalProperties": false
+                                    }
+                                },
+                                "additionalProperties": false
                             },
                             "tcp":
                             {

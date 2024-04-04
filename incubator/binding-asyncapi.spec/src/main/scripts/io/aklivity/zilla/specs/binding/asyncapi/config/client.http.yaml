@@ -22,7 +22,8 @@ bindings:
     kind: client
     options:
       specs:
-        http_api: http/asyncapi.yaml
+        http_api:
+          location: http/asyncapi.yaml
       tcp:
         host: localhost
         port:

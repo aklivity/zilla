@@ -14,6 +14,7 @@
 # under the License.
 #
 
+#ADD oneof for url OR host with optional pathname
 ---
 name: test
 bindings:
@@ -22,6 +23,9 @@ bindings:
     kind: server
     options:
       specs:
-        mqtt_api: mqtt/asyncapi.yaml
-      server: plain
+        mqtt_api:
+          location: mqtt/asyncapi.yaml
+          servers:
+            - name: plain
+              host: 'test.mosquitto.org:1883'
     exit: asyncapi0

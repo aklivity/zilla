@@ -22,7 +22,8 @@ bindings:
     kind: client
     options:
       specs:
-        mqtt_api: mqtt/asyncapi.yaml
+        mqtt_api:
+          location: mqtt/asyncapi.yaml
       tcp:
         host: localhost
         port:

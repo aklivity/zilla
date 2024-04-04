@@ -22,8 +22,10 @@ bindings:
     kind: proxy
     options:
       specs:
-        mqtt_api: mqtt/asyncapi.yaml
-        kafka_api: kafka/sensor.asyncapi.yaml
+        mqtt_api:
+          location: mqtt/asyncapi.yaml
+        kafka_api:
+          location: kafka/sensor.asyncapi.yaml
       mqtt-kafka:
         channels:
           sessions: mqttSessions

@@ -26,7 +26,10 @@ bindings:
     vault: test0
     options:
       specs:
-        mqtt_api: mqtt/asyncapi.yaml
+        mqtt_api:
+          location: mqtt/asyncapi.yaml
+          servers:
+            - name: plain
       tls:
         keys:
           - localhost
