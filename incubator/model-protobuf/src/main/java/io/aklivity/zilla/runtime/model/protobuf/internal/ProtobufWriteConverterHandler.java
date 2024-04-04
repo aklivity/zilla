@@ -16,7 +16,6 @@ package io.aklivity.zilla.runtime.model.protobuf.internal;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.function.LongFunction;
 
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -26,7 +25,7 @@ import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 import com.google.protobuf.util.JsonFormat;
 
-import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.model.protobuf.config.ProtobufModelConfig;
@@ -40,9 +39,9 @@ public class ProtobufWriteConverterHandler extends ProtobufModelHandler implemen
 
     public ProtobufWriteConverterHandler(
         ProtobufModelConfig config,
-        LongFunction<CatalogHandler> supplyCatalog)
+        EngineContext context)
     {
-        super(config, supplyCatalog);
+        super(config, context);
         this.indexesRO = new UnsafeBuffer();
         this.in =  new DirectBufferInputStream();
         this.input = new InputStreamReader(in);
@@ -64,6 +63,8 @@ public class ProtobufWriteConverterHandler extends ProtobufModelHandler implemen
 
     @Override
     public int convert(
+        long traceId,
+        long bindingId,
         DirectBuffer data,
         int index,
         int length,
@@ -77,16 +78,18 @@ public class ProtobufWriteConverterHandler extends ProtobufModelHandler implemen
 
         if (VIEW_JSON.equals(view))
         {
-            valLength = handler.encode(schemaId, data, index, length, next, this::serializeJsonRecord);
+            valLength = handler.encode(traceId, bindingId, schemaId, data, index, length, next, this::serializeJsonRecord);
         }
-        else if (validate(schemaId, data, index, length))
+        else if (validate(traceId, bindingId, schemaId, data, index, length))
         {
-            valLength = handler.encode(schemaId, data, index, length, next, this::encode);
+            valLength = handler.encode(traceId, bindingId, schemaId, data, index, length, next, this::encode);
         }
         return valLength;
     }
 
     private boolean validate(
+        long traceId,
+        long bindingId,
         int schemaId,
         DirectBuffer buffer,
         int index,
@@ -113,7 +116,7 @@ public class ProtobufWriteConverterHandler extends ProtobufModelHandler implemen
                 }
                 catch (IOException ex)
                 {
-                    ex.printStackTrace();
+                    event.validationFailure(traceId, bindingId, ex.getMessage());
                 }
             }
         }
@@ -121,6 +124,8 @@ public class ProtobufWriteConverterHandler extends ProtobufModelHandler implemen
     }
 
     private int encode(
+        long traceId,
+        long bindingId,
         int schemaId,
         DirectBuffer buffer,
         int index,
@@ -145,6 +150,8 @@ public class ProtobufWriteConverterHandler extends ProtobufModelHandler implemen
     }
 
     private int serializeJsonRecord(
+        long traceId,
+        long bindingId,
         int schemaId,
         DirectBuffer buffer,
         int index,
@@ -173,12 +180,12 @@ public class ProtobufWriteConverterHandler extends ProtobufModelHandler implemen
                     {
                         out.wrap(out.buffer());
                         message.writeTo(out);
-                        valLength = encode(schemaId, out.buffer(), 0, out.position(), next);
+                        valLength = encode(traceId, bindingId, schemaId, out.buffer(), 0, out.position(), next);
                     }
                 }
                 catch (IOException ex)
                 {
-                    ex.printStackTrace();
+                    event.validationFailure(traceId, bindingId, ex.getMessage());
                 }
             }
         }

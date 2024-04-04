@@ -1126,7 +1126,7 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
         {
             final long traceId = reset.traceId();
 
-            state = KafkaState.closedInitial(state);
+            state = KafkaState.closedReply(state);
 
             fan.onConsumerFanMemberClosed(traceId, this);
 
