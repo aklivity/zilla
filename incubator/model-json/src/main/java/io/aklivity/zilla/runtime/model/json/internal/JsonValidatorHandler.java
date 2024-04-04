@@ -75,10 +75,16 @@ public class JsonValidatorHandler extends JsonModelHandler implements ValidatorH
                     : handler.resolve(subject, catalog.version);
 
                 JsonProvider provider = supplyProvider(schemaId);
-                parser = provider.createParser(in);
-                while (parser.hasNext())
+
+                status &= provider != null;
+
+                if (status)
                 {
-                    parser.next();
+                    parser = provider.createParser(in);
+                    while (parser.hasNext())
+                    {
+                        parser.next();
+                    }
                 }
             }
         }
