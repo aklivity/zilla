@@ -1,12 +1,12 @@
 [
     {
         "op": "add",
-        "path": "/$defs/converter/types/enum/-",
+        "path": "/$defs/types/enum/-",
         "value": "avro"
     },
     {
         "op": "add",
-        "path": "/$defs/converter/allOf/-",
+        "path": "/$defs/converter/oneOf/1/allOf/-",
         "value":
         {
             "if":
