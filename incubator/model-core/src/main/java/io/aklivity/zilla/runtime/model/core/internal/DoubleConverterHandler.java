@@ -41,8 +41,12 @@ public class DoubleConverterHandler implements ConverterHandler
         int length,
         ValueConsumer next)
     {
-        return handler.validate(traceId, bindingId, FLAGS_COMPLETE, data, index, length, next)
-            ? length
-            : VALIDATION_FAILURE;
+        boolean valid = handler.validate(traceId, bindingId, FLAGS_COMPLETE, data, index, length, next);
+
+        if (valid)
+        {
+            next.accept(data, index, length);
+        }
+        return valid ? length : VALIDATION_FAILURE;
     }
 }
