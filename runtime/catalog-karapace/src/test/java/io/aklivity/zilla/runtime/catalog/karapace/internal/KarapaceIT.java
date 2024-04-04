@@ -35,7 +35,8 @@ import org.junit.rules.Timeout;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 
-import io.aklivity.zilla.runtime.catalog.karapace.internal.config.KarapaceOptionsConfig;
+import io.aklivity.zilla.runtime.catalog.karapace.common.KarapaceCatalogHandler;
+import io.aklivity.zilla.runtime.catalog.karapace.common.config.KarapaceOptionsConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
@@ -72,7 +73,7 @@ public class KarapaceIT
             "{\"name\":\"status\",\"type\":\"string\"}]," +
             "\"name\":\"Event\",\"namespace\":\"io.aklivity.example\",\"type\":\"record\"}";
 
-        KarapaceCatalogHandler catalog = new KarapaceCatalogHandler(config, context, 0L);
+        KarapaceCatalogHandler catalog = new KarapaceCatalogHandler(config, context, 0L, KarapaceCatalog.NAME);
 
         String schema = catalog.resolve(9);
 
@@ -91,7 +92,7 @@ public class KarapaceIT
                 "{\"name\":\"status\",\"type\":\"string\"}]," +
                 "\"name\":\"Event\",\"namespace\":\"io.aklivity.example\",\"type\":\"record\"}";
 
-        KarapaceCatalogHandler catalog = new KarapaceCatalogHandler(config, context, 0L);
+        KarapaceCatalogHandler catalog = new KarapaceCatalogHandler(config, context, 0L, KarapaceCatalog.NAME);
 
         int schemaId = catalog.resolve("items-snapshots-value", "latest");
 
@@ -113,7 +114,7 @@ public class KarapaceIT
                 "{\"name\":\"status\",\"type\":\"string\"}]," +
                 "\"name\":\"Event\",\"namespace\":\"io.aklivity.example\",\"type\":\"record\"}";
 
-        KarapaceCatalogHandler catalog = new KarapaceCatalogHandler(config, context, 0L);
+        KarapaceCatalogHandler catalog = new KarapaceCatalogHandler(config, context, 0L, KarapaceCatalog.NAME);
 
         catalog.resolve(9);
 
@@ -134,7 +135,7 @@ public class KarapaceIT
                 "{\"name\":\"status\",\"type\":\"string\"}]," +
                 "\"name\":\"Event\",\"namespace\":\"io.aklivity.example\",\"type\":\"record\"}";
 
-        KarapaceCatalogHandler catalog = new KarapaceCatalogHandler(config, context, 0L);
+        KarapaceCatalogHandler catalog = new KarapaceCatalogHandler(config, context, 0L, KarapaceCatalog.NAME);
 
         catalog.resolve(catalog.resolve("items-snapshots-value", "latest"));
 
@@ -152,7 +153,7 @@ public class KarapaceIT
     @Test
     public void shouldVerifyMaxPadding()
     {
-        KarapaceCatalogHandler catalog = new KarapaceCatalogHandler(config, context, 0L);
+        KarapaceCatalogHandler catalog = new KarapaceCatalogHandler(config, context, 0L, KarapaceCatalog.NAME);
 
         assertEquals(5, catalog.encodePadding());
     }
@@ -160,7 +161,7 @@ public class KarapaceIT
     @Test
     public void shouldVerifyEncodedData()
     {
-        KarapaceCatalogHandler catalog = new KarapaceCatalogHandler(config, context, 0L);
+        KarapaceCatalogHandler catalog = new KarapaceCatalogHandler(config, context, 0L, KarapaceCatalog.NAME);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -176,7 +177,7 @@ public class KarapaceIT
     public void shouldResolveSchemaIdAndProcessData()
     {
 
-        KarapaceCatalogHandler catalog = new KarapaceCatalogHandler(config, context, 0L);
+        KarapaceCatalogHandler catalog = new KarapaceCatalogHandler(config, context, 0L, KarapaceCatalog.NAME);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -192,7 +193,7 @@ public class KarapaceIT
     @Test
     public void shouldResolveSchemaIdFromData()
     {
-        KarapaceCatalogHandler catalog = new KarapaceCatalogHandler(config, context, 0L);
+        KarapaceCatalogHandler catalog = new KarapaceCatalogHandler(config, context, 0L, KarapaceCatalog.NAME);
 
         DirectBuffer data = new UnsafeBuffer();
 

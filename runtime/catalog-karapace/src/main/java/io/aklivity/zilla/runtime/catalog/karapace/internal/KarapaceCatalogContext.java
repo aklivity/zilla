@@ -14,7 +14,8 @@
  */
 package io.aklivity.zilla.runtime.catalog.karapace.internal;
 
-import io.aklivity.zilla.runtime.catalog.karapace.internal.config.KarapaceOptionsConfig;
+import io.aklivity.zilla.runtime.catalog.karapace.common.KarapaceCatalogHandler;
+import io.aklivity.zilla.runtime.catalog.karapace.common.config.KarapaceOptionsConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
@@ -34,6 +35,7 @@ public class KarapaceCatalogContext implements CatalogContext
     public CatalogHandler attach(
         CatalogConfig catalog)
     {
-        return new KarapaceCatalogHandler(KarapaceOptionsConfig.class.cast(catalog.options), context, catalog.id);
+        return new KarapaceCatalogHandler(KarapaceOptionsConfig.class.cast(catalog.options), context,
+            catalog.id, KarapaceCatalog.NAME);
     }
 }

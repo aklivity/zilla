@@ -43,10 +43,12 @@ public class KarapaceEventContext
     private final Clock clock;
 
     public KarapaceEventContext(
-        EngineContext context)
+        EngineContext context,
+        String catatalogName)
     {
-        this.karapaceTypeId = context.supplyTypeId(KarapaceCatalog.NAME);
-        this.remoteAccessRejectedEventId = context.supplyEventId("catalog.karapace.remote.access.rejected");
+        this.karapaceTypeId = context.supplyTypeId(catatalogName);
+        this.remoteAccessRejectedEventId = context.supplyEventId(
+            String.format("catalog.%s.remote.access.rejected", catatalogName.replaceAll("-", ".")));
         this.eventWriter = context.supplyEventWriter();
         this.clock = context.clock();
     }

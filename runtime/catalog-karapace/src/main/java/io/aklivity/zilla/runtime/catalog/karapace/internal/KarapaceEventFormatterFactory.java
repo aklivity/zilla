@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.catalog.karapace.internal;
 
+import io.aklivity.zilla.runtime.catalog.karapace.common.KarapaceEventFormatter;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi;
 
