@@ -43,8 +43,7 @@ bindings:
         method: GET
         params:
           query:
-            limit:
-              model: int32
+            limit: int32
       - path: /items
         method: POST
         content:
@@ -111,8 +110,7 @@ bindings:
           content-type:
           - application/json
           headers:
-            x-pages:
-              model: int32
+            x-pages: int32
             x-next: string
           content:
             model: json

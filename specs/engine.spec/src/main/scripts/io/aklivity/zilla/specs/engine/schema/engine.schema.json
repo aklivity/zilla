@@ -468,49 +468,61 @@
         },
         "converter":
         {
-            "type": "object",
-            "properties":
-            {
-                "model":
+            "oneOf":
+            [
                 {
-                    "$ref": "#/$defs/converter/types"
+                    "$ref": "#/$defs/types"
+                },
+                {
+                    "type": "object",
+                    "properties":
+                    {
+                        "model":
+                        {
+                            "$ref": "#/$defs/types"
+                        }
+                    },
+                    "required":
+                    [
+                        "model"
+                    ],
+                    "allOf":
+                    [
+                    ]
                 }
-            },
-            "required":
-            [
-                "model"
-            ],
-            "allOf":
-            [
-            ],
-            "types":
-            {
-                "type": "string",
-                "enum": []
-            }
+
+            ]
         },
         "validator":
         {
-            "type": "object",
-            "properties":
-            {
-                "model":
+            "oneOf":
+            [
                 {
-                    "$ref": "#/$defs/validator/types"
+                    "$ref": "#/$defs/types"
+                },
+                {
+                    "type": "object",
+                    "properties":
+                    {
+                        "model":
+                        {
+                            "$ref": "#/$defs/types"
+                        }
+                    },
+                    "required":
+                    [
+                        "model"
+                    ],
+                    "allOf":
+                    [
+                    ]
                 }
-            },
-            "required":
-            [
-                "model"
-            ],
-            "allOf":
-            [
-            ],
-            "types":
-            {
-                "type": "string",
-                "enum": []
-            }
+            ]
+        },
+        "types":
+        {
+            "type": "string",
+            "enum": []
         }
     }
 }

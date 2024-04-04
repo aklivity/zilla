@@ -75,10 +75,7 @@ public class Int64ModelConfigAdapterTest
     public void shouldWriteInt64()
     {
         // GIVEN
-        String expectedJson =
-            "{" +
-                "\"model\":\"int64\"" +
-            "}";
+        String expectedJson = "\"int64\"";
         Int64ModelConfig model = Int64ModelConfig.builder().build();
 
         // WHEN

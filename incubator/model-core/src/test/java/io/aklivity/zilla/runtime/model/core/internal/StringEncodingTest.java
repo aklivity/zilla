@@ -27,6 +27,8 @@ import org.junit.Test;
 
 public class StringEncodingTest
 {
+    private StringState state = new StringState();
+
     @Test
     public void shouldVerifyValidUTF8()
     {
@@ -37,7 +39,7 @@ public class StringEncodingTest
 
         assertTrue(StringEncoding.UTF_8.validate(data, 0, bytes.length));
 
-        assertTrue(StringValidatorEncoding.UTF_8.validate(FLAGS_COMPLETE, data, 0, bytes.length));
+        assertTrue(StringValidatorEncoding.UTF_8.validate(state, FLAGS_COMPLETE, data, 0, bytes.length));
     }
 
     @Test

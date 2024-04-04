@@ -75,10 +75,7 @@ public class Int32ModelConfigAdapterTest
     public void shouldWriteIntegerconverter()
     {
         // GIVEN
-        String expectedJson =
-            "{" +
-                "\"model\":\"int32\"" +
-            "}";
+        String expectedJson = "\"int32\"";
         Int32ModelConfig model = Int32ModelConfig.builder().build();
 
         // WHEN

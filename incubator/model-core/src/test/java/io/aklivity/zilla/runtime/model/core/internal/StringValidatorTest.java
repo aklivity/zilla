@@ -50,6 +50,41 @@ public class StringValidatorTest
     }
 
     @Test
+    public void shouldVerifyValidUtf8WithPattern()
+    {
+        StringModelConfig config = StringModelConfig.builder()
+            .encoding("utf_8")
+            .pattern("^[a-zA-Z\\s]+$")
+            .build();
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
+        StringValidatorHandler handler = new StringValidatorHandler(config, context);
+        DirectBuffer data = new UnsafeBuffer();
+
+        byte[] bytes = "Hello123".getBytes();
+        data.wrap(bytes, 0, bytes.length);
+        assertFalse(handler.validate(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
+    }
+
+    @Test
+    public void shouldVerifyValidUtf8WithInvalidLength()
+    {
+        StringModelConfig config = StringModelConfig.builder()
+            .encoding("utf_8")
+            .minLength(1)
+            .maxLength(10)
+            .build();
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
+        StringValidatorHandler handler = new StringValidatorHandler(config, context);
+        DirectBuffer data = new UnsafeBuffer();
+
+        byte[] bytes = "Valid String".getBytes();
+        data.wrap(bytes, 0, bytes.length);
+        assertFalse(handler.validate(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
+    }
+
+    @Test
     public void shouldVerifyFragmentedValidUtf8()
     {
         StringModelConfig config = StringModelConfig.builder()

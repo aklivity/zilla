@@ -1,12 +1,12 @@
 [
     {
         "op": "add",
-        "path": "/$defs/converter/types/enum/-",
+        "path": "/$defs/types/enum/-",
         "value": "string"
     },
     {
         "op": "add",
-        "path": "/$defs/converter/allOf/-",
+        "path": "/$defs/converter/oneOf/1/allOf/-",
         "value":
         {
             "if":
@@ -35,6 +35,20 @@
                             "utf_8",
                             "utf_16"
                         ]
+                    },
+                    "minLength":
+                    {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "maxLength":
+                    {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "pattern":
+                    {
+                        "type": "string"
                     }
                 },
                 "additionalProperties": false
@@ -43,12 +57,7 @@
     },
     {
         "op": "add",
-        "path": "/$defs/validator/types/enum/-",
-        "value": "string"
-    },
-    {
-        "op": "add",
-        "path": "/$defs/validator/allOf/-",
+        "path": "/$defs/validator/oneOf/1/allOf/-",
         "value":
         {
             "if":
@@ -76,6 +85,20 @@
                         [
                             "utf_8"
                         ]
+                    },
+                    "minLength":
+                    {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "maxLength":
+                    {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "pattern":
+                    {
+                        "type": "string"
                     }
                 },
                 "additionalProperties": false
