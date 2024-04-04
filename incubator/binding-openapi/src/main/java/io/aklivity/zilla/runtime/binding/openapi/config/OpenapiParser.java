@@ -38,6 +38,7 @@ import org.leadpony.justify.api.ProblemHandler;
 
 import io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiBinding;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.Openapi;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiPathItem;
 import io.aklivity.zilla.runtime.engine.config.ConfigException;
 
 public class OpenapiParser
@@ -56,7 +57,7 @@ public class OpenapiParser
     public Openapi parse(
         String openapiText)
     {
-        Openapi openApi = null;
+        Openapi openapi = null;
 
         List<Exception> errors = new LinkedList<>();
 
@@ -72,7 +73,8 @@ public class OpenapiParser
 
             Jsonb jsonb = JsonbBuilder.create();
 
-            openApi = jsonb.fromJson(openapiText, Openapi.class);
+            openapi = jsonb.fromJson(openapiText, Openapi.class);
+
         }
         catch (Exception ex)
         {
@@ -86,7 +88,7 @@ public class OpenapiParser
             rethrowUnchecked(ex);
         }
 
-        return openApi;
+        return openapi;
     }
 
     private JsonSchema schema(

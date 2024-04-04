@@ -69,6 +69,17 @@ public class OpenapiServerIT
     }
 
     @Test
+    @Configuration("server-prod.yaml")
+    @Specification({
+        "${http}/create.pet.prod/client",
+        "${openapi}/create.pet.prod/server"
+    })
+    public void shouldCreatePetInProdEnv() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.yaml")
     @Specification({
         "${http}/reject.non.composite.origin/client"

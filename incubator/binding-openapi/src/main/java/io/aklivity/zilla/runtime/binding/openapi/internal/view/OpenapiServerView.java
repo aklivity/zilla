@@ -20,7 +20,7 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiServer;
 
 public final class OpenapiServerView
 {
-    private URI url;
+    private final URI url;
 
     private OpenapiServerView(
         OpenapiServer server)

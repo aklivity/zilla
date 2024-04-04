@@ -16,6 +16,9 @@ package io.aklivity.zilla.runtime.binding.openapi.internal.config;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.function.Function;
 import java.util.zip.CRC32C;
 
@@ -124,11 +127,13 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
     {
         OpenpaiOptionsConfigBuilder<OpenapiOptionsConfig> openapiOptions = OpenapiOptionsConfig.builder();
 
+        List<String> severUrls = new ArrayList<>();
         if (object.containsKey(SERVERS_NAME))
         {
             JsonArray servers = object.getJsonArray(SERVERS_NAME);
             for (JsonValue server : servers)
             {
+                severUrls.add(server.toString());
                 openapiOptions.server(server.toString());
             }
         }

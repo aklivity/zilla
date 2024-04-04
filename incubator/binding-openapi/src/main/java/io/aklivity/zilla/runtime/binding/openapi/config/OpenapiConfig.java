@@ -15,20 +15,18 @@
 package io.aklivity.zilla.runtime.binding.openapi.config;
 
 
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.Openapi;
-
 public class OpenapiConfig
 {
     public final String apiLabel;
     public final long apiId;
     public final String location;
-    public final Openapi openapi;
+    public final OpenapiView openapi;
 
     public OpenapiConfig(
         String apiLabel,
         long apiId,
         String location,
-        Openapi openapi)
+        OpenapiView openapi)
     {
         this.apiLabel = apiLabel;
         this.apiId = apiId;
