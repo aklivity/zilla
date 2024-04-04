@@ -18,68 +18,68 @@ import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 
-public class FloatModelConfigBuilder<T> extends ConfigBuilder<T, FloatModelConfigBuilder<T>>
+public class DoubleModelConfigBuilder<T> extends ConfigBuilder<T, DoubleModelConfigBuilder<T>>
 {
     public static final String DEFAULT_FORMAT = "text";
 
-    private final Function<FloatModelConfig, T> mapper;
+    private final Function<DoubleModelConfig, T> mapper;
 
     private String format;
-    private Float max;
-    private Float min;
-    private Float multiple;
+    private Double max;
+    private Double min;
+    private Double multiple;
     private Boolean exclusiveMax;
     private Boolean exclusiveMin;
 
-    FloatModelConfigBuilder(
-        Function<FloatModelConfig, T> mapper)
+    DoubleModelConfigBuilder(
+        Function<DoubleModelConfig, T> mapper)
     {
         this.mapper = mapper;
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    protected Class<FloatModelConfigBuilder<T>> thisType()
+    protected Class<DoubleModelConfigBuilder<T>> thisType()
     {
-        return (Class<FloatModelConfigBuilder<T>>) getClass();
+        return (Class<DoubleModelConfigBuilder<T>>) getClass();
     }
 
-    public FloatModelConfigBuilder<T> format(
+    public DoubleModelConfigBuilder<T> format(
         String format)
     {
         this.format = format;
         return this;
     }
 
-    public FloatModelConfigBuilder<T> max(
-        float max)
+    public DoubleModelConfigBuilder<T> max(
+        double max)
     {
         this.max = max;
         return this;
     }
 
-    public FloatModelConfigBuilder<T> min(
-        float min)
+    public DoubleModelConfigBuilder<T> min(
+        double min)
     {
         this.min = min;
         return this;
     }
 
-    public FloatModelConfigBuilder<T> multiple(
-        float multiple)
+    public DoubleModelConfigBuilder<T> multiple(
+        double multiple)
     {
         this.multiple = multiple;
         return this;
     }
 
-    public FloatModelConfigBuilder<T> exclusiveMax(
+    public DoubleModelConfigBuilder<T> exclusiveMax(
         boolean exclusiveMax)
     {
         this.exclusiveMax = exclusiveMax;
         return this;
     }
 
-    public FloatModelConfigBuilder<T> exclusiveMin(
+    public DoubleModelConfigBuilder<T> exclusiveMin(
         boolean exclusiveMin)
     {
         this.exclusiveMin = exclusiveMin;
@@ -90,10 +90,10 @@ public class FloatModelConfigBuilder<T> extends ConfigBuilder<T, FloatModelConfi
     public T build()
     {
         String format = this.format != null ? this.format : DEFAULT_FORMAT;
-        float max = this.max != null ? this.max : Float.POSITIVE_INFINITY;
-        float min = this.min != null ? this.min : Float.NEGATIVE_INFINITY;
+        double max = this.max != null ? this.max : Double.POSITIVE_INFINITY;
+        double min = this.min != null ? this.min : Double.NEGATIVE_INFINITY;
         boolean exclusiveMax = this.exclusiveMax != null ? this.exclusiveMax : false;
         boolean exclusiveMin = this.exclusiveMin != null ? this.exclusiveMin : false;
-        return mapper.apply(new FloatModelConfig(format, max, min, exclusiveMax, exclusiveMin, multiple));
+        return mapper.apply(new DoubleModelConfig(format, max, min, exclusiveMax, exclusiveMin, multiple));
     }
 }
