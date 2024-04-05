@@ -27,6 +27,7 @@ import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfigAdapterSpi;
 import io.aklivity.zilla.runtime.model.core.config.Int32ModelConfig;
 import io.aklivity.zilla.runtime.model.core.config.Int32ModelConfigBuilder;
+import io.aklivity.zilla.runtime.model.core.config.RangeConfig;
 
 public class Int32ModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdapter<ModelConfig, JsonValue>
 {
@@ -34,6 +35,8 @@ public class Int32ModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdap
     private static final String FORMAT_NAME = "format";
     private static final String MULTIPLE_NAME = "multiple";
     private static final String RANGE_NAME = "range";
+
+    private final RangeConfigAdapter adapter = new RangeConfigAdapter();
 
     @Override
     public String type()
@@ -72,8 +75,8 @@ public class Int32ModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdap
             String min = config.min != Integer.MIN_VALUE ? String.valueOf(config.min) : null;
             boolean exclusiveMax = config.exclusiveMax;
             boolean exclusiveMin = config.exclusiveMin;
-            RangeConfigAdapter range = new RangeConfigAdapter(max, min, exclusiveMax, exclusiveMin);
-            builder.add(RANGE_NAME, range.toString());
+            RangeConfig range = new RangeConfig(max, min, exclusiveMax, exclusiveMin);
+            builder.add(RANGE_NAME, adapter.adaptToString(range));
 
             if (config.multiple != Int32ModelConfigBuilder.DEFAULT_MULTIPLE)
             {
@@ -105,11 +108,18 @@ public class Int32ModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdap
 
             if (object.containsKey(RANGE_NAME))
             {
-                RangeConfigAdapter range = new RangeConfigAdapter(object.getString(RANGE_NAME));
+                RangeConfig range = adapter.adaptFromString(object.getString(RANGE_NAME));
                 builder.exclusiveMin(range.exclusiveMin);
                 builder.exclusiveMax(range.exclusiveMax);
-                builder.min(Integer.parseInt(range.min));
-                builder.max(Integer.parseInt(range.max));
+                if (range.min != null)
+                {
+                    builder.min(Integer.parseInt(range.min));
+                }
+
+                if (range.max != null)
+                {
+                    builder.max(Integer.parseInt(range.max));
+                }
             }
 
             if (object.containsKey(MULTIPLE_NAME))

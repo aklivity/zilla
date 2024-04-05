@@ -1,7 +1,7 @@
 [
     {
         "op": "add",
-        "path": "/$defs/types/enum/-",
+        "path": "/$defs/converter/types/enum/-",
         "value": "protobuf"
     },
     {

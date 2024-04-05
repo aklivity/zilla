@@ -1,7 +1,7 @@
 [
     {
         "op": "add",
-        "path": "/$defs/types/enum/-",
+        "path": "/$defs/converter/types/enum/-",
         "value": "float"
     },
     {
@@ -39,7 +39,8 @@
                     },
                     "range":
                     {
-                        "type": "string"
+                        "type": "string",
+                        "pattern": "((?:\\(|\\[))(-?\\d+(?:\\.\\d+)?)?,(-?\\d+(?:\\.\\d+)?)?((?:\\)|\\]))"
                     },
                     "multiple":
                     {
@@ -49,6 +50,11 @@
                 "additionalProperties": false
             }
         }
+    },
+    {
+        "op": "add",
+        "path": "/$defs/validator/types/enum/-",
+        "value": "float"
     },
     {
         "op": "add",
@@ -85,7 +91,8 @@
                     },
                     "range":
                     {
-                        "type": "string"
+                        "type": "string",
+                        "pattern": "((?:\\(|\\[))(-?\\d+(?:\\.\\d+)?)?,(-?\\d+(?:\\.\\d+)?)?((?:\\)|\\]))"
                     },
                     "multiple":
                     {

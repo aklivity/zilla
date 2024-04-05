@@ -17,32 +17,22 @@ package io.aklivity.zilla.runtime.model.core.internal.config;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import io.aklivity.zilla.runtime.model.core.config.RangeConfig;
+
 public final class RangeConfigAdapter
 {
     private static final Pattern PATTERN =
         Pattern.compile("((?:\\(|\\[))(-?\\d+(?:\\.\\d+)?)?,(-?\\d+(?:\\.\\d+)?)?((?:\\)|\\]))");
 
-    public String max;
-    public String min;
-    public boolean exclusiveMax;
-    public boolean exclusiveMin;
-
-    public RangeConfigAdapter(
-        String max,
-        String min,
-        boolean exclusiveMax,
-        boolean exclusiveMin)
-    {
-        this.max = max;
-        this.min = min;
-        this.exclusiveMax = exclusiveMax;
-        this.exclusiveMin = exclusiveMin;
-    }
-
-    public RangeConfigAdapter(
+    public RangeConfig adaptFromString(
         String range)
     {
         final Matcher matcher = PATTERN.matcher(range);
+        String max = null;
+        String min = null;
+        boolean exclusiveMax = false;
+        boolean exclusiveMin = false;
+
         if (matcher.matches())
         {
             if (matcher.group(1).equals("("))
@@ -62,26 +52,24 @@ public final class RangeConfigAdapter
                 exclusiveMax = true;
             }
         }
-        else
-        {
-            throw new IllegalArgumentException("Unexpected format: " + range);
-        }
+        return new RangeConfig(max, min, exclusiveMax, exclusiveMin);
     }
 
-    public String toString()
+    public String adaptToString(
+        RangeConfig config)
     {
         StringBuilder sb = new StringBuilder();
-        sb.append(exclusiveMin ? "(" : "[");
-        if (min != null)
+        sb.append(config.exclusiveMin ? "(" : "[");
+        if (config.min != null)
         {
-            sb.append(min);
+            sb.append(config.min);
         }
         sb.append(",");
-        if (max != null)
+        if (config.max != null)
         {
-            sb.append(max);
+            sb.append(config.max);
         }
-        sb.append(exclusiveMax ? ")" : "]");
+        sb.append(config.exclusiveMax ? ")" : "]");
         return sb.toString();
     }
 }

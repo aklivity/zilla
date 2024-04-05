@@ -471,7 +471,7 @@
             "oneOf":
             [
                 {
-                    "$ref": "#/$defs/types"
+                    "$ref": "#/$defs/converter/types"
                 },
                 {
                     "type": "object",
@@ -479,7 +479,7 @@
                     {
                         "model":
                         {
-                            "$ref": "#/$defs/types"
+                            "$ref": "#/$defs/converter/types"
                         }
                     },
                     "required":
@@ -490,15 +490,19 @@
                     [
                     ]
                 }
-
-            ]
+            ],
+            "types":
+            {
+                "type": "string",
+                "enum": []
+            }
         },
         "validator":
         {
             "oneOf":
             [
                 {
-                    "$ref": "#/$defs/types"
+                    "$ref": "#/$defs/validator/types"
                 },
                 {
                     "type": "object",
@@ -506,7 +510,7 @@
                     {
                         "model":
                         {
-                            "$ref": "#/$defs/types"
+                            "$ref": "#/$defs/validator/types"
                         }
                     },
                     "required":
@@ -517,12 +521,12 @@
                     [
                     ]
                 }
-            ]
-        },
-        "types":
-        {
-            "type": "string",
-            "enum": []
+            ],
+            "types":
+            {
+                "type": "string",
+                "enum": []
+            }
         }
     }
 }

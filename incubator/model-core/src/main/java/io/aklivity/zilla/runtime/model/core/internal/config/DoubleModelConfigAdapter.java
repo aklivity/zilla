@@ -26,6 +26,7 @@ import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfigAdapterSpi;
 import io.aklivity.zilla.runtime.model.core.config.DoubleModelConfig;
 import io.aklivity.zilla.runtime.model.core.config.DoubleModelConfigBuilder;
+import io.aklivity.zilla.runtime.model.core.config.RangeConfig;
 
 public class DoubleModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdapter<ModelConfig, JsonValue>
 {
@@ -33,6 +34,8 @@ public class DoubleModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAda
     private static final String FORMAT_NAME = "format";
     private static final String MULTIPLE_NAME = "multiple";
     private static final String RANGE_NAME = "range";
+
+    private final RangeConfigAdapter adapter = new RangeConfigAdapter();
 
     @Override
     public String type()
@@ -70,8 +73,8 @@ public class DoubleModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAda
             String min = config.min != Double.NEGATIVE_INFINITY ? String.valueOf(config.min) : null;
             boolean exclusiveMax = config.exclusiveMax;
             boolean exclusiveMin = config.exclusiveMin;
-            RangeConfigAdapter range = new RangeConfigAdapter(max, min, exclusiveMax, exclusiveMin);
-            builder.add(RANGE_NAME, range.toString());
+            RangeConfig range = new RangeConfig(max, min, exclusiveMax, exclusiveMin);
+            builder.add(RANGE_NAME, adapter.adaptToString(range));
 
             if (config.multiple != null)
             {
@@ -103,11 +106,19 @@ public class DoubleModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAda
 
             if (object.containsKey(RANGE_NAME))
             {
-                RangeConfigAdapter range = new RangeConfigAdapter(object.getString(RANGE_NAME));
+                RangeConfig range = adapter.adaptFromString(object.getString(RANGE_NAME));
                 builder.exclusiveMin(range.exclusiveMin);
                 builder.exclusiveMax(range.exclusiveMax);
-                builder.min(Double.parseDouble(range.min));
-                builder.max(Double.parseDouble(range.max));
+
+                if (range.min != null)
+                {
+                    builder.min(Double.parseDouble(range.min));
+                }
+
+                if (range.max != null)
+                {
+                    builder.max(Double.parseDouble(range.max));
+                }
             }
 
             if (object.containsKey(MULTIPLE_NAME))
