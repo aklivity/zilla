@@ -1,3 +1,5 @@
+io.aklivity.zilla.runtime.model.core.internal.DoubleModelFactorySpi
+io.aklivity.zilla.runtime.model.core.internal.FloatModelFactorySpi
 io.aklivity.zilla.runtime.model.core.internal.Int32ModelFactorySpi
 io.aklivity.zilla.runtime.model.core.internal.Int64ModelFactorySpi
 io.aklivity.zilla.runtime.model.core.internal.StringModelFactorySpi

@@ -564,7 +564,7 @@ public class CacheMergedIT
     @Test
     @Configuration("cache.options.merged.yaml")
     @Specification({
-        "${app}/merged.fetch.server.sent.abort/client",
+        "${app}/merged.fetch.server.sent.reset/client",
         "${app}/unmerged.fetch.server.sent.reset/server"})
     @Configure(name = KafkaConfigurationTest.KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME, value = "0")
     public void shouldCloseMergedOnUnmergedFetchReset() throws Exception
@@ -575,7 +575,7 @@ public class CacheMergedIT
     @Test
     @Configuration("cache.options.merged.yaml")
     @Specification({
-        "${app}/merged.fetch.server.sent.abort.with.message/client",
+        "${app}/merged.fetch.server.sent.reset.with.message/client",
         "${app}/unmerged.fetch.server.sent.reset.and.abort.with.message/server"})
     @Configure(name = KafkaConfigurationTest.KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME, value = "0")
     public void shouldCloseMergedOnUnmergedFetchResetWithMessage() throws Exception

@@ -16,22 +16,28 @@ package io.aklivity.zilla.runtime.model.core.internal;
 
 import org.agrona.DirectBuffer;
 
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
 
 public class StringConverterHandler implements ConverterHandler
 {
+    private final CoreModelEventContext event;
     private StringEncoding encoding;
 
     public StringConverterHandler(
-        StringModelConfig config)
+        StringModelConfig config,
+        EngineContext context)
     {
         this.encoding = StringEncoding.of(config.encoding);
+        this.event = new CoreModelEventContext(context);
     }
 
     @Override
     public int convert(
+        long traceId,
+        long bindingId,
         DirectBuffer data,
         int index,
         int length,
@@ -43,6 +49,11 @@ public class StringConverterHandler implements ConverterHandler
         {
             next.accept(data, index, length);
             valLength = length;
+        }
+
+        if (valLength == VALIDATION_FAILURE)
+        {
+            event.validationFailure(traceId, bindingId, StringModel.NAME);
         }
 
         return valLength;

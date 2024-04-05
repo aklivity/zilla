@@ -91,8 +91,8 @@ public class Int64ModelConfigBuilder<T> extends ConfigBuilder<T, Int64ModelConfi
     public T build()
     {
         String format = this.format != null ? this.format : DEFAULT_FORMAT;
-        long max = this.max != null ? this.max : Integer.MAX_VALUE;
-        long min = this.min != null ? this.min : Integer.MIN_VALUE;
+        long max = this.max != null ? this.max : Long.MAX_VALUE;
+        long min = this.min != null ? this.min : Long.MIN_VALUE;
         long multiple = this.multiple != null ? this.multiple : DEFAULT_MULTIPLE;
         boolean exclusiveMax = this.exclusiveMax != null ? this.exclusiveMax : false;
         boolean exclusiveMin = this.exclusiveMin != null ? this.exclusiveMin : false;

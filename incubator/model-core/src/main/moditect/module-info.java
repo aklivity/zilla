@@ -19,12 +19,19 @@ module io.aklivity.zilla.runtime.model.core
     exports io.aklivity.zilla.runtime.model.core.config;
 
     provides io.aklivity.zilla.runtime.engine.config.ModelConfigAdapterSpi
-        with io.aklivity.zilla.runtime.model.core.internal.config.Int32ModelConfigAdapter,
+        with io.aklivity.zilla.runtime.model.core.internal.config.DoubleModelConfigAdapter,
+            io.aklivity.zilla.runtime.model.core.internal.config.FloatModelConfigAdapter,
+            io.aklivity.zilla.runtime.model.core.internal.config.Int32ModelConfigAdapter,
             io.aklivity.zilla.runtime.model.core.internal.config.Int64ModelConfigAdapter,
             io.aklivity.zilla.runtime.model.core.internal.config.StringModelConfigAdapter;
 
     provides io.aklivity.zilla.runtime.engine.model.ModelFactorySpi
-        with io.aklivity.zilla.runtime.model.core.internal.Int32ModelFactorySpi,
+        with io.aklivity.zilla.runtime.model.core.internal.DoubleModelFactorySpi,
+            io.aklivity.zilla.runtime.model.core.internal.FloatModelFactorySpi,
+            io.aklivity.zilla.runtime.model.core.internal.Int32ModelFactorySpi,
             io.aklivity.zilla.runtime.model.core.internal.Int64ModelFactorySpi,
             io.aklivity.zilla.runtime.model.core.internal.StringModelFactorySpi;
+
+    provides io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi
+        with io.aklivity.zilla.runtime.model.core.internal.CoreModelEventFormatterFactory;
 }

@@ -907,7 +907,7 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
         {
             final long traceId = reset.traceId();
 
-            state = KafkaState.closedInitial(state);
+            state = KafkaState.closedReply(state);
 
             client.doNetworkResetIfNecessary(traceId);
         }

@@ -20,12 +20,5 @@ bindings:
     kind: server
     type: test
     options:
-      value:
-        model: int64
-        format: text
-        max: 1234
-        min: -1234
-        exclusiveMax: true
-        exclusiveMin: true
-        multiple: 10
+      value: int64
     exit: test

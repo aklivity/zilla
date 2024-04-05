@@ -6,7 +6,7 @@
     },
     {
         "op": "add",
-        "path": "/$defs/converter/allOf/-",
+        "path": "/$defs/converter/oneOf/1/allOf/-",
         "value":
         {
             "if":
@@ -37,27 +37,14 @@
                         ],
                         "default": "text"
                     },
-                    "max":
+                    "range":
                     {
-                        "type": "integer"
-                    },
-                    "min":
-                    {
-                        "type": "integer"
-                    },
-                    "exclusiveMax":
-                    {
-                        "type": "boolean",
-                        "default": false
-                    },
-                    "exclusiveMin":
-                    {
-                        "type": "boolean",
-                        "default": false
+                        "type": "string",
+                        "pattern": "((?:\\(|\\[))(-?\\d+)?,(-?\\d+)?((?:\\)|\\]))"
                     },
                     "multiple":
                     {
-                        "type": "integer"
+                        "type": "number"
                     }
                 },
                 "additionalProperties": false
@@ -71,7 +58,7 @@
     },
     {
         "op": "add",
-        "path": "/$defs/validator/allOf/-",
+        "path": "/$defs/validator/oneOf/1/allOf/-",
         "value":
         {
             "if":
@@ -102,27 +89,14 @@
                         ],
                         "default": "text"
                     },
-                    "max":
+                    "range":
                     {
-                        "type": "integer"
-                    },
-                    "min":
-                    {
-                        "type": "integer"
-                    },
-                    "exclusiveMax":
-                    {
-                        "type": "boolean",
-                        "default": false
-                    },
-                    "exclusiveMin":
-                    {
-                        "type": "boolean",
-                        "default": false
+                        "type": "string",
+                        "pattern": "((?:\\(|\\[))(-?\\d+)?,(-?\\d+)?((?:\\)|\\]))"
                     },
                     "multiple":
                     {
-                        "type": "integer"
+                        "type": "number"
                     }
                 },
                 "additionalProperties": false

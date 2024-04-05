@@ -18,7 +18,6 @@ import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_
 
 import java.io.IOException;
 import java.io.OutputStreamWriter;
-import java.util.function.LongFunction;
 
 import org.agrona.DirectBuffer;
 
@@ -26,7 +25,7 @@ import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 import com.google.protobuf.util.JsonFormat;
 
-import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.model.protobuf.config.ProtobufModelConfig;
@@ -38,9 +37,9 @@ public class ProtobufReadConverterHandler extends ProtobufModelHandler implement
 
     public ProtobufReadConverterHandler(
         ProtobufModelConfig config,
-        LongFunction<CatalogHandler> supplyCatalog)
+        EngineContext context)
     {
-        super(config, supplyCatalog);
+        super(config, context);
         this.printer = JsonFormat.printer()
             .omittingInsignificantWhitespace()
             .preservingProtoFieldNames()
@@ -72,15 +71,19 @@ public class ProtobufReadConverterHandler extends ProtobufModelHandler implement
 
     @Override
     public int convert(
+        long traceId,
+        long bindingId,
         DirectBuffer data,
         int index,
         int length,
         ValueConsumer next)
     {
-        return handler.decode(data, index, length, next, this::decodePayload);
+        return handler.decode(traceId, bindingId, data, index, length, next, this::decodePayload);
     }
 
     private int decodePayload(
+        long traceId,
+        long bindingId,
         int schemaId,
         DirectBuffer data,
         int index,
@@ -101,10 +104,12 @@ public class ProtobufReadConverterHandler extends ProtobufModelHandler implement
 
         int progress = decodeIndexes(data, index, length);
 
-        return validate(schemaId, data, index + progress, length - progress, next);
+        return validate(traceId, bindingId, schemaId, data, index + progress, length - progress, next);
     }
 
     private int validate(
+        long traceId,
+        long bindingId,
         int schemaId,
         DirectBuffer data,
         int index,
@@ -146,7 +151,7 @@ public class ProtobufReadConverterHandler extends ProtobufModelHandler implement
                 }
                 catch (IOException ex)
                 {
-                    ex.printStackTrace();
+                    event.validationFailure(traceId, bindingId, ex.getMessage());
                 }
             }
         }

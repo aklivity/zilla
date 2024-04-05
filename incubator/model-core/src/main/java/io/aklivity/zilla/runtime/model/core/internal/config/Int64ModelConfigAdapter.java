@@ -26,16 +26,16 @@ import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfigAdapterSpi;
 import io.aklivity.zilla.runtime.model.core.config.Int64ModelConfig;
 import io.aklivity.zilla.runtime.model.core.config.Int64ModelConfigBuilder;
+import io.aklivity.zilla.runtime.model.core.config.RangeConfig;
 
 public class Int64ModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdapter<ModelConfig, JsonValue>
 {
     private static final String MODEL_NAME = "model";
     private static final String FORMAT_NAME = "format";
-    private static final String MAX_NAME = "max";
-    private static final String MIN_NAME = "min";
-    private static final String EXCLUSIVE_MAX_NAME = "exclusiveMax";
-    private static final String EXCLUSIVE_MIN_NAME = "exclusiveMin";
     private static final String MULTIPLE_NAME = "multiple";
+    private static final String RANGE_NAME = "range";
+
+    private final RangeConfigAdapter adapter = new RangeConfigAdapter();
 
     @Override
     public String type()
@@ -47,42 +47,45 @@ public class Int64ModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdap
     public JsonValue adaptToJson(
         ModelConfig options)
     {
+        JsonValue result;
         Int64ModelConfig config = (Int64ModelConfig) options;
-        JsonObjectBuilder builder = Json.createObjectBuilder();
 
-        builder.add(MODEL_NAME, INT_64);
-
-        if (!config.format.equals(Int64ModelConfigBuilder.DEFAULT_FORMAT))
+        if (config.format.equals(Int64ModelConfigBuilder.DEFAULT_FORMAT) &&
+            config.max == Long.MAX_VALUE &&
+            config.min == Long.MIN_VALUE &&
+            !config.exclusiveMax &&
+            !config.exclusiveMin &&
+            config.multiple == Int64ModelConfigBuilder.DEFAULT_MULTIPLE)
         {
-            builder.add(FORMAT_NAME, config.format);
+            result = Json.createValue(type());
+        }
+        else
+        {
+            JsonObjectBuilder builder = Json.createObjectBuilder();
+
+            builder.add(MODEL_NAME, INT_64);
+
+            if (!config.format.equals(Int64ModelConfigBuilder.DEFAULT_FORMAT))
+            {
+                builder.add(FORMAT_NAME, config.format);
+            }
+
+            String max = config.max != Long.MAX_VALUE ? String.valueOf(config.max) : null;
+            String min = config.min != Long.MIN_VALUE ? String.valueOf(config.min) : null;
+            boolean exclusiveMax = config.exclusiveMax;
+            boolean exclusiveMin = config.exclusiveMin;
+            RangeConfig range = new RangeConfig(max, min, exclusiveMax, exclusiveMin);
+            builder.add(RANGE_NAME, adapter.adaptToString(range));
+
+            if (config.multiple != Int64ModelConfigBuilder.DEFAULT_MULTIPLE)
+            {
+                builder.add(MULTIPLE_NAME, config.multiple);
+            }
+
+            result = builder.build();
         }
 
-        if (config.max != Integer.MAX_VALUE)
-        {
-            builder.add(MAX_NAME, config.max);
-        }
-
-        if (config.min != Integer.MIN_VALUE)
-        {
-            builder.add(MIN_NAME, config.min);
-        }
-
-        if (config.exclusiveMax)
-        {
-            builder.add(EXCLUSIVE_MAX_NAME, config.exclusiveMax);
-        }
-
-        if (config.exclusiveMin)
-        {
-            builder.add(EXCLUSIVE_MIN_NAME, config.exclusiveMin);
-        }
-
-        if (config.multiple != Int64ModelConfigBuilder.DEFAULT_MULTIPLE)
-        {
-            builder.add(MULTIPLE_NAME, config.multiple);
-        }
-
-        return builder.build();
+        return result;
     }
 
     @Override
@@ -103,24 +106,20 @@ public class Int64ModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdap
                 builder.format(object.getString(FORMAT_NAME));
             }
 
-            if (object.containsKey(MAX_NAME))
+            if (object.containsKey(RANGE_NAME))
             {
-                builder.max(object.getJsonNumber(MAX_NAME).longValue());
-            }
+                RangeConfig range = adapter.adaptFromString(object.getString(RANGE_NAME));
+                builder.exclusiveMin(range.exclusiveMin);
+                builder.exclusiveMax(range.exclusiveMax);
+                if (range.min != null)
+                {
+                    builder.min(Long.parseLong(range.min));
+                }
 
-            if (object.containsKey(MIN_NAME))
-            {
-                builder.min(object.getJsonNumber(MIN_NAME).longValue());
-            }
-
-            if (object.containsKey(EXCLUSIVE_MAX_NAME))
-            {
-                builder.exclusiveMax(object.getBoolean(EXCLUSIVE_MAX_NAME));
-            }
-
-            if (object.containsKey(EXCLUSIVE_MIN_NAME))
-            {
-                builder.exclusiveMin(object.getBoolean(EXCLUSIVE_MIN_NAME));
+                if (range.max != null)
+                {
+                    builder.max(Long.parseLong(range.max));
+                }
             }
 
             if (object.containsKey(MULTIPLE_NAME))

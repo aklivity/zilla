@@ -1,0 +1,106 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/converter/types/enum/-",
+        "value": "float"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/converter/oneOf/1/allOf/-",
+        "value":
+        {
+            "if":
+            {
+                "properties":
+                {
+                    "model":
+                    {
+                        "const": "float"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "model":
+                    {
+                        "const": "float"
+                    },
+                    "format":
+                    {
+                        "type": "string",
+                        "enum":
+                        [
+                            "binary",
+                            "text"
+                        ],
+                        "default": "text"
+                    },
+                    "range":
+                    {
+                        "type": "string",
+                        "pattern": "((?:\\(|\\[))(-?\\d+(?:\\.\\d+)?)?,(-?\\d+(?:\\.\\d+)?)?((?:\\)|\\]))"
+                    },
+                    "multiple":
+                    {
+                        "type": "number"
+                    }
+                },
+                "additionalProperties": false
+            }
+        }
+    },
+    {
+        "op": "add",
+        "path": "/$defs/validator/types/enum/-",
+        "value": "float"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/validator/oneOf/1/allOf/-",
+        "value":
+        {
+            "if":
+            {
+                "properties":
+                {
+                    "model":
+                    {
+                        "const": "float"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "model":
+                    {
+                        "const": "float"
+                    },
+                    "format":
+                    {
+                        "type": "string",
+                        "enum":
+                        [
+                            "binary",
+                            "text"
+                        ],
+                        "default": "text"
+                    },
+                    "range":
+                    {
+                        "type": "string",
+                        "pattern": "((?:\\(|\\[))(-?\\d+(?:\\.\\d+)?)?,(-?\\d+(?:\\.\\d+)?)?((?:\\)|\\]))"
+                    },
+                    "multiple":
+                    {
+                        "type": "number"
+                    }
+                },
+                "additionalProperties": false
+            }
+        }
+    }
+]

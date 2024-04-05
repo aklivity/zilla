@@ -23,4 +23,6 @@ bindings:
       value:
         model: string
         encoding: utf_8
+        maxLength: 5
+        minLength: 1
     exit: test

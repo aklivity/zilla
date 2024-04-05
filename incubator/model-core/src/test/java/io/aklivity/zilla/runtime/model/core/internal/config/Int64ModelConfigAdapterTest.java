@@ -50,10 +50,7 @@ public class Int64ModelConfigAdapterTest
             "{" +
                 "\"model\":\"int64\"," +
                 "\"format\":\"text\"," +
-                "\"max\":999," +
-                "\"min\":-999," +
-                "\"exclusiveMax\":true," +
-                "\"exclusiveMin\":false," +
+                "\"range\":\"[-999,999)\"," +
                 "\"multiple\":100" +
             "}";
 
@@ -72,14 +69,33 @@ public class Int64ModelConfigAdapterTest
     }
 
     @Test
+    public void shouldWriteInt64Default()
+    {
+        // GIVEN
+        String expectedJson = "\"int64\"";
+        Int64ModelConfig model = Int64ModelConfig.builder().build();
+
+        // WHEN
+        String json = jsonb.toJson(model);
+
+        // THEN
+        assertThat(json, not(nullValue()));
+        assertThat(json, equalTo(expectedJson));
+    }
+
+    @Test
     public void shouldWriteInt64()
     {
         // GIVEN
         String expectedJson =
             "{" +
-                "\"model\":\"int64\"" +
+                "\"model\":\"int64\"," +
+                "\"range\":\"(,1234]\"" +
             "}";
-        Int64ModelConfig model = Int64ModelConfig.builder().build();
+        Int64ModelConfig model = Int64ModelConfig.builder()
+            .max(1234L)
+            .exclusiveMin(true)
+            .build();
 
         // WHEN
         String json = jsonb.toJson(model);

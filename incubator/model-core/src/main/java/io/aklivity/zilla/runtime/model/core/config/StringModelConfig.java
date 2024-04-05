@@ -20,15 +20,23 @@ import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 
 public final class StringModelConfig extends ModelConfig
 {
-    public static final String DEFAULT_ENCODING = "utf_8";
-
     public final String encoding;
+    public final String pattern;
+    public final int maxLength;
+    public final int minLength;
 
     public StringModelConfig(
-        String encoding)
+        String encoding,
+        String pattern,
+        int maxLength,
+        int minLength)
     {
         super("string");
-        this.encoding = encoding != null ? encoding : DEFAULT_ENCODING;
+        this.encoding = encoding;
+        this.pattern = pattern;
+        this.maxLength = maxLength;
+        this.minLength = minLength;
+
     }
 
     public static <T> StringModelConfigBuilder<T> builder(

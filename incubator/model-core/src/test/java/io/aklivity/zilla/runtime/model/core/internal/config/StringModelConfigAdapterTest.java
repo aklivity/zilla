@@ -41,13 +41,16 @@ public class StringModelConfigAdapterTest
     }
 
     @Test
-    public void shouldReadStringconverter()
+    public void shouldReadString()
     {
         // GIVEN
         String json =
             "{" +
                 "\"model\": \"string\"," +
-                "\"encoding\": \"utf_8\"" +
+                "\"encoding\": \"utf_8\"," +
+                "\"pattern\": \"^[a-zA-Z]\"," +
+                "\"maxLength\": 5," +
+                "\"minLength\": 2" +
             "}";
 
         // WHEN
@@ -57,34 +60,28 @@ public class StringModelConfigAdapterTest
         assertThat(model, not(nullValue()));
         assertThat(model.model, equalTo("string"));
         assertThat(model.encoding, equalTo("utf_8"));
+        assertThat(model.pattern, equalTo("^[a-zA-Z]"));
+        assertThat(model.maxLength, equalTo(5));
+        assertThat(model.minLength, equalTo(2));
     }
 
     @Test
-    public void shouldWriteDefaultEncodingStringconverter()
-    {
-        // GIVEN
-        String expectedJson = "\"string\"";
-        StringModelConfig converter = StringModelConfig.builder().build();
-
-        // WHEN
-        String json = jsonb.toJson(converter);
-
-        // THEN
-        assertThat(json, not(nullValue()));
-        assertThat(json, equalTo(expectedJson));
-    }
-
-    @Test
-    public void shouldWriteStringconverter()
+    public void shouldWriteString()
     {
         // GIVEN
         String expectedJson =
             "{" +
                 "\"model\":\"string\"," +
-                "\"encoding\":\"utf_16\"" +
+                "\"encoding\":\"utf_16\"," +
+                "\"pattern\":\"^[a-zA-Z]\"," +
+                "\"maxLength\":5," +
+                "\"minLength\":2" +
             "}";
         StringModelConfig model = StringModelConfig.builder()
             .encoding("utf_16")
+            .pattern("^[a-zA-Z]")
+            .maxLength(5)
+            .minLength(2)
             .build();
 
         // WHEN
@@ -93,5 +90,38 @@ public class StringModelConfigAdapterTest
         // THEN
         assertThat(json, not(nullValue()));
         assertThat(json, equalTo(expectedJson));
+    }
+
+    @Test
+    public void shouldWriteDefaultConfig()
+    {
+        // GIVEN
+        String expectedJson = "\"string\"";
+        StringModelConfig model = StringModelConfig.builder()
+            .build();
+
+        // WHEN
+        String json = jsonb.toJson(model);
+
+        // THEN
+        assertThat(json, not(nullValue()));
+        assertThat(json, equalTo(expectedJson));
+    }
+
+    @Test
+    public void shouldReadDefaultConfig()
+    {
+        // GIVEN
+        String json = "string";
+
+        // WHEN
+        StringModelConfig model = jsonb.fromJson(json, StringModelConfig.class);
+
+        // THEN
+        assertThat(model, not(nullValue()));
+        assertThat(model.model, equalTo("string"));
+        assertThat(model.encoding, equalTo("utf_8"));
+        assertThat(model.maxLength, equalTo(0));
+        assertThat(model.minLength, equalTo(0));
     }
 }
