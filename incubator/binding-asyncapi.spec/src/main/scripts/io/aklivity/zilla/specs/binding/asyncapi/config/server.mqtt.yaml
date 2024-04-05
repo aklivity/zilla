@@ -22,5 +22,5 @@ bindings:
     kind: server
     options:
       specs:
-        mqtt_api: mqtt/asyncapi.yaml
+        mqtt_api: mqtt/streetlight.asyncapi.yaml
     exit: asyncapi0

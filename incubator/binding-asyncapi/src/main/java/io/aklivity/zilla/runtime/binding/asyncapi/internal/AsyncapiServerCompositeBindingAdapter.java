@@ -58,6 +58,7 @@ public class AsyncapiServerCompositeBindingAdapter extends AsyncapiCompositeBind
         this.qvault = binding.qvault;
         this.protocol = resolveProtocol(firstServer.protocol(), options);
         //TODO: pass port so we can verify if port is a valid value based on the variable if exists
+        resolveServerVariables(asyncapi);
         this.compositePorts = protocol.resolvePorts();
         this.isTlsEnabled = protocol.isSecure();
 

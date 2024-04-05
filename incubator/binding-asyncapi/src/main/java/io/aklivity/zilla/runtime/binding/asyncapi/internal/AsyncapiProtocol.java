@@ -27,6 +27,7 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiMessage;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiServer;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiMessageView;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiSchemaView;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiServerView;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfigBuilder;
@@ -38,11 +39,9 @@ public abstract class AsyncapiProtocol
 {
     protected static final String INLINE_CATALOG_NAME = "catalog0";
     protected static final Pattern JSON_CONTENT_TYPE = Pattern.compile("^application/(?:.+\\+)?json$");
-    protected static final Pattern VARIABLE = Pattern.compile("\\{([^}]*.?)\\}");
     protected static final String VERSION_LATEST = "latest";
 
     protected final Matcher jsonContentType = JSON_CONTENT_TYPE.matcher("");
-    protected final Matcher variable = VARIABLE.matcher("");
 
     protected Asyncapi asyncApi;
     protected String qname;
@@ -89,7 +88,7 @@ public abstract class AsyncapiProtocol
         {
             AsyncapiMessageView message =
                 AsyncapiMessageView.of(asyncApi.components.messages, messageEntry.getValue());
-            String schema = messageEntry.getKey();
+            String schema = AsyncapiSchemaView.of(asyncApi.components.schemas, message.payload()).refKey();
             if (message.contentType() != null && message.contentType().equals(contentType) ||
                 jsonContentType.reset(asyncApi.defaultContentType).matches())
             {
@@ -132,17 +131,7 @@ public abstract class AsyncapiProtocol
         for (AsyncapiServer s : asyncApi.servers.values())
         {
             String[] hostAndPort = s.host.split(":");
-            String port = hostAndPort[1];
-            if (variable.reset(port).find())
-            {
-                String resolvedPort = s.variables.get(variable.group(1)).defaultValue;
-                s.host = s.host.replace(port, resolvedPort);
-                ports = new int[] {Integer.parseInt(resolvedPort)};
-            }
-            else
-            {
-                ports = new int[] {Integer.parseInt(port)};
-            }
+            ports = new int[] {Integer.parseInt(hostAndPort[1])};
             break;
         }
         return ports;
