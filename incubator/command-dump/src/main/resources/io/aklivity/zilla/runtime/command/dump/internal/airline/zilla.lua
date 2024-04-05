@@ -275,6 +275,7 @@ local fields = {
     reply_id = ProtoField.uint64("zilla.reply_id", "Reply ID", base.HEX),
     sequence = ProtoField.int64("zilla.sequence", "Sequence", base.DEC),
     acknowledge = ProtoField.int64("zilla.acknowledge", "Acknowledge", base.DEC),
+    state = ProtoField.int32("zilla.state", "State", base.DEC),
     maximum = ProtoField.int32("zilla.maximum", "Maximum", base.DEC),
     timestamp = ProtoField.uint64("zilla.timestamp", "Timestamp", base.HEX),
     trace_id = ProtoField.uint64("zilla.trace_id", "Trace ID", base.HEX),
@@ -819,13 +820,16 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
     local sequence = slice_sequence:le_int64();
     local slice_acknowledge = buffer(frame_offset + 36, 8)
     local acknowledge = slice_acknowledge:le_int64();
-    local slice_maximum = buffer(frame_offset + 44, 4)
+    local slice_state = buffer(frame_offset + 44, 4)
+    local state = slice_state:le_int();
+    local slice_maximum = buffer(frame_offset + 48, 4)
     local maximum = slice_maximum:le_int();
-    local slice_timestamp = buffer(frame_offset + 48, 8)
-    local slice_trace_id = buffer(frame_offset + 56, 8)
-    local slice_authorization = buffer(frame_offset + 64, 8)
+    local slice_timestamp = buffer(frame_offset + 52, 8)
+    local slice_trace_id = buffer(frame_offset + 60, 8)
+    local slice_authorization = buffer(frame_offset + 68, 8)
     subtree:add_le(fields.sequence, slice_sequence)
     subtree:add_le(fields.acknowledge, slice_acknowledge)
+    subtree:add_le(fields.state, slice_state)
     subtree:add_le(fields.maximum, slice_maximum)
     subtree:add_le(fields.timestamp, slice_timestamp)
     subtree:add_le(fields.trace_id, slice_trace_id)
@@ -838,7 +842,7 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
     end
     pinfo.cols.info:set(info)
 
-    local next_offset = frame_offset + 72
+    local next_offset = frame_offset + 76
     if frame_type_id == BEGIN_ID then
         handle_begin_frame(buffer, next_offset, subtree, pinfo, info)
     elseif frame_type_id == DATA_ID then
