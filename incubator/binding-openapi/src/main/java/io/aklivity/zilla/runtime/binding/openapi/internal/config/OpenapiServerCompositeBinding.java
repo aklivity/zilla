@@ -23,7 +23,6 @@ import static org.agrona.LangUtil.rethrowUnchecked;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
-import java.util.function.LongFunction;
 
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
@@ -36,7 +35,6 @@ import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfigBuilder;
-import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.Openapi;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiMediaType;
@@ -52,7 +50,6 @@ import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineSchemaConfigBuilder;
-import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfigBuilder;
@@ -65,39 +62,32 @@ import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
 public final class OpenapiServerCompositeBinding extends OpenapiCompositeBinding
 {
-    public OpenapiServerCompositeBinding(
-        LongFunction<CatalogHandler> supplyCatalog)
-    {
-        super(supplyCatalog);
-    }
-
     @Override
     public NamespaceConfig composite(
-        BindingConfig binding)
+        BindingConfig binding,
+        Openapi openapi)
     {
         final OpenapiOptionsConfig options = (OpenapiOptionsConfig) binding.options;
-        final OpenapiConfig openapiConfig = convertToOpenapi(binding.catalogs).get(0);
         final List<MetricRefConfig> metricRefs = binding.telemetryRef != null ?
             binding.telemetryRef.metricRefs : emptyList();
 
-        final Openapi openApi = openapiConfig.openapi;
         final TlsOptionsConfig tlsOption = options.tls != null ? options.tls : null;
         final HttpOptionsConfig httpOptions = options.http;
         final String guardName = httpOptions != null ? httpOptions.authorization.name : null;
         final HttpAuthorizationConfig authorization = httpOptions != null ?  httpOptions.authorization : null;
 
-        final int[] allPorts = resolveAllPorts(openApi);
-        final int[] httpPorts = resolvePortsForScheme(openApi, "http");
-        final int[] httpsPorts = resolvePortsForScheme(openApi, "https");
+        final int[] allPorts = resolveAllPorts(openapi);
+        final int[] httpPorts = resolvePortsForScheme(openapi, "http");
+        final int[] httpsPorts = resolvePortsForScheme(openapi, "https");
         final boolean secure = httpsPorts != null;
-        final Map<String, String> securitySchemes = resolveSecuritySchemes(openApi);
+        final Map<String, String> securitySchemes = resolveSecuritySchemes(openapi);
         final boolean hasJwt = !securitySchemes.isEmpty();
         final String qvault = String.format("%s:%s", binding.namespace, binding.vault);
 
         return NamespaceConfig.builder()
                 .name(String.format("%s/http", binding.qname))
                 .inject(namespace -> injectNamespaceMetric(namespace, !metricRefs.isEmpty()))
-                .inject(n -> this.injectCatalog(n, openApi))
+                .inject(n -> this.injectCatalog(n, openapi))
                 .binding()
                     .name("tcp_server0")
                     .type("tcp")
@@ -120,9 +110,9 @@ public final class OpenapiServerCompositeBinding extends OpenapiCompositeBinding
                             .policy(CROSS_ORIGIN)
                             .build()
                         .inject(o -> this.injectHttpServerOptions(o, authorization, hasJwt))
-                        .inject(r -> this.injectHttpServerRequests(r, openApi))
+                        .inject(r -> this.injectHttpServerRequests(r, openapi))
                         .build()
-                    .inject(b -> this.injectHttpServerRoutes(b, openApi, binding.qname, guardName, securitySchemes))
+                    .inject(b -> this.injectHttpServerRoutes(b, openapi, binding.qname, guardName, securitySchemes))
                     .inject(b -> this.injectMetrics(b, metricRefs, "http"))
                     .build()
             .build();

@@ -21,14 +21,12 @@ import static java.util.Objects.requireNonNull;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
-import java.util.function.LongFunction;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfigBuilder;
 import io.aklivity.zilla.runtime.binding.http.config.HttpResponseConfigBuilder;
-import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.Openapi;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiHeader;
@@ -41,7 +39,6 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiPathView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiSchemaView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiServerView;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
-import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.MetricRefConfig;
@@ -52,23 +49,16 @@ import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
 public final class OpenapiClientCompositeBinding extends OpenapiCompositeBinding
 {
-    public OpenapiClientCompositeBinding(
-        LongFunction<CatalogHandler> supplyCatalog)
-    {
-        super(supplyCatalog);
-    }
-
     @Override
     public NamespaceConfig composite(
-        BindingConfig binding)
+        BindingConfig binding,
+        Openapi openapi)
     {
         final OpenapiOptionsConfig options = (OpenapiOptionsConfig) binding.options;
-        final OpenapiConfig openapiConfig = convertToOpenapi(binding.catalogs).get(0);
         final List<MetricRefConfig> metricRefs = binding.telemetryRef != null ?
             binding.telemetryRef.metricRefs : emptyList();
 
-        final Openapi openApi = openapiConfig.openapi;
-        final int[] httpsPorts = resolvePortsForScheme(openApi, "https");
+        final int[] httpsPorts = resolvePortsForScheme(openapi, "https");
         final boolean secure = httpsPorts != null;
 
         return NamespaceConfig.builder()
@@ -78,7 +68,7 @@ public final class OpenapiClientCompositeBinding extends OpenapiCompositeBinding
                     .name("http_client0")
                     .type("http")
                     .kind(CLIENT)
-                    .inject(b -> this.injectHttpClientOptions(b, openApi))
+                    .inject(b -> this.injectHttpClientOptions(b, openapi))
                     .inject(b -> this.injectMetrics(b, metricRefs, "http"))
                     .exit(secure ? "tls_client0" : "tcp_client0")
                     .build()

@@ -17,25 +17,19 @@ package io.aklivity.zilla.runtime.binding.openapi.internal.config;
 
 import static java.util.stream.Collectors.toList;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.function.LongFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 
-import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiConfig;
-import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiParser;
-import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.Openapi;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.MetricRefConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 import io.aklivity.zilla.runtime.engine.config.TelemetryRefConfigBuilder;
 import io.aklivity.zilla.runtime.model.core.config.Int32ModelConfig;
 import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
@@ -53,18 +47,9 @@ public abstract class OpenapiCompositeBinding
         "integer", Int32ModelConfig.builder().build()
     );
 
-    private final OpenapiParser parser;
-    private final LongFunction<CatalogHandler> supplyCatalog;
-
     public abstract NamespaceConfig composite(
-        BindingConfig binding);
-
-    protected OpenapiCompositeBinding(
-        LongFunction<CatalogHandler> supplyCatalog)
-    {
-        this.parser = new OpenapiParser();
-        this.supplyCatalog = supplyCatalog;
-    }
+        BindingConfig binding,
+        Openapi openapi);
 
     protected <C> NamespaceConfigBuilder<C> injectNamespaceMetric(
         NamespaceConfigBuilder<C> namespace,
@@ -137,21 +122,5 @@ public abstract class OpenapiCompositeBinding
         }
 
         return binding;
-    }
-
-    protected List<OpenapiConfig> convertToOpenapi(
-        List<CatalogedConfig> catalogs)
-    {
-        final List<OpenapiConfig> openapiConfigs = new ArrayList<>();
-        for (CatalogedConfig catalog : catalogs)
-        {
-            CatalogHandler handler = supplyCatalog.apply(catalog.id);
-            for (SchemaConfig schema : catalog.schemas)
-            {
-                final String payload = handler.resolve(schema.id);
-                openapiConfigs.add(new OpenapiConfig(schema.id, parser.parse(payload)));
-            }
-        }
-        return openapiConfigs;
     }
 }

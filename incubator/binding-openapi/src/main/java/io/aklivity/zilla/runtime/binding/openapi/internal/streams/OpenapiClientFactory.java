@@ -97,7 +97,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
         this.supplyReplyId = context::supplyReplyId;
         this.supplyTraceId = context::supplyTraceId;
         this.supplyCatalog = context::supplyCatalog;
-        this.compositeBinding = new OpenapiClientCompositeBinding(supplyCatalog);
+        this.compositeBinding = new OpenapiClientCompositeBinding();
         this.bindings = new Long2ObjectHashMap<>();
         this.openapiTypeId = context.supplyTypeId(OpenapiBinding.NAME);
         this.httpTypeId = context.supplyTypeId(HTTP_TYPE_NAME);
@@ -119,17 +119,17 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        OpenapiBindingConfig openapiBinding = new OpenapiBindingConfig(binding, config.targetRouteId());
+        OpenapiBindingConfig openapiBinding = new OpenapiBindingConfig(binding, supplyCatalog,
+            compositeBinding, config.targetRouteId());
         bindings.put(binding.id, openapiBinding);
-
-        binding.attach.apply(compositeBinding.composite(binding));
     }
 
     @Override
     public void detach(
         long bindingId)
     {
-        bindings.remove(bindingId);
+        OpenapiBindingConfig openapiBinding = bindings.remove(bindingId);
+        openapiBinding.detach();
     }
 
     @Override
