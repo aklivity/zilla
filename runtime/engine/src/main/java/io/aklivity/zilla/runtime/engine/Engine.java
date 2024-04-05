@@ -98,6 +98,7 @@ public final class Engine implements Collector, AutoCloseable
     private final List<EngineWorker> workers;
     private final boolean readonly;
     private final EngineConfiguration config;
+
     private Future<Void> watcherTaskRef;
 
     Engine(
@@ -160,12 +161,12 @@ public final class Engine implements Collector, AutoCloseable
         this.tuning = tuning;
 
         List<EngineWorker> workers = new ArrayList<>(workerCount);
-        for (int coreIndex = 0; coreIndex < workerCount; coreIndex++)
+        for (int workerIndex = 0; workerIndex < workerCount; workerIndex++)
         {
             EngineWorker worker =
                 new EngineWorker(config, tasks, labels, errorHandler, tuning::affinity, bindings, exporters,
                     guards, vaults, catalogs, models, metricGroups, this, this::supplyEventReader,
-                    eventFormatterFactory, coreIndex, readonly);
+                    eventFormatterFactory, workerIndex, readonly);
             workers.add(worker);
         }
         this.workers = workers;

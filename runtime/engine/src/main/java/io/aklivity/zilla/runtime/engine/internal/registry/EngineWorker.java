@@ -219,6 +219,7 @@ public class EngineWorker implements EngineContext, Agent
     private final EventsLayout eventsLayout;
     private final Supplier<MessageReader> supplyEventReader;
     private final EventFormatter eventFormatter;
+
     private long initialId;
     private long promiseId;
     private long traceId;
