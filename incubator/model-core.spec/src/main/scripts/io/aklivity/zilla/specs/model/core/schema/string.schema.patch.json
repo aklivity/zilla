@@ -1,7 +1,7 @@
 [
     {
         "op": "add",
-        "path": "/$defs/types/enum/-",
+        "path": "/$defs/converter/types/enum/-",
         "value": "string"
     },
     {
@@ -54,6 +54,11 @@
                 "additionalProperties": false
             }
         }
+    },
+    {
+        "op": "add",
+        "path": "/$defs/validator/types/enum/-",
+        "value": "string"
     },
     {
         "op": "add",

@@ -28,9 +28,9 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.model.core.config.Int64ModelConfig;
+import io.aklivity.zilla.runtime.model.core.config.FloatModelConfig;
 
-public class Int64ModelConfigAdapterTest
+public class FloatModelConfigAdapterTest
 {
     private Jsonb jsonb;
 
@@ -38,42 +38,48 @@ public class Int64ModelConfigAdapterTest
     public void initJson()
     {
         JsonbConfig config = new JsonbConfig()
-            .withAdapters(new Int64ModelConfigAdapter());
+            .withAdapters(new FloatModelConfigAdapter());
         jsonb = JsonbBuilder.create(config);
     }
 
     @Test
-    public void shouldReadInt64()
+    public void shouldRead()
     {
         // GIVEN
         String json =
             "{" +
-                "\"model\":\"int64\"," +
+                "\"model\":\"float\"," +
                 "\"format\":\"text\"," +
-                "\"range\":\"[-999,999)\"," +
+                "\"range\":\"[-999.98,999.99)\"," +
                 "\"multiple\":100" +
             "}";
 
         // WHEN
-        Int64ModelConfig model = jsonb.fromJson(json, Int64ModelConfig.class);
+        FloatModelConfig model = jsonb.fromJson(json, FloatModelConfig.class);
 
         // THEN
         assertThat(model, not(nullValue()));
-        assertThat(model.model, equalTo("int64"));
+        assertThat(model.model, equalTo("float"));
         assertThat(model.format, equalTo("text"));
-        assertThat(model.max, equalTo(999L));
-        assertThat(model.min, equalTo(-999L));
+        assertThat(model.max, equalTo(999.99F));
+        assertThat(model.min, equalTo(-999.98F));
         assertTrue(model.exclusiveMax);
         assertFalse(model.exclusiveMin);
-        assertThat(model.multiple, equalTo(100L));
+        assertThat(model.multiple, equalTo(100.0F));
     }
 
     @Test
-    public void shouldWriteInt64Default()
+    public void shouldWrite()
     {
         // GIVEN
-        String expectedJson = "\"int64\"";
-        Int64ModelConfig model = Int64ModelConfig.builder().build();
+        String expectedJson =
+            "{" +
+                "\"model\":\"float\"," +
+                "\"range\":\"[,99.99]\"" +
+            "}";
+        FloatModelConfig model = FloatModelConfig.builder()
+            .max(99.99f)
+            .build();
 
         // WHEN
         String json = jsonb.toJson(model);
@@ -84,18 +90,12 @@ public class Int64ModelConfigAdapterTest
     }
 
     @Test
-    public void shouldWriteInt64()
+    public void shouldWriteDefault()
     {
         // GIVEN
-        String expectedJson =
-            "{" +
-                "\"model\":\"int64\"," +
-                "\"range\":\"(,1234]\"" +
-            "}";
-        Int64ModelConfig model = Int64ModelConfig.builder()
-            .max(1234L)
-            .exclusiveMin(true)
-            .build();
+        String expectedJson = "\"float\"";
+
+        FloatModelConfig model = FloatModelConfig.builder().build();
 
         // WHEN
         String json = jsonb.toJson(model);

@@ -1,7 +1,7 @@
 [
     {
         "op": "add",
-        "path": "/$defs/types/enum/-",
+        "path": "/$defs/converter/types/enum/-",
         "value": "json"
     },
     {
@@ -128,6 +128,11 @@
                 "additionalProperties": false
             }
         }
+    },
+    {
+        "op": "add",
+        "path": "/$defs/validator/types/enum/-",
+        "value": "json"
     },
     {
         "op": "add",

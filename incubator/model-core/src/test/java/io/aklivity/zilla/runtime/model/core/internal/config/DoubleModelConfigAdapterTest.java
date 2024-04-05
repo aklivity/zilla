@@ -28,9 +28,9 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.model.core.config.Int64ModelConfig;
+import io.aklivity.zilla.runtime.model.core.config.DoubleModelConfig;
 
-public class Int64ModelConfigAdapterTest
+public class DoubleModelConfigAdapterTest
 {
     private Jsonb jsonb;
 
@@ -38,64 +38,43 @@ public class Int64ModelConfigAdapterTest
     public void initJson()
     {
         JsonbConfig config = new JsonbConfig()
-            .withAdapters(new Int64ModelConfigAdapter());
+            .withAdapters(new DoubleModelConfigAdapter());
         jsonb = JsonbBuilder.create(config);
     }
 
     @Test
-    public void shouldReadInt64()
+    public void shouldRead()
     {
         // GIVEN
         String json =
             "{" +
-                "\"model\":\"int64\"," +
+                "\"model\":\"double\"," +
                 "\"format\":\"text\"," +
-                "\"range\":\"[-999,999)\"," +
+                "\"range\":\"[-999.98,999.99)\"," +
                 "\"multiple\":100" +
             "}";
 
         // WHEN
-        Int64ModelConfig model = jsonb.fromJson(json, Int64ModelConfig.class);
+        DoubleModelConfig model = jsonb.fromJson(json, DoubleModelConfig.class);
 
         // THEN
         assertThat(model, not(nullValue()));
-        assertThat(model.model, equalTo("int64"));
+        assertThat(model.model, equalTo("double"));
         assertThat(model.format, equalTo("text"));
-        assertThat(model.max, equalTo(999L));
-        assertThat(model.min, equalTo(-999L));
+        assertThat(model.max, equalTo(999.99));
+        assertThat(model.min, equalTo(-999.98));
         assertTrue(model.exclusiveMax);
         assertFalse(model.exclusiveMin);
-        assertThat(model.multiple, equalTo(100L));
+        assertThat(model.multiple, equalTo(100.0));
     }
 
     @Test
-    public void shouldWriteInt64Default()
+    public void shouldWriteDefault()
     {
         // GIVEN
-        String expectedJson = "\"int64\"";
-        Int64ModelConfig model = Int64ModelConfig.builder().build();
+        String expectedJson = "\"double\"";
 
-        // WHEN
-        String json = jsonb.toJson(model);
-
-        // THEN
-        assertThat(json, not(nullValue()));
-        assertThat(json, equalTo(expectedJson));
-    }
-
-    @Test
-    public void shouldWriteInt64()
-    {
-        // GIVEN
-        String expectedJson =
-            "{" +
-                "\"model\":\"int64\"," +
-                "\"range\":\"(,1234]\"" +
-            "}";
-        Int64ModelConfig model = Int64ModelConfig.builder()
-            .max(1234L)
-            .exclusiveMin(true)
-            .build();
+        DoubleModelConfig model = DoubleModelConfig.builder().build();
 
         // WHEN
         String json = jsonb.toJson(model);

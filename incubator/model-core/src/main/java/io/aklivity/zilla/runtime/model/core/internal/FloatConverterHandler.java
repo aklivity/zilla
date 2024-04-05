@@ -19,17 +19,17 @@ import org.agrona.DirectBuffer;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
-import io.aklivity.zilla.runtime.model.core.config.Int32ModelConfig;
+import io.aklivity.zilla.runtime.model.core.config.FloatModelConfig;
 
-public class Int32ConverterHandler implements ConverterHandler
+public class FloatConverterHandler implements ConverterHandler
 {
-    private final Int32ValidatorHandler handler;
+    private final FloatValidatorHandler handler;
 
-    public Int32ConverterHandler(
-        Int32ModelConfig config,
+    public FloatConverterHandler(
+        FloatModelConfig config,
         EngineContext context)
     {
-        this.handler = new Int32ValidatorHandler(config, context);
+        this.handler = new FloatValidatorHandler(config, context);
     }
 
     @Override

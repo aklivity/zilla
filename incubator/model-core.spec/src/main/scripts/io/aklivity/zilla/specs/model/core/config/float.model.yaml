@@ -21,8 +21,8 @@ bindings:
     type: test
     options:
       value:
-        model: int32
+        model: float
         format: text
-        range: '[99,99)'
+        range: '[-99.99,99.99)'
         multiple: 10
     exit: test

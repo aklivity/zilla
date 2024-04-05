@@ -1,7 +1,7 @@
 [
     {
         "op": "add",
-        "path": "/$defs/types/enum/-",
+        "path": "/$defs/converter/types/enum/-",
         "value": "int64"
     },
     {
@@ -37,32 +37,24 @@
                         ],
                         "default": "text"
                     },
-                    "max":
+                    "range":
                     {
-                        "type": "integer"
-                    },
-                    "min":
-                    {
-                        "type": "integer"
-                    },
-                    "exclusiveMax":
-                    {
-                        "type": "boolean",
-                        "default": false
-                    },
-                    "exclusiveMin":
-                    {
-                        "type": "boolean",
-                        "default": false
+                        "type": "string",
+                        "pattern": "((?:\\(|\\[))(-?\\d+)?,(-?\\d+)?((?:\\)|\\]))"
                     },
                     "multiple":
                     {
-                        "type": "integer"
+                        "type": "number"
                     }
                 },
                 "additionalProperties": false
             }
         }
+    },
+    {
+        "op": "add",
+        "path": "/$defs/validator/types/enum/-",
+        "value": "int64"
     },
     {
         "op": "add",
@@ -97,27 +89,14 @@
                         ],
                         "default": "text"
                     },
-                    "max":
+                    "range":
                     {
-                        "type": "integer"
-                    },
-                    "min":
-                    {
-                        "type": "integer"
-                    },
-                    "exclusiveMax":
-                    {
-                        "type": "boolean",
-                        "default": false
-                    },
-                    "exclusiveMin":
-                    {
-                        "type": "boolean",
-                        "default": false
+                        "type": "string",
+                        "pattern": "((?:\\(|\\[))(-?\\d+)?,(-?\\d+)?((?:\\)|\\]))"
                     },
                     "multiple":
                     {
-                        "type": "integer"
+                        "type": "number"
                     }
                 },
                 "additionalProperties": false

@@ -14,22 +14,21 @@
  */
 package io.aklivity.zilla.runtime.model.core.internal.config;
 
-import static io.aklivity.zilla.runtime.model.core.config.Int32ModelConfig.INT_32;
+import static io.aklivity.zilla.runtime.model.core.config.FloatModelConfig.FLOAT;
 
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
-import jakarta.json.JsonValue.ValueType;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfigAdapterSpi;
-import io.aklivity.zilla.runtime.model.core.config.Int32ModelConfig;
-import io.aklivity.zilla.runtime.model.core.config.Int32ModelConfigBuilder;
+import io.aklivity.zilla.runtime.model.core.config.FloatModelConfig;
+import io.aklivity.zilla.runtime.model.core.config.FloatModelConfigBuilder;
 import io.aklivity.zilla.runtime.model.core.config.RangeConfig;
 
-public class Int32ModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdapter<ModelConfig, JsonValue>
+public class FloatModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdapter<ModelConfig, JsonValue>
 {
     private static final String MODEL_NAME = "model";
     private static final String FORMAT_NAME = "format";
@@ -41,7 +40,7 @@ public class Int32ModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdap
     @Override
     public String type()
     {
-        return INT_32;
+        return FLOAT;
     }
 
     @Override
@@ -49,36 +48,35 @@ public class Int32ModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdap
         ModelConfig options)
     {
         JsonValue result;
-        Int32ModelConfig config = (Int32ModelConfig) options;
+        FloatModelConfig config = (FloatModelConfig) options;
 
-        if (config.format.equals(Int32ModelConfigBuilder.DEFAULT_FORMAT) &&
-            config.max == Integer.MAX_VALUE &&
-            config.min == Integer.MIN_VALUE &&
+        if (config.format.equals(FloatModelConfigBuilder.DEFAULT_FORMAT) &&
+            config.max == Float.POSITIVE_INFINITY &&
+            config.min == Float.NEGATIVE_INFINITY &&
             !config.exclusiveMax &&
             !config.exclusiveMin &&
-            config.multiple == Int32ModelConfigBuilder.DEFAULT_MULTIPLE)
+            config.multiple == null)
         {
             result = Json.createValue(type());
         }
         else
         {
             JsonObjectBuilder builder = Json.createObjectBuilder();
+            builder.add(MODEL_NAME, type());
 
-            builder.add(MODEL_NAME, INT_32);
-
-            if (!config.format.equals(Int32ModelConfigBuilder.DEFAULT_FORMAT))
+            if (!config.format.equals(FloatModelConfigBuilder.DEFAULT_FORMAT))
             {
                 builder.add(FORMAT_NAME, config.format);
             }
 
-            String max = config.max != Integer.MAX_VALUE ? String.valueOf(config.max) : null;
-            String min = config.min != Integer.MIN_VALUE ? String.valueOf(config.min) : null;
+            String max = config.max != Float.POSITIVE_INFINITY ? String.valueOf(config.max) : null;
+            String min = config.min != Float.NEGATIVE_INFINITY ? String.valueOf(config.min) : null;
             boolean exclusiveMax = config.exclusiveMax;
             boolean exclusiveMin = config.exclusiveMin;
             RangeConfig range = new RangeConfig(max, min, exclusiveMax, exclusiveMin);
             builder.add(RANGE_NAME, adapter.adaptToString(range));
 
-            if (config.multiple != Int32ModelConfigBuilder.DEFAULT_MULTIPLE)
+            if (config.multiple != null)
             {
                 builder.add(MULTIPLE_NAME, config.multiple);
             }
@@ -92,8 +90,8 @@ public class Int32ModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdap
     public ModelConfig adaptFromJson(
         JsonValue value)
     {
-        ValueType valueType = value.getValueType();
-        Int32ModelConfigBuilder<Int32ModelConfig> builder = Int32ModelConfig.builder();
+        JsonValue.ValueType valueType = value.getValueType();
+        FloatModelConfigBuilder<FloatModelConfig> builder = FloatModelConfig.builder();
 
         switch (valueType)
         {
@@ -113,24 +111,23 @@ public class Int32ModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdap
                 builder.exclusiveMax(range.exclusiveMax);
                 if (range.min != null)
                 {
-                    builder.min(Integer.parseInt(range.min));
+                    builder.min(Float.parseFloat(range.min));
                 }
 
                 if (range.max != null)
                 {
-                    builder.max(Integer.parseInt(range.max));
+                    builder.max(Float.parseFloat(range.max));
                 }
             }
 
             if (object.containsKey(MULTIPLE_NAME))
             {
-                builder.multiple(object.getInt(MULTIPLE_NAME));
+                builder.multiple(object.getJsonNumber(MULTIPLE_NAME).bigDecimalValue().floatValue());
             }
             break;
         default:
             throw new IllegalArgumentException("Unexpected type: " + valueType);
         }
-
         return builder.build();
     }
 }
