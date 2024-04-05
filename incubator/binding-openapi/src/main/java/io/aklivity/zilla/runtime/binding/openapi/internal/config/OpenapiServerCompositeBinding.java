@@ -23,6 +23,7 @@ import static org.agrona.LangUtil.rethrowUnchecked;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
+import java.util.function.LongFunction;
 
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
@@ -51,23 +52,31 @@ import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineSchemaConfigBuilder;
+import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.MetricRefConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
+import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
 import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
-public final class OpenapiServerCompositeBindingAdapter extends OpenapiCompositeBindingAdapter
+public final class OpenapiServerCompositeBinding extends OpenapiCompositeBinding
 {
+    public OpenapiServerCompositeBinding(
+        LongFunction<CatalogHandler> supplyCatalog)
+    {
+        super(supplyCatalog);
+    }
+
     @Override
-    public BindingConfig adapt(
+    public NamespaceConfig composite(
         BindingConfig binding)
     {
         final OpenapiOptionsConfig options = (OpenapiOptionsConfig) binding.options;
-        final OpenapiConfig openapiConfig = null;
+        final OpenapiConfig openapiConfig = convertToOpenapi(binding.catalogs).get(0);
         final List<MetricRefConfig> metricRefs = binding.telemetryRef != null ?
             binding.telemetryRef.metricRefs : emptyList();
 
@@ -85,8 +94,7 @@ public final class OpenapiServerCompositeBindingAdapter extends OpenapiComposite
         final boolean hasJwt = !securitySchemes.isEmpty();
         final String qvault = String.format("%s:%s", binding.namespace, binding.vault);
 
-        return BindingConfig.builder(binding)
-            .composite()
+        return NamespaceConfig.builder()
                 .name(String.format("%s/http", binding.qname))
                 .inject(namespace -> injectNamespaceMetric(namespace, !metricRefs.isEmpty()))
                 .inject(n -> this.injectCatalog(n, openApi))
@@ -117,7 +125,6 @@ public final class OpenapiServerCompositeBindingAdapter extends OpenapiComposite
                     .inject(b -> this.injectHttpServerRoutes(b, openApi, binding.qname, guardName, securitySchemes))
                     .inject(b -> this.injectMetrics(b, metricRefs, "http"))
                     .build()
-                .build()
             .build();
     }
 

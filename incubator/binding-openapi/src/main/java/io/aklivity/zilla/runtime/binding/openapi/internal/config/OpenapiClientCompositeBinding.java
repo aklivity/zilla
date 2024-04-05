@@ -21,6 +21,7 @@ import static java.util.Objects.requireNonNull;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
+import java.util.function.LongFunction;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfigBuilder;
@@ -40,17 +41,25 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiPathView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiSchemaView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiServerView;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
+import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.MetricRefConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
+import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
-public final class OpenapiClientCompositeBindingAdapter extends OpenapiCompositeBindingAdapter
+public final class OpenapiClientCompositeBinding extends OpenapiCompositeBinding
 {
+    public OpenapiClientCompositeBinding(
+        LongFunction<CatalogHandler> supplyCatalog)
+    {
+        super(supplyCatalog);
+    }
+
     @Override
-    public BindingConfig adapt(
+    public NamespaceConfig composite(
         BindingConfig binding)
     {
         final OpenapiOptionsConfig options = (OpenapiOptionsConfig) binding.options;
@@ -62,8 +71,7 @@ public final class OpenapiClientCompositeBindingAdapter extends OpenapiComposite
         final int[] httpsPorts = resolvePortsForScheme(openApi, "https");
         final boolean secure = httpsPorts != null;
 
-        return BindingConfig.builder(binding)
-            .composite()
+        return NamespaceConfig.builder()
                 .name(String.format(binding.qname, "$composite"))
                 .inject(n -> this.injectNamespaceMetric(n, !metricRefs.isEmpty()))
                 .binding()
@@ -82,7 +90,6 @@ public final class OpenapiClientCompositeBindingAdapter extends OpenapiComposite
                     .options(options.tcp)
                     .inject(b -> this.injectMetrics(b, metricRefs, "tcp"))
                     .build()
-                .build()
             .build();
     }
 

@@ -40,8 +40,8 @@ public final class OpenapiBindingAdapter implements CompositeBindingAdapterSpi
     public OpenapiBindingAdapter()
     {
         Map<KindConfig, UnaryOperator<BindingConfig>> composites = new EnumMap<>(KindConfig.class);
-        composites.put(SERVER, new OpenapiServerCompositeBindingAdapter()::adapt);
-        composites.put(CLIENT, new OpenapiClientCompositeBindingAdapter()::adapt);
+        composites.put(SERVER, new OpenapiServerCompositeBinding()::adapt);
+        composites.put(CLIENT, new OpenapiClientCompositeBinding()::adapt);
         UnaryOperator<BindingConfig> composite = binding -> composites
             .getOrDefault(binding.kind, identity()).apply(binding);
         this.composite = composite;
