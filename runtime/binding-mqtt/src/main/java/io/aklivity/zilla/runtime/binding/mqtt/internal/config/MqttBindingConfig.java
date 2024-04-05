@@ -18,18 +18,22 @@ package io.aklivity.zilla.runtime.binding.mqtt.internal.config;
 import static java.util.stream.Collectors.toList;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.ToLongFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttCredentialsConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttPatternConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttPatternConfig.MqttConnectProperty;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.String16FW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
@@ -47,7 +51,7 @@ public final class MqttBindingConfig
     public final MqttOptionsConfig options;
     public final List<MqttRouteConfig> routes;
     public final Function<String, String> credentials;
-    public final Map<Matcher, ModelConfig> topics;
+    public final Map<Matcher, TopicValidator> topics;
     public final List<MqttVersion> versions;
     public final ToLongFunction<String> resolveId;
     public final GuardHandler guard;
@@ -69,14 +73,16 @@ public final class MqttBindingConfig
         {
             options.topics.forEach(t ->
             {
-                String pattern = t.name.replace(".", "\\.")
+                String topicPattern = t.name.replace(".", "\\.")
                     .replace("$", "\\$")
                     .replace("+", "[^/]*")
                     .replace("#", ".*");
-                topics.put(Pattern.compile(pattern).matcher(""), t.content);
+                Map<Matcher, ModelConfig> userProperties = Optional.ofNullable(t.userProperties).orElseGet(Collections::emptyList)
+                    .stream()
+                    .collect(Collectors.toMap(up -> Pattern.compile(up.name).matcher(""), up -> up.content));
+                topics.put(Pattern.compile(topicPattern).matcher(""), new TopicValidator(t.content, userProperties));
             });
         }
-
 
         this.guard = resolveGuard(context);
         this.versions = options != null &&
@@ -128,13 +134,47 @@ public final class MqttBindingConfig
         ModelConfig config = null;
         if (topics != null)
         {
-            for (Map.Entry<Matcher, ModelConfig> t : topics.entrySet())
+            for (Map.Entry<Matcher, TopicValidator> t : topics.entrySet())
             {
                 final Matcher matcher = t.getKey();
                 matcher.reset(topic);
                 if (matcher.find())
                 {
-                    config = t.getValue();
+                    config = t.getValue().content;
+                    break;
+                }
+            }
+        }
+        return config;
+    }
+
+    public ModelConfig supplyUserPropertyModelConfig(
+        String topic,
+        String16FW userPropertyKey)
+    {
+        ModelConfig config = null;
+        if (topics != null)
+        {
+            for (Map.Entry<Matcher, TopicValidator> t : topics.entrySet())
+            {
+                final Matcher matcher = t.getKey();
+                matcher.reset(topic);
+                if (matcher.find())
+                {
+                    Map<Matcher, ModelConfig> userProperties = t.getValue().userProperties;
+                    if (userProperties != null)
+                    {
+                        for (Map.Entry<Matcher, ModelConfig> u : userProperties.entrySet())
+                        {
+                            final Matcher userPropertyMatcher = u.getKey();
+                            userPropertyMatcher.reset(userPropertyKey.asString());
+                            if (userPropertyMatcher.find())
+                            {
+                                config = u.getValue();
+                                break;
+                            }
+                        }
+                    }
                     break;
                 }
             }
@@ -205,5 +245,19 @@ public final class MqttBindingConfig
             String result = first.apply(x);
             return result != null ? result : second.apply(x);
         };
+    }
+
+    private static class TopicValidator
+    {
+        ModelConfig content;
+        Map<Matcher, ModelConfig> userProperties;
+
+        TopicValidator(
+            ModelConfig content,
+            Map<Matcher, ModelConfig> userProperties)
+        {
+            this.content = content;
+            this.userProperties = userProperties;
+        }
     }
 }

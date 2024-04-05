@@ -17,28 +17,23 @@ package io.aklivity.zilla.runtime.binding.mqtt.config;
 
 import static java.util.function.Function.identity;
 
-import java.util.List;
-
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 
-public class MqttTopicConfig
+public class MqttUserPropertyConfig
 {
     public final String name;
     public final ModelConfig content;
-    public final List<MqttUserPropertyConfig> userProperties;
 
-    public MqttTopicConfig(
+    public MqttUserPropertyConfig(
         String name,
-        ModelConfig content,
-        List<MqttUserPropertyConfig> userProperties)
+        ModelConfig content)
     {
         this.name = name;
         this.content = content;
-        this.userProperties = userProperties;
     }
 
-    public static MqttTopicConfigBuilder<MqttTopicConfig> builder()
+    public static MqttUserPropertyConfigBuilder<MqttUserPropertyConfig> builder()
     {
-        return new MqttTopicConfigBuilder<>(identity());
+        return new MqttUserPropertyConfigBuilder<>(identity());
     }
 }

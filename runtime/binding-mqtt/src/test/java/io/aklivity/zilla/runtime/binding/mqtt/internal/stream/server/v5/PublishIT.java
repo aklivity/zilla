@@ -97,6 +97,26 @@ public class PublishIT
     }
 
     @Test
+    @Configuration("server.user.properties.validator.yaml")
+    @Specification({
+        "${net}/publish.valid.user.property/client",
+        "${app}/publish.valid.user.property/server"})
+    public void shouldPublishValidUserProperty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.user.properties.validator.yaml")
+    @Specification({
+        "${net}/publish.invalid.user.property/client",
+        "${app}/session.connect/server"})
+    public void shouldPublishInvalidUserProperty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.yaml")
     @Specification({
         "${net}/publish.retained/client",

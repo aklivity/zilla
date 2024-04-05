@@ -136,6 +136,27 @@
                                         "content":
                                         {
                                             "$ref": "#/$defs/validator"
+                                        },
+                                        "user-properties":
+                                        {
+                                            "title": "Session",
+                                            "type": "array",
+                                            "items":
+                                            {
+                                                "additionalProperties": false,
+                                                "properties":
+                                                {
+                                                    "name":
+                                                    {
+                                                        "title": "Name",
+                                                        "type": "string"
+                                                    },
+                                                    "content":
+                                                    {
+                                                        "$ref": "#/$defs/validator"
+                                                    }
+                                                }
+                                            }
                                         }
                                     }
                                 }

@@ -15,7 +15,11 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.internal.config;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 import jakarta.json.Json;
+import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
@@ -23,14 +27,17 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttTopicConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttTopicConfigBuilder;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttUserPropertyConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfigAdapter;
 
 public class MqttTopicConfigAdapter implements JsonbAdapter<MqttTopicConfig, JsonObject>
 {
     private static final String NAME_NAME = "name";
     private static final String CONTENT_NAME = "content";
+    private static final String USER_PROPERTIES_NAME = "user-properties";
 
     private final ModelConfigAdapter model = new ModelConfigAdapter();
+    private final MqttUserPropertyConfigAdapter mqttUserProperty = new MqttUserPropertyConfigAdapter();
 
     @Override
     public JsonObject adaptToJson(
@@ -47,6 +54,15 @@ public class MqttTopicConfigAdapter implements JsonbAdapter<MqttTopicConfig, Jso
             model.adaptType(topic.content.model);
             JsonValue content = model.adaptToJson(topic.content);
             object.add(CONTENT_NAME, content);
+        }
+
+        if (topic.userProperties != null)
+        {
+            JsonArrayBuilder userProperties = Json.createArrayBuilder();
+            topic.userProperties.stream()
+                .map(mqttUserProperty::adaptToJson)
+                .forEach(userProperties::add);
+            object.add(USER_PROPERTIES_NAME, userProperties);
         }
 
         return object.build();
@@ -67,6 +83,15 @@ public class MqttTopicConfigAdapter implements JsonbAdapter<MqttTopicConfig, Jso
             JsonValue contentJson = object.get(CONTENT_NAME);
             mqttTopic.content(model.adaptFromJson(contentJson));
         }
+
+        if (object.containsKey(USER_PROPERTIES_NAME))
+        {
+            List<MqttUserPropertyConfig> userProperties = object.getJsonArray(USER_PROPERTIES_NAME).stream()
+                .map(item -> mqttUserProperty.adaptFromJson((JsonObject) item))
+                .collect(Collectors.toList());
+            mqttTopic.userProperties(userProperties);
+        }
+
         return mqttTopic.build();
     }
 }

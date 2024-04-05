@@ -97,6 +97,7 @@ import java.util.function.LongUnaryOperator;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2IntHashMap;
@@ -7008,6 +7009,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             else
             {
                 flags = calculatePublishApplicationFlags(typeAndFlags);
+                final MqttBindingConfig binding = bindings.get(server.routedId);
 
                 int alias = 0;
 
@@ -7078,6 +7080,11 @@ public final class MqttServerFactory implements MqttStreamFactory
                     case KIND_USER_PROPERTY:
                         final MqttUserPropertyFW userProperty = mqttProperty.userProperty();
                         userPropertiesRW.item(c -> c.key(userProperty.key()).value(userProperty.value()));
+                        final ModelConfig config = binding.supplyUserPropertyModelConfig(topic, userProperty.key());
+                        if (!validateUserProperty(userProperty.value(), config))
+                        {
+                            reasonCode = IMPLEMENTATION_SPECIFIC_ERROR;
+                        }
                         break;
                     default:
                         reasonCode = MALFORMED_PACKET;
@@ -7089,6 +7096,14 @@ public final class MqttServerFactory implements MqttStreamFactory
             }
 
             return reasonCode;
+        }
+
+        private boolean validateUserProperty(
+            String16FW userProperty,
+            ModelConfig config)
+        {
+            return config == null || supplyValidator.apply(config)
+                .validate(userProperty.buffer(), userProperty.offset() + BitUtil.SIZE_OF_SHORT, userProperty.length(), ValueConsumer.NOP);
         }
 
         private int decodeV4(

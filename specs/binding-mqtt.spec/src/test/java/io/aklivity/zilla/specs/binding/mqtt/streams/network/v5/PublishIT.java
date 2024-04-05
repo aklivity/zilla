@@ -339,6 +339,24 @@ public class PublishIT
 
     @Test
     @Specification({
+        "${net}/publish.valid.user.property/client",
+        "${net}/publish.valid.user.property/server"})
+    public void shouldPublishValidUserProperty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/publish.invalid.user.property/client",
+        "${net}/publish.invalid.user.property/server"})
+    public void shouldPublishInvalidUserProperty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/publish.unroutable/client",
         "${net}/publish.unroutable/server"})
     public void shouldRejectUnroutable() throws Exception
