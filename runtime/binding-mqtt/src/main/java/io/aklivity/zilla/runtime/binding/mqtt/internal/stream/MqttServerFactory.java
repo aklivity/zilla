@@ -7083,7 +7083,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                         final ModelConfig config = binding.supplyUserPropertyModelConfig(topic, userProperty.key());
                         if (!validateUserProperty(userProperty.value(), config))
                         {
-                            reasonCode = IMPLEMENTATION_SPECIFIC_ERROR;
+                            reasonCode = PAYLOAD_FORMAT_INVALID;
                         }
                         break;
                     default:
