@@ -59,8 +59,7 @@ public class AyncapiMqttProtocol extends AsyncapiProtocol
                                     .build()
                                 .build()
                             .build()
-                        .build()
-                    .build();
+                        .build();
             }
         }
         return binding;

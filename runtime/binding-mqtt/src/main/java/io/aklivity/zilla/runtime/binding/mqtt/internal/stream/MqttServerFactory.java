@@ -7102,8 +7102,10 @@ public final class MqttServerFactory implements MqttStreamFactory
             String16FW userProperty,
             ModelConfig config)
         {
-            return config == null || supplyValidator.apply(config)
-                .validate(userProperty.buffer(), userProperty.offset() + BitUtil.SIZE_OF_SHORT, userProperty.length(), ValueConsumer.NOP);
+            return config == null ||
+                supplyValidator.apply(config)
+                    .validate(userProperty.buffer(), userProperty.offset() + BitUtil.SIZE_OF_SHORT, userProperty.length(),
+                        ValueConsumer.NOP);
         }
 
         private int decodeV4(

@@ -18,4 +18,6 @@ public class AsyncapiItem
 {
     public String type;
     public String description;
+    public int minimum;
+    public int maximum;
 }
