@@ -158,6 +158,7 @@ final class ZillaTarget implements AutoCloseable
                 .streamId(0L)
                 .sequence(0L)
                 .acknowledge(0L)
+                .state(0)
                 .maximum(maximum)
                 .traceId(traceId)
                 .budgetId(budgetId)
@@ -176,6 +177,7 @@ final class ZillaTarget implements AutoCloseable
                 .streamId(0L)
                 .sequence(0L)
                 .acknowledge(0L)
+                .state(0)
                 .maximum(0)
                 .traceId(traceId)
                 .budgetId(budgetId)
@@ -194,6 +196,7 @@ final class ZillaTarget implements AutoCloseable
         {
             final ZillaChannelConfig clientConfig = client.getConfig();
 
+            final int state = client.state();
             final long originId = client.originId();
             final long routedId = client.routedId();
             final long streamId = clientConfig.getStreamId();
@@ -267,6 +270,7 @@ final class ZillaTarget implements AutoCloseable
                 .streamId(initialId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .timestamp(supplyTimestamp.getAsLong())
                 .traceId(supplyTraceId.getAsLong())
@@ -334,6 +338,7 @@ final class ZillaTarget implements AutoCloseable
     public void doConnectAbort(
         ZillaClientChannel clientChannel)
     {
+        final int state = clientChannel.state();
         final long originId = clientChannel.originId();
         final long routedId = clientChannel.routedId();
         final long initialId = clientChannel.targetId();
@@ -347,6 +352,7 @@ final class ZillaTarget implements AutoCloseable
                 .streamId(initialId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .timestamp(supplyTimestamp.getAsLong())
                 .traceId(supplyTraceId.getAsLong())
@@ -373,6 +379,7 @@ final class ZillaTarget implements AutoCloseable
         final int writableExtBytes = beginExt.readableBytes();
         final byte[] beginExtCopy = writeExtCopy(beginExt);
 
+        final int state = channel.state();
         final long originId = channel.originId();
         final long routedId = channel.routedId();
         final long replyId = channel.targetId();
@@ -387,6 +394,7 @@ final class ZillaTarget implements AutoCloseable
                 .streamId(replyId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .timestamp(supplyTimestamp.getAsLong())
                 .traceId(supplyTraceId.getAsLong())
@@ -473,6 +481,7 @@ final class ZillaTarget implements AutoCloseable
         ZillaChannel channel,
         ChannelFuture adviseFuture)
     {
+        final int state = channel.state();
         final long originId = channel.originId();
         final long routedId = channel.routedId();
         final long streamId = channel.targetId();
@@ -492,6 +501,7 @@ final class ZillaTarget implements AutoCloseable
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .timestamp(supplyTimestamp.getAsLong())
                 .traceId(supplyTraceId.getAsLong())
@@ -514,6 +524,7 @@ final class ZillaTarget implements AutoCloseable
     {
         doFlushBegin(channel);
 
+        final int state = channel.state();
         final long originId = channel.originId();
         final long routedId = channel.routedId();
         final long streamId = channel.targetId();
@@ -532,6 +543,7 @@ final class ZillaTarget implements AutoCloseable
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .timestamp(supplyTimestamp.getAsLong())
                 .traceId(supplyTraceId.getAsLong())
@@ -565,6 +577,7 @@ final class ZillaTarget implements AutoCloseable
     {
         doFlushBegin(channel);
 
+        final int state = channel.state();
         final long originId = channel.originId();
         final long routedId = channel.routedId();
         final long streamId = channel.targetId();
@@ -582,6 +595,7 @@ final class ZillaTarget implements AutoCloseable
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .timestamp(supplyTimestamp.getAsLong())
                 .traceId(supplyTraceId.getAsLong())
@@ -613,6 +627,7 @@ final class ZillaTarget implements AutoCloseable
     {
         doFlushBegin(channel);
 
+        final int state = channel.state();
         final long originId = channel.originId();
         final long routedId = channel.routedId();
         final long streamId = channel.targetId();
@@ -628,6 +643,7 @@ final class ZillaTarget implements AutoCloseable
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(channel.targetMax())
                 .timestamp(supplyTimestamp.getAsLong())
                 .traceId(supplyTraceId.getAsLong())
@@ -750,6 +766,7 @@ final class ZillaTarget implements AutoCloseable
                 }
             }
 
+            final int state = channel.state();
             final long originId = channel.originId();
             final long routedId = channel.routedId();
             final long streamId = channel.targetId();
@@ -764,6 +781,7 @@ final class ZillaTarget implements AutoCloseable
                     .streamId(streamId)
                     .sequence(sequence)
                     .acknowledge(acknowledge)
+                    .state(state)
                     .maximum(maximum)
                     .timestamp(supplyTimestamp.getAsLong())
                     .traceId(supplyTraceId.getAsLong())
@@ -819,6 +837,7 @@ final class ZillaTarget implements AutoCloseable
     void doWindow(
         final ZillaChannel channel)
     {
+        final int state = channel.state();
         final long originId = channel.originId();
         final long routedId = channel.routedId();
         final long streamId = channel.sourceId();
@@ -836,6 +855,7 @@ final class ZillaTarget implements AutoCloseable
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .timestamp(supplyTimestamp.getAsLong())
                 .traceId(supplyTraceId.getAsLong())
@@ -852,6 +872,7 @@ final class ZillaTarget implements AutoCloseable
         final ZillaChannel channel,
         final long traceId)
     {
+        final int state = channel.state();
         final long originId = channel.originId();
         final long routedId = channel.routedId();
         final long streamId = channel.sourceId();
@@ -859,10 +880,11 @@ final class ZillaTarget implements AutoCloseable
         final long acknowledge = channel.sourceAck();
         final int maximum = channel.sourceMax();
 
-        doReset(originId, routedId, streamId, sequence, acknowledge, traceId, maximum);
+        doReset(state, originId, routedId, streamId, sequence, acknowledge, traceId, maximum);
     }
 
     void doReset(
+        final int state,
         final long originId,
         final long routedId,
         final long streamId,
@@ -877,6 +899,7 @@ final class ZillaTarget implements AutoCloseable
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .timestamp(supplyTimestamp.getAsLong())
                 .traceId(traceId)
@@ -889,6 +912,7 @@ final class ZillaTarget implements AutoCloseable
         final ZillaChannel channel,
         final long traceId)
     {
+        final int state = channel.state();
         final long originId = channel.originId();
         final long routedId = channel.routedId();
         final long streamId = channel.sourceId();
@@ -905,6 +929,7 @@ final class ZillaTarget implements AutoCloseable
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .timestamp(supplyTimestamp.getAsLong())
                 .traceId(traceId)
@@ -915,6 +940,7 @@ final class ZillaTarget implements AutoCloseable
     }
 
     void doChallenge(
+        final int state,
         final long originId,
         final long routedId,
         final long streamId,
@@ -932,6 +958,7 @@ final class ZillaTarget implements AutoCloseable
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .timestamp(supplyTimestamp.getAsLong())
                 .traceId(traceId)
@@ -1112,6 +1139,7 @@ final class ZillaTarget implements AutoCloseable
 
             if (!future.isSuccess())
             {
+                final int state = channel.state();
                 final long originId = channel.originId();
                 final long routedId = channel.routedId();
                 final long streamId = channel.sourceId();
@@ -1125,6 +1153,7 @@ final class ZillaTarget implements AutoCloseable
                         .streamId(streamId)
                         .sequence(sequence)
                         .acknowledge(acknowledge)
+                        .state(state)
                         .maximum(maximum)
                         .timestamp(supplyTimestamp.getAsLong())
                         .traceId(supplyTraceId.getAsLong())

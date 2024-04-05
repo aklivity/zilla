@@ -670,6 +670,11 @@ public abstract class ZillaChannel extends AbstractChannel<ZillaChannelConfig>
         return flushable;
     }
 
+    public int state()
+    {
+        return 0; // TODO: if needed
+    }
+
     private void cleanupCreditor(
         ChannelFuture future) throws Exception
     {
