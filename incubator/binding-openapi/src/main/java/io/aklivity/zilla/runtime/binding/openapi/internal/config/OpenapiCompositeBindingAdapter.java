@@ -15,7 +15,6 @@
 package io.aklivity.zilla.runtime.binding.openapi.internal.config;
 
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.stream.Collectors.toList;
 
 import java.util.ArrayList;
@@ -24,12 +23,9 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import jakarta.json.JsonString;
 
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiParser;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.Openapi;
-import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
@@ -138,11 +134,9 @@ public abstract class OpenapiCompositeBindingAdapter
         List<OpenapiConfig> openapiConfigs = new ArrayList<>();
         for (CatalogedConfig catalog : catalogs)
         {
-            CatalogHandler handler = supplyCatalog.apply(catalog.id);
             for (SchemaConfig schema : catalog.schemas)
             {
-                catalogs.add(new GrpcCatalogSchema(handler, schema.subject, schema.version));
-                openapiConfigs.add(new OpenapiConfig(apiLabel, apiId, location, parser.parse(specText)));
+                //openapiConfigs.add(new OpenapiConfig(apiLabel, apiId, location, parser.parse(specText)));
             }
         }
 

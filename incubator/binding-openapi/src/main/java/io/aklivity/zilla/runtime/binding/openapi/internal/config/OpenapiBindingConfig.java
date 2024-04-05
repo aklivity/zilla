@@ -27,7 +27,6 @@ import java.util.TreeMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.agrona.AsciiSequenceView;
 import org.agrona.DirectBuffer;
@@ -70,13 +69,13 @@ public final class OpenapiBindingConfig
         this.overrideRouteId = overrideRouteId;
         this.options = OpenapiOptionsConfig.class.cast(binding.options);
         this.paths = new Object2ObjectHashMap<>();
-        options.openapis.forEach(c -> c.openapi.paths.forEach((k, v) ->
-        {
-            String regex = k.replaceAll("\\{[^/]+}", "[^/]+");
-            regex = "^" + regex + "$";
-            Pattern pattern = Pattern.compile(regex);
-            paths.put(pattern.matcher(""), v);
-        }));
+        //options.openapis.forEach(c -> c.openapi.paths.forEach((k, v) ->
+        //{
+        //    String regex = k.replaceAll("\\{[^/]+}", "[^/]+");
+        //    regex = "^" + regex + "$";
+        //    Pattern pattern = Pattern.compile(regex);
+        //    paths.put(pattern.matcher(""), v);
+        //}));
 
         this.routes = binding.routes.stream().map(OpenapiRouteConfig::new).collect(toList());
 
@@ -86,7 +85,7 @@ public final class OpenapiBindingConfig
             .filter(b -> b.type.equals("http"))
             .collect(of(
                 () -> new Long2LongHashMap(-1),
-                (m, r) -> m.put(options.openapis.stream().findFirst().get().apiId, r.id),
+                (m, r) -> m.put(0, r.id), //options.openapis.stream().findFirst().get().apiId
                 (m, r) -> m,
                 IDENTITY_FINISH
             ));

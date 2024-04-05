@@ -154,7 +154,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
 
             if (route != null)
             {
-                final long apiId = binding.options.openapis.get(0).apiId;
+                final long apiId = 0L; //binding.options.openapis.get(0).apiId;
                 final String operationId = binding.resolveOperationId(httpBeginEx);
 
                 newStream = new HttpStream(

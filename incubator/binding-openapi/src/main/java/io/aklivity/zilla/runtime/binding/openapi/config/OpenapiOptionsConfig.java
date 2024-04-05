@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.config;
 
-import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
