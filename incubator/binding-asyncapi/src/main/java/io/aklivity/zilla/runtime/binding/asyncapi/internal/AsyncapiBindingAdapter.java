@@ -22,6 +22,9 @@ import java.util.EnumMap;
 import java.util.Map;
 import java.util.function.UnaryOperator;
 
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiClientNamespaceGenerator;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiProxyNamespaceGenerator;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiServerNamespaceGenerator;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.CompositeBindingAdapterSpi;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
@@ -33,9 +36,9 @@ public class AsyncapiBindingAdapter implements CompositeBindingAdapterSpi
     public AsyncapiBindingAdapter()
     {
         Map<KindConfig, UnaryOperator<BindingConfig>> composites = new EnumMap<>(KindConfig.class);
-        composites.put(SERVER, new AsyncapiServerCompositeBindingAdapter()::adapt);
-        composites.put(CLIENT, new AsyncapiClientCompositeBindingAdapter()::adapt);
-        composites.put(PROXY, new AsyncapiProxyCompositeBindingAdapter()::adapt);
+        composites.put(SERVER, new AsyncapiServerNamespaceGenerator()::adapt);
+        composites.put(CLIENT, new AsyncapiClientNamespaceGenerator()::adapt);
+        composites.put(PROXY, new AsyncapiProxyNamespaceGenerator()::adapt);
         this.composites = composites;
     }
 

@@ -16,11 +16,97 @@
 
 ---
 name: test
+catalogs:
+  catalog0:
+    type: test
+    options:
+      subject: petstore
+      schema: |
+        asyncapi: 3.0.0
+        info:
+          title: AsyncAPI Petstore
+          license:
+            name: MIT
+          version: 1.0.0
+        servers:
+          plain:
+            host: localhost:8080
+            protocol: http
+            protocolVersion: '2.0'
+        defaultContentType: application/json
+        
+        channels:
+          pets:
+            address: /pets
+            messages:
+              pet:
+                $ref: '#/components/messages/pet'
+          showPetById:
+            address: /pets/{id}
+            messages:
+              pet:
+                $ref: '#/components/messages/pet'
+        
+        operations:
+          createPet:
+            action: send
+            bindings:
+              http:
+                method: POST
+            channel:
+              $ref: '#/channels/pets'
+          listPets:
+            action: receive
+            bindings:
+              http:
+                method: GET
+            channel:
+              $ref: '#/channels/pets'
+          getPets:
+            action: receive
+            bindings:
+              http:
+                method: GET
+                query:
+                  type: object
+                  properties:
+                    limit:
+                      type: number
+            channel:
+              $ref: '#/channels/showPetById'
+        
+        components:
+          correlationIds:
+            petsCorrelationId:
+              location: '$message.header#/idempotency-key'
+          schemas:
+            petPayload:
+              type: object
+              properties:
+                id:
+                  type: integer
+                  minimum: 0
+                  description: Pet id.
+                name:
+                  type: string
+                  description: Pet name.
+                tag:
+                  type: string
+                  description: Tag.
+          messages:
+            pet:
+              name: Pet
+              title: Pet
+              summary: >-
+                Inform about Pet.
+              contentType: application/json
+              payload:
+                $ref: '#/components/schemas/petPayload'
 bindings:
   composite0:
     type: asyncapi
     kind: server
-    options:
-      specs:
-        http_api: http/asyncapi.yaml
+    catalog:
+      catalog0:
+        - subject: petstore
     exit: asyncapi0

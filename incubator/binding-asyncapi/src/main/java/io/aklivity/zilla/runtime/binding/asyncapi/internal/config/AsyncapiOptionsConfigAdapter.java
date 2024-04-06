@@ -14,31 +14,20 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.config;
 
-import static java.util.stream.Collectors.toList;
-
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.Map;
 import java.util.function.Function;
-import java.util.zip.CRC32C;
 
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.JsonString;
-import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiChannelsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiChannelsConfigBuilder;
-import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiMqttKafkaConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiMqttKafkaConfigBuilder;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfigBuilder;
-import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiParser;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiBinding;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
@@ -50,7 +39,6 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
 public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
-    private static final String SPECS_NAME = "specs";
     private static final String TCP_NAME = "tcp";
     private static final String TLS_NAME = "tls";
     private static final String HTTP_NAME = "http";
@@ -61,9 +49,6 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
     private static final String MESSAGES_NAME = "messages";
     private static final String RETAINED_NAME = "retained";
 
-    private final AsyncapiParser parser;
-    private final CRC32C crc;
-
     private OptionsConfigAdapter tcpOptions;
     private OptionsConfigAdapter tlsOptions;
     private OptionsConfigAdapter httpOptions;
@@ -72,8 +57,6 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
 
     public AsyncapiOptionsConfigAdapter()
     {
-        this.parser = new AsyncapiParser();
-        this.crc = new CRC32C();
     }
 
     public Kind kind()
@@ -94,13 +77,6 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
         AsyncapiOptionsConfig asyncapiOptions = (AsyncapiOptionsConfig) options;
 
         JsonObjectBuilder object = Json.createObjectBuilder();
-
-        if (asyncapiOptions.specs != null)
-        {
-            JsonObjectBuilder specs = Json.createObjectBuilder();
-            asyncapiOptions.specs.forEach(p -> specs.add(p.apiLabel, p.location));
-            object.add(SPECS_NAME, specs);
-        }
 
         if (asyncapiOptions.tcp != null)
         {
@@ -165,11 +141,6 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
         JsonObject object)
     {
         final AsyncapiOptionsConfigBuilder<AsyncapiOptionsConfig> asyncapiOptions = AsyncapiOptionsConfig.builder();
-
-        List<AsyncapiConfig> specs = object.containsKey(SPECS_NAME)
-            ? asListAsyncapis(object.getJsonObject(SPECS_NAME))
-            : null;
-        asyncapiOptions.specs(specs);
 
         if (object.containsKey(TCP_NAME))
         {
@@ -240,27 +211,4 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
         this.kafkaOptions = new OptionsConfigAdapter(Kind.BINDING, context);
         this.kafkaOptions.adaptType("kafka");
     }
-
-    private List<AsyncapiConfig> asListAsyncapis(
-        JsonObject array)
-    {
-        return array.entrySet().stream()
-            .map(this::asAsyncapi)
-            .collect(toList());
-    }
-
-    private AsyncapiConfig asAsyncapi(
-        Map.Entry<String, JsonValue> entry)
-    {
-        final String apiLabel = entry.getKey();
-        final String location = ((JsonString) entry.getValue()).getString();
-        final String specText = readURL.apply(location);
-        crc.reset();
-        crc.update(specText.getBytes(StandardCharsets.UTF_8));
-        final long apiId = crc.getValue();
-        Asyncapi asyncapi = parser.parse(specText);
-
-        return new AsyncapiConfig(apiLabel, apiId, location, asyncapi);
-    }
-
 }

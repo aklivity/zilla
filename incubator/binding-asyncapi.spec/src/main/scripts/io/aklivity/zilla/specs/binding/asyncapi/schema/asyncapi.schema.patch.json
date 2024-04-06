@@ -35,23 +35,6 @@
                     {
                         "properties":
                         {
-                            "specs":
-                            {
-                                "title": "Specifications",
-                                "type": "object",
-                                "apiId":
-                                {
-                                    "type": "object",
-                                    "patternProperties":
-                                    {
-                                        "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
-                                        {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "maxProperties": 1
-                                }
-                            },
                             "tcp":
                             {
                                 "$ref": "#/$defs/options/binding/tcp"
@@ -136,14 +119,9 @@
                                         "additionalProperties": false,
                                         "properties":
                                         {
-                                            "api-id":
+                                            "subject":
                                             {
-                                                "title": "MQTT API Id",
-                                                "type": "string"
-                                            },
-                                            "operation-id":
-                                            {
-                                                "title": "MQTT Operation Id",
+                                                "title": "Catalog Subject",
                                                 "type": "string"
                                             }
                                         }
@@ -153,14 +131,9 @@
                                 {
                                     "properties":
                                     {
-                                        "api-id":
+                                        "subject":
                                         {
-                                            "title": "Kafka API Id",
-                                            "type": "string"
-                                        },
-                                        "operation-id":
-                                        {
-                                            "title": "Kafka Operation Id",
+                                            "title": "Catalog Subject",
                                             "type": "string"
                                         }
                                     },

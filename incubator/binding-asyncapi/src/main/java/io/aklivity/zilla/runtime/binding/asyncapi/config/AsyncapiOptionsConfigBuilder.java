@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.config;
 
-import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
@@ -40,7 +39,6 @@ public final class AsyncapiOptionsConfigBuilder<T> extends ConfigBuilder<T, Asyn
 
     private final Function<OptionsConfig, T> mapper;
 
-    public List<AsyncapiConfig> specs;
     private TcpOptionsConfig tcp;
     private TlsOptionsConfig tls;
     private HttpOptionsConfig http;
@@ -58,13 +56,6 @@ public final class AsyncapiOptionsConfigBuilder<T> extends ConfigBuilder<T, Asyn
     protected Class<AsyncapiOptionsConfigBuilder<T>> thisType()
     {
         return (Class<AsyncapiOptionsConfigBuilder<T>>) getClass();
-    }
-
-    public AsyncapiOptionsConfigBuilder<T> specs(
-        List<AsyncapiConfig> specs)
-    {
-        this.specs = specs;
-        return this;
     }
 
     public AsyncapiOptionsConfigBuilder<T> tcp(
@@ -105,6 +96,6 @@ public final class AsyncapiOptionsConfigBuilder<T> extends ConfigBuilder<T, Asyn
     @Override
     public T build()
     {
-        return mapper.apply(new AsyncapiOptionsConfig(specs, tcp, tls, http, kafka, mqttKafka));
+        return mapper.apply(new AsyncapiOptionsConfig(tcp, tls, http, kafka, mqttKafka));
     }
 }

@@ -111,7 +111,7 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        AsyncapiBindingConfig asyncapiBinding = new AsyncapiBindingConfig(binding, config.targetRouteId());
+        AsyncapiBindingConfig asyncapiBinding = new AsyncapiBindingConfig(binding, namespaceGenerator, supplyCatalog, config.targetRouteId());
         bindings.put(binding.id, asyncapiBinding);
     }
 

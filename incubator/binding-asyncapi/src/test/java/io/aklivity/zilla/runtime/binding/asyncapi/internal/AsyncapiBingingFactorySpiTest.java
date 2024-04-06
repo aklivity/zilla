@@ -34,6 +34,7 @@ import org.mockito.junit.MockitoRule;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiOptionsConfigAdapterTest;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiServerNamespaceGenerator;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
@@ -87,7 +88,7 @@ public class AsyncapiBingingFactorySpiTest
             .options(options)
             .build();
 
-        AsyncapiServerCompositeBindingAdapter adapter = new AsyncapiServerCompositeBindingAdapter();
+        AsyncapiServerNamespaceGenerator adapter = new AsyncapiServerNamespaceGenerator();
         Assert.assertEquals(0, config.composites.size());
         BindingConfig newConfig = adapter.adapt(config);
         Assert.assertEquals(1, newConfig.composites.size());

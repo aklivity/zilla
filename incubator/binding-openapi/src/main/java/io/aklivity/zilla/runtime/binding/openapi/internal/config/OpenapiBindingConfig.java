@@ -59,12 +59,13 @@ public final class OpenapiBindingConfig
     public final KindConfig kind;
     public final OpenapiOptionsConfig options;
     public final List<OpenapiRouteConfig> routes;
-    public final HttpHeaderHelper helper;
 
+    private final OpenapiNamespaceGenerator namespaceGenerator;
     private final LongFunction<CatalogHandler> supplyCatalog;
     private final long overrideRouteId;
     private final IntHashSet httpOrigins;
     private final Long2LongHashMap apiIdsByNamespaceId;
+    private final HttpHeaderHelper helper;
     private final OpenapiParser parser;
     private final Consumer<NamespaceConfig> detach;
     private final Long2LongHashMap resolvedIds;
@@ -74,12 +75,14 @@ public final class OpenapiBindingConfig
 
     public OpenapiBindingConfig(
         BindingConfig binding,
+        OpenapiNamespaceGenerator namespaceGenerator,
         LongFunction<CatalogHandler> supplyCatalog,
         long overrideRouteId)
     {
         this.id = binding.id;
         this.name = binding.name;
         this.kind = binding.kind;
+        this.namespaceGenerator = namespaceGenerator;
         this.supplyCatalog = supplyCatalog;
         this.overrideRouteId = overrideRouteId;
         this.options = OpenapiOptionsConfig.class.cast(binding.options);
@@ -89,11 +92,9 @@ public final class OpenapiBindingConfig
         this.apiIdsByNamespaceId = new Long2LongHashMap(-1);
         this.httpOrigins = new IntHashSet(-1);
         this.parser = new OpenapiParser();
-        this.detach = binding.detach;
-
-        this.routes = binding.routes.stream().map(OpenapiRouteConfig::new).collect(toList());
-
         this.helper = new HttpHeaderHelper();
+        this.detach = binding.detach;
+        this.routes = binding.routes.stream().map(OpenapiRouteConfig::new).collect(toList());
 
         Map<CharSequence, Function<OpenapiPathItem, String>> resolversByMethod = new TreeMap<>(CharSequence::compare);
         resolversByMethod.put("POST", o -> o.post != null ? o.post.operationId : null);
@@ -108,14 +109,13 @@ public final class OpenapiBindingConfig
     }
 
     public void attach(
-        BindingConfig binding,
-        OpenapiNamespaceGenerator compositeBinding)
+        BindingConfig binding)
     {
         List<OpenapiConfig> configs = convertToOpenapi(binding.catalogs);
         configs.forEach(c ->
         {
             Openapi openapi = c.openapi;
-            final NamespaceConfig composite = binding.attach.apply(compositeBinding.generate(binding, openapi));
+            final NamespaceConfig composite = binding.attach.apply(namespaceGenerator.generate(binding, openapi));
             composites.put(c.schemaId, composite);
             openapi.paths.forEach((k, v) ->
             {

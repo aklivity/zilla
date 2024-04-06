@@ -12,37 +12,28 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.asyncapi.internal;
+package io.aklivity.zilla.runtime.binding.asyncapi.internal.config;
 
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
 import static java.util.Collections.emptyList;
 
 import java.util.List;
 
-import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiServerView;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.CompositeBindingAdapterSpi;
 import io.aklivity.zilla.runtime.engine.config.MetricRefConfig;
+import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 
-public class AsyncapiClientCompositeBindingAdapter extends AsyncapiCompositeBindingAdapter implements CompositeBindingAdapterSpi
+public class AsyncapiClientNamespaceGenerator extends AsyncapiNamespaceGenerator
 {
-
-    @Override
-    public String type()
-    {
-        return AsyncapiBinding.NAME;
-    }
-
-    @Override
-    public BindingConfig adapt(
-        BindingConfig binding)
+    public NamespaceConfig generate(
+        BindingConfig binding,
+        Asyncapi asyncapi)
     {
         AsyncapiOptionsConfig options = (AsyncapiOptionsConfig) binding.options;
-        AsyncapiConfig asyncapiConfig = options.specs.get(0);
-        this.asyncapi = asyncapiConfig.asyncapi;
         final List<MetricRefConfig> metricRefs = binding.telemetryRef != null ?
             binding.telemetryRef.metricRefs : emptyList();
 
@@ -55,8 +46,7 @@ public class AsyncapiClientCompositeBindingAdapter extends AsyncapiCompositeBind
         this.protocol = resolveProtocol(firstServer.protocol(), options);
         this.isTlsEnabled = protocol.isSecure();
 
-        return BindingConfig.builder(binding)
-            .composite()
+        return NamespaceConfig.builder()
                 .name(String.format("%s.%s", qname, "$composite"))
                 .inject(n -> this.injectNamespaceMetric(n, !metricRefs.isEmpty()))
                 .inject(n -> this.injectCatalog(n, asyncapi))
@@ -77,8 +67,7 @@ public class AsyncapiClientCompositeBindingAdapter extends AsyncapiCompositeBind
                     .inject(b -> this.injectMetrics(b, metricRefs, "tcp"))
                     .options(options.tcp)
                     .build()
-                .build()
-            .build();
+                .build();
     }
 
     private <C> NamespaceConfigBuilder<C> injectTlsClient(

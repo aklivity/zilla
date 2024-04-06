@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.asyncapi.internal;
+package io.aklivity.zilla.runtime.binding.asyncapi.internal.config;
 
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.PROXY;
 import static java.util.Collections.emptyList;
@@ -22,8 +22,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiConditionConfig;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiRouteConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiOperation;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiChannelView;
@@ -33,32 +31,26 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaOptionsConfi
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaWithConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.CompositeBindingAdapterSpi;
 import io.aklivity.zilla.runtime.engine.config.MetricRefConfig;
+import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
 
-public class AsyncapiProxyCompositeBindingAdapter extends AsyncapiCompositeBindingAdapter implements CompositeBindingAdapterSpi
+public class AsyncapiProxyNamespaceGenerator extends AsyncapiNamespaceGenerator
 {
     private static final String ASYNCAPI_SEND_ACTION_NAME = "send";
     private static final String ASYNCAPI_RECEIVE_ACTION_NAME = "receive";
     private static final String ASYNCAPI_KAFKA_PROTOCOL_NAME = "kafka";
     private static final String ASYNCAPI_MQTT_PROTOCOL_NAME = "mqtt";
 
-    @Override
-    public String type()
-    {
-        return AsyncapiBinding.NAME;
-    }
-
-    @Override
-    public BindingConfig adapt(
-        BindingConfig binding)
+    public NamespaceConfig generate(
+        BindingConfig binding,
+        List<Asyncapi> asyncapis)
     {
         AsyncapiOptionsConfig options = (AsyncapiOptionsConfig) binding.options;
         List<AsyncapiRouteConfig> routes = binding.routes.stream()
             .map(r -> new AsyncapiRouteConfig(r, options::resolveApiId))
             .collect(Collectors.toList());
-        this.asyncApis = options.specs.stream().collect(Collectors.toUnmodifiableMap(a -> a.apiLabel, a -> a.asyncapi));
+        this.asyncapis = asyncapis;
         this.qname = binding.qname;
         final List<MetricRefConfig> metricRefs = binding.telemetryRef != null ?
             binding.telemetryRef.metricRefs : emptyList();
@@ -66,7 +58,7 @@ public class AsyncapiProxyCompositeBindingAdapter extends AsyncapiCompositeBindi
         String sessions = "";
         String messages = "";
         String retained = "";
-        for (Asyncapi asyncapi : asyncApis.values())
+        for (Asyncapi asyncapi : asyncapis.values())
         {
             if (asyncapi.channels.containsKey(options.mqttKafka.channels.sessions))
             {
@@ -84,8 +76,7 @@ public class AsyncapiProxyCompositeBindingAdapter extends AsyncapiCompositeBindi
             }
         }
 
-        return BindingConfig.builder(binding)
-            .composite()
+        return NamespaceConfig.builder()
                 .name(String.format("%s/%s", qname, "mqtt-kafka"))
                 .inject(n -> this.injectNamespaceMetric(n, !metricRefs.isEmpty()))
                 .binding()
@@ -103,8 +94,7 @@ public class AsyncapiProxyCompositeBindingAdapter extends AsyncapiCompositeBindi
                         .build()
                     .inject(b -> this.injectMqttKafkaRoutes(b, routes))
                     .build()
-                .build()
-           .build();
+                .build();
     }
 
     public <C> BindingConfigBuilder<C> injectMqttKafkaRoutes(
@@ -116,7 +106,7 @@ public class AsyncapiProxyCompositeBindingAdapter extends AsyncapiCompositeBindi
         {
             final RouteConfigBuilder<BindingConfigBuilder<C>> routeBuilder = binding.route();
 
-            final Asyncapi kafkaAsyncapi = asyncApis.get(route.with.apiId);
+            final Asyncapi kafkaAsyncapi = asyncapis.get(route.with.apiId);
 
             if (kafkaAsyncapi.servers.values().stream().anyMatch(s -> !s.protocol.startsWith(ASYNCAPI_KAFKA_PROTOCOL_NAME)))
             {
@@ -128,7 +118,7 @@ public class AsyncapiProxyCompositeBindingAdapter extends AsyncapiCompositeBindi
 
             for (AsyncapiConditionConfig condition : route.when)
             {
-                final Asyncapi mqttAsyncapi = asyncApis.get(condition.apiId);
+                final Asyncapi mqttAsyncapi = asyncapis.get(condition.apiId);
                 if (mqttAsyncapi.servers.values().stream().anyMatch(s -> !s.protocol.startsWith(ASYNCAPI_MQTT_PROTOCOL_NAME)))
                 {
                     break inject;

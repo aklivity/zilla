@@ -119,11 +119,11 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        OpenapiBindingConfig openapiBinding = new OpenapiBindingConfig(binding, supplyCatalog,
+        OpenapiBindingConfig openapiBinding = new OpenapiBindingConfig(binding, namespaceGenerator, supplyCatalog,
             config.targetRouteId());
         bindings.put(binding.id, openapiBinding);
 
-        openapiBinding.attach(binding, namespaceGenerator);
+        openapiBinding.attach(binding);
     }
 
     @Override
