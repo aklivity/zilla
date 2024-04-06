@@ -148,5 +148,5 @@ bindings:
     kind: server
     catalog:
       catalog0:
-        - subject: pet
+        - subject: petstore
     exit: openapi0
