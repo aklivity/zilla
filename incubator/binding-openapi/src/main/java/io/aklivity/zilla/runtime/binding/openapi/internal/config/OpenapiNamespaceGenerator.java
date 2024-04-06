@@ -35,7 +35,7 @@ import io.aklivity.zilla.runtime.engine.config.TelemetryRefConfigBuilder;
 import io.aklivity.zilla.runtime.model.core.config.Int32ModelConfig;
 import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
 
-public abstract class OpenapiCompositeBinding
+public abstract class OpenapiNamespaceGenerator
 {
     protected static final String INLINE_CATALOG_NAME = "catalog0";
     protected static final String INLINE_CATALOG_TYPE = "inline";
@@ -49,9 +49,7 @@ public abstract class OpenapiCompositeBinding
         "integer", Int32ModelConfig.builder().build()
     );
 
-
-
-    public abstract NamespaceConfig composite(
+    public abstract NamespaceConfig generate(
         BindingConfig binding,
         Openapi openapi);
 

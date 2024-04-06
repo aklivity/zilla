@@ -27,7 +27,7 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiBinding;
 import io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiConfiguration;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiRouteConfig;
-import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiServerCompositeBinding;
+import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiServerNamespaceGenerator;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.AbortFW;
@@ -45,7 +45,6 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 
 public final class OpenapiServerFactory implements OpenapiStreamFactory
 {
@@ -74,7 +73,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
     private final OpenapiBeginExFW.Builder openapiBeginExRW = new OpenapiBeginExFW.Builder();
 
     private final OpenapiConfiguration config;
-    private final OpenapiServerCompositeBinding compositeBinding;
+    private final OpenapiServerNamespaceGenerator compositeBinding;
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer extBuffer;
     private final BufferPool bufferPool;
@@ -100,7 +99,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
         this.supplyReplyId = context::supplyReplyId;
         this.supplyTraceId = context::supplyTraceId;
         this.supplyCatalog = context::supplyCatalog;
-        this.compositeBinding = new OpenapiServerCompositeBinding();
+        this.compositeBinding = new OpenapiServerNamespaceGenerator();
         this.bindings = new Long2ObjectHashMap<>();
         this.openapiTypeId = context.supplyTypeId(OpenapiBinding.NAME);
         this.httpTypeId = context.supplyTypeId(HTTP_TYPE_NAME);
@@ -156,31 +155,25 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
 
         MessageConsumer newStream = null;
 
-        if (binding != null)
+        if (binding != null && binding.isCompositeOriginId(originId))
         {
-            final int namespaceId = NamespacedId.namespaceId(originId);
-            if (binding.isCompositeNamespace(namespaceId))
+            final OpenapiRouteConfig route = binding.resolve(authorization);
+
+            if (route != null)
             {
+                final String operationId = binding.resolveOperationId(httpBeginEx);
+                final long apiId = binding.resolveApiId(originId);
 
-                final OpenapiRouteConfig route = binding.resolve(authorization);
-
-                if (route != null)
-                {
-                    final String operationId = binding.resolveOperationId(httpBeginEx);
-                    final long apiId = binding.resolveApiId(namespaceId);
-
-                    newStream = new HttpStream(
-                        receiver,
-                        originId,
-                        routedId,
-                        initialId,
-                        affinity,
-                        authorization,
-                        route.id,
-                        apiId,
-                        operationId)::onHttpMessage;
-                }
-
+                newStream = new HttpStream(
+                    receiver,
+                    originId,
+                    routedId,
+                    initialId,
+                    affinity,
+                    authorization,
+                    route.id,
+                    apiId,
+                    operationId)::onHttpMessage;
             }
         }
 

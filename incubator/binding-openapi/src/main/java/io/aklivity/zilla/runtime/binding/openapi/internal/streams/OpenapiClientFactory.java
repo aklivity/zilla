@@ -26,7 +26,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 import io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiBinding;
 import io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiConfiguration;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiBindingConfig;
-import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiClientCompositeBinding;
+import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiClientNamespaceGenerator;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.AbortFW;
@@ -70,7 +70,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
     private final OpenapiBeginExFW.Builder openBeginExRW = new OpenapiBeginExFW.Builder();
 
     private final OpenapiConfiguration config;
-    private final OpenapiClientCompositeBinding compositeBinding;
+    private final OpenapiClientNamespaceGenerator compositeBinding;
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer extBuffer;
     private final BufferPool bufferPool;
@@ -97,7 +97,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
         this.supplyReplyId = context::supplyReplyId;
         this.supplyTraceId = context::supplyTraceId;
         this.supplyCatalog = context::supplyCatalog;
-        this.compositeBinding = new OpenapiClientCompositeBinding();
+        this.compositeBinding = new OpenapiClientNamespaceGenerator();
         this.bindings = new Long2ObjectHashMap<>();
         this.openapiTypeId = context.supplyTypeId(OpenapiBinding.NAME);
         this.httpTypeId = context.supplyTypeId(HTTP_TYPE_NAME);

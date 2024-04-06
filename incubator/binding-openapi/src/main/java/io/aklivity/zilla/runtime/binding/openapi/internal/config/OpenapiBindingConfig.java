@@ -75,7 +75,7 @@ public final class OpenapiBindingConfig
     public OpenapiBindingConfig(
         BindingConfig binding,
         LongFunction<CatalogHandler> supplyCatalog,
-        OpenapiCompositeBinding compositeBinding,
+        OpenapiNamespaceGenerator compositeBinding,
         long overrideRouteId)
     {
         this.id = binding.id;
@@ -96,7 +96,7 @@ public final class OpenapiBindingConfig
         configs.forEach(c ->
         {
             Openapi openapi = c.openapi;
-            final NamespaceConfig composite = binding.attach.apply(compositeBinding.composite(binding, openapi));
+            final NamespaceConfig composite = binding.attach.apply(compositeBinding.generate(binding, openapi));
             composites.put(c.schemaId, composite);
             openapi.paths.forEach((k, v) ->
             {
@@ -145,16 +145,16 @@ public final class OpenapiBindingConfig
         composites.clear();
     }
 
-    public boolean isCompositeNamespace(
-        int namespaceId)
+    public boolean isCompositeOriginId(
+        long originId)
     {
-        return httpOrigins.contains(namespaceId);
+        return httpOrigins.contains(NamespacedId.namespaceId(originId));
     }
 
     public long resolveApiId(
-        long namespaceId)
+        long originId)
     {
-        return apiIdsByNamespaceId.get(namespaceId);
+        return apiIdsByNamespaceId.get(NamespacedId.namespaceId(originId));
     }
 
     public long resolveResolvedId(

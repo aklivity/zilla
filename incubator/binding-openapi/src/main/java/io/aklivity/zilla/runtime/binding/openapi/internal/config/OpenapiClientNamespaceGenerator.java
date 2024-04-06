@@ -47,10 +47,10 @@ import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
-public final class OpenapiClientCompositeBinding extends OpenapiCompositeBinding
+public final class OpenapiClientNamespaceGenerator extends OpenapiNamespaceGenerator
 {
     @Override
-    public NamespaceConfig composite(
+    public NamespaceConfig generate(
         BindingConfig binding,
         Openapi openapi)
     {
