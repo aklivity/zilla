@@ -75,7 +75,6 @@ public final class OpenapiBindingConfig
     public OpenapiBindingConfig(
         BindingConfig binding,
         LongFunction<CatalogHandler> supplyCatalog,
-        OpenapiNamespaceGenerator compositeBinding,
         long overrideRouteId)
     {
         this.id = binding.id;
@@ -92,6 +91,26 @@ public final class OpenapiBindingConfig
         this.parser = new OpenapiParser();
         this.detach = binding.detach;
 
+        this.routes = binding.routes.stream().map(OpenapiRouteConfig::new).collect(toList());
+
+        this.helper = new HttpHeaderHelper();
+
+        Map<CharSequence, Function<OpenapiPathItem, String>> resolversByMethod = new TreeMap<>(CharSequence::compare);
+        resolversByMethod.put("POST", o -> o.post != null ? o.post.operationId : null);
+        resolversByMethod.put("PUT", o -> o.put != null ? o.put.operationId : null);
+        resolversByMethod.put("GET", o -> o.get != null ? o.get.operationId : null);
+        resolversByMethod.put("DELETE", o -> o.delete != null ? o.delete.operationId : null);
+        resolversByMethod.put("OPTIONS", o -> o.options != null ? o.options.operationId : null);
+        resolversByMethod.put("HEAD", o -> o.head != null ? o.head.operationId : null);
+        resolversByMethod.put("PATCH", o -> o.patch != null ? o.patch.operationId : null);
+        resolversByMethod.put("TRACE", o -> o.post != null ? o.trace.operationId : null);
+        this.resolversByMethod = unmodifiableMap(resolversByMethod);
+    }
+
+    public void attach(
+        BindingConfig binding,
+        OpenapiNamespaceGenerator compositeBinding)
+    {
         List<OpenapiConfig> configs = convertToOpenapi(binding.catalogs);
         configs.forEach(c ->
         {
@@ -106,8 +125,6 @@ public final class OpenapiBindingConfig
                 paths.put(pattern.matcher(""), v);
             });
         });
-
-        this.routes = binding.routes.stream().map(OpenapiRouteConfig::new).collect(toList());
 
         composites.forEach((k, v) ->
         {
@@ -124,19 +141,6 @@ public final class OpenapiBindingConfig
                     apiIdsByNamespaceId.put(n, k);
                 });
         });
-
-        this.helper = new HttpHeaderHelper();
-
-        Map<CharSequence, Function<OpenapiPathItem, String>> resolversByMethod = new TreeMap<>(CharSequence::compare);
-        resolversByMethod.put("POST", o -> o.post != null ? o.post.operationId : null);
-        resolversByMethod.put("PUT", o -> o.put != null ? o.put.operationId : null);
-        resolversByMethod.put("GET", o -> o.get != null ? o.get.operationId : null);
-        resolversByMethod.put("DELETE", o -> o.delete != null ? o.delete.operationId : null);
-        resolversByMethod.put("OPTIONS", o -> o.options != null ? o.options.operationId : null);
-        resolversByMethod.put("HEAD", o -> o.head != null ? o.head.operationId : null);
-        resolversByMethod.put("PATCH", o -> o.patch != null ? o.patch.operationId : null);
-        resolversByMethod.put("TRACE", o -> o.post != null ? o.trace.operationId : null);
-        this.resolversByMethod = unmodifiableMap(resolversByMethod);
     }
 
     public void detach()

@@ -70,7 +70,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
     private final OpenapiBeginExFW.Builder openBeginExRW = new OpenapiBeginExFW.Builder();
 
     private final OpenapiConfiguration config;
-    private final OpenapiClientNamespaceGenerator compositeBinding;
+    private final OpenapiClientNamespaceGenerator namespaceGenerator;
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer extBuffer;
     private final BufferPool bufferPool;
@@ -97,7 +97,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
         this.supplyReplyId = context::supplyReplyId;
         this.supplyTraceId = context::supplyTraceId;
         this.supplyCatalog = context::supplyCatalog;
-        this.compositeBinding = new OpenapiClientNamespaceGenerator();
+        this.namespaceGenerator = new OpenapiClientNamespaceGenerator();
         this.bindings = new Long2ObjectHashMap<>();
         this.openapiTypeId = context.supplyTypeId(OpenapiBinding.NAME);
         this.httpTypeId = context.supplyTypeId(HTTP_TYPE_NAME);
@@ -120,8 +120,10 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
         BindingConfig binding)
     {
         OpenapiBindingConfig openapiBinding = new OpenapiBindingConfig(binding, supplyCatalog,
-            compositeBinding, config.targetRouteId());
+            config.targetRouteId());
         bindings.put(binding.id, openapiBinding);
+
+        openapiBinding.attach(binding, namespaceGenerator);
     }
 
     @Override
