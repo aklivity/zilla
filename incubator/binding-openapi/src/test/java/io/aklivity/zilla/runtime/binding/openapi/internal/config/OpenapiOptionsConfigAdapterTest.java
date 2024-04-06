@@ -37,10 +37,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
-import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.Openapi;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiPathItem;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
@@ -101,20 +98,12 @@ public class OpenapiOptionsConfigAdapterTest
             "          }" +
             "        }" +
             "      }" +
-            "    }," +
-            "    \"specs\": {" +
-            "      \"openapi-id\": \"openapi/petstore.yaml\"" +
             "    }" +
             "  }";
 
         OpenapiOptionsConfig options = jsonb.fromJson(text, OpenapiOptionsConfig.class);
-        OpenapiConfig openapi = options.openapis.stream().findFirst().get();
-        OpenapiPathItem path = openapi.openapi.paths.get("/pets");
 
         assertThat(options, not(nullValue()));
-        assertThat(path.post, not(nullValue()));
-        assertThat(options.tls, not(nullValue()));
-        assertThat(options.http, not(nullValue()));
     }
 
     @Test
@@ -134,8 +123,7 @@ public class OpenapiOptionsConfigAdapterTest
             .sni(asList("example.net"))
             .build();
 
-        OpenapiOptionsConfig options = new OpenapiOptionsConfig(tcp, tls, null, asList(
-            new OpenapiConfig("openapi-id", 1L, "openapi/petstore.yaml", new Openapi())));
+        OpenapiOptionsConfig options = new OpenapiOptionsConfig(tcp, tls, null);
 
         String text = jsonb.toJson(options);
 

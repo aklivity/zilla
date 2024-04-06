@@ -23,6 +23,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 
+import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.Openapi;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
@@ -40,12 +41,15 @@ public abstract class OpenapiCompositeBinding
     protected static final String INLINE_CATALOG_TYPE = "inline";
     protected static final String VERSION_LATEST = "latest";
     protected static final Pattern JSON_CONTENT_TYPE = Pattern.compile("^application/(?:.+\\+)?json$");
+    protected static final OpenapiOptionsConfig EMPTY_OPTION = new OpenapiOptionsConfig(null, null, null);
 
     protected final Matcher jsonContentType = JSON_CONTENT_TYPE.matcher("");
     protected final Map<String, ModelConfig> models = Map.of(
         "string", StringModelConfig.builder().build(),
         "integer", Int32ModelConfig.builder().build()
     );
+
+
 
     public abstract NamespaceConfig composite(
         BindingConfig binding,

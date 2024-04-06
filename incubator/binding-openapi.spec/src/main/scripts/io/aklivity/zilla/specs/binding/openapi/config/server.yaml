@@ -20,7 +20,6 @@ catalogs:
   catalog0:
     type: test
     options:
-      id: 1
       subject: pet
       schema: |
         openapi: "3.0.0"
@@ -31,7 +30,6 @@ catalogs:
             name: MIT
         servers:
           - url: http://localhost:8080
-          - url: https://localhost:9090
         paths:
           /pets:
             get:
@@ -148,8 +146,7 @@ bindings:
   composite0:
     type: openapi
     kind: server
-    options:
-      catalog:
-        catalog0:
-          - subject: pet
+    catalog:
+      catalog0:
+        - subject: pet
     exit: openapi0

@@ -67,7 +67,7 @@ public final class OpenapiServerCompositeBinding extends OpenapiCompositeBinding
         BindingConfig binding,
         Openapi openapi)
     {
-        final OpenapiOptionsConfig options = (OpenapiOptionsConfig) binding.options;
+        final OpenapiOptionsConfig options = binding.options != null ? (OpenapiOptionsConfig) binding.options : EMPTY_OPTION;
         final List<MetricRefConfig> metricRefs = binding.telemetryRef != null ?
             binding.telemetryRef.metricRefs : emptyList();
 

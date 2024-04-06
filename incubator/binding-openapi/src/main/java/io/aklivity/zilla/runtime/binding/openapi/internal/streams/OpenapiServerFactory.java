@@ -156,28 +156,32 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
 
         MessageConsumer newStream = null;
 
-        if (binding != null && binding.isCompositeNamespace(NamespacedId.namespaceId(originId)))
+        if (binding != null)
         {
-
-            final OpenapiRouteConfig route = binding.resolve(authorization);
-
-            if (route != null)
+            final int namespaceId = NamespacedId.namespaceId(originId);
+            if (binding.isCompositeNamespace(namespaceId))
             {
-                final long apiId = 0L; //binding.options.openapis.get(0).apiId;
-                final String operationId = binding.resolveOperationId(httpBeginEx);
 
-                newStream = new HttpStream(
-                    receiver,
-                    originId,
-                    routedId,
-                    initialId,
-                    affinity,
-                    authorization,
-                    route.id,
-                    apiId,
-                    operationId)::onHttpMessage;
+                final OpenapiRouteConfig route = binding.resolve(authorization);
+
+                if (route != null)
+                {
+                    final String operationId = binding.resolveOperationId(httpBeginEx);
+                    final long apiId = binding.resolveApiId(namespaceId);
+
+                    newStream = new HttpStream(
+                        receiver,
+                        originId,
+                        routedId,
+                        initialId,
+                        affinity,
+                        authorization,
+                        route.id,
+                        apiId,
+                        operationId)::onHttpMessage;
+                }
+
             }
-
         }
 
         return newStream;
