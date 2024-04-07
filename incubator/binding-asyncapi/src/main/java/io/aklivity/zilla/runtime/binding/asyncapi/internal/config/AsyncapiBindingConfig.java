@@ -69,6 +69,7 @@ public final class AsyncapiBindingConfig
     private final Object2LongHashMap<String> schemaIdsBySubject;
     private final Map<CharSequence, String> operationIds;
     private final LongFunction<CatalogHandler> supplyCatalog;
+    private final Consumer<NamespaceConfig> detach;
     private final long overrideRouteId;
     private final HttpHeaderHelper helper;
     private final AsyncapiParser parser;
@@ -85,7 +86,7 @@ public final class AsyncapiBindingConfig
         this.namespaceGenerator = namespaceGenerator;
         this.supplyCatalog = supplyCatalog;
         this.overrideRouteId = overrideRouteId;
-        this.options = AsyncapiOptionsConfig.class.cast(binding.options);
+        this.options = (AsyncapiOptionsConfig) binding.options;
         this.composites = new Int2ObjectHashMap<>();
         this.apiIdsByNamespaceId = new Long2LongHashMap(-1);
         this.compositeResolvedIds = new Long2LongHashMap(-1);
@@ -95,6 +96,7 @@ public final class AsyncapiBindingConfig
         this.operationIds = new TreeMap<>(CharSequence::compare);
         this.helper = new HttpHeaderHelper();
         this.parser = new AsyncapiParser();
+        this.detach = binding.detach;
         this.routes = binding.routes.stream().map(r -> new AsyncapiRouteConfig(r, schemaIdsBySubject::get)).collect(toList());
     }
 
@@ -120,6 +122,12 @@ public final class AsyncapiBindingConfig
         long originId)
     {
         return apiIdsByNamespaceId.get(NamespacedId.namespaceId(originId));
+    }
+
+    public long resolveApiId(
+        String subject)
+    {
+        return schemaIdsBySubject.get(subject);
     }
 
     public String resolveOperationId(
@@ -188,6 +196,12 @@ public final class AsyncapiBindingConfig
             extractResolveId(k, bindings);
             extractNamespace(k, bindings);
         }
+    }
+
+    public void detach()
+    {
+        composites.forEach((k, v) -> detach.accept(v));
+        composites.clear();
     }
 
     private void attachProxyBinding(
@@ -276,10 +290,6 @@ public final class AsyncapiBindingConfig
             Pattern pattern = Pattern.compile(regex);
             paths.put(pattern.matcher(""), k);
         });
-    }
-
-    public void detach()
-    {
     }
 
     private List<AsyncapiConfig> convertToAsyncapi(

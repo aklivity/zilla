@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.asyncapi.internal.stream;
 
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 
@@ -29,6 +30,7 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiBinding;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiConfiguration;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiRouteConfig;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiServerNamespaceGenerator;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.AbortFW;
@@ -43,6 +45,7 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
+import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
@@ -76,17 +79,20 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyTraceId;
     private final Function<String, Integer> supplyTypeId;
+    private final LongFunction<CatalogHandler> supplyCatalog;
     private final Long2ObjectHashMap<AsyncapiBindingConfig> bindings;
     private final Long2LongHashMap apiIds;
-    private final int asyncapiTypeId;
-
     private final AsyncapiConfiguration config;
+    private final AsyncapiServerNamespaceGenerator namespaceGenerator;
+
+    private final int asyncapiTypeId;
 
     public AsyncapiProxyFactory(
         AsyncapiConfiguration config,
         EngineContext context)
     {
         this.config = config;
+        this.namespaceGenerator = new AsyncapiServerNamespaceGenerator();
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.bufferPool = context.bufferPool();
@@ -95,6 +101,7 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
         this.supplyReplyId = context::supplyReplyId;
         this.supplyTypeId = context::supplyTypeId;
         this.supplyTraceId = context::supplyTraceId;
+        this.supplyCatalog = context::supplyCatalog;
         this.bindings = new Long2ObjectHashMap<>();
         this.apiIds = new Long2LongHashMap(-1);
         this.asyncapiTypeId = context.supplyTypeId(AsyncapiBinding.NAME);
@@ -111,7 +118,8 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        AsyncapiBindingConfig asyncapiBinding = new AsyncapiBindingConfig(binding, namespaceGenerator, supplyCatalog, config.targetRouteId());
+        AsyncapiBindingConfig asyncapiBinding = new AsyncapiBindingConfig(binding, namespaceGenerator,
+            supplyCatalog, config.targetRouteId());
         bindings.put(binding.id, asyncapiBinding);
     }
 
@@ -119,7 +127,8 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
     public void detach(
         long bindingId)
     {
-        bindings.remove(bindingId);
+        AsyncapiBindingConfig binding = bindings.remove(bindingId);
+        binding.detach();
     }
 
     @Override
@@ -173,7 +182,7 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
 
                 if (route != null)
                 {
-                    final long clientApiId = binding.options.resolveApiId(route.with.apiId);
+                    final long clientApiId = binding.resolveApiId(route.with.apiId);
                     newStream = new CompositeClientStream(
                         receiver,
                         originId,
@@ -190,7 +199,7 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
                     Optional<AsyncapiRouteConfig> asyncapiRoute = binding.routes.stream().findFirst();
                     final long routeId = asyncapiRoute.map(r -> r.id).orElse(0L);
                     final long clientApiId = asyncapiRoute.map(asyncapiRouteConfig ->
-                            binding.options.resolveApiId(asyncapiRouteConfig.with.apiId)).orElse(0L);
+                            binding.resolveApiId(asyncapiRouteConfig.with.apiId)).orElse(0L);
 
                     newStream = new CompositeClientStream(
                         receiver,
