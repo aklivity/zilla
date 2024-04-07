@@ -88,20 +88,23 @@ public abstract class AsyncapiProtocol
         {
             AsyncapiMessageView message =
                 AsyncapiMessageView.of(asyncApi.components.messages, messageEntry.getValue());
-            String schema = AsyncapiSchemaView.of(asyncApi.components.schemas, message.payload()).refKey();
-            if (message.contentType() != null && message.contentType().equals(contentType) ||
-                jsonContentType.reset(asyncApi.defaultContentType).matches())
+            if (message.payload() != null)
             {
-                cataloged
-                    .schema()
+                String schema = AsyncapiSchemaView.of(asyncApi.components.schemas, message.payload()).refKey();
+                if (message.contentType() != null && message.contentType().equals(contentType) ||
+                    jsonContentType.reset(asyncApi.defaultContentType).matches())
+                {
+                    cataloged
+                        .schema()
                         .version(VERSION_LATEST)
                         .subject(schema)
                         .build()
-                    .build();
-            }
-            else
-            {
-                throw new RuntimeException("Invalid content type");
+                        .build();
+                }
+                else
+                {
+                    throw new RuntimeException("Invalid content type");
+                }
             }
         }
         return cataloged;

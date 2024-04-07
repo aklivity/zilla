@@ -90,20 +90,21 @@ public class AyncapiMqttProtocol extends AsyncapiProtocol
             AsyncapiMessageView message =
                 AsyncapiMessageView.of(asyncApi.components.messages, messageEntry.getValue());
 
-            for (AsyncapiTrait asyncapiTrait : message.traits())
+            if (message.traits() != null)
             {
-                AsyncapiTraitView trait = AsyncapiTraitView.of(asyncApi.components.messageTraits, asyncapiTrait);
-
-
-                for (Map.Entry<String, AsyncapiItem> header : trait.commonHeaders().properties.entrySet())
+                for (AsyncapiTrait asyncapiTrait : message.traits())
                 {
-                    topic
-                        .userProperty()
-                        .inject(u -> injectUserProperty(u, header.getKey()))
-                        .build();
+                    AsyncapiTraitView trait = AsyncapiTraitView.of(asyncApi.components.messageTraits, asyncapiTrait);
+
+                    for (Map.Entry<String, AsyncapiItem> header : trait.commonHeaders().properties.entrySet())
+                    {
+                        topic
+                            .userProperty()
+                            .inject(u -> injectUserProperty(u, header.getKey()))
+                            .build();
+                    }
                 }
             }
-
         }
 
         return topic;

@@ -149,14 +149,17 @@ public class AsyncapiCompositeBindingAdapter
                     .schema(writeSchemaYaml(jsonb, yaml, schema))
                     .build();
             }
-            for (Map.Entry<String, AsyncapiTrait> entry : asyncapi.components.messageTraits.entrySet())
+            if (asyncapi.components.messageTraits != null)
             {
-                entry.getValue().headers.properties.forEach((k, v) ->
-                    subjects
-                        .subject(k)
-                        .version(VERSION_LATEST)
-                        .schema(writeSchemaYaml(jsonb, yaml, v))
-                        .build());
+                for (Map.Entry<String, AsyncapiTrait> entry : asyncapi.components.messageTraits.entrySet())
+                {
+                    entry.getValue().headers.properties.forEach((k, v) ->
+                        subjects
+                            .subject(k)
+                            .version(VERSION_LATEST)
+                            .schema(writeSchemaYaml(jsonb, yaml, v))
+                            .build());
+                }
             }
         }
         catch (Exception ex)
