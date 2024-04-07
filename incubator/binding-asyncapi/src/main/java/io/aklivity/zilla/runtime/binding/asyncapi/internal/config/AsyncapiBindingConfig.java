@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.config;
 
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.CACHE_CLIENT;
+import static io.aklivity.zilla.runtime.engine.config.KindConfig.PROXY;
 import static java.util.stream.Collectors.toList;
 
 import java.util.ArrayList;
@@ -26,6 +27,7 @@ import java.util.function.Consumer;
 import java.util.function.LongFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.agrona.AsciiSequenceView;
 import org.agrona.DirectBuffer;
@@ -166,25 +168,70 @@ public final class AsyncapiBindingConfig
     {
         final List<AsyncapiConfig> configs = convertToAsyncapi(binding.catalogs);
 
-        configs.forEach(c ->
+        if (binding.type.equals(PROXY.name()))
         {
-            Asyncapi asyncapi = c.asyncapi;
-            final NamespaceConfig composite = binding.attach.apply(namespaceGenerator.generate(binding, asyncapi));
-            composites.put(c.schemaId, composite);
-            schemaIdsBySubject.put(c.subject, c.schemaId);
-            extractChannels(asyncapi);
-            extractOperations(asyncapi);
-        });
+            attachProxyBinding(binding, configs);
+        }
+        else
+        {
+            attachServerClientBinding(binding, configs);
+        }
 
-        composites.forEach((k, v) ->
+        for (Map.Entry<Integer, NamespaceConfig> entry : composites.entrySet())
         {
+            Integer k = entry.getKey();
+            NamespaceConfig v = entry.getValue();
             List<BindingConfig> bindings = v.bindings.stream()
                 .filter(b -> b.type.equals("mqtt") || b.type.equals("http") ||
                     b.type.equals("kafka") && b.kind == CACHE_CLIENT || b.type.equals("mqtt-kafka"))
                 .collect(toList());
             extractResolveId(k, bindings);
             extractNamespace(k, bindings);
-        });
+        }
+    }
+
+    private void attachProxyBinding(
+        BindingConfig binding,
+        List<AsyncapiConfig> configs)
+    {
+        Map<String, Asyncapi> asyncapis = configs.stream()
+                .collect(Collectors.toMap(
+                        c -> c.subject,
+                        c -> c.asyncapi,
+                        (existingValue, newValue) -> existingValue,
+                        Object2ObjectHashMap::new));
+
+        final NamespaceConfig composite = binding.attach.apply(namespaceGenerator.generateProxy(binding, asyncapis,
+            schemaIdsBySubject::get));
+
+        for (AsyncapiConfig config : configs)
+        {
+            Asyncapi asyncapi = config.asyncapi;
+            updateNamespace(config, composite, asyncapi);
+        }
+    }
+
+    private void attachServerClientBinding(
+        BindingConfig binding,
+        List<AsyncapiConfig> configs)
+    {
+        for (AsyncapiConfig config : configs)
+        {
+            Asyncapi asyncapi = config.asyncapi;
+            final NamespaceConfig composite = binding.attach.apply(namespaceGenerator.generate(binding, asyncapi));
+            updateNamespace(config, composite, asyncapi);
+        }
+    }
+
+    private void updateNamespace(
+        AsyncapiConfig config,
+        NamespaceConfig composite,
+        Asyncapi asyncapi)
+    {
+        composites.put(config.schemaId, composite);
+        schemaIdsBySubject.put(config.subject, config.schemaId);
+        extractChannels(asyncapi);
+        extractOperations(asyncapi);
     }
 
     private void extractNamespace(

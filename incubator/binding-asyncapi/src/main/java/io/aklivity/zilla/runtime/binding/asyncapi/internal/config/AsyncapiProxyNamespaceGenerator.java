@@ -19,6 +19,8 @@ import static java.util.Collections.emptyList;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.function.ToLongFunction;
 import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
@@ -42,13 +44,14 @@ public class AsyncapiProxyNamespaceGenerator extends AsyncapiNamespaceGenerator
     private static final String ASYNCAPI_KAFKA_PROTOCOL_NAME = "kafka";
     private static final String ASYNCAPI_MQTT_PROTOCOL_NAME = "mqtt";
 
-    public NamespaceConfig generate(
+    public NamespaceConfig generateProxy(
         BindingConfig binding,
-        List<Asyncapi> asyncapis)
+        Map<String, Asyncapi> asyncapis,
+        ToLongFunction<String> resolveApiId)
     {
         AsyncapiOptionsConfig options = (AsyncapiOptionsConfig) binding.options;
         List<AsyncapiRouteConfig> routes = binding.routes.stream()
-            .map(r -> new AsyncapiRouteConfig(r, options::resolveApiId))
+            .map(r -> new AsyncapiRouteConfig(r, resolveApiId))
             .collect(Collectors.toList());
         this.asyncapis = asyncapis;
         this.qname = binding.qname;
@@ -118,7 +121,7 @@ public class AsyncapiProxyNamespaceGenerator extends AsyncapiNamespaceGenerator
 
             for (AsyncapiConditionConfig condition : route.when)
             {
-                final Asyncapi mqttAsyncapi = asyncapis.get(condition.apiId);
+                final Asyncapi mqttAsyncapi = asyncapis.get(condition.subject);
                 if (mqttAsyncapi.servers.values().stream().anyMatch(s -> !s.protocol.startsWith(ASYNCAPI_MQTT_PROTOCOL_NAME)))
                 {
                     break inject;

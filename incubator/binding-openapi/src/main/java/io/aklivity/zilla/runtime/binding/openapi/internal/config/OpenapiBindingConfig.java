@@ -85,7 +85,7 @@ public final class OpenapiBindingConfig
         this.namespaceGenerator = namespaceGenerator;
         this.supplyCatalog = supplyCatalog;
         this.overrideRouteId = overrideRouteId;
-        this.options = OpenapiOptionsConfig.class.cast(binding.options);
+        this.options = (OpenapiOptionsConfig) binding.options;
         this.paths = new Object2ObjectHashMap<>();
         this.composites = new Int2ObjectHashMap<>();
         this.resolvedIds = new Long2LongHashMap(-1);

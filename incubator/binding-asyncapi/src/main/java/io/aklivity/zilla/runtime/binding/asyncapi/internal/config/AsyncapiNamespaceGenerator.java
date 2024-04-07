@@ -21,6 +21,7 @@ import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.ToLongFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -70,7 +71,8 @@ public abstract class AsyncapiNamespaceGenerator
 
     public NamespaceConfig generateProxy(
         BindingConfig binding,
-        List<Asyncapi> asyncapis)
+        Map<String, Asyncapi> asyncapis,
+        ToLongFunction<String> resolveApiId)
     {
         return null;
     }

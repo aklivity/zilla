@@ -148,6 +148,15 @@ bindings:
     routes:
       - when:
           - subject: smartylighting
+            operation-id: sendEvents
         exit: asyncapi_kafka0
         with:
           subject: sensor
+          operation-id: toSensorData
+      - when:
+          - subject: smartylighting
+            operation-id: receiveEvents
+        exit: asyncapi_kafka0
+        with:
+          subject: sensor
+          operation-id: onSensorData
