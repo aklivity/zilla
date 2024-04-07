@@ -133,6 +133,8 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
         AsyncapiBindingConfig asyncapiBinding = new AsyncapiBindingConfig(binding, namespaceGenerator, supplyCatalog,
             config.targetRouteId());
         bindings.put(binding.id, asyncapiBinding);
+
+        asyncapiBinding.attach(binding);
     }
 
     @Override

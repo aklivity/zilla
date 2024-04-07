@@ -39,13 +39,14 @@ public class AsyncapiServerNamespaceGenerator extends AsyncapiNamespaceGenerator
         BindingConfig binding,
         Asyncapi asyncapi)
     {
-        AsyncapiOptionsConfig options = (AsyncapiOptionsConfig) binding.options;
+        AsyncapiOptionsConfig options = binding.options != null ? (AsyncapiOptionsConfig) binding.options : EMPTY_OPTION;
         final List<MetricRefConfig> metricRefs = binding.telemetryRef != null ?
             binding.telemetryRef.metricRefs : emptyList();
 
         //TODO: add composite for all servers
         AsyncapiServerView firstServer = AsyncapiServerView.of(asyncapi.servers.entrySet().iterator().next().getValue());
 
+        this.asyncapi = asyncapi;
         this.qname = binding.qname;
         this.qvault = binding.qvault;
         this.protocol = resolveProtocol(firstServer.protocol(), options);

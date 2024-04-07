@@ -377,10 +377,6 @@ public class AsyncapiOptionsConfigAdapterTest
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo(
             "{" +
-                "\"specs\":" +
-                "{" +
-                    "\"kafka-api\":\"kafka/asyncapi.yaml\"" +
-                "}," +
                 "\"tcp\":" +
                 "{" +
                     "\"host\":\"localhost\"," +

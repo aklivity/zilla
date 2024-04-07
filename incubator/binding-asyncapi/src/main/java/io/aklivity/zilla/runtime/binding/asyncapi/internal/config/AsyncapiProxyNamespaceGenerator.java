@@ -49,7 +49,7 @@ public class AsyncapiProxyNamespaceGenerator extends AsyncapiNamespaceGenerator
         Map<String, Asyncapi> asyncapis,
         ToLongFunction<String> resolveApiId)
     {
-        AsyncapiOptionsConfig options = (AsyncapiOptionsConfig) binding.options;
+        AsyncapiOptionsConfig options = binding.options != null ? (AsyncapiOptionsConfig) binding.options : EMPTY_OPTION;
         List<AsyncapiRouteConfig> routes = binding.routes.stream()
             .map(r -> new AsyncapiRouteConfig(r, resolveApiId))
             .collect(Collectors.toList());
