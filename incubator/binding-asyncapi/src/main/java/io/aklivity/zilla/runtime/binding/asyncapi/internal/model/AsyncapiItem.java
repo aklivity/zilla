@@ -14,10 +14,22 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.model;
 
+import java.util.List;
+
+import jakarta.json.bind.annotation.JsonbProperty;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class AsyncapiItem
 {
     public String type;
     public String description;
-    public int minimum;
-    public int maximum;
+    public Integer minimum;
+    public Integer maximum;
+    @JsonbProperty("enum")
+    public List<String> values;
+    @JsonbProperty("$ref")
+    public String ref;
+    public AsyncapiSchema schema;
 }

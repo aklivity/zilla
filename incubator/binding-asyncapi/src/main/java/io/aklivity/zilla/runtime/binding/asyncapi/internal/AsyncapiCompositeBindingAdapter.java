@@ -36,6 +36,7 @@ import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiSchema;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiServer;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiTrait;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiSchemaView;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineSchemaConfigBuilder;
@@ -141,11 +142,21 @@ public class AsyncapiCompositeBindingAdapter
             for (Map.Entry<String, AsyncapiSchema> entry : asyncapi.components.schemas.entrySet())
             {
                 AsyncapiSchemaView schema = AsyncapiSchemaView.of(asyncapi.components.schemas, entry.getValue());
+
                 subjects
                     .subject(entry.getKey())
                     .version(VERSION_LATEST)
                     .schema(writeSchemaYaml(jsonb, yaml, schema))
                     .build();
+            }
+            for (Map.Entry<String, AsyncapiTrait> entry : asyncapi.components.messageTraits.entrySet())
+            {
+                entry.getValue().headers.properties.forEach((k, v) ->
+                    subjects
+                        .subject(k)
+                        .version(VERSION_LATEST)
+                        .schema(writeSchemaYaml(jsonb, yaml, v))
+                        .build());
             }
         }
         catch (Exception ex)

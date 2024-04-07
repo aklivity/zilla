@@ -79,6 +79,11 @@ public class MqttTopicConfigBuilder<T> extends ConfigBuilder<T, MqttTopicConfigB
         return this;
     }
 
+    public MqttUserPropertyConfigBuilder<MqttTopicConfigBuilder<T>> userProperty()
+    {
+        return new MqttUserPropertyConfigBuilder<>(this::userProperty);
+    }
+
     public <C extends ConfigBuilder<MqttTopicConfigBuilder<T>, C>> C content(
         Function<Function<ModelConfig, MqttTopicConfigBuilder<T>>, C> content)
     {
