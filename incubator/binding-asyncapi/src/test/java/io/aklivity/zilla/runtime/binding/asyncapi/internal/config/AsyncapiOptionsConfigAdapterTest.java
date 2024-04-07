@@ -14,36 +14,29 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.config;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.function.Function;
 
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
 
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiChannelsConfig;
-import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiMqttKafkaConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
@@ -51,7 +44,6 @@ import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapter;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
-import io.aklivity.zilla.specs.binding.asyncapi.AsyncapiSpecs;
 
 public class AsyncapiOptionsConfigAdapterTest
 {
@@ -61,33 +53,21 @@ public class AsyncapiOptionsConfigAdapterTest
     private ConfigAdapterContext context;
     private Jsonb jsonb;
 
-    public void initJson(
-        String asyncapiConfig) throws IOException
+    @Before
+    public void initJson() throws IOException
     {
-        try (InputStream resource = AsyncapiSpecs.class
-            .getResourceAsStream("config/" + asyncapiConfig))
-        {
-            String content = new String(resource.readAllBytes(), UTF_8);
-            Mockito.doReturn(content).when(context).readURL(asyncapiConfig);
-
-            OptionsConfigAdapter adapter = new OptionsConfigAdapter(OptionsConfigAdapterSpi.Kind.BINDING, context);
-            adapter.adaptType("asyncapi");
-            JsonbConfig config = new JsonbConfig()
-                .withAdapters(adapter);
-            jsonb = JsonbBuilder.create(config);
-        }
+        OptionsConfigAdapter adapter = new OptionsConfigAdapter(OptionsConfigAdapterSpi.Kind.BINDING, context);
+        adapter.adaptType("asyncapi");
+        JsonbConfig config = new JsonbConfig()
+            .withAdapters(adapter);
+        jsonb = JsonbBuilder.create(config);
     }
 
     @Test
     public void shouldReadOptionsMqtt() throws IOException
     {
-        initJson("mqtt/asyncapi.yaml");
         String text =
                 "{" +
-                    "\"specs\":" +
-                    "{" +
-                        "\"mqtt-api\":\"mqtt/asyncapi.yaml\"," +
-                    "}," +
                     "\"tcp\":" +
                     "{" +
                         "\"host\":\"localhost\"," +
@@ -118,9 +98,6 @@ public class AsyncapiOptionsConfigAdapterTest
         AsyncapiOptionsConfig options = jsonb.fromJson(text, AsyncapiOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
-        AsyncapiConfig asyncapi = options.specs.get(0);
-        assertThat(asyncapi.location, equalTo("mqtt/asyncapi.yaml"));
-        assertThat(asyncapi.asyncapi, instanceOf(Asyncapi.class));
         assertThat(options.tcp.host, equalTo("localhost"));
         assertThat(options.tcp.ports, equalTo(new int[] { 7183 }));
         assertThat(options.tls.keys, equalTo(asList("localhost")));
@@ -133,14 +110,8 @@ public class AsyncapiOptionsConfigAdapterTest
     @Test
     public void shouldWriteOptionsMqtt() throws IOException
     {
-        initJson("mqtt/asyncapi.yaml");
-        List<AsyncapiConfig> specs = new ArrayList<>();
-        specs.add(new AsyncapiConfig("mqtt-api", 1, "mqtt/asyncapi.yaml", new Asyncapi()));
-
-
         AsyncapiOptionsConfig options = AsyncapiOptionsConfig.builder()
             .inject(Function.identity())
-            .specs(specs)
             .tcp(TcpOptionsConfig.builder()
                 .host("localhost")
                 .ports(new int[] { 7183 })
@@ -166,10 +137,6 @@ public class AsyncapiOptionsConfigAdapterTest
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo(
             "{" +
-                "\"specs\":" +
-                "{" +
-                    "\"mqtt-api\":\"mqtt/asyncapi.yaml\"" +
-                "}," +
                 "\"tcp\":" +
                 "{" +
                     "\"host\":\"localhost\"," +
@@ -219,7 +186,6 @@ public class AsyncapiOptionsConfigAdapterTest
     @Test
     public void shouldReadOptionsKafka() throws IOException
     {
-        initJson("kafka/asyncapi.yaml");
         String text =
                 "{" +
                     "\"specs\":" +
@@ -265,9 +231,6 @@ public class AsyncapiOptionsConfigAdapterTest
         AsyncapiOptionsConfig options = jsonb.fromJson(text, AsyncapiOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
-        AsyncapiConfig asyncapi = options.specs.get(0);
-        assertThat(asyncapi.location, equalTo("kafka/asyncapi.yaml"));
-        assertThat(asyncapi.asyncapi, instanceOf(Asyncapi.class));
         assertThat(options.tcp.host, equalTo("localhost"));
         assertThat(options.tcp.ports, equalTo(new int[] { 9092 }));
         assertThat(options.tls.keys, equalTo(asList("localhost")));
@@ -283,14 +246,8 @@ public class AsyncapiOptionsConfigAdapterTest
     @Test
     public void shouldWriteOptionsHttp() throws IOException
     {
-        initJson("http/asyncapi.yaml");
-        List<AsyncapiConfig> specs = new ArrayList<>();
-        specs.add(new AsyncapiConfig("http-api", 1,  "http/asyncapi.yaml", new Asyncapi()));
-
-
         AsyncapiOptionsConfig options = AsyncapiOptionsConfig.builder()
             .inject(Function.identity())
-            .specs(specs)
             .tcp(TcpOptionsConfig.builder()
                 .host("localhost")
                 .ports(new int[] { 7080 })
@@ -309,10 +266,6 @@ public class AsyncapiOptionsConfigAdapterTest
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo(
             "{" +
-                "\"specs\":" +
-                "{" +
-                    "\"http-api\":\"http/asyncapi.yaml\"" +
-                "}," +
                 "\"tcp\":" +
                 "{" +
                     "\"host\":\"localhost\"," +
@@ -353,13 +306,8 @@ public class AsyncapiOptionsConfigAdapterTest
     @Test
     public void shouldReadOptionsHttp() throws IOException
     {
-        initJson("http/asyncapi.yaml");
         String text =
                 "{" +
-                    "\"specs\":" +
-                    "{" +
-                        "\"http-api\":\"http/asyncapi.yaml\"," +
-                    "}," +
                     "\"tcp\":" +
                     "{" +
                         "\"host\":\"localhost\"," +
@@ -390,9 +338,6 @@ public class AsyncapiOptionsConfigAdapterTest
         AsyncapiOptionsConfig options = jsonb.fromJson(text, AsyncapiOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
-        AsyncapiConfig asyncapi = options.specs.get(0);
-        assertThat(asyncapi.location, equalTo("http/asyncapi.yaml"));
-        assertThat(asyncapi.asyncapi, instanceOf(Asyncapi.class));
         assertThat(options.tcp.host, equalTo("localhost"));
         assertThat(options.tcp.ports, equalTo(new int[] { 7080 }));
         assertThat(options.tls.keys, equalTo(asList("localhost")));
@@ -405,14 +350,8 @@ public class AsyncapiOptionsConfigAdapterTest
     @Test
     public void shouldWriteOptionsKafka() throws IOException
     {
-        initJson("kafka/asyncapi.yaml");
-        List<AsyncapiConfig> specs = new ArrayList<>();
-        specs.add(new AsyncapiConfig("kafka-api", 1,  "kafka/asyncapi.yaml", new Asyncapi()));
-
-
         AsyncapiOptionsConfig options = AsyncapiOptionsConfig.builder()
             .inject(Function.identity())
-            .specs(specs)
             .tcp(TcpOptionsConfig.builder()
                 .host("localhost")
                 .ports(new int[] { 9092 })
@@ -491,13 +430,8 @@ public class AsyncapiOptionsConfigAdapterTest
     @Test
     public void shouldReadOptionsMqttKafka() throws IOException
     {
-        initJson("mqtt/asyncapi.yaml");
         String text =
                 "{" +
-                    "\"specs\":" +
-                    "{" +
-                        "\"mqtt-api\":\"mqtt/asyncapi.yaml\"" +
-                    "}," +
                     "\"mqtt-kafka\":" +
                     "{" +
                         "\"channels\":" +
@@ -512,9 +446,6 @@ public class AsyncapiOptionsConfigAdapterTest
         AsyncapiOptionsConfig options = jsonb.fromJson(text, AsyncapiOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
-        AsyncapiConfig asyncapi = options.specs.get(0);
-        assertThat(asyncapi.location, equalTo("mqtt/asyncapi.yaml"));
-        assertThat(asyncapi.asyncapi, instanceOf(Asyncapi.class));
         assertThat(options.mqttKafka.channels.sessions, equalTo("sessionsChannel"));
         assertThat(options.mqttKafka.channels.messages, equalTo("messagesChannel"));
         assertThat(options.mqttKafka.channels.retained, equalTo("retainedChannel"));
@@ -523,14 +454,8 @@ public class AsyncapiOptionsConfigAdapterTest
     @Test
     public void shouldWriteOptionsMqttKafka() throws IOException
     {
-        initJson("mqtt/asyncapi.yaml");
-        List<AsyncapiConfig> specs = new ArrayList<>();
-        specs.add(new AsyncapiConfig("mqtt-api", 1, "mqtt/asyncapi.yaml", new Asyncapi()));
-
-
         AsyncapiOptionsConfig options = AsyncapiOptionsConfig.builder()
             .inject(Function.identity())
-            .specs(specs)
             .mqttKafka(AsyncapiMqttKafkaConfig.builder().channels(AsyncapiChannelsConfig.builder()
                     .sessions("sessionsChannel")
                     .messages("messagesChannel")
@@ -544,10 +469,6 @@ public class AsyncapiOptionsConfigAdapterTest
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo(
             "{" +
-                    "\"specs\":" +
-                    "{" +
-                        "\"mqtt-api\":\"mqtt/asyncapi.yaml\"" +
-                    "}," +
                     "\"mqtt-kafka\":" +
                     "{" +
                         "\"channels\":" +

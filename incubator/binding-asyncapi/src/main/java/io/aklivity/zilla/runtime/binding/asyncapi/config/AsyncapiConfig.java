@@ -19,13 +19,16 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 public class AsyncapiConfig
 {
     public final int schemaId;
+    public final String subject;
     public final Asyncapi asyncapi;
 
     public AsyncapiConfig(
         int schemaId,
+        String subject,
         Asyncapi asyncapi)
     {
         this.schemaId = schemaId;
+        this.subject = subject;
         this.asyncapi = asyncapi;
     }
 }

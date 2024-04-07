@@ -31,6 +31,7 @@ import org.agrona.AsciiSequenceView;
 import org.agrona.DirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2LongHashMap;
+import org.agrona.collections.Object2LongHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiConfig;
@@ -63,6 +64,7 @@ public final class AsyncapiBindingConfig
     private final AsyncapiNamespaceGenerator namespaceGenerator;
     private final Long2LongHashMap compositeResolvedIds;
     private final Object2ObjectHashMap<Matcher, String> paths;
+    private final Object2LongHashMap<String> schemaIdsBySubject;
     private final Map<CharSequence, String> operationIds;
     private final LongFunction<CatalogHandler> supplyCatalog;
     private final long overrideRouteId;
@@ -85,12 +87,13 @@ public final class AsyncapiBindingConfig
         this.composites = new Int2ObjectHashMap<>();
         this.apiIdsByNamespaceId = new Long2LongHashMap(-1);
         this.compositeResolvedIds = new Long2LongHashMap(-1);
+        this.schemaIdsBySubject = new Object2LongHashMap(-1);
         this.typesByNamespaceId = new Int2ObjectHashMap<>();
         this.paths = new Object2ObjectHashMap<>();
         this.operationIds = new TreeMap<>(CharSequence::compare);
         this.helper = new HttpHeaderHelper();
         this.parser = new AsyncapiParser();
-        this.routes = binding.routes.stream().map(r -> new AsyncapiRouteConfig(r, options::resolveApiId)).collect(toList());
+        this.routes = binding.routes.stream().map(r -> new AsyncapiRouteConfig(r, schemaIdsBySubject::get)).collect(toList());
     }
 
     public boolean isCompositeOriginId(
@@ -109,6 +112,12 @@ public final class AsyncapiBindingConfig
         long apiId)
     {
         return overrideRouteId != -1 ? overrideRouteId : compositeResolvedIds.get(apiId);
+    }
+
+    public long resolveApiId(
+        long originId)
+    {
+        return apiIdsByNamespaceId.get(NamespacedId.namespaceId(originId));
     }
 
     public String resolveOperationId(
@@ -162,6 +171,7 @@ public final class AsyncapiBindingConfig
             Asyncapi asyncapi = c.asyncapi;
             final NamespaceConfig composite = binding.attach.apply(namespaceGenerator.generate(binding, asyncapi));
             composites.put(c.schemaId, composite);
+            schemaIdsBySubject.put(c.subject, c.schemaId);
             extractChannels(asyncapi);
             extractOperations(asyncapi);
         });
@@ -235,7 +245,7 @@ public final class AsyncapiBindingConfig
             for (SchemaConfig schema : catalog.schemas)
             {
                 final String payload = handler.resolve(schema.id);
-                openapiConfigs.add(new AsyncapiConfig(schema.id, parser.parse(payload)));
+                openapiConfigs.add(new AsyncapiConfig(schema.id, schema.subject, parser.parse(payload)));
             }
         }
         return openapiConfigs;

@@ -123,6 +123,11 @@
                                             {
                                                 "title": "Catalog Subject",
                                                 "type": "string"
+                                            },
+                                            "operation-id":
+                                            {
+                                                "title": "MQTT Operation Id",
+                                                "type": "string"
                                             }
                                         }
                                     }
@@ -134,6 +139,11 @@
                                         "subject":
                                         {
                                             "title": "Catalog Subject",
+                                            "type": "string"
+                                        },
+                                        "operation-id":
+                                        {
+                                            "title": "MQTT Operation Id",
                                             "type": "string"
                                         }
                                     },
