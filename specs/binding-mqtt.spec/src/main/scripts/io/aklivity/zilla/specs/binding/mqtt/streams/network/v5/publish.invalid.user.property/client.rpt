@@ -44,7 +44,7 @@ write [0x30 0x2d]                           # PUBLISH
       "hello"                               # payload
 
 read  [0xe0 0x02]                           # DISCONNECT
-      [0x83]                                # payload format invalid
+      [0x99]                                # payload format invalid
       [0x00]                                # properties = none
 
 read closed
