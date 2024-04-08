@@ -20,14 +20,14 @@ import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 
 public class AsyncapiConditionConfig extends ConditionConfig
 {
-    public final String subject;
+    public final String apiId;
     public final String operationId;
 
     public AsyncapiConditionConfig(
-        String subject,
+        String apiId,
         String operationId)
     {
-        this.subject = subject;
+        this.apiId = apiId;
         this.operationId = operationId;
     }
 
@@ -42,6 +42,6 @@ public class AsyncapiConditionConfig extends ConditionConfig
         long apiId,
         ToLongFunction<String> supplyApiId)
     {
-        return supplyApiId.applyAsLong(this.subject) == apiId;
+        return supplyApiId.applyAsLong(this.apiId) == apiId;
     }
 }

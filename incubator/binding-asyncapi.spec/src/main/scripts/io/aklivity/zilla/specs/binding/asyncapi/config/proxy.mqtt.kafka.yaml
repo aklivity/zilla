@@ -129,7 +129,6 @@ catalogs:
                   message:
                     type: string
                     description: This property describes message of the sensor
-      
 
 bindings:
   asyncapi_proxy0:

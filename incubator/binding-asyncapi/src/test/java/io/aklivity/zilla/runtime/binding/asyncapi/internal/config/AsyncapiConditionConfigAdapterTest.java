@@ -50,7 +50,7 @@ public class AsyncapiConditionConfigAdapterTest
         AsyncapiConditionConfig condition = jsonb.fromJson(text, AsyncapiConditionConfig.class);
 
         assertThat(condition, not(nullValue()));
-        assertThat(condition.subject, equalTo("test"));
+        assertThat(condition.apiId, equalTo("test"));
         assertThat(condition.operationId, equalTo("testOperationId"));
     }
 

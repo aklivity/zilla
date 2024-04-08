@@ -121,7 +121,7 @@ public class AsyncapiProxyNamespaceGenerator extends AsyncapiNamespaceGenerator
 
             for (AsyncapiConditionConfig condition : route.when)
             {
-                final Asyncapi mqttAsyncapi = asyncapis.get(condition.subject);
+                final Asyncapi mqttAsyncapi = asyncapis.get(condition.apiId);
                 if (mqttAsyncapi.servers.values().stream().anyMatch(s -> !s.protocol.startsWith(ASYNCAPI_MQTT_PROTOCOL_NAME)))
                 {
                     break inject;

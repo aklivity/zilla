@@ -14,15 +14,21 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.config;
 
-import java.util.function.Function;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiCatalogConfig;
+import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiCatalogConfigBuilder;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiChannelsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiChannelsConfigBuilder;
+import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiMqttKafkaConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiMqttKafkaConfigBuilder;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
@@ -44,6 +50,10 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
     private static final String HTTP_NAME = "http";
     private static final String KAFKA_NAME = "kafka";
     private static final String MQTT_KAFKA_NAME = "mqtt-kafka";
+    private static final String SPECS_NAME = "specs";
+    private static final String CATALOG_NAME = "catalog";
+    private static final String SUBJECT_NAME = "subject";
+    private static final String VERSION_NAME = "version";
     private static final String CHANNELS_NAME = "channels";
     private static final String SESSIONS_NAME = "sessions";
     private static final String MESSAGES_NAME = "messages";
@@ -53,7 +63,6 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
     private OptionsConfigAdapter tlsOptions;
     private OptionsConfigAdapter httpOptions;
     private OptionsConfigAdapter kafkaOptions;
-    private Function<String, String> readURL;
 
     public AsyncapiOptionsConfigAdapter()
     {
@@ -133,6 +142,32 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
             }
         }
 
+        if (asyncapiOptions.asyncapis != null)
+        {
+            final JsonObjectBuilder specs = Json.createObjectBuilder();
+            for (AsyncapiConfig asyncapiConfig : asyncapiOptions.asyncapis)
+            {
+                final JsonObjectBuilder catalogObject = Json.createObjectBuilder();
+                final JsonObjectBuilder subjectObject = Json.createObjectBuilder();
+                for (AsyncapiCatalogConfig catalog : asyncapiConfig.catalogs)
+                {
+                    JsonObjectBuilder schemaObject = Json.createObjectBuilder();
+                    schemaObject.add(SUBJECT_NAME, catalog.subject);
+
+                    if (catalog.version != null)
+                    {
+                        schemaObject.add(VERSION_NAME, catalog.version);
+                    }
+
+                    subjectObject.add(catalog.name, schemaObject);
+                }
+                catalogObject.add(CATALOG_NAME, subjectObject);
+
+                specs.add(asyncapiConfig.apiLabel, catalogObject);
+            }
+            object.add(SPECS_NAME, specs);
+        }
+
         return object.build();
     }
 
@@ -194,6 +229,42 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
                 asyncapiOptions.mqttKafka(mqttKafkaBuilder.channels(channelsBuilder.build()).build());
             }
         }
+
+        if (object.containsKey(SPECS_NAME))
+        {
+            JsonObject asyncapi = object.getJsonObject(SPECS_NAME);
+            for (Map.Entry<String, JsonValue> entry : asyncapi.entrySet())
+            {
+                final String apiLabel = entry.getKey();
+                final JsonObject specObject = entry.getValue().asJsonObject();
+
+                if (specObject.containsKey(CATALOG_NAME))
+                {
+                    final JsonObject catalog = specObject.getJsonObject(CATALOG_NAME);
+
+                    List<AsyncapiCatalogConfig> catalogs = new ArrayList<>();
+                    for (Map.Entry<String, JsonValue> catalogEntry : catalog.entrySet())
+                    {
+                        AsyncapiCatalogConfigBuilder<AsyncapiCatalogConfig> catalogBuilder = AsyncapiCatalogConfig.builder();
+                        JsonObject catalogObject = catalogEntry.getValue().asJsonObject();
+
+                        catalogBuilder.name(catalogEntry.getKey());
+
+                        if (catalogObject.containsKey(SUBJECT_NAME))
+                        {
+                            catalogBuilder.subject(catalogObject.getString(SUBJECT_NAME));
+                        }
+
+                        if (catalogObject.containsKey(VERSION_NAME))
+                        {
+                            catalogBuilder.subject(catalogObject.getString(SUBJECT_NAME));
+                        }
+                        catalogs.add(catalogBuilder.build());
+                    }
+                    asyncapiOptions.asyncapi(new AsyncapiConfig(apiLabel, catalogs));
+                }
+            }
+        }
         return asyncapiOptions.build();
     }
 
@@ -201,7 +272,6 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
     public void adaptContext(
         ConfigAdapterContext context)
     {
-        this.readURL = context::readURL;
         this.tcpOptions = new OptionsConfigAdapter(Kind.BINDING, context);
         this.tcpOptions.adaptType("tcp");
         this.tlsOptions = new OptionsConfigAdapter(Kind.BINDING, context);

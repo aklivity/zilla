@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.function.Consumer;
 import java.util.function.LongFunction;
+import java.util.function.ToLongFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -36,9 +37,11 @@ import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.Object2LongHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
 
+import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiCatalogConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiParser;
+import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiSchemaConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.String16FW;
@@ -46,10 +49,8 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
-import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 
 public final class AsyncapiBindingConfig
@@ -66,9 +67,10 @@ public final class AsyncapiBindingConfig
     private final AsyncapiNamespaceGenerator namespaceGenerator;
     private final Long2LongHashMap compositeResolvedIds;
     private final Object2ObjectHashMap<Matcher, String> paths;
-    private final Object2LongHashMap<String> schemaIdsBySubject;
+    private final Object2LongHashMap<String> schemaIdsByApiId;
     private final Map<CharSequence, String> operationIds;
     private final LongFunction<CatalogHandler> supplyCatalog;
+    private final ToLongFunction<String> resolveId;
     private final Consumer<NamespaceConfig> detach;
     private final long overrideRouteId;
     private final HttpHeaderHelper helper;
@@ -86,18 +88,19 @@ public final class AsyncapiBindingConfig
         this.namespaceGenerator = namespaceGenerator;
         this.supplyCatalog = supplyCatalog;
         this.overrideRouteId = overrideRouteId;
+        this.resolveId = binding.resolveId;
         this.options = (AsyncapiOptionsConfig) binding.options;
         this.composites = new Int2ObjectHashMap<>();
         this.apiIdsByNamespaceId = new Long2LongHashMap(-1);
         this.compositeResolvedIds = new Long2LongHashMap(-1);
-        this.schemaIdsBySubject = new Object2LongHashMap(-1);
+        this.schemaIdsByApiId = new Object2LongHashMap(-1);
         this.typesByNamespaceId = new Int2ObjectHashMap<>();
         this.paths = new Object2ObjectHashMap<>();
         this.operationIds = new TreeMap<>(CharSequence::compare);
         this.helper = new HttpHeaderHelper();
         this.parser = new AsyncapiParser();
         this.detach = binding.detach;
-        this.routes = binding.routes.stream().map(r -> new AsyncapiRouteConfig(r, schemaIdsBySubject::get)).collect(toList());
+        this.routes = binding.routes.stream().map(r -> new AsyncapiRouteConfig(r, schemaIdsByApiId::get)).collect(toList());
     }
 
     public boolean isCompositeOriginId(
@@ -125,9 +128,9 @@ public final class AsyncapiBindingConfig
     }
 
     public long resolveApiId(
-        String subject)
+        String apiId)
     {
-        return schemaIdsBySubject.get(subject);
+        return schemaIdsByApiId.get(apiId);
     }
 
     public String resolveOperationId(
@@ -174,9 +177,9 @@ public final class AsyncapiBindingConfig
     public void attach(
         BindingConfig binding)
     {
-        final List<AsyncapiConfig> configs = convertToAsyncapi(binding.catalogs);
+        final List<AsyncapiSchemaConfig> configs = convertToAsyncapi(options.asyncapis);
 
-        if (binding.type.equals(PROXY.name()))
+        if (binding.kind.equals(PROXY))
         {
             attachProxyBinding(binding, configs);
         }
@@ -206,19 +209,19 @@ public final class AsyncapiBindingConfig
 
     private void attachProxyBinding(
         BindingConfig binding,
-        List<AsyncapiConfig> configs)
+        List<AsyncapiSchemaConfig> configs)
     {
         Map<String, Asyncapi> asyncapis = configs.stream()
                 .collect(Collectors.toMap(
-                        c -> c.subject,
+                        c -> c.apiLabel,
                         c -> c.asyncapi,
                         (existingValue, newValue) -> existingValue,
                         Object2ObjectHashMap::new));
 
         final NamespaceConfig composite = binding.attach.apply(namespaceGenerator.generateProxy(binding, asyncapis,
-            schemaIdsBySubject::get));
+            schemaIdsByApiId::get));
 
-        for (AsyncapiConfig config : configs)
+        for (AsyncapiSchemaConfig config : configs)
         {
             Asyncapi asyncapi = config.asyncapi;
             updateNamespace(config, composite, asyncapi);
@@ -227,9 +230,9 @@ public final class AsyncapiBindingConfig
 
     private void attachServerClientBinding(
         BindingConfig binding,
-        List<AsyncapiConfig> configs)
+        List<AsyncapiSchemaConfig> configs)
     {
-        for (AsyncapiConfig config : configs)
+        for (AsyncapiSchemaConfig config : configs)
         {
             Asyncapi asyncapi = config.asyncapi;
             final NamespaceConfig composite = binding.attach.apply(namespaceGenerator.generate(binding, asyncapi));
@@ -238,12 +241,12 @@ public final class AsyncapiBindingConfig
     }
 
     private void updateNamespace(
-        AsyncapiConfig config,
+        AsyncapiSchemaConfig config,
         NamespaceConfig composite,
         Asyncapi asyncapi)
     {
         composites.put(config.schemaId, composite);
-        schemaIdsBySubject.put(config.subject, config.schemaId);
+        schemaIdsByApiId.put(config.apiLabel, config.schemaId);
         extractChannels(asyncapi);
         extractOperations(asyncapi);
     }
@@ -292,20 +295,22 @@ public final class AsyncapiBindingConfig
         });
     }
 
-    private List<AsyncapiConfig> convertToAsyncapi(
-        List<CatalogedConfig> catalogs)
+    private List<AsyncapiSchemaConfig> convertToAsyncapi(
+        List<AsyncapiConfig> configs)
     {
-        final List<AsyncapiConfig> openapiConfigs = new ArrayList<>();
-        for (CatalogedConfig catalog : catalogs)
+        final List<AsyncapiSchemaConfig> asyncapiConfigs = new ArrayList<>();
+        for (AsyncapiConfig config : configs)
         {
-            CatalogHandler handler = supplyCatalog.apply(catalog.id);
-            for (SchemaConfig schema : catalog.schemas)
+            for (AsyncapiCatalogConfig catalog : config.catalogs)
             {
-                final String payload = handler.resolve(schema.id);
-                openapiConfigs.add(new AsyncapiConfig(schema.id, schema.subject, parser.parse(payload)));
+                final long catalogId = resolveId.applyAsLong(catalog.name);
+                final CatalogHandler handler = supplyCatalog.apply(catalogId);
+                final int schemaId = handler.resolve(catalog.subject, catalog.version);
+                final String payload = handler.resolve(schemaId);
+                asyncapiConfigs.add(new AsyncapiSchemaConfig(config.apiLabel, schemaId, parser.parse(payload)));
             }
         }
-        return openapiConfigs;
+        return asyncapiConfigs;
     }
 
     private static final class HttpHeaderHelper

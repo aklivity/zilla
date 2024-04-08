@@ -29,8 +29,8 @@ import org.agrona.concurrent.UnsafeBuffer;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiBinding;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiConfiguration;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiBindingConfig;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiProxyNamespaceGenerator;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiRouteConfig;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiServerNamespaceGenerator;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.AbortFW;
@@ -83,7 +83,7 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
     private final Long2ObjectHashMap<AsyncapiBindingConfig> bindings;
     private final Long2LongHashMap apiIds;
     private final AsyncapiConfiguration config;
-    private final AsyncapiServerNamespaceGenerator namespaceGenerator;
+    private final AsyncapiProxyNamespaceGenerator namespaceGenerator;
 
     private final int asyncapiTypeId;
 
@@ -92,7 +92,7 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
         EngineContext context)
     {
         this.config = config;
-        this.namespaceGenerator = new AsyncapiServerNamespaceGenerator();
+        this.namespaceGenerator = new AsyncapiProxyNamespaceGenerator();
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.bufferPool = context.bufferPool();
@@ -158,23 +158,26 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
             if (!binding.isCompositeOriginId(originId))
             {
                 final AsyncapiBeginExFW asyncapiBeginEx = extension.get(asyncapiBeginExRO::tryWrap);
-                final long apiId = asyncapiBeginEx.apiId();
-                final String operationId = asyncapiBeginEx.operationId().asString();
-
-                final long compositeResolvedId = binding.resolveCompositeResolvedId(apiId);
-                apiIds.put(apiId, apiId);
-
-                if (compositeResolvedId != -1)
+                if (asyncapiBeginEx != null)
                 {
-                    newStream = new AsyncapiServerStream(
-                        receiver,
-                        originId,
-                        routedId,
-                        initialId,
-                        apiId,
-                        authorization,
-                        compositeResolvedId,
-                        operationId)::onAsyncapiServerMessage;
+                    final long apiId = asyncapiBeginEx.apiId();
+                    final String operationId = asyncapiBeginEx.operationId().asString();
+
+                    final long compositeResolvedId = binding.resolveCompositeResolvedId(apiId);
+                    apiIds.put(apiId, apiId);
+
+                    if (compositeResolvedId != -1)
+                    {
+                        newStream = new AsyncapiServerStream(
+                            receiver,
+                            originId,
+                            routedId,
+                            initialId,
+                            apiId,
+                            authorization,
+                            compositeResolvedId,
+                            operationId)::onAsyncapiServerMessage;
+                    }
                 }
             }
             else

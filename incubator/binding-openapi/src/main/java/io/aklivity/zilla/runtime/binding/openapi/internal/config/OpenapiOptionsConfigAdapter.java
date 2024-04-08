@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.binding.openapi.internal.config;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
@@ -52,7 +51,6 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
     private OptionsConfigAdapter tcpOptions;
     private OptionsConfigAdapter tlsOptions;
     private OptionsConfigAdapter httpOptions;
-    private Function<String, String> readURL;
 
     public OpenapiOptionsConfigAdapter()
     {
@@ -196,7 +194,6 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
     public void adaptContext(
         ConfigAdapterContext context)
     {
-        this.readURL = context::readURL;
         this.tcpOptions = new OptionsConfigAdapter(Kind.BINDING, context);
         this.tcpOptions.adaptType("tcp");
         this.tlsOptions = new OptionsConfigAdapter(Kind.BINDING, context);

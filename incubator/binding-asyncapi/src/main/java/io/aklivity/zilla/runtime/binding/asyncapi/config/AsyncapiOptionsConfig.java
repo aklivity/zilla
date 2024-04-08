@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.config;
 
+import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
@@ -29,6 +30,7 @@ public final class AsyncapiOptionsConfig extends OptionsConfig
     public final HttpOptionsConfig http;
     public final KafkaOptionsConfig kafka;
     public final AsyncapiMqttKafkaConfig mqttKafka;
+    public final List<AsyncapiConfig> asyncapis;
 
     public static AsyncapiOptionsConfigBuilder<AsyncapiOptionsConfig> builder()
     {
@@ -46,12 +48,14 @@ public final class AsyncapiOptionsConfig extends OptionsConfig
         TlsOptionsConfig tls,
         HttpOptionsConfig http,
         KafkaOptionsConfig kafka,
-        AsyncapiMqttKafkaConfig mqttKafka)
+        AsyncapiMqttKafkaConfig mqttKafka,
+        List<AsyncapiConfig> asyncapis)
     {
         this.http = http;
         this.tcp = tcp;
         this.tls = tls;
         this.kafka = kafka;
         this.mqttKafka = mqttKafka;
+        this.asyncapis = asyncapis;
     }
 }
