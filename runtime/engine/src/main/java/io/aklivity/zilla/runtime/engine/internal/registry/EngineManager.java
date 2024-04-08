@@ -138,8 +138,8 @@ public class EngineManager
 
                 try
                 {
-                    current = newConfig;
                     register(newConfig);
+                    current = newConfig;
                 }
                 catch (Exception ex)
                 {
@@ -403,7 +403,8 @@ public class EngineManager
     {
         dispatchers.stream()
             .map(d -> d.attach(namespace))
-            .reduce(CompletableFuture::allOf);
+            .reduce(CompletableFuture::allOf)
+            .ifPresent(CompletableFuture::join);
     }
 
     private void unregister(
@@ -413,7 +414,8 @@ public class EngineManager
         {
             dispatchers.stream()
                 .map(d -> d.detach(namespace))
-                .reduce(CompletableFuture::allOf);
+                .reduce(CompletableFuture::allOf)
+                .ifPresent(CompletableFuture::join);
         }
     }
 

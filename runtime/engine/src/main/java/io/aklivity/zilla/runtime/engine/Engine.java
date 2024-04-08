@@ -51,10 +51,8 @@ import java.util.function.LongSupplier;
 import java.util.function.ToIntFunction;
 import java.util.stream.Collectors;
 
-import org.agrona.CloseHelper;
 import org.agrona.ErrorHandler;
 import org.agrona.collections.Int2ObjectHashMap;
-import org.agrona.concurrent.AgentRunner;
 
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -85,7 +83,6 @@ public final class Engine implements Collector, AutoCloseable
 {
     private final Collection<Binding> bindings;
     private final ExecutorService tasks;
-    private final Collection<AgentRunner> runners;
     private final Tuning tuning;
     private final List<EngineExtSpi> extensions;
     private final ContextImpl context;
@@ -224,14 +221,10 @@ public final class Engine implements Collector, AutoCloseable
             throw new UnsupportedOperationException();
         }
 
-        List<AgentRunner> runners = new ArrayList<>(workers.size());
-        workers.forEach(d -> runners.add(d.runner()));
-
         this.bindings = bindings;
         this.tasks = tasks;
         this.extensions = extensions;
         this.context = context;
-        this.runners = runners;
         this.readonly = readonly;
     }
 
@@ -247,10 +240,11 @@ public final class Engine implements Collector, AutoCloseable
 
     public void start() throws Exception
     {
-        for (AgentRunner runner : runners)
+        for (EngineWorker worker : workers)
         {
-            AgentRunner.startOnThread(runner, Thread::new);
+            worker.doStart();
         }
+
         watcherTaskRef = watcherTask.submit();
         if (!readonly)
         {
@@ -272,11 +266,11 @@ public final class Engine implements Collector, AutoCloseable
         watcherTask.close();
         watcherTaskRef.get();
 
-        for (AgentRunner runner : runners)
+        for (EngineWorker worker : workers)
         {
             try
             {
-                CloseHelper.close(runner);
+                worker.doClose();
             }
             catch (Throwable ex)
             {
