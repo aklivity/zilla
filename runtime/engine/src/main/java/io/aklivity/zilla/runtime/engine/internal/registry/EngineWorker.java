@@ -37,6 +37,7 @@ import static java.lang.ThreadLocal.withInitial;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.agrona.CloseHelper.quietClose;
 import static org.agrona.LangUtil.rethrowUnchecked;
+import static org.agrona.concurrent.AgentRunner.startOnThread;
 
 import java.net.InetAddress;
 import java.net.MalformedURLException;
@@ -63,6 +64,7 @@ import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 import java.util.function.Supplier;
 
+import org.agrona.CloseHelper;
 import org.agrona.DeadlineTimerWheel;
 import org.agrona.DeadlineTimerWheel.TimerHandler;
 import org.agrona.DirectBuffer;
@@ -227,6 +229,8 @@ public class EngineWorker implements EngineContext, Agent
     private long authorizedId;
 
     private long lastReadStreamId;
+
+    private volatile Thread thread;
 
     public EngineWorker(
         EngineConfiguration config,
@@ -743,6 +747,17 @@ public class EngineWorker implements EngineContext, Agent
         return agentName;
     }
 
+    public void doStart()
+    {
+        thread = startOnThread(runner, Thread::new);
+    }
+
+    public void doClose()
+    {
+        CloseHelper.close(runner);
+        thread = null;
+    }
+
     @Override
     public int doWork()
     {
@@ -849,8 +864,17 @@ public class EngineWorker implements EngineContext, Agent
         NamespaceConfig namespace)
     {
         NamespaceTask attachTask = registry.attach(namespace);
-        taskQueue.offer(attachTask);
-        signaler.signalNow(0L, 0L, 0L, supplyTraceId(), SIGNAL_TASK_QUEUED, 0);
+
+        if (thread == Thread.currentThread())
+        {
+            attachTask.run();
+        }
+        else
+        {
+            taskQueue.offer(attachTask);
+            signaler.signalNow(0L, 0L, 0L, supplyTraceId(), SIGNAL_TASK_QUEUED, 0);
+        }
+
         return attachTask.future();
     }
 
@@ -858,8 +882,17 @@ public class EngineWorker implements EngineContext, Agent
         NamespaceConfig namespace)
     {
         NamespaceTask detachTask = registry.detach(namespace);
-        taskQueue.offer(detachTask);
-        signaler.signalNow(0L, 0L, 0L, supplyTraceId(), SIGNAL_TASK_QUEUED, 0);
+
+        if (thread == Thread.currentThread())
+        {
+            detachTask.run();
+        }
+        else
+        {
+            taskQueue.offer(detachTask);
+            signaler.signalNow(0L, 0L, 0L, supplyTraceId(), SIGNAL_TASK_QUEUED, 0);
+        }
+
         return detachTask.future();
     }
 
