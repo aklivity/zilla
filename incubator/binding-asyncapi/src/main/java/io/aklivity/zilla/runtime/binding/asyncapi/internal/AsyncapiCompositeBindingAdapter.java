@@ -35,6 +35,8 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiSchema;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiServer;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiTrait;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiSchemaView;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineSchemaConfigBuilder;
@@ -50,6 +52,9 @@ public class AsyncapiCompositeBindingAdapter
     protected static final String INLINE_CATALOG_TYPE = "inline";
     protected static final String VERSION_LATEST = "latest";
     protected static final String APPLICATION_JSON = "application/json";
+    protected static final Pattern VARIABLE = Pattern.compile("\\{([^}]*.?)\\}");
+
+    protected final Matcher variable = VARIABLE.matcher("");
 
     protected Asyncapi asyncapi;
     protected Map<String, Asyncapi> asyncApis;
@@ -75,7 +80,7 @@ public class AsyncapiCompositeBindingAdapter
                 protocol = new AsyncapiHttpProtocol(qname, asyncapi, options);
                 break;
             case "mqtt":
-                protocol = new AyncapiMqttProtocol(qname, asyncapi);
+                protocol = new AyncapiMqttProtocol(qname, asyncapi, options, namespace);
                 break;
             case "kafka":
             case "kafka-secure":
@@ -90,6 +95,15 @@ public class AsyncapiCompositeBindingAdapter
         return protocol;
     }
 
+    protected void resolveServerVariables(
+        Asyncapi asyncApi)
+    {
+        for (AsyncapiServer s : asyncApi.servers.values())
+        {
+            s.host = variable.reset(s.host).replaceAll(mr -> s.variables.get(mr.group(1)).defaultValue);
+        }
+    }
+
     protected <C> NamespaceConfigBuilder<C> injectCatalog(
         NamespaceConfigBuilder<C> namespace,
         Asyncapi asyncapi)
@@ -101,12 +115,11 @@ public class AsyncapiCompositeBindingAdapter
                     .name(INLINE_CATALOG_NAME)
                     .type(INLINE_CATALOG_TYPE)
                     .options(InlineOptionsConfig::builder)
-                    .subjects()
-                        .inject(this::injectSubjects)
+                        .subjects()
+                            .inject(this::injectSubjects)
+                            .build()
                         .build()
-                    .build()
-                .build();
-
+                    .build();
         }
         return namespace;
     }
@@ -123,11 +136,24 @@ public class AsyncapiCompositeBindingAdapter
             for (Map.Entry<String, AsyncapiSchema> entry : asyncapi.components.schemas.entrySet())
             {
                 AsyncapiSchemaView schema = AsyncapiSchemaView.of(asyncapi.components.schemas, entry.getValue());
+
                 subjects
                     .subject(entry.getKey())
                     .version(VERSION_LATEST)
                     .schema(writeSchemaYaml(jsonb, yaml, schema))
                     .build();
+            }
+            if (asyncapi.components.messageTraits != null)
+            {
+                for (Map.Entry<String, AsyncapiTrait> entry : asyncapi.components.messageTraits.entrySet())
+                {
+                    entry.getValue().headers.properties.forEach((k, v) ->
+                        subjects
+                            .subject(k)
+                            .version(VERSION_LATEST)
+                            .schema(writeSchemaYaml(jsonb, yaml, v))
+                            .build());
+                }
             }
         }
         catch (Exception ex)

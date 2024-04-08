@@ -6,7 +6,7 @@
     },
     {
         "op": "add",
-        "path": "/$defs/converter/allOf/-",
+        "path": "/$defs/converter/oneOf/1/allOf/-",
         "value":
         {
             "if":
@@ -140,7 +140,7 @@
     },
     {
         "op": "add",
-        "path": "/$defs/validator/allOf/-",
+        "path": "/$defs/validator/oneOf/1/allOf/-",
         "value":
         {
             "if":

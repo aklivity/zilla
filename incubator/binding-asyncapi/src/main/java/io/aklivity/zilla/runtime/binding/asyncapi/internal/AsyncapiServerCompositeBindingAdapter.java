@@ -59,11 +59,11 @@ public class AsyncapiServerCompositeBindingAdapter extends AsyncapiCompositeBind
 
         this.qname = binding.qname;
         this.qvault = binding.qvault;
-
+        this.namespace = binding.namespace;
 
         //TODO: add composite for all servers
         final List<AsyncapiServer> servers = filterAsyncapiServers(asyncapi.servers, asyncapiConfig.servers);
-            //.getOrDefault("options.server", asyncapi.servers.entrySet().iterator().next().getValue());
+        //.getOrDefault("options.server", asyncapi.servers.entrySet().iterator().next().getValue());
         AsyncapiServerView serverView = AsyncapiServerView.of(server);
         final String[] hostAndPort = server.host.split(":");
 
@@ -71,6 +71,9 @@ public class AsyncapiServerCompositeBindingAdapter extends AsyncapiCompositeBind
         this.sni = options.tls != null ? options.tls.sni : Collections.singletonList(hostAndPort[0]);
         this.compositePorts = options.tcp != null ? options.tcp.ports : new int[] {Integer.parseInt(hostAndPort[1])};
         this.isTlsEnabled = protocol.isSecure();
+
+
+        resolveServerVariables(asyncapi);
 
         return BindingConfig.builder(binding)
             .composite()

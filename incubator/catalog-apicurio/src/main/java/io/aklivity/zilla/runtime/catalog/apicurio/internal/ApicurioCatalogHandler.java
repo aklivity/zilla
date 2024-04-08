@@ -177,6 +177,8 @@ public class ApicurioCatalogHandler implements CatalogHandler
 
     @Override
     public int decode(
+        long traceId,
+        long bindingId,
         DirectBuffer data,
         int index,
         int length,
@@ -195,13 +197,15 @@ public class ApicurioCatalogHandler implements CatalogHandler
 
         if (schemaId > NO_SCHEMA_ID)
         {
-            valLength = decoder.accept(schemaId, data, index + progress, length - progress, next);
+            valLength = decoder.accept(traceId, bindingId, schemaId, data, index + progress, length - progress, next);
         }
         return valLength;
     }
 
     @Override
     public int encode(
+        long traceId,
+        long bindingId,
         int schemaId,
         DirectBuffer data,
         int index,
@@ -211,7 +215,7 @@ public class ApicurioCatalogHandler implements CatalogHandler
     {
         ApicurioPrefixFW prefix = prefixRW.rewrap().schemaId(schemaId).build();
         next.accept(prefix.buffer(), prefix.offset(), prefix.sizeof());
-        int valLength = encoder.accept(schemaId, data, index, length, next);
+        int valLength = encoder.accept(traceId, bindingId, schemaId, data, index, length, next);
         return valLength > 0 ? prefix.sizeof() + valLength : -1;
     }
 

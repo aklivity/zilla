@@ -45,4 +45,4 @@ write notify RECEIVED_MESSAGE
 
 read aborted
 
-write abort
+write aborted

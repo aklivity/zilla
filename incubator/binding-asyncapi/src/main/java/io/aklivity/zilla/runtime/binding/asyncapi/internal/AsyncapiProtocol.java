@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.asyncapi.internal;
 import static java.util.Objects.requireNonNull;
 
 import java.net.URI;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -26,6 +27,7 @@ import java.util.stream.Collectors;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiMessage;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiMessageView;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiSchemaView;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiServerView;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfigBuilder;
@@ -43,6 +45,8 @@ public abstract class AsyncapiProtocol
 
     protected Asyncapi asyncApi;
     protected String qname;
+    protected Map<String, String> securitySchemes;
+    protected boolean isJwtEnabled;
     public final String scheme;
     public final String secureScheme;
 
@@ -56,6 +60,8 @@ public abstract class AsyncapiProtocol
         this.asyncApi = asyncApi;
         this.scheme = scheme;
         this.secureScheme = secureScheme;
+        this.securitySchemes = resolveSecuritySchemes();
+        this.isJwtEnabled = !securitySchemes.isEmpty();
     }
 
     public abstract <C>BindingConfigBuilder<C> injectProtocolServerOptions(
@@ -86,19 +92,23 @@ public abstract class AsyncapiProtocol
         {
             AsyncapiMessageView message =
                 AsyncapiMessageView.of(asyncApi.components.messages, messageEntry.getValue());
-            String schema = messageEntry.getKey();
-            if (message.contentType().equals(contentType))
+            if (message.payload() != null)
             {
-                cataloged
-                    .schema()
+                String schema = AsyncapiSchemaView.of(asyncApi.components.schemas, message.payload()).refKey();
+                if (message.contentType() != null && message.contentType().equals(contentType) ||
+                    jsonContentType.reset(asyncApi.defaultContentType).matches())
+                {
+                    cataloged
+                        .schema()
                         .version(VERSION_LATEST)
                         .subject(schema)
                         .build()
-                    .build();
-            }
-            else
-            {
-                throw new RuntimeException("Invalid content type");
+                        .build();
+                }
+                else
+                {
+                    throw new RuntimeException("Invalid content type");
+                }
             }
         }
         return cataloged;
@@ -114,10 +124,45 @@ public abstract class AsyncapiProtocol
                 .findFirst().get().getValue();
             contentType = AsyncapiMessageView.of(asyncApi.components.messages, firstAsyncapiMessage).contentType();
         }
-        return contentType != null && jsonContentType.reset(contentType).matches();
+        return contentType != null && jsonContentType.reset(contentType).matches() || asyncApi.defaultContentType != null &&
+            jsonContentType.reset(asyncApi.defaultContentType).matches();
     }
 
     protected abstract boolean isSecure();
+
+    protected int[] resolvePorts()
+    {
+        requireNonNull(scheme);
+        int[] ports = null;
+
+        for (AsyncapiServer s : asyncApi.servers.values())
+        {
+            String[] hostAndPort = s.host.split(":");
+            ports = new int[] {Integer.parseInt(hostAndPort[1])};
+            break;
+        }
+        return ports;
+    }
+
+    protected Map<String, String> resolveSecuritySchemes()
+    {
+        requireNonNull(asyncApi);
+        Map<String, String> result = new HashMap<>();
+        if (asyncApi.components != null && asyncApi.components.securitySchemes != null)
+        {
+            for (String securitySchemeName : asyncApi.components.securitySchemes.keySet())
+            {
+                String guardType = asyncApi.components.securitySchemes.get(securitySchemeName).bearerFormat;
+                //TODO: change when jwt support added for mqtt in asyncapi
+                //if ("jwt".equals(guardType))
+                //{
+                //    result.put(securitySchemeName, guardType);
+                //}
+                result.put(securitySchemeName, guardType);
+            }
+        }
+        return result;
+    }
 
     protected URI findFirstServerUrlWithScheme(
         String scheme)

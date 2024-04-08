@@ -23,9 +23,12 @@ import io.aklivity.zilla.runtime.model.core.config.Int32ModelConfig;
 
 public class Int32ModelContext implements ModelContext
 {
+    private final EngineContext context;
+
     public Int32ModelContext(
         EngineContext context)
     {
+        this.context = context;
     }
 
     @Override
@@ -46,12 +49,12 @@ public class Int32ModelContext implements ModelContext
     public ValidatorHandler supplyValidatorHandler(
         ModelConfig config)
     {
-        return new Int32ValidatorHandler(Int32ModelConfig.class.cast(config));
+        return new Int32ValidatorHandler(Int32ModelConfig.class.cast(config), context);
     }
 
     private Int32ConverterHandler supply(
         ModelConfig config)
     {
-        return new Int32ConverterHandler(Int32ModelConfig.class.cast(config));
+        return new Int32ConverterHandler(Int32ModelConfig.class.cast(config), context);
     }
 }

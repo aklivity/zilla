@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.model.core.internal;
 
 import org.agrona.DirectBuffer;
 
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.model.core.config.Int64ModelConfig;
@@ -25,18 +26,27 @@ public class Int64ConverterHandler implements ConverterHandler
     private final Int64ValidatorHandler handler;
 
     public Int64ConverterHandler(
-        Int64ModelConfig config)
+        Int64ModelConfig config,
+        EngineContext context)
     {
-        this.handler = new Int64ValidatorHandler(config);
+        this.handler = new Int64ValidatorHandler(config, context);
     }
 
     @Override
     public int convert(
+        long traceId,
+        long bindingId,
         DirectBuffer data,
         int index,
         int length,
         ValueConsumer next)
     {
-        return handler.validate(FLAGS_COMPLETE, data, index, length, next) ? length : VALIDATION_FAILURE;
+        boolean valid = handler.validate(traceId, bindingId, FLAGS_COMPLETE, data, index, length, next);
+
+        if (valid)
+        {
+            next.accept(data, index, length);
+        }
+        return valid ? length : VALIDATION_FAILURE;
     }
 }

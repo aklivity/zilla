@@ -1,0 +1,106 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/converter/types/enum/-",
+        "value": "double"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/converter/oneOf/1/allOf/-",
+        "value":
+        {
+            "if":
+            {
+                "properties":
+                {
+                    "model":
+                    {
+                        "const": "double"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "model":
+                    {
+                        "const": "double"
+                    },
+                    "format":
+                    {
+                        "type": "string",
+                        "enum":
+                        [
+                            "binary",
+                            "text"
+                        ],
+                        "default": "text"
+                    },
+                    "range":
+                    {
+                        "type": "string",
+                        "pattern": "((?:\\(|\\[))(-?\\d+(?:\\.\\d+)?)?,(-?\\d+(?:\\.\\d+)?)?((?:\\)|\\]))"
+                    },
+                    "multiple":
+                    {
+                        "type": "number"
+                    }
+                },
+                "additionalProperties": false
+            }
+        }
+    },
+    {
+        "op": "add",
+        "path": "/$defs/validator/types/enum/-",
+        "value": "double"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/validator/oneOf/1/allOf/-",
+        "value":
+        {
+            "if":
+            {
+                "properties":
+                {
+                    "model":
+                    {
+                        "const": "double"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "model":
+                    {
+                        "const": "double"
+                    },
+                    "format":
+                    {
+                        "type": "string",
+                        "enum":
+                        [
+                            "binary",
+                            "text"
+                        ],
+                        "default": "text"
+                    },
+                    "range":
+                    {
+                        "type": "string",
+                        "pattern": "((?:\\(|\\[))(-?\\d+(?:\\.\\d+)?)?,(-?\\d+(?:\\.\\d+)?)?((?:\\)|\\]))"
+                    },
+                    "multiple":
+                    {
+                        "type": "number"
+                    }
+                },
+                "additionalProperties": false
+            }
+        }
+    }
+]

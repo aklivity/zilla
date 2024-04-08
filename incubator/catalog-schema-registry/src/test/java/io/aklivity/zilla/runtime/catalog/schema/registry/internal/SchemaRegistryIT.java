@@ -168,7 +168,7 @@ public class SchemaRegistryIT
             0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
         data.wrap(bytes, 0, bytes.length);
 
-        assertEquals(18, catalog.encode(1, data, 0, data.capacity(),
+        assertEquals(18, catalog.encode(0L, 0L, 1, data, 0, data.capacity(),
             ValueConsumer.NOP, CatalogHandler.Encoder.IDENTITY));
     }
 
@@ -184,7 +184,7 @@ public class SchemaRegistryIT
             0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
         data.wrap(bytes, 0, bytes.length);
 
-        int valLength = catalog.decode(data, 0, data.capacity(), ValueConsumer.NOP, CatalogHandler.Decoder.IDENTITY);
+        int valLength = catalog.decode(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP, CatalogHandler.Decoder.IDENTITY);
 
         assertEquals(data.capacity() - 5, valLength);
     }

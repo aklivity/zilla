@@ -468,20 +468,28 @@
         },
         "converter":
         {
-            "type": "object",
-            "properties":
-            {
-                "model":
+            "oneOf":
+            [
                 {
                     "$ref": "#/$defs/converter/types"
+                },
+                {
+                    "type": "object",
+                    "properties":
+                    {
+                        "model":
+                        {
+                            "$ref": "#/$defs/converter/types"
+                        }
+                    },
+                    "required":
+                    [
+                        "model"
+                    ],
+                    "allOf":
+                    [
+                    ]
                 }
-            },
-            "required":
-            [
-                "model"
-            ],
-            "allOf":
-            [
             ],
             "types":
             {
@@ -491,20 +499,28 @@
         },
         "validator":
         {
-            "type": "object",
-            "properties":
-            {
-                "model":
+            "oneOf":
+            [
                 {
                     "$ref": "#/$defs/validator/types"
+                },
+                {
+                    "type": "object",
+                    "properties":
+                    {
+                        "model":
+                        {
+                            "$ref": "#/$defs/validator/types"
+                        }
+                    },
+                    "required":
+                    [
+                        "model"
+                    ],
+                    "allOf":
+                    [
+                    ]
                 }
-            },
-            "required":
-            [
-                "model"
-            ],
-            "allOf":
-            [
             ],
             "types":
             {
