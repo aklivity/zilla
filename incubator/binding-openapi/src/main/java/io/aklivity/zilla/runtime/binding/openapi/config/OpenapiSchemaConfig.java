@@ -15,18 +15,18 @@
 package io.aklivity.zilla.runtime.binding.openapi.config;
 
 
-import java.util.List;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.Openapi;
 
-public class OpenapiConfig
+public class OpenapiSchemaConfig
 {
-    public final String apiLabel;
-    public final List<OpenapiCatalogConfig> catalogs;
+    public final int schemaId;
+    public final Openapi openapi;
 
-    public OpenapiConfig(
-        String apiLabel,
-        List<OpenapiCatalogConfig> catalogs)
+    public OpenapiSchemaConfig(
+        int schemaId,
+        Openapi openapi)
     {
-        this.apiLabel = apiLabel;
-        this.catalogs = catalogs;
+        this.schemaId = schemaId;
+        this.openapi = openapi;
     }
 }

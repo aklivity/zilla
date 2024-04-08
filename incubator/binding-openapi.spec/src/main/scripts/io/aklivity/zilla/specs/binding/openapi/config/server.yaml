@@ -149,7 +149,8 @@ bindings:
     options:
       specs:
         petstore:
-          catalog0:
-            subject: petstore
-            version: latest
+          catalog:
+            catalog0:
+              subject: petstore
+              version: latest
     exit: openapi0

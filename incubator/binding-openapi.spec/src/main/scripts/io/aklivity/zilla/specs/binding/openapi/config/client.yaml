@@ -145,10 +145,13 @@ bindings:
   openapi0:
     type: openapi
     kind: client
-    catalog:
-      catalog0:
-        - subject: petstore
     options:
+      specs:
+        petstore:
+          catalog:
+            catalog0:
+              subject: petstore
+              version: latest
       tcp:
         host: localhost
         port: 8080

@@ -22,6 +22,8 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
@@ -34,6 +36,8 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
+import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiCatalogConfig;
+import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
@@ -65,6 +69,16 @@ public class OpenapiOptionsConfigAdapterTest
     {
         String text =
             "{" +
+            "\"specs\": {" +
+            "    \"petstore\": {" +
+            "      \"catalog\": {" +
+            "        \"catalog0\": {" +
+            "          \"subject\": \"petstore\"," +
+            "          \"version\": \"latest\"" +
+            "        }\n" +
+            "      }\n" +
+            "    }\n" +
+            "  }," +
             "    \"tls\": {" +
             "      \"keys\": [" +
             "        \"localhost\"" +
@@ -100,7 +114,8 @@ public class OpenapiOptionsConfigAdapterTest
     @Test
     public void shouldWriteOptions()
     {
-        String expected = "{\"tcp\":{\"host\":\"localhost\",\"port\":8080},\"tls\":{\"sni\":[\"example.net\"]}}";
+        String expected = "{\"tcp\":{\"host\":\"localhost\",\"port\":8080},\"tls\":{\"sni\":[\"example.net\"]}," +
+            "\"specs\":{\"test\":{\"catalog\":{\"catalog0\":{\"subject\":\"petstore\",\"version\":\"latest\"}}}}}";
 
         TcpOptionsConfig tcp = TcpOptionsConfig.builder()
             .inject(identity())
@@ -113,7 +128,11 @@ public class OpenapiOptionsConfigAdapterTest
             .sni(asList("example.net"))
             .build();
 
-        OpenapiOptionsConfig options = new OpenapiOptionsConfig(tcp, tls, null);
+        List<OpenapiConfig> spec = new ArrayList<>();
+        spec.add(new OpenapiConfig("test",
+            List.of(new OpenapiCatalogConfig("catalog0", "petstore", "latest"))));
+
+        OpenapiOptionsConfig options = new OpenapiOptionsConfig(tcp, tls, null, spec);
 
         String text = jsonb.toJson(options);
 

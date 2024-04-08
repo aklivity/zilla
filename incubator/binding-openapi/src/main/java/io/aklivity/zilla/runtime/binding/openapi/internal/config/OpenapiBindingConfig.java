@@ -25,6 +25,7 @@ import java.util.TreeMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.LongFunction;
+import java.util.function.ToLongFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -35,9 +36,11 @@ import org.agrona.collections.IntHashSet;
 import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
 
+import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiCatalogConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiParser;
+import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiSchemaConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.Openapi;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiPathItem;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.HttpHeaderFW;
@@ -46,10 +49,8 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
-import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 
 public final class OpenapiBindingConfig
@@ -62,6 +63,7 @@ public final class OpenapiBindingConfig
 
     private final OpenapiNamespaceGenerator namespaceGenerator;
     private final LongFunction<CatalogHandler> supplyCatalog;
+    private final ToLongFunction<String> resolveId;
     private final long overrideRouteId;
     private final IntHashSet httpOrigins;
     private final Long2LongHashMap apiIdsByNamespaceId;
@@ -85,6 +87,7 @@ public final class OpenapiBindingConfig
         this.namespaceGenerator = namespaceGenerator;
         this.supplyCatalog = supplyCatalog;
         this.overrideRouteId = overrideRouteId;
+        this.resolveId = binding.resolveId;
         this.options = (OpenapiOptionsConfig) binding.options;
         this.paths = new Object2ObjectHashMap<>();
         this.composites = new Int2ObjectHashMap<>();
@@ -111,7 +114,7 @@ public final class OpenapiBindingConfig
     public void attach(
         BindingConfig binding)
     {
-        List<OpenapiConfig> configs = convertToOpenapi(binding.catalogs);
+        List<OpenapiSchemaConfig> configs = convertToOpenapi(options.openapis);
         configs.forEach(c ->
         {
             Openapi openapi = c.openapi;
@@ -206,17 +209,19 @@ public final class OpenapiBindingConfig
             .orElse(null);
     }
 
-    private List<OpenapiConfig> convertToOpenapi(
-        List<CatalogedConfig> catalogs)
+    private List<OpenapiSchemaConfig> convertToOpenapi(
+        List<OpenapiConfig> configs)
     {
-        final List<OpenapiConfig> openapiConfigs = new ArrayList<>();
-        for (CatalogedConfig catalog : catalogs)
+        final List<OpenapiSchemaConfig> openapiConfigs = new ArrayList<>();
+        for (OpenapiConfig config : configs)
         {
-            CatalogHandler handler = supplyCatalog.apply(catalog.id);
-            for (SchemaConfig schema : catalog.schemas)
+            for (OpenapiCatalogConfig catalog : config.catalogs)
             {
-                final String payload = handler.resolve(schema.id);
-                openapiConfigs.add(new OpenapiConfig(schema.id, parser.parse(payload)));
+                final long catalogId = resolveId.applyAsLong(catalog.name);
+                final CatalogHandler handler = supplyCatalog.apply(catalogId);
+                final int schemaId = handler.resolve(catalog.subject, catalog.version);
+                final String payload = handler.resolve(schemaId);
+                openapiConfigs.add(new OpenapiSchemaConfig(schemaId, parser.parse(payload)));
             }
         }
         return openapiConfigs;

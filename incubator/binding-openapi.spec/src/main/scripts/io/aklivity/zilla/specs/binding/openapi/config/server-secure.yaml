@@ -149,10 +149,13 @@ bindings:
     type: openapi
     kind: server
     vault: server
-    catalog:
-      catalog0:
-        - subject: petstore
     options:
+      specs:
+        petstore:
+          catalog:
+            catalog0:
+              subject: petstore
+              version: latest
       tls:
         keys:
           - localhost

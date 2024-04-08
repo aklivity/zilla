@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.config;
 
+import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
@@ -26,6 +27,7 @@ public final class OpenapiOptionsConfig extends OptionsConfig
     public final TcpOptionsConfig tcp;
     public final TlsOptionsConfig tls;
     public final HttpOptionsConfig http;
+    public final List<OpenapiConfig> openapis;
 
     public static OpenpaiOptionsConfigBuilder<OpenapiOptionsConfig> builder()
     {
@@ -41,10 +43,12 @@ public final class OpenapiOptionsConfig extends OptionsConfig
     public OpenapiOptionsConfig(
         TcpOptionsConfig tcp,
         TlsOptionsConfig tls,
-        HttpOptionsConfig http)
+        HttpOptionsConfig http,
+        List<OpenapiConfig> openapis)
     {
         this.tcp = tcp;
         this.tls = tls;
         this.http = http;
+        this.openapis = openapis;
     }
 }

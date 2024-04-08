@@ -41,7 +41,7 @@ public abstract class OpenapiNamespaceGenerator
     protected static final String INLINE_CATALOG_TYPE = "inline";
     protected static final String VERSION_LATEST = "latest";
     protected static final Pattern JSON_CONTENT_TYPE = Pattern.compile("^application/(?:.+\\+)?json$");
-    protected static final OpenapiOptionsConfig EMPTY_OPTION = new OpenapiOptionsConfig(null, null, null);
+    protected static final OpenapiOptionsConfig EMPTY_OPTION = new OpenapiOptionsConfig(null, null, null, null);
 
     protected final Matcher jsonContentType = JSON_CONTENT_TYPE.matcher("");
     protected final Map<String, ModelConfig> models = Map.of(
