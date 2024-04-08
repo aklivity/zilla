@@ -79,10 +79,13 @@ bindings:
   asyncapi0:
     type: asyncapi
     kind: client
-    catalog:
-      catalog0:
-        - subject: smartylighting
     options:
+      specs:
+        mqtt_api:
+          catalog:
+            catalog0:
+              subject: smartylighting
+              version: latest
       tcp:
         host: localhost
         port:

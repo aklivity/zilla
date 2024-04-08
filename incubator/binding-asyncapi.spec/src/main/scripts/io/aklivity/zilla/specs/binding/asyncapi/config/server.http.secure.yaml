@@ -110,10 +110,13 @@ bindings:
     type: asyncapi
     kind: server
     vault: test0
-    catalog:
-      catalog0:
-        - subject: petstore
     options:
+      specs:
+        http_api:
+          catalog:
+            catalog0:
+              subject: petstore
+              version: latest
       tls:
         keys:
           - localhost

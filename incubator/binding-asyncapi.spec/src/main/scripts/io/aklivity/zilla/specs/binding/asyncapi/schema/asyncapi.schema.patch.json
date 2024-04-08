@@ -102,6 +102,51 @@
                                     }
                                 },
                                 "additionalProperties": false
+                            },
+                            "specs":
+                            {
+                                "title": "Specs",
+                                "type": "object",
+                                "patternProperties":
+                                {
+                                    "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                                    {
+                                        "type": "object",
+                                        "properties":
+                                        {
+                                            "catalog":
+                                            {
+                                                "type": "object",
+                                                "patternProperties":
+                                                {
+                                                    "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                                                    {
+                                                        "type": "object",
+                                                        "properties":
+                                                        {
+                                                            "subject":
+                                                            {
+                                                                "type": "string"
+                                                            },
+                                                            "version":
+                                                            {
+                                                                "type": "string",
+                                                                "default": "latest"
+                                                            }
+                                                        },
+                                                        "required":
+                                                        [
+                                                            "subject"
+                                                        ],
+                                                        "additionalProperties": false
+                                                    },
+                                                    "additionalProperties": false
+                                                }
+                                            }
+                                        },
+                                        "additionalProperties": false
+                                    }
+                                }
                             }
                         },
                         "additionalProperties": false
@@ -119,9 +164,9 @@
                                         "additionalProperties": false,
                                         "properties":
                                         {
-                                            "subject":
+                                            "api-id":
                                             {
-                                                "title": "Catalog Subject",
+                                                "title": "Spec API Id",
                                                 "type": "string"
                                             },
                                             "operation-id":
@@ -136,9 +181,9 @@
                                 {
                                     "properties":
                                     {
-                                        "subject":
+                                        "api-id":
                                         {
-                                            "title": "Catalog Subject",
+                                            "title": "Spec API Id",
                                             "type": "string"
                                         },
                                         "operation-id":

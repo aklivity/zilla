@@ -82,10 +82,13 @@ bindings:
     type: asyncapi
     kind: server
     vault: test0
-    catalog:
-      catalog0:
-        - subject: smartylighting
     options:
+      specs:
+        mqtt_api:
+          catalog:
+            catalog0:
+              subject: smartylighting
+              version: latest
       tls:
         keys:
           - localhost

@@ -78,7 +78,11 @@ bindings:
   composite0:
     type: asyncapi
     kind: server
-    catalog:
-      catalog0:
-        - subject: smartylighting
+    options:
+      specs:
+        mqtt_api:
+          catalog:
+            catalog0:
+              subject: smartylighting
+              version: latest
     exit: asyncapi0
