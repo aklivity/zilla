@@ -41,7 +41,6 @@ public final class AsyncapiOptionsConfigBuilder<T> extends ConfigBuilder<T, Asyn
     private final Function<OptionsConfig, T> mapper;
 
     public List<AsyncapiConfig> specs;
-    private String server;
     private TcpOptionsConfig tcp;
     private TlsOptionsConfig tls;
     private HttpOptionsConfig http;
@@ -65,13 +64,6 @@ public final class AsyncapiOptionsConfigBuilder<T> extends ConfigBuilder<T, Asyn
         List<AsyncapiConfig> specs)
     {
         this.specs = specs;
-        return this;
-    }
-
-    public AsyncapiOptionsConfigBuilder<T> server(
-        String server)
-    {
-        this.server = server;
         return this;
     }
 
@@ -113,6 +105,6 @@ public final class AsyncapiOptionsConfigBuilder<T> extends ConfigBuilder<T, Asyn
     @Override
     public T build()
     {
-        return mapper.apply(new AsyncapiOptionsConfig(specs, server, tcp, tls, http, kafka, mqttKafka));
+        return mapper.apply(new AsyncapiOptionsConfig(specs, tcp, tls, http, kafka, mqttKafka));
     }
 }

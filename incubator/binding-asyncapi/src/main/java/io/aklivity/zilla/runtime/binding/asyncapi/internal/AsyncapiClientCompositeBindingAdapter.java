@@ -49,7 +49,7 @@ public class AsyncapiClientCompositeBindingAdapter extends AsyncapiCompositeBind
 
         //TODO: add composite for all servers
         final AsyncapiServer server = asyncapi.servers
-            .getOrDefault(options.server, asyncapi.servers.entrySet().iterator().next().getValue());
+            .getOrDefault("options.server", asyncapi.servers.entrySet().iterator().next().getValue());
         AsyncapiServerView serverView = AsyncapiServerView.of(server);
         this.qname = binding.qname;
         this.namespace = binding.namespace;

@@ -17,15 +17,17 @@ package io.aklivity.zilla.runtime.binding.asyncapi.internal.config;
 import static java.util.stream.Collectors.toList;
 
 import java.nio.charset.StandardCharsets;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.zip.CRC32C;
 
 import jakarta.json.Json;
+import jakarta.json.JsonArray;
+import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
@@ -37,6 +39,8 @@ import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiMqttKafkaConfig
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiParser;
+import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiServerConfig;
+import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiServerConfigBuilder;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiBinding;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
@@ -51,7 +55,12 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
     private static final String SPECS_NAME = "specs";
-    private static final String SERVER_NAME = "server";
+    private static final String LOCATION_NAME = "location";
+    private static final String SERVERS_NAME = "servers";
+    private static final String SERVER_NAME_NAME = "name";
+    private static final String SERVER_HOST_NAME = "host";
+    private static final String SERVER_URL_NAME = "url";
+    private static final String SERVER_PATHNAME_NAME = "pathname";
     private static final String TCP_NAME = "tcp";
     private static final String TLS_NAME = "tls";
     private static final String HTTP_NAME = "http";
@@ -99,13 +108,40 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
         if (asyncapiOptions.specs != null)
         {
             JsonObjectBuilder specs = Json.createObjectBuilder();
-            asyncapiOptions.specs.forEach(p -> specs.add(p.apiLabel, p.location));
-            object.add(SPECS_NAME, specs);
-        }
+            asyncapiOptions.specs.forEach(p ->
+            {
+                JsonObjectBuilder spec = Json.createObjectBuilder();
+                spec.add(LOCATION_NAME, p.location);
+                if (p.servers != null)
+                {
+                    JsonArrayBuilder servers = Json.createArrayBuilder();
+                    p.servers.forEach(s ->
+                    {
+                        JsonObjectBuilder server = Json.createObjectBuilder();
+                        if (s.name != null)
+                        {
+                            server.add(SERVER_NAME_NAME, s.name);
+                        }
+                        if (s.host != null)
+                        {
+                            server.add(SERVER_HOST_NAME, s.host);
+                        }
+                        if (s.url != null)
+                        {
+                            server.add(SERVER_URL_NAME, s.url);
+                        }
+                        if (s.pathname != null)
+                        {
+                            server.add(SERVER_PATHNAME_NAME, s.pathname);
+                        }
+                        servers.add(server);
+                    });
+                    spec.add(SERVERS_NAME, servers);
+                }
 
-        if (asyncapiOptions.server != null)
-        {
-            object.add(SERVER_NAME, asyncapiOptions.server);
+                specs.add(p.apiLabel, spec);
+            });
+            object.add(SPECS_NAME, specs);
         }
 
         if (asyncapiOptions.tcp != null)
@@ -176,11 +212,6 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
             ? asListAsyncapis(object.getJsonObject(SPECS_NAME))
             : null;
         asyncapiOptions.specs(specs);
-
-        if (object.containsKey(SERVER_NAME))
-        {
-            asyncapiOptions.server(object.getString(SERVER_NAME));
-        }
 
         if (object.containsKey(TCP_NAME))
         {
@@ -264,14 +295,53 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
         Map.Entry<String, JsonValue> entry)
     {
         final String apiLabel = entry.getKey();
-        final String location = ((JsonString) entry.getValue()).getString();
+
+
+
+        final JsonObject specJson = ((JsonObject) entry.getValue());
+
+        final String location = specJson.getString(LOCATION_NAME);
+        final JsonArray serversJson = specJson.getJsonArray(SERVERS_NAME);
+
+        final List<AsyncapiServerConfig> servers = new LinkedList<>();
+
+        if (serversJson != null)
+        {
+            serversJson.forEach(s ->
+            {
+                JsonObject serverObject = s.asJsonObject();
+                AsyncapiServerConfigBuilder<AsyncapiServerConfig> serverBuilder = AsyncapiServerConfig.builder();
+                if (serverObject.containsKey(SERVER_NAME_NAME))
+                {
+                    serverBuilder.name(serverObject.getString(SERVER_NAME_NAME));
+                }
+
+                if (serverObject.containsKey(SERVER_HOST_NAME))
+                {
+                    serverBuilder.host(serverObject.getString(SERVER_HOST_NAME));
+                }
+
+                if (serverObject.containsKey(SERVER_URL_NAME))
+                {
+                    serverBuilder.url(serverObject.getString(SERVER_URL_NAME));
+                }
+
+                if (serverObject.containsKey(SERVER_PATHNAME_NAME))
+                {
+                    serverBuilder.pathname(serverObject.getString(SERVER_PATHNAME_NAME));
+                }
+                servers.add(serverBuilder.build());
+            });
+        }
+
+
         final String specText = readURL.apply(location);
         crc.reset();
         crc.update(specText.getBytes(StandardCharsets.UTF_8));
         final long apiId = crc.getValue();
         Asyncapi asyncapi = parser.parse(specText);
 
-        return new AsyncapiConfig(apiLabel, apiId, location, asyncapi);
+        return new AsyncapiConfig(apiLabel, apiId, location, servers, asyncapi);
     }
 
 }

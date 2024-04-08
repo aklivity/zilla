@@ -25,6 +25,7 @@ import static org.hamcrest.Matchers.nullValue;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 
@@ -43,6 +44,7 @@ import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiChannelsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiMqttKafkaConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
+import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiServerConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
@@ -86,9 +88,18 @@ public class AsyncapiOptionsConfigAdapterTest
                 "{" +
                     "\"specs\":" +
                     "{" +
-                        "\"mqtt-api\":\"mqtt/asyncapi.yaml\"," +
+                        "\"mqtt-api\":" +
+                        "{" +
+                            "\"location\":\"mqtt/asyncapi.yaml\"," +
+                            "\"servers\":" +
+                            "[" +
+                                "{" +
+                                    "\"name\":\"plain\"," +
+                                    "\"host\":\"test.mosquitto.org:1883\"" +
+                                "}" +
+                            "]" +
+                        "}" +
                     "}," +
-                    "\"server\":\"plain\"," +
                     "\"tcp\":" +
                     "{" +
                         "\"host\":\"localhost\"," +
@@ -122,7 +133,10 @@ public class AsyncapiOptionsConfigAdapterTest
         AsyncapiConfig asyncapi = options.specs.get(0);
         assertThat(asyncapi.location, equalTo("mqtt/asyncapi.yaml"));
         assertThat(asyncapi.asyncapi, instanceOf(Asyncapi.class));
-        assertThat(options.server, equalTo("plain"));
+        assertThat(asyncapi.servers.size(), equalTo(1));
+        AsyncapiServerConfig server = asyncapi.servers.get(0);
+        assertThat(server.name, equalTo("plain"));
+        assertThat(server.host, equalTo("test.mosquitto.org:1883"));
         assertThat(options.tcp.host, equalTo("localhost"));
         assertThat(options.tcp.ports, equalTo(new int[] { 7183 }));
         assertThat(options.tls.keys, equalTo(asList("localhost")));
@@ -137,13 +151,16 @@ public class AsyncapiOptionsConfigAdapterTest
     {
         initJson("mqtt/asyncapi.yaml");
         List<AsyncapiConfig> specs = new ArrayList<>();
-        specs.add(new AsyncapiConfig("mqtt-api", 1, "mqtt/asyncapi.yaml", new Asyncapi()));
+        List<AsyncapiServerConfig> servers = Collections.singletonList(AsyncapiServerConfig.builder()
+                .name("plain")
+                .host("test.mosquitto.org:1883")
+            .build());
+        specs.add(new AsyncapiConfig("mqtt-api", 1, "mqtt/asyncapi.yaml", servers, new Asyncapi()));
 
 
         AsyncapiOptionsConfig options = AsyncapiOptionsConfig.builder()
             .inject(Function.identity())
             .specs(specs)
-            .server("plain")
             .tcp(TcpOptionsConfig.builder()
                 .host("localhost")
                 .ports(new int[] { 7183 })
@@ -171,9 +188,18 @@ public class AsyncapiOptionsConfigAdapterTest
             "{" +
                 "\"specs\":" +
                 "{" +
-                    "\"mqtt-api\":\"mqtt/asyncapi.yaml\"" +
+                    "\"mqtt-api\":" +
+                    "{" +
+                        "\"location\":\"mqtt/asyncapi.yaml\"," +
+                        "\"servers\":" +
+                        "[" +
+                            "{" +
+                                "\"name\":\"plain\"," +
+                                "\"host\":\"test.mosquitto.org:1883\"" +
+                            "}" +
+                        "]" +
+                    "}" +
                 "}," +
-                "\"server\":\"plain\"," +
                 "\"tcp\":" +
                 "{" +
                     "\"host\":\"localhost\"," +
@@ -228,7 +254,10 @@ public class AsyncapiOptionsConfigAdapterTest
                 "{" +
                     "\"specs\":" +
                     "{" +
-                        "\"kafka-api\":\"kafka/asyncapi.yaml\"," +
+                        "\"kafka-api\":" +
+                        "{" +
+                            "\"location\":\"kafka/asyncapi.yaml\"" +
+                        "}" +
                     "}," +
                     "\"tcp\":" +
                     "{" +
@@ -289,7 +318,7 @@ public class AsyncapiOptionsConfigAdapterTest
     {
         initJson("http/asyncapi.yaml");
         List<AsyncapiConfig> specs = new ArrayList<>();
-        specs.add(new AsyncapiConfig("http-api", 1,  "http/asyncapi.yaml", new Asyncapi()));
+        specs.add(new AsyncapiConfig("http-api", 1,  "http/asyncapi.yaml", null, new Asyncapi()));
 
 
         AsyncapiOptionsConfig options = AsyncapiOptionsConfig.builder()
@@ -315,7 +344,10 @@ public class AsyncapiOptionsConfigAdapterTest
             "{" +
                 "\"specs\":" +
                 "{" +
-                    "\"http-api\":\"http/asyncapi.yaml\"" +
+                    "\"http-api\":" +
+                    "{" +
+                        "\"location\":\"http/asyncapi.yaml\"" +
+                    "}" +
                 "}," +
                 "\"tcp\":" +
                 "{" +
@@ -362,7 +394,10 @@ public class AsyncapiOptionsConfigAdapterTest
                 "{" +
                     "\"specs\":" +
                     "{" +
-                        "\"http-api\":\"http/asyncapi.yaml\"," +
+                        "\"http-api\":" +
+                        "{" +
+                            "\"location\":\"http/asyncapi.yaml\"" +
+                        "}" +
                     "}," +
                     "\"tcp\":" +
                     "{" +
@@ -411,7 +446,7 @@ public class AsyncapiOptionsConfigAdapterTest
     {
         initJson("kafka/asyncapi.yaml");
         List<AsyncapiConfig> specs = new ArrayList<>();
-        specs.add(new AsyncapiConfig("kafka-api", 1,  "kafka/asyncapi.yaml", new Asyncapi()));
+        specs.add(new AsyncapiConfig("kafka-api", 1,  "kafka/asyncapi.yaml", null, new Asyncapi()));
 
 
         AsyncapiOptionsConfig options = AsyncapiOptionsConfig.builder()
@@ -444,7 +479,10 @@ public class AsyncapiOptionsConfigAdapterTest
             "{" +
                 "\"specs\":" +
                 "{" +
-                    "\"kafka-api\":\"kafka/asyncapi.yaml\"" +
+                    "\"kafka-api\":" +
+                    "{" +
+                        "\"location\":\"kafka/asyncapi.yaml\"" +
+                    "}" +
                 "}," +
                 "\"tcp\":" +
                 "{" +
@@ -500,7 +538,10 @@ public class AsyncapiOptionsConfigAdapterTest
                 "{" +
                     "\"specs\":" +
                     "{" +
-                        "\"mqtt-api\":\"mqtt/asyncapi.yaml\"" +
+                        "\"mqtt-api\":" +
+                        "{" +
+                            "\"location\":\"mqtt/asyncapi.yaml\"" +
+                        "}" +
                     "}," +
                     "\"mqtt-kafka\":" +
                     "{" +
@@ -529,7 +570,7 @@ public class AsyncapiOptionsConfigAdapterTest
     {
         initJson("mqtt/asyncapi.yaml");
         List<AsyncapiConfig> specs = new ArrayList<>();
-        specs.add(new AsyncapiConfig("mqtt-api", 1, "mqtt/asyncapi.yaml", new Asyncapi()));
+        specs.add(new AsyncapiConfig("mqtt-api", 1, "mqtt/asyncapi.yaml", null, new Asyncapi()));
 
 
         AsyncapiOptionsConfig options = AsyncapiOptionsConfig.builder()
@@ -550,7 +591,10 @@ public class AsyncapiOptionsConfigAdapterTest
             "{" +
                     "\"specs\":" +
                     "{" +
-                        "\"mqtt-api\":\"mqtt/asyncapi.yaml\"" +
+                        "\"mqtt-api\":" +
+                        "{" +
+                            "\"location\":\"mqtt/asyncapi.yaml\"" +
+                        "}" +
                     "}," +
                     "\"mqtt-kafka\":" +
                     "{" +

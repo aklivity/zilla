@@ -17,11 +17,14 @@ package io.aklivity.zilla.runtime.binding.asyncapi.internal;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 import static java.util.Collections.emptyList;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
+import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiServerConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiServer;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiServerView;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
@@ -54,14 +57,16 @@ public class AsyncapiServerCompositeBindingAdapter extends AsyncapiCompositeBind
         final List<MetricRefConfig> metricRefs = binding.telemetryRef != null ?
             binding.telemetryRef.metricRefs : emptyList();
 
+        this.qname = binding.qname;
+        this.qvault = binding.qvault;
+
+
         //TODO: add composite for all servers
-        final AsyncapiServer server = asyncapi.servers
-            .getOrDefault(options.server, asyncapi.servers.entrySet().iterator().next().getValue());
+        final List<AsyncapiServer> servers = filterAsyncapiServers(asyncapi.servers, asyncapiConfig.servers);
+            //.getOrDefault("options.server", asyncapi.servers.entrySet().iterator().next().getValue());
         AsyncapiServerView serverView = AsyncapiServerView.of(server);
         final String[] hostAndPort = server.host.split(":");
 
-        this.qname = binding.qname;
-        this.qvault = binding.qvault;
         this.protocol = resolveProtocol(serverView.protocol(), options);
         this.sni = options.tls != null ? options.tls.sni : Collections.singletonList(hostAndPort[0]);
         this.compositePorts = options.tcp != null ? options.tcp.ports : new int[] {Integer.parseInt(hostAndPort[1])};
@@ -95,6 +100,29 @@ public class AsyncapiServerCompositeBindingAdapter extends AsyncapiCompositeBind
                     .build()
                 .build()
            .build();
+    }
+
+    private List<AsyncapiServer> filterAsyncapiServers(
+        Map<String, AsyncapiServer> servers,
+        List<AsyncapiServerConfig> serverConfigs)
+    {
+        List<AsyncapiServer> filtered;
+        if (serverConfigs != null)
+        {
+            filtered = new ArrayList<>();
+            serverConfigs.forEach(sc ->
+            {
+                servers.values().stream().filter(s ->
+                {
+                    s.variables
+                });
+            });
+        }
+        else
+        {
+            filtered = new ArrayList<>(servers.values());
+        }
+        return filtered;
     }
 
     private <C> BindingConfigBuilder<C> injectPlainTcpRoute(

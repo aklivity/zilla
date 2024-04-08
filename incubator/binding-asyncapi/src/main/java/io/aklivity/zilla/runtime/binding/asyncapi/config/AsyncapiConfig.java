@@ -16,22 +16,27 @@ package io.aklivity.zilla.runtime.binding.asyncapi.config;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 
+import java.util.List;
+
 public class AsyncapiConfig
 {
     public final String apiLabel;
     public final long apiId;
     public final String location;
+    public final List<AsyncapiServerConfig> servers;
     public final Asyncapi asyncapi;
 
     public AsyncapiConfig(
         String apiLabel,
         long apiId,
         String location,
+        List<AsyncapiServerConfig> servers,
         Asyncapi asyncapi)
     {
         this.apiLabel = apiLabel;
         this.apiId = apiId;
         this.location = location;
+        this.servers = servers;
         this.asyncapi = asyncapi;
     }
 }
