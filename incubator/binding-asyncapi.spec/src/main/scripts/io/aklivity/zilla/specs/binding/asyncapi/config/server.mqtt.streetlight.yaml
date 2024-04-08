@@ -16,35 +16,11 @@
 
 ---
 name: test
-guards:
-  test0:
-    type: test
-    options:
-      credentials: TOKEN
-      lifetime: PT5S
-      challenge: PT5S
-vaults:
-  test0:
-    type: test
 bindings:
   composite0:
     type: asyncapi
     kind: server
-    vault: test0
     options:
       specs:
-        mqtt_api: mqtt/asyncapi.yaml
-      mqtt:
-        authorization:
-          test0:
-            credentials:
-              connect:
-                username: Bearer {credentials}
-      tls:
-        keys:
-          - localhost
-        sni:
-          - mqtt.example.net
-        alpn:
-          - mqtt
+        mqtt_api: mqtt/streetlight.asyncapi.yaml
     exit: asyncapi0

@@ -14,14 +14,12 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.model;
 
-import java.util.Map;
 
-import jakarta.json.JsonArray;
+import jakarta.json.bind.annotation.JsonbProperty;
 
-public class AsyncapiServer
+public class AsyncapiTrait
 {
-    public String host;
-    public String protocol;
-    public JsonArray security;
-    public Map<String, AsyncapiVariable> variables;
+    public AsyncapiSchema headers;
+    @JsonbProperty("$ref")
+    public String ref;
 }

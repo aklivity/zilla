@@ -16,35 +16,19 @@
 
 ---
 name: test
-guards:
-  test0:
-    type: test
-    options:
-      credentials: TOKEN
-      lifetime: PT5S
-      challenge: PT5S
-vaults:
-  test0:
-    type: test
 bindings:
-  composite0:
-    type: asyncapi
+  net0:
+    type: mqtt
     kind: server
-    vault: test0
     options:
-      specs:
-        mqtt_api: mqtt/asyncapi.yaml
-      mqtt:
-        authorization:
-          test0:
-            credentials:
-              connect:
-                username: Bearer {credentials}
-      tls:
-        keys:
-          - localhost
-        sni:
-          - mqtt.example.net
-        alpn:
-          - mqtt
-    exit: asyncapi0
+      topics:
+        - name: sensor/one
+          user-properties:
+            my-user-property:
+              model: test
+              length: 5
+            other-user-property:
+              model: test
+              length: 6
+    routes:
+      - exit: app0
