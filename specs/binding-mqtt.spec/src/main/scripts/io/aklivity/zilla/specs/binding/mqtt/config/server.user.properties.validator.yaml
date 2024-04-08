@@ -24,13 +24,11 @@ bindings:
       topics:
         - name: sensor/one
           user-properties:
-            - name: my-user-property
-              content:
-                model: test
-                length: 5
-            - name: other-user-property
-              content:
-                model: test
-                length: 6
+            my-user-property:
+              model: test
+              length: 5
+            other-user-property:
+              model: test
+              length: 6
     routes:
       - exit: app0

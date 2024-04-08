@@ -15,11 +15,11 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.internal.config;
 
+import java.util.LinkedList;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Map;
 
 import jakarta.json.Json;
-import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
@@ -37,7 +37,6 @@ public class MqttTopicConfigAdapter implements JsonbAdapter<MqttTopicConfig, Jso
     private static final String USER_PROPERTIES_NAME = "user-properties";
 
     private final ModelConfigAdapter model = new ModelConfigAdapter();
-    private final MqttUserPropertyConfigAdapter mqttUserProperty = new MqttUserPropertyConfigAdapter();
 
     @Override
     public JsonObject adaptToJson(
@@ -58,10 +57,12 @@ public class MqttTopicConfigAdapter implements JsonbAdapter<MqttTopicConfig, Jso
 
         if (topic.userProperties != null)
         {
-            JsonArrayBuilder userProperties = Json.createArrayBuilder();
-            topic.userProperties.stream()
-                .map(mqttUserProperty::adaptToJson)
-                .forEach(userProperties::add);
+            JsonObjectBuilder userProperties = Json.createObjectBuilder();
+            for (MqttUserPropertyConfig userProperty : topic.userProperties)
+            {
+                model.adaptType(userProperty.value.model);
+                userProperties.add(userProperty.name, model.adaptToJson(userProperty.value));
+            }
             object.add(USER_PROPERTIES_NAME, userProperties);
         }
 
@@ -86,9 +87,16 @@ public class MqttTopicConfigAdapter implements JsonbAdapter<MqttTopicConfig, Jso
 
         if (object.containsKey(USER_PROPERTIES_NAME))
         {
-            List<MqttUserPropertyConfig> userProperties = object.getJsonArray(USER_PROPERTIES_NAME).stream()
-                .map(item -> mqttUserProperty.adaptFromJson((JsonObject) item))
-                .collect(Collectors.toList());
+            JsonObject userPropertiesJson = object.getJsonObject(USER_PROPERTIES_NAME);
+            List<MqttUserPropertyConfig> userProperties = new LinkedList<>();
+            for (Map.Entry<String, JsonValue> entry : userPropertiesJson.entrySet())
+            {
+                MqttUserPropertyConfig header = MqttUserPropertyConfig.builder()
+                    .name(entry.getKey())
+                    .value(model.adaptFromJson(entry.getValue()))
+                    .build();
+                userProperties.add(header);
+            }
             mqttTopic.userProperties(userProperties);
         }
 

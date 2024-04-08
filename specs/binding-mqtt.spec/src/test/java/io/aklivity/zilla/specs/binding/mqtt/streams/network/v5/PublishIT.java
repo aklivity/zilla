@@ -350,7 +350,7 @@ public class PublishIT
     @Specification({
         "${net}/publish.invalid.user.property/client",
         "${net}/publish.invalid.user.property/server"})
-    public void shouldPublishInvalidUserProperty() throws Exception
+    public void shouldNotPublishInvalidUserProperty() throws Exception
     {
         k3po.finish();
     }

@@ -83,12 +83,9 @@ public class MqttOptionsConfigAdapterTest
                             "\"name\": \"sensor/one\"," +
                             "\"content\":\"test\"," +
                             "\"user-properties\":" +
-                            "[" +
-                                "{" +
-                                    "\"name\":\"user-property\"," +
-                                    "\"content\":\"test\"" +
-                                "}" +
-                            "]" +
+                            "{" +
+                                "\"user-property\":\"test\"" +
+                            "}" +
                         "}" +
                     "]" +
                 "}";
@@ -113,8 +110,8 @@ public class MqttOptionsConfigAdapterTest
         assertThat(topic.content.model, equalTo("test"));
         MqttUserPropertyConfig userProperty = topic.userProperties.get(0);
         assertThat(userProperty.name, equalTo("user-property"));
-        assertThat(userProperty.content, instanceOf(TestModelConfig.class));
-        assertThat(userProperty.content.model, equalTo("test"));
+        assertThat(userProperty.value, instanceOf(TestModelConfig.class));
+        assertThat(userProperty.value.model, equalTo("test"));
         assertThat(options.versions.get(0), equalTo(MqttVersion.V3_1_1));
         assertThat(options.versions.get(1), equalTo(MqttVersion.V_5));
     }
@@ -169,12 +166,9 @@ public class MqttOptionsConfigAdapterTest
                                 "\"name\":\"sensor/one\"," +
                                 "\"content\":\"test\"," +
                                 "\"user-properties\":" +
-                                "[" +
-                                    "{" +
-                                        "\"name\":\"user-property\"," +
-                                        "\"content\":\"test\"" +
-                                    "}" +
-                                "]" +
+                                "{" +
+                                    "\"user-property\":\"test\"" +
+                                "}" +
                             "}" +
                         "]," +
                         "\"versions\":" +

@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.mqtt.internal.config;
 
 import static java.util.stream.Collectors.toList;
 
+import java.nio.ByteOrder;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -77,9 +78,10 @@ public final class MqttBindingConfig
                     .replace("$", "\\$")
                     .replace("+", "[^/]*")
                     .replace("#", ".*");
-                Map<Matcher, ModelConfig> userProperties = Optional.ofNullable(t.userProperties).orElseGet(Collections::emptyList)
+                Map<String16FW, ModelConfig> userProperties =
+                    Optional.ofNullable(t.userProperties).orElseGet(Collections::emptyList)
                     .stream()
-                    .collect(Collectors.toMap(up -> Pattern.compile(up.name).matcher(""), up -> up.content));
+                    .collect(Collectors.toMap(up -> new String16FW(up.name, ByteOrder.BIG_ENDIAN), up -> up.value));
                 topics.put(Pattern.compile(topicPattern).matcher(""), new TopicValidator(t.content, userProperties));
             });
         }
@@ -161,19 +163,10 @@ public final class MqttBindingConfig
                 matcher.reset(topic);
                 if (matcher.find())
                 {
-                    Map<Matcher, ModelConfig> userProperties = t.getValue().userProperties;
+                    Map<String16FW, ModelConfig> userProperties = t.getValue().userProperties;
                     if (userProperties != null)
                     {
-                        for (Map.Entry<Matcher, ModelConfig> u : userProperties.entrySet())
-                        {
-                            final Matcher userPropertyMatcher = u.getKey();
-                            userPropertyMatcher.reset(userPropertyKey.asString());
-                            if (userPropertyMatcher.find())
-                            {
-                                config = u.getValue();
-                                break;
-                            }
-                        }
+                        config = userProperties.get(userPropertyKey);
                     }
                     break;
                 }
@@ -250,11 +243,11 @@ public final class MqttBindingConfig
     private static class TopicValidator
     {
         ModelConfig content;
-        Map<Matcher, ModelConfig> userProperties;
+        Map<String16FW, ModelConfig> userProperties;
 
         TopicValidator(
             ModelConfig content,
-            Map<Matcher, ModelConfig> userProperties)
+            Map<String16FW, ModelConfig> userProperties)
         {
             this.content = content;
             this.userProperties = userProperties;

@@ -80,7 +80,7 @@ public class AsyncapiCompositeBindingAdapter
                 protocol = new AsyncapiHttpProtocol(qname, asyncapi, options);
                 break;
             case "mqtt":
-                protocol = new AyncapiMqttProtocol(qname, asyncapi);
+                protocol = new AyncapiMqttProtocol(qname, asyncapi, options, namespace);
                 break;
             case "kafka":
             case "kafka-secure":
@@ -100,13 +100,7 @@ public class AsyncapiCompositeBindingAdapter
     {
         for (AsyncapiServer s : asyncApi.servers.values())
         {
-            String[] hostAndPort = s.host.split(":");
-            String port = hostAndPort[1];
-            if (variable.reset(port).find())
-            {
-                String resolvedPort = s.variables.get(variable.group(1)).defaultValue;
-                s.host = s.host.replace(port, resolvedPort);
-            }
+            s.host = variable.reset(s.host).replaceAll(mr -> s.variables.get(mr.group(1)).defaultValue);
         }
     }
 

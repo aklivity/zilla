@@ -22,14 +22,14 @@ import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 public class MqttUserPropertyConfig
 {
     public final String name;
-    public final ModelConfig content;
+    public final ModelConfig value;
 
     public MqttUserPropertyConfig(
         String name,
-        ModelConfig content)
+        ModelConfig value)
     {
         this.name = name;
-        this.content = content;
+        this.value = value;
     }
 
     public static MqttUserPropertyConfigBuilder<MqttUserPropertyConfig> builder()

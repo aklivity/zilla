@@ -55,7 +55,7 @@ public class MqttOptionsConfig extends OptionsConfig
             .flatMap(topic -> Stream.concat(
                 Stream.of(topic.content),
                     Optional.ofNullable(topic.userProperties).orElseGet(Collections::emptyList).stream()
-                    .flatMap(p -> Stream.of(p.content))
+                    .flatMap(p -> Stream.of(p.value))
                     .filter(Objects::nonNull))
                 .filter(Objects::nonNull))
             .collect(Collectors.toList())

@@ -18,6 +18,7 @@ import static io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiCompos
 
 import java.util.Map;
 
+import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiChannel;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiItem;
@@ -25,6 +26,7 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiMessage
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiTrait;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiMessageView;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiTraitView;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttAuthorizationConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttConditionConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfigBuilder;
@@ -37,12 +39,20 @@ public class AyncapiMqttProtocol extends AsyncapiProtocol
 {
     private static final String SCHEME = "mqtt";
     private static final String SECURE_SCHEME = "mqtts";
+    private final String guardName;
+    private final MqttAuthorizationConfig authorization;
 
     public AyncapiMqttProtocol(
         String qname,
-        Asyncapi asyncApi)
+        Asyncapi asyncApi,
+        AsyncapiOptionsConfig options,
+        String namespace)
     {
         super(qname, asyncApi, SCHEME, SECURE_SCHEME);
+        final MqttOptionsConfig mqttOptions = options.mqtt;
+        this.guardName =  mqttOptions != null ? String.format("%s:%s", namespace, mqttOptions.authorization.name) : null;
+        this.authorization = mqttOptions != null ?
+            new MqttAuthorizationConfig(guardName, mqttOptions.authorization.credentials) : null;
     }
 
     @Override
@@ -52,8 +62,19 @@ public class AyncapiMqttProtocol extends AsyncapiProtocol
         binding
             .options(MqttOptionsConfig::builder)
             .inject(this::injectMqttTopicsOptions)
+            .inject(this::injectMqttAuthorization)
             .build();
         return binding;
+    }
+
+    private <C> MqttOptionsConfigBuilder<C> injectMqttAuthorization(
+        MqttOptionsConfigBuilder<C> options)
+    {
+        if (isJwtEnabled)
+        {
+            options.authorization(authorization).build();
+        }
+        return options;
     }
 
     private <C> MqttOptionsConfigBuilder<C> injectMqttTopicsOptions(
@@ -116,7 +137,7 @@ public class AyncapiMqttProtocol extends AsyncapiProtocol
     {
         userProperty
             .name(subject)
-            .content(JsonModelConfig::builder)
+            .value(JsonModelConfig::builder)
             .catalog()
                 .name(INLINE_CATALOG_NAME)
                 .schema()

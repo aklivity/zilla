@@ -25,7 +25,7 @@ public class MqttUserPropertyConfigBuilder<T> extends ConfigBuilder<T, MqttUserP
     private final Function<MqttUserPropertyConfig, T> mapper;
 
     private String name;
-    private ModelConfig content;
+    private ModelConfig value;
 
     MqttUserPropertyConfigBuilder(
         Function<MqttUserPropertyConfig, T> mapper)
@@ -47,22 +47,22 @@ public class MqttUserPropertyConfigBuilder<T> extends ConfigBuilder<T, MqttUserP
         return this;
     }
 
-    public MqttUserPropertyConfigBuilder<T> content(
+    public MqttUserPropertyConfigBuilder<T> value(
         ModelConfig content)
     {
-        this.content = content;
+        this.value = content;
         return this;
     }
 
-    public <C extends ConfigBuilder<MqttUserPropertyConfigBuilder<T>, C>> C content(
-        Function<Function<ModelConfig, MqttUserPropertyConfigBuilder<T>>, C> content)
+    public <C extends ConfigBuilder<MqttUserPropertyConfigBuilder<T>, C>> C value(
+        Function<Function<ModelConfig, MqttUserPropertyConfigBuilder<T>>, C> value)
     {
-        return content.apply(this::content);
+        return value.apply(this::value);
     }
 
     @Override
     public T build()
     {
-        return mapper.apply(new MqttUserPropertyConfig(name, content));
+        return mapper.apply(new MqttUserPropertyConfig(name, value));
     }
 }

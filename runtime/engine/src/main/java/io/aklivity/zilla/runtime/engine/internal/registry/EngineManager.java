@@ -458,6 +458,10 @@ public class EngineManager
 
             if (name != null && matchName.reset(name).matches())
             {
+                if (matchName.group("name") == null)
+                {
+                    System.out.println("HELLO: " + name);
+                }
                 String ns = matchName.group("namespace");
                 String n = matchName.group("name");
 
