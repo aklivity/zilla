@@ -14,12 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.model;
 
-import java.util.Map;
-
-public class AsyncapiOperation
+public class AsyncapiAddress
 {
-    public Map<String, AsyncapiBinding> bindings;
-    public AsyncapiChannel channel;
-    public String action;
-    public AsyncapiReply reply;
+    public String location;
 }
