@@ -20,7 +20,7 @@ connect "zilla://streams/asyncapi0"
 
 write zilla:begin.ext ${asyncapi:beginEx()
                              .typeId(zilla:id("asyncapi"))
-                             .apiId(3718483476)
+                             .apiId(0)
                              .extension(mqtt:beginEx()
                                             .typeId(zilla:id("mqtt"))
                                             .session()
@@ -50,7 +50,7 @@ connect "zilla://streams/asyncapi0"
 
 write zilla:begin.ext ${asyncapi:beginEx()
                                    .typeId(zilla:id("asyncapi"))
-                                   .apiId(3718483476)
+                                   .apiId(0)
                                    .extension(mqtt:beginEx()
                                                     .typeId(zilla:id("mqtt"))
                                                     .publish()
@@ -83,7 +83,7 @@ connect "zilla://streams/asyncapi0"
 
 write zilla:begin.ext ${asyncapi:beginEx()
                              .typeId(zilla:id("asyncapi"))
-                             .apiId(3718483476)
+                             .apiId(0)
                              .extension(mqtt:beginEx()
                                              .typeId(zilla:id("mqtt"))
                                              .subscribe()

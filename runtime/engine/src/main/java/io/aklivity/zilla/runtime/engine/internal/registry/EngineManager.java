@@ -404,7 +404,6 @@ public class EngineManager
         dispatchers.stream()
             .map(d -> d.attach(namespace))
             .reduce(CompletableFuture::allOf);
-            //.ifPresent(CompletableFuture::join);
     }
 
     private void unregister(
@@ -415,7 +414,6 @@ public class EngineManager
             dispatchers.stream()
                 .map(d -> d.detach(namespace))
                 .reduce(CompletableFuture::allOf);
-                //.ifPresent(CompletableFuture::join);
         }
     }
 
