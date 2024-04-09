@@ -28,7 +28,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiProtocol;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiProtocol;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiServer;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiVariable;
 
@@ -107,11 +107,6 @@ public final class AsyncapiServerView
         String url)
     {
         server.url = (url == null || url.isEmpty()) ? defaultHost : url;
-    }
-
-    public String url2()
-    {
-        return server.url;
     }
 
     public String scheme()

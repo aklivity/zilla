@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -115,7 +116,7 @@ public class OpenapiAsyncapiOptionsConfigAdapterTest
             List.of(new OpenapiCatalogConfig("catalog0", "petstore", "latest"))));
 
         Set<AsyncapiConfig> asyncapiConfigs = new HashSet<>();
-        asyncapiConfigs.add(new AsyncapiConfig("asyncapi-id",
+        asyncapiConfigs.add(new AsyncapiConfig("asyncapi-id", Collections.emptyList(),
             List.of(new AsyncapiCatalogConfig("catalog0", "petstore", "latest"))));
 
         final OpenapiAsyncapiOptionsConfig options = new OpenapiAsyncapiOptionsConfig(

@@ -21,10 +21,6 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import java.util.function.Function;
 
 import jakarta.json.bind.Jsonb;
@@ -39,10 +35,10 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiChannelsConfig;
+import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiMqttKafkaConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiServerConfig;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
@@ -125,9 +121,7 @@ public class AsyncapiOptionsConfigAdapterTest
         AsyncapiOptionsConfig options = jsonb.fromJson(text, AsyncapiOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
-        AsyncapiConfig asyncapi = options.specs.get(0);
-        assertThat(asyncapi.location, equalTo("mqtt/asyncapi.yaml"));
-        assertThat(asyncapi.asyncapi, instanceOf(Asyncapi.class));
+        AsyncapiConfig asyncapi = options.asyncapis.get(0);
         assertThat(asyncapi.servers.size(), equalTo(1));
         AsyncapiServerConfig server = asyncapi.servers.get(0);
         assertThat(server.name, equalTo("plain"));

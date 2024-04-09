@@ -18,6 +18,7 @@ import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 import static java.util.Collections.emptyList;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
@@ -33,7 +34,6 @@ import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 
 public class AsyncapiServerNamespaceGenerator extends AsyncapiNamespaceGenerator
 {
-
     public NamespaceConfig generate(
         BindingConfig binding,
         Asyncapi asyncapi)
@@ -42,15 +42,15 @@ public class AsyncapiServerNamespaceGenerator extends AsyncapiNamespaceGenerator
         final List<MetricRefConfig> metricRefs = binding.telemetryRef != null ?
             binding.telemetryRef.metricRefs : emptyList();
 
-        //TODO: add composite for all servers
-        AsyncapiServerView firstServer = AsyncapiServerView.of(asyncapi.servers.entrySet().iterator().next().getValue());
-
         this.asyncapi = asyncapi;
         this.qname = binding.qname;
         this.qvault = binding.qvault;
         this.namespace = binding.namespace;
 
-        final List<AsyncapiServerView> servers = filterAsyncapiServers(asyncapi.servers, asyncapiConfig.servers);
+        final List<AsyncapiServerView> servers =
+            filterAsyncapiServers(asyncapi.servers, options.asyncapis.stream()
+                .flatMap(a -> a.servers.stream())
+                .collect(Collectors.toList()));
         servers.forEach(s -> s.setAsyncapiProtocol(resolveProtocol(s.protocol(), options, servers)));
 
         //TODO: keep it until we support different protocols on the same composite binding

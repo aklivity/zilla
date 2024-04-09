@@ -105,7 +105,7 @@ public abstract class AsyncapiNamespaceGenerator
                 protocol = new AsyncapiHttpProtocol(qname, asyncapi, options, protocolName);
                 break;
             case "mqtt":
-                protocol = new AyncapiMqttProtocol(qname, asyncapi, options, protocolName, namespace);
+                protocol = new AsyncapiMqttProtocol(qname, asyncapi, options, protocolName, namespace);
                 break;
             case "kafka":
             case "kafka-secure":
