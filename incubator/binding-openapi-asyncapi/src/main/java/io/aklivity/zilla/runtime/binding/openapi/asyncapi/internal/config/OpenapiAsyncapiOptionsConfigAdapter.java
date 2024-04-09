@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config;
 import static java.util.Collections.unmodifiableSet;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -194,7 +195,7 @@ public final class OpenapiAsyncapiOptionsConfigAdapter implements OptionsConfigA
                     }
                     catalogs.add(catalogBuilder.build());
                 }
-                asyncapis.add(new AsyncapiConfig(apiLabel, catalogs));
+                asyncapis.add(new AsyncapiConfig(apiLabel, Collections.emptyList(), catalogs));
             }
         }
 

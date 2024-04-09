@@ -92,6 +92,8 @@ bindings:
     options:
       specs:
         mqtt_api:
+          servers:
+            - name: plain
           catalog:
             catalog0:
               subject: smartylighting

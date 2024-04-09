@@ -18,6 +18,7 @@ import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
 import static java.util.Collections.emptyList;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
@@ -37,17 +38,22 @@ public class AsyncapiClientNamespaceGenerator extends AsyncapiNamespaceGenerator
         final List<MetricRefConfig> metricRefs = binding.telemetryRef != null ?
             binding.telemetryRef.metricRefs : emptyList();
 
-        //TODO: add composite for all servers
-        AsyncapiServerView firstServer = AsyncapiServerView.of(asyncapi.servers.entrySet().iterator().next().getValue());
-
         this.asyncapi = asyncapi;
         this.qname = binding.qname;
         this.namespace = binding.namespace;
         this.qvault = binding.qvault;
         this.vault = binding.vault;
-        resolveServerVariables(asyncapi);
-        this.protocol = resolveProtocol(firstServer.protocol(), options);
-        this.isTlsEnabled = protocol.isSecure();
+        final List<AsyncapiServerView> servers =
+            filterAsyncapiServers(asyncapi.servers, options.asyncapis.stream()
+                .flatMap(a -> a.servers.stream())
+                .collect(Collectors.toList()));
+        servers.forEach(s -> s.setAsyncapiProtocol(resolveProtocol(s.protocol(), options, servers)));
+
+        //TODO: keep it until we support different protocols on the same composite binding
+        AsyncapiServerView serverView = servers.get(0);
+        this.protocol = serverView.getAsyncapiProtocol();
+        int[] compositeSecurePorts = resolvePorts(servers, true);
+        this.isTlsEnabled =  compositeSecurePorts.length > 0;
 
         return NamespaceConfig.builder()
                 .name(String.format("%s.%s", qname, "$composite"))
@@ -68,7 +74,7 @@ public class AsyncapiClientNamespaceGenerator extends AsyncapiNamespaceGenerator
                     .type("tcp")
                     .kind(CLIENT)
                     .inject(b -> this.injectMetrics(b, metricRefs, "tcp"))
-                    .options(options.tcp)
+                    .options(!protocol.scheme.equals(AyncapiKafkaProtocol.SCHEME) ? options.tcp : null)
                     .build()
                 .build();
     }
