@@ -14,21 +14,21 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.config;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
-import java.util.function.Function;
-import java.util.zip.CRC32C;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.JsonString;
+import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
+import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiCatalogConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
-import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiParser;
+import io.aklivity.zilla.runtime.binding.openapi.config.OpenpaiCatalogConfigBuilder;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenpaiOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiBinding;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
@@ -44,19 +44,16 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
     private static final String TLS_NAME = "tls";
     private static final String HTTP_NAME = "http";
     private static final String SPECS_NAME = "specs";
-
-    private final OpenapiParser parser;
-    private final CRC32C crc;
+    private static final String CATALOG_NAME = "catalog";
+    private static final String SUBJECT_NAME = "subject";
+    private static final String VERSION_NAME = "version";
 
     private OptionsConfigAdapter tcpOptions;
     private OptionsConfigAdapter tlsOptions;
     private OptionsConfigAdapter httpOptions;
-    private Function<String, String> readURL;
 
     public OpenapiOptionsConfigAdapter()
     {
-        this.parser = new OpenapiParser();
-        this.crc = new CRC32C();
     }
 
     @Override
@@ -99,9 +96,28 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
 
         if (openapiOptions.openapis != null)
         {
-            JsonObjectBuilder openapi = Json.createObjectBuilder();
-            openapiOptions.openapis.forEach(o -> openapi.add(o.apiLabel, o.location));
-            object.add(SPECS_NAME, openapi);
+            final JsonObjectBuilder specs = Json.createObjectBuilder();
+            for (OpenapiConfig openapiConfig : openapiOptions.openapis)
+            {
+                final JsonObjectBuilder catalogObject = Json.createObjectBuilder();
+                final JsonObjectBuilder subjectObject = Json.createObjectBuilder();
+                for (OpenapiCatalogConfig catalog : openapiConfig.catalogs)
+                {
+                    JsonObjectBuilder schemaObject = Json.createObjectBuilder();
+                    schemaObject.add(SUBJECT_NAME, catalog.subject);
+
+                    if (catalog.version != null)
+                    {
+                        schemaObject.add(VERSION_NAME, catalog.version);
+                    }
+
+                    subjectObject.add(catalog.name, schemaObject);
+                }
+                catalogObject.add(CATALOG_NAME, subjectObject);
+
+                specs.add(openapiConfig.apiLabel, catalogObject);
+            }
+            object.add(SPECS_NAME, specs);
         }
 
         return object.build();
@@ -138,16 +154,37 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
         if (object.containsKey(SPECS_NAME))
         {
             JsonObject openapi = object.getJsonObject(SPECS_NAME);
-            openapi.forEach((n, v) ->
+            for (Map.Entry<String, JsonValue> entry : openapi.entrySet())
             {
-                final String location = JsonString.class.cast(v).getString();
-                final String specText = readURL.apply(location);
-                final String apiLabel = n;
-                crc.reset();
-                crc.update(specText.getBytes(UTF_8));
-                final long apiId = crc.getValue();
-                openapiOptions.openapi(new OpenapiConfig(apiLabel, apiId, location, parser.parse(specText)));
-            });
+                final String apiLabel = entry.getKey();
+                final JsonObject specObject = entry.getValue().asJsonObject();
+
+                if (specObject.containsKey(CATALOG_NAME))
+                {
+                    final JsonObject catalog = specObject.getJsonObject(CATALOG_NAME);
+
+                    List<OpenapiCatalogConfig> catalogs = new ArrayList<>();
+                    for (Map.Entry<String, JsonValue> catalogEntry : catalog.entrySet())
+                    {
+                        OpenpaiCatalogConfigBuilder<OpenapiCatalogConfig> catalogBuilder = OpenapiCatalogConfig.builder();
+                        JsonObject catalogObject = catalogEntry.getValue().asJsonObject();
+
+                        catalogBuilder.name(catalogEntry.getKey());
+
+                        if (catalogObject.containsKey(SUBJECT_NAME))
+                        {
+                            catalogBuilder.subject(catalogObject.getString(SUBJECT_NAME));
+                        }
+
+                        if (catalogObject.containsKey(VERSION_NAME))
+                        {
+                            catalogBuilder.version(catalogObject.getString(VERSION_NAME));
+                        }
+                        catalogs.add(catalogBuilder.build());
+                    }
+                    openapiOptions.openapi(new OpenapiConfig(apiLabel, catalogs));
+                }
+            }
         }
 
         return openapiOptions.build();
@@ -157,7 +194,6 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
     public void adaptContext(
         ConfigAdapterContext context)
     {
-        this.readURL = context::readURL;
         this.tcpOptions = new OptionsConfigAdapter(Kind.BINDING, context);
         this.tcpOptions.adaptType("tcp");
         this.tlsOptions = new OptionsConfigAdapter(Kind.BINDING, context);

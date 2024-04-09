@@ -16,6 +16,9 @@ package io.aklivity.zilla.runtime.binding.openapi.asyncapi.config;
 
 import java.util.Set;
 
+import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiConfig;
+import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiConfig;
+
 public class OpenapiAsyncapiSpecConfig
 {
     public final Set<OpenapiConfig> openapi;

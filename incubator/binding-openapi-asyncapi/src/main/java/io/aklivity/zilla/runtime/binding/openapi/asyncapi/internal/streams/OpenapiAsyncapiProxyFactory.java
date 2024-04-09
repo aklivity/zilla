@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.streams;
 
-import java.util.function.Function;
+import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 
@@ -26,6 +26,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiBinding;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.OpenapiAsyncapiConfiguration;
+import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncNamespaceGenerator;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncapiRouteConfig;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.types.Flyweight;
@@ -44,8 +45,8 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
+import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 
 public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamFactory
 {
@@ -81,27 +82,28 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyTraceId;
-    private final Function<String, Integer> supplyTypeId;
+    private final LongFunction<CatalogHandler> supplyCatalog;
     private final Long2ObjectHashMap<OpenapiAsyncapiBindingConfig> bindings;
     private final Long2LongHashMap apiIds;
+    private final OpenapiAsyncapiConfiguration config;
+    private final OpenapiAsyncNamespaceGenerator namespaceGenerator;
     private final int openapiTypeId;
     private final int asyncapiTypeId;
-
-    private final OpenapiAsyncapiConfiguration config;
 
     public OpenapiAsyncapiProxyFactory(
         OpenapiAsyncapiConfiguration config,
         EngineContext context)
     {
         this.config = config;
+        this.namespaceGenerator = new OpenapiAsyncNamespaceGenerator();
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.bufferPool = context.bufferPool();
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
-        this.supplyTypeId = context::supplyTypeId;
         this.supplyTraceId = context::supplyTraceId;
+        this.supplyCatalog = context::supplyCatalog;
         this.bindings = new Long2ObjectHashMap<>();
         this.apiIds = new Long2LongHashMap(-1);
         this.openapiTypeId = context.supplyTypeId(OpenapiBinding.NAME);
@@ -119,15 +121,19 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
     public void attach(
         BindingConfig binding)
     {
-        OpenapiAsyncapiBindingConfig apiBinding = new OpenapiAsyncapiBindingConfig(binding);
+        OpenapiAsyncapiBindingConfig apiBinding = new OpenapiAsyncapiBindingConfig(binding,
+            namespaceGenerator, supplyCatalog);
         bindings.put(binding.id, apiBinding);
+
+        apiBinding.attach(binding);
     }
 
     @Override
     public void detach(
         long bindingId)
     {
-        bindings.remove(bindingId);
+        OpenapiAsyncapiBindingConfig apiBinding = bindings.remove(bindingId);
+        apiBinding.detach();
     }
 
     @Override
@@ -152,7 +158,7 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
 
         if (binding != null)
         {
-            if (!binding.isCompositeNamespace(NamespacedId.namespaceId(originId)))
+            if (!binding.isCompositeOriginId(originId))
             {
                 final OpenapiBeginExFW openapiBeginEx = extension.get(openapiBeginExRO::tryWrap);
                 final long apiId = openapiBeginEx.apiId();
@@ -181,7 +187,7 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
 
                 if (route != null)
                 {
-                    final long clientApiId = binding.options.resolveAsyncapiApiId(route.with.apiId);
+                    final long clientApiId = binding.resolveAsyncapiApiId(route.with.apiId);
                     final String operationId = route.with.operationId;
                     newStream = new CompositeClientStream(
                         receiver,

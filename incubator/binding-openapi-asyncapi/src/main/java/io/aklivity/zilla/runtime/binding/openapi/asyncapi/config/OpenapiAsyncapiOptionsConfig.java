@@ -25,34 +25,4 @@ public final class OpenapiAsyncapiOptionsConfig extends OptionsConfig
     {
         this.specs = specs;
     }
-
-    public long resolveOpenapiApiId(
-        String apiLabel)
-    {
-        long apiId = -1;
-        for (OpenapiConfig c : specs.openapi)
-        {
-            if (c.apiLabel.equals(apiLabel))
-            {
-                apiId = c.apiId;
-                break;
-            }
-        }
-        return apiId;
-    }
-
-    public long resolveAsyncapiApiId(
-        String apiLabel)
-    {
-        long apiId = -1;
-        for (AsyncapiConfig c : specs.asyncapi)
-        {
-            if (c.apiLabel.equals(apiLabel))
-            {
-                apiId = c.apiId;
-                break;
-            }
-        }
-        return apiId;
-    }
 }
