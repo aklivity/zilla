@@ -173,7 +173,6 @@ public class EngineRegistry
         namespacesById.put(registry.namespaceId(), registry);
         registry.attach();
 
-        /**
         for (BindingConfig binding : namespace.bindings)
         {
             for (NamespaceConfig composite : binding.composites.values())
@@ -184,7 +183,6 @@ public class EngineRegistry
                 }
             }
         }
-         */
     }
 
     protected void detachNamespace(
