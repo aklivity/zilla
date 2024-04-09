@@ -24,7 +24,6 @@ import static org.junit.rules.RuleChain.outerRule;
 import java.util.function.LongConsumer;
 import java.util.function.LongSupplier;
 
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -50,7 +49,6 @@ public class EngineMetricsIT
     public final TestRule chain = outerRule(engine).around(timeout);
 
     @Test
-    @Ignore
     @Configuration("server.yaml")
     public void shouldFetchCounterIds()
     {
@@ -91,7 +89,6 @@ public class EngineMetricsIT
     }
 
     @Test
-    @Ignore
     @Configuration("server.yaml")
     public void shouldFetchGaugeIds()
     {
@@ -132,7 +129,6 @@ public class EngineMetricsIT
     }
 
     @Test
-    @Ignore
     @Configuration("server.yaml")
     public void shouldFetchHistogramIds()
     {
