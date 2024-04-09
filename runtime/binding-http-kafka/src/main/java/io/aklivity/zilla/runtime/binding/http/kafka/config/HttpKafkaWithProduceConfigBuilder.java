@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.http.kafka.config;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
@@ -69,6 +70,19 @@ public final class HttpKafkaWithProduceConfigBuilder<T> extends ConfigBuilder<T,
         String replyTo)
     {
         this.replyTo = replyTo;
+        return this;
+    }
+
+    public HttpKafkaWithProduceConfigBuilder<T> async(
+        HttpKafkaWithProduceAsyncHeaderConfig header)
+    {
+        if (this.async == null)
+        {
+            this.async = new ArrayList<>();
+        }
+
+        this.async.add(header);
+
         return this;
     }
 
