@@ -93,7 +93,7 @@ public final class AsyncapiBindingConfig
         this.composites = new Int2ObjectHashMap<>();
         this.apiIdsByNamespaceId = new Long2LongHashMap(-1);
         this.compositeResolvedIds = new Long2LongHashMap(-1);
-        this.schemaIdsByApiId = new Object2LongHashMap(-1);
+        this.schemaIdsByApiId = new Object2LongHashMap<>(-1);
         this.typesByNamespaceId = new Int2ObjectHashMap<>();
         this.paths = new Object2ObjectHashMap<>();
         this.operationIds = new TreeMap<>(CharSequence::compare);

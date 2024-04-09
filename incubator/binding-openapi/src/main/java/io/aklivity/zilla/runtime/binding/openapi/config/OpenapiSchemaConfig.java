@@ -19,13 +19,16 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.model.Openapi;
 
 public class OpenapiSchemaConfig
 {
+    public final String apiLabel;
     public final int schemaId;
     public final Openapi openapi;
 
     public OpenapiSchemaConfig(
+        String apiLabel,
         int schemaId,
         Openapi openapi)
     {
+        this.apiLabel = apiLabel;
         this.schemaId = schemaId;
         this.openapi = openapi;
     }

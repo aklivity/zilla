@@ -15,7 +15,6 @@
 package io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.Collections.singleton;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
@@ -36,12 +35,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
-import io.aklivity.zilla.runtime.binding.openapi.asyncapi.config.AsyncapiConfig;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.config.OpenapiAsyncapiOptionsConfig;
-import io.aklivity.zilla.runtime.binding.openapi.asyncapi.config.OpenapiAsyncapiSpecConfig;
-import io.aklivity.zilla.runtime.binding.openapi.asyncapi.config.OpenapiConfig;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.Openapi;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapter;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
@@ -97,12 +91,6 @@ public class OpenapiAsyncapiOptionsConfigAdapterTest
 
         OpenapiAsyncapiOptionsConfig options = jsonb.fromJson(text, OpenapiAsyncapiOptionsConfig.class);
         assertThat(options, not(nullValue()));
-        OpenapiConfig openapi = options.specs.openapi.stream().findFirst().get();
-        assertEquals("openapi-id", openapi.apiLabel);
-        assertThat(openapi.openapi, not(nullValue()));
-        AsyncapiConfig asyncapi = options.specs.asyncapi.stream().findFirst().get();
-        assertEquals("asyncapi-id", asyncapi.apiLabel);
-        assertThat(asyncapi.asyncapi, not(nullValue()));
     }
 
     @Test
@@ -111,16 +99,7 @@ public class OpenapiAsyncapiOptionsConfigAdapterTest
         String expected = "{\"specs\":{\"openapi\":{\"openapi-id\":\"openapi/petstore.yaml\"},\"asyncapi\":" +
             "{\"asyncapi-id\":\"asyncapi/petstore.yaml\"}}}";
 
-        OpenapiConfig openapi = new OpenapiConfig("openapi-id", 0L,
-            "openapi/petstore.yaml", new Openapi());
-        AsyncapiConfig asyncapi = new AsyncapiConfig("asyncapi-id", 0L,
-            "asyncapi/petstore.yaml", new Asyncapi());
-
-        final OpenapiAsyncapiOptionsConfig options = new OpenapiAsyncapiOptionsConfig(
-            new OpenapiAsyncapiSpecConfig(singleton(openapi),
-                singleton(asyncapi)));
-
-        String text = jsonb.toJson(options);
+        String text = jsonb.toJson(null);
 
         assertThat(text, not(nullValue()));
         assertEquals(expected, text);

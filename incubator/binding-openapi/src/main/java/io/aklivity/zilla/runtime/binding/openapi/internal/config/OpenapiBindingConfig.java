@@ -221,7 +221,7 @@ public final class OpenapiBindingConfig
                 final CatalogHandler handler = supplyCatalog.apply(catalogId);
                 final int schemaId = handler.resolve(catalog.subject, catalog.version);
                 final String payload = handler.resolve(schemaId);
-                openapiConfigs.add(new OpenapiSchemaConfig(schemaId, parser.parse(payload)));
+                openapiConfigs.add(new OpenapiSchemaConfig(config.apiLabel, schemaId, parser.parse(payload)));
             }
         }
         return openapiConfigs;

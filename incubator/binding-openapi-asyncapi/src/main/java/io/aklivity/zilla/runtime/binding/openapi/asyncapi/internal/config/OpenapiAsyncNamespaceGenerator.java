@@ -21,6 +21,7 @@ import static java.util.stream.Collectors.toList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.ToLongFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -35,9 +36,6 @@ import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchCon
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchFilterConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchMergeConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithProduceConfig;
-import io.aklivity.zilla.runtime.binding.openapi.asyncapi.config.OpenapiAsyncapiOptionsConfig;
-import io.aklivity.zilla.runtime.binding.openapi.asyncapi.config.OpenapiAsyncapiSpecConfig;
-import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.OpenapiAsyncapiBinding;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.Openapi;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiOperation;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiResponse;
@@ -46,13 +44,13 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiPathView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiSchemaView;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.CompositeBindingAdapterSpi;
 import io.aklivity.zilla.runtime.engine.config.MetricRefConfig;
+import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.TelemetryRefConfigBuilder;
 
-public final class OpenapiAsyncCompositeBindingAdapter implements CompositeBindingAdapterSpi
+public final class OpenapiAsyncNamespaceGenerator
 {
     private static final Pattern JSON_CONTENT_TYPE = Pattern.compile("^application/(?:.+\\+)?json$");
     private static final Pattern PARAMETER_PATTERN = Pattern.compile("\\{([^}]+)\\}");
@@ -60,35 +58,28 @@ public final class OpenapiAsyncCompositeBindingAdapter implements CompositeBindi
     private final Matcher jsonContentType = JSON_CONTENT_TYPE.matcher("");
     private final Matcher parameters = PARAMETER_PATTERN.matcher("");
 
-    @Override
-    public String type()
+    public NamespaceConfig generate(
+        BindingConfig binding,
+        Map<String, Openapi> openapis,
+        Map<String, Asyncapi> asyncapis,
+        ToLongFunction<String> resolveApiId)
     {
-        return OpenapiAsyncapiBinding.NAME;
-    }
-
-    @Override
-    public BindingConfig adapt(
-        BindingConfig binding)
-    {
-        final OpenapiAsyncapiOptionsConfig options = (OpenapiAsyncapiOptionsConfig) binding.options;
         final List<MetricRefConfig> metricRefs = binding.telemetryRef != null ?
             binding.telemetryRef.metricRefs : emptyList();
 
         List<OpenapiAsyncapiRouteConfig> routes = binding.routes.stream()
-            .map(r -> new OpenapiAsyncapiRouteConfig(r, options::resolveOpenapiApiId))
+            .map(r -> new OpenapiAsyncapiRouteConfig(r, resolveApiId))
             .collect(toList());
 
-        return BindingConfig.builder(binding)
-                .composite()
-                    .name(String.format("%s/http_kafka", binding.qname))
-                    .inject(n -> this.injectNamespaceMetric(n, !metricRefs.isEmpty()))
-                    .binding()
-                        .name("http_kafka0")
-                        .type("http-kafka")
-                        .kind(PROXY)
-                        .inject(b -> this.injectMetrics(b, metricRefs, "http-kafka"))
-                        .inject(b -> this.injectHttpKafkaRoutes(b, binding.qname, options.specs, routes))
-                        .build()
+        return NamespaceConfig.builder()
+                .name(String.format("%s/http_kafka", binding.qname))
+                .inject(n -> this.injectNamespaceMetric(n, !metricRefs.isEmpty()))
+                .binding()
+                    .name("http_kafka0")
+                    .type("http-kafka")
+                    .kind(PROXY)
+                    .inject(b -> this.injectMetrics(b, metricRefs, "http-kafka"))
+                    .inject(b -> this.injectHttpKafkaRoutes(b, binding.qname, openapis, asyncapis, routes))
                     .build()
                 .build();
     }
@@ -96,21 +87,22 @@ public final class OpenapiAsyncCompositeBindingAdapter implements CompositeBindi
     private <C> BindingConfigBuilder<C> injectHttpKafkaRoutes(
         BindingConfigBuilder<C> binding,
         String qname,
-        OpenapiAsyncapiSpecConfig spec,
+        Map<String, Openapi> openapis,
+        Map<String, Asyncapi> asyncapis,
         List<OpenapiAsyncapiRouteConfig> routes)
     {
         for (OpenapiAsyncapiRouteConfig route : routes)
         {
             for (OpenapiAsyncapiConditionConfig condition : route.when)
             {
-                Openapi openapi = spec.openapi.stream()
-                    .filter(o -> o.apiLabel.equals(condition.apiId))
+                Openapi openapi = openapis.entrySet().stream()
+                    .filter(e -> e.getKey().equals(condition.apiId))
                     .findFirst()
-                    .get().openapi;
-                Asyncapi asyncapi = spec.asyncapi.stream()
-                    .filter(o -> o.apiLabel.equals(route.with.apiId))
+                    .get().getValue();
+                Asyncapi asyncapi = asyncapis.entrySet().stream()
+                    .filter(e -> e.getKey().equals(route.with.apiId))
                     .findFirst()
-                    .get().asyncapi;
+                    .get().getValue();
 
                 for (String item : openapi.paths.keySet())
                 {
@@ -124,7 +116,7 @@ public final class OpenapiAsyncCompositeBindingAdapter implements CompositeBindi
 
                         final AsyncapiOperation asyncapiOperation = asyncapi.operations.entrySet().stream()
                             .filter(f -> f.getKey().equals(operationId))
-                            .map(v -> v.getValue())
+                            .map(Map.Entry::getValue)
                             .findFirst()
                             .get();
 
@@ -221,8 +213,8 @@ public final class OpenapiAsyncCompositeBindingAdapter implements CompositeBindi
         return fetch;
     }
 
-    protected NamespaceConfigBuilder<BindingConfigBuilder<BindingConfig>> injectNamespaceMetric(
-        NamespaceConfigBuilder<BindingConfigBuilder<BindingConfig>> namespace,
+    private <C> NamespaceConfigBuilder<C> injectNamespaceMetric(
+         NamespaceConfigBuilder<C> namespace,
         boolean hasMetrics)
     {
         if (hasMetrics)
@@ -275,7 +267,7 @@ public final class OpenapiAsyncCompositeBindingAdapter implements CompositeBindi
         return namespace;
     }
 
-    protected  <C> BindingConfigBuilder<C> injectMetrics(
+    private <C> BindingConfigBuilder<C> injectMetrics(
         BindingConfigBuilder<C> binding,
         List<MetricRefConfig> metricRefs,
         String protocol)
