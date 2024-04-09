@@ -75,9 +75,9 @@ public class OpenapiOptionsConfigAdapterTest
             "        \"catalog0\": {" +
             "          \"subject\": \"petstore\"," +
             "          \"version\": \"latest\"" +
-            "        }\n" +
-            "      }\n" +
-            "    }\n" +
+            "        }" +
+            "      }" +
+            "    }" +
             "  }," +
             "    \"tls\": {" +
             "      \"keys\": [" +
