@@ -92,7 +92,6 @@ bindings:
     options:
       specs:
         mqtt_api:
-          location: mqtt/asyncapi.yaml
           servers:
             - name: plain
           catalog:

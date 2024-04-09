@@ -216,7 +216,6 @@ bindings:
     options:
       specs:
         kafka_api:
-          location: kafka/asyncapi.yaml
           catalog:
             catalog0:
               subject: smartylighting

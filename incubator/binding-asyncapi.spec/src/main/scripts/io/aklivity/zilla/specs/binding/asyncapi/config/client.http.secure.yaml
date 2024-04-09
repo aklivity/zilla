@@ -113,7 +113,6 @@ bindings:
     options:
       specs:
         http_api:
-          location: http/asyncapi.yaml
           catalog:
             catalog0:
               subject: petstore

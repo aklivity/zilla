@@ -105,7 +105,6 @@ bindings:
     options:
       specs:
         mqtt_api:
-          location: mqtt/asyncapi.yaml
           servers:
             - name: development
               host: 'development.dev.example.com:1883'

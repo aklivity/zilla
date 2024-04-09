@@ -113,7 +113,6 @@ bindings:
     options:
       specs:
         http_api:
-          location: http/asyncapi.yaml
           servers:
             - name: plain
           catalog:

@@ -86,7 +86,6 @@ bindings:
     options:
       specs:
         mqtt_api:
-          location: mqtt/asyncapi.yaml
           catalog:
             catalog0:
               subject: smartylighting

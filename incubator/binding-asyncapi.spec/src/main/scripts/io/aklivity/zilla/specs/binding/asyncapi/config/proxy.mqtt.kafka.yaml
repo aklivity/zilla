@@ -137,13 +137,11 @@ bindings:
     options:
       specs:
         mqtt_api:
-          location: mqtt/asyncapi.yaml
           catalog:
             catalog0:
               subject: smartylighting
               version: latest
         kafka_api:
-          location: kafka/sensor.asyncapi.yaml
           catalog:
             catalog1:
               subject: sensor
