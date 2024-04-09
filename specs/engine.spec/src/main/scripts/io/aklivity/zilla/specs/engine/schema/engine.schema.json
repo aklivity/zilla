@@ -474,27 +474,31 @@
                     "$ref": "#/$defs/converter/types"
                 },
                 {
-                    "type": "object",
-                    "properties":
-                    {
-                        "model":
-                        {
-                            "$ref": "#/$defs/converter/types"
-                        }
-                    },
-                    "required":
-                    [
-                        "model"
-                    ],
-                    "allOf":
-                    [
-                    ]
+                    "$ref": "#/$defs/converter/model"
                 }
             ],
             "types":
             {
                 "type": "string",
                 "enum": []
+            },
+            "model":
+            {
+                "type": "object",
+                "properties":
+                {
+                    "model":
+                    {
+                        "$ref": "#/$defs/converter/types"
+                    }
+                },
+                "required":
+                [
+                    "model"
+                ],
+                "allOf":
+                [
+                ]
             }
         },
         "validator":
@@ -505,27 +509,31 @@
                     "$ref": "#/$defs/validator/types"
                 },
                 {
-                    "type": "object",
-                    "properties":
-                    {
-                        "model":
-                        {
-                            "$ref": "#/$defs/validator/types"
-                        }
-                    },
-                    "required":
-                    [
-                        "model"
-                    ],
-                    "allOf":
-                    [
-                    ]
+                    "$ref": "#/$defs/validator/model"
                 }
             ],
             "types":
             {
                 "type": "string",
                 "enum": []
+            },
+            "model":
+            {
+                "type": "object",
+                "properties":
+                {
+                    "model":
+                    {
+                        "$ref": "#/$defs/validator/types"
+                    }
+                },
+                "required":
+                [
+                    "model"
+                ],
+                "allOf":
+                [
+                ]
             }
         }
     }
