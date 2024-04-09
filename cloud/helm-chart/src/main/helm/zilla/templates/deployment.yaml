@@ -58,7 +58,7 @@ spec:
             {{- range $key, $value := .Values.envValueFrom }}
             - name: {{ $key | quote }}
               valueFrom:
-                {{- tpl (toYaml $value) $ | nindent 10 }}
+                {{- tpl (toYaml $value) $ | nindent 16 }}
             {{- end }}
             {{- range $key, $value := .Values.env }}
             - name: "{{ tpl $key $ }}"
