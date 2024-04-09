@@ -75,7 +75,13 @@ public class AsyncapiClientCompositeBindingAdapter extends AsyncapiCompositeBind
                     .exit(isTlsEnabled ? "tls_client0" : "tcp_client0")
                     .build()
                 .inject(n -> injectTlsClient(n, options, metricRefs))
-                .inject(n -> injectTcpClient(n, options, metricRefs))
+                .binding()
+                    .name("tcp_client0")
+                    .type("tcp")
+                    .kind(CLIENT)
+                    .inject(b -> this.injectMetrics(b, metricRefs, "tcp"))
+                    .options(!protocol.scheme.equals(AyncapiKafkaProtocol.SCHEME) ? options.tcp : null)
+                    .build()
                 .build()
             .build();
     }
@@ -97,26 +103,6 @@ public class AsyncapiClientCompositeBindingAdapter extends AsyncapiCompositeBind
                     .vault(String.format("%s:%s", this.namespace, vault))
                     .exit("tcp_client0")
                     .build();
-        }
-        return namespace;
-    }
-
-    private <C> NamespaceConfigBuilder<C> injectTcpClient(
-        NamespaceConfigBuilder<C> namespace,
-        AsyncapiOptionsConfig options,
-        List<MetricRefConfig> metricRefs)
-    {
-        if (!protocol.scheme.equals(AyncapiKafkaProtocol.SCHEME))
-        {
-            namespace
-                .binding()
-                    .name("tcp_client0")
-                    .type("tcp")
-                    .kind(CLIENT)
-                    .inject(b -> this.injectMetrics(b, metricRefs, "tcp"))
-                    .options(options.tcp)
-                    .build()
-                .build();
         }
         return namespace;
     }
