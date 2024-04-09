@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.stream;
 
 import java.util.function.Function;
+import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 
@@ -27,6 +28,7 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiBinding;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiConfiguration;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiRouteConfig;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiServerNamespaceGenerator;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.AbortFW;
@@ -43,6 +45,7 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
+import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class AsyncapiServerFactory implements AsyncapiStreamFactory
@@ -82,17 +85,20 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyTraceId;
     private final Function<String, Integer> supplyTypeId;
+    private final LongFunction<CatalogHandler> supplyCatalog;
     private final Long2ObjectHashMap<AsyncapiBindingConfig> bindings;
     private final int asyncapiTypeId;
     private final int mqttTypeId;
     private final int httpTypeId;
     private final AsyncapiConfiguration config;
+    private final AsyncapiServerNamespaceGenerator namespaceGenerator;
 
     public AsyncapiServerFactory(
         AsyncapiConfiguration config,
         EngineContext context)
     {
         this.config = config;
+        this.namespaceGenerator = new AsyncapiServerNamespaceGenerator();
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.bufferPool = context.bufferPool();
@@ -101,6 +107,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
         this.supplyReplyId = context::supplyReplyId;
         this.supplyTypeId = context::supplyTypeId;
         this.supplyTraceId = context::supplyTraceId;
+        this.supplyCatalog = context::supplyCatalog;
         this.bindings = new Long2ObjectHashMap<>();
         this.asyncapiTypeId = context.supplyTypeId(AsyncapiBinding.NAME);
         this.mqttTypeId = context.supplyTypeId(MQTT_TYPE_NAME);
@@ -123,15 +130,19 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        AsyncapiBindingConfig asyncapiBinding = new AsyncapiBindingConfig(binding, config.targetRouteId());
+        AsyncapiBindingConfig asyncapiBinding = new AsyncapiBindingConfig(binding, namespaceGenerator, supplyCatalog,
+            config.targetRouteId());
         bindings.put(binding.id, asyncapiBinding);
+
+        asyncapiBinding.attach(binding);
     }
 
     @Override
     public void detach(
         long bindingId)
     {
-        bindings.remove(bindingId);
+        AsyncapiBindingConfig binding = bindings.remove(bindingId);
+        binding.detach();
     }
 
     @Override
@@ -164,7 +175,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
 
                 final String operationId = compositeTypeId == httpTypeId ?
                     binding.resolveOperationId(extension.get(httpBeginRO::tryWrap)) : null;
-                final long apiId = binding.options.specs.get(0).apiId;
+                final long apiId = binding.resolveApiId(originId);
                 newStream = new CompositeStream(
                     receiver,
                     originId,

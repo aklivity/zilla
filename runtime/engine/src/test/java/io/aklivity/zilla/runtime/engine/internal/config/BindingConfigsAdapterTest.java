@@ -82,7 +82,7 @@ public class BindingConfigsAdapterTest
         assertThat(bindings[0], not(nullValue()));
         assertThat(bindings[0].kind, equalTo(PROXY));
         assertThat(bindings[0].routes, emptyCollectionOf(RouteConfig.class));
-        assertThat(bindings[0].composites, not(emptyCollectionOf(NamespaceConfig.class)));
+        assertThat(bindings[0].composites.values(), not(emptyCollectionOf(NamespaceConfig.class)));
     }
 
     @Test

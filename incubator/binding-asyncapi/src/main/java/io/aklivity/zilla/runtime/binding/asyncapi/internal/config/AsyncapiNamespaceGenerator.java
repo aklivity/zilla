@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.asyncapi.internal;
+package io.aklivity.zilla.runtime.binding.asyncapi.internal.config;
 
 import static com.fasterxml.jackson.dataformat.yaml.YAMLGenerator.Feature.MINIMIZE_QUOTES;
 import static com.fasterxml.jackson.dataformat.yaml.YAMLGenerator.Feature.WRITE_DOC_START_MARKER;
@@ -22,6 +22,7 @@ import static org.agrona.LangUtil.rethrowUnchecked;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.ToLongFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -49,27 +50,44 @@ import io.aklivity.zilla.runtime.catalog.inline.config.InlineSchemaConfigBuilder
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.MetricRefConfig;
+import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.TelemetryRefConfigBuilder;
 
-public class AsyncapiCompositeBindingAdapter
+public abstract class AsyncapiNamespaceGenerator
 {
     protected static final String INLINE_CATALOG_NAME = "catalog0";
     protected static final String INLINE_CATALOG_TYPE = "inline";
     protected static final String VERSION_LATEST = "latest";
     protected static final String APPLICATION_JSON = "application/json";
+    protected static final AsyncapiOptionsConfig EMPTY_OPTION =
+        new AsyncapiOptionsConfig(null, null, null, null, null, null, null);
     protected static final Pattern VARIABLE = Pattern.compile("\\{([^}]*.?)\\}");
-
     protected final Matcher variable = VARIABLE.matcher("");
 
     protected Asyncapi asyncapi;
-    protected Map<String, Asyncapi> asyncApis;
+    protected Map<String, Asyncapi> asyncapis;
     protected boolean isTlsEnabled;
     protected AsyncapiProtocol protocol;
     protected String qname;
     protected String namespace;
     protected String qvault;
     protected String vault;
+
+    public NamespaceConfig generate(
+        BindingConfig binding,
+        Asyncapi asyncapi)
+    {
+        return null;
+    }
+
+    public NamespaceConfig generateProxy(
+        BindingConfig binding,
+        Map<String, Asyncapi> asyncapis,
+        ToLongFunction<String> resolveApiId)
+    {
+        return null;
+    }
 
     protected AsyncapiProtocol resolveProtocol(
         String protocolName,
@@ -259,8 +277,8 @@ public class AsyncapiCompositeBindingAdapter
         return binding;
     }
 
-    protected NamespaceConfigBuilder<BindingConfigBuilder<BindingConfig>> injectNamespaceMetric(
-        NamespaceConfigBuilder<BindingConfigBuilder<BindingConfig>> namespace,
+    protected <C> NamespaceConfigBuilder<C> injectNamespaceMetric(
+         NamespaceConfigBuilder<C> namespace,
         boolean hasMetrics)
     {
         if (hasMetrics)

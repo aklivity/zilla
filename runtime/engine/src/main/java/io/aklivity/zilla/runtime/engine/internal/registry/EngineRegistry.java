@@ -175,9 +175,12 @@ public class EngineRegistry
 
         for (BindingConfig binding : namespace.bindings)
         {
-            for (NamespaceConfig composite : binding.composites)
+            for (NamespaceConfig composite : binding.composites.values())
             {
-                attachNamespace(composite);
+                if (composite.refs.intValue() == 0)
+                {
+                    attachNamespace(composite);
+                }
             }
         }
     }
@@ -191,9 +194,12 @@ public class EngineRegistry
 
         for (BindingConfig binding : namespace.bindings)
         {
-            for (NamespaceConfig composite : binding.composites)
+            for (NamespaceConfig composite : binding.composites.values())
             {
-                detachNamespace(composite);
+                if (composite.refs.intValue() == 0)
+                {
+                    detachNamespace(composite);
+                }
             }
         }
     }

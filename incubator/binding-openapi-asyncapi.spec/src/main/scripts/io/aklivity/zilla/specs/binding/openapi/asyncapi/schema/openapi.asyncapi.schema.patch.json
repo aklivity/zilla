@@ -50,7 +50,40 @@
                                         {
                                             "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
                                             {
-                                                "type": "string"
+                                                "type": "object",
+                                                "properties":
+                                                {
+                                                    "catalog":
+                                                    {
+                                                        "type": "object",
+                                                        "patternProperties":
+                                                        {
+                                                            "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                                                            {
+                                                                "type": "object",
+                                                                "properties":
+                                                                {
+                                                                    "subject":
+                                                                    {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "version":
+                                                                    {
+                                                                        "type": "string",
+                                                                        "default": "latest"
+                                                                    }
+                                                                },
+                                                                "required":
+                                                                [
+                                                                    "subject"
+                                                                ],
+                                                                "additionalProperties": false
+                                                            },
+                                                            "additionalProperties": false
+                                                        }
+                                                    }
+                                                },
+                                                "additionalProperties": false
                                             }
                                         },
                                         "maxProperties": 1
@@ -63,7 +96,40 @@
                                         {
                                             "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
                                             {
-                                                "type": "string"
+                                                "type": "object",
+                                                "properties":
+                                                {
+                                                    "catalog":
+                                                    {
+                                                        "type": "object",
+                                                        "patternProperties":
+                                                        {
+                                                            "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                                                            {
+                                                                "type": "object",
+                                                                "properties":
+                                                                {
+                                                                    "subject":
+                                                                    {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "version":
+                                                                    {
+                                                                        "type": "string",
+                                                                        "default": "latest"
+                                                                    }
+                                                                },
+                                                                "required":
+                                                                [
+                                                                    "subject"
+                                                                ],
+                                                                "additionalProperties": false
+                                                            },
+                                                            "additionalProperties": false
+                                                        }
+                                                    }
+                                                },
+                                                "additionalProperties": false
                                             }
                                         },
                                         "maxProperties": 1

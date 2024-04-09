@@ -85,6 +85,35 @@
                                                     },
                                                     "additionalProperties": false
                                                 }
+                                            },
+                                            "catalog":
+                                            {
+                                                "type": "object",
+                                                "patternProperties":
+                                                {
+                                                    "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                                                    {
+                                                        "type": "object",
+                                                        "properties":
+                                                        {
+                                                            "subject":
+                                                            {
+                                                                "type": "string"
+                                                            },
+                                                            "version":
+                                                            {
+                                                                "type": "string",
+                                                                "default": "latest"
+                                                            }
+                                                        },
+                                                        "required":
+                                                        [
+                                                            "subject"
+                                                        ],
+                                                        "additionalProperties": false
+                                                    },
+                                                    "additionalProperties": false
+                                                }
                                             }
                                         },
                                         "additionalProperties": false
@@ -191,7 +220,7 @@
                                         {
                                             "api-id":
                                             {
-                                                "title": "MQTT API Id",
+                                                "title": "Spec API Id",
                                                 "type": "string"
                                             },
                                             "operation-id":
@@ -208,12 +237,12 @@
                                     {
                                         "api-id":
                                         {
-                                            "title": "Kafka API Id",
+                                            "title": "Spec API Id",
                                             "type": "string"
                                         },
                                         "operation-id":
                                         {
-                                            "title": "Kafka Operation Id",
+                                            "title": "MQTT Operation Id",
                                             "type": "string"
                                         }
                                     },

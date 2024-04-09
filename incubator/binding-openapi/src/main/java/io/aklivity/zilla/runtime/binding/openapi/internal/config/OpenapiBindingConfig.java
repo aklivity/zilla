@@ -15,34 +15,42 @@
 package io.aklivity.zilla.runtime.binding.openapi.internal.config;
 
 import static java.util.Collections.unmodifiableMap;
-import static java.util.stream.Collector.of;
-import static java.util.stream.Collector.Characteristics.IDENTITY_FINISH;
-import static java.util.stream.Collectors.toCollection;
 import static java.util.stream.Collectors.toList;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.LongFunction;
+import java.util.function.ToLongFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.agrona.AsciiSequenceView;
 import org.agrona.DirectBuffer;
+import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.IntHashSet;
 import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
 
+import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiCatalogConfig;
+import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
+import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiParser;
+import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiSchemaConfig;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.Openapi;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiPathItem;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.HttpBeginExFW;
+import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
+import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 
 public final class OpenapiBindingConfig
@@ -52,52 +60,44 @@ public final class OpenapiBindingConfig
     public final KindConfig kind;
     public final OpenapiOptionsConfig options;
     public final List<OpenapiRouteConfig> routes;
-    public final HttpHeaderHelper helper;
 
+    private final OpenapiNamespaceGenerator namespaceGenerator;
+    private final LongFunction<CatalogHandler> supplyCatalog;
+    private final ToLongFunction<String> resolveId;
     private final long overrideRouteId;
     private final IntHashSet httpOrigins;
+    private final Long2LongHashMap apiIdsByNamespaceId;
+    private final HttpHeaderHelper helper;
+    private final OpenapiParser parser;
+    private final Consumer<NamespaceConfig> detach;
     private final Long2LongHashMap resolvedIds;
     private final Object2ObjectHashMap<Matcher, OpenapiPathItem> paths;
+    private final Int2ObjectHashMap<NamespaceConfig> composites;
     private final Map<CharSequence, Function<OpenapiPathItem, String>> resolversByMethod;
 
     public OpenapiBindingConfig(
         BindingConfig binding,
+        OpenapiNamespaceGenerator namespaceGenerator,
+        LongFunction<CatalogHandler> supplyCatalog,
         long overrideRouteId)
     {
         this.id = binding.id;
         this.name = binding.name;
         this.kind = binding.kind;
+        this.namespaceGenerator = namespaceGenerator;
+        this.supplyCatalog = supplyCatalog;
         this.overrideRouteId = overrideRouteId;
-        this.options = OpenapiOptionsConfig.class.cast(binding.options);
+        this.resolveId = binding.resolveId;
+        this.options = (OpenapiOptionsConfig) binding.options;
         this.paths = new Object2ObjectHashMap<>();
-        options.openapis.forEach(c -> c.openapi.paths.forEach((k, v) ->
-        {
-            String regex = k.replaceAll("\\{[^/]+}", "[^/]+");
-            regex = "^" + regex + "$";
-            Pattern pattern = Pattern.compile(regex);
-            paths.put(pattern.matcher(""), v);
-        }));
-
-        this.routes = binding.routes.stream().map(OpenapiRouteConfig::new).collect(toList());
-
-        this.resolvedIds = binding.composites.stream()
-            .map(c -> c.bindings)
-            .flatMap(List::stream)
-            .filter(b -> b.type.equals("http"))
-            .collect(of(
-                () -> new Long2LongHashMap(-1),
-                (m, r) -> m.put(options.openapis.stream().findFirst().get().apiId, r.id),
-                (m, r) -> m,
-                IDENTITY_FINISH
-            ));
-
-        this.httpOrigins = binding.composites.stream()
-            .map(c -> c.bindings)
-            .flatMap(List::stream)
-            .filter(b -> b.type.equals("http"))
-            .map(b -> NamespacedId.namespaceId(b.id))
-            .collect(toCollection(IntHashSet::new));
+        this.composites = new Int2ObjectHashMap<>();
+        this.resolvedIds = new Long2LongHashMap(-1);
+        this.apiIdsByNamespaceId = new Long2LongHashMap(-1);
+        this.httpOrigins = new IntHashSet(-1);
+        this.parser = new OpenapiParser();
         this.helper = new HttpHeaderHelper();
+        this.detach = binding.detach;
+        this.routes = binding.routes.stream().map(OpenapiRouteConfig::new).collect(toList());
 
         Map<CharSequence, Function<OpenapiPathItem, String>> resolversByMethod = new TreeMap<>(CharSequence::compare);
         resolversByMethod.put("POST", o -> o.post != null ? o.post.operationId : null);
@@ -111,10 +111,57 @@ public final class OpenapiBindingConfig
         this.resolversByMethod = unmodifiableMap(resolversByMethod);
     }
 
-    public boolean isCompositeNamespace(
-        int namespaceId)
+    public void attach(
+        BindingConfig binding)
     {
-        return httpOrigins.contains(namespaceId);
+        List<OpenapiSchemaConfig> configs = convertToOpenapi(options.openapis);
+        configs.forEach(c ->
+        {
+            Openapi openapi = c.openapi;
+            final NamespaceConfig composite = binding.attach.apply(namespaceGenerator.generate(binding, openapi));
+            composites.put(c.schemaId, composite);
+            openapi.paths.forEach((k, v) ->
+            {
+                String regex = k.replaceAll("\\{[^/]+}", "[^/]+");
+                regex = "^" + regex + "$";
+                Pattern pattern = Pattern.compile(regex);
+                paths.put(pattern.matcher(""), v);
+            });
+        });
+
+        composites.forEach((k, v) ->
+        {
+            List<BindingConfig> http = v.bindings.stream().filter(b -> b.type.equals("http")).collect(toList());
+            http.stream()
+                .map(b -> b.routes)
+                .flatMap(List::stream)
+                .forEach(r -> resolvedIds.put(k, r.id));
+            http.stream()
+                .map(b -> NamespacedId.namespaceId(b.id))
+                .forEach(n ->
+                {
+                    httpOrigins.add(n);
+                    apiIdsByNamespaceId.put(n, k);
+                });
+        });
+    }
+
+    public void detach()
+    {
+        composites.forEach((k, v) -> detach.accept(v));
+        composites.clear();
+    }
+
+    public boolean isCompositeOriginId(
+        long originId)
+    {
+        return httpOrigins.contains(NamespacedId.namespaceId(originId));
+    }
+
+    public long resolveApiId(
+        long originId)
+    {
+        return apiIdsByNamespaceId.get(NamespacedId.namespaceId(originId));
     }
 
     public long resolveResolvedId(
@@ -160,6 +207,24 @@ public final class OpenapiBindingConfig
             .filter(r -> r.authorized(authorization))
             .findFirst()
             .orElse(null);
+    }
+
+    private List<OpenapiSchemaConfig> convertToOpenapi(
+        List<OpenapiConfig> configs)
+    {
+        final List<OpenapiSchemaConfig> openapiConfigs = new ArrayList<>();
+        for (OpenapiConfig config : configs)
+        {
+            for (OpenapiCatalogConfig catalog : config.catalogs)
+            {
+                final long catalogId = resolveId.applyAsLong(catalog.name);
+                final CatalogHandler handler = supplyCatalog.apply(catalogId);
+                final int schemaId = handler.resolve(catalog.subject, catalog.version);
+                final String payload = handler.resolve(schemaId);
+                openapiConfigs.add(new OpenapiSchemaConfig(config.apiLabel, schemaId, parser.parse(payload)));
+            }
+        }
+        return openapiConfigs;
     }
 
     private static final class HttpHeaderHelper

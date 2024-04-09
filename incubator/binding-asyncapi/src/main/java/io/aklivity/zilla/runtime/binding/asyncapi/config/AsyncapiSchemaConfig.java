@@ -12,27 +12,24 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.openapi.asyncapi.config;
+package io.aklivity.zilla.runtime.binding.asyncapi.config;
 
 
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.Openapi;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 
-public class OpenapiConfig
+public class AsyncapiSchemaConfig
 {
     public final String apiLabel;
-    public final long apiId;
-    public final String location;
-    public final Openapi openapi;
+    public final int schemaId;
+    public final Asyncapi asyncapi;
 
-    public OpenapiConfig(
+    public AsyncapiSchemaConfig(
         String apiLabel,
-        long apiId,
-        String location,
-        Openapi openapi)
+        int schemaId,
+        Asyncapi asyncapi)
     {
         this.apiLabel = apiLabel;
-        this.apiId = apiId;
-        this.location = location;
-        this.openapi = openapi;
+        this.schemaId = schemaId;
+        this.asyncapi = asyncapi;
     }
 }

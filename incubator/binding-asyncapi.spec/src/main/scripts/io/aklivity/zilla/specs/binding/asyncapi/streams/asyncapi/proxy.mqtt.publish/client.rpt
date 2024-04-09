@@ -21,7 +21,7 @@ connect await WILL_STREAM_STARTED
 
 write zilla:begin.ext ${asyncapi:beginEx()
                              .typeId(zilla:id("asyncapi"))
-                             .apiId(4262544067)
+                             .apiId(0)
                              .extension(mqtt:beginEx()
                                           .typeId(zilla:id("mqtt"))
                                           .publish()

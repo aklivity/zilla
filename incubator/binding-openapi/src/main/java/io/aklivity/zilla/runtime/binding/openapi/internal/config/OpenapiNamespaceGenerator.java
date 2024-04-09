@@ -22,21 +22,26 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+
+import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.Openapi;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.MetricRefConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
+import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.TelemetryRefConfigBuilder;
 import io.aklivity.zilla.runtime.model.core.config.Int32ModelConfig;
 import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
 
-public abstract class OpenapiCompositeBindingAdapter
+public abstract class OpenapiNamespaceGenerator
 {
     protected static final String INLINE_CATALOG_NAME = "catalog0";
     protected static final String INLINE_CATALOG_TYPE = "inline";
     protected static final String VERSION_LATEST = "latest";
     protected static final Pattern JSON_CONTENT_TYPE = Pattern.compile("^application/(?:.+\\+)?json$");
+    protected static final OpenapiOptionsConfig EMPTY_OPTION = new OpenapiOptionsConfig(null, null, null, null);
 
     protected final Matcher jsonContentType = JSON_CONTENT_TYPE.matcher("");
     protected final Map<String, ModelConfig> models = Map.of(
@@ -44,8 +49,12 @@ public abstract class OpenapiCompositeBindingAdapter
         "integer", Int32ModelConfig.builder().build()
     );
 
-    protected NamespaceConfigBuilder<BindingConfigBuilder<BindingConfig>> injectNamespaceMetric(
-        NamespaceConfigBuilder<BindingConfigBuilder<BindingConfig>> namespace,
+    public abstract NamespaceConfig generate(
+        BindingConfig binding,
+        Openapi openapi);
+
+    protected <C> NamespaceConfigBuilder<C> injectNamespaceMetric(
+        NamespaceConfigBuilder<C> namespace,
         boolean hasMetrics)
     {
         if (hasMetrics)
@@ -116,7 +125,4 @@ public abstract class OpenapiCompositeBindingAdapter
 
         return binding;
     }
-
-    public abstract BindingConfig adapt(
-        BindingConfig binding);
 }

@@ -12,9 +12,9 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.asyncapi.internal;
+package io.aklivity.zilla.runtime.binding.asyncapi.internal.config;
 
-import static io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiCompositeBindingAdapter.APPLICATION_JSON;
+import static io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiNamespaceGenerator.APPLICATION_JSON;
 
 import java.util.Map;
 
@@ -35,7 +35,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.config.MqttUserPropertyConfigBuild
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
-public class AyncapiMqttProtocol extends AsyncapiProtocol
+public class AsyncapiMqttProtocol extends AsyncapiProtocol
 {
     private static final String SCHEME = "mqtt";
     private static final String SECURE_PROTOCOL = "secure-mqtt";
@@ -44,7 +44,7 @@ public class AyncapiMqttProtocol extends AsyncapiProtocol
     private final String guardName;
     private final MqttAuthorizationConfig authorization;
 
-    public AyncapiMqttProtocol(
+    public AsyncapiMqttProtocol(
         String qname,
         Asyncapi asyncApi,
         AsyncapiOptionsConfig options,

@@ -12,44 +12,40 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.asyncapi.internal;
+package io.aklivity.zilla.runtime.binding.asyncapi.internal.config;
 
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 import static java.util.Collections.emptyList;
 
 import java.util.List;
 
-import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiServerView;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.CompositeBindingAdapterSpi;
 import io.aklivity.zilla.runtime.engine.config.MetricRefConfig;
+import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 
-public class AsyncapiServerCompositeBindingAdapter extends AsyncapiCompositeBindingAdapter implements CompositeBindingAdapterSpi
+public class AsyncapiServerNamespaceGenerator extends AsyncapiNamespaceGenerator
 {
 
-    @Override
-    public String type()
+    public NamespaceConfig generate(
+        BindingConfig binding,
+        Asyncapi asyncapi)
     {
-        return AsyncapiBinding.NAME;
-    }
-
-    @Override
-    public BindingConfig adapt(
-        BindingConfig binding)
-    {
-        AsyncapiOptionsConfig options = (AsyncapiOptionsConfig) binding.options;
-        AsyncapiConfig asyncapiConfig = options.specs.get(0);
-        this.asyncapi = asyncapiConfig.asyncapi;
+        AsyncapiOptionsConfig options = binding.options != null ? (AsyncapiOptionsConfig) binding.options : EMPTY_OPTION;
         final List<MetricRefConfig> metricRefs = binding.telemetryRef != null ?
             binding.telemetryRef.metricRefs : emptyList();
 
+        //TODO: add composite for all servers
+        AsyncapiServerView firstServer = AsyncapiServerView.of(asyncapi.servers.entrySet().iterator().next().getValue());
+
+        this.asyncapi = asyncapi;
         this.qname = binding.qname;
         this.qvault = binding.qvault;
         this.namespace = binding.namespace;
@@ -61,8 +57,7 @@ public class AsyncapiServerCompositeBindingAdapter extends AsyncapiCompositeBind
         AsyncapiServerView serverView = servers.get(0);
         this.protocol = serverView.getAsyncapiProtocol();
 
-        return BindingConfig.builder(binding)
-            .composite()
+        return NamespaceConfig.builder()
                 .name(String.format("%s/%s", qname, protocol.scheme))
                 .inject(n -> this.injectNamespaceMetric(n, !metricRefs.isEmpty()))
                 .inject(n -> this.injectCatalog(n, asyncapi))
@@ -76,8 +71,7 @@ public class AsyncapiServerCompositeBindingAdapter extends AsyncapiCompositeBind
                     .inject(protocol::injectProtocolServerOptions)
                     .inject(protocol::injectProtocolServerRoutes)
                     .build()
-                .build()
-           .build();
+                .build();
     }
 
     private <C> NamespaceConfigBuilder<C> injectTcpServer(
