@@ -85,6 +85,12 @@ public final class MqttKafkaState
         return openingReply(state) | REPLY_OPENED;
     }
 
+    static int openReplyOnly(
+        int state)
+    {
+        return state | REPLY_OPENED;
+    }
+
     static boolean replyOpening(
         int state)
     {
