@@ -72,7 +72,7 @@ spec:
             {{- end }}
             {{- if .Values.envRenderSecret }}
             - secretRef:
-                name: {{ include "grafana.fullname" . }}-env
+                name: {{ include "zilla.fullname" . }}-env
             {{- end }}
             {{- range .Values.envFromSecrets }}
             - secretRef:
