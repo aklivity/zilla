@@ -267,10 +267,7 @@ public final class AsyncapiBindingConfig
         int schemaId,
         List<BindingConfig> bindings)
     {
-        bindings.stream()
-            .map(b -> b.routes)
-            .flatMap(List::stream)
-            .forEach(r -> compositeResolvedIds.put(schemaId, r.id));
+        bindings.forEach(b -> compositeResolvedIds.put(schemaId, b.id));
     }
 
     private void extractOperations(

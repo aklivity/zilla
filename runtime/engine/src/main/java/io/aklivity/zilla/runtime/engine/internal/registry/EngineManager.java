@@ -79,7 +79,7 @@ public class EngineManager
     private final IntFunction<String> supplyName;
     private final IntFunction<ToIntFunction<KindConfig>> maxWorkers;
     private final Tuning tuning;
-    private final Collection<EngineWorker> dispatchers;
+    private final Collection<EngineWorker> workers;
     private final Consumer<String> logger;
     private final EngineExtContext context;
     private final EngineConfiguration config;
@@ -98,7 +98,7 @@ public class EngineManager
         IntFunction<String> supplyName,
         IntFunction<ToIntFunction<KindConfig>> maxWorkers,
         Tuning tuning,
-        Collection<EngineWorker> dispatchers,
+        Collection<EngineWorker> workers,
         Consumer<String> logger,
         EngineExtContext context,
         EngineConfiguration config,
@@ -112,7 +112,7 @@ public class EngineManager
         this.supplyName = supplyName;
         this.maxWorkers = maxWorkers;
         this.tuning = tuning;
-        this.dispatchers = dispatchers;
+        this.workers = workers;
         this.logger = logger;
         this.context = context;
         this.config = config;
@@ -138,12 +138,14 @@ public class EngineManager
 
                 try
                 {
-                    register(newConfig);
                     current = newConfig;
+                    register(newConfig);
                 }
                 catch (Exception ex)
                 {
                     context.onError(ex);
+
+                    current = oldConfig;
                     register(oldConfig);
 
                     rethrowUnchecked(ex);
@@ -401,8 +403,8 @@ public class EngineManager
     private void register(
         NamespaceConfig namespace)
     {
-        dispatchers.stream()
-            .map(d -> d.attach(namespace))
+        workers.stream()
+            .map(w -> w.attach(namespace))
             .reduce(CompletableFuture::allOf)
             .ifPresent(CompletableFuture::join);
     }
@@ -412,8 +414,8 @@ public class EngineManager
     {
         if (namespace != null)
         {
-            dispatchers.stream()
-                .map(d -> d.detach(namespace))
+            workers.stream()
+                .map(w -> w.detach(namespace))
                 .reduce(CompletableFuture::allOf)
                 .ifPresent(CompletableFuture::join);
         }

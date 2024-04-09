@@ -158,26 +158,23 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
             if (!binding.isCompositeOriginId(originId))
             {
                 final AsyncapiBeginExFW asyncapiBeginEx = extension.get(asyncapiBeginExRO::tryWrap);
-                if (asyncapiBeginEx != null)
+                final long apiId = asyncapiBeginEx.apiId();
+                final String operationId = asyncapiBeginEx.operationId().asString();
+
+                final long compositeResolvedId = binding.resolveCompositeResolvedId(apiId);
+                apiIds.put(apiId, apiId);
+
+                if (compositeResolvedId != -1)
                 {
-                    final long apiId = asyncapiBeginEx.apiId();
-                    final String operationId = asyncapiBeginEx.operationId().asString();
-
-                    final long compositeResolvedId = binding.resolveCompositeResolvedId(apiId);
-                    apiIds.put(apiId, apiId);
-
-                    if (compositeResolvedId != -1)
-                    {
-                        newStream = new AsyncapiServerStream(
-                            receiver,
-                            originId,
-                            routedId,
-                            initialId,
-                            apiId,
-                            authorization,
-                            compositeResolvedId,
-                            operationId)::onAsyncapiServerMessage;
-                    }
+                    newStream = new AsyncapiServerStream(
+                        receiver,
+                        originId,
+                        routedId,
+                        initialId,
+                        apiId,
+                        authorization,
+                        compositeResolvedId,
+                        operationId)::onAsyncapiServerMessage;
                 }
             }
             else
