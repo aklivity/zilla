@@ -26,8 +26,9 @@ public final class OpenapiAsyncapiRouteConfig
 {
     public final long id;
     public final OpenapiAsyncapiWithConfig with;
-    private final ToLongFunction<String> supplyApiId;
     public final List<OpenapiAsyncapiConditionConfig> when;
+
+    private final ToLongFunction<String> supplyApiId;
     private final LongPredicate authorized;
 
     public OpenapiAsyncapiRouteConfig(
