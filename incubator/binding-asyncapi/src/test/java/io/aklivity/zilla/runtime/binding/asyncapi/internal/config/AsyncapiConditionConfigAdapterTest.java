@@ -43,7 +43,7 @@ public class AsyncapiConditionConfigAdapterTest
     {
         String text =
             "{" +
-                "\"subject\":\"test\"," +
+                "\"api-id\":\"test\"," +
                 "\"operation-id\":\"testOperationId\"" +
             "}";
 
@@ -64,7 +64,7 @@ public class AsyncapiConditionConfigAdapterTest
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo(
             "{" +
-                    "\"subject\":\"test\"," +
+                    "\"api-id\":\"test\"," +
                     "\"operation-id\":\"testOperationId\"" +
                 "}"));
     }

@@ -68,6 +68,16 @@ public class AsyncapiOptionsConfigAdapterTest
     {
         String text =
                 "{" +
+                    "\"specs\": {" +
+                    "  \"kafka_api\": {" +
+                    "    \"catalog\": {" +
+                    "      \"catalog0\": {" +
+                    "        \"subject\": \"smartylighting\"," +
+                    "        \"version\": \"latest\"" +
+                    "      }" +
+                    "    }" +
+                    "  }" +
+                    "}," +
                     "\"tcp\":" +
                     "{" +
                         "\"host\":\"localhost\"," +
@@ -188,9 +198,15 @@ public class AsyncapiOptionsConfigAdapterTest
     {
         String text =
                 "{" +
-                    "\"specs\":" +
-                    "{" +
-                        "\"kafka-api\":\"kafka/asyncapi.yaml\"," +
+                    "\"specs\": {" +
+                    "  \"kafka_api\": {" +
+                    "    \"catalog\": {" +
+                    "      \"catalog0\": {" +
+                    "        \"subject\": \"smartylighting\"," +
+                    "        \"version\": \"latest\"" +
+                    "      }" +
+                    "    }" +
+                    "  }" +
                     "}," +
                     "\"tcp\":" +
                     "{" +
