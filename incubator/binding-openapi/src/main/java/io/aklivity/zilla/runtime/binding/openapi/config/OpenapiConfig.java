@@ -14,23 +14,18 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.config;
 
+import java.util.List;
 
 public class OpenapiConfig
 {
     public final String apiLabel;
-    public final long apiId;
-    public final String location;
-    public final OpenapiView openapi;
+    public final List<OpenapiCatalogConfig> catalogs;
 
     public OpenapiConfig(
         String apiLabel,
-        long apiId,
-        String location,
-        OpenapiView openapi)
+        List<OpenapiCatalogConfig> catalogs)
     {
         this.apiLabel = apiLabel;
-        this.apiId = apiId;
-        this.location = location;
-        this.openapi = openapi;
+        this.catalogs = catalogs;
     }
 }

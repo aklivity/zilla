@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.stream;
 
+import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 
@@ -25,6 +26,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiBinding;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiConfiguration;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiBindingConfig;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiClientNamespaceGenerator;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.AbortFW;
@@ -39,6 +41,7 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
+import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class AsyncapiClientFactory implements AsyncapiStreamFactory
@@ -73,10 +76,12 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyTraceId;
+    private final LongFunction<CatalogHandler> supplyCatalog;
     private final Long2ObjectHashMap<AsyncapiBindingConfig> bindings;
     private final int asyncapiTypeId;
     private final int mqttTypeId;
     private final AsyncapiConfiguration config;
+    private final AsyncapiClientNamespaceGenerator namespaceGenerator;
 
 
     public AsyncapiClientFactory(
@@ -84,6 +89,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
         EngineContext context)
     {
         this.config = config;
+        this.namespaceGenerator = new AsyncapiClientNamespaceGenerator();
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.bufferPool = context.bufferPool();
@@ -91,6 +97,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.supplyTraceId = context::supplyTraceId;
+        this.supplyCatalog = context::supplyCatalog;
         this.bindings = new Long2ObjectHashMap<>();
         this.asyncapiTypeId = context.supplyTypeId(AsyncapiBinding.NAME);
         this.mqttTypeId = context.supplyTypeId(MQTT_TYPE_NAME);
@@ -112,15 +119,19 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        AsyncapiBindingConfig asyncapiBinding = new AsyncapiBindingConfig(binding, config.targetRouteId());
+        AsyncapiBindingConfig asyncapiBinding = new AsyncapiBindingConfig(binding, namespaceGenerator, supplyCatalog,
+            config.targetRouteId());
         bindings.put(binding.id, asyncapiBinding);
+
+        asyncapiBinding.attach(binding);
     }
 
     @Override
     public void detach(
         long bindingId)
     {
-        bindings.remove(bindingId);
+        AsyncapiBindingConfig binding = bindings.remove(bindingId);
+        binding.detach();
     }
 
     @Override

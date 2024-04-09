@@ -16,6 +16,71 @@
 
 ---
 name: test
+catalogs:
+  catalog0:
+    type: test
+    options:
+      subject: smartylighting
+      schema: |
+        asyncapi: 3.0.0
+        info:
+          title: Zilla MQTT Proxy
+          version: 1.0.0
+          license:
+            name: Aklivity Community License
+        servers:
+          plain:
+            host: localhost:1883
+            protocol: mqtt
+        defaultContentType: application/json
+
+        channels:
+          sensors:
+            address: "sensors/{sensorId}"
+            title: MQTT Topic to produce & consume topic.
+            parameters:
+              streetlightId:
+                $ref: '#/components/parameters/sensorId'
+            messages:
+              items:
+                $ref: '#/components/messages/item'
+
+        operations:
+          sendEvents:
+            action: send
+            channel:
+              $ref: '#/channels/sensors'
+
+          receiveEvents:
+            action: receive
+            channel:
+              $ref: '#/channels/sensors'
+
+        components:
+          parameters:
+            sensorId:
+              description: Sensor ID
+              location: $message.header#/id
+          messages:
+            item:
+              name: event
+              title: An event
+              headers:
+                type: object
+                properties:
+                  idempotency-key:
+                    description: Unique identifier for a given event
+                    type: string
+                  id:
+                    description: Sensor ID
+                    type: string
+guards:
+  test0:
+    type: test
+    options:
+      credentials: TOKEN
+      lifetime: PT5S
+      challenge: PT5S
 vaults:
   test0:
     type: test
@@ -26,7 +91,17 @@ bindings:
     vault: test0
     options:
       specs:
-        mqtt_api: mqtt/asyncapi.yaml
+        mqtt_api:
+          catalog:
+            catalog0:
+              subject: smartylighting
+              version: latest
+      mqtt:
+        authorization:
+          test0:
+            credentials:
+              connect:
+                username: Bearer {credentials}
       tls:
         keys:
           - localhost

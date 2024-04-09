@@ -27,6 +27,7 @@ import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.serverIn
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.streamId;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.streamIndex;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.throttleIndex;
+import static io.aklivity.zilla.runtime.engine.internal.types.stream.FrameFW.FIELD_OFFSET_STREAM_ID;
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.COUNTER;
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.GAUGE;
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.HISTOGRAM;
@@ -37,6 +38,7 @@ import static java.lang.ThreadLocal.withInitial;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.agrona.CloseHelper.quietClose;
 import static org.agrona.LangUtil.rethrowUnchecked;
+import static org.agrona.concurrent.AgentRunner.startOnThread;
 
 import java.net.InetAddress;
 import java.net.MalformedURLException;
@@ -63,6 +65,7 @@ import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 import java.util.function.Supplier;
 
+import org.agrona.CloseHelper;
 import org.agrona.DeadlineTimerWheel;
 import org.agrona.DeadlineTimerWheel.TimerHandler;
 import org.agrona.DirectBuffer;
@@ -219,6 +222,7 @@ public class EngineWorker implements EngineContext, Agent
     private final EventsLayout eventsLayout;
     private final Supplier<MessageReader> supplyEventReader;
     private final EventFormatter eventFormatter;
+
     private long initialId;
     private long promiseId;
     private long traceId;
@@ -226,6 +230,8 @@ public class EngineWorker implements EngineContext, Agent
     private long authorizedId;
 
     private long lastReadStreamId;
+
+    private volatile Thread thread;
 
     public EngineWorker(
         EngineConfiguration config,
@@ -742,6 +748,17 @@ public class EngineWorker implements EngineContext, Agent
         return agentName;
     }
 
+    public void doStart()
+    {
+        thread = startOnThread(runner, Thread::new);
+    }
+
+    public void doClose()
+    {
+        CloseHelper.close(runner);
+        thread = null;
+    }
+
     @Override
     public int doWork()
     {
@@ -848,8 +865,17 @@ public class EngineWorker implements EngineContext, Agent
         NamespaceConfig namespace)
     {
         NamespaceTask attachTask = registry.attach(namespace);
-        taskQueue.offer(attachTask);
-        signaler.signalNow(0L, 0L, 0L, supplyTraceId(), SIGNAL_TASK_QUEUED, 0);
+
+        if (thread == Thread.currentThread())
+        {
+            attachTask.run();
+        }
+        else
+        {
+            taskQueue.offer(attachTask);
+            signaler.signalNow(0L, 0L, 0L, supplyTraceId(), SIGNAL_TASK_QUEUED, 0);
+        }
+
         return attachTask.future();
     }
 
@@ -857,8 +883,17 @@ public class EngineWorker implements EngineContext, Agent
         NamespaceConfig namespace)
     {
         NamespaceTask detachTask = registry.detach(namespace);
-        taskQueue.offer(detachTask);
-        signaler.signalNow(0L, 0L, 0L, supplyTraceId(), SIGNAL_TASK_QUEUED, 0);
+
+        if (thread == Thread.currentThread())
+        {
+            detachTask.run();
+        }
+        else
+        {
+            taskQueue.offer(detachTask);
+            signaler.signalNow(0L, 0L, 0L, supplyTraceId(), SIGNAL_TASK_QUEUED, 0);
+        }
+
         return detachTask.future();
     }
 
@@ -1452,13 +1487,17 @@ public class EngineWorker implements EngineContext, Agent
         {
             MessageConsumer sentMetricHandler = supplyMetricRecorder(originId, ORIGIN, SENT)
                 .andThen(supplyMetricRecorder(routedId, ROUTED, SENT));
-            final MessageConsumer replyTo = supplyReplyTo(initialId).andThen(sentMetricHandler);
+            MessageConsumer receivedMetricHandler = supplyMetricRecorder(originId, ORIGIN, RECEIVED)
+                .andThen(supplyMetricRecorder(routedId, ROUTED, RECEIVED));
+            final MessageConsumer replyTo = supplyReplyTo(initialId)
+                .andThen(sentMetricHandler.filter(this::isReplyId))
+                .andThen(receivedMetricHandler.filter(this::isInitialId));
             newStream = streamFactory.newStream(msgTypeId, buffer, index, length, replyTo);
             if (newStream != null)
             {
-                MessageConsumer receivedMetricHandler = supplyMetricRecorder(originId, ORIGIN, RECEIVED)
-                    .andThen(supplyMetricRecorder(routedId, ROUTED, RECEIVED));
-                newStream = receivedMetricHandler.andThen(newStream);
+                newStream = receivedMetricHandler.filter(this::isInitialId)
+                    .andThen(sentMetricHandler.filter(this::isReplyId))
+                    .andThen(newStream);
 
                 final long replyId = supplyReplyId(initialId);
                 streams[streamIndex(initialId)].put(instanceId(initialId), newStream);
@@ -1469,6 +1508,24 @@ public class EngineWorker implements EngineContext, Agent
         }
 
         return newStream;
+    }
+
+    private boolean isInitialId(
+        int msgTypeId,
+        DirectBuffer buffer,
+        int index,
+        int length)
+    {
+        return StreamId.isInitial(buffer.getLong(index + FIELD_OFFSET_STREAM_ID));
+    }
+
+    private boolean isReplyId(
+        int msgTypeId,
+        DirectBuffer buffer,
+        int index,
+        int length)
+    {
+        return !StreamId.isInitial(buffer.getLong(index + FIELD_OFFSET_STREAM_ID));
     }
 
     private MessageConsumer handleBeginReply(

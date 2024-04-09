@@ -20,7 +20,7 @@ connect "zilla://streams/asyncapi0"
 
 write zilla:begin.ext ${asyncapi:beginEx()
                              .typeId(zilla:id("asyncapi"))
-                             .apiId(2560287392)
+                             .apiId(0)
                              .operationId("createPet")
                              .extension(http:beginEx()
                                   .typeId(zilla:id("http"))

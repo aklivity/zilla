@@ -31,6 +31,7 @@ public class SchemaTest
     public final ConfigSchemaRule schema = new ConfigSchemaRule()
         .schemaPatch("io/aklivity/zilla/specs/binding/openapi/asyncapi/" +
             "schema/openapi.asyncapi.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/specs/engine/schema/catalog/test.schema.patch.json")
         .configurationRoot("io/aklivity/zilla/specs/binding/openapi/asyncapi/config");
 
 

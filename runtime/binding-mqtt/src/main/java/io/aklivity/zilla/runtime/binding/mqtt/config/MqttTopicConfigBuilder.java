@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.config;
 
+import java.util.LinkedList;
+import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
@@ -26,6 +28,7 @@ public class MqttTopicConfigBuilder<T> extends ConfigBuilder<T, MqttTopicConfigB
 
     private String name;
     private ModelConfig content;
+    private List<MqttUserPropertyConfig> userProperties;
 
     MqttTopicConfigBuilder(
         Function<MqttTopicConfig, T> mapper)
@@ -54,6 +57,33 @@ public class MqttTopicConfigBuilder<T> extends ConfigBuilder<T, MqttTopicConfigB
         return this;
     }
 
+    public MqttTopicConfigBuilder<T> userProperties(
+        List<MqttUserPropertyConfig> userProperties)
+    {
+        if (userProperties == null)
+        {
+            userProperties = new LinkedList<>();
+        }
+        this.userProperties = userProperties;
+        return this;
+    }
+
+    public MqttTopicConfigBuilder<T> userProperty(
+        MqttUserPropertyConfig userProperty)
+    {
+        if (userProperties == null)
+        {
+            userProperties = new LinkedList<>();
+        }
+        userProperties.add(userProperty);
+        return this;
+    }
+
+    public MqttUserPropertyConfigBuilder<MqttTopicConfigBuilder<T>> userProperty()
+    {
+        return new MqttUserPropertyConfigBuilder<>(this::userProperty);
+    }
+
     public <C extends ConfigBuilder<MqttTopicConfigBuilder<T>, C>> C content(
         Function<Function<ModelConfig, MqttTopicConfigBuilder<T>>, C> content)
     {
@@ -63,6 +93,6 @@ public class MqttTopicConfigBuilder<T> extends ConfigBuilder<T, MqttTopicConfigB
     @Override
     public T build()
     {
-        return mapper.apply(new MqttTopicConfig(name, content));
+        return mapper.apply(new MqttTopicConfig(name, content, userProperties));
     }
 }

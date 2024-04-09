@@ -23,9 +23,6 @@ bindings:
       value:
         model: int32
         format: text
-        max: 1234
-        min: -1234
-        exclusiveMax: true
-        exclusiveMin: true
+        range: '[99,99)'
         multiple: 10
     exit: test

@@ -26,6 +26,8 @@ public interface ValidatorHandler
     int FLAGS_FIN = 0x01;
 
     boolean validate(
+        long traceId,
+        long bindingId,
         int flags,
         DirectBuffer data,
         int index,
@@ -33,11 +35,13 @@ public interface ValidatorHandler
         ValueConsumer next);
 
     default boolean validate(
+        long traceId,
+        long bindingId,
         DirectBuffer data,
         int index,
         int length,
         ValueConsumer next)
     {
-        return validate(FLAGS_COMPLETE, data, index, length, next);
+        return validate(traceId, bindingId, FLAGS_COMPLETE, data, index, length, next);
     }
 }

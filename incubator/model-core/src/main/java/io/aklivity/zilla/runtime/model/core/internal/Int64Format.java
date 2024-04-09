@@ -40,7 +40,7 @@ public enum Int64Format
             {
                 int digit = data.getByte(progress);
 
-                if ((flags & FLAGS_FIN) != 0x00 && progress == limit - 1 && digit == 'L')
+                if ((flags & FLAGS_FIN) != 0x00 && progress == limit - 1 && (digit == 'L' || digit == 'l') && state.processed > 0)
                 {
                     state.processed++;
                     break;
