@@ -14,9 +14,9 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.config;
 
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
-
 import java.util.List;
+
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 
 public class AsyncapiConfig
 {

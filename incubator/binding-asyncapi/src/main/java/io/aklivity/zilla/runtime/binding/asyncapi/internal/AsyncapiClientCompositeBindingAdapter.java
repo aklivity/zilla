@@ -21,7 +21,6 @@ import java.util.List;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiServer;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiServerView;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.CompositeBindingAdapterSpi;
@@ -47,17 +46,19 @@ public class AsyncapiClientCompositeBindingAdapter extends AsyncapiCompositeBind
         final List<MetricRefConfig> metricRefs = binding.telemetryRef != null ?
             binding.telemetryRef.metricRefs : emptyList();
 
-        //TODO: add composite for all servers
-        final AsyncapiServer server = asyncapi.servers
-            .getOrDefault("options.server", asyncapi.servers.entrySet().iterator().next().getValue());
-        AsyncapiServerView serverView = AsyncapiServerView.of(server);
         this.qname = binding.qname;
         this.namespace = binding.namespace;
         this.qvault = binding.qvault;
         this.vault = binding.vault;
-        this.protocol = resolveProtocol(serverView.protocol(), options);
-        resolveServerVariables(asyncapi);
-        this.isTlsEnabled = protocol.isSecure();
+
+        final List<AsyncapiServerView> servers = filterAsyncapiServers(asyncapi.servers, asyncapiConfig.servers);
+        servers.forEach(s -> s.setAsyncapiProtocol(resolveProtocol(s.protocol(), options, servers)));
+
+        //TODO: keep it until we support different protocols on the same composite binding
+        AsyncapiServerView serverView = servers.get(0);
+        this.protocol = serverView.getAsyncapiProtocol();
+        int[] compositeSecurePorts = resolvePorts(servers, true);
+        this.isTlsEnabled =  compositeSecurePorts.length > 0;
 
         return BindingConfig.builder(binding)
             .composite()
@@ -74,13 +75,7 @@ public class AsyncapiClientCompositeBindingAdapter extends AsyncapiCompositeBind
                     .exit(isTlsEnabled ? "tls_client0" : "tcp_client0")
                     .build()
                 .inject(n -> injectTlsClient(n, options, metricRefs))
-                .binding()
-                    .name("tcp_client0")
-                    .type("tcp")
-                    .kind(CLIENT)
-                    .inject(b -> this.injectMetrics(b, metricRefs, "tcp"))
-                    .options(options.tcp)
-                    .build()
+                .inject(n -> injectTcpClient(n, options, metricRefs))
                 .build()
             .build();
     }
@@ -102,6 +97,26 @@ public class AsyncapiClientCompositeBindingAdapter extends AsyncapiCompositeBind
                     .vault(String.format("%s:%s", this.namespace, vault))
                     .exit("tcp_client0")
                     .build();
+        }
+        return namespace;
+    }
+
+    private <C> NamespaceConfigBuilder<C> injectTcpClient(
+        NamespaceConfigBuilder<C> namespace,
+        AsyncapiOptionsConfig options,
+        List<MetricRefConfig> metricRefs)
+    {
+        if (!protocol.scheme.equals(AyncapiKafkaProtocol.SCHEME))
+        {
+            namespace
+                .binding()
+                    .name("tcp_client0")
+                    .type("tcp")
+                    .kind(CLIENT)
+                    .inject(b -> this.injectMetrics(b, metricRefs, "tcp"))
+                    .options(options.tcp)
+                    .build()
+                .build();
         }
         return namespace;
     }

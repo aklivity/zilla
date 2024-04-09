@@ -24,4 +24,6 @@ public class AsyncapiVariable
     public String defaultValue;
     @JsonbProperty("enum")
     public List<String> values;
+    @JsonbProperty("$ref")
+    public String ref;
 }

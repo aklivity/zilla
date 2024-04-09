@@ -125,15 +125,15 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
                         {
                             server.add(SERVER_NAME_NAME, s.name);
                         }
-                        if (s.host != null)
+                        if (!s.host.isEmpty())
                         {
                             server.add(SERVER_HOST_NAME, s.host);
                         }
-                        if (s.url != null)
+                        if (!s.url.isEmpty())
                         {
                             server.add(SERVER_URL_NAME, s.url);
                         }
-                        if (s.pathname != null)
+                        if (!s.pathname.isEmpty())
                         {
                             server.add(SERVER_PATHNAME_NAME, s.pathname);
                         }
@@ -314,9 +314,7 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
     {
         final String apiLabel = entry.getKey();
 
-
-
-        final JsonObject specJson = ((JsonObject) entry.getValue());
+        final JsonObject specJson = (JsonObject) entry.getValue();
 
         final String location = specJson.getString(LOCATION_NAME);
         final JsonArray serversJson = specJson.getJsonArray(SERVERS_NAME);

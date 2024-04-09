@@ -73,7 +73,10 @@ public class AsyncapiBingingFactorySpiTest
             "{" +
                 "\"specs\":" +
                 "{" +
-                    "\"mqtt-api\":\"mqtt/asyncapi.yaml\"" +
+                    "\"mqtt-api\":" +
+                    "{" +
+                        "\"location\":\"mqtt/asyncapi.yaml\"" +
+                    "}" +
                 "}" +
             "}";
 

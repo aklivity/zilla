@@ -17,15 +17,10 @@ package io.aklivity.zilla.runtime.binding.asyncapi.internal;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 import static java.util.Collections.emptyList;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
-import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiServerConfig;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiServer;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiServerView;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
@@ -38,8 +33,6 @@ import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 
 public class AsyncapiServerCompositeBindingAdapter extends AsyncapiCompositeBindingAdapter implements CompositeBindingAdapterSpi
 {
-    private List<String> sni;
-    private int[] compositePorts;
 
     @Override
     public String type()
@@ -61,37 +54,19 @@ public class AsyncapiServerCompositeBindingAdapter extends AsyncapiCompositeBind
         this.qvault = binding.qvault;
         this.namespace = binding.namespace;
 
-        //TODO: add composite for all servers
-        final List<AsyncapiServer> servers = filterAsyncapiServers(asyncapi.servers, asyncapiConfig.servers);
-        //.getOrDefault("options.server", asyncapi.servers.entrySet().iterator().next().getValue());
-        AsyncapiServerView serverView = AsyncapiServerView.of(server);
-        final String[] hostAndPort = server.host.split(":");
+        final List<AsyncapiServerView> servers = filterAsyncapiServers(asyncapi.servers, asyncapiConfig.servers);
+        servers.forEach(s -> s.setAsyncapiProtocol(resolveProtocol(s.protocol(), options, servers)));
 
-        this.protocol = resolveProtocol(serverView.protocol(), options);
-        this.sni = options.tls != null ? options.tls.sni : Collections.singletonList(hostAndPort[0]);
-        this.compositePorts = options.tcp != null ? options.tcp.ports : new int[] {Integer.parseInt(hostAndPort[1])};
-        this.isTlsEnabled = protocol.isSecure();
-
-
-        resolveServerVariables(asyncapi);
+        //TODO: keep it until we support different protocols on the same composite binding
+        AsyncapiServerView serverView = servers.get(0);
+        this.protocol = serverView.getAsyncapiProtocol();
 
         return BindingConfig.builder(binding)
             .composite()
                 .name(String.format("%s/%s", qname, protocol.scheme))
                 .inject(n -> this.injectNamespaceMetric(n, !metricRefs.isEmpty()))
                 .inject(n -> this.injectCatalog(n, asyncapi))
-                .binding()
-                    .name("tcp_server0")
-                    .type("tcp")
-                    .kind(SERVER)
-                    .inject(b -> this.injectMetrics(b, metricRefs, "tcp"))
-                    .options(TcpOptionsConfig::builder)
-                        .host("0.0.0.0")
-                        .ports(compositePorts)
-                        .build()
-                    .inject(this::injectPlainTcpRoute)
-                    .inject(b -> this.injectTlsTcpRoute(b, metricRefs))
-                    .build()
+                .inject(n -> injectTcpServer(n, servers, options, metricRefs))
                 .inject(n -> injectTlsServer(n, options))
                 .binding()
                     .name(String.format("%s_server0", protocol.scheme))
@@ -105,47 +80,55 @@ public class AsyncapiServerCompositeBindingAdapter extends AsyncapiCompositeBind
            .build();
     }
 
-    private List<AsyncapiServer> filterAsyncapiServers(
-        Map<String, AsyncapiServer> servers,
-        List<AsyncapiServerConfig> serverConfigs)
+    private <C> NamespaceConfigBuilder<C> injectTcpServer(
+        NamespaceConfigBuilder<C> namespace,
+        List<AsyncapiServerView> servers,
+        AsyncapiOptionsConfig options,
+        List<MetricRefConfig> metricRefs)
     {
-        List<AsyncapiServer> filtered;
-        if (serverConfigs != null)
-        {
-            filtered = new ArrayList<>();
-            serverConfigs.forEach(sc ->
-            {
-                servers.values().stream().filter(s ->
-                {
-                    s.variables
-                });
-            });
-        }
-        else
-        {
-            filtered = new ArrayList<>(servers.values());
-        }
-        return filtered;
+        int[] allPorts = resolveAllPorts(servers);
+        int[] compositePorts = resolvePorts(servers, false);
+        int[] compositeSecurePorts = resolvePorts(servers, true);
+
+        this.isTlsEnabled =  compositeSecurePorts.length > 0;
+
+        final TcpOptionsConfig tcpOption = options.tcp != null ? options.tcp :
+            TcpOptionsConfig.builder()
+                .host("0.0.0.0")
+                .ports(allPorts)
+                .build();
+
+        namespace
+            .binding()
+                .name("tcp_server0")
+                .type("tcp")
+                .kind(SERVER)
+                .inject(b -> this.injectMetrics(b, metricRefs, "tcp"))
+                .options(tcpOption)
+                .inject(b -> this.injectPlainTcpRoute(b, compositePorts))
+                .inject(b -> this.injectTlsTcpRoute(b, compositeSecurePorts, metricRefs))
+                .build();
+
+        return namespace;
     }
 
     private <C> BindingConfigBuilder<C> injectPlainTcpRoute(
-        BindingConfigBuilder<C> binding)
+        BindingConfigBuilder<C> binding,
+        int[] compositePorts)
     {
-        if (!isTlsEnabled)
-        {
-            binding
-                .route()
-                    .when(TcpConditionConfig::builder)
-                        .ports(compositePorts)
-                        .build()
-                    .exit(String.format("%s_server0", protocol.scheme))
-                    .build();
-        }
+        binding
+            .route()
+                .when(TcpConditionConfig::builder)
+                    .ports(compositePorts)
+                    .build()
+                .exit(String.format("%s_server0", protocol.scheme))
+                .build();
         return binding;
     }
 
     private <C> BindingConfigBuilder<C> injectTlsTcpRoute(
         BindingConfigBuilder<C> binding,
+        int[] compositeSecurePorts,
         List<MetricRefConfig> metricRefs)
     {
         if (isTlsEnabled)
@@ -154,7 +137,7 @@ public class AsyncapiServerCompositeBindingAdapter extends AsyncapiCompositeBind
                 .inject(b -> this.injectMetrics(b, metricRefs, "tls"))
                 .route()
                     .when(TcpConditionConfig::builder)
-                        .ports(compositePorts)
+                        .ports(compositeSecurePorts)
                         .build()
                     .exit("tls_server0")
                     .build();

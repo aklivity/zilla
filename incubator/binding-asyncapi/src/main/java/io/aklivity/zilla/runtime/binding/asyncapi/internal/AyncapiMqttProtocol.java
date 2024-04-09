@@ -38,7 +38,9 @@ import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 public class AyncapiMqttProtocol extends AsyncapiProtocol
 {
     private static final String SCHEME = "mqtt";
+    private static final String SECURE_PROTOCOL = "secure-mqtt";
     private static final String SECURE_SCHEME = "mqtts";
+
     private final String guardName;
     private final MqttAuthorizationConfig authorization;
 
@@ -46,9 +48,10 @@ public class AyncapiMqttProtocol extends AsyncapiProtocol
         String qname,
         Asyncapi asyncApi,
         AsyncapiOptionsConfig options,
+        String protocol,
         String namespace)
     {
-        super(qname, asyncApi, SCHEME, SECURE_SCHEME);
+        super(qname, asyncApi, protocol, SCHEME);
         final MqttOptionsConfig mqttOptions = options.mqtt;
         this.guardName =  mqttOptions != null ? String.format("%s:%s", namespace, mqttOptions.authorization.name) : null;
         this.authorization = mqttOptions != null ?
@@ -177,6 +180,6 @@ public class AyncapiMqttProtocol extends AsyncapiProtocol
     @Override
     protected boolean isSecure()
     {
-        return findFirstServerUrlWithScheme(SECURE_SCHEME) != null;
+        return protocol.equals(SECURE_PROTOCOL) || protocol.equals(SECURE_SCHEME);
     }
 }

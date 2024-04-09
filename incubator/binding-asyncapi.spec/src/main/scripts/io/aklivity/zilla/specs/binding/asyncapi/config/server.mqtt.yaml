@@ -26,6 +26,6 @@ bindings:
         mqtt_api:
           location: mqtt/asyncapi.yaml
           servers:
-            - name: plain
-              host: 'test.mosquitto.org:1883'
+            - name: development
+              host: 'development.dev.example.com:1883'
     exit: asyncapi0

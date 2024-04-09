@@ -24,19 +24,6 @@ public final class AsyncapiView
 {
     private final Asyncapi asyncapi;
 
-    public int[] resolveAllPorts()
-    {
-        int[] ports = new int[asyncapi.servers.size()];
-        String[] keys = asyncapi.servers.keySet().toArray(String[]::new);
-        for (int i = 0; i < asyncapi.servers.size(); i++)
-        {
-            AsyncapiServerView server = AsyncapiServerView.of(asyncapi.servers.get(keys[i]));
-            URI url = server.url();
-            ports[i] = url.getPort();
-        }
-        return ports;
-    }
-
     public int[] resolvePortsForScheme(
         String scheme)
     {

@@ -21,9 +21,22 @@ info:
   license:
     name: Aklivity Community License
 servers:
-  plain:
-    host: localhost:1883
+  production:
+    host: '{subdomain}.example.com:{port}'
     protocol: mqtt
+    variables:
+      subdomain:
+        $ref: '#/components/serverVariables/subdomain'
+      port:
+        $ref: '#/components/serverVariables/port'
+  development:
+    host: '{subdomain}.dev.example.com:{port}'
+    protocol: mqtt
+    variables:
+      subdomain:
+        $ref: '#/components/serverVariables/subdomain'
+      port:
+        $ref: '#/components/serverVariables/port'
 defaultContentType: application/json
 
 channels:
@@ -49,6 +62,18 @@ operations:
       $ref: '#/channels/sensors'
 
 components:
+  serverVariables:
+    subdomain:
+      enum:
+        - development
+        - staging
+        - production
+      default: development
+    port:
+      default: '1883'
+      enum:
+        - '1883'
+        - '8883'
   parameters:
     sensorId:
       description: Sensor ID

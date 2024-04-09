@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.config;
 
+import java.util.Optional;
 import java.util.function.Function;
 
 public class AsyncapiServerConfig
@@ -41,9 +42,9 @@ public class AsyncapiServerConfig
         String pathname)
     {
         this.name = name;
-        this.host = host;
-        this.url = url;
-        this.pathname = pathname;
+        this.host = Optional.ofNullable(host).orElse("");
+        this.url = Optional.ofNullable(url).orElse("");
+        this.pathname = Optional.ofNullable(pathname).orElse("");
     }
 }
 

@@ -26,6 +26,7 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiOperati
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiChannelView;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiMessageView;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiSchemaView;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiServerView;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
@@ -41,22 +42,21 @@ import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
 public class AyncapiKafkaProtocol extends AsyncapiProtocol
 {
-    private static final String SCHEME = "kafka";
-    private static final String SECURE_SCHEME = "";
+    public static final String SCHEME = "kafka";
     private static final String SECURE_PROTOCOL = "kafka-secure";
     private static final Pattern PARAMETERIZED_TOPIC_PATTERN = Pattern.compile("\\{.*?\\}");
-
-    private final String protocol;
     private final KafkaSaslConfig sasl;
+    private final List<AsyncapiServerView> servers;
 
     public AyncapiKafkaProtocol(
         String qname,
         Asyncapi asyncApi,
+        List<AsyncapiServerView> servers,
         AsyncapiOptionsConfig options,
         String protocol)
     {
-        super(qname, asyncApi, SCHEME, SECURE_SCHEME);
-        this.protocol = protocol;
+        super(qname, asyncApi, protocol, SCHEME);
+        this.servers = servers;
         this.sasl = options.kafka != null ? options.kafka.sasl : null;
     }
 
@@ -132,9 +132,9 @@ public class AyncapiKafkaProtocol extends AsyncapiProtocol
     private <C> KafkaOptionsConfigBuilder<C> injectKafkaServerOptions(
         KafkaOptionsConfigBuilder<C> options)
     {
-        return options.servers(asyncApi.servers.values().stream().map(s ->
+        return options.servers(servers.stream().map(s ->
         {
-            String[] hostAndPort = s.host.split(":");
+            String[] hostAndPort = s.host().split(":");
             return KafkaServerConfig.builder()
                 .host(hostAndPort[0])
                 .port(Integer.parseInt(hostAndPort[1]))

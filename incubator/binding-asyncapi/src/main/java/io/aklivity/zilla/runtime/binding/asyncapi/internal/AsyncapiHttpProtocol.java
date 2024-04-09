@@ -52,16 +52,18 @@ public class AsyncapiHttpProtocol extends AsyncapiProtocol
         "integer", Int32ModelConfig.builder().build()
     );
     private static final String SCHEME = "http";
-    private static final String SECURE_SCHEME = "https";
+    private static final String SECURE_PROTOCOL = "https";
+
     private final String guardName;
     private final HttpAuthorizationConfig authorization;
 
     protected AsyncapiHttpProtocol(
         String qname,
         Asyncapi asyncApi,
-        AsyncapiOptionsConfig options)
+        AsyncapiOptionsConfig options,
+        String protocol)
     {
-        super(qname, asyncApi, SCHEME, SECURE_SCHEME);
+        super(qname, asyncApi, protocol, SCHEME);
         final HttpOptionsConfig httpOptions = options.http;
         this.guardName = httpOptions != null ? String.format("%s:%s", qname, httpOptions.authorization.name) : null;
         this.authorization = httpOptions != null ?  httpOptions.authorization : null;
@@ -114,7 +116,7 @@ public class AsyncapiHttpProtocol extends AsyncapiProtocol
     @Override
     protected boolean isSecure()
     {
-        return findFirstServerUrlWithScheme(SECURE_SCHEME) != null;
+        return protocol.equals(SECURE_PROTOCOL);
     }
 
     private <C> HttpOptionsConfigBuilder<C> injectHttpServerOptions(

@@ -22,4 +22,5 @@ public class AsyncapiComponents
     public Map<String, AsyncapiMessage> messages;
     public Map<String, AsyncapiSchema> schemas;
     public Map<String, AsyncapiTrait> messageTraits;
+    public Map<String, AsyncapiVariable> serverVariables;
 }
