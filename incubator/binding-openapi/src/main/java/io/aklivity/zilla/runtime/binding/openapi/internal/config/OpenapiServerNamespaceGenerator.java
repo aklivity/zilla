@@ -72,28 +72,16 @@ public final class OpenapiServerNamespaceGenerator extends OpenapiNamespaceGener
         final List<MetricRefConfig> metricRefs = binding.telemetryRef != null ?
             binding.telemetryRef.metricRefs : emptyList();
 
-        final TlsOptionsConfig tlsOption = options.tls != null ? options.tls : null;
-        final HttpOptionsConfig httpOptions = options.http;
-        final String guardName = httpOptions != null ? httpOptions.authorization.name : null;
-        final HttpAuthorizationConfig authorization = httpOptions != null ?  httpOptions.authorization : null;
-
-        final int[] allPorts = resolveAllPorts(openapi);
-        final int[] httpPorts = resolvePortsForScheme(openapi, "http");
-        final int[] httpsPorts = resolvePortsForScheme(openapi, "https");
-        final boolean secure = httpsPorts != null;
-        final Map<String, String> securitySchemes = resolveSecuritySchemes(openapi);
-        final boolean hasJwt = !securitySchemes.isEmpty();
         final String qvault = String.format("%s:%s", binding.namespace, binding.vault);
 
         return NamespaceConfig.builder()
                 .name(String.format("%s/http", binding.qname))
                 .inject(namespace -> injectNamespaceMetric(namespace, !metricRefs.isEmpty()))
-                .inject(n -> injectCatalog(n, options))
-                .inject(n -> injectTcpServer(n, options, metricRefs))
-                .inject(n -> injectTlsServer(n, qvault, options, metricRefs))
-                .inject(n -> injectHttpServer(n, binding.qname, options, metricRefs))
-                .build()
-            .build();
+                .inject(n -> injectCatalog(n, openapi))
+                .inject(n -> injectTcpServer(n, options, openapi, metricRefs))
+                .inject(n -> injectTlsServer(n, qvault, openapi, options, metricRefs))
+                .inject(n -> injectHttpServer(n, binding.qname, openapi, options, metricRefs))
+                .build();
     }
 
     private <C> BindingConfigBuilder<C> injectPlainTcpRoute(
@@ -134,12 +122,11 @@ public final class OpenapiServerNamespaceGenerator extends OpenapiNamespaceGener
     private <C> NamespaceConfigBuilder<C> injectTlsServer(
         NamespaceConfigBuilder<C> namespace,
         String vault,
+        Openapi openapi,
         OpenapiOptionsConfig options,
         List<MetricRefConfig> metricRefs)
     {
         final List<String> servers = options.servers;
-        final OpenapiConfig openapiConfig = options.openapis.get(0);
-        final Openapi openapi = openapiConfig.openapi;
         final int[] httpsPorts = resolvePortsForScheme(openapi, "https", servers);
         final boolean secure =  httpsPorts.length > 0;
 

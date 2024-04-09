@@ -35,16 +35,6 @@
                     {
                         "properties":
                         {
-                            "servers":
-                            {
-                                "title": "Servers",
-                                "type": "array",
-                                "items":
-                                {
-                                    "type": "string",
-                                    "pattern": "/^https?:\\/\\/(?:www\\.)?[-a-zA-Z0-9@:%._\\+~#=]{1,256}\\.[a-zA-Z0-9()]{1,6}\\b(?:[-a-zA-Z0-9()@:%_\\+.~#?&\\/=]*)$/"
-                                }
-                            },
                             "tcp":
                             {
                                 "$ref": "#/$defs/options/binding/tcp"
@@ -77,6 +67,41 @@
                                         "type": "object",
                                         "properties":
                                         {
+                                                                                        "servers":
+                                            {
+                                                "title": "Servers",
+                                                "type": "array",
+                                                "items":
+                                                {
+                                                    "type": "object",
+                                                    "properties":
+                                                    {
+                                                        "name":
+                                                        {
+                                                            "title": "Server Name",
+                                                            "type": "string"
+                                                        },
+                                                        "url":
+                                                        {
+                                                            "title": "URL",
+                                                            "type": "string",
+                                                            "pattern": "^([a-zA-Z0-9\\\\.-]+)(:(\\\\{[a-zA-Z_]+\\\\}|[0-9]+))?$"
+                                                        },
+                                                        "host":
+                                                        {
+                                                            "title": "Host",
+                                                            "type": "string",
+                                                            "pattern": "^([a-zA-Z0-9\\\\.-]+)(:(\\\\{[a-zA-Z_]+\\\\}|[0-9]+))?$"
+                                                        },
+                                                        "pathname":
+                                                        {
+                                                            "title": "Path Name",
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "additionalProperties": false
+                                                }
+                                            },
                                             "catalog":
                                             {
                                                 "type": "object",
