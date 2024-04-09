@@ -16,6 +16,13 @@
 
 ---
 name: test
+guards:
+  test0:
+    type: test
+    options:
+      credentials: TOKEN
+      lifetime: PT5S
+      challenge: PT5S
 vaults:
   test0:
     type: test
@@ -27,6 +34,12 @@ bindings:
     options:
       specs:
         mqtt_api: mqtt/asyncapi.yaml
+      mqtt:
+        authorization:
+          test0:
+            credentials:
+              connect:
+                username: Bearer {credentials}
       tls:
         keys:
           - localhost

@@ -19,12 +19,13 @@ import java.util.Map;
 
 import jakarta.json.bind.annotation.JsonbProperty;
 
-public class AsyncapiSchema
+public class AsyncapiSchema extends AsyncapiItem
 {
     public String type;
     public AsyncapiSchema items;
     public Map<String, AsyncapiItem> properties;
     public List<String> required;
+    public String format;
 
     @JsonbProperty("$ref")
     public String ref;

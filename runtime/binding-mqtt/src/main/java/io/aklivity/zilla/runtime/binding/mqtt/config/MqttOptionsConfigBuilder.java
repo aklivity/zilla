@@ -94,7 +94,7 @@ public class MqttOptionsConfigBuilder<T> extends ConfigBuilder<T, MqttOptionsCon
         return new MqttTopicConfigBuilder<>(this::topic);
     }
 
-    private MqttOptionsConfigBuilder<T> authorization(
+    public MqttOptionsConfigBuilder<T> authorization(
         MqttAuthorizationConfig authorization)
     {
         this.authorization = authorization;

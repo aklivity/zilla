@@ -35,7 +35,8 @@ public class ModelTest
     {
         ConverterHandler converter = ConverterHandler.NONE;
 
-        assertEquals(1, converter.convert(new UnsafeBuffer(), 1, 1, (b, i, l) -> {}));
+        assertEquals(1, converter.convert(0L, 0L,
+            new UnsafeBuffer(), 1, 1, (b, i, l) -> {}));
     }
 
     @Test
@@ -51,6 +52,6 @@ public class ModelTest
 
         byte[] bytes = {0, 0, 0, 42};
         data.wrap(bytes, 0, bytes.length);
-        assertTrue(handler.validate(data, 0, data.capacity(), ValueConsumer.NOP));
+        assertTrue(handler.validate(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 }

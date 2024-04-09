@@ -2118,7 +2118,7 @@ public final class KafkaMergedFactory implements BindingHandler
             }
         }
 
-        private void onFetchPartitionLeaderError(
+        private void onFetchPartitionError(
             long traceId,
             int partitionId,
             int error)
@@ -2157,6 +2157,8 @@ public final class KafkaMergedFactory implements BindingHandler
             }
             else
             {
+                fetchStreams.removeIf(f -> KafkaState.closed(f.state));
+
                 doMergedInitialResetIfNecessary(traceId, EMPTY_EXTENSION);
             }
         }
@@ -3579,7 +3581,7 @@ public final class KafkaMergedFactory implements BindingHandler
 
             assert KafkaState.closed(state);
 
-            merged.onFetchPartitionLeaderError(traceId, partitionId, error);
+            merged.onFetchPartitionError(traceId, partitionId, error);
         }
 
         private void onFetchInitialWindow(
@@ -3705,7 +3707,7 @@ public final class KafkaMergedFactory implements BindingHandler
             }
             doFetchInitialEndIfNecessary(traceId);
 
-            merged.onFetchPartitionLeaderError(traceId, partitionId, ERROR_NOT_LEADER_FOR_PARTITION);
+            merged.onFetchPartitionError(traceId, partitionId, ERROR_NOT_LEADER_FOR_PARTITION);
 
             if (merged.maximumOffset == HISTORICAL && merged.fetchStreams.isEmpty())
             {
@@ -3754,7 +3756,7 @@ public final class KafkaMergedFactory implements BindingHandler
             merged.doMergedReplyAbortIfNecessary(traceId);
             doFetchInitialAbortIfNecessary(traceId);
 
-            merged.onFetchPartitionLeaderError(traceId, partitionId, ERROR_NOT_LEADER_FOR_PARTITION);
+            merged.onFetchPartitionError(traceId, partitionId, ERROR_NOT_LEADER_FOR_PARTITION);
         }
 
         private void doFetchReplyWindowIfNecessary(

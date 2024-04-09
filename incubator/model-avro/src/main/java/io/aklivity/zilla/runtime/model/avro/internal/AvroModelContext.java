@@ -14,10 +14,7 @@
  */
 package io.aklivity.zilla.runtime.model.avro.internal;
 
-import java.util.function.LongFunction;
-
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelContext;
@@ -25,25 +22,25 @@ import io.aklivity.zilla.runtime.model.avro.config.AvroModelConfig;
 
 public class AvroModelContext implements ModelContext
 {
-    private final LongFunction<CatalogHandler> supplyCatalog;
+    private final EngineContext context;
 
     public AvroModelContext(
         EngineContext context)
     {
-        this.supplyCatalog = context::supplyCatalog;
+        this.context = context;
     }
 
     @Override
     public ConverterHandler supplyReadConverterHandler(
         ModelConfig config)
     {
-        return new AvroReadConverterHandler(AvroModelConfig.class.cast(config), supplyCatalog);
+        return new AvroReadConverterHandler(AvroModelConfig.class.cast(config), context);
     }
 
     @Override
     public ConverterHandler supplyWriteConverterHandler(
         ModelConfig config)
     {
-        return new AvroWriteConverterHandler(AvroModelConfig.class.cast(config), supplyCatalog);
+        return new AvroWriteConverterHandler(AvroModelConfig.class.cast(config), context);
     }
 }
