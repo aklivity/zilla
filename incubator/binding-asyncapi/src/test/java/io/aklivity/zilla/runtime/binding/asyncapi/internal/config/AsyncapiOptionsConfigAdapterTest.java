@@ -35,8 +35,10 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiChannelsConfig;
+import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiMqttKafkaConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
+import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiServerConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
@@ -68,15 +70,26 @@ public class AsyncapiOptionsConfigAdapterTest
     {
         String text =
                 "{" +
-                    "\"specs\": {" +
-                    "  \"kafka_api\": {" +
-                    "    \"catalog\": {" +
-                    "      \"catalog0\": {" +
-                    "        \"subject\": \"smartylighting\"," +
-                    "        \"version\": \"latest\"" +
-                    "      }" +
-                    "    }" +
-                    "  }" +
+                    "\"specs\":" +
+                    "{" +
+                        "\"mqtt-api\":" +
+                        "{" +
+                            "\"catalog\":" +
+                            "{" +
+                                "\"catalog0\":" +
+                                "{" +
+                                    "\"subject\": \"smartylighting\"," +
+                                    "\"version\": \"latest\"" +
+                                "}" +
+                            "}," +
+                            "\"servers\":" +
+                            "[" +
+                                "{" +
+                                    "\"name\":\"plain\"," +
+                                    "\"host\":\"test.mosquitto.org:1883\"" +
+                                "}" +
+                            "]" +
+                        "}" +
                     "}," +
                     "\"tcp\":" +
                     "{" +
@@ -108,6 +121,11 @@ public class AsyncapiOptionsConfigAdapterTest
         AsyncapiOptionsConfig options = jsonb.fromJson(text, AsyncapiOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
+        AsyncapiConfig asyncapi = options.asyncapis.get(0);
+        assertThat(asyncapi.servers.size(), equalTo(1));
+        AsyncapiServerConfig server = asyncapi.servers.get(0);
+        assertThat(server.name, equalTo("plain"));
+        assertThat(server.host, equalTo("test.mosquitto.org:1883"));
         assertThat(options.tcp.host, equalTo("localhost"));
         assertThat(options.tcp.ports, equalTo(new int[] { 7183 }));
         assertThat(options.tls.keys, equalTo(asList("localhost")));

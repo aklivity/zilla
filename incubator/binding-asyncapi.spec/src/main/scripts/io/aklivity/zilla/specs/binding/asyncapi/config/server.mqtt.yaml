@@ -29,11 +29,23 @@ catalogs:
           license:
             name: Aklivity Community License
         servers:
-          plain:
-            host: localhost:1883
+          production:
+            host: '{subdomain}.example.com:{port}'
             protocol: mqtt
-        defaultContentType: application/json
-
+            variables:
+              subdomain:
+                $ref: '#/components/serverVariables/subdomain'
+              port:
+                $ref: '#/components/serverVariables/port'
+          development:
+            host: '{subdomain}.dev.example.com:{port}'
+            protocol: mqtt
+            variables:
+              subdomain:
+                $ref: '#/components/serverVariables/subdomain'
+              port:
+                $ref: '#/components/serverVariables/port'
+                defaultContentType: application/json
         channels:
           sensors:
             address: "sensors/{sensorId}"
@@ -57,6 +69,18 @@ catalogs:
               $ref: '#/channels/sensors'
 
         components:
+          serverVariables:
+            subdomain:
+              enum:
+                - development
+                - staging
+                - production
+              default: development
+            port:
+              default: '1883'
+              enum:
+                - '1883'
+                - '8883'
           parameters:
             sensorId:
               description: Sensor ID
@@ -81,6 +105,9 @@ bindings:
     options:
       specs:
         mqtt_api:
+          servers:
+            - name: development
+              host: 'development.dev.example.com:1883'
           catalog:
             catalog0:
               subject: smartylighting

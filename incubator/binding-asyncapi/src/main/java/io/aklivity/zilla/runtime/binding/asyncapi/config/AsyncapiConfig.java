@@ -20,12 +20,15 @@ public class AsyncapiConfig
 {
     public final String apiLabel;
     public final List<AsyncapiCatalogConfig> catalogs;
+    public final List<AsyncapiServerConfig> servers;
 
     public AsyncapiConfig(
         String apiLabel,
+        List<AsyncapiServerConfig> servers,
         List<AsyncapiCatalogConfig> catalogs)
     {
         this.apiLabel = apiLabel;
         this.catalogs = catalogs;
+        this.servers = servers;
     }
 }

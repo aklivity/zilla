@@ -113,10 +113,16 @@ bindings:
     options:
       specs:
         http_api:
+          servers:
+            - name: plain
           catalog:
             catalog0:
               subject: petstore
               version: latest
+      tcp:
+        host: localhost
+        port:
+          - 8080
       tls:
         keys:
           - localhost
