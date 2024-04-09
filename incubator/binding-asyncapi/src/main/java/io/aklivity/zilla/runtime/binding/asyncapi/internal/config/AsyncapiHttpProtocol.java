@@ -15,9 +15,7 @@
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.config;
 
 import static io.aklivity.zilla.runtime.binding.http.config.HttpPolicyConfig.CROSS_ORIGIN;
-import static java.util.Objects.requireNonNull;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -66,6 +64,7 @@ public class AsyncapiHttpProtocol extends AsyncapiProtocol
         super(qname, asyncApi, SCHEME, SECURE_SCHEME);
         this.securitySchemes = resolveSecuritySchemes();
         this.isJwtEnabled = !securitySchemes.isEmpty();
+
         final HttpOptionsConfig httpOptions = options.http;
         this.guardName = httpOptions != null ? String.format("%s:%s", qname, httpOptions.authorization.name) : null;
         this.authorization = httpOptions != null ?  httpOptions.authorization : null;
@@ -251,23 +250,5 @@ public class AsyncapiHttpProtocol extends AsyncapiProtocol
             guarded.role(role);
         }
         return guarded;
-    }
-
-    private Map<String, String> resolveSecuritySchemes()
-    {
-        requireNonNull(asyncApi);
-        Map<String, String> result = new HashMap<>();
-        if (asyncApi.components != null && asyncApi.components.securitySchemes != null)
-        {
-            for (String securitySchemeName : asyncApi.components.securitySchemes.keySet())
-            {
-                String guardType = asyncApi.components.securitySchemes.get(securitySchemeName).bearerFormat;
-                if ("jwt".equals(guardType))
-                {
-                    result.put(securitySchemeName, guardType);
-                }
-            }
-        }
-        return result;
     }
 }

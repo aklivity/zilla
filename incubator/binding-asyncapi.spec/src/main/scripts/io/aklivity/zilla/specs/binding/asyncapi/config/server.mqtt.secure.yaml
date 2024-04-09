@@ -74,6 +74,13 @@ catalogs:
                   id:
                     description: Sensor ID
                     type: string
+guards:
+  test0:
+    type: test
+    options:
+      credentials: TOKEN
+      lifetime: PT5S
+      challenge: PT5S
 vaults:
   test0:
     type: test
@@ -89,6 +96,12 @@ bindings:
             catalog0:
               subject: smartylighting
               version: latest
+      mqtt:
+        authorization:
+          test0:
+            credentials:
+              connect:
+                username: Bearer {credentials}
       tls:
         keys:
           - localhost

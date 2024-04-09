@@ -29,4 +29,7 @@ module io.aklivity.zilla.runtime.model.avro
 
     provides io.aklivity.zilla.runtime.engine.model.ModelFactorySpi
         with io.aklivity.zilla.runtime.model.avro.internal.AvroModelFactorySpi;
+
+    provides io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi
+        with io.aklivity.zilla.runtime.model.avro.internal.AvroModelEventFormatterFactory;
 }

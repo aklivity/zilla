@@ -25,4 +25,7 @@ module io.aklivity.zilla.runtime.model.json
 
     provides io.aklivity.zilla.runtime.engine.model.ModelFactorySpi
         with io.aklivity.zilla.runtime.model.json.internal.JsonModelFactorySpi;
+
+    provides io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi
+        with io.aklivity.zilla.runtime.model.json.internal.JsonModelEventFormatterFactory;
 }

@@ -21,12 +21,14 @@ import static java.util.stream.Collectors.toList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.ToLongFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiOperation;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiReply;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiChannelView;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaConditionConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithConfig;
@@ -35,11 +37,15 @@ import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchCon
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchConfigBuilder;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchFilterConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchMergeConfig;
+import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithProduceAsyncHeaderConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithProduceConfig;
+import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithProduceConfigBuilder;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.Openapi;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiHeader;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiOperation;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiResponse;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiResponseByContentType;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiSchema;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiPathView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiSchemaView;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
@@ -52,11 +58,17 @@ import io.aklivity.zilla.runtime.engine.config.TelemetryRefConfigBuilder;
 
 public final class OpenapiAsyncNamespaceGenerator
 {
+    private static final String CORRELATION_ID = "\\{correlationId\\}";
+    private static final String PARAMETERS = "\\{(?!correlationId)(\\w+)\\}";
     private static final Pattern JSON_CONTENT_TYPE = Pattern.compile("^application/(?:.+\\+)?json$");
     private static final Pattern PARAMETER_PATTERN = Pattern.compile("\\{([^}]+)\\}");
+    private static final Pattern CORRELATION_PATTERN = Pattern.compile(CORRELATION_ID);
+    private static final Pattern REPLY_TO_PATTERN = Pattern.compile("#(.*)");
 
     private final Matcher jsonContentType = JSON_CONTENT_TYPE.matcher("");
     private final Matcher parameters = PARAMETER_PATTERN.matcher("");
+    private final Matcher correlation = CORRELATION_PATTERN.matcher("");
+    private final Matcher replyTo = REPLY_TO_PATTERN.matcher("");
 
     public NamespaceConfig generate(
         BindingConfig binding,
@@ -72,15 +84,15 @@ public final class OpenapiAsyncNamespaceGenerator
             .collect(toList());
 
         return NamespaceConfig.builder()
-                .name(String.format("%s/http_kafka", binding.qname))
-                .inject(n -> this.injectNamespaceMetric(n, !metricRefs.isEmpty()))
-                .binding()
-                    .name("http_kafka0")
-                    .type("http-kafka")
-                    .kind(PROXY)
-                    .inject(b -> this.injectMetrics(b, metricRefs, "http-kafka"))
-                    .inject(b -> this.injectHttpKafkaRoutes(b, binding.qname, openapis, asyncapis, routes))
-                    .build()
+                    .name(String.format("%s/http_kafka", binding.qname))
+                    .inject(n -> this.injectNamespaceMetric(n, !metricRefs.isEmpty()))
+                    .binding()
+                        .name("http_kafka0")
+                        .type("http-kafka")
+                        .kind(PROXY)
+                        .inject(b -> this.injectMetrics(b, metricRefs, "http-kafka"))
+                        .inject(b -> this.injectHttpKafkaRoutes(b, binding.qname, openapis, asyncapis, routes))
+                        .build()
                 .build();
     }
 
@@ -95,83 +107,102 @@ public final class OpenapiAsyncNamespaceGenerator
         {
             for (OpenapiAsyncapiConditionConfig condition : route.when)
             {
-                Openapi openapi = openapis.entrySet().stream()
+                Optional<Openapi> openapiConfig = openapis.entrySet().stream()
                     .filter(e -> e.getKey().equals(condition.apiId))
-                    .findFirst()
-                    .get().getValue();
-                Asyncapi asyncapi = asyncapis.entrySet().stream()
+                    .map(Map.Entry::getValue)
+                    .findFirst();
+                Optional<Asyncapi> asyncapiConfig = asyncapis.entrySet().stream()
                     .filter(e -> e.getKey().equals(route.with.apiId))
-                    .findFirst()
-                    .get().getValue();
+                    .map(Map.Entry::getValue)
+                    .findFirst();
 
-                for (String item : openapi.paths.keySet())
+                if (openapiConfig.isPresent() && asyncapiConfig.isPresent())
                 {
-                    OpenapiPathView path = OpenapiPathView.of(openapi.paths.get(item));
-                    for (String method : path.methods().keySet())
-                    {
-                        final String operationId = condition.operationId != null ?
-                            condition.operationId : path.methods().get(method).operationId;
+                    final Openapi openapi = openapiConfig.get();
+                    final Asyncapi asyncapi = asyncapiConfig.get();
 
-                        final OpenapiOperation openapiOperation = path.methods().get(method);
-
-                        final AsyncapiOperation asyncapiOperation = asyncapi.operations.entrySet().stream()
-                            .filter(f -> f.getKey().equals(operationId))
-                            .map(Map.Entry::getValue)
-                            .findFirst()
-                            .get();
-
-                        final AsyncapiChannelView channel = AsyncapiChannelView
-                            .of(asyncapi.channels, asyncapiOperation.channel);
-
-                        List<String> paramNames = new ArrayList<>();
-                        Matcher matcher = parameters.reset(item);
-                        while (matcher.find())
-                        {
-                            paramNames.add(parameters.group(1));
-                        }
-
-                        binding
-                            .route()
-                                .exit(qname)
-                                .when(HttpKafkaConditionConfig::builder)
-                                    .method(method)
-                                    .path(item)
-                                    .build()
-                                .inject(r -> injectHttpKafkaRouteWith(r, openapi, openapiOperation,
-                                    asyncapiOperation.action, channel.address(), paramNames))
-                                .build();
-                    }
+                    computeRoutes(binding, qname, condition, openapi, asyncapi);
                 }
+
             }
         }
 
         return binding;
     }
 
+    private <C> void computeRoutes(
+        BindingConfigBuilder<C> binding,
+        String qname,
+        OpenapiAsyncapiConditionConfig condition,
+        Openapi openapi,
+        Asyncapi asyncapi)
+    {
+        for (String item : openapi.paths.keySet())
+        {
+            OpenapiPathView path = OpenapiPathView.of(openapi.paths.get(item));
+            for (String method : path.methods().keySet())
+            {
+                final String operationId = condition.operationId != null ?
+                    condition.operationId : path.methods().get(method).operationId;
+
+                final OpenapiOperation openapiOperation = path.methods().get(method);
+                final Optional<AsyncapiOperation> asyncapiOperation = asyncapi.operations.entrySet().stream()
+                        .filter(f -> f.getKey().equals(operationId))
+                        .map(Map.Entry::getValue)
+                        .findFirst();
+                final List<String> paramNames = findParams(item);
+
+                asyncapiOperation.ifPresent(operation -> binding
+                    .route()
+                    .exit(qname)
+                    .when(HttpKafkaConditionConfig::builder)
+                    .method(method)
+                    .path(item)
+                    .build()
+                    .inject(r -> injectHttpKafkaRouteWith(r, openapi, asyncapi, openapiOperation,
+                        operation, paramNames))
+                    .build());
+            }
+        }
+    }
+
+    private List<String> findParams(
+        String item)
+    {
+        List<String> paramNames = new ArrayList<>();
+        Matcher matcher = parameters.reset(item);
+        while (matcher.find())
+        {
+            paramNames.add(parameters.group(1));
+        }
+        return paramNames;
+    }
+
     private <C> RouteConfigBuilder<C> injectHttpKafkaRouteWith(
         RouteConfigBuilder<C> route,
         Openapi openapi,
-        OpenapiOperation operation,
-        String action,
-        String address,
+        Asyncapi asyncapi,
+        OpenapiOperation openapiOperation,
+        AsyncapiOperation asyncapiOperation,
         List<String> paramNames)
     {
         final HttpKafkaWithConfigBuilder<HttpKafkaWithConfig> newWith = HttpKafkaWithConfig.builder();
+        final AsyncapiChannelView channel = AsyncapiChannelView
+                            .of(asyncapi.channels, asyncapiOperation.channel);
+        final String topic = channel.address();
 
-        switch (action)
+        switch (asyncapiOperation.action)
         {
         case "receive":
             newWith.fetch(HttpKafkaWithFetchConfig.builder()
-                .topic(address)
-                .inject(with -> this.injectHttpKafkaRouteFetchWith(with, openapi, operation, paramNames))
+                .topic(topic)
+                .inject(with -> injectHttpKafkaRouteFetchWith(with, openapi, openapiOperation, paramNames))
                 .build());
             break;
         case "send":
-            String key = !paramNames.isEmpty() ? String.format("${params.%s}", paramNames.get(0)) : "${idempotencyKey}";
             newWith.produce(HttpKafkaWithProduceConfig.builder()
-                .topic(address)
-                .acks("in_sync_replicas")
-                .key(key)
+                .topic(topic)
+                .inject(w -> injectHttpKafkaRouteProduceWith(w, openapiOperation, asyncapiOperation, paramNames))
                 .build());
             break;
         }
@@ -206,14 +237,78 @@ public final class OpenapiAsyncNamespaceGenerator
         if (!paramNames.isEmpty())
         {
             fetch.filters(List.of(HttpKafkaWithFetchFilterConfig.builder()
-                .key(String.format("${params.%s}", paramNames.get(0)))
+                .key(String.format("${params.%s}", paramNames.get(paramNames.size() - 1)))
                 .build()));
         }
 
         return fetch;
     }
 
-    private <C> NamespaceConfigBuilder<C> injectNamespaceMetric(
+    private <C> HttpKafkaWithProduceConfigBuilder<C> injectHttpKafkaRouteProduceWith(
+        HttpKafkaWithProduceConfigBuilder<C> produce,
+        OpenapiOperation openapiOperation,
+        AsyncapiOperation asyncapiOperation,
+        List<String> paramNames)
+    {
+        final String key = !paramNames.isEmpty() ? String.format("${params.%s}",
+                paramNames.get(paramNames.size() - 1)) : "${idempotencyKey}";
+
+        produce.acks("in_sync_replicas").key(key);
+
+        for (Map.Entry<String, OpenapiResponseByContentType> response : openapiOperation.responses.entrySet())
+        {
+            if ("202".equals(response.getKey()))
+            {
+                OpenapiResponseByContentType content = response.getValue();
+                boolean async = content.headers.entrySet().stream()
+                    .anyMatch(e -> hasCorrelationId(e.getValue()));
+
+                if (async)
+                {
+                    content.headers.forEach((k, v) ->
+                    {
+                        String location = v.schema.format;
+                        location = location.replaceAll(CORRELATION_ID, "\\${correlationId}");
+                        location = location.replaceAll(PARAMETERS, "\\${params.$1}");
+                        produce.async(HttpKafkaWithProduceAsyncHeaderConfig.builder()
+                            .name(k)
+                            .value(location)
+                            .build());
+                    });
+                }
+            }
+        }
+        AsyncapiReply reply = asyncapiOperation.reply;
+        if (reply != null)
+        {
+            final String location = reply.address.location;
+            Matcher matcher = replyTo.reset(location);
+
+            if (matcher.find())
+            {
+                produce.replyTo(matcher.group(1));
+            }
+        }
+
+        produce.build();
+
+        return produce;
+    }
+
+    private boolean hasCorrelationId(
+        OpenapiHeader header)
+    {
+        boolean hasCorrelationId = false;
+        OpenapiSchema schema = header.schema;
+        if (schema != null &&
+            schema.format != null)
+        {
+            hasCorrelationId = correlation.reset(schema.format).find();
+        }
+        return hasCorrelationId;
+    }
+
+    protected <C> NamespaceConfigBuilder<C> injectNamespaceMetric(
          NamespaceConfigBuilder<C> namespace,
         boolean hasMetrics)
     {
@@ -267,7 +362,7 @@ public final class OpenapiAsyncNamespaceGenerator
         return namespace;
     }
 
-    private <C> BindingConfigBuilder<C> injectMetrics(
+    protected  <C> BindingConfigBuilder<C> injectMetrics(
         BindingConfigBuilder<C> binding,
         List<MetricRefConfig> metricRefs,
         String protocol)

@@ -41,6 +41,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaHeaderFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaKeyFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW;
+import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 
 public class KafkaCachePartitionTest
 {
@@ -227,13 +228,15 @@ public class KafkaCachePartitionTest
             Node head10 = partition.append(10L);
             KafkaCacheSegment head10s = head10.segment();
 
-            partition.writeEntry(null, 1L, 11L, entryMark, valueMark, 0L, -1L,
-                key, headers, value, null, 0x00, KafkaDeltaType.NONE, null, null, false);
+            partition.writeEntry(null, 1L, 1L, 11L, entryMark, valueMark, 0L, -1L,
+                key, headers, value, null, 0x00, KafkaDeltaType.NONE, ConverterHandler.NONE, ConverterHandler.NONE, false);
 
             long keyHash = partition.computeKeyHash(key);
             KafkaCacheEntryFW ancestor = head10.findAndMarkAncestor(key, keyHash, 11L, ancestorRO);
 
-            partition.writeEntry(null, 1L, 12L, entryMark, valueMark, 0L, -1L,
+            partition.writeEntry(null, 1L, 1L, 12L, entryMark, valueMark, 0L, -1L,
+                key, headers, value, ancestor, 0x00, KafkaDeltaType.NONE, ConverterHandler.NONE, ConverterHandler.NONE, false);
+            partition.writeEntry(null, 1L,  1L, 12L, entryMark, valueMark, 0L, -1L,
                 key, headers, value, ancestor, 0x00, KafkaDeltaType.NONE, null, null, false);
 
             Node head15 = partition.append(15L);
@@ -283,14 +286,14 @@ public class KafkaCachePartitionTest
             KafkaCachePartition partition = new KafkaCachePartition(location, config, "cache", "test", 0, 65536, long[]::new);
             Node head10 = partition.append(10L);
 
-            partition.writeEntry(null, 1L, 11L, entryMark, valueMark, 0L, -1L,
-                key, headers, value, null, 0x00, KafkaDeltaType.NONE, null, null, false);
+            partition.writeEntry(null, 1L, 1L, 11L, entryMark, valueMark, 0L, -1L,
+                key, headers, value, null, 0x00, KafkaDeltaType.NONE, ConverterHandler.NONE, ConverterHandler.NONE, false);
 
             long keyHash = partition.computeKeyHash(key);
             KafkaCacheEntryFW ancestor = head10.findAndMarkAncestor(key, keyHash, 11L, ancestorRO);
 
-            partition.writeEntry(null, 1L, 12L, entryMark, valueMark, 0L, -1L,
-                key, headers, value, ancestor, 0x00, KafkaDeltaType.NONE, null, null, false);
+            partition.writeEntry(null, 1L, 1L, 12L, entryMark, valueMark, 0L, -1L,
+                key, headers, value, ancestor, 0x00, KafkaDeltaType.NONE, ConverterHandler.NONE, ConverterHandler.NONE, false);
 
             Node head15 = partition.append(15L);
             Node tail10 = head15.previous();

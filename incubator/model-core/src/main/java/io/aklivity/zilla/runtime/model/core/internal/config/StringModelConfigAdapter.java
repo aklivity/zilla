@@ -17,35 +17,62 @@ package io.aklivity.zilla.runtime.model.core.internal.config;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfigAdapterSpi;
 import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
+import io.aklivity.zilla.runtime.model.core.config.StringModelConfigBuilder;
 
 public final class StringModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdapter<ModelConfig, JsonValue>
 {
     private static final String MODEL_NAME = "model";
     private static final String ENCODING_NAME = "encoding";
+    private static final String PATTERN_NAME = "pattern";
+    private static final String MAX_NAME = "maxLength";
+    private static final String MIN_NAME = "minLength";
 
     @Override
     public JsonValue adaptToJson(
         ModelConfig config)
     {
         JsonValue result;
-        String encoding = ((StringModelConfig) config).encoding;
-        if (encoding != null && !encoding.isEmpty() && !encoding.equals(StringModelConfig.DEFAULT_ENCODING))
+        StringModelConfig options = (StringModelConfig) config;
+
+        if (options.encoding.equals(StringModelConfigBuilder.DEFAULT_ENCODING) &&
+            options.pattern == null &&
+            options.maxLength == 0 &&
+            options.minLength == 0)
         {
-            JsonObjectBuilder converter = Json.createObjectBuilder();
-            converter.add(MODEL_NAME, type());
-            converter.add(ENCODING_NAME, encoding);
-            result = converter.build();
+            result = Json.createValue(type());
         }
         else
         {
-            result = Json.createValue("string");
+            JsonObjectBuilder builder = Json.createObjectBuilder();
+            builder.add(MODEL_NAME, type());
+
+            if (!options.encoding.equals(StringModelConfigBuilder.DEFAULT_ENCODING))
+            {
+                builder.add(ENCODING_NAME, options.encoding);
+            }
+
+            if (options.pattern != null)
+            {
+                builder.add(PATTERN_NAME, options.pattern);
+            }
+
+            if (options.maxLength != 0)
+            {
+                builder.add(MAX_NAME, options.maxLength);
+            }
+
+            if (options.minLength != 0)
+            {
+                builder.add(MIN_NAME, options.minLength);
+            }
+
+            result = builder.build();
         }
         return result;
     }
@@ -54,24 +81,38 @@ public final class StringModelConfigAdapter implements ModelConfigAdapterSpi, Js
     public StringModelConfig adaptFromJson(
         JsonValue value)
     {
-        StringModelConfig result = null;
-        if (value instanceof JsonString)
+        JsonValue.ValueType valueType = value.getValueType();
+        StringModelConfigBuilder<StringModelConfig> builder = StringModelConfig.builder();
+        switch (valueType)
         {
-            result = StringModelConfig.builder().build();
-        }
-        else if (value instanceof JsonObject)
-        {
+        case STRING:
+            break;
+        case OBJECT:
             JsonObject object = (JsonObject) value;
-            String encoding = object.containsKey(ENCODING_NAME)
-                ? object.getString(ENCODING_NAME)
-                : null;
-            result = new StringModelConfig(encoding);
+            if (object.containsKey(ENCODING_NAME))
+            {
+                builder.encoding(object.getString(ENCODING_NAME));
+            }
+
+            if (object.containsKey(PATTERN_NAME))
+            {
+                builder.pattern(object.getString(PATTERN_NAME));
+            }
+
+            if (object.containsKey(MAX_NAME))
+            {
+                builder.maxLength(object.getInt(MAX_NAME));
+            }
+
+            if (object.containsKey(MIN_NAME))
+            {
+                builder.minLength(object.getInt(MIN_NAME));
+            }
+            break;
+        default:
+            throw new IllegalArgumentException("Unexpected type: " + valueType);
         }
-        else
-        {
-            assert false;
-        }
-        return result;
+        return builder.build();
     }
 
     @Override

@@ -14,10 +14,7 @@
  */
 package io.aklivity.zilla.runtime.model.protobuf.internal;
 
-import java.util.function.LongFunction;
-
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelContext;
@@ -25,25 +22,25 @@ import io.aklivity.zilla.runtime.model.protobuf.config.ProtobufModelConfig;
 
 public class ProtobufModelContext implements ModelContext
 {
-    private final LongFunction<CatalogHandler> supplyCatalog;
+    private final EngineContext context;
 
     public ProtobufModelContext(
         EngineContext context)
     {
-        this.supplyCatalog = context::supplyCatalog;
+        this.context = context;
     }
 
     @Override
     public ConverterHandler supplyReadConverterHandler(
         ModelConfig config)
     {
-        return new ProtobufReadConverterHandler(ProtobufModelConfig.class.cast(config), supplyCatalog);
+        return new ProtobufReadConverterHandler(ProtobufModelConfig.class.cast(config), context);
     }
 
     @Override
     public ConverterHandler supplyWriteConverterHandler(
         ModelConfig config)
     {
-        return new ProtobufWriteConverterHandler(ProtobufModelConfig.class.cast(config), supplyCatalog);
+        return new ProtobufWriteConverterHandler(ProtobufModelConfig.class.cast(config), context);
     }
 }

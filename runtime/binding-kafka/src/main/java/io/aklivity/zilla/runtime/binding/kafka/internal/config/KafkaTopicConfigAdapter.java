@@ -15,9 +15,12 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.config;
 
+import static jakarta.json.JsonValue.ValueType.OBJECT;
+
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfig;
@@ -105,15 +108,16 @@ public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicCon
             topicBuilder.key(converter.adaptFromJson(keyObject.build()));
         }
 
-        JsonObject value = object.containsKey(EVENT_VALUE)
-                ? object.getJsonObject(EVENT_VALUE)
+        JsonValue value = object.containsKey(EVENT_VALUE)
+                ? object.get(EVENT_VALUE)
                 : null;
 
-        if (value != null)
+        if (value != null && value.getValueType() == OBJECT)
         {
             JsonObjectBuilder valueObject = Json.createObjectBuilder();
+            JsonObject model = (JsonObject) value;
 
-            value.forEach(valueObject::add);
+            model.forEach(valueObject::add);
             valueObject.add(SUBJECT, name + "-value");
 
             topicBuilder.value(converter.adaptFromJson(valueObject.build()));

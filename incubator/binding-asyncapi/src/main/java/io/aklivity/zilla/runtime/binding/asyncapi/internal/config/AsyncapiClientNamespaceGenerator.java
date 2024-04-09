@@ -45,6 +45,7 @@ public class AsyncapiClientNamespaceGenerator extends AsyncapiNamespaceGenerator
         this.namespace = binding.namespace;
         this.qvault = binding.qvault;
         this.vault = binding.vault;
+        resolveServerVariables(asyncapi);
         this.protocol = resolveProtocol(firstServer.protocol(), options);
         this.isTlsEnabled = protocol.isSecure();
 

@@ -27,6 +27,7 @@ import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.serverIn
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.streamId;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.streamIndex;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.throttleIndex;
+import static io.aklivity.zilla.runtime.engine.internal.types.stream.FrameFW.FIELD_OFFSET_STREAM_ID;
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.COUNTER;
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.GAUGE;
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.HISTOGRAM;
@@ -1486,13 +1487,17 @@ public class EngineWorker implements EngineContext, Agent
         {
             MessageConsumer sentMetricHandler = supplyMetricRecorder(originId, ORIGIN, SENT)
                 .andThen(supplyMetricRecorder(routedId, ROUTED, SENT));
-            final MessageConsumer replyTo = supplyReplyTo(initialId).andThen(sentMetricHandler);
+            MessageConsumer receivedMetricHandler = supplyMetricRecorder(originId, ORIGIN, RECEIVED)
+                .andThen(supplyMetricRecorder(routedId, ROUTED, RECEIVED));
+            final MessageConsumer replyTo = supplyReplyTo(initialId)
+                .andThen(sentMetricHandler.filter(this::isReplyId))
+                .andThen(receivedMetricHandler.filter(this::isInitialId));
             newStream = streamFactory.newStream(msgTypeId, buffer, index, length, replyTo);
             if (newStream != null)
             {
-                MessageConsumer receivedMetricHandler = supplyMetricRecorder(originId, ORIGIN, RECEIVED)
-                    .andThen(supplyMetricRecorder(routedId, ROUTED, RECEIVED));
-                newStream = receivedMetricHandler.andThen(newStream);
+                newStream = receivedMetricHandler.filter(this::isInitialId)
+                    .andThen(sentMetricHandler.filter(this::isReplyId))
+                    .andThen(newStream);
 
                 final long replyId = supplyReplyId(initialId);
                 streams[streamIndex(initialId)].put(instanceId(initialId), newStream);
@@ -1503,6 +1508,24 @@ public class EngineWorker implements EngineContext, Agent
         }
 
         return newStream;
+    }
+
+    private boolean isInitialId(
+        int msgTypeId,
+        DirectBuffer buffer,
+        int index,
+        int length)
+    {
+        return StreamId.isInitial(buffer.getLong(index + FIELD_OFFSET_STREAM_ID));
+    }
+
+    private boolean isReplyId(
+        int msgTypeId,
+        DirectBuffer buffer,
+        int index,
+        int length)
+    {
+        return !StreamId.isInitial(buffer.getLong(index + FIELD_OFFSET_STREAM_ID));
     }
 
     private MessageConsumer handleBeginReply(

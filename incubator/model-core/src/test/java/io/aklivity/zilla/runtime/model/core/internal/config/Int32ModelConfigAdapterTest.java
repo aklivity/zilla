@@ -43,17 +43,14 @@ public class Int32ModelConfigAdapterTest
     }
 
     @Test
-    public void shouldReadIntegerconverter()
+    public void shouldReadInt32()
     {
         // GIVEN
         String json =
             "{" +
                 "\"model\":\"int32\"," +
                 "\"format\":\"text\"," +
-                "\"max\":999," +
-                "\"min\":-999," +
-                "\"exclusiveMax\":true," +
-                "\"exclusiveMin\":false," +
+                "\"range\":\"[-999,999)\"," +
                 "\"multiple\":100" +
             "}";
 
@@ -72,14 +69,33 @@ public class Int32ModelConfigAdapterTest
     }
 
     @Test
-    public void shouldWriteIntegerconverter()
+    public void shouldWriteInt32Default()
+    {
+        // GIVEN
+        String expectedJson = "\"int32\"";
+        Int32ModelConfig model = Int32ModelConfig.builder().build();
+
+        // WHEN
+        String json = jsonb.toJson(model);
+
+        // THEN
+        assertThat(json, not(nullValue()));
+        assertThat(json, equalTo(expectedJson));
+    }
+
+    @Test
+    public void shouldWriteInt32()
     {
         // GIVEN
         String expectedJson =
             "{" +
-                "\"model\":\"int32\"" +
+                "\"model\":\"int32\"," +
+                "\"range\":\"(,1234]\"" +
             "}";
-        Int32ModelConfig model = Int32ModelConfig.builder().build();
+        Int32ModelConfig model = Int32ModelConfig.builder()
+            .max(1234)
+            .exclusiveMin(true)
+            .build();
 
         // WHEN
         String json = jsonb.toJson(model);

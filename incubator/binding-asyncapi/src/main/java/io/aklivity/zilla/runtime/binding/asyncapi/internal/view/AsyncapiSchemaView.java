@@ -80,6 +80,19 @@ public final class AsyncapiSchemaView extends AsyncapiResolvable<AsyncapiSchema>
         {
             schema.items = resolveRef(schema.items.ref);
         }
+
+        if (schema.properties != null)
+        {
+            for (Map.Entry<String, AsyncapiItem> item : schema.properties.entrySet())
+            {
+                AsyncapiItem value = item.getValue();
+                if (value.ref != null)
+                {
+                    item.setValue(resolveRef(value.ref));
+                }
+            }
+        }
+
         this.schemas = schemas;
         this.schema = schema;
     }

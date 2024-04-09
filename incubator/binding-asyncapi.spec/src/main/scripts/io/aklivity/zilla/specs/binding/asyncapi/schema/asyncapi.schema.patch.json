@@ -56,6 +56,19 @@
                                 },
                                 "additionalProperties": false
                             },
+                            "mqtt":
+                            {
+                                "title": "MQTT",
+                                "type": "object",
+                                "properties":
+                                {
+                                    "authorization":
+                                    {
+                                        "$ref": "#/$defs/options/binding/mqtt/authorization"
+                                    }
+                                },
+                                "additionalProperties": false
+                            },
                             "kafka":
                             {
                                 "title": "Kafka",
@@ -194,11 +207,7 @@
                                     },
                                     "additionalProperties": false
                                 }
-                            },
-                            "required":
-                            [
-                                "with"
-                            ]
+                            }
                         }
                     }
                 },

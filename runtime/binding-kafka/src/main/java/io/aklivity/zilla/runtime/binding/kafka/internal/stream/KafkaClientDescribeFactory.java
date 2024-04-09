@@ -750,7 +750,7 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
         {
             final long traceId = reset.traceId();
 
-            state = KafkaState.closedInitial(state);
+            state = KafkaState.closedReply(state);
 
             client.doNetworkResetIfNecessary(traceId);
         }
@@ -809,10 +809,13 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
         private void doApplicationEnd(
             long traceId)
         {
-            state = KafkaState.closedReply(state);
-            //client.stream = nullIfClosed(state, client.stream);
-            doEnd(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            if (!KafkaState.replyClosed(state))
+            {
+                state = KafkaState.closedReply(state);
+                //client.stream = nullIfClosed(state, client.stream);
+                doEnd(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, client.authorization, EMPTY_EXTENSION);
+            }
         }
 
         private void doApplicationAbort(
@@ -821,7 +824,7 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
             state = KafkaState.closedReply(state);
             //client.stream = nullIfClosed(state, client.stream);
             doAbort(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, client.authorization, EMPTY_EXTENSION);
+                traceId, client.authorization, EMPTY_EXTENSION);
         }
 
         private void doApplicationWindow(
@@ -855,7 +858,7 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
             //client.stream = nullIfClosed(state, client.stream);
 
             doReset(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, client.authorization, extension);
+                traceId, client.authorization, extension);
         }
 
         private void doApplicationAbortIfNecessary(

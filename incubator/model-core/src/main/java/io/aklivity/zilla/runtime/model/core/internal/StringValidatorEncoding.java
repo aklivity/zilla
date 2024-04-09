@@ -14,42 +14,33 @@
  */
 package io.aklivity.zilla.runtime.model.core.internal;
 
-import static io.aklivity.zilla.runtime.engine.model.ValidatorHandler.FLAGS_FIN;
-import static io.aklivity.zilla.runtime.engine.model.ValidatorHandler.FLAGS_INIT;
-
 import org.agrona.DirectBuffer;
 
 public enum StringValidatorEncoding
 {
     UTF_8
     {
-        private int pendingCharBytes;
-
         @Override
         public boolean validate(
+            StringState state,
             int flags,
             DirectBuffer data,
             int index,
             int length)
         {
-            if ((flags & FLAGS_INIT) != 0x00)
-            {
-                pendingCharBytes = 0;
-            }
-
             final int limit = index + length;
 
             while (index < limit)
             {
                 final int charByte0 = data.getByte(index);
 
-                if (pendingCharBytes > 0)
+                if (state.processed > 0)
                 {
                     if ((charByte0 & 0b11000000) != 0b10000000)
                     {
                         break;
                     }
-                    pendingCharBytes--;
+                    state.processed--;
                     index++;
                 }
                 else
@@ -62,21 +53,20 @@ public enum StringValidatorEncoding
                     {
                         if (charByteIndex >= limit || (data.getByte(charByteIndex) & 0b11000000) != 0b10000000)
                         {
-                            pendingCharBytes = charByteLimit - charByteIndex;
+                            state.processed = charByteLimit - charByteIndex;
                             break;
                         }
                     }
-                    index += pendingCharBytes == 0 ? charByteCount : pendingCharBytes;
+                    index += state.processed == 0 ? charByteCount : state.processed;
                 }
+                state.length++;
             }
-
-            return (flags & FLAGS_FIN) == 0x00
-                ? index == limit
-                : pendingCharBytes == 0 && index == limit;
+            return index == limit;
         }
     };
 
     public abstract boolean validate(
+        StringState state,
         int flags,
         DirectBuffer data,
         int index,
