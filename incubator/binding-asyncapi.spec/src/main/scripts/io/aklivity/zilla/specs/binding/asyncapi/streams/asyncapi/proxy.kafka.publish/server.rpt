@@ -22,7 +22,7 @@ accepted
 
 read zilla:begin.ext ${asyncapi:matchBeginEx()
                              .typeId(zilla:id("asyncapi"))
-                             .apiId(810158698)
+                             .apiId(0)
                              .extension(kafka:beginEx()
                                             .typeId(zilla:id("kafka"))
                                             .merged()
@@ -49,7 +49,7 @@ accepted
 
 read zilla:begin.ext ${asyncapi:matchBeginEx()
                              .typeId(zilla:id("asyncapi"))
-                             .apiId(810158698)
+                             .apiId(0)
                              .extension(kafka:beginEx()
                                             .typeId(zilla:id("kafka"))
                                             .merged()

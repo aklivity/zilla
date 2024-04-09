@@ -26,13 +26,13 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public final class AsyncapiOptionsConfig extends OptionsConfig
 {
-    public final List<AsyncapiConfig> specs;
     public final TcpOptionsConfig tcp;
     public final TlsOptionsConfig tls;
     public final HttpOptionsConfig http;
     public final MqttOptionsConfig mqtt;
     public final KafkaOptionsConfig kafka;
     public final AsyncapiMqttKafkaConfig mqttKafka;
+    public final List<AsyncapiConfig> asyncapis;
 
     public static AsyncapiOptionsConfigBuilder<AsyncapiOptionsConfig> builder()
     {
@@ -46,35 +46,20 @@ public final class AsyncapiOptionsConfig extends OptionsConfig
     }
 
     public AsyncapiOptionsConfig(
-        List<AsyncapiConfig> specs,
         TcpOptionsConfig tcp,
         TlsOptionsConfig tls,
         HttpOptionsConfig http,
         MqttOptionsConfig mqtt,
         KafkaOptionsConfig kafka,
-        AsyncapiMqttKafkaConfig mqttKafka)
+        AsyncapiMqttKafkaConfig mqttKafka,
+        List<AsyncapiConfig> asyncapis)
     {
-        this.specs = specs;
         this.http = http;
         this.mqtt = mqtt;
         this.tcp = tcp;
         this.tls = tls;
         this.kafka = kafka;
         this.mqttKafka = mqttKafka;
-    }
-
-    public long resolveApiId(
-        String apiLabel)
-    {
-        long apiId = -1;
-        for (AsyncapiConfig c : specs)
-        {
-            if (c.apiLabel.equals(apiLabel))
-            {
-                apiId = c.apiId;
-                break;
-            }
-        }
-        return apiId;
+        this.asyncapis = asyncapis;
     }
 }

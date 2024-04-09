@@ -14,27 +14,30 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.unmodifiableSet;
 
+import java.util.ArrayList;
 import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.zip.CRC32C;
 
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.JsonString;
+import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiParser;
-import io.aklivity.zilla.runtime.binding.openapi.asyncapi.config.AsyncapiConfig;
+import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiCatalogConfig;
+import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiCatalogConfigBuilder;
+import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiConfig;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.config.OpenapiAsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.config.OpenapiAsyncapiSpecConfig;
-import io.aklivity.zilla.runtime.binding.openapi.asyncapi.config.OpenapiConfig;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.OpenapiAsyncapiBinding;
-import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiParser;
+import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiCatalogConfig;
+import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiConfig;
+import io.aklivity.zilla.runtime.binding.openapi.config.OpenpaiCatalogConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
@@ -44,18 +47,11 @@ public final class OpenapiAsyncapiOptionsConfigAdapter implements OptionsConfigA
     private static final String OPENAPI_NAME = "openapi";
     private static final String ASYNCAPI_NAME = "asyncapi";
     private static final String SPECS_NAME = "specs";
-
-    private final CRC32C crc;
-
-    private final OpenapiParser openapiParser = new OpenapiParser();
-    private final AsyncapiParser asyncapiParser = new AsyncapiParser();
+    private static final String CATALOG_NAME = "catalog";
+    private static final String SUBJECT_NAME = "subject";
+    private static final String VERSION_NAME = "version";
 
     private Function<String, String> readURL;
-
-    public OpenapiAsyncapiOptionsConfigAdapter()
-    {
-        crc = new CRC32C();
-    }
 
     @Override
     public Kind kind()
@@ -79,11 +75,48 @@ public final class OpenapiAsyncapiOptionsConfigAdapter implements OptionsConfigA
         JsonObjectBuilder spec = Json.createObjectBuilder();
 
         JsonObjectBuilder openapi = Json.createObjectBuilder();
-        proxyOptions.specs.openapi.forEach(o -> openapi.add(o.apiLabel, o.location));
+        for (OpenapiConfig openapiConfig : proxyOptions.specs.openapi)
+        {
+            final JsonObjectBuilder catalogObject = Json.createObjectBuilder();
+            final JsonObjectBuilder subjectObject = Json.createObjectBuilder();
+            for (OpenapiCatalogConfig catalog : openapiConfig.catalogs)
+            {
+                JsonObjectBuilder schemaObject = Json.createObjectBuilder();
+                schemaObject.add(SUBJECT_NAME, catalog.subject);
+
+                if (catalog.version != null)
+                {
+                    schemaObject.add(VERSION_NAME, catalog.version);
+                }
+
+                subjectObject.add(catalog.name, schemaObject);
+            }
+            catalogObject.add(CATALOG_NAME, subjectObject);
+            openapi.add(openapiConfig.apiLabel, catalogObject);
+        }
         spec.add(OPENAPI_NAME, openapi);
 
         JsonObjectBuilder asyncapi = Json.createObjectBuilder();
-        proxyOptions.specs.asyncapi.forEach(a -> asyncapi.add(a.apiLabel, a.location));
+        for (AsyncapiConfig asyncapiConfig : proxyOptions.specs.asyncapi)
+        {
+            final JsonObjectBuilder catalogObject = Json.createObjectBuilder();
+            final JsonObjectBuilder subjectObject = Json.createObjectBuilder();
+            for (AsyncapiCatalogConfig catalog : asyncapiConfig.catalogs)
+            {
+                JsonObjectBuilder schemaObject = Json.createObjectBuilder();
+                schemaObject.add(SUBJECT_NAME, catalog.subject);
+
+                if (catalog.version != null)
+                {
+                    schemaObject.add(VERSION_NAME, catalog.version);
+                }
+
+                subjectObject.add(catalog.name, schemaObject);
+            }
+            catalogObject.add(CATALOG_NAME, subjectObject);
+
+            asyncapi.add(asyncapiConfig.apiLabel, catalogObject);
+        }
         spec.add(ASYNCAPI_NAME, asyncapi);
 
         object.add(SPECS_NAME, spec);
@@ -99,29 +132,71 @@ public final class OpenapiAsyncapiOptionsConfigAdapter implements OptionsConfigA
 
         JsonObject openapi = specs.getJsonObject(OPENAPI_NAME);
         Set<OpenapiConfig> openapis = new LinkedHashSet<>();
-        openapi.forEach((n, v) ->
+        for (Map.Entry<String, JsonValue> entry : openapi.entrySet())
         {
-            final String location = JsonString.class.cast(v).getString();
-            final String specText = readURL.apply(location);
-            final String apiLabel = n;
-            crc.reset();
-            crc.update(specText.getBytes(UTF_8));
-            final long apiId = crc.getValue();
-            openapis.add(new OpenapiConfig(apiLabel, apiId, location, openapiParser.parse(specText)));
-        });
+            final String apiLabel = entry.getKey();
+            final JsonObject specObject = entry.getValue().asJsonObject();
+
+            if (specObject.containsKey(CATALOG_NAME))
+            {
+                final JsonObject catalog = specObject.getJsonObject(CATALOG_NAME);
+
+                List<OpenapiCatalogConfig> catalogs = new ArrayList<>();
+                for (Map.Entry<String, JsonValue> catalogEntry : catalog.entrySet())
+                {
+                    OpenpaiCatalogConfigBuilder<OpenapiCatalogConfig> catalogBuilder = OpenapiCatalogConfig.builder();
+                    JsonObject catalogObject = catalogEntry.getValue().asJsonObject();
+
+                    catalogBuilder.name(catalogEntry.getKey());
+
+                    if (catalogObject.containsKey(SUBJECT_NAME))
+                    {
+                        catalogBuilder.subject(catalogObject.getString(SUBJECT_NAME));
+                    }
+
+                    if (catalogObject.containsKey(VERSION_NAME))
+                    {
+                        catalogBuilder.version(catalogObject.getString(VERSION_NAME));
+                    }
+                    catalogs.add(catalogBuilder.build());
+                }
+                openapis.add(new OpenapiConfig(apiLabel, catalogs));
+            }
+        }
 
         JsonObject asyncapi = specs.getJsonObject(ASYNCAPI_NAME);
         Set<AsyncapiConfig> asyncapis = new LinkedHashSet<>();
-        asyncapi.forEach((n, v) ->
+        for (Map.Entry<String, JsonValue> entry : asyncapi.entrySet())
         {
-            final String location = JsonString.class.cast(v).getString();
-            final String specText = readURL.apply(location);
-            final String apiLabel = n;
-            crc.reset();
-            crc.update(specText.getBytes(UTF_8));
-            final long apiId = crc.getValue();
-            asyncapis.add(new AsyncapiConfig(apiLabel, apiId, location, asyncapiParser.parse(specText)));
-        });
+            final String apiLabel = entry.getKey();
+            final JsonObject specObject = entry.getValue().asJsonObject();
+
+            if (specObject.containsKey(CATALOG_NAME))
+            {
+                final JsonObject catalog = specObject.getJsonObject(CATALOG_NAME);
+
+                List<AsyncapiCatalogConfig> catalogs = new ArrayList<>();
+                for (Map.Entry<String, JsonValue> catalogEntry : catalog.entrySet())
+                {
+                    AsyncapiCatalogConfigBuilder<AsyncapiCatalogConfig> catalogBuilder = AsyncapiCatalogConfig.builder();
+                    JsonObject catalogObject = catalogEntry.getValue().asJsonObject();
+
+                    catalogBuilder.name(catalogEntry.getKey());
+
+                    if (catalogObject.containsKey(SUBJECT_NAME))
+                    {
+                        catalogBuilder.subject(catalogObject.getString(SUBJECT_NAME));
+                    }
+
+                    if (catalogObject.containsKey(VERSION_NAME))
+                    {
+                        catalogBuilder.version(catalogObject.getString(VERSION_NAME));
+                    }
+                    catalogs.add(catalogBuilder.build());
+                }
+                asyncapis.add(new AsyncapiConfig(apiLabel, catalogs));
+            }
+        }
 
         OpenapiAsyncapiSpecConfig specConfig = new OpenapiAsyncapiSpecConfig(
             unmodifiableSet(openapis), unmodifiableSet(asyncapis));

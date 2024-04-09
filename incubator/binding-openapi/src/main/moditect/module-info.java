@@ -34,9 +34,6 @@ module io.aklivity.zilla.runtime.binding.openapi
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
         with io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiBindingFactorySpi;
 
-    provides io.aklivity.zilla.runtime.engine.config.CompositeBindingAdapterSpi
-        with io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiBindingAdapter;
-
     provides io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi
         with io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiOptionsConfigAdapter;
 }

@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.asyncapi.internal;
+package io.aklivity.zilla.runtime.binding.asyncapi.internal.config;
 
 import static java.util.Objects.requireNonNull;
 
@@ -187,12 +187,15 @@ public abstract class AsyncapiProtocol
         List<MetricRefConfig> metricRefs,
         String protocol)
     {
-        final TelemetryRefConfigBuilder<BindingConfigBuilder<C>> telemetry = binding.telemetry();
-        metricRefs.stream()
-            .filter(m -> m.name.startsWith("stream."))
-            .collect(Collectors.toList())
-            .forEach(m -> telemetry.metric(m));
-        telemetry.build();
+        if (metricRefs != null && !metricRefs.isEmpty())
+        {
+            final TelemetryRefConfigBuilder<BindingConfigBuilder<C>> telemetry = binding.telemetry();
+            metricRefs.stream()
+                .filter(m -> m.name.startsWith("stream."))
+                .collect(Collectors.toList())
+                .forEach(telemetry::metric);
+            telemetry.build();
+        }
         return binding;
     }
 }

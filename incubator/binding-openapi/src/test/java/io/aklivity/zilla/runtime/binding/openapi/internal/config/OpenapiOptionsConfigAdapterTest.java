@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.config;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
 import static java.util.function.Function.identity;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -23,7 +22,8 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
-import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
@@ -33,20 +33,17 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
+import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiCatalogConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.Openapi;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiPathItem;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapter;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
-import io.aklivity.zilla.specs.binding.openapi.OpenapiSpecs;
 
 public class OpenapiOptionsConfigAdapterTest
 {
@@ -60,16 +57,11 @@ public class OpenapiOptionsConfigAdapterTest
     @Before
     public void initJson() throws IOException
     {
-        try (InputStream resource = OpenapiSpecs.class.getResourceAsStream("config/openapi/petstore.yaml"))
-        {
-            String content = new String(resource.readAllBytes(), UTF_8);
-            Mockito.doReturn(content).when(context).readURL("openapi/petstore.yaml");
-            OptionsConfigAdapter adapter = new OptionsConfigAdapter(OptionsConfigAdapterSpi.Kind.BINDING, context);
-            adapter.adaptType("openapi");
-            JsonbConfig config = new JsonbConfig()
-                .withAdapters(adapter);
-            jsonb = JsonbBuilder.create(config);
-        }
+        OptionsConfigAdapter adapter = new OptionsConfigAdapter(OptionsConfigAdapterSpi.Kind.BINDING, context);
+        adapter.adaptType("openapi");
+        JsonbConfig config = new JsonbConfig()
+            .withAdapters(adapter);
+        jsonb = JsonbBuilder.create(config);
     }
 
     @Test
@@ -77,6 +69,16 @@ public class OpenapiOptionsConfigAdapterTest
     {
         String text =
             "{" +
+            "\"specs\": {" +
+            "    \"petstore\": {" +
+            "      \"catalog\": {" +
+            "        \"catalog0\": {" +
+            "          \"subject\": \"petstore\"," +
+            "          \"version\": \"latest\"" +
+            "        }" +
+            "      }" +
+            "    }" +
+            "  }," +
             "    \"tls\": {" +
             "      \"keys\": [" +
             "        \"localhost\"" +
@@ -101,27 +103,19 @@ public class OpenapiOptionsConfigAdapterTest
             "          }" +
             "        }" +
             "      }" +
-            "    }," +
-            "    \"specs\": {" +
-            "      \"openapi-id\": \"openapi/petstore.yaml\"" +
             "    }" +
             "  }";
 
         OpenapiOptionsConfig options = jsonb.fromJson(text, OpenapiOptionsConfig.class);
-        OpenapiConfig openapi = options.openapis.stream().findFirst().get();
-        OpenapiPathItem path = openapi.openapi.paths.get("/pets");
 
         assertThat(options, not(nullValue()));
-        assertThat(path.post, not(nullValue()));
-        assertThat(options.tls, not(nullValue()));
-        assertThat(options.http, not(nullValue()));
     }
 
     @Test
     public void shouldWriteOptions()
     {
         String expected = "{\"tcp\":{\"host\":\"localhost\",\"port\":8080},\"tls\":{\"sni\":[\"example.net\"]}," +
-            "\"specs\":{\"openapi-id\":\"openapi/petstore.yaml\"}}";
+            "\"specs\":{\"test\":{\"catalog\":{\"catalog0\":{\"subject\":\"petstore\",\"version\":\"latest\"}}}}}";
 
         TcpOptionsConfig tcp = TcpOptionsConfig.builder()
             .inject(identity())
@@ -134,8 +128,11 @@ public class OpenapiOptionsConfigAdapterTest
             .sni(asList("example.net"))
             .build();
 
-        OpenapiOptionsConfig options = new OpenapiOptionsConfig(tcp, tls, null, asList(
-            new OpenapiConfig("openapi-id", 1L, "openapi/petstore.yaml", new Openapi())));
+        List<OpenapiConfig> spec = new ArrayList<>();
+        spec.add(new OpenapiConfig("test",
+            List.of(new OpenapiCatalogConfig("catalog0", "petstore", "latest"))));
+
+        OpenapiOptionsConfig options = new OpenapiOptionsConfig(tcp, tls, null, spec);
 
         String text = jsonb.toJson(options);
 

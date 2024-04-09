@@ -27,7 +27,6 @@ import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfigBuilder;
 import io.aklivity.zilla.runtime.binding.http.config.HttpResponseConfigBuilder;
-import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.Openapi;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiHeader;
@@ -44,33 +43,32 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.MetricRefConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
+import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
-public final class OpenapiClientCompositeBindingAdapter extends OpenapiCompositeBindingAdapter
+public final class OpenapiClientNamespaceGenerator extends OpenapiNamespaceGenerator
 {
     @Override
-    public BindingConfig adapt(
-        BindingConfig binding)
+    public NamespaceConfig generate(
+        BindingConfig binding,
+        Openapi openapi)
     {
         final OpenapiOptionsConfig options = (OpenapiOptionsConfig) binding.options;
-        final OpenapiConfig openapiConfig = options.openapis.get(0);
         final List<MetricRefConfig> metricRefs = binding.telemetryRef != null ?
             binding.telemetryRef.metricRefs : emptyList();
 
-        final Openapi openApi = openapiConfig.openapi;
-        final int[] httpsPorts = resolvePortsForScheme(openApi, "https");
+        final int[] httpsPorts = resolvePortsForScheme(openapi, "https");
         final boolean secure = httpsPorts != null;
 
-        return BindingConfig.builder(binding)
-            .composite()
+        return NamespaceConfig.builder()
                 .name(String.format(binding.qname, "$composite"))
                 .inject(n -> this.injectNamespaceMetric(n, !metricRefs.isEmpty()))
                 .binding()
                     .name("http_client0")
                     .type("http")
                     .kind(CLIENT)
-                    .inject(b -> this.injectHttpClientOptions(b, openApi))
+                    .inject(b -> this.injectHttpClientOptions(b, openapi))
                     .inject(b -> this.injectMetrics(b, metricRefs, "http"))
                     .exit(secure ? "tls_client0" : "tcp_client0")
                     .build()
@@ -82,7 +80,6 @@ public final class OpenapiClientCompositeBindingAdapter extends OpenapiComposite
                     .options(options.tcp)
                     .inject(b -> this.injectMetrics(b, metricRefs, "tcp"))
                     .build()
-                .build()
             .build();
     }
 

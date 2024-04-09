@@ -17,8 +17,8 @@ package io.aklivity.zilla.runtime.binding.asyncapi.internal.config;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
-import java.util.function.Function;
 import java.util.function.LongPredicate;
+import java.util.function.ToLongFunction;
 
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 
@@ -28,11 +28,11 @@ public final class AsyncapiRouteConfig
     public final AsyncapiWithConfig with;
     public final List<AsyncapiConditionConfig> when;
     private final LongPredicate authorized;
-    private final Function<String, Long> supplyApiId;
+    private final ToLongFunction<String> supplyApiId;
 
     public AsyncapiRouteConfig(
         RouteConfig route,
-        Function<String, Long> supplyApiId)
+        ToLongFunction<String> supplyApiId)
     {
         this.id = route.id;
         this.authorized = route.authorized;
