@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.engine.internal.registry;
 
 import static java.util.stream.Collectors.toList;
+import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.net.URL;
 import java.util.Arrays;
@@ -78,7 +79,7 @@ public class EngineManager
     private final IntFunction<String> supplyName;
     private final IntFunction<ToIntFunction<KindConfig>> maxWorkers;
     private final Tuning tuning;
-    private final Collection<EngineWorker> dispatchers;
+    private final Collection<EngineWorker> workers;
     private final Consumer<String> logger;
     private final EngineExtContext context;
     private final EngineConfiguration config;
@@ -97,7 +98,7 @@ public class EngineManager
         IntFunction<String> supplyName,
         IntFunction<ToIntFunction<KindConfig>> maxWorkers,
         Tuning tuning,
-        Collection<EngineWorker> dispatchers,
+        Collection<EngineWorker> workers,
         Consumer<String> logger,
         EngineExtContext context,
         EngineConfiguration config,
@@ -111,7 +112,7 @@ public class EngineManager
         this.supplyName = supplyName;
         this.maxWorkers = maxWorkers;
         this.tuning = tuning;
-        this.dispatchers = dispatchers;
+        this.workers = workers;
         this.logger = logger;
         this.context = context;
         this.config = config;
@@ -137,17 +138,17 @@ public class EngineManager
 
                 try
                 {
-                    writeBindingsLayout(newConfig);
-                    register(newConfig);
                     current = newConfig;
+                    register(newConfig);
                 }
                 catch (Exception ex)
                 {
                     context.onError(ex);
-                    writeBindingsLayout(newConfig);
+
+                    current = oldConfig;
                     register(oldConfig);
 
-                    LangUtil.rethrowUnchecked(ex);
+                    rethrowUnchecked(ex);
                 }
             }
         }
@@ -200,14 +201,15 @@ public class EngineManager
 
             for (NamespaceConfig namespace : engine.namespaces)
             {
-                process(guards, namespace, namespaceReadURL);
+                namespace.readURL = namespaceReadURL;
+                process(guards, namespace);
             }
 
             if (config.verboseComposites())
             {
                 EngineConfigWriter writer = new EngineConfigWriter(null);
                 engine.namespaces.stream()
-                    .flatMap(n -> n.bindings.stream().flatMap(b -> b.composites.stream()))
+                    .flatMap(n -> n.bindings.stream().flatMap(b -> b.composites.values().stream()))
                     .forEach(n -> System.out.println(writer.write(n)));
             }
         }
@@ -221,11 +223,11 @@ public class EngineManager
 
     private void process(
         List<GuardConfig> guards,
-        NamespaceConfig namespace,
-        Function<String, String> readURL)
+        NamespaceConfig namespace)
     {
+        assert namespace.readURL != null;
+
         namespace.id = supplyId.applyAsInt(namespace.name);
-        namespace.readURL = readURL;
 
         NameResolver resolver = new NameResolver(namespace.id);
 
@@ -260,6 +262,10 @@ public class EngineManager
             binding.id = resolver.resolve(binding.name);
             binding.entryId = resolver.resolve(binding.entry);
             binding.resolveId = resolver::resolve;
+            binding.readURL = namespace.readURL;
+
+            binding.attach = n -> attachComposite(binding, n);
+            binding.detach = n -> detachComposite(binding, n);
 
             if (binding.vault != null)
             {
@@ -343,9 +349,10 @@ public class EngineManager
             }
             binding.metricIds = metricIds.stream().mapToLong(Long::longValue).toArray();
 
-            for (NamespaceConfig composite : binding.composites)
+            for (NamespaceConfig composite : binding.composites.values())
             {
-                process(guards, composite, readURL);
+                composite.readURL = binding.readURL;
+                process(guards, composite);
             }
 
             long affinity = tuning.affinity(binding.id);
@@ -372,6 +379,11 @@ public class EngineManager
         }
 
         extensions.forEach(e -> e.onRegistered(context));
+
+        if (config != null)
+        {
+            writeBindingTypes(config);
+        }
     }
 
     private void unregister(
@@ -391,8 +403,8 @@ public class EngineManager
     private void register(
         NamespaceConfig namespace)
     {
-        dispatchers.stream()
-            .map(d -> d.attach(namespace))
+        workers.stream()
+            .map(w -> w.attach(namespace))
             .reduce(CompletableFuture::allOf)
             .ifPresent(CompletableFuture::join);
     }
@@ -402,14 +414,14 @@ public class EngineManager
     {
         if (namespace != null)
         {
-            dispatchers.stream()
-                .map(d -> d.detach(namespace))
+            workers.stream()
+                .map(w -> w.detach(namespace))
                 .reduce(CompletableFuture::allOf)
                 .ifPresent(CompletableFuture::join);
         }
     }
 
-    private void writeBindingsLayout(
+    private void writeBindingTypes(
         EngineConfig engine)
     {
         try (BindingsLayout layout = BindingsLayout.builder()
@@ -430,7 +442,7 @@ public class EngineManager
                     layout.writeBindingInfo(binding.id, typeId, kindId, originTypeId, routedTypeId);
                     if (binding.composites != null)
                     {
-                        namespaces.addAll(binding.composites);
+                        namespaces.addAll(binding.composites.values());
                     }
                 }
             }
@@ -439,6 +451,56 @@ public class EngineManager
         {
             LangUtil.rethrowUnchecked(ex);
         }
+    }
+
+    private NamespaceConfig attachComposite(
+        BindingConfig binding,
+        NamespaceConfig composite)
+    {
+        NamespaceConfig attached = binding.composites.putIfAbsent(composite.name, composite);
+
+        if (attached == null)
+        {
+            composite.readURL = binding.readURL;
+            process(composite);
+            writeBindingTypes(current);
+            register(composite);
+
+            attached = composite;
+
+            if (config.verboseComposites())
+            {
+                EngineConfigWriter writer = new EngineConfigWriter(null);
+                System.out.println(writer.write(attached));
+            }
+        }
+
+        attached.refs.incrementAndGet();
+
+        return attached;
+    }
+
+    private void detachComposite(
+        BindingConfig binding,
+        NamespaceConfig composite)
+    {
+        BiFunction<String, NamespaceConfig, NamespaceConfig> remapper = (k, v) -> v.refs.decrementAndGet() == 0 ? null : v;
+
+        if (binding.composites.computeIfPresent(composite.name, remapper) == null)
+        {
+            unregister(composite);
+        }
+    }
+
+    private void process(
+        NamespaceConfig namespace)
+    {
+        final List<GuardConfig> guards = current.namespaces.stream()
+                .map(n -> n.guards)
+                .flatMap(gs -> gs.stream())
+                .collect(toList());
+
+        process(guards, namespace);
     }
 
     private final class NameResolver

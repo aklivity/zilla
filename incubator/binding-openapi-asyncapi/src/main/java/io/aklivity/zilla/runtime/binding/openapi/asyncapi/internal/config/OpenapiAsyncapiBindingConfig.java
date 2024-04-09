@@ -52,7 +52,7 @@ public final class OpenapiAsyncapiBindingConfig
             .map(r -> new OpenapiAsyncapiRouteConfig(r, options::resolveOpenapiApiId))
             .collect(toList());
 
-        this.resolvedIds = binding.composites.stream()
+        this.resolvedIds = binding.composites.values().stream()
             .map(c -> c.bindings)
             .flatMap(List::stream)
             .filter(b -> b.type.equals("http-kafka"))
@@ -63,7 +63,7 @@ public final class OpenapiAsyncapiBindingConfig
                 IDENTITY_FINISH
             ));
 
-        this.httpKafkaOrigins = binding.composites.stream()
+        this.httpKafkaOrigins = binding.composites.values().stream()
             .map(c -> c.bindings)
             .flatMap(List::stream)
             .filter(b -> b.type.equals("http-kafka"))
