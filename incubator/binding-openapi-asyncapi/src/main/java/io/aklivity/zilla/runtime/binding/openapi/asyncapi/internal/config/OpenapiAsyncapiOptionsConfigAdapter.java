@@ -156,7 +156,7 @@ public final class OpenapiAsyncapiOptionsConfigAdapter implements OptionsConfigA
 
                     if (catalogObject.containsKey(VERSION_NAME))
                     {
-                        catalogBuilder.subject(catalogObject.getString(SUBJECT_NAME));
+                        catalogBuilder.version(catalogObject.getString(VERSION_NAME));
                     }
                     catalogs.add(catalogBuilder.build());
                 }
@@ -190,7 +190,7 @@ public final class OpenapiAsyncapiOptionsConfigAdapter implements OptionsConfigA
 
                     if (catalogObject.containsKey(VERSION_NAME))
                     {
-                        catalogBuilder.subject(catalogObject.getString(SUBJECT_NAME));
+                        catalogBuilder.version(catalogObject.getString(VERSION_NAME));
                     }
                     catalogs.add(catalogBuilder.build());
                 }

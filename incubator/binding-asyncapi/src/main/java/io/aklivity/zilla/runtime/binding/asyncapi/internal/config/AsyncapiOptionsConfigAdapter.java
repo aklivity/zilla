@@ -273,7 +273,7 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
 
                         if (catalogObject.containsKey(VERSION_NAME))
                         {
-                            catalogBuilder.subject(catalogObject.getString(SUBJECT_NAME));
+                            catalogBuilder.version(catalogObject.getString(VERSION_NAME));
                         }
                         catalogs.add(catalogBuilder.build());
                     }
