@@ -178,7 +178,10 @@ public class EngineRegistry
         {
             for (NamespaceConfig composite : binding.composites.values())
             {
-                attachNamespace(composite);
+                if (composite.refs.intValue() == 0)
+                {
+                    attachNamespace(composite);
+                }
             }
         }
          */
@@ -195,7 +198,10 @@ public class EngineRegistry
         {
             for (NamespaceConfig composite : binding.composites.values())
             {
-                detachNamespace(composite);
+                if (composite.refs.intValue() == 0)
+                {
+                    detachNamespace(composite);
+                }
             }
         }
     }
