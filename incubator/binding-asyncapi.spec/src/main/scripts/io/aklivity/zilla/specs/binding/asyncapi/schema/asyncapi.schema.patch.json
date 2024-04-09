@@ -46,11 +46,6 @@
                                         "type": "object",
                                         "properties":
                                         {
-                                            "location":
-                                            {
-                                                "title": "Location",
-                                                "type": "string"
-                                            },
                                             "servers":
                                             {
                                                 "title": "Servers",
