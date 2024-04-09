@@ -15,10 +15,13 @@
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.config;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
 import jakarta.json.Json;
+import jakarta.json.JsonArray;
+import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
@@ -33,6 +36,8 @@ import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiMqttKafkaConfig
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiMqttKafkaConfigBuilder;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfigBuilder;
+import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiServerConfig;
+import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiServerConfigBuilder;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiBinding;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
@@ -46,13 +51,19 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
 public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
+    private static final String SPECS_NAME = "specs";
+    private static final String LOCATION_NAME = "location";
+    private static final String SERVERS_NAME = "servers";
+    private static final String SERVER_NAME_NAME = "name";
+    private static final String SERVER_HOST_NAME = "host";
+    private static final String SERVER_URL_NAME = "url";
+    private static final String SERVER_PATHNAME_NAME = "pathname";
     private static final String TCP_NAME = "tcp";
     private static final String TLS_NAME = "tls";
     private static final String HTTP_NAME = "http";
     private static final String MQTT_NAME = "mqtt";
     private static final String KAFKA_NAME = "kafka";
     private static final String MQTT_KAFKA_NAME = "mqtt-kafka";
-    private static final String SPECS_NAME = "specs";
     private static final String CATALOG_NAME = "catalog";
     private static final String SUBJECT_NAME = "subject";
     private static final String VERSION_NAME = "version";
@@ -157,6 +168,7 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
             for (AsyncapiConfig asyncapiConfig : asyncapiOptions.asyncapis)
             {
                 final JsonObjectBuilder catalogObject = Json.createObjectBuilder();
+                final JsonArrayBuilder servers = Json.createArrayBuilder();
                 final JsonObjectBuilder subjectObject = Json.createObjectBuilder();
                 for (AsyncapiCatalogConfig catalog : asyncapiConfig.catalogs)
                 {
@@ -171,6 +183,32 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
                     subjectObject.add(catalog.name, schemaObject);
                 }
                 catalogObject.add(CATALOG_NAME, subjectObject);
+
+                if (asyncapiConfig.servers != null)
+                {
+                    asyncapiConfig.servers.forEach(s ->
+                    {
+                        JsonObjectBuilder server = Json.createObjectBuilder();
+                        if (s.name != null)
+                        {
+                            server.add(SERVER_NAME_NAME, s.name);
+                        }
+                        if (!s.host.isEmpty())
+                        {
+                            server.add(SERVER_HOST_NAME, s.host);
+                        }
+                        if (!s.url.isEmpty())
+                        {
+                            server.add(SERVER_URL_NAME, s.url);
+                        }
+                        if (!s.pathname.isEmpty())
+                        {
+                            server.add(SERVER_PATHNAME_NAME, s.pathname);
+                        }
+                        servers.add(server);
+                    });
+                }
+                catalogObject.add(SERVERS_NAME, servers);
 
                 specs.add(asyncapiConfig.apiLabel, catalogObject);
             }
@@ -254,6 +292,39 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
                 final String apiLabel = entry.getKey();
                 final JsonObject specObject = entry.getValue().asJsonObject();
 
+                final JsonArray serversJson = specObject.getJsonArray(SERVERS_NAME);
+
+                final List<AsyncapiServerConfig> servers = new LinkedList<>();
+
+                if (serversJson != null)
+                {
+                    serversJson.forEach(s ->
+                    {
+                        JsonObject serverObject = s.asJsonObject();
+                        AsyncapiServerConfigBuilder<AsyncapiServerConfig> serverBuilder = AsyncapiServerConfig.builder();
+                        if (serverObject.containsKey(SERVER_NAME_NAME))
+                        {
+                            serverBuilder.name(serverObject.getString(SERVER_NAME_NAME));
+                        }
+
+                        if (serverObject.containsKey(SERVER_HOST_NAME))
+                        {
+                            serverBuilder.host(serverObject.getString(SERVER_HOST_NAME));
+                        }
+
+                        if (serverObject.containsKey(SERVER_URL_NAME))
+                        {
+                            serverBuilder.url(serverObject.getString(SERVER_URL_NAME));
+                        }
+
+                        if (serverObject.containsKey(SERVER_PATHNAME_NAME))
+                        {
+                            serverBuilder.pathname(serverObject.getString(SERVER_PATHNAME_NAME));
+                        }
+                        servers.add(serverBuilder.build());
+                    });
+                }
+
                 if (specObject.containsKey(CATALOG_NAME))
                 {
                     final JsonObject catalog = specObject.getJsonObject(CATALOG_NAME);
@@ -277,7 +348,7 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
                         }
                         catalogs.add(catalogBuilder.build());
                     }
-                    asyncapiOptions.asyncapi(new AsyncapiConfig(apiLabel, catalogs));
+                    asyncapiOptions.asyncapi(new AsyncapiConfig(apiLabel, servers, catalogs));
                 }
             }
         }

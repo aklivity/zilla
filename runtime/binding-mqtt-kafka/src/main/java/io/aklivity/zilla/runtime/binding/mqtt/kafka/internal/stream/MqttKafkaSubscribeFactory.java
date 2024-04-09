@@ -671,7 +671,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             replyAck = acknowledge;
             replyMax = maximum;
             replyPad = padding;
-            state = MqttKafkaState.openReply(state);
+            state = MqttKafkaState.openReplyOnly(state);
             this.replyBud = window.budgetId();
 
             assert replyAck <= replySeq;

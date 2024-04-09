@@ -21,6 +21,8 @@ import jakarta.json.JsonArray;
 public class AsyncapiServer
 {
     public String host;
+    public String url;
+    public String pathname;
     public String protocol;
     public JsonArray security;
     public Map<String, AsyncapiVariable> variables;

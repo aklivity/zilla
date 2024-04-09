@@ -50,6 +50,8 @@ public class AsyncapiHttpProtocol extends AsyncapiProtocol
         "integer", Int32ModelConfig.builder().build()
     );
     private static final String SCHEME = "http";
+    private static final String SECURE_PROTOCOL = "https";
+
     private static final String SECURE_SCHEME = "https";
     private final Map<String, String> securitySchemes;
     private final boolean isJwtEnabled;
@@ -59,9 +61,10 @@ public class AsyncapiHttpProtocol extends AsyncapiProtocol
     protected AsyncapiHttpProtocol(
         String qname,
         Asyncapi asyncApi,
-        AsyncapiOptionsConfig options)
+        AsyncapiOptionsConfig options,
+        String protocol)
     {
-        super(qname, asyncApi, SCHEME, SECURE_SCHEME);
+        super(qname, asyncApi, protocol, SCHEME);
         this.securitySchemes = resolveSecuritySchemes();
         this.isJwtEnabled = !securitySchemes.isEmpty();
 
@@ -116,7 +119,7 @@ public class AsyncapiHttpProtocol extends AsyncapiProtocol
     @Override
     protected boolean isSecure()
     {
-        return findFirstServerUrlWithScheme(SECURE_SCHEME) != null;
+        return protocol.equals(SECURE_PROTOCOL);
     }
 
     private <C> HttpOptionsConfigBuilder<C> injectHttpServerOptions(
