@@ -67,7 +67,7 @@
                                         "type": "object",
                                         "properties":
                                         {
-                                                                                        "servers":
+                                            "servers":
                                             {
                                                 "title": "Servers",
                                                 "type": "array",
