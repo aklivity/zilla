@@ -23,6 +23,7 @@ import static org.agrona.LangUtil.rethrowUnchecked;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
@@ -41,7 +42,6 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiMediaType
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiOperation;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiParameter;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiSchema;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiServer;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiPathView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiSchemaView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiServerView;
@@ -67,55 +67,25 @@ public final class OpenapiServerNamespaceGenerator extends OpenapiNamespaceGener
         BindingConfig binding,
         Openapi openapi)
     {
-        final OpenapiOptionsConfig options = binding.options != null ? (OpenapiOptionsConfig) binding.options : EMPTY_OPTION;
+        final OpenapiOptionsConfig options = binding.options != null ? (OpenapiOptionsConfig) binding.options : EMPTY_OPTIONS;
         final List<MetricRefConfig> metricRefs = binding.telemetryRef != null ?
             binding.telemetryRef.metricRefs : emptyList();
+        final List<OpenapiServerView> servers =
+            filterOpenapiServers(
+                openapi.servers, options.openapis.stream()
+                .flatMap(o -> o.servers.stream())
+                .collect(Collectors.toList()));
 
-        final TlsOptionsConfig tlsOption = options.tls != null ? options.tls : null;
-        final HttpOptionsConfig httpOptions = options.http;
-        final String guardName = httpOptions != null ? httpOptions.authorization.name : null;
-        final HttpAuthorizationConfig authorization = httpOptions != null ?  httpOptions.authorization : null;
-
-        final int[] allPorts = resolveAllPorts(openapi);
-        final int[] httpPorts = resolvePortsForScheme(openapi, "http");
-        final int[] httpsPorts = resolvePortsForScheme(openapi, "https");
-        final boolean secure = httpsPorts != null;
-        final Map<String, String> securitySchemes = resolveSecuritySchemes(openapi);
-        final boolean hasJwt = !securitySchemes.isEmpty();
         final String qvault = String.format("%s:%s", binding.namespace, binding.vault);
 
         return NamespaceConfig.builder()
                 .name(String.format("%s/http", binding.qname))
                 .inject(namespace -> injectNamespaceMetric(namespace, !metricRefs.isEmpty()))
-                .inject(n -> this.injectCatalog(n, openapi))
-                .binding()
-                    .name("tcp_server0")
-                    .type("tcp")
-                    .kind(SERVER)
-                    .options(TcpOptionsConfig::builder)
-                        .host("0.0.0.0")
-                        .ports(allPorts)
-                        .build()
-                    .inject(b -> this.injectPlainTcpRoute(b, httpPorts, secure))
-                    .inject(b -> this.injectTlsTcpRoute(b, httpsPorts, secure))
-                    .inject(b -> this.injectMetrics(b, metricRefs, "tcp"))
-                    .build()
-                .inject(n -> this.injectTlsServer(n, qvault, tlsOption, secure, metricRefs))
-                .binding()
-                    .name("http_server0")
-                    .type("http")
-                    .kind(SERVER)
-                    .options(HttpOptionsConfig::builder)
-                        .access()
-                            .policy(CROSS_ORIGIN)
-                            .build()
-                        .inject(o -> this.injectHttpServerOptions(o, authorization, hasJwt))
-                        .inject(r -> this.injectHttpServerRequests(r, openapi))
-                        .build()
-                    .inject(b -> this.injectHttpServerRoutes(b, openapi, binding.qname, guardName, securitySchemes))
-                    .inject(b -> this.injectMetrics(b, metricRefs, "http"))
-                    .build()
-            .build();
+                .inject(n -> injectCatalog(n, openapi))
+                .inject(n -> injectTcpServer(n, servers, options, metricRefs))
+                .inject(n -> injectTlsServer(n, qvault, servers, options, metricRefs))
+                .inject(n -> injectHttpServer(n, binding.qname, openapi, servers, options, metricRefs))
+                .build();
     }
 
     private <C> BindingConfigBuilder<C> injectPlainTcpRoute(
@@ -123,7 +93,7 @@ public final class OpenapiServerNamespaceGenerator extends OpenapiNamespaceGener
         int[] httpPorts,
         boolean secure)
     {
-        if (!secure)
+        if (secure)
         {
             binding
                 .route()
@@ -138,10 +108,9 @@ public final class OpenapiServerNamespaceGenerator extends OpenapiNamespaceGener
 
     private <C> BindingConfigBuilder<C> injectTlsTcpRoute(
         BindingConfigBuilder<C> binding,
-        int[] httpsPorts,
-        boolean secure)
+        int[] httpsPorts)
     {
-        if (secure)
+        if (httpsPorts.length > 0)
         {
             binding
                 .route()
@@ -157,17 +126,22 @@ public final class OpenapiServerNamespaceGenerator extends OpenapiNamespaceGener
     private <C> NamespaceConfigBuilder<C> injectTlsServer(
         NamespaceConfigBuilder<C> namespace,
         String vault,
-        TlsOptionsConfig tls,
-        boolean secure, List<MetricRefConfig> metricRefs)
+        List<OpenapiServerView> servers,
+        OpenapiOptionsConfig options,
+        List<MetricRefConfig> metricRefs)
     {
+        final int[] httpsPorts = resolvePortsForScheme("https", servers);
+        final boolean secure =  httpsPorts.length > 0;
+
         if (secure)
         {
+            final TlsOptionsConfig tlsOption = options.tls != null ? options.tls : null;
             namespace
                 .binding()
                     .name("tls_server0")
                     .type("tls")
                     .kind(SERVER)
-                    .options(tls)
+                    .options(tlsOption)
                     .vault(vault)
                     .exit("http_server0")
                     .inject(b -> this.injectMetrics(b, metricRefs, "tls"))
@@ -309,6 +283,7 @@ public final class OpenapiServerNamespaceGenerator extends OpenapiNamespaceGener
                         .build();
             }
         }
+
         return binding;
     }
 
@@ -355,11 +330,11 @@ public final class OpenapiServerNamespaceGenerator extends OpenapiNamespaceGener
 
     private <C> NamespaceConfigBuilder<C> injectCatalog(
         NamespaceConfigBuilder<C> namespace,
-        Openapi openApi)
+        Openapi openapi)
     {
-        if (openApi.components != null &&
-            openApi.components.schemas != null &&
-            !openApi.components.schemas.isEmpty())
+        if (openapi.components != null &&
+            openapi.components.schemas != null &&
+            !openapi.components.schemas.isEmpty())
         {
             namespace
                 .catalog()
@@ -367,11 +342,77 @@ public final class OpenapiServerNamespaceGenerator extends OpenapiNamespaceGener
                     .type(INLINE_CATALOG_TYPE)
                     .options(InlineOptionsConfig::builder)
                         .subjects()
-                            .inject(s -> this.injectSubjects(s, openApi))
+                            .inject(s -> this.injectSubjects(s, openapi))
                             .build()
                         .build()
                     .build();
         }
+
+        return namespace;
+    }
+
+    private <C> NamespaceConfigBuilder<C> injectTcpServer(
+        NamespaceConfigBuilder<C> namespace,
+        List<OpenapiServerView> servers,
+        OpenapiOptionsConfig options,
+        List<MetricRefConfig> metricRefs)
+    {
+        final int[] allPorts = resolveAllPorts(servers);
+        final int[] httpPorts = resolvePortsForScheme("http", servers);
+        final int[] httpsPorts = resolvePortsForScheme("https", servers);
+        final boolean secure =  httpsPorts.length > 0;
+
+        final TcpOptionsConfig tcpOption = options.tcp != null ? options.tcp :
+            TcpOptionsConfig.builder()
+                .host("0.0.0.0")
+                .ports(allPorts)
+                .build();
+
+        namespace
+            .binding()
+                .name("tcp_server0")
+                .type("tcp")
+                .kind(SERVER)
+                .options(tcpOption)
+                .inject(b -> this.injectPlainTcpRoute(b, httpPorts, secure))
+                .inject(b -> this.injectTlsTcpRoute(b, httpsPorts))
+                .inject(b -> this.injectMetrics(b, metricRefs, "tcp"))
+                .build();
+
+        return namespace;
+    }
+
+    private <C> NamespaceConfigBuilder<C> injectHttpServer(
+        NamespaceConfigBuilder<C> namespace,
+        String qname,
+        Openapi openapi,
+        List<OpenapiServerView> servers,
+        OpenapiOptionsConfig options,
+        List<MetricRefConfig> metricRefs)
+    {
+        final Map<String, String> securitySchemes = resolveSecuritySchemes(openapi);
+        final boolean hasJwt = !securitySchemes.isEmpty();
+        final HttpOptionsConfig httpOptions = options.http;
+        final String guardName = httpOptions != null ? httpOptions.authorization.name : null;
+        final HttpAuthorizationConfig authorization = httpOptions != null ? httpOptions.authorization : null;
+        final List<URI> serverUrls = findServersUrlWithScheme(null, servers);
+
+        namespace
+            .binding()
+            .name("http_server0")
+            .type("http")
+            .kind(SERVER)
+            .options(HttpOptionsConfig::builder)
+            .access()
+            .policy(CROSS_ORIGIN)
+            .build()
+            .inject(o -> this.injectHttpServerOptions(o, authorization, hasJwt))
+            .inject(r -> this.injectHttpServerRequests(r, openapi))
+            .build()
+            .inject(b -> this.injectHttpServerRoutes(b, openapi, qname, guardName, securitySchemes))
+            .inject(b -> this.injectMetrics(b, metricRefs, "http"))
+            .build();
+
         return namespace;
     }
 
@@ -400,49 +441,16 @@ public final class OpenapiServerNamespaceGenerator extends OpenapiNamespaceGener
         return subjects;
     }
 
-    private int[] resolveAllPorts(
-        Openapi openApi)
+    public int[] resolveAllPorts(
+        List<OpenapiServerView> servers)
     {
-        int[] ports = new int[openApi.servers.size()];
-        for (int i = 0; i < openApi.servers.size(); i++)
+        int[] ports = new int[servers.size()];
+        for (int i = 0; i < servers.size(); i++)
         {
-            OpenapiServerView server = OpenapiServerView.of(openApi.servers.get(i));
-            URI url = server.url();
-            ports[i] = url.getPort();
+            OpenapiServerView server = servers.get(i);
+            ports[i] = server.url().getPort();
         }
         return ports;
-    }
-
-    private int[] resolvePortsForScheme(
-        Openapi openApi,
-        String scheme)
-    {
-        requireNonNull(scheme);
-        int[] ports = null;
-        URI url = findFirstServerUrlWithScheme(openApi, scheme);
-        if (url != null)
-        {
-            ports = new int[] {url.getPort()};
-        }
-        return ports;
-    }
-
-    private URI findFirstServerUrlWithScheme(
-        Openapi openApi,
-        String scheme)
-    {
-        requireNonNull(scheme);
-        URI result = null;
-        for (OpenapiServer item : openApi.servers)
-        {
-            OpenapiServerView server = OpenapiServerView.of(item);
-            if (scheme.equals(server.url().getScheme()))
-            {
-                result = server.url();
-                break;
-            }
-        }
-        return result;
     }
 
     private Map<String, String> resolveSecuritySchemes(

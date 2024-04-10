@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.config;
 
-import static java.util.Arrays.asList;
+import static java.util.List.of;
 import static java.util.function.Function.identity;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.not;
@@ -22,8 +22,6 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
@@ -125,14 +123,15 @@ public class OpenapiOptionsConfigAdapterTest
 
         TlsOptionsConfig tls = TlsOptionsConfig.builder()
             .inject(identity())
-            .sni(asList("example.net"))
+            .sni(of("example.net"))
             .build();
 
-        List<OpenapiConfig> spec = new ArrayList<>();
-        spec.add(new OpenapiConfig("test",
-            List.of(new OpenapiCatalogConfig("catalog0", "petstore", "latest"))));
-
-        OpenapiOptionsConfig options = new OpenapiOptionsConfig(tcp, tls, null, spec);
+        OpenapiOptionsConfig options = OpenapiOptionsConfig.builder()
+            .tcp(tcp)
+            .tls(tls)
+            .openapi(new OpenapiConfig("test",
+                of(new OpenapiCatalogConfig("catalog0", "petstore", "latest"))))
+            .build();
 
         String text = jsonb.toJson(options);
 

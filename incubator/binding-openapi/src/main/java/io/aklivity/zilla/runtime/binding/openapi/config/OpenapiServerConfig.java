@@ -12,12 +12,29 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.openapi.internal.model;
+package io.aklivity.zilla.runtime.binding.openapi.config;
 
-import java.util.Map;
+import java.util.function.Function;
 
-public class OpenapiServer
+public class OpenapiServerConfig
 {
-    public String url;
-    public Map<String, OpenapiVariable> variables;
+    public final String url;
+
+    public static OpenapiServerConfigBuilder<OpenapiServerConfig> builder()
+    {
+        return new OpenapiServerConfigBuilder<>(OpenapiServerConfig.class::cast);
+    }
+
+    public static <T> OpenapiServerConfigBuilder<T> builder(
+        Function<OpenapiServerConfig, T> mapper)
+    {
+        return new OpenapiServerConfigBuilder<>(mapper);
+    }
+
+    public OpenapiServerConfig(
+        String url)
+    {
+        this.url = url;
+    }
 }
+
