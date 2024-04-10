@@ -14,19 +14,30 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.config;
 
+import static java.util.Collections.emptyList;
 
 import java.util.List;
 
 public class OpenapiConfig
 {
     public final String apiLabel;
+    public final List<OpenapiServerConfig> servers;
     public final List<OpenapiCatalogConfig> catalogs;
+
+    public OpenapiConfig(
+        String apiLabel,
+        List<OpenapiServerConfig> servers,
+        List<OpenapiCatalogConfig> catalogs)
+    {
+        this.apiLabel = apiLabel;
+        this.servers = servers;
+        this.catalogs = catalogs;
+    }
 
     public OpenapiConfig(
         String apiLabel,
         List<OpenapiCatalogConfig> catalogs)
     {
-        this.apiLabel = apiLabel;
-        this.catalogs = catalogs;
+        this(apiLabel, emptyList(), catalogs);
     }
 }

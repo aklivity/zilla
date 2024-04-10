@@ -18,7 +18,7 @@ import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 
-public final class OpenpaiCatalogConfigBuilder<T> extends ConfigBuilder<T, OpenpaiCatalogConfigBuilder<T>>
+public final class OpenapiCatalogConfigBuilder<T> extends ConfigBuilder<T, OpenapiCatalogConfigBuilder<T>>
 {
     private final Function<OpenapiCatalogConfig, T> mapper;
 
@@ -26,7 +26,7 @@ public final class OpenpaiCatalogConfigBuilder<T> extends ConfigBuilder<T, Openp
     private String subject;
     private String version;
 
-    OpenpaiCatalogConfigBuilder(
+    OpenapiCatalogConfigBuilder(
         Function<OpenapiCatalogConfig, T> mapper)
     {
         this.mapper = mapper;
@@ -34,26 +34,26 @@ public final class OpenpaiCatalogConfigBuilder<T> extends ConfigBuilder<T, Openp
 
     @Override
     @SuppressWarnings("unchecked")
-    protected Class<OpenpaiCatalogConfigBuilder<T>> thisType()
+    protected Class<OpenapiCatalogConfigBuilder<T>> thisType()
     {
-        return (Class<OpenpaiCatalogConfigBuilder<T>>) getClass();
+        return (Class<OpenapiCatalogConfigBuilder<T>>) getClass();
     }
 
-    public OpenpaiCatalogConfigBuilder<T> name(
+    public OpenapiCatalogConfigBuilder<T> name(
         String name)
     {
         this.name = name;
         return this;
     }
 
-    public OpenpaiCatalogConfigBuilder<T> subject(
+    public OpenapiCatalogConfigBuilder<T> subject(
         String subject)
     {
         this.subject = subject;
         return this;
     }
 
-    public OpenpaiCatalogConfigBuilder<T> version(
+    public OpenapiCatalogConfigBuilder<T> version(
         String version)
     {
         this.version = version;

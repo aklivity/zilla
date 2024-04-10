@@ -1,31 +1,16 @@
-#
-# Copyright 2021-2023 Aklivity Inc
-#
-# Licensed under the Aklivity Community License (the "License"); you may not use
-# this file except in compliance with the License.  You may obtain a copy of the
-# License at
-#
-#   https://www.aklivity.io/aklivity-community-license/
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
-# specific language governing permissions and limitations under the License.
-#
-
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "helm.fullname" . }}
+  name: {{ include "zilla.fullname" . }}
   labels:
-    {{- include "helm.labels" . | nindent 4 }}
+    {{- include "zilla.labels" . | nindent 4 }}
 spec:
   {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
   {{- end }}
   selector:
     matchLabels:
-      {{- include "helm.selectorLabels" . | nindent 6 }}
+      {{- include "zilla.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       {{- with .Values.podAnnotations }}
@@ -33,7 +18,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        {{- include "helm.selectorLabels" . | nindent 8 }}
+        {{- include "zilla.selectorLabels" . | nindent 8 }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
@@ -52,20 +37,52 @@ spec:
           env:
             - name: ZILLA_VERSION
               value: "{{ .Values.image.tag | default .Chart.AppVersion }}"
-          {{- range $env := .Values.env }}
-            - name: {{ $env.name }}
-              value: {{ $env.value }}
-          {{- end }}
           {{- if .Values.extraEnv }}
           {{- toYaml .Values.extraEnv | nindent 12 }}
+          {{- end }}
+            {{- range $key, $value := .Values.envValueFrom }}
+            - name: {{ $key | quote }}
+              valueFrom:
+                {{- tpl (toYaml $value) $ | nindent 16 }}
+            {{- end }}
+            {{- range $key, $value := .Values.env }}
+            - name: "{{ tpl $key $ }}"
+              value: "{{ tpl (print $value) $ }}"
+            {{- end }}
+          {{- if or .Values.envFromSecret (or .Values.envRenderSecret .Values.envFromSecrets) .Values.envFromConfigMaps }}
+          envFrom:
+            {{- if .Values.envFromSecret }}
+            - secretRef:
+                name: {{ tpl .Values.envFromSecret . }}
+            {{- end }}
+            {{- if .Values.envRenderSecret }}
+            - secretRef:
+                name: {{ include "zilla.fullname" . }}-env
+            {{- end }}
+            {{- range .Values.envFromSecrets }}
+            - secretRef:
+                name: {{ tpl .name $ }}
+                optional: {{ .optional | default false }}
+              {{- if .prefix }}
+              prefix: {{ tpl .prefix $ }}
+              {{- end }}
+            {{- end }}
+            {{- range .Values.envFromConfigMaps }}
+            - configMapRef:
+                name: {{ tpl .name $ }}
+                optional: {{ .optional | default false }}
+              {{- if .prefix }}
+              prefix: {{ tpl .prefix $ }}
+              {{- end }}
+            {{- end }}
           {{- end }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
           {{- range $port := .Values.service.ports }}
-            - name: {{ $port.name }}
-              containerPort: {{ $port.port }}
-              protocol: TCP
+          - name: {{ $port.name }}
+            containerPort: {{ $port.port }}
+            protocol: TCP
           {{- end}}
           {{- if .Values.livenessProbePort }}
           livenessProbe:
@@ -81,7 +98,7 @@ spec:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
             {{- if index .Values "zilla.yaml" }}
-            - name: zilla
+            - name: {{ include "zilla.fullname" . }}
               mountPath: {{ .Values.configPath }}
             {{- end }}
             {{- $configPath := .Values.configPath }}
@@ -111,9 +128,9 @@ spec:
       {{- end }}
       volumes:
         {{- if index .Values "zilla.yaml" }}
-        - name: zilla
+        - name: {{ include "zilla.fullname" . }}
           configMap:
-            name: zilla
+            name: {{ include "zilla.fullname" . }}
         {{- end }}
         {{- range $name, $_ := .Values.configMaps }}
         - name: {{ $name }}

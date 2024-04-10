@@ -56,7 +56,7 @@ public class OpenapiParser
     public Openapi parse(
         String openapiText)
     {
-        Openapi openApi = null;
+        Openapi openapi = null;
 
         List<Exception> errors = new LinkedList<>();
 
@@ -72,7 +72,7 @@ public class OpenapiParser
 
             Jsonb jsonb = JsonbBuilder.create();
 
-            openApi = jsonb.fromJson(openapiText, Openapi.class);
+            openapi = jsonb.fromJson(openapiText, Openapi.class);
         }
         catch (Exception ex)
         {
@@ -86,7 +86,7 @@ public class OpenapiParser
             rethrowUnchecked(ex);
         }
 
-        return openApi;
+        return openapi;
     }
 
     private JsonSchema schema(

@@ -67,6 +67,25 @@
                                         "type": "object",
                                         "properties":
                                         {
+                                            "servers":
+                                            {
+                                                "title": "Servers",
+                                                "type": "array",
+                                                "items":
+                                                {
+                                                    "type": "object",
+                                                    "properties":
+                                                    {
+                                                        "url":
+                                                        {
+                                                            "title": "URL",
+                                                            "type": "string",
+                                                            "pattern": "^([a-zA-Z0-9\\\\.-]+)(:(\\\\{[a-zA-Z_]+\\\\}|[0-9]+))?$"
+                                                        }
+                                                    },
+                                                    "additionalProperties": false
+                                                }
+                                            },
                                             "catalog":
                                             {
                                                 "type": "object",

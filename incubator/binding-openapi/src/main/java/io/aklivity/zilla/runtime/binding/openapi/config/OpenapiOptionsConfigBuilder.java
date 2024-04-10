@@ -24,16 +24,17 @@ import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
-public final class OpenpaiOptionsConfigBuilder<T> extends ConfigBuilder<T, OpenpaiOptionsConfigBuilder<T>>
+public final class OpenapiOptionsConfigBuilder<T> extends ConfigBuilder<T, OpenapiOptionsConfigBuilder<T>>
 {
     private final Function<OptionsConfig, T> mapper;
 
+    private List<String> servers;
     private TcpOptionsConfig tcp;
     private TlsOptionsConfig tls;
     private HttpOptionsConfig http;
     private List<OpenapiConfig> openapis;
 
-    OpenpaiOptionsConfigBuilder(
+    OpenapiOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
     {
         this.mapper = mapper;
@@ -41,33 +42,45 @@ public final class OpenpaiOptionsConfigBuilder<T> extends ConfigBuilder<T, Openp
 
     @Override
     @SuppressWarnings("unchecked")
-    protected Class<OpenpaiOptionsConfigBuilder<T>> thisType()
+    protected Class<OpenapiOptionsConfigBuilder<T>> thisType()
     {
-        return (Class<OpenpaiOptionsConfigBuilder<T>>) getClass();
+        return (Class<OpenapiOptionsConfigBuilder<T>>) getClass();
     }
 
-    public OpenpaiOptionsConfigBuilder<T> tcp(
+    public OpenapiOptionsConfigBuilder<T> server(
+        String server)
+    {
+        if (servers == null)
+        {
+            this.servers = new ArrayList<>();
+        }
+        servers.add(server);
+
+        return this;
+    }
+
+    public OpenapiOptionsConfigBuilder<T> tcp(
         TcpOptionsConfig tcp)
     {
         this.tcp = tcp;
         return this;
     }
 
-    public OpenpaiOptionsConfigBuilder<T> tls(
+    public OpenapiOptionsConfigBuilder<T> tls(
         TlsOptionsConfig tls)
     {
         this.tls = tls;
         return this;
     }
 
-    public OpenpaiOptionsConfigBuilder<T> http(
+    public OpenapiOptionsConfigBuilder<T> http(
         HttpOptionsConfig http)
     {
         this.http = http;
         return this;
     }
 
-    public OpenpaiOptionsConfigBuilder<T> openapi(
+    public OpenapiOptionsConfigBuilder<T> openapi(
         OpenapiConfig openapi)
     {
         if (openapis == null)
@@ -81,6 +94,6 @@ public final class OpenpaiOptionsConfigBuilder<T> extends ConfigBuilder<T, Openp
     @Override
     public T build()
     {
-        return mapper.apply(new OpenapiOptionsConfig(tcp, tls, http, openapis));
+        return mapper.apply(new OpenapiOptionsConfig(servers, tcp, tls, http, openapis));
     }
 }

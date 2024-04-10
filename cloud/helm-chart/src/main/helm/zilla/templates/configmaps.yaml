@@ -1,0 +1,22 @@
+{{- if index .Values "zilla.yaml" }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "zilla.fullname" . }}
+data:
+  zilla.yaml: |
+{{ index .Values "zilla.yaml" | indent 4 }}
+{{- end }}
+
+{{ range $name, $configMap := .Values.configMaps }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $name }}
+data:
+{{- range $key, $value := $configMap.data }}
+{{ $key | indent 2 }}: |
+{{ $value  | indent 4 }}
+{{- end }}
+{{- end }}

@@ -16,11 +16,10 @@ package io.aklivity.zilla.runtime.binding.openapi.internal.config;
 
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
 import static java.util.Collections.emptyList;
-import static java.util.Objects.requireNonNull;
 
-import java.net.URI;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfigBuilder;
@@ -33,7 +32,6 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiHeader;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiResponse;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiResponseByContentType;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiSchema;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiServer;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiOperationView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiOperationsView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiPathView;
@@ -58,8 +56,13 @@ public final class OpenapiClientNamespaceGenerator extends OpenapiNamespaceGener
         final OpenapiOptionsConfig options = (OpenapiOptionsConfig) binding.options;
         final List<MetricRefConfig> metricRefs = binding.telemetryRef != null ?
             binding.telemetryRef.metricRefs : emptyList();
+        final List<OpenapiServerView> servers =
+            filterOpenapiServers(
+                openapi.servers, options.openapis.stream()
+                .flatMap(o -> o.servers.stream())
+                .collect(Collectors.toList()));
 
-        final int[] httpsPorts = resolvePortsForScheme(openapi, "https");
+        final int[] httpsPorts = resolvePortsForScheme("https", servers);
         final boolean secure = httpsPorts != null;
 
         return NamespaceConfig.builder()
@@ -82,38 +85,6 @@ public final class OpenapiClientNamespaceGenerator extends OpenapiNamespaceGener
                     .inject(b -> this.injectMetrics(b, metricRefs, "tcp"))
                     .build()
             .build();
-    }
-
-    private int[] resolvePortsForScheme(
-        Openapi openApi,
-        String scheme)
-    {
-        requireNonNull(scheme);
-        int[] ports = null;
-        URI url = findFirstServerUrlWithScheme(openApi, scheme);
-        if (url != null)
-        {
-            ports = new int[] {url.getPort()};
-        }
-        return ports;
-    }
-
-    private URI findFirstServerUrlWithScheme(
-        Openapi openApi,
-        String scheme)
-    {
-        requireNonNull(scheme);
-        URI result = null;
-        for (OpenapiServer item : openApi.servers)
-        {
-            OpenapiServerView server = OpenapiServerView.of(item);
-            if (scheme.equals(server.url().getScheme()))
-            {
-                result = server.url();
-                break;
-            }
-        }
-        return result;
     }
 
     private <C> BindingConfigBuilder<C> injectHttpClientOptions(
@@ -222,7 +193,7 @@ public final class OpenapiClientNamespaceGenerator extends OpenapiNamespaceGener
 
     private <C> NamespaceConfigBuilder<C> injectTlsClient(
         NamespaceConfigBuilder<C> namespace,
-        TlsOptionsConfig tlsConfig,
+        TlsOptionsConfig tlsOptions,
         boolean secure,
         List<MetricRefConfig> metricRefs)
     {
@@ -233,7 +204,7 @@ public final class OpenapiClientNamespaceGenerator extends OpenapiNamespaceGener
                     .name("tls_client0")
                     .type("tls")
                     .kind(CLIENT)
-                    .options(tlsConfig)
+                    .options(tlsOptions)
                     .vault("client")
                     .inject(b -> injectMetrics(b, metricRefs, "tls"))
                     .exit("tcp_client0")
