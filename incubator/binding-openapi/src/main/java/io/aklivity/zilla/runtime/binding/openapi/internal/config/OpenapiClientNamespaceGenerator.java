@@ -32,6 +32,7 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.model.Openapi;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiHeader;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiResponse;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiResponseByContentType;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiSchema;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiServer;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiOperationView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiOperationsView;
@@ -202,7 +203,10 @@ public final class OpenapiClientNamespaceGenerator extends OpenapiNamespaceGener
             for (Map.Entry<String, OpenapiHeader> header : responses.headers.entrySet())
             {
                 String name = header.getKey();
-                ModelConfig model = models.get(header.getValue().schema.type);
+                OpenapiSchema schema = header.getValue().schema;
+                String modelName = schema.format != null ? String.format("%s:%s", schema.type, schema.format) :
+                        schema.type;
+                ModelConfig model = models.get(modelName);
                 if (model != null)
                 {
                     response

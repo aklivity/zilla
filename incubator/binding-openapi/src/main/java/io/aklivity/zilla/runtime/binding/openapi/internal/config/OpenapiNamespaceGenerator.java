@@ -46,7 +46,9 @@ public abstract class OpenapiNamespaceGenerator
     protected final Matcher jsonContentType = JSON_CONTENT_TYPE.matcher("");
     protected final Map<String, ModelConfig> models = Map.of(
         "string", StringModelConfig.builder().build(),
-        "integer", Int32ModelConfig.builder().build()
+        "integer", Int32ModelConfig.builder().build(),
+        "integer:int32", Int32ModelConfig.builder().build(),
+        "integer:int64", Int32ModelConfig.builder().build()
     );
 
     public abstract NamespaceConfig generate(
