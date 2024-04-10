@@ -1,0 +1,57 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/catalog/properties/type/enum/-",
+        "value": "karapace"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/catalog/allOf/-",
+        "value":
+        {
+            "if":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "karapace"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "karapace"
+                    },
+                    "options":
+                    {
+                        "properties":
+                        {
+                            "url":
+                            {
+                                "type": "string"
+                            },
+                            "context":
+                            {
+                                "type": "string",
+                                "default": "default"
+                            },
+                            "max-age":
+                            {
+                                "title": "Max Age",
+                                "type": "number",
+                                "default": 300
+                            }
+                        },
+                        "additionalProperties": false
+                    }
+                },
+                "additionalProperties": false
+            }
+        }
+    }
+]

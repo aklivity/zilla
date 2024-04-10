@@ -23,7 +23,6 @@
     <module>binding-openapi-asyncapi.spec</module>
     <module>catalog-apicurio.spec</module>
     <module>catalog-inline.spec</module>
-    <module>catalog-schema-registry.spec</module>
     <module>exporter-otlp.spec</module>
     <module>exporter-stdout.spec</module>
     <module>model-avro.spec</module>
@@ -38,7 +37,6 @@
 
     <module>catalog-apicurio</module>
     <module>catalog-inline</module>
-    <module>catalog-schema-registry</module>
 
     <module>command-log</module>
     <module>command-dump</module>
@@ -84,11 +82,6 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>catalog-inline</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>catalog-schema-registry</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
