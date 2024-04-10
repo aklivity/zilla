@@ -22,7 +22,6 @@ public class AsyncapiServerConfigBuilder<T> extends ConfigBuilder<T, AsyncapiSer
 {
     private final Function<AsyncapiServerConfig, T> mapper;
 
-    private String name;
     private String host;
     private String url;
     private String pathname;
@@ -39,13 +38,6 @@ public class AsyncapiServerConfigBuilder<T> extends ConfigBuilder<T, AsyncapiSer
         return (Class<AsyncapiServerConfigBuilder<T>>) getClass();
     }
 
-
-    public AsyncapiServerConfigBuilder<T> name(
-        String name)
-    {
-        this.name = name;
-        return this;
-    }
 
     public AsyncapiServerConfigBuilder<T> host(
         String host)
@@ -73,6 +65,6 @@ public class AsyncapiServerConfigBuilder<T> extends ConfigBuilder<T, AsyncapiSer
     public T build()
     {
         return mapper.apply(
-            new AsyncapiServerConfig(name, host, url, pathname));
+            new AsyncapiServerConfig(host, url, pathname));
     }
 }

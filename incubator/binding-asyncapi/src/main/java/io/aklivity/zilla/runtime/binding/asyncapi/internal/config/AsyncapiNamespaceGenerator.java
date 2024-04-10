@@ -132,18 +132,14 @@ public abstract class AsyncapiNamespaceGenerator
             filtered = new ArrayList<>();
             serverConfigs.forEach(sc ->
                 filtered
-                    .addAll(serverViews.entrySet().stream()
-                        .filter(e ->
+                    .addAll(serverViews.values().stream()
+                        .filter(server ->
                         {
-                            final AsyncapiServerView server = e.getValue();
                             server.resolveHost(sc.host, sc.url);
-                            return sc.name.equals(e.getKey()) ||
-                                server.hostMatcher.reset(sc.host).matches() &&
+                            return server.hostMatcher.reset(sc.host).matches() &&
                                 server.urlMatcher.reset(sc.url).matches() &&
                                 server.pathnameMatcher.reset(sc.pathname).matches();
                         })
-
-                        .map(Map.Entry::getValue)
                     .collect(Collectors.toList())));
         }
         else

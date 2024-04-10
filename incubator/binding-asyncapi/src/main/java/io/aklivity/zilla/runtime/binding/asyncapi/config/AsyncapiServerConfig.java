@@ -19,7 +19,6 @@ import java.util.function.Function;
 
 public class AsyncapiServerConfig
 {
-    public final String name;
     public final String host;
     public final String url;
     public final String pathname;
@@ -36,12 +35,10 @@ public class AsyncapiServerConfig
     }
 
     public AsyncapiServerConfig(
-        String name,
         String host,
         String url,
         String pathname)
     {
-        this.name = name;
         this.host = Optional.ofNullable(host).orElse("");
         this.url = Optional.ofNullable(url).orElse("");
         this.pathname = Optional.ofNullable(pathname).orElse("");

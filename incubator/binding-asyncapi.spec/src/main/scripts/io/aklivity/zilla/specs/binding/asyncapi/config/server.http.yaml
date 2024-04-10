@@ -109,8 +109,6 @@ bindings:
     options:
       specs:
         http_api:
-          servers:
-            - name: plain
           catalog:
             catalog0:
               subject: petstore
