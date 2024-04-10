@@ -14,10 +14,16 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.model;
 
-import java.util.Map;
+import java.util.List;
 
-public class OpenapiServer
+import jakarta.json.bind.annotation.JsonbProperty;
+
+public class OpenapiVariable
 {
-    public String url;
-    public Map<String, OpenapiVariable> variables;
+    @JsonbProperty("default")
+    public String defaultValue;
+    @JsonbProperty("enum")
+    public List<String> values;
+    @JsonbProperty("$ref")
+    public String ref;
 }

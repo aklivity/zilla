@@ -39,6 +39,14 @@ public class SchemaTest
         .configurationRoot("io/aklivity/zilla/specs/binding/openapi/config");
 
     @Test
+    public void shouldValidateServerWithSpecificUrl()
+    {
+        JsonObject config = schema.validate("server-prod.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
     public void shouldValidateServer()
     {
         JsonObject config = schema.validate("server.yaml");

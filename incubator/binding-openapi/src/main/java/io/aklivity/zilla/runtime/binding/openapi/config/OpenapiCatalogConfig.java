@@ -32,14 +32,14 @@ public class OpenapiCatalogConfig
         this.version = version;
     }
 
-    public static OpenpaiCatalogConfigBuilder<OpenapiCatalogConfig> builder()
+    public static OpenapiCatalogConfigBuilder<OpenapiCatalogConfig> builder()
     {
-        return new OpenpaiCatalogConfigBuilder<>(OpenapiCatalogConfig.class::cast);
+        return new OpenapiCatalogConfigBuilder<>(OpenapiCatalogConfig.class::cast);
     }
 
-    public static <T> OpenpaiCatalogConfigBuilder<T> builder(
+    public static <T> OpenapiCatalogConfigBuilder<T> builder(
         Function<OpenapiCatalogConfig, T> mapper)
     {
-        return new OpenpaiCatalogConfigBuilder<>(mapper);
+        return new OpenapiCatalogConfigBuilder<>(mapper);
     }
 }
