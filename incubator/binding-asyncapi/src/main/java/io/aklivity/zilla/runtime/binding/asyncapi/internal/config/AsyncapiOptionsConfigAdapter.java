@@ -52,7 +52,6 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
     private static final String SPECS_NAME = "specs";
-    private static final String LOCATION_NAME = "location";
     private static final String SERVERS_NAME = "servers";
     private static final String SERVER_NAME_NAME = "name";
     private static final String SERVER_HOST_NAME = "host";

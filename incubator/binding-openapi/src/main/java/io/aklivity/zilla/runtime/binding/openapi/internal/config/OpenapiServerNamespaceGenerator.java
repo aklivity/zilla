@@ -24,6 +24,7 @@ import static org.agrona.LangUtil.rethrowUnchecked;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
@@ -71,6 +72,11 @@ public final class OpenapiServerNamespaceGenerator extends OpenapiNamespaceGener
         final OpenapiOptionsConfig options = binding.options != null ? (OpenapiOptionsConfig) binding.options : EMPTY_OPTION;
         final List<MetricRefConfig> metricRefs = binding.telemetryRef != null ?
             binding.telemetryRef.metricRefs : emptyList();
+        final List<OpenapiServerView> servers =
+            filterOpenapiServers(
+                openapi.servers, options.openapis.stream()
+                .flatMap(o -> o.servers.stream())
+                .collect(Collectors.toList()));
 
         final String qvault = String.format("%s:%s", binding.namespace, binding.vault);
 

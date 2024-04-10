@@ -15,27 +15,66 @@
 package io.aklivity.zilla.runtime.binding.openapi.internal.view;
 
 import java.net.URI;
+import java.util.Map;
+import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiServer;
+import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiVariable;
 
 public final class OpenapiServerView
 {
-    private final URI url;
+    private static final Pattern VARIABLE = Pattern.compile("\\{([^}]*.?)\\}");
+    private final Matcher variable = VARIABLE.matcher("");
 
-    private OpenapiServerView(
-        OpenapiServer server)
-    {
-        this.url = URI.create(server.url);
-    }
+    private final OpenapiServer server;
+    private String defaultUrl;
+
+    public Matcher urlMatcher;
+    public Matcher pathnameMatcher;
 
     public URI url()
     {
-        return url;
+        return URI.create(server.url);
+    }
+
+    public void resolveHost(
+        String url)
+    {
+        server.url = (url == null || url.isEmpty()) ? defaultUrl : url;
     }
 
     public static OpenapiServerView of(
         OpenapiServer server)
     {
         return new OpenapiServerView(server);
+    }
+
+    public static OpenapiServerView of(
+        OpenapiServer server,
+        Map<String, OpenapiVariable> variables)
+    {
+        return new OpenapiServerView(server, variables);
+    }
+
+    private OpenapiServerView(
+        OpenapiServer server)
+    {
+        this.server = server;
+    }
+
+    private OpenapiServerView(
+        OpenapiServer server,
+        Map<String, OpenapiVariable> variables)
+    {
+        this.server = server;
+        Pattern urlPattern = Pattern.compile(variable.reset(Optional.ofNullable(server.url).orElse(""))
+            .replaceAll(mr -> OpenapiVariableView.of(variables, server.variables.get(mr.group(1))).values().stream()
+                .collect(Collectors.joining("|", "(", ")"))));
+        this.urlMatcher = urlPattern.matcher("");
+        this.defaultUrl = variable.reset(Optional.ofNullable(server.url).orElse(""))
+            .replaceAll(mr -> OpenapiVariableView.of(variables, server.variables.get(mr.group(1))).defaultValue());
     }
 }

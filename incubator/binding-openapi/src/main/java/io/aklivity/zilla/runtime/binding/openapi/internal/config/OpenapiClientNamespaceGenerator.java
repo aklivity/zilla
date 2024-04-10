@@ -55,7 +55,7 @@ public final class OpenapiClientNamespaceGenerator extends OpenapiNamespaceGener
             binding.telemetryRef.metricRefs : emptyList();
         final List<String> servers = options.servers;
 
-        final int[] httpsPorts = resolvePortsForScheme(openapi, "https");
+        final int[] httpsPorts = resolvePortsForScheme(openapi, "https", servers);
         final boolean secure = httpsPorts != null;
 
         return NamespaceConfig.builder()

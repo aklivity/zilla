@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config;
 
+import static java.util.Collections.emptyList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
@@ -113,10 +114,10 @@ public class OpenapiAsyncapiOptionsConfigAdapterTest
 
         Set<OpenapiConfig> openapiConfigs = new HashSet<>();
         openapiConfigs.add(new OpenapiConfig("openapi-id",
-            List.of(new OpenapiCatalogConfig("catalog0", "petstore", "latest"))));
+            emptyList(), List.of(new OpenapiCatalogConfig("catalog0", "petstore", "latest"))));
 
         Set<AsyncapiConfig> asyncapiConfigs = new HashSet<>();
-        asyncapiConfigs.add(new AsyncapiConfig("asyncapi-id", Collections.emptyList(),
+        asyncapiConfigs.add(new AsyncapiConfig("asyncapi-id", emptyList(),
             List.of(new AsyncapiCatalogConfig("catalog0", "petstore", "latest"))));
 
         final OpenapiAsyncapiOptionsConfig options = new OpenapiAsyncapiOptionsConfig(

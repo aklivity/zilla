@@ -27,6 +27,7 @@ import java.util.regex.Pattern;
 import org.agrona.collections.MutableInteger;
 
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
+import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiServerConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.Openapi;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiServer;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiServerView;
@@ -160,5 +161,35 @@ public abstract class OpenapiNamespaceGenerator
             }
         }
         return servers;
+    }
+
+    protected List<OpenapiServerView> filterOpenapiServers(
+        List<OpenapiServer> servers,
+        List<OpenapiServerConfig> serverConfigs)
+    {
+        List<OpenapiServerView> filtered;
+        List<OpenapiServerView> serverViews = servers.stream()
+            .map(s -> OpenapiServerView.of(s, s.variables))
+            .collect(toList());
+        if (serverConfigs != null && !serverConfigs.isEmpty())
+        {
+            filtered = new ArrayList<>();
+            serverConfigs.forEach(sc ->
+                filtered.addAll(serverViews.stream()
+                    .filter(e ->
+                    {
+                        final OpenapiServerView server = e;
+                        server.resolveHost(sc.url);
+                        return server.urlMatcher.reset(sc.url).matches();
+                    })
+                    .collect(toList())));
+        }
+        else
+        {
+            filtered = new ArrayList<>(serverViews);
+            filtered.forEach(s -> s.resolveHost(""));
+        }
+
+        return filtered;
     }
 }
