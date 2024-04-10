@@ -67,7 +67,7 @@ public final class OpenapiServerNamespaceGenerator extends OpenapiNamespaceGener
         BindingConfig binding,
         Openapi openapi)
     {
-        final OpenapiOptionsConfig options = binding.options != null ? (OpenapiOptionsConfig) binding.options : EMPTY_OPTION;
+        final OpenapiOptionsConfig options = binding.options != null ? (OpenapiOptionsConfig) binding.options : EMPTY_OPTIONS;
         final List<MetricRefConfig> metricRefs = binding.telemetryRef != null ?
             binding.telemetryRef.metricRefs : emptyList();
         final List<OpenapiServerView> servers =
