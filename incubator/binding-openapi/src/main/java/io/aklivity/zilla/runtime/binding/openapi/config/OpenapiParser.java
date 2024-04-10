@@ -73,7 +73,6 @@ public class OpenapiParser
             Jsonb jsonb = JsonbBuilder.create();
 
             openapi = jsonb.fromJson(openapiText, Openapi.class);
-
         }
         catch (Exception ex)
         {
