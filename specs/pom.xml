@@ -36,6 +36,7 @@
     <module>binding-mqtt-kafka.spec</module>
     <module>binding-sse-kafka.spec</module>
     <module>binding-kafka-grpc.spec</module>
+    <module>catalog-karapace.spec</module>
     <module>exporter-prometheus.spec</module>
     <module>metrics-stream.spec</module>
     <module>metrics-http.spec</module>
@@ -119,6 +120,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>binding-sse-kafka.spec</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>catalog-karapace.spec</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

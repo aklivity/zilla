@@ -188,10 +188,6 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
                     asyncapiConfig.servers.forEach(s ->
                     {
                         JsonObjectBuilder server = Json.createObjectBuilder();
-                        if (s.name != null)
-                        {
-                            server.add(SERVER_NAME_NAME, s.name);
-                        }
                         if (!s.host.isEmpty())
                         {
                             server.add(SERVER_HOST_NAME, s.host);
@@ -301,10 +297,6 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
                     {
                         JsonObject serverObject = s.asJsonObject();
                         AsyncapiServerConfigBuilder<AsyncapiServerConfig> serverBuilder = AsyncapiServerConfig.builder();
-                        if (serverObject.containsKey(SERVER_NAME_NAME))
-                        {
-                            serverBuilder.name(serverObject.getString(SERVER_NAME_NAME));
-                        }
 
                         if (serverObject.containsKey(SERVER_HOST_NAME))
                         {

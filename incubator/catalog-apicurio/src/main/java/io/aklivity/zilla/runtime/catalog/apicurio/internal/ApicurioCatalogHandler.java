@@ -49,6 +49,8 @@ public class ApicurioCatalogHandler implements CatalogHandler
     private static final String ARTIFACT_VERSION_PATH = "/apis/registry/v2/groups/{0}/artifacts/{1}/versions/{2}/meta";
     private static final String ARTIFACT_BY_GLOBAL_ID_PATH = "/apis/registry/v2/ids/globalIds/{0}";
     private static final String ARTIFACT_BY_CONTENT_ID_PATH = "/apis/registry/v2/ids/contentIds/{0}";
+    private static final String ARTIFACT_META_PATH = "/apis/registry/v2/groups/{0}/artifacts/{1}/meta";
+    private static final String VERSION_LATEST = "latest";
     private static final int MAX_PADDING_LENGTH = SIZE_OF_BYTE + SIZE_OF_LONG;
     private static final byte MAGIC_BYTE = 0x0;
 
@@ -124,7 +126,10 @@ public class ApicurioCatalogHandler implements CatalogHandler
         }
         else
         {
-            String response = sendHttpRequest(MessageFormat.format(ARTIFACT_VERSION_PATH, groupId, artifact, version));
+            String path = VERSION_LATEST.equals(version) ? MessageFormat.format(ARTIFACT_META_PATH, groupId, artifact) :
+                MessageFormat.format(ARTIFACT_VERSION_PATH, groupId, artifact, version);
+
+            String response = sendHttpRequest(path);
             schemaId = response != null ? resolveId(response) : NO_SCHEMA_ID;
             if (schemaId != NO_SCHEMA_ID)
             {

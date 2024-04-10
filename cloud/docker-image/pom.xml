@@ -183,7 +183,7 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>catalog-schema-registry</artifactId>
+      <artifactId>catalog-karapace</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>
     </dependency>
