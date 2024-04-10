@@ -71,8 +71,8 @@ public class OpenapiServerIT
     @Test
     @Configuration("server-prod.yaml")
     @Specification({
-        "${http}/create.pet.prod/client",
-        "${openapi}/create.pet.prod/server"
+        "${http}/create.pet/client",
+        "${openapi}/create.pet/server"
     })
     public void shouldCreatePetInProdEnv() throws Exception
     {

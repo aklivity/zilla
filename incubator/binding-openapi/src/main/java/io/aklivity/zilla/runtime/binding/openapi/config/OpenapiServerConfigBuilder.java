@@ -22,10 +22,7 @@ public class OpenapiServerConfigBuilder<T> extends ConfigBuilder<T, OpenapiServe
 {
     private final Function<OpenapiServerConfig, T> mapper;
 
-    private String name;
-    private String host;
     private String url;
-    private String pathname;
     OpenapiServerConfigBuilder(
         Function<OpenapiServerConfig, T> mapper)
     {
@@ -39,21 +36,6 @@ public class OpenapiServerConfigBuilder<T> extends ConfigBuilder<T, OpenapiServe
         return (Class<OpenapiServerConfigBuilder<T>>) getClass();
     }
 
-
-    public OpenapiServerConfigBuilder<T> name(
-        String name)
-    {
-        this.name = name;
-        return this;
-    }
-
-    public OpenapiServerConfigBuilder<T> host(
-        String host)
-    {
-        this.host = host;
-        return this;
-    }
-
     public OpenapiServerConfigBuilder<T> url(
         String url)
     {
@@ -61,18 +43,10 @@ public class OpenapiServerConfigBuilder<T> extends ConfigBuilder<T, OpenapiServe
         return this;
     }
 
-    public OpenapiServerConfigBuilder<T> pathname(
-        String pathname)
-    {
-        this.pathname = pathname;
-        return this;
-    }
-
-
     @Override
     public T build()
     {
         return mapper.apply(
-            new OpenapiServerConfig(name, host, url, pathname));
+            new OpenapiServerConfig(url));
     }
 }

@@ -33,7 +33,6 @@ public final class OpenapiServerView
     private String defaultUrl;
 
     public Matcher urlMatcher;
-    public Matcher pathnameMatcher;
 
     public URI url()
     {

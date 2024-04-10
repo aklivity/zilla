@@ -18,7 +18,6 @@ import static io.aklivity.zilla.runtime.binding.http.config.HttpPolicyConfig.CRO
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 import static java.util.Collections.emptyList;
 import static java.util.Objects.requireNonNull;
-import static java.util.stream.Collectors.toList;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.net.URI;
@@ -37,7 +36,6 @@ import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfigBuilder;
-import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.Openapi;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiMediaType;
@@ -84,9 +82,9 @@ public final class OpenapiServerNamespaceGenerator extends OpenapiNamespaceGener
                 .name(String.format("%s/http", binding.qname))
                 .inject(namespace -> injectNamespaceMetric(namespace, !metricRefs.isEmpty()))
                 .inject(n -> injectCatalog(n, openapi))
-                .inject(n -> injectTcpServer(n, options, openapi, metricRefs))
-                .inject(n -> injectTlsServer(n, qvault, openapi, options, metricRefs))
-                .inject(n -> injectHttpServer(n, binding.qname, openapi, options, metricRefs))
+                .inject(n -> injectTcpServer(n, servers, options, metricRefs))
+                .inject(n -> injectTlsServer(n, qvault, servers, options, metricRefs))
+                .inject(n -> injectHttpServer(n, binding.qname, openapi, servers, options, metricRefs))
                 .build();
     }
 
@@ -128,12 +126,11 @@ public final class OpenapiServerNamespaceGenerator extends OpenapiNamespaceGener
     private <C> NamespaceConfigBuilder<C> injectTlsServer(
         NamespaceConfigBuilder<C> namespace,
         String vault,
-        Openapi openapi,
+        List<OpenapiServerView> servers,
         OpenapiOptionsConfig options,
         List<MetricRefConfig> metricRefs)
     {
-        final List<String> servers = options.servers;
-        final int[] httpsPorts = resolvePortsForScheme(openapi, "https", servers);
+        final int[] httpsPorts = resolvePortsForScheme("https", servers);
         final boolean secure =  httpsPorts.length > 0;
 
         if (secure)
@@ -265,35 +262,25 @@ public final class OpenapiServerNamespaceGenerator extends OpenapiNamespaceGener
 
     private <C> BindingConfigBuilder<C> injectHttpServerRoutes(
         BindingConfigBuilder<C> binding,
-        List<URI> serverUrls,
         Openapi openApi,
         String qname,
         String guardName,
         Map<String, String> securitySchemes)
     {
-        final List<String> basePaths = serverUrls.stream()
-            .map(u -> u.getPath().replaceAll("/$", ""))
-            .distinct()
-            .collect(toList());
-
-        for (String basePath : basePaths)
+        for (String item : openApi.paths.keySet())
         {
-            for (String item : openApi.paths.keySet())
+            OpenapiPathView path = OpenapiPathView.of(openApi.paths.get(item));
+            for (String method : path.methods().keySet())
             {
-                item = String.format("%s%s", basePath, item);
-                OpenapiPathView path = OpenapiPathView.of(openApi.paths.get(item));
-                for (String method : path.methods().keySet())
-                {
-                    binding
-                        .route()
-                            .exit(qname)
-                            .when(HttpConditionConfig::builder)
-                                .header(":path", item.replaceAll("\\{[^}]+\\}", "*"))
-                                .header(":method", method)
-                                .build()
-                            .inject(route -> injectHttpServerRouteGuarded(route, path, method, guardName, securitySchemes))
-                            .build();
-                }
+                binding
+                    .route()
+                        .exit(qname)
+                        .when(HttpConditionConfig::builder)
+                            .header(":path", item.replaceAll("\\{[^}]+\\}", "*"))
+                            .header(":method", method)
+                            .build()
+                        .inject(route -> injectHttpServerRouteGuarded(route, path, method, guardName, securitySchemes))
+                        .build();
             }
         }
 
@@ -366,15 +353,13 @@ public final class OpenapiServerNamespaceGenerator extends OpenapiNamespaceGener
 
     private <C> NamespaceConfigBuilder<C> injectTcpServer(
         NamespaceConfigBuilder<C> namespace,
+        List<OpenapiServerView> servers,
         OpenapiOptionsConfig options,
-        Openapi openapi,
         List<MetricRefConfig> metricRefs)
     {
-        final List<String> servers = options.servers;
-
-        final int[] allPorts = resolveAllPorts(openapi, servers);
-        final int[] httpPorts = resolvePortsForScheme(openapi, "http", servers);
-        final int[] httpsPorts = resolvePortsForScheme(openapi, "https", servers);
+        final int[] allPorts = resolveAllPorts(servers);
+        final int[] httpPorts = resolvePortsForScheme("http", servers);
+        final int[] httpsPorts = resolvePortsForScheme("https", servers);
         final boolean secure =  httpsPorts.length > 0;
 
         final TcpOptionsConfig tcpOption = options.tcp != null ? options.tcp :
@@ -401,18 +386,16 @@ public final class OpenapiServerNamespaceGenerator extends OpenapiNamespaceGener
         NamespaceConfigBuilder<C> namespace,
         String qname,
         Openapi openapi,
+        List<OpenapiServerView> servers,
         OpenapiOptionsConfig options,
         List<MetricRefConfig> metricRefs)
     {
-        final List<String> servers = options.servers;
-        final OpenapiConfig openapiConfig = options.openapis.get(0);
-
         final Map<String, String> securitySchemes = resolveSecuritySchemes(openapi);
         final boolean hasJwt = !securitySchemes.isEmpty();
         final HttpOptionsConfig httpOptions = options.http;
         final String guardName = httpOptions != null ? httpOptions.authorization.name : null;
         final HttpAuthorizationConfig authorization = httpOptions != null ? httpOptions.authorization : null;
-        final List<URI> serverUrls = findServersUrlWithScheme(openapi, null, servers);
+        final List<URI> serverUrls = findServersUrlWithScheme(null, servers);
 
         namespace
             .binding()
@@ -426,7 +409,7 @@ public final class OpenapiServerNamespaceGenerator extends OpenapiNamespaceGener
             .inject(o -> this.injectHttpServerOptions(o, authorization, hasJwt))
             .inject(r -> this.injectHttpServerRequests(r, openapi))
             .build()
-            .inject(b -> this.injectHttpServerRoutes(b, serverUrls, openapi, qname, guardName, securitySchemes))
+            .inject(b -> this.injectHttpServerRoutes(b, openapi, qname, guardName, securitySchemes))
             .inject(b -> this.injectMetrics(b, metricRefs, "http"))
             .build();
 
@@ -458,19 +441,14 @@ public final class OpenapiServerNamespaceGenerator extends OpenapiNamespaceGener
         return subjects;
     }
 
-    private int[] resolveAllPorts(
-        Openapi openApi,
-        List<String> serverUrl)
+    public int[] resolveAllPorts(
+        List<OpenapiServerView> servers)
     {
-        int[] ports = new int[openApi.servers.size()];
-        for (int i = 0; i < openApi.servers.size(); i++)
+        int[] ports = new int[servers.size()];
+        for (int i = 0; i < servers.size(); i++)
         {
-            OpenapiServerView server = OpenapiServerView.of(openApi.servers.get(i));
-            URI url = server.url();
-            if (serverUrl == null || serverUrl.equals(url.toASCIIString()))
-            {
-                ports[i] = url.getPort();
-            }
+            OpenapiServerView server = servers.get(i);
+            ports[i] = server.url().getPort();
         }
         return ports;
     }

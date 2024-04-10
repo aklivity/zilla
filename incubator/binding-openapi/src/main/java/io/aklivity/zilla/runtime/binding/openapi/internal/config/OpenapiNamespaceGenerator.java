@@ -134,11 +134,10 @@ public abstract class OpenapiNamespaceGenerator
     }
 
     protected int[] resolvePortsForScheme(
-        Openapi openApi,
         String scheme,
-        List<String> serverUrls)
+        List<OpenapiServerView> serverUrls)
     {
-        List<URI> servers = findServersUrlWithScheme(openApi, scheme, serverUrls);
+        List<URI> servers = findServersUrlWithScheme(scheme, serverUrls);
         int[] ports = new int[servers.size()];
         MutableInteger index = new MutableInteger();
         servers.forEach(s -> ports[index.value++] = s.getPort());
@@ -146,21 +145,13 @@ public abstract class OpenapiNamespaceGenerator
     }
 
     protected List<URI> findServersUrlWithScheme(
-        Openapi openApi,
         String scheme,
-        List<String> serverUrl)
+        List<OpenapiServerView> servers)
     {
-        final List<URI> servers = new ArrayList<>();
-        for (OpenapiServer item : openApi.servers)
-        {
-            OpenapiServerView server = OpenapiServerView.of(item);
-            if ((scheme == null || scheme.equals(server.url().getScheme())) &&
-                (serverUrl == null || serverUrl.contains(server.url().toASCIIString())))
-            {
-                servers.add(server.url());
-            }
-        }
-        return servers;
+        return servers.stream()
+            .map(OpenapiServerView::url)
+            .filter(url -> scheme == null || url.getScheme().equals(scheme))
+            .collect(toList());
     }
 
     protected List<OpenapiServerView> filterOpenapiServers(

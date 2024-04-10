@@ -19,6 +19,7 @@ import static java.util.Collections.emptyList;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfigBuilder;
@@ -34,6 +35,7 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiOperationV
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiOperationsView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiPathView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiSchemaView;
+import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiServerView;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
@@ -53,9 +55,13 @@ public final class OpenapiClientNamespaceGenerator extends OpenapiNamespaceGener
         final OpenapiOptionsConfig options = (OpenapiOptionsConfig) binding.options;
         final List<MetricRefConfig> metricRefs = binding.telemetryRef != null ?
             binding.telemetryRef.metricRefs : emptyList();
-        final List<String> servers = options.servers;
+        final List<OpenapiServerView> servers =
+            filterOpenapiServers(
+                openapi.servers, options.openapis.stream()
+                .flatMap(o -> o.servers.stream())
+                .collect(Collectors.toList()));
 
-        final int[] httpsPorts = resolvePortsForScheme(openapi, "https", servers);
+        final int[] httpsPorts = resolvePortsForScheme("https", servers);
         final boolean secure = httpsPorts != null;
 
         return NamespaceConfig.builder()

@@ -50,10 +50,7 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
     private static final String TLS_NAME = "tls";
     private static final String HTTP_NAME = "http";
     private static final String SERVERS_NAME = "servers";
-    private static final String SERVER_NAME_NAME = "name";
-    private static final String SERVER_HOST_NAME = "host";
     private static final String SERVER_URL_NAME = "url";
-    private static final String SERVER_PATHNAME_NAME = "pathname";
     private static final String CATALOG_NAME = "catalog";
     private static final String SUBJECT_NAME = "subject";
     private static final String VERSION_NAME = "version";
@@ -133,31 +130,19 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
                 }
                 catalogObject.add(CATALOG_NAME, subjectObject);
 
-                if (openapiConfig.servers != null)
+                if (openapiConfig.servers != null && !openapiConfig.servers.isEmpty())
                 {
                     openapiConfig.servers.forEach(s ->
                     {
                         JsonObjectBuilder server = Json.createObjectBuilder();
-                        if (s.name != null)
-                        {
-                            server.add(SERVER_NAME_NAME, s.name);
-                        }
-                        if (!s.host.isEmpty())
-                        {
-                            server.add(SERVER_HOST_NAME, s.host);
-                        }
                         if (!s.url.isEmpty())
                         {
                             server.add(SERVER_URL_NAME, s.url);
                         }
-                        if (!s.pathname.isEmpty())
-                        {
-                            server.add(SERVER_PATHNAME_NAME, s.pathname);
-                        }
                         servers.add(server);
                     });
+                    catalogObject.add(SERVERS_NAME, servers);
                 }
-                catalogObject.add(SERVERS_NAME, servers);
 
                 specs.add(openapiConfig.apiLabel, catalogObject);
             }
@@ -211,25 +196,11 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
                     {
                         JsonObject serverObject = s.asJsonObject();
                         OpenapiServerConfigBuilder<OpenapiServerConfig> serverBuilder = OpenapiServerConfig.builder();
-                        if (serverObject.containsKey(SERVER_NAME_NAME))
-                        {
-                            serverBuilder.name(serverObject.getString(SERVER_NAME_NAME));
-                        }
-
-                        if (serverObject.containsKey(SERVER_HOST_NAME))
-                        {
-                            serverBuilder.host(serverObject.getString(SERVER_HOST_NAME));
-                        }
-
                         if (serverObject.containsKey(SERVER_URL_NAME))
                         {
                             serverBuilder.url(serverObject.getString(SERVER_URL_NAME));
                         }
 
-                        if (serverObject.containsKey(SERVER_PATHNAME_NAME))
-                        {
-                            serverBuilder.pathname(serverObject.getString(SERVER_PATHNAME_NAME));
-                        }
                         servers.add(serverBuilder.build());
                     });
                 }

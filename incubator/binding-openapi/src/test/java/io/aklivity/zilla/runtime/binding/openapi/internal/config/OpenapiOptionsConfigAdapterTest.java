@@ -14,7 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.config;
 
-import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
+import static java.util.List.of;
 import static java.util.function.Function.identity;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.not;
@@ -36,6 +37,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
+import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiCatalogConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
@@ -124,12 +126,12 @@ public class OpenapiOptionsConfigAdapterTest
 
         TlsOptionsConfig tls = TlsOptionsConfig.builder()
             .inject(identity())
-            .sni(asList("example.net"))
+            .sni(of("example.net"))
             .build();
 
         List<OpenapiConfig> spec = new ArrayList<>();
-        //spec.add(new OpenapiConfig("test",
-        //    servers, List.of(new OpenapiCatalogConfig("catalog0", "petstore", "latest"))));
+        spec.add(new OpenapiConfig("test",
+            emptyList(), of(new OpenapiCatalogConfig("catalog0", "petstore", "latest"))));
 
         OpenapiOptionsConfig options = new OpenapiOptionsConfig(null, tcp, tls, null, spec);
 

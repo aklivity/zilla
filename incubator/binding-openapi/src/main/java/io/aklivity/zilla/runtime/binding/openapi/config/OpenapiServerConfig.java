@@ -19,10 +19,7 @@ import java.util.function.Function;
 
 public class OpenapiServerConfig
 {
-    public final String name;
-    public final String host;
     public final String url;
-    public final String pathname;
 
     public static OpenapiServerConfigBuilder<OpenapiServerConfig> builder()
     {
@@ -36,15 +33,9 @@ public class OpenapiServerConfig
     }
 
     public OpenapiServerConfig(
-        String name,
-        String host,
-        String url,
-        String pathname)
+        String url)
     {
-        this.name = name;
-        this.host = Optional.ofNullable(host).orElse("");
         this.url = Optional.ofNullable(url).orElse("");
-        this.pathname = Optional.ofNullable(pathname).orElse("");
     }
 }
 

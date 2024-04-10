@@ -29,7 +29,7 @@ catalogs:
           license:
             name: MIT
         servers:
-          - url: http://localhost:8080/prod
+          - url: http://localhost:9090/prod
           - url: http://localhost:8080/qa
         paths:
           /pets:
@@ -169,8 +169,7 @@ bindings:
       specs:
         petstore:
           servers:
-            - name: prod
-              url: http://localhost:8080/prod
+            - url: http://localhost:9090/prod
           catalog:
             catalog0:
               subject: petstore

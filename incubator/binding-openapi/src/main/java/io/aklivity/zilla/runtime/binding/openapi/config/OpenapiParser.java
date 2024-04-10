@@ -38,7 +38,6 @@ import org.leadpony.justify.api.ProblemHandler;
 
 import io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiBinding;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.Openapi;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiPathItem;
 import io.aklivity.zilla.runtime.engine.config.ConfigException;
 
 public class OpenapiParser
