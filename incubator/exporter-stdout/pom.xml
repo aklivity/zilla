@@ -108,7 +108,7 @@
         <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <scopeNames>core http jwt kafka schema_registry tcp tls</scopeNames>
+          <scopeNames>core http jwt kafka karapace tcp tls</scopeNames>
           <packageName>io.aklivity.zilla.runtime.exporter.stdout.internal.types</packageName>
         </configuration>
         <executions>

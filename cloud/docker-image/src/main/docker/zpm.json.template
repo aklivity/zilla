@@ -37,7 +37,7 @@
     "io.aklivity.zilla:binding-ws",
     "io.aklivity.zilla:catalog-apicurio",
     "io.aklivity.zilla:catalog-inline",
-    "io.aklivity.zilla:catalog-schema-registry",
+    "io.aklivity.zilla:catalog-karapace",
     "io.aklivity.zilla:common",
     "io.aklivity.zilla:command",
     "io.aklivity.zilla:command-dump",
