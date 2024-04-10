@@ -55,11 +55,6 @@
                                                     "type": "object",
                                                     "properties":
                                                     {
-                                                        "name":
-                                                        {
-                                                            "title": "Server Name",
-                                                            "type": "string"
-                                                        },
                                                         "url":
                                                         {
                                                             "title": "URL",

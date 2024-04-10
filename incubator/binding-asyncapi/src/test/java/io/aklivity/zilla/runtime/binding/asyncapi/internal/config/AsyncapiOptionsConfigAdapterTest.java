@@ -85,7 +85,6 @@ public class AsyncapiOptionsConfigAdapterTest
                             "\"servers\":" +
                             "[" +
                                 "{" +
-                                    "\"name\":\"plain\"," +
                                     "\"host\":\"test.mosquitto.org:1883\"" +
                                 "}" +
                             "]" +
@@ -124,7 +123,6 @@ public class AsyncapiOptionsConfigAdapterTest
         AsyncapiConfig asyncapi = options.asyncapis.get(0);
         assertThat(asyncapi.servers.size(), equalTo(1));
         AsyncapiServerConfig server = asyncapi.servers.get(0);
-        assertThat(server.name, equalTo("plain"));
         assertThat(server.host, equalTo("test.mosquitto.org:1883"));
         assertThat(options.tcp.host, equalTo("localhost"));
         assertThat(options.tcp.ports, equalTo(new int[] { 7183 }));
