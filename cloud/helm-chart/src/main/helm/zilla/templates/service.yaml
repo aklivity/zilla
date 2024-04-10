@@ -1,0 +1,18 @@
+{{- if eq (include "zilla.isServicePortDefined" .) "true" }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "zilla.fullname" . }}
+  labels:
+    {{- include "zilla.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+  {{- range $port := .Values.service.ports }}
+  - port: {{ $port.port }}
+    protocol: TCP
+    name: {{ $port.name }}
+  {{- end }}
+  selector:
+    {{- include "zilla.selectorLabels" . | nindent 4 }}
+{{- end }}
