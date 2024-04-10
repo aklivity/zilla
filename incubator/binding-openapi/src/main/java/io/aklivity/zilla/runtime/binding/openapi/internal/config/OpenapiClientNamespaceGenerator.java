@@ -189,7 +189,7 @@ public final class OpenapiClientNamespaceGenerator extends OpenapiNamespaceGener
 
     private <C> NamespaceConfigBuilder<C> injectTlsClient(
         NamespaceConfigBuilder<C> namespace,
-        TlsOptionsConfig tlsOption,
+        TlsOptionsConfig tlsOptions,
         boolean secure,
         List<MetricRefConfig> metricRefs)
     {
@@ -200,7 +200,7 @@ public final class OpenapiClientNamespaceGenerator extends OpenapiNamespaceGener
                     .name("tls_client0")
                     .type("tls")
                     .kind(CLIENT)
-                    .options(tlsOption)
+                    .options(tlsOptions)
                     .vault("client")
                     .inject(b -> injectMetrics(b, metricRefs, "tls"))
                     .exit("tcp_client0")

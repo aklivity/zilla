@@ -39,7 +39,7 @@ public final class OpenapiServerView
         return URI.create(server.url);
     }
 
-    public void resolveHost(
+    public void resolveURL(
         String url)
     {
         server.url = (url == null || url.isEmpty()) ? defaultUrl : url;

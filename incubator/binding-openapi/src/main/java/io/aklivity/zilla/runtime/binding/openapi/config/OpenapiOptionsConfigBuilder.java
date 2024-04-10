@@ -24,7 +24,7 @@ import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
-public final class OpenpaiOptionsConfigBuilder<T> extends ConfigBuilder<T, OpenpaiOptionsConfigBuilder<T>>
+public final class OpenapiOptionsConfigBuilder<T> extends ConfigBuilder<T, OpenapiOptionsConfigBuilder<T>>
 {
     private final Function<OptionsConfig, T> mapper;
 
@@ -34,7 +34,7 @@ public final class OpenpaiOptionsConfigBuilder<T> extends ConfigBuilder<T, Openp
     private HttpOptionsConfig http;
     private List<OpenapiConfig> openapis;
 
-    OpenpaiOptionsConfigBuilder(
+    OpenapiOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
     {
         this.mapper = mapper;
@@ -42,12 +42,12 @@ public final class OpenpaiOptionsConfigBuilder<T> extends ConfigBuilder<T, Openp
 
     @Override
     @SuppressWarnings("unchecked")
-    protected Class<OpenpaiOptionsConfigBuilder<T>> thisType()
+    protected Class<OpenapiOptionsConfigBuilder<T>> thisType()
     {
-        return (Class<OpenpaiOptionsConfigBuilder<T>>) getClass();
+        return (Class<OpenapiOptionsConfigBuilder<T>>) getClass();
     }
 
-    public OpenpaiOptionsConfigBuilder<T> server(
+    public OpenapiOptionsConfigBuilder<T> server(
         String server)
     {
         if (servers == null)
@@ -59,28 +59,28 @@ public final class OpenpaiOptionsConfigBuilder<T> extends ConfigBuilder<T, Openp
         return this;
     }
 
-    public OpenpaiOptionsConfigBuilder<T> tcp(
+    public OpenapiOptionsConfigBuilder<T> tcp(
         TcpOptionsConfig tcp)
     {
         this.tcp = tcp;
         return this;
     }
 
-    public OpenpaiOptionsConfigBuilder<T> tls(
+    public OpenapiOptionsConfigBuilder<T> tls(
         TlsOptionsConfig tls)
     {
         this.tls = tls;
         return this;
     }
 
-    public OpenpaiOptionsConfigBuilder<T> http(
+    public OpenapiOptionsConfigBuilder<T> http(
         HttpOptionsConfig http)
     {
         this.http = http;
         return this;
     }
 
-    public OpenpaiOptionsConfigBuilder<T> openapi(
+    public OpenapiOptionsConfigBuilder<T> openapi(
         OpenapiConfig openapi)
     {
         if (openapis == null)

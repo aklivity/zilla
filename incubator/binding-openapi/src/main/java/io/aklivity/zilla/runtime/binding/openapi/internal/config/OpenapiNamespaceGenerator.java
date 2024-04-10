@@ -47,8 +47,7 @@ public abstract class OpenapiNamespaceGenerator
     protected static final String INLINE_CATALOG_TYPE = "inline";
     protected static final String VERSION_LATEST = "latest";
     protected static final Pattern JSON_CONTENT_TYPE = Pattern.compile("^application/(?:.+\\+)?json$");
-    protected static final OpenapiOptionsConfig EMPTY_OPTION = new OpenapiOptionsConfig(
-        null, null, null, null, null);
+    protected static final OpenapiOptionsConfig EMPTY_OPTION = OpenapiOptionsConfig.builder().build();
 
     protected final Matcher jsonContentType = JSON_CONTENT_TYPE.matcher("");
     protected final Map<String, ModelConfig> models = Map.of(
@@ -169,16 +168,15 @@ public abstract class OpenapiNamespaceGenerator
                 filtered.addAll(serverViews.stream()
                     .filter(e ->
                     {
-                        final OpenapiServerView server = e;
-                        server.resolveHost(sc.url);
-                        return server.urlMatcher.reset(sc.url).matches();
+                        e.resolveURL(sc.url);
+                        return e.urlMatcher.reset(sc.url).matches();
                     })
                     .collect(toList())));
         }
         else
         {
             filtered = new ArrayList<>(serverViews);
-            filtered.forEach(s -> s.resolveHost(""));
+            filtered.forEach(s -> s.resolveURL(""));
         }
 
         return filtered;

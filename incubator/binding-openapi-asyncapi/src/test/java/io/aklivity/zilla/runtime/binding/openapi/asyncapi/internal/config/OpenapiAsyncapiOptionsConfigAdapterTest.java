@@ -116,7 +116,7 @@ public class OpenapiAsyncapiOptionsConfigAdapterTest
             emptyList(), List.of(new OpenapiCatalogConfig("catalog0", "petstore", "latest"))));
 
         Set<AsyncapiConfig> asyncapiConfigs = new HashSet<>();
-        asyncapiConfigs.add(new AsyncapiConfig("asyncapi-id", emptyList(),
+        asyncapiConfigs.add(new AsyncapiConfig("asyncapi-id",
             List.of(new AsyncapiCatalogConfig("catalog0", "petstore", "latest"))));
 
         final OpenapiAsyncapiOptionsConfig options = new OpenapiAsyncapiOptionsConfig(

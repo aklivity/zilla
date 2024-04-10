@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config;
 
-import static java.util.Collections.emptyList;
 import static java.util.Collections.unmodifiableSet;
 
 import java.util.ArrayList;
@@ -23,7 +22,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
 
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
@@ -39,8 +37,7 @@ import io.aklivity.zilla.runtime.binding.openapi.asyncapi.config.OpenapiAsyncapi
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.OpenapiAsyncapiBinding;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiCatalogConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiConfig;
-import io.aklivity.zilla.runtime.binding.openapi.config.OpenpaiCatalogConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
+import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiCatalogConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
@@ -52,8 +49,6 @@ public final class OpenapiAsyncapiOptionsConfigAdapter implements OptionsConfigA
     private static final String CATALOG_NAME = "catalog";
     private static final String SUBJECT_NAME = "subject";
     private static final String VERSION_NAME = "version";
-
-    private Function<String, String> readURL;
 
     @Override
     public Kind kind()
@@ -146,7 +141,7 @@ public final class OpenapiAsyncapiOptionsConfigAdapter implements OptionsConfigA
                 List<OpenapiCatalogConfig> catalogs = new ArrayList<>();
                 for (Map.Entry<String, JsonValue> catalogEntry : catalog.entrySet())
                 {
-                    OpenpaiCatalogConfigBuilder<OpenapiCatalogConfig> catalogBuilder = OpenapiCatalogConfig.builder();
+                    OpenapiCatalogConfigBuilder<OpenapiCatalogConfig> catalogBuilder = OpenapiCatalogConfig.builder();
                     JsonObject catalogObject = catalogEntry.getValue().asJsonObject();
 
                     catalogBuilder.name(catalogEntry.getKey());
@@ -162,7 +157,7 @@ public final class OpenapiAsyncapiOptionsConfigAdapter implements OptionsConfigA
                     }
                     catalogs.add(catalogBuilder.build());
                 }
-                openapis.add(new OpenapiConfig(apiLabel, emptyList(), catalogs));
+                openapis.add(new OpenapiConfig(apiLabel, catalogs));
             }
         }
 
@@ -204,12 +199,5 @@ public final class OpenapiAsyncapiOptionsConfigAdapter implements OptionsConfigA
             unmodifiableSet(openapis), unmodifiableSet(asyncapis));
 
         return new OpenapiAsyncapiOptionsConfig(specConfig);
-    }
-
-    @Override
-    public void adaptContext(
-        ConfigAdapterContext context)
-    {
-        this.readURL = context::readURL;
     }
 }

@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.config;
 
-import java.util.Optional;
 import java.util.function.Function;
 
 public class OpenapiServerConfig
@@ -35,7 +34,7 @@ public class OpenapiServerConfig
     public OpenapiServerConfig(
         String url)
     {
-        this.url = Optional.ofNullable(url).orElse("");
+        this.url = url;
     }
 }
 

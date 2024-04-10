@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.config;
 
+import static java.util.Collections.emptyList;
+
 import java.util.List;
 
 public class AsyncapiConfig
@@ -30,5 +32,12 @@ public class AsyncapiConfig
         this.apiLabel = apiLabel;
         this.catalogs = catalogs;
         this.servers = servers;
+    }
+
+    public AsyncapiConfig(
+        String apiLabel,
+        List<AsyncapiCatalogConfig> catalogs)
+    {
+        this(apiLabel, emptyList(), catalogs);
     }
 }

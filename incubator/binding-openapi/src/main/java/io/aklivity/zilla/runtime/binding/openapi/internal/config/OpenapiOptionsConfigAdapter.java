@@ -29,12 +29,12 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiCatalogConfig;
+import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiCatalogConfigBuilder;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
+import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiServerConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiServerConfigBuilder;
-import io.aklivity.zilla.runtime.binding.openapi.config.OpenpaiCatalogConfigBuilder;
-import io.aklivity.zilla.runtime.binding.openapi.config.OpenpaiOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiBinding;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
@@ -58,10 +58,6 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
     private OptionsConfigAdapter tcpOptions;
     private OptionsConfigAdapter tlsOptions;
     private OptionsConfigAdapter httpOptions;
-
-    public OpenapiOptionsConfigAdapter()
-    {
-    }
 
     @Override
     public Kind kind()
@@ -156,7 +152,7 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
     public OptionsConfig adaptFromJson(
         JsonObject object)
     {
-        OpenpaiOptionsConfigBuilder<OpenapiOptionsConfig> openapiOptions = OpenapiOptionsConfig.builder();
+        OpenapiOptionsConfigBuilder<OpenapiOptionsConfig> openapiOptions = OpenapiOptionsConfig.builder();
 
         if (object.containsKey(TCP_NAME))
         {
@@ -212,7 +208,7 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
 
                     for (Map.Entry<String, JsonValue> catalogEntry : catalog.entrySet())
                     {
-                        OpenpaiCatalogConfigBuilder<OpenapiCatalogConfig> catalogBuilder = OpenapiCatalogConfig.builder();
+                        OpenapiCatalogConfigBuilder<OpenapiCatalogConfig> catalogBuilder = OpenapiCatalogConfig.builder();
                         JsonObject catalogObject = catalogEntry.getValue().asJsonObject();
 
                         catalogBuilder.name(catalogEntry.getKey());
