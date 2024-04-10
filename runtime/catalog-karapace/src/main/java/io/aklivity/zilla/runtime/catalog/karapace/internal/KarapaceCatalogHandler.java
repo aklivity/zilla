@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.catalog.karapace.common;
+package io.aklivity.zilla.runtime.catalog.karapace.internal;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -27,9 +27,7 @@ import org.agrona.DirectBuffer;
 import org.agrona.collections.Int2ObjectCache;
 import org.agrona.concurrent.UnsafeBuffer;
 
-import io.aklivity.zilla.runtime.catalog.karapace.common.config.KarapaceOptionsConfig;
-import io.aklivity.zilla.runtime.catalog.karapace.internal.CachedSchemaId;
-import io.aklivity.zilla.runtime.catalog.karapace.internal.KarapaceEventContext;
+import io.aklivity.zilla.runtime.catalog.karapace.internal.config.KarapaceOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.karapace.internal.serializer.RegisterSchemaRequest;
 import io.aklivity.zilla.runtime.catalog.karapace.internal.types.KarapacePrefixFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -60,8 +58,7 @@ public class KarapaceCatalogHandler implements CatalogHandler
     public KarapaceCatalogHandler(
         KarapaceOptionsConfig config,
         EngineContext context,
-        long catalogId,
-        String catalogName)
+        long catalogId)
     {
         this.baseUrl = config.url;
         this.client = HttpClient.newHttpClient();
@@ -70,7 +67,7 @@ public class KarapaceCatalogHandler implements CatalogHandler
         this.schemas = new Int2ObjectCache<>(1, 1024, i -> {});
         this.schemaIds = new Int2ObjectCache<>(1, 1024, i -> {});
         this.maxAgeMillis = config.maxAge.toMillis();
-        this.event = new KarapaceEventContext(context, catalogName);
+        this.event = new KarapaceEventContext(context);
         this.catalogId = catalogId;
     }
 

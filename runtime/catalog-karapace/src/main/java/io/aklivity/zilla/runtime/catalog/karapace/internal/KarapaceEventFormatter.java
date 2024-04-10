@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.catalog.karapace.common;
+package io.aklivity.zilla.runtime.catalog.karapace.internal;
 
 import org.agrona.DirectBuffer;
 
@@ -30,7 +30,7 @@ public final class KarapaceEventFormatter implements EventFormatterSpi
     private final EventFW eventRO = new EventFW();
     private final KarapaceEventExFW karapaceEventExRO = new KarapaceEventExFW();
 
-    public KarapaceEventFormatter(
+    KarapaceEventFormatter(
         Configuration config)
     {
     }

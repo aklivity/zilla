@@ -17,9 +17,6 @@ module io.aklivity.zilla.runtime.catalog.karapace
     requires java.net.http;
     requires io.aklivity.zilla.runtime.engine;
 
-    exports io.aklivity.zilla.runtime.catalog.karapace.common;
-    exports io.aklivity.zilla.runtime.catalog.karapace.common.config;
-
     provides io.aklivity.zilla.runtime.engine.catalog.CatalogFactorySpi
         with io.aklivity.zilla.runtime.catalog.karapace.internal.KarapaceCatalogFactorySpi;
 

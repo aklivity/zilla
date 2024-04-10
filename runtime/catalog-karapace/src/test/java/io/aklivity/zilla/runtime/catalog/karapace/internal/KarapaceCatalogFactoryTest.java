@@ -23,8 +23,7 @@ import java.time.Duration;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.catalog.karapace.common.KarapaceCatalogHandler;
-import io.aklivity.zilla.runtime.catalog.karapace.common.config.KarapaceOptionsConfig;
+import io.aklivity.zilla.runtime.catalog.karapace.internal.config.KarapaceOptionsConfig;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.Catalog;
