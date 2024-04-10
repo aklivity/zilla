@@ -10,6 +10,6 @@ spec:
   containers:
     - name: wget
       image: busybox
-      command: ['wget']
-      args: ['{{ include "zilla.fullname" . }}:{{ .Values.service.port }}']
+      command: ['nc']
+      args: ['-vz', '{{ include "zilla.fullname" . }}:{{ (first .Values.service.ports).port  }}']
   restartPolicy: Never
