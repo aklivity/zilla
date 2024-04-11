@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.stream;
 
+import java.util.function.Consumer;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
@@ -43,6 +44,7 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 
 public final class AsyncapiClientFactory implements AsyncapiStreamFactory
 {
@@ -77,6 +79,8 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyTraceId;
     private final LongFunction<CatalogHandler> supplyCatalog;
+    private final Consumer<NamespaceConfig> attachComposite;
+    private final Consumer<NamespaceConfig> detachComposite;
     private final Long2ObjectHashMap<AsyncapiBindingConfig> bindings;
     private final int asyncapiTypeId;
     private final int mqttTypeId;
@@ -98,6 +102,8 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
         this.supplyReplyId = context::supplyReplyId;
         this.supplyTraceId = context::supplyTraceId;
         this.supplyCatalog = context::supplyCatalog;
+        this.attachComposite = context::attachComposite;
+        this.detachComposite = context::detachComposite;
         this.bindings = new Long2ObjectHashMap<>();
         this.asyncapiTypeId = context.supplyTypeId(AsyncapiBinding.NAME);
         this.mqttTypeId = context.supplyTypeId(MQTT_TYPE_NAME);
@@ -120,7 +126,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
         BindingConfig binding)
     {
         AsyncapiBindingConfig asyncapiBinding = new AsyncapiBindingConfig(binding, namespaceGenerator, supplyCatalog,
-            config.targetRouteId());
+            attachComposite, detachComposite, config.targetRouteId());
         bindings.put(binding.id, asyncapiBinding);
 
         asyncapiBinding.attach(binding);

@@ -19,11 +19,8 @@ import static java.util.Objects.requireNonNull;
 import static java.util.function.Function.identity;
 
 import java.util.List;
-import java.util.concurrent.ConcurrentMap;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.ToLongFunction;
-import java.util.function.UnaryOperator;
 
 public class BindingConfig
 {
@@ -37,8 +34,11 @@ public class BindingConfig
 
     public transient long[] metricIds;
 
-    public transient UnaryOperator<NamespaceConfig> attach;
-    public transient Consumer<NamespaceConfig> detach;
+    public transient long typeId;
+    public transient long kindId;
+
+    public transient long originTypeId;
+    public transient long routedTypeId;
 
     public final String namespace;
     public final String name;
@@ -51,7 +51,6 @@ public class BindingConfig
     public final List<CatalogedConfig> catalogs;
     public final List<RouteConfig> routes;
     public final TelemetryRefConfig telemetryRef;
-    public final ConcurrentMap<String, NamespaceConfig> composites;
 
     public static BindingConfigBuilder<BindingConfig> builder()
     {
@@ -77,8 +76,7 @@ public class BindingConfig
             .options(binding.options)
             .catalogs(binding.catalogs)
             .routes(binding.routes)
-            .telemetry(binding.telemetryRef)
-            .composites(binding.composites.values());
+            .telemetry(binding.telemetryRef);
     }
 
     BindingConfig(
@@ -91,8 +89,7 @@ public class BindingConfig
         OptionsConfig options,
         List<CatalogedConfig> catalogs,
         List<RouteConfig> routes,
-        TelemetryRefConfig telemetryRef,
-        ConcurrentMap<String, NamespaceConfig> composites)
+        TelemetryRefConfig telemetryRef)
     {
         this.namespace = requireNonNull(namespace);
         this.name = requireNonNull(name);
@@ -105,6 +102,5 @@ public class BindingConfig
         this.routes = routes;
         this.catalogs = catalogs;
         this.telemetryRef = telemetryRef;
-        this.composites = composites;
     }
 }

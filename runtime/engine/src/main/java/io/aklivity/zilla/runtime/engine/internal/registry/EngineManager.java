@@ -22,7 +22,6 @@ import java.net.URL;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -47,7 +46,6 @@ import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.ConfigException;
 import io.aklivity.zilla.runtime.engine.config.EngineConfig;
 import io.aklivity.zilla.runtime.engine.config.EngineConfigReader;
-import io.aklivity.zilla.runtime.engine.config.EngineConfigWriter;
 import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
 import io.aklivity.zilla.runtime.engine.config.GuardConfig;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
@@ -64,7 +62,6 @@ import io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
 import io.aklivity.zilla.runtime.engine.guard.Guard;
 import io.aklivity.zilla.runtime.engine.internal.Tuning;
 import io.aklivity.zilla.runtime.engine.internal.config.NamespaceAdapter;
-import io.aklivity.zilla.runtime.engine.internal.layouts.BindingsLayout;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 import io.aklivity.zilla.runtime.engine.resolver.Resolver;
 
@@ -168,6 +165,17 @@ public class EngineManager
         return newConfig;
     }
 
+    public void process(
+        NamespaceConfig namespace)
+    {
+        final List<GuardConfig> guards = current.namespaces.stream()
+                .map(n -> n.guards)
+                .flatMap(gs -> gs.stream())
+                .collect(toList());
+
+        process(guards, namespace);
+    }
+
     private EngineConfig parse(
         URL configURL,
         String configText)
@@ -201,16 +209,8 @@ public class EngineManager
 
             for (NamespaceConfig namespace : engine.namespaces)
             {
-                namespace.readURL = namespaceReadURL;
+                namespace.readURL = l -> readURL.apply(configURL, l);
                 process(guards, namespace);
-            }
-
-            if (config.verboseComposites())
-            {
-                EngineConfigWriter writer = new EngineConfigWriter(null);
-                engine.namespaces.stream()
-                    .flatMap(n -> n.bindings.stream().flatMap(b -> b.composites.values().stream()))
-                    .forEach(n -> System.out.println(writer.write(n)));
             }
         }
         catch (Throwable ex)
@@ -264,8 +264,14 @@ public class EngineManager
             binding.resolveId = resolver::resolve;
             binding.readURL = namespace.readURL;
 
-            binding.attach = n -> attachComposite(binding, n);
-            binding.detach = n -> detachComposite(binding, n);
+            binding.typeId = supplyId.applyAsInt(binding.type);
+            binding.kindId = supplyId.applyAsInt(binding.kind.name().toLowerCase());
+
+            Binding typed = bindingByType.apply(binding.type);
+            String originType = typed.originType(binding.kind);
+            String routedType = typed.routedType(binding.kind);
+            binding.originTypeId = originType != null ? supplyId.applyAsInt(originType) : 0L;
+            binding.routedTypeId = routedType != null ? supplyId.applyAsInt(routedType) : 0L;
 
             if (binding.vault != null)
             {
@@ -349,12 +355,6 @@ public class EngineManager
             }
             binding.metricIds = metricIds.stream().mapToLong(Long::longValue).toArray();
 
-            for (NamespaceConfig composite : binding.composites.values())
-            {
-                composite.readURL = binding.readURL;
-                process(guards, composite);
-            }
-
             long affinity = tuning.affinity(binding.id);
 
             final long maxbits = maxWorkers.apply(binding.type.intern().hashCode()).applyAsInt(binding.kind);
@@ -379,11 +379,6 @@ public class EngineManager
         }
 
         extensions.forEach(e -> e.onRegistered(context));
-
-        if (config != null)
-        {
-            writeBindingTypes(config);
-        }
     }
 
     private void unregister(
@@ -419,88 +414,6 @@ public class EngineManager
                 .reduce(CompletableFuture::allOf)
                 .ifPresent(CompletableFuture::join);
         }
-    }
-
-    private void writeBindingTypes(
-        EngineConfig engine)
-    {
-        try (BindingsLayout layout = BindingsLayout.builder()
-                .directory(config.directory())
-                .build())
-        {
-            LinkedList<NamespaceConfig> namespaces = new LinkedList<>(engine.namespaces);
-            for (int i = 0; i < namespaces.size(); i++)
-            {
-                NamespaceConfig namespace = namespaces.get(i);
-                for (BindingConfig binding : namespace.bindings)
-                {
-                    long typeId = binding.resolveId.applyAsLong(binding.type);
-                    long kindId = binding.resolveId.applyAsLong(binding.kind.name().toLowerCase());
-                    Binding typed = bindingByType.apply(binding.type);
-                    long originTypeId = binding.resolveId.applyAsLong(typed.originType(binding.kind));
-                    long routedTypeId = binding.resolveId.applyAsLong(typed.routedType(binding.kind));
-                    layout.writeBindingInfo(binding.id, typeId, kindId, originTypeId, routedTypeId);
-                    if (binding.composites != null)
-                    {
-                        namespaces.addAll(binding.composites.values());
-                    }
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            LangUtil.rethrowUnchecked(ex);
-        }
-    }
-
-    private NamespaceConfig attachComposite(
-        BindingConfig binding,
-        NamespaceConfig composite)
-    {
-        NamespaceConfig attached = binding.composites.putIfAbsent(composite.name, composite);
-
-        if (attached == null)
-        {
-            composite.readURL = binding.readURL;
-            process(composite);
-            writeBindingTypes(current);
-            register(composite);
-
-            attached = composite;
-
-            if (config.verboseComposites())
-            {
-                EngineConfigWriter writer = new EngineConfigWriter(null);
-                System.out.println(writer.write(attached));
-            }
-        }
-
-        attached.refs.incrementAndGet();
-
-        return attached;
-    }
-
-    private void detachComposite(
-        BindingConfig binding,
-        NamespaceConfig composite)
-    {
-        BiFunction<String, NamespaceConfig, NamespaceConfig> remapper = (k, v) -> v.refs.decrementAndGet() == 0 ? null : v;
-
-        if (binding.composites.computeIfPresent(composite.name, remapper) == null)
-        {
-            unregister(composite);
-        }
-    }
-
-    private void process(
-        NamespaceConfig namespace)
-    {
-        final List<GuardConfig> guards = current.namespaces.stream()
-                .map(n -> n.guards)
-                .flatMap(gs -> gs.stream())
-                .collect(toList());
-
-        process(guards, namespace);
     }
 
     private final class NameResolver

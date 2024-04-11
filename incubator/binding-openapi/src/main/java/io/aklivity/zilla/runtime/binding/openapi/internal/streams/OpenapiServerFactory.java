@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.streams;
 
+import java.util.function.Consumer;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
@@ -45,6 +46,7 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 
 public final class OpenapiServerFactory implements OpenapiStreamFactory
 {
@@ -82,6 +84,8 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyTraceId;
     private final LongFunction<CatalogHandler> supplyCatalog;
+    private final Consumer<NamespaceConfig> attachComposite;
+    private final Consumer<NamespaceConfig> detachComposite;
     private final Long2ObjectHashMap<OpenapiBindingConfig> bindings;
     private final int openapiTypeId;
     private final int httpTypeId;
@@ -99,6 +103,8 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
         this.supplyReplyId = context::supplyReplyId;
         this.supplyTraceId = context::supplyTraceId;
         this.supplyCatalog = context::supplyCatalog;
+        this.attachComposite = context::attachComposite;
+        this.detachComposite = context::detachComposite;
         this.namespaceGenerator = new OpenapiServerNamespaceGenerator();
         this.bindings = new Long2ObjectHashMap<>();
         this.openapiTypeId = context.supplyTypeId(OpenapiBinding.NAME);
@@ -122,7 +128,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
         BindingConfig binding)
     {
         OpenapiBindingConfig openapiBinding = new OpenapiBindingConfig(binding, namespaceGenerator, supplyCatalog,
-            config.targetRouteId());
+            attachComposite, detachComposite, config.targetRouteId());
         bindings.put(binding.id, openapiBinding);
 
         openapiBinding.attach(binding);

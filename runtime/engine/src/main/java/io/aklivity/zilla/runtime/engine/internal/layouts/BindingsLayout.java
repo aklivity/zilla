@@ -28,6 +28,8 @@ import java.util.Map;
 
 import org.agrona.LangUtil;
 
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+
 public final class BindingsLayout implements AutoCloseable
 {
     private static final int RECORD_SIZE = 5 * Long.BYTES;
@@ -49,19 +51,16 @@ public final class BindingsLayout implements AutoCloseable
     }
 
     public void writeBindingInfo(
-        long id,
-        long typeId,
-        long kindId,
-        long originTypeId,
-        long routedTypeId)
+        BindingConfig binding)
     {
         byteBuf.clear();
-        byteBuf.putLong(id);
-        byteBuf.putLong(typeId);
-        byteBuf.putLong(kindId);
-        byteBuf.putLong(originTypeId);
-        byteBuf.putLong(routedTypeId);
+        byteBuf.putLong(binding.id);
+        byteBuf.putLong(binding.typeId);
+        byteBuf.putLong(binding.kindId);
+        byteBuf.putLong(binding.originTypeId);
+        byteBuf.putLong(binding.routedTypeId);
         byteBuf.flip();
+
         while (byteBuf.hasRemaining())
         {
             try
@@ -101,10 +100,10 @@ public final class BindingsLayout implements AutoCloseable
         private Path path;
         private boolean readonly;
 
-        public Builder directory(
-            Path directory)
+        public Builder path(
+            Path path)
         {
-            this.path = directory.resolve("bindings");
+            this.path = path;
             return this;
         }
 
