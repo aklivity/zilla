@@ -90,19 +90,15 @@ public final class OpenapiServerNamespaceGenerator extends OpenapiNamespaceGener
 
     private <C> BindingConfigBuilder<C> injectPlainTcpRoute(
         BindingConfigBuilder<C> binding,
-        int[] httpPorts,
-        boolean secure)
+        int[] httpPorts)
     {
-        if (secure)
-        {
-            binding
-                .route()
-                    .when(TcpConditionConfig::builder)
-                        .ports(httpPorts)
-                        .build()
-                    .exit("http_server0")
-                    .build();
-        }
+        binding
+            .route()
+                .when(TcpConditionConfig::builder)
+                    .ports(httpPorts)
+                    .build()
+                .exit("http_server0")
+                .build();
         return binding;
     }
 
@@ -377,7 +373,7 @@ public final class OpenapiServerNamespaceGenerator extends OpenapiNamespaceGener
                 .type("tcp")
                 .kind(SERVER)
                 .options(tcpOption)
-                .inject(b -> this.injectPlainTcpRoute(b, httpPorts, secure))
+                .inject(b -> this.injectPlainTcpRoute(b, httpPorts))
                 .inject(b -> this.injectTlsTcpRoute(b, httpsPorts))
                 .inject(b -> this.injectMetrics(b, metricRefs, "tcp"))
                 .build();
