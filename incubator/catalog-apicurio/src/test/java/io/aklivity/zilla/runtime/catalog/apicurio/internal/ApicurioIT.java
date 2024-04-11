@@ -122,6 +122,36 @@ public class ApicurioIT
 
     @Test
     @Specification({
+        "${local}/resolve.artifact.latest.version" })
+    public void shouldResolveArtifactLatestVersion() throws Exception
+    {
+        String expected = "asyncapi: 3.0.0\n" +
+            "info:\n" +
+            "  title: Zilla MQTT Proxy\n" +
+            "  version: 1.0.0\n" +
+            "  license:\n" +
+            "    name: Aklivity Community License\n" +
+            "servers:\n" +
+            "  plain:\n" +
+            "    host: mqtt://localhost:7183\n" +
+            "    protocol: mqtt\n" +
+            "defaultContentType: application/json";
+
+        ApicurioCatalogHandler catalog = new ApicurioCatalogHandler(config, context, 0L);
+
+        int globalId = catalog.resolve("artifactId", "latest");
+
+        String artifact = catalog.resolve(globalId);
+
+        k3po.finish();
+
+        assertEquals(globalId, 1);
+        assertThat(artifact, not(nullValue()));
+        assertEquals(expected, artifact);
+    }
+
+    @Test
+    @Specification({
         "${local}/resolve.artifact.via.global.id" })
     public void shouldResolveArtifactViaGlobalIdFromCache() throws Exception
     {
