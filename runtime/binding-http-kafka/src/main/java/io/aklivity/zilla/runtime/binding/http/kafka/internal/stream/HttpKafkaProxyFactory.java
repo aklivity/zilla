@@ -2429,7 +2429,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                         .headers(delegate.resolved::noreply)
                         .build();
 
-                doHttpBegin(traceId, authorization, a, httpBeginEx);
+                doHttpBegin(traceId, authorization, affinity, httpBeginEx);
 
                 state = HttpKafkaState.closingReply(state);
             }
