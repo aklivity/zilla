@@ -27,6 +27,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiChannel;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiOperation;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiReply;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiChannelView;
@@ -63,12 +64,10 @@ public final class OpenapiAsyncNamespaceGenerator
     private static final Pattern JSON_CONTENT_TYPE = Pattern.compile("^application/(?:.+\\+)?json$");
     private static final Pattern PARAMETER_PATTERN = Pattern.compile("\\{([^}]+)\\}");
     private static final Pattern CORRELATION_PATTERN = Pattern.compile(CORRELATION_ID);
-    private static final Pattern REPLY_TO_PATTERN = Pattern.compile("#(.*)");
 
     private final Matcher jsonContentType = JSON_CONTENT_TYPE.matcher("");
     private final Matcher parameters = PARAMETER_PATTERN.matcher("");
     private final Matcher correlation = CORRELATION_PATTERN.matcher("");
-    private final Matcher replyTo = REPLY_TO_PATTERN.matcher("");
 
     public NamespaceConfig generate(
         BindingConfig binding,
@@ -202,7 +201,8 @@ public final class OpenapiAsyncNamespaceGenerator
         case "send":
             newWith.produce(HttpKafkaWithProduceConfig.builder()
                 .topic(topic)
-                .inject(w -> injectHttpKafkaRouteProduceWith(w, openapiOperation, asyncapiOperation, paramNames))
+                .inject(w -> injectHttpKafkaRouteProduceWith(w, openapiOperation, asyncapiOperation,
+                    asyncapi.channels, paramNames))
                 .build());
             break;
         }
@@ -248,6 +248,7 @@ public final class OpenapiAsyncNamespaceGenerator
         HttpKafkaWithProduceConfigBuilder<C> produce,
         OpenapiOperation openapiOperation,
         AsyncapiOperation asyncapiOperation,
+        Map<String, AsyncapiChannel> channels,
         List<String> paramNames)
     {
         final String key = !paramNames.isEmpty() ? String.format("${params.%s}",
@@ -281,13 +282,8 @@ public final class OpenapiAsyncNamespaceGenerator
         AsyncapiReply reply = asyncapiOperation.reply;
         if (reply != null)
         {
-            final String location = reply.address.location;
-            Matcher matcher = replyTo.reset(location);
-
-            if (matcher.find())
-            {
-                produce.replyTo(matcher.group(1));
-            }
+            AsyncapiChannelView channel = AsyncapiChannelView.of(channels, reply.channel);
+            produce.replyTo(channel.address());
         }
 
         produce.build();
@@ -308,7 +304,7 @@ public final class OpenapiAsyncNamespaceGenerator
         return hasCorrelationId;
     }
 
-    protected <C> NamespaceConfigBuilder<C> injectNamespaceMetric(
+    private <C> NamespaceConfigBuilder<C> injectNamespaceMetric(
          NamespaceConfigBuilder<C> namespace,
         boolean hasMetrics)
     {
