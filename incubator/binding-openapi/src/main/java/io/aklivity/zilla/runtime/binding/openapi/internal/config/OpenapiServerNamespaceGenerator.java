@@ -93,7 +93,7 @@ public final class OpenapiServerNamespaceGenerator extends OpenapiNamespaceGener
         int[] httpPorts,
         boolean secure)
     {
-        if (secure)
+        if (!secure)
         {
             binding
                 .route()
@@ -226,7 +226,10 @@ public final class OpenapiServerNamespaceGenerator extends OpenapiNamespaceGener
             {
                 if (parameter.schema != null && parameter.schema.type != null)
                 {
-                    ModelConfig model = models.get(parameter.schema.type);
+                    OpenapiSchema schema = parameter.schema;
+                    String modelName = schema.format != null ? String.format("%s:%s", schema.type, schema.format) :
+                        schema.type;
+                    ModelConfig model = models.get(modelName);
                     if (model != null)
                     {
                         switch (parameter.in)
