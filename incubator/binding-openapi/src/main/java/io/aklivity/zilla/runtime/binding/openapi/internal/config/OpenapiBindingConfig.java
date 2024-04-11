@@ -69,6 +69,7 @@ public final class OpenapiBindingConfig
     private final Long2LongHashMap apiIdsByNamespaceId;
     private final HttpHeaderHelper helper;
     private final OpenapiParser parser;
+    private final Consumer<NamespaceConfig> attach;
     private final Consumer<NamespaceConfig> detach;
     private final Long2LongHashMap resolvedIds;
     private final Object2ObjectHashMap<Matcher, OpenapiPathItem> paths;
@@ -79,6 +80,8 @@ public final class OpenapiBindingConfig
         BindingConfig binding,
         OpenapiNamespaceGenerator namespaceGenerator,
         LongFunction<CatalogHandler> supplyCatalog,
+        Consumer<NamespaceConfig> attachComposite,
+        Consumer<NamespaceConfig> detachComposite,
         long overrideRouteId)
     {
         this.id = binding.id;
@@ -96,7 +99,8 @@ public final class OpenapiBindingConfig
         this.httpOrigins = new IntHashSet(-1);
         this.parser = new OpenapiParser();
         this.helper = new HttpHeaderHelper();
-        this.detach = binding.detach;
+        this.attach = attachComposite;
+        this.detach = detachComposite;
         this.routes = binding.routes.stream().map(OpenapiRouteConfig::new).collect(toList());
 
         Map<CharSequence, Function<OpenapiPathItem, String>> resolversByMethod = new TreeMap<>(CharSequence::compare);
@@ -118,7 +122,9 @@ public final class OpenapiBindingConfig
         configs.forEach(c ->
         {
             Openapi openapi = c.openapi;
-            final NamespaceConfig composite = binding.attach.apply(namespaceGenerator.generate(binding, openapi));
+            final NamespaceConfig composite = namespaceGenerator.generate(binding, openapi);
+            composite.readURL = binding.readURL;
+            attach.accept(composite);
             composites.put(c.schemaId, composite);
             openapi.paths.forEach((k, v) ->
             {

@@ -62,6 +62,7 @@ public final class OpenapiAsyncapiBindingConfig
     private final Object2LongHashMap<String> asyncapiSchemaIdsByApiId;
     private final AsyncapiParser asyncapiParser;
     private final OpenapiParser openapiParser;
+    private final Consumer<NamespaceConfig> attach;
     private final Consumer<NamespaceConfig> detach;
 
     private NamespaceConfig composite;
@@ -70,14 +71,17 @@ public final class OpenapiAsyncapiBindingConfig
     public OpenapiAsyncapiBindingConfig(
         BindingConfig binding,
         OpenapiAsyncNamespaceGenerator namespaceGenerator,
-        LongFunction<CatalogHandler> supplyCatalog)
+        LongFunction<CatalogHandler> supplyCatalog,
+        Consumer<NamespaceConfig> attachComposite,
+        Consumer<NamespaceConfig> detachComposite)
     {
         this.id = binding.id;
         this.name = binding.name;
         this.kind = binding.kind;
         this.options = (OpenapiAsyncapiOptionsConfig) binding.options;
         this.resolvedIds = binding.resolveId;
-        this.detach = binding.detach;
+        this.attach = attachComposite;
+        this.detach = detachComposite;
         this.openapiSchemaIdsByApiId = new Object2LongHashMap<>(-1);
         this.asyncapiSchemaIdsByApiId = new Object2LongHashMap<>(-1);
         this.compositeResolvedIds = new Long2LongHashMap(-1);
@@ -139,8 +143,9 @@ public final class OpenapiAsyncapiBindingConfig
                     (e, n) -> e,
                     Object2ObjectHashMap::new));
 
-        this.composite = binding.attach.apply(namespaceGenerator.generate(binding, openapis,
-            asyncapis, openapiSchemaIdsByApiId::get));
+        this.composite = namespaceGenerator.generate(binding, openapis, asyncapis, openapiSchemaIdsByApiId::get);
+        this.composite.readURL = binding.readURL;
+        attach.accept(this.composite);
 
         BindingConfig mappingBinding = composite.bindings.stream()
             .filter(b -> b.type.equals("http-kafka")).findFirst().get();

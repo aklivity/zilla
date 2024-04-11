@@ -71,6 +71,7 @@ public final class AsyncapiBindingConfig
     private final Map<CharSequence, String> operationIds;
     private final LongFunction<CatalogHandler> supplyCatalog;
     private final ToLongFunction<String> resolveId;
+    private final Consumer<NamespaceConfig> attach;
     private final Consumer<NamespaceConfig> detach;
     private final long overrideRouteId;
     private final HttpHeaderHelper helper;
@@ -80,6 +81,8 @@ public final class AsyncapiBindingConfig
         BindingConfig binding,
         AsyncapiNamespaceGenerator namespaceGenerator,
         LongFunction<CatalogHandler> supplyCatalog,
+        Consumer<NamespaceConfig> attachComposite,
+        Consumer<NamespaceConfig> detachComposite,
         long overrideRouteId)
     {
         this.id = binding.id;
@@ -99,7 +102,8 @@ public final class AsyncapiBindingConfig
         this.operationIds = new TreeMap<>(CharSequence::compare);
         this.helper = new HttpHeaderHelper();
         this.parser = new AsyncapiParser();
-        this.detach = binding.detach;
+        this.attach = attachComposite;
+        this.detach = detachComposite;
         this.routes = binding.routes.stream().map(r -> new AsyncapiRouteConfig(r, schemaIdsByApiId::get)).collect(toList());
     }
 
@@ -218,9 +222,9 @@ public final class AsyncapiBindingConfig
                         (existingValue, newValue) -> existingValue,
                         Object2ObjectHashMap::new));
 
-        final NamespaceConfig composite = binding.attach.apply(namespaceGenerator.generateProxy(binding, asyncapis,
-            schemaIdsByApiId::get));
-
+        final NamespaceConfig composite = namespaceGenerator.generateProxy(binding, asyncapis, schemaIdsByApiId::get);
+        composite.readURL = binding.readURL;
+        attach.accept(composite);
         for (AsyncapiSchemaConfig config : configs)
         {
             Asyncapi asyncapi = config.asyncapi;
@@ -235,7 +239,9 @@ public final class AsyncapiBindingConfig
         for (AsyncapiSchemaConfig config : configs)
         {
             Asyncapi asyncapi = config.asyncapi;
-            final NamespaceConfig composite = binding.attach.apply(namespaceGenerator.generate(binding, asyncapi));
+            final NamespaceConfig composite = namespaceGenerator.generate(binding, asyncapi);
+            composite.readURL = binding.readURL;
+            attach.accept(composite);
             updateNamespace(config, composite, asyncapi);
         }
     }

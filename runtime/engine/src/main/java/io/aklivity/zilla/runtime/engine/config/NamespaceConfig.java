@@ -19,7 +19,6 @@ import static java.util.Objects.requireNonNull;
 import static java.util.function.Function.identity;
 
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 public class NamespaceConfig
@@ -33,8 +32,6 @@ public class NamespaceConfig
     public final List<GuardConfig> guards;
     public final List<VaultConfig> vaults;
     public final List<CatalogConfig> catalogs;
-
-    public final AtomicInteger refs;
 
     public static NamespaceConfigBuilder<NamespaceConfig> builder()
     {
@@ -55,6 +52,5 @@ public class NamespaceConfig
         this.guards = requireNonNull(guards);
         this.vaults = requireNonNull(vaults);
         this.catalogs = requireNonNull(catalogs);
-        this.refs = new AtomicInteger();
     }
 }

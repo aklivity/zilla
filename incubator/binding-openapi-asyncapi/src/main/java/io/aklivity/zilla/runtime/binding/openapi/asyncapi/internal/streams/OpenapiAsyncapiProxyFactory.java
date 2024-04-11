@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.streams;
 
+import java.util.function.Consumer;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
@@ -47,6 +48,7 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 
 public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamFactory
 {
@@ -83,6 +85,8 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyTraceId;
     private final LongFunction<CatalogHandler> supplyCatalog;
+    private final Consumer<NamespaceConfig> attachComposite;
+    private final Consumer<NamespaceConfig> detachComposite;
     private final Long2ObjectHashMap<OpenapiAsyncapiBindingConfig> bindings;
     private final Long2LongHashMap apiIds;
     private final OpenapiAsyncapiConfiguration config;
@@ -104,6 +108,8 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
         this.supplyReplyId = context::supplyReplyId;
         this.supplyTraceId = context::supplyTraceId;
         this.supplyCatalog = context::supplyCatalog;
+        this.attachComposite = context::attachComposite;
+        this.detachComposite = context::detachComposite;
         this.bindings = new Long2ObjectHashMap<>();
         this.apiIds = new Long2LongHashMap(-1);
         this.openapiTypeId = context.supplyTypeId(OpenapiBinding.NAME);
@@ -122,7 +128,7 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
         BindingConfig binding)
     {
         OpenapiAsyncapiBindingConfig apiBinding = new OpenapiAsyncapiBindingConfig(binding,
-            namespaceGenerator, supplyCatalog);
+            namespaceGenerator, supplyCatalog, attachComposite, detachComposite);
         bindings.put(binding.id, apiBinding);
 
         apiBinding.attach(binding);

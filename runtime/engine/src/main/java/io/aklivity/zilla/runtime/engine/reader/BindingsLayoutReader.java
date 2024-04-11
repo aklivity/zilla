@@ -42,19 +42,19 @@ public final class BindingsLayoutReader
 
     public static final class Builder
     {
-        private Path directory;
+        private Path path;
 
-        public Builder directory(
-            Path directory)
+        public Builder path(
+            Path path)
         {
-            this.directory = directory;
+            this.path = path;
             return this;
         }
 
         public BindingsLayoutReader build()
         {
             BindingsLayout bindingsLayout = BindingsLayout.builder()
-                .directory(directory)
+                .path(path)
                 .readonly(true)
                 .build();
             return new BindingsLayoutReader(bindingsLayout);

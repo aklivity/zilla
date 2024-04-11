@@ -59,6 +59,7 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageReader;
 import io.aklivity.zilla.runtime.engine.catalog.Catalog;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
+import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.event.EventFormatterFactory;
 import io.aklivity.zilla.runtime.engine.exporter.Exporter;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtContext;
@@ -95,6 +96,7 @@ public final class Engine implements Collector, AutoCloseable
     private final List<EngineWorker> workers;
     private final boolean readonly;
     private final EngineConfiguration config;
+    private final EngineManager manager;
 
     private Future<Void> watcherTaskRef;
 
@@ -163,7 +165,7 @@ public final class Engine implements Collector, AutoCloseable
             EngineWorker worker =
                 new EngineWorker(config, tasks, labels, errorHandler, tuning::affinity, bindings, exporters,
                     guards, vaults, catalogs, models, metricGroups, this, this::supplyEventReader,
-                    eventFormatterFactory, workerIndex, readonly);
+                    eventFormatterFactory, workerIndex, readonly, this::process);
             workers.add(worker);
         }
         this.workers = workers;
@@ -226,6 +228,7 @@ public final class Engine implements Collector, AutoCloseable
         this.extensions = extensions;
         this.context = context;
         this.readonly = readonly;
+        this.manager = manager;
     }
 
     public <T> T binding(
@@ -236,6 +239,12 @@ public final class Engine implements Collector, AutoCloseable
                 .map(kind::cast)
                 .findFirst()
                 .orElse(null);
+    }
+
+    private void process(
+        NamespaceConfig config)
+    {
+        manager.process(config);
     }
 
     public void start() throws Exception
