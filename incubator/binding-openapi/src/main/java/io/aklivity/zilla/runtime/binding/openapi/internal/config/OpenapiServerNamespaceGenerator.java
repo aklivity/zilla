@@ -467,7 +467,7 @@ public final class OpenapiServerNamespaceGenerator extends OpenapiNamespaceGener
             for (String securitySchemeName : openApi.components.securitySchemes.keySet())
             {
                 String guardType = openApi.components.securitySchemes.get(securitySchemeName).bearerFormat;
-                if ("jwt".equals(guardType))
+                if ("jwt".equalsIgnoreCase(guardType))
                 {
                     result.put(securitySchemeName, guardType);
                 }
