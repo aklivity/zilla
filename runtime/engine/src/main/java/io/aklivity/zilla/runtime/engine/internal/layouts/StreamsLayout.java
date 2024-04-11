@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.layouts;
 
+import static java.lang.System.currentTimeMillis;
 import static org.agrona.IoUtil.createEmptyFile;
 import static org.agrona.IoUtil.mapExistingFile;
 import static org.agrona.IoUtil.unmap;
@@ -22,6 +23,7 @@ import static org.agrona.IoUtil.unmap;
 import java.io.File;
 import java.nio.MappedByteBuffer;
 import java.nio.file.Path;
+import java.util.concurrent.TimeUnit;
 
 import org.agrona.CloseHelper;
 import org.agrona.concurrent.AtomicBuffer;
@@ -100,6 +102,12 @@ public final class StreamsLayout implements AutoCloseable
             if (!readonly)
             {
                 CloseHelper.close(createEmptyFile(layoutFile, streamsCapacity + RingBufferDescriptor.TRAILER_LENGTH));
+            }
+
+            final long deadline = currentTimeMillis() + TimeUnit.SECONDS.toMillis(30L);
+            while (!layoutFile.exists() && currentTimeMillis() < deadline)
+            {
+                Thread.onSpinWait();
             }
 
             final MappedByteBuffer mappedStreams = mapExistingFile(layoutFile, "streams");
