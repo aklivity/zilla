@@ -39,6 +39,7 @@ import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.TelemetryRefConfigBuilder;
 import io.aklivity.zilla.runtime.model.core.config.Int32ModelConfig;
+import io.aklivity.zilla.runtime.model.core.config.Int64ModelConfig;
 import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
 
 public abstract class OpenapiNamespaceGenerator
@@ -52,7 +53,9 @@ public abstract class OpenapiNamespaceGenerator
     protected final Matcher jsonContentType = JSON_CONTENT_TYPE.matcher("");
     protected final Map<String, ModelConfig> models = Map.of(
         "string", StringModelConfig.builder().build(),
-        "integer", Int32ModelConfig.builder().build()
+        "integer", Int32ModelConfig.builder().build(),
+        "integer:int32", Int32ModelConfig.builder().build(),
+        "integer:int64", Int64ModelConfig.builder().build()
     );
 
     public abstract NamespaceConfig generate(
