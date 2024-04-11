@@ -44,6 +44,7 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.BindingHandlerState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
@@ -55,6 +56,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
     private static final String MQTT_TYPE_NAME = "mqtt";
     private static final String HTTP_TYPE_NAME = "http";
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(), 0, 0);
+
     private final BeginFW beginRO = new BeginFW();
     private final BeginFW compositeBeginRO = new BeginFW();
     private final HttpBeginExFW httpBeginRO = new HttpBeginExFW();
@@ -300,7 +302,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
 
             initialSeq = sequence;
             initialAck = acknowledge;
-            state = AsyncapiState.openingInitial(state);
+            state = BindingHandlerState.openingInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -342,7 +344,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             assert sequence >= initialSeq;
 
             initialSeq = sequence;
-            state = AsyncapiState.closeInitial(state);
+            state = BindingHandlerState.closeInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -380,7 +382,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             assert sequence >= initialSeq;
 
             initialSeq = sequence;
-            state = AsyncapiState.closeInitial(state);
+            state = BindingHandlerState.closeInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -390,11 +392,11 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
         private void doCompositeReset(
             long traceId)
         {
-            if (!AsyncapiState.initialClosed(state))
+            if (!BindingHandlerState.initialClosed(state))
             {
-                state = AsyncapiState.closeInitial(state);
+                state = BindingHandlerState.closeInitial(state);
 
-                doReset(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doReset(sender, state, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, EMPTY_OCTETS);
             }
         }
@@ -408,7 +410,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             initialAck = delegate.initialAck;
             initialMax = delegate.initialMax;
 
-            doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            doWindow(sender, state, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, budgetId, padding);
         }
 
@@ -416,9 +418,9 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             long traceId,
             OctetsFW extension)
         {
-            state = AsyncapiState.openingReply(state);
+            state = BindingHandlerState.openingReply(state);
 
-            doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doBegin(sender, state, originId, routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, authorization, affinity, extension);
         }
 
@@ -430,7 +432,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             Flyweight extension)
         {
 
-            doData(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doData(sender, state, originId, routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, authorization, replyBud, flag, reserved, payload, extension);
 
             replySeq += reserved;
@@ -441,7 +443,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             int reserved,
             OctetsFW extension)
         {
-            doFlush(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doFlush(sender, state, originId, routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, authorization, replyBud, reserved, extension);
         }
 
@@ -449,25 +451,25 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             long traceId,
             OctetsFW extension)
         {
-            if (AsyncapiState.replyOpening(state) && !AsyncapiState.replyClosed(state))
+            if (BindingHandlerState.replyOpening(state) && !BindingHandlerState.replyClosed(state))
             {
-                doEnd(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doEnd(sender, state, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, extension);
             }
 
-            state = AsyncapiState.closeReply(state);
+            state = BindingHandlerState.closeReply(state);
         }
 
         private void doCompositeAbort(
             long traceId)
         {
-            if (AsyncapiState.replyOpening(state) && !AsyncapiState.replyClosed(state))
+            if (BindingHandlerState.replyOpening(state) && !BindingHandlerState.replyClosed(state))
             {
-                doAbort(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doAbort(sender, state, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, EMPTY_OCTETS);
             }
 
-            state = AsyncapiState.closeInitial(state);
+            state = BindingHandlerState.closeInitial(state);
         }
 
         private void onCompositeReset(
@@ -485,7 +487,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
 
             replyAck = acknowledge;
             replyMax = maximum;
-            state = AsyncapiState.closeReply(state);
+            state = BindingHandlerState.closeReply(state);
 
             assert replyAck <= replySeq;
 
@@ -513,7 +515,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             replyBud = budgetId;
             replyPad = padding;
             replyCap = capabilities;
-            state = AsyncapiState.closingReply(state);
+            state = BindingHandlerState.closingReply(state);
 
             assert replyAck <= replySeq;
 
@@ -619,7 +621,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             final long traceId = begin.traceId();
             final OctetsFW extension = begin.extension();
 
-            state = AsyncapiState.openingReply(state);
+            state = BindingHandlerState.openingReply(state);
 
             final AsyncapiBeginExFW asyncapiBeginEx = extension.get(asyncapiBeginExRO::tryWrap);
             final OctetsFW asyncapiExtension = asyncapiBeginEx != null ? asyncapiBeginEx.extension() : EMPTY_OCTETS;
@@ -681,7 +683,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             assert sequence >= replySeq;
 
             replySeq = sequence;
-            state = AsyncapiState.closingReply(state);
+            state = BindingHandlerState.closingReply(state);
 
             assert replyAck <= replySeq;
 
@@ -699,7 +701,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             assert sequence >= replySeq;
 
             replySeq = sequence;
-            state = AsyncapiState.closingReply(state);
+            state = BindingHandlerState.closingReply(state);
 
             assert replyAck <= replySeq;
 
@@ -717,7 +719,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             assert acknowledge >= delegate.initialAck;
 
             delegate.initialAck = acknowledge;
-            state = AsyncapiState.closeInitial(state);
+            state = BindingHandlerState.closeInitial(state);
 
             assert delegate.initialAck <= delegate.initialSeq;
 
@@ -744,7 +746,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             initialAck = acknowledge;
             initialMax = maximum;
             initialBud = budgetId;
-            state = AsyncapiState.openInitial(state);
+            state = BindingHandlerState.openInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -754,12 +756,12 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
         private void doAsyncapiReset(
             long traceId)
         {
-            if (!AsyncapiState.replyClosed(state))
+            if (!BindingHandlerState.replyClosed(state))
             {
-                doReset(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doReset(receiver, state, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, EMPTY_OCTETS);
 
-                state = AsyncapiState.closeReply(state);
+                state = BindingHandlerState.closeReply(state);
             }
         }
 
@@ -772,7 +774,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             replyAck = Math.max(delegate.replyAck - replyPad, 0);
             replyMax = delegate.replyMax;
 
-            doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doWindow(receiver, state, originId, routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, authorization, budgetId, padding + replyPad);
         }
 
@@ -780,7 +782,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             long traceId,
             OctetsFW extension)
         {
-            if (!AsyncapiState.initialOpening(state))
+            if (!BindingHandlerState.initialOpening(state))
             {
                 assert state == 0;
 
@@ -795,9 +797,9 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
                 this.initialId = supplyInitialId.applyAsLong(routedId);
                 this.replyId = supplyReplyId.applyAsLong(initialId);
                 this.receiver = newStream(this::onAsyncapiMessage,
-                    originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    state, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, 0L, asyncapiBeginEx);
-                state = AsyncapiState.openingInitial(state);
+                state = BindingHandlerState.openingInitial(state);
             }
         }
 
@@ -810,7 +812,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             OctetsFW payload,
             Flyweight extension)
         {
-            doData(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            doData(receiver, state, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, budgetId, flags, reserved, payload, extension);
 
             initialSeq += reserved;
@@ -823,7 +825,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             int reserved,
             OctetsFW extension)
         {
-            doFlush(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            doFlush(receiver, state, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, initialBud, reserved, extension);
         }
 
@@ -831,12 +833,12 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             long traceId,
             OctetsFW extension)
         {
-            if (!AsyncapiState.initialClosed(state))
+            if (!BindingHandlerState.initialClosed(state))
             {
-                doEnd(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doEnd(receiver, state, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, extension);
 
-                state = AsyncapiState.closeInitial(state);
+                state = BindingHandlerState.closeInitial(state);
             }
         }
 
@@ -844,12 +846,12 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             long traceId,
             OctetsFW extension)
         {
-            if (!AsyncapiState.initialClosed(state))
+            if (!BindingHandlerState.initialClosed(state))
             {
-                doAbort(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doAbort(receiver, state, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, extension);
 
-                state = AsyncapiState.closeInitial(state);
+                state = BindingHandlerState.closeInitial(state);
             }
         }
 
@@ -863,6 +865,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
 
     private MessageConsumer newStream(
         MessageConsumer sender,
+        int state,
         long originId,
         long routedId,
         long streamId,
@@ -880,6 +883,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -897,6 +901,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
 
     private void doBegin(
         MessageConsumer receiver,
+        int state,
         long originId,
         long routedId,
         long streamId,
@@ -914,6 +919,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -926,6 +932,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
 
     private void doData(
         MessageConsumer receiver,
+        int state,
         long originId,
         long routedId,
         long streamId,
@@ -946,6 +953,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -961,6 +969,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
 
     private void doFlush(
         MessageConsumer receiver,
+        int state,
         long originId,
         long routedId,
         long streamId,
@@ -979,6 +988,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -992,6 +1002,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
 
     private void doEnd(
         MessageConsumer receiver,
+        int state,
         long originId,
         long routedId,
         long streamId,
@@ -1008,6 +1019,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -1019,6 +1031,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
 
     private void doAbort(
         MessageConsumer receiver,
+        int state,
         long originId,
         long routedId,
         long streamId,
@@ -1035,6 +1048,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -1046,6 +1060,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
 
     private void doWindow(
         MessageConsumer sender,
+        int state,
         long originId,
         long routedId,
         long streamId,
@@ -1063,6 +1078,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -1075,6 +1091,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
 
     private void doReset(
         MessageConsumer receiver,
+        int state,
         long originId,
         long routedId,
         long streamId,
@@ -1091,6 +1108,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)

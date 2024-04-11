@@ -112,6 +112,7 @@ import io.aklivity.zilla.runtime.binding.http.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.BindingHandlerState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.budget.BudgetCreditor;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
@@ -455,6 +456,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
     private MessageConsumer newStream(
         MessageConsumer sender,
+        int state,
         long originId,
         long routedId,
         long streamId,
@@ -472,6 +474,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -489,6 +492,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
     private void doBegin(
         MessageConsumer receiver,
+        int state,
         long originId,
         long routedId,
         long streamId,
@@ -506,6 +510,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -518,6 +523,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
     private void doFlush(
         MessageConsumer receiver,
+        int state,
         long originId,
         long routedId,
         long streamId,
@@ -536,6 +542,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -549,6 +556,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
     private void doFlush(
         MessageConsumer receiver,
+        int state,
         long originId,
         long routedId,
         long streamId,
@@ -567,6 +575,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -580,6 +589,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
     private void doData(
         MessageConsumer receiver,
+        int state,
         long originId,
         long routedId,
         long streamId,
@@ -601,6 +611,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -615,6 +626,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
     private void doEnd(
         MessageConsumer receiver,
+        int state,
         long originId,
         long routedId,
         long streamId,
@@ -631,6 +643,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -642,6 +655,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
     private void doAbort(
         MessageConsumer receiver,
+        int state,
         long originId,
         long routedId,
         long streamId,
@@ -658,6 +672,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -669,6 +684,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
     private void doReset(
         MessageConsumer receiver,
+        int state,
         long originId,
         long routedId,
         long streamId,
@@ -684,6 +700,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -694,6 +711,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
     private void doWindow(
         MessageConsumer receiver,
+        int state,
         long originId,
         long routedId,
         long streamId,
@@ -711,6 +729,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -1739,7 +1758,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             if (client.applicationHeadersProcessed.size() < config.maxConcurrentApplicationHeaders())
             {
                 final HttpExchange exchange = client.pool.exchanges.get(streamId);
-                if (HttpState.replyOpening(exchange.state))
+                if (BindingHandlerState.replyOpening(exchange.state))
                 {
                     client.onDecodeHttp2Trailers(traceId, authorization, http2Headers);
                 }
@@ -2113,17 +2132,26 @@ public final class HttpClientFactory implements HttpStreamFactory
             final long authorization = begin.authorization();
             final long replyId = supplyReplyId.applyAsLong(initialId);
 
-            doWindow(sender, originId, routedId, initialId, 0, 0, 0, traceId, authorization, 0L, 0);
+            int state = BindingHandlerState.openingInitial(0);
+
+            doWindow(sender, state, originId, routedId, initialId, 0, 0, 0, traceId, authorization, 0L, 0);
+
+            state = BindingHandlerState.openInitial(state);
 
             HttpBeginExFW beginEx = beginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
                     .typeId(httpTypeId)
                     .headers(headers)
                     .build();
 
-            doBegin(sender, originId, routedId, replyId, sequence, acknowledge, maximum,
+            doBegin(sender, state, originId, routedId, replyId, sequence, acknowledge, maximum,
                     supplyTraceId.getAsLong(), 0L, 0, beginEx);
-            doEnd(sender, originId, routedId, replyId, sequence, acknowledge, maximum,
+
+            state = BindingHandlerState.openingReply(state);
+
+            doEnd(sender, state, originId, routedId, replyId, sequence, acknowledge, maximum,
                     supplyTraceId.getAsLong(), 0, EMPTY_OCTETS);
+
+            state = BindingHandlerState.closeReply(state);
 
             // ignore DATA, FLUSH, END, ABORT
             newStream = (t, b, i, l) -> {};
@@ -2196,7 +2224,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             if (clients.size() == 1)
             {
                 client = clients.stream().filter(
-                        c -> !HttpState.replyOpened(c.state) ||
+                        c -> !BindingHandlerState.replyOpened(c.state) ||
                         c.encoder == HttpEncoder.HTTP_2 ||
                         c.exchange == null && c.encoder == HttpEncoder.HTTP_1_1 ||
                         c.encoder == HttpEncoder.H2C)
@@ -2418,7 +2446,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 beginEx.infos().anyMatch(proxyInfo -> PROXY_ALPN_H2.equals(proxyInfo.alpn())) ||
                 pool.versions.size() == 1 && pool.versions.contains(HTTP_2))
             {
-                assert !HttpState.initialOpened(state);
+                assert !BindingHandlerState.initialOpened(state);
                 initialBudgetId = supplyBudgetId.getAsLong();
                 assert requestSharedBudgetIndex == NO_CREDITOR_INDEX;
                 requestSharedBudgetIndex = creditor.acquire(initialBudgetId);
@@ -2506,11 +2534,11 @@ public final class HttpClientFactory implements HttpStreamFactory
             final long traceId = end.traceId();
             final long authorization = end.authorization();
 
-            state = HttpState.closingReply(state);
+            state = BindingHandlerState.closingReply(state);
 
             pool.exchanges.forEach((id, exchange) ->
             {
-                if (!HttpState.replyOpening(exchange.state) || decodeSlot == NO_SLOT)
+                if (!BindingHandlerState.replyOpening(exchange.state) || decodeSlot == NO_SLOT)
                 {
                     exchange.cleanup(traceId, authorization);
                     cleanupDecodeSlotIfNecessary();
@@ -2519,7 +2547,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             if (decodeSlot == NO_SLOT)
             {
-                state = HttpState.closeReply(state);
+                state = BindingHandlerState.closeReply(state);
                 doNetworkEnd(traceId, authorization);
             }
         }
@@ -2530,15 +2558,15 @@ public final class HttpClientFactory implements HttpStreamFactory
             final long traceId = abort.traceId();
             final long authorization = abort.authorization();
 
-            state = HttpState.closeReply(state);
+            state = BindingHandlerState.closeReply(state);
 
             cleanupDecodeSlotIfNecessary();
 
             pool.exchanges.forEach((id, exchange) -> exchange.cleanup(traceId, authorization));
 
-            if (!HttpState.initialClosing(state))
+            if (!BindingHandlerState.initialClosing(state))
             {
-                state = HttpState.closingInitial(state);
+                state = BindingHandlerState.closingInitial(state);
                 cleanup(traceId, authorization, this::doNetworkAbort);
             }
         }
@@ -2549,16 +2577,16 @@ public final class HttpClientFactory implements HttpStreamFactory
             final long traceId = reset.traceId();
             final long authorization = reset.authorization();
 
-            state = HttpState.closeInitial(state);
+            state = BindingHandlerState.closeInitial(state);
 
             cleanupBudgetCreditorIfNecessary();
             cleanupEncodeSlotIfNecessary();
 
             pool.exchanges.forEach((id, exchange) -> exchange.cleanup(traceId, authorization));
 
-            if (!HttpState.replyClosing(state))
+            if (!BindingHandlerState.replyClosing(state))
             {
-                state = HttpState.closingReply(state);
+                state = BindingHandlerState.closingReply(state);
                 cleanup(traceId, authorization, this::doNetworkReset);
             }
         }
@@ -2601,11 +2629,11 @@ public final class HttpClientFactory implements HttpStreamFactory
             long authorization,
             long affinity)
         {
-            if (!HttpState.initialOpening(state))
+            if (!BindingHandlerState.initialOpening(state))
             {
-                state = HttpState.openingInitial(state);
+                state = BindingHandlerState.openingInitial(state);
 
-                network = newStream(this::onNetwork, originId, routedId, initialId, initialSeq, initialAck,
+                network = newStream(this::onNetwork, state, originId, routedId, initialId, initialSeq, initialAck,
                     initialMax, traceId, authorization, affinity, EMPTY_OCTETS);
             }
         }
@@ -2616,7 +2644,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             int reserved,
             OctetsFW extension)
         {
-            doFlush(network, originId, routedId, initialId, initialSeq, initialAck,
+            doFlush(network, state, originId, routedId, initialId, initialSeq, initialAck,
                 initialMax, traceId, replyAuth, budgetId, reserved, extension);
         }
 
@@ -2675,7 +2703,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
                 assert reserved >= required;
 
-                doData(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doData(network, state, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization, budgetId, required, buffer, offset, length, EMPTY_OCTETS);
 
                 initialSeq += required;
@@ -2713,18 +2741,18 @@ public final class HttpClientFactory implements HttpStreamFactory
             long traceId,
             long authorization)
         {
-            if (!HttpState.initialClosed(state))
+            if (!BindingHandlerState.initialClosed(state))
             {
-                state = HttpState.closeInitial(state);
+                state = BindingHandlerState.closeInitial(state);
 
                 cleanupBudgetCreditorIfNecessary();
                 cleanupEncodeSlotIfNecessary();
 
-                doEnd(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doEnd(network, state, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization, EMPTY_OCTETS);
             }
 
-            if (HttpState.closed(state))
+            if (BindingHandlerState.closed(state))
             {
                 pool.onUpgradedOrClosed(this);
             }
@@ -2734,17 +2762,17 @@ public final class HttpClientFactory implements HttpStreamFactory
             long traceId,
             long authorization)
         {
-            if (!HttpState.initialClosed(state))
+            if (!BindingHandlerState.initialClosed(state))
             {
-                state = HttpState.closeInitial(state);
+                state = BindingHandlerState.closeInitial(state);
 
                 cleanupBudgetCreditorIfNecessary();
                 cleanupEncodeSlotIfNecessary();
 
-                doAbort(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doAbort(network, state, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization, EMPTY_OCTETS);
 
-                if (HttpState.closed(state))
+                if (BindingHandlerState.closed(state))
                 {
                     pool.onUpgradedOrClosed(this);
                 }
@@ -2755,15 +2783,15 @@ public final class HttpClientFactory implements HttpStreamFactory
             long traceId,
             long authorization)
         {
-            if (!HttpState.replyClosed(state))
+            if (!BindingHandlerState.replyClosed(state))
             {
-                state = HttpState.closeReply(state);
+                state = BindingHandlerState.closeReply(state);
                 cleanupDecodeSlotIfNecessary();
                 bindings.remove(replyId);
-                doReset(network, originId, routedId, replyId, replySeq, replyAck, initialMax,
+                doReset(network, state, originId, routedId, replyId, replySeq, replyAck, initialMax,
                         traceId, authorization);
 
-                if (HttpState.closed(state))
+                if (BindingHandlerState.closed(state))
                 {
                     pool.onUpgradedOrClosed(this);
                 }
@@ -2778,14 +2806,14 @@ public final class HttpClientFactory implements HttpStreamFactory
         {
             final long newReplyAck = Math.min(replySeq - minReplyNoAck, replySeq);
 
-            if (newReplyAck > replyAck || !HttpState.replyOpened(state))
+            if (newReplyAck > replyAck || !BindingHandlerState.replyOpened(state))
             {
                 replyAck = newReplyAck;
                 assert replyAck <= replySeq;
 
-                state = HttpState.openReply(state);
+                state = BindingHandlerState.openReplyOnly(state);
 
-                doWindow(network, originId, routedId, replyId,  replySeq, replyAck, decodeMax,
+                doWindow(network, state, originId, routedId, replyId,  replySeq, replyAck, decodeMax,
                         traceId, replyAuth, budgetId, padding);
             }
         }
@@ -2846,9 +2874,9 @@ public final class HttpClientFactory implements HttpStreamFactory
                 {
                     cleanupNetwork(traceId, authorization);
                 }
-                else if (HttpState.replyClosing(state))
+                else if (BindingHandlerState.replyClosing(state))
                 {
-                    state = HttpState.closeReply(state);
+                    state = BindingHandlerState.closeReply(state);
 
                     pool.exchanges.forEach((id, exchange) -> exchange.cleanup(traceId, authorization));
 
@@ -2858,7 +2886,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             doNetworkWindow(traceId, budgetId, replyPad, decodeSlotReserved);
 
-            if (encoder != HttpEncoder.HTTP_2 && exchange != null && HttpState.closed(exchange.state))
+            if (encoder != HttpEncoder.HTTP_2 && exchange != null && BindingHandlerState.closed(exchange.state))
             {
                 exchange.onExchangeClosed();
             }
@@ -2892,7 +2920,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 final HttpHeaderFW connection = beginEx.headers().matchFirst(h -> HEADER_CONNECTION.equals(h.name()));
                 if (connection != null && connectionClose.reset(connection.value().asString()).matches())
                 {
-                    exchange.state = HttpState.closingReply(exchange.state);
+                    exchange.state = BindingHandlerState.closingReply(exchange.state);
                 }
 
                 final HttpHeaderFW status = beginEx.headers().matchFirst(h -> HEADER_STATUS.equals(h.name()));
@@ -3003,7 +3031,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             if (connection != null && connectionClose.reset(connection.asString()).matches() || upgrade != null)
             {
-                exchange.state = HttpState.closingReply(exchange.state);
+                exchange.state = BindingHandlerState.closingReply(exchange.state);
             }
 
             codecOffset.value = doEncodeStart(codecBuffer, 0, headers);
@@ -3189,7 +3217,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 doNetworkData(traceId, authorization, budgetId, reserved, buffer, offset, limit);
             }
 
-            if (HttpState.closed(exchange.state))
+            if (BindingHandlerState.closed(exchange.state))
             {
                 exchange.onExchangeClosed();
             }
@@ -3209,7 +3237,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             flushNetworkIfBuffered(traceId, authorization, budgetId);
 
-            if (exchange != null && !HttpState.initialClosed(exchange.state))
+            if (exchange != null && !BindingHandlerState.initialClosed(exchange.state))
             {
                 exchange.doRequestWindow(traceId);
             }
@@ -3339,7 +3367,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             {
                 Http2ErrorCode error = Http2ErrorCode.NO_ERROR;
 
-                if (HttpState.replyClosed(exchange.state))
+                if (BindingHandlerState.replyClosed(exchange.state))
                 {
                     error = Http2ErrorCode.STREAM_CLOSED;
                 }
@@ -3425,7 +3453,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             if (endHeaders)
             {
                 final HttpExchange exchange = pool.exchanges.get(streamId);
-                if (exchange != null && HttpState.replyOpening(exchange.state))
+                if (exchange != null && BindingHandlerState.replyOpening(exchange.state))
                 {
                     onDecodeHttp2Trailers(traceId, authorization, streamId, headersBuffer, 0, headersSlotOffset);
                 }
@@ -3877,7 +3905,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             {
                 remoteSharedBudget += credit;
 
-                // TODO: instead use HttpState.replyClosed(state)
+                // TODO: instead use BindingHandlerState.replyClosed(state)
                 if (requestSharedBudgetIndex != NO_CREDITOR_INDEX)
                 {
                     flushRequestSharedBudget(traceId);
@@ -4149,7 +4177,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             long traceId,
             long authorization)
         {
-            if (!HttpState.replyClosed(exchange.state))
+            if (!BindingHandlerState.replyClosed(exchange.state))
             {
                 exchange.flushResponseWindowUpdate(traceId, authorization);
             }
@@ -4206,8 +4234,9 @@ public final class HttpClientFactory implements HttpStreamFactory
                 {
                     final int encodeReserved = encodeLength + initialPad;
 
-                    doData(network, originId, routedId, initialId, initialSeq, initialAck, initialMax, encodeHeadersSlotTraceId,
-                            authorization, budgetId, encodeReserved, encodeHeadersBuffer, 0, encodeLength, EMPTY_OCTETS);
+                    doData(network, state, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                        encodeHeadersSlotTraceId, authorization, budgetId, encodeReserved, encodeHeadersBuffer,
+                        0, encodeLength, EMPTY_OCTETS);
 
                     initialSeq += encodeReserved;
 
@@ -4262,7 +4291,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                     assert encodeSlot != NO_SLOT;
                     final MutableDirectBuffer encodeBuffer = bufferPool.buffer(encodeSlot);
 
-                    doData(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    doData(network, state, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                             traceId, authorization, budgetId, encodeReserved, encodeBuffer, 0, encodeLength, EMPTY_OCTETS);
 
                     initialSeq += encodeReserved;
@@ -4342,8 +4371,9 @@ public final class HttpClientFactory implements HttpStreamFactory
                 {
                     final int encodeReserved = encodeLength + initialPad;
 
-                    doData(network, originId, routedId, initialId, initialSeq, initialAck, initialMax, encodeReservedSlotTraceId,
-                            authorization, budgetId, encodeReserved, encodeReservedBuffer, 0, encodeLength, EMPTY_OCTETS);
+                    doData(network, state, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                        encodeReservedSlotTraceId, authorization, budgetId, encodeReserved, encodeReservedBuffer,
+                        0, encodeLength, EMPTY_OCTETS);
 
                     initialSeq += encodeReserved;
 
@@ -4611,7 +4641,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             requestAck = acknowledge;
             requestAuth = authorization;
 
-            state = HttpState.openingInitial(state);
+            state = BindingHandlerState.openingInitial(state);
 
             if ((streamId & 0x01) == 0x01)
             {
@@ -4631,7 +4661,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
                 client.doNetworkBegin(traceId, authorization, 0);
 
-                if (HttpState.replyOpened(client.state))
+                if (BindingHandlerState.replyOpened(client.state))
                 {
                     doRequestBegin(traceId, authorization, begin.extension());
                 }
@@ -4652,7 +4682,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 }
             }
 
-            if (HttpState.replyOpened(client.state))
+            if (BindingHandlerState.replyOpened(client.state))
             {
                 remoteBudget = client.remoteSharedBudget;
             }
@@ -4758,7 +4788,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             assert requestAck <= requestSeq;
 
-            state = HttpState.closeInitial(state);
+            state = BindingHandlerState.closeInitial(state);
 
             if ((streamId & 0x01) == 0x01)
             {
@@ -4785,7 +4815,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             assert requestAck <= requestSeq;
 
-            state = HttpState.closeInitial(state);
+            state = BindingHandlerState.closeInitial(state);
             client.encoder.doEncodeRequestAbort(client, this, traceId, authorization);
         }
 
@@ -4793,13 +4823,13 @@ public final class HttpClientFactory implements HttpStreamFactory
             long traceId,
             long authorization)
         {
-            if (!HttpState.initialClosed(state))
+            if (!BindingHandlerState.initialClosed(state))
             {
-                state = HttpState.closeInitial(state);
-                doReset(application, originId, routedId, requestId, requestSeq, requestAck,
+                state = BindingHandlerState.closeInitial(state);
+                doReset(application, state, originId, routedId, requestId, requestSeq, requestAck,
                         client.initialMax, traceId, authorization);
 
-                if (HttpState.closed(state))
+                if (BindingHandlerState.closed(state))
                 {
                     onExchangeClosed();
                 }
@@ -4815,7 +4845,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             if (requestAckMax > requestAck ||
                 minRequestMax > requestMax && client.encodeSlotOffset == 0 ||
-                minRequestMax == 0 && requestRemaining == 0 && !HttpState.initialOpened(state))
+                minRequestMax == 0 && requestRemaining == 0 && !BindingHandlerState.initialOpened(state))
             {
                 requestAck = requestAckMax;
                 assert requestAck <= requestSeq;
@@ -4823,9 +4853,9 @@ public final class HttpClientFactory implements HttpStreamFactory
                 requestMax = minRequestMax;
                 assert requestMax >= 0;
 
-                state = HttpState.openInitial(state);
+                state = BindingHandlerState.openInitial(state);
 
-                doWindow(application, originId, routedId, requestId, requestSeq, requestAck, requestMax,
+                doWindow(application, state, originId, routedId, requestId, requestSeq, requestAck, requestMax,
                     traceId, requestAuth, client.initialBudgetId, client.initialPad);
             }
         }
@@ -4835,9 +4865,9 @@ public final class HttpClientFactory implements HttpStreamFactory
             long authorization,
             Flyweight extension)
         {
-            state = HttpState.openingReply(state);
+            state = BindingHandlerState.openingReply(state);
 
-            doBegin(application, originId, routedId, responseId, responseSeq, responseAck, responseMax,
+            doBegin(application, state, originId, routedId, responseId, responseSeq, responseAck, responseMax,
                     traceId, authorization, 0, extension);
         }
 
@@ -4862,7 +4892,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             if (length > 0)
             {
-                doData(application, originId, routedId, responseId, responseSeq, responseAck, requestMax,
+                doData(application, state, originId, routedId, responseId, responseSeq, responseAck, requestMax,
                         traceId, authorization, responseBud,
                         reserved, buffer, offset, length, extension);
 
@@ -4880,7 +4910,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             long authorization,
             Consumer<OctetsFW.Builder> extension)
         {
-            doFlush(application, originId, routedId, responseId, responseSeq, responseAck, requestMax,
+            doFlush(application, state, originId, routedId, responseId, responseSeq, responseAck, requestMax,
                     traceId, authorization, responseBud, 0, extension);
         }
 
@@ -4889,18 +4919,18 @@ public final class HttpClientFactory implements HttpStreamFactory
             long authorization,
             Flyweight extension)
         {
-            if (!HttpState.replyClosed(state))
+            if (!BindingHandlerState.replyClosed(state))
             {
-                if (HttpState.replyClosing(client.state))
+                if (BindingHandlerState.replyClosing(client.state))
                 {
                     client.doNetworkEnd(traceId, authorization);
                 }
 
-                state = HttpState.closeReply(state);
-                doEnd(application, originId, routedId, responseId, responseSeq, responseAck, requestMax,
+                state = BindingHandlerState.closeReply(state);
+                doEnd(application, state, originId, routedId, responseId, responseSeq, responseAck, requestMax,
                         traceId, authorization, extension);
 
-                if (HttpState.closed(state))
+                if (BindingHandlerState.closed(state))
                 {
                     onExchangeClosed();
                 }
@@ -4912,12 +4942,12 @@ public final class HttpClientFactory implements HttpStreamFactory
             long authorization,
             Flyweight extension)
         {
-            if (!HttpState.replyClosed(state))
+            if (!BindingHandlerState.replyClosed(state))
             {
-                if (HttpState.replyOpening(state))
+                if (BindingHandlerState.replyOpening(state))
                 {
-                    state = HttpState.closeReply(state);
-                    doAbort(application, originId, routedId, responseId, responseSeq, responseAck, requestMax,
+                    state = BindingHandlerState.closeReply(state);
+                    doAbort(application, state, originId, routedId, responseId, responseSeq, responseAck, requestMax,
                             traceId, authorization, extension);
                 }
                 else
@@ -4938,8 +4968,8 @@ public final class HttpClientFactory implements HttpStreamFactory
             final long traceId = reset.traceId();
             final long authorization = reset.authorization();
 
-            state = HttpState.closeReply(state);
-            if (HttpState.closed(state))
+            state = BindingHandlerState.closeReply(state);
+            if (BindingHandlerState.closed(state))
             {
                 onExchangeClosed();
             }
@@ -4971,7 +5001,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             assert responseAck <= responseSeq;
 
-            state = HttpState.openReply(state);
+            state = BindingHandlerState.openReplyOnly(state);
 
             if (responseBud != 0L && responseDebIndex == NO_DEBITOR_INDEX)
             {
@@ -5023,7 +5053,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             long traceId,
             int requestCreditMin)
         {
-            if (!HttpState.initialClosed(state))
+            if (!BindingHandlerState.initialClosed(state))
             {
                 final int remotePaddableMax = Math.min(remoteBudget, encodeMax);
                 final int remotePad = http2FramePadding(remotePaddableMax, client.remoteSettings.maxFrameSize);
@@ -5043,8 +5073,8 @@ public final class HttpClientFactory implements HttpStreamFactory
                     requestMax = newRequestWin + (int)(requestSeq - requestAck);
                     assert requestMax >= 0;
 
-                    doWindow(application, originId, routedId, requestId, requestSeq, requestAck, requestMax, traceId, sessionId,
-                            client.initialBudgetId, requestPad);
+                    doWindow(application, state, originId, routedId, requestId, requestSeq, requestAck, requestMax,
+                        traceId, sessionId, client.initialBudgetId, requestPad);
                 }
             }
         }

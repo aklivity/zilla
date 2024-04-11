@@ -173,6 +173,7 @@ import io.aklivity.zilla.runtime.binding.amqp.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.amqp.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.BindingHandlerState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.budget.BudgetCreditor;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
@@ -558,6 +559,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
 
     private MessageConsumer newStream(
         MessageConsumer sender,
+        int state,
         long originId,
         long routedId,
         long replyId,
@@ -575,6 +577,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                 .streamId(replyId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -592,6 +595,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
 
     private void doBegin(
         MessageConsumer receiver,
+        int state,
         long originId,
         long routedId,
         long replyId,
@@ -609,6 +613,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                 .streamId(replyId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -621,6 +626,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
 
     private void doData(
         MessageConsumer receiver,
+        int state,
         long originId,
         long routedId,
         long replyId,
@@ -641,6 +647,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                 .streamId(replyId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -656,6 +663,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
 
     private void doEnd(
         MessageConsumer receiver,
+        int state,
         long originId,
         long routedId,
         long replyId,
@@ -672,6 +680,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                 .streamId(replyId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -683,6 +692,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
 
     private void doAbort(
         MessageConsumer receiver,
+        int state,
         long originId,
         long routedId,
         long replyId,
@@ -699,6 +709,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                 .streamId(replyId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -710,6 +721,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
 
     private void doFlush(
         MessageConsumer receiver,
+        int state,
         long originId,
         long routedId,
         long streamId,
@@ -728,6 +740,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -741,6 +754,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
 
     private void doWindow(
         MessageConsumer receiver,
+        int state,
         long originId,
         long routedId,
         long streamId,
@@ -759,6 +773,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -772,6 +787,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
 
     private void doReset(
         MessageConsumer receiver,
+        int state,
         long originId,
         long routedId,
         long streamId,
@@ -788,6 +804,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -2090,7 +2107,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                 final int reserved = length + replyPad;
 
                 OctetsFW payload = payloadRO.wrap(buffer, offset, limit);
-                doData(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doData(network, state, originId, routedId, replyId, replySeq, replyAck, replyMax,
                         traceId, authorization, FLAG_INIT_AND_FIN, budgetId, reserved, payload, EMPTY_OCTETS);
 
                 replySeq += reserved;
@@ -2193,7 +2210,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
             assert sequence >= initialSeq;
             assert acknowledge >= initialAck;
 
-            state = AmqpState.openingInitial(state);
+            state = BindingHandlerState.openingInitial(state);
             initialSeq = sequence;
             initialAck = acknowledge;
 
@@ -2285,7 +2302,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
         {
             final long authorization = end.authorization();
 
-            state = AmqpState.closeInitial(state);
+            state = BindingHandlerState.closeInitial(state);
 
             if (decodeSlot == NO_SLOT)
             {
@@ -2331,7 +2348,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
             final long newReplyWin = sequence - acknowledge;
             final int credit = (int) (replyWin - newReplyWin) + (maximum - replyMax);
 
-            state = AmqpState.openReply(state);
+            state = BindingHandlerState.openReply(state);
             replyAck = acknowledge;
             replyMax = maximum;
             replyBudgetId = budgetId;
@@ -2478,9 +2495,9 @@ public final class AmqpServerFactory implements AmqpStreamFactory
             long traceId,
             long authorization)
         {
-            state = AmqpState.openingReply(state);
+            state = BindingHandlerState.openingReply(state);
 
-            doBegin(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doBegin(network, state, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, affinity, EMPTY_OCTETS);
 
             assert replyBudgetIndex == NO_CREDITOR_INDEX;
@@ -2518,24 +2535,26 @@ public final class AmqpServerFactory implements AmqpStreamFactory
             long traceId,
             long authorization)
         {
-            state = AmqpState.closeReply(state);
+            state = BindingHandlerState.closeReply(state);
 
             cleanupBudgetCreditorIfNecessary();
             cleanupEncodeSlotIfNecessary();
 
-            doEnd(network, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, EMPTY_OCTETS);
+            doEnd(network, state, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                    traceId, authorization, EMPTY_OCTETS);
         }
 
         private void doNetworkAbort(
             long traceId,
             long authorization)
         {
-            state = AmqpState.closeReply(state);
+            state = BindingHandlerState.closeReply(state);
 
             cleanupBudgetCreditorIfNecessary();
             cleanupEncodeSlotIfNecessary();
 
-            doAbort(network, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, EMPTY_OCTETS);
+            doAbort(network, state, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                    traceId, authorization, EMPTY_OCTETS);
         }
 
         private void doNetworkFlush(
@@ -2545,7 +2564,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
             int reserved,
             OctetsFW extension)
         {
-            doFlush(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doFlush(network, state, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, budgetId, reserved, extension);
         }
 
@@ -2553,11 +2572,11 @@ public final class AmqpServerFactory implements AmqpStreamFactory
             long traceId,
             long authorization)
         {
-            state = AmqpState.closeInitial(state);
+            state = BindingHandlerState.closeInitial(state);
 
             cleanupDecodeSlotIfNecessary();
 
-            doReset(network, originId, routedId, initialId, initialSeq, initialAck, bufferPool.slotCapacity(),
+            doReset(network, state, originId, routedId, initialId, initialSeq, initialAck, bufferPool.slotCapacity(),
                     traceId, authorization, EMPTY_OCTETS);
         }
 
@@ -2570,16 +2589,16 @@ public final class AmqpServerFactory implements AmqpStreamFactory
         {
             final long newInitialAck = Math.max(initialSeq - minInitialNoAck, initialAck);
 
-            if (newInitialAck > initialAck || minInitialMax > initialMax || !AmqpState.initialOpened(state))
+            if (newInitialAck > initialAck || minInitialMax > initialMax || !BindingHandlerState.initialOpened(state))
             {
                 initialAck = newInitialAck;
                 assert initialAck <= initialSeq;
 
                 initialMax = minInitialMax;
 
-                state = AmqpState.openInitial(state);
+                state = BindingHandlerState.openInitial(state);
 
-                doWindow(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doWindow(network, state, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization, budgetId, 0, 0);
             }
         }
@@ -2641,14 +2660,14 @@ public final class AmqpServerFactory implements AmqpStreamFactory
             {
                 cleanupDecodeSlotIfNecessary();
 
-                if (AmqpState.initialClosed(state))
+                if (BindingHandlerState.initialClosed(state))
                 {
                     cleanupStreams(traceId, authorization);
                     doNetworkEndIfNecessary(traceId, authorization);
                 }
             }
 
-            if (!AmqpState.initialClosed(state))
+            if (!BindingHandlerState.initialClosed(state))
             {
                 final int decoded = reserved - decodeSlotReserved;
 
@@ -2910,7 +2929,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
             AmqpErrorType errorType,
             StringFW errorDescription)
         {
-            if (!AmqpState.replyClosed(state))
+            if (!BindingHandlerState.replyClosed(state))
             {
                 doEncodeClose(traceId, authorization, errorType, errorDescription);
                 doNetworkEnd(traceId, authorization);
@@ -2922,7 +2941,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
             long traceId,
             long authorization)
         {
-            if (!AmqpState.replyClosed(state))
+            if (!BindingHandlerState.replyClosed(state))
             {
                 doNetworkEnd(traceId, authorization);
             }
@@ -2932,7 +2951,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                 long traceId,
                 long authorization)
         {
-            if (!AmqpState.initialClosed(state))
+            if (!BindingHandlerState.initialClosed(state))
             {
                 doNetworkReset(traceId, authorization);
             }
@@ -2942,7 +2961,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
             long traceId,
             long authorization)
         {
-            if (!AmqpState.replyClosed(state))
+            if (!BindingHandlerState.replyClosed(state))
             {
                 doNetworkAbort(traceId, authorization);
             }
@@ -3527,7 +3546,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                 {
                     doEncodeDetach(traceId, authorization, errorType, outgoingChannel, handle);
                     this.detachError = errorType;
-                    doApplicationAbortIfNecessary(traceId, authorization);
+                    doApplicationAbort(traceId, authorization, EMPTY_OCTETS);
                 }
 
                 private void doApplicationBeginIfNecessary(
@@ -3539,7 +3558,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                     AmqpReceiverSettleMode receiverSettleMode)
                 {
                     final int newCapabilities = capabilities | capability.value();
-                    if (!AmqpState.initialOpening(state))
+                    if (!BindingHandlerState.initialOpening(state))
                     {
                         this.capabilities = newCapabilities;
                         doApplicationBegin(traceId, authorization, affinity, senderSettleMode, receiverSettleMode);
@@ -3557,7 +3576,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                     initialAck = initialSeq;
 
                     assert state == 0;
-                    state = AmqpState.openingInitial(state);
+                    state = BindingHandlerState.openingInitial(state);
 
                     StringFW address = null;
                     switch (role)
@@ -3577,7 +3596,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                         .build();
 
                     application = newStream(this::onApplication,
-                            originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                            state, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                             traceId, authorization, affinity, beginEx);
                 }
 
@@ -3589,12 +3608,12 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                     OctetsFW payload,
                     Flyweight extension)
                 {
-                    assert AmqpState.initialOpening(state);
+                    assert BindingHandlerState.initialOpening(state);
 
                     final int length = payload != null ? payload.sizeof() : 0;
                     assert reserved >= length + initialPad : String.format("%d >= %d", reserved, length + initialPad);
 
-                    doData(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    doData(application, state, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                             traceId, authorization, flags, initialBudgetId, reserved, payload, extension);
 
                     initialSeq += reserved;
@@ -3606,27 +3625,20 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                     long authorization,
                     Flyweight extension)
                 {
-                    setInitialClosed();
-
-                    doAbort(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                            traceId, authorization, extension);
-                }
-
-                private void doApplicationAbortIfNecessary(
-                    long traceId,
-                    long authorization)
-                {
-                    if (!AmqpState.initialClosed(state))
+                    if (!BindingHandlerState.initialClosed(state))
                     {
-                        doApplicationAbort(traceId, authorization, EMPTY_OCTETS);
+                        setInitialClosed();
+
+                        doAbort(application, state, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                                traceId, authorization, extension);
                     }
                 }
 
                 private void setInitialClosed()
                 {
-                    assert !AmqpState.initialClosed(state);
+                    assert !BindingHandlerState.initialClosed(state);
 
-                    state = AmqpState.closeInitial(state);
+                    state = BindingHandlerState.closeInitial(state);
 
                     if (debitorIndex != NO_DEBITOR_INDEX)
                     {
@@ -3634,7 +3646,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                         debitorIndex = NO_DEBITOR_INDEX;
                     }
 
-                    if (AmqpState.closed(state))
+                    if (BindingHandlerState.closed(state))
                     {
                         capabilities = 0;
                         links.remove(handle);
@@ -3695,7 +3707,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                     final int maximum = window.maximum();
                     final int padding = window.padding();
 
-                    this.state = AmqpState.openInitial(state);
+                    this.state = BindingHandlerState.openInitial(state);
                     this.initialBudgetId = budgetId;
 
                     assert acknowledge <= sequence;
@@ -3717,7 +3729,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
 
                     flushInitialWindow(traceId, authorization);
 
-                    if (AmqpState.initialClosing(state) && !AmqpState.initialClosed(state))
+                    if (BindingHandlerState.initialClosing(state) && !BindingHandlerState.initialClosed(state))
                     {
                         doApplicationEnd(traceId, authorization, EMPTY_OCTETS);
                     }
@@ -3727,7 +3739,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                     long traceId,
                     long authorization)
                 {
-                    if (AmqpState.replyOpened(state) && role == SENDER)
+                    if (BindingHandlerState.replyOpened(state) && role == SENDER)
                     {
                         this.remoteLinkCredit = (int) (Math.min(bufferPool.slotCapacity(), initialMax) /
                                                        Math.min(bufferPool.slotCapacity(), decodeMaxFrameSize));
@@ -3746,7 +3758,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                     final long traceId = reset.traceId();
                     final long authorization = reset.authorization();
 
-                    if (!AmqpState.replyOpened(state))
+                    if (!BindingHandlerState.replyOpened(state))
                     {
                         AmqpRole amqpRole = role == RECEIVER ? SENDER : RECEIVER;
                         if (amqpRole == RECEIVER)
@@ -3776,7 +3788,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                 private void onApplicationBegin(
                     BeginFW begin)
                 {
-                    state = AmqpState.openReply(state);
+                    state = BindingHandlerState.openReply(state);
 
                     final long sequence = begin.sequence();
                     final long acknowledge = begin.acknowledge();
@@ -3807,7 +3819,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                     doEncodeAttach(traceId, authorization, name, outgoingChannel, handle, amqpRole, amqpSenderSettleMode,
                         amqpReceiverSettleMode, addressFrom, addressTo, deliveryCount, decodeMaxMessageSize);
 
-                    if (AmqpState.initialOpened(state))
+                    if (BindingHandlerState.initialOpened(state))
                     {
                         flushInitialWindow(traceId, authorization);
                     }
@@ -4060,7 +4072,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                     capabilities = 0;
                     links.remove(handle);
 
-                    doEnd(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    doEnd(application, state, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                             traceId, authorization, extension);
                 }
 
@@ -4069,7 +4081,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                     long authorization,
                     Flyweight extension)
                 {
-                    if (!AmqpState.initialClosed(state))
+                    if (!BindingHandlerState.initialClosed(state))
                     {
                         doApplicationEnd(traceId, authorization, extension);
                     }
@@ -4079,7 +4091,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                     long traceId,
                     long authorization)
                 {
-                    if (AmqpState.replyOpened(state))
+                    if (BindingHandlerState.replyOpened(state))
                     {
                         final int maxFrameSize = encodeMaxFrameSize;
                         final int slotCapacity = bufferPool.slotCapacity();
@@ -4096,7 +4108,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                             assert replyAck <= replySeq;
                             replyMax = replyBudgetMax;
                             assert replyMax >= 0;
-                            doWindow(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                            doWindow(application, state, originId, routedId, replyId, replySeq, replyAck, replyMax,
                                     traceId, authorization, replySharedBudgetId, padding, maxFrameSize);
                         }
                         else if (replyAckMax == 0 &&
@@ -4104,7 +4116,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                                 replyBudgetMax == 0 &&
                                 replyMax == 0)
                         {
-                            doWindow(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                            doWindow(application, state, originId, routedId, replyId, replySeq, replyAck, replyMax,
                                     traceId, authorization, replySharedBudgetId, padding, maxFrameSize);
                         }
                     }
@@ -4117,7 +4129,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                     int reserved,
                     OctetsFW extension)
                 {
-                    doFlush(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    doFlush(application, state, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                             traceId, authorization, budgetId, reserved, extension);
                 }
 
@@ -4127,7 +4139,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                 {
                     setReplyClosed();
 
-                    doReset(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                    doReset(application, state, originId, routedId, replyId, replySeq, replyAck, replyMax,
                             traceId, authorization, EMPTY_OCTETS);
                 }
 
@@ -4135,7 +4147,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                     long traceId,
                     long authorization)
                 {
-                    if (!AmqpState.replyClosed(state))
+                    if (!BindingHandlerState.replyClosed(state))
                     {
                         doApplicationReset(traceId, authorization);
                     }
@@ -4143,11 +4155,11 @@ public final class AmqpServerFactory implements AmqpStreamFactory
 
                 private void setReplyClosed()
                 {
-                    assert !AmqpState.replyClosed(state);
+                    assert !BindingHandlerState.replyClosed(state);
 
-                    state = AmqpState.closeReply(state);
+                    state = BindingHandlerState.closeReply(state);
 
-                    if (AmqpState.closed(state))
+                    if (BindingHandlerState.closed(state))
                     {
                         capabilities = 0;
                         links.remove(handle);
@@ -4158,7 +4170,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                     long traceId,
                     long authorization)
                 {
-                    doApplicationAbortIfNecessary(traceId, authorization);
+                    doApplicationAbort(traceId, authorization, EMPTY_OCTETS);
                     doApplicationResetIfNecessary(traceId, authorization);
                     doCancelReadIdleTimeoutIfNecessary();
                     doCancelWriteIdleTimeoutIfNecessary();

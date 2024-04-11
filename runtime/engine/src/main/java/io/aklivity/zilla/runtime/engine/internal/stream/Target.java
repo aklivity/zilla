@@ -332,6 +332,7 @@ public final class Target implements AutoCloseable
                 .streamId(streamId)
                 .sequence(-1L)
                 .acknowledge(-1L)
+                .state(0)
                 .maximum(0)
                 .build();
 

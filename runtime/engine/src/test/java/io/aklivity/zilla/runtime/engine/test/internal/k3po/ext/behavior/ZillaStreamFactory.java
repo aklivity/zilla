@@ -103,9 +103,10 @@ public final class ZillaStreamFactory
         final long sequence = channel.sourceSeq();
         final long acknowledge = channel.sourceAck();
         final int maximum = channel.sourceMax();
+        final int state = channel.state();
 
         final ZillaTarget sender = supplySender.apply(streamId);
-        sender.doChallenge(originId, routedId, streamId, sequence, acknowledge, traceId, maximum, challengeExt);
+        sender.doChallenge(state, originId, routedId, streamId, sequence, acknowledge, traceId, maximum, challengeExt);
     }
 
     public MessageHandler newStream(

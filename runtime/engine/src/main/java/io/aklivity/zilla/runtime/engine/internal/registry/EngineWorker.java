@@ -209,7 +209,7 @@ public class EngineWorker implements EngineContext, Agent
     private final DeadlineTimerWheel timerWheel;
     private final Long2ObjectHashMap<Runnable> tasksByTimerId;
     private final Long2ObjectHashMap<Future<?>> futuresById;
-    private final ElektronSignaler signaler;
+    private final EngineSignaler signaler;
     private final Long2ObjectHashMap<MessageConsumer> correlations;
     private final Long2ObjectHashMap<AgentRunner> exportersById;
     private final Map<String, ModelContext> modelsByType;
@@ -338,7 +338,7 @@ public class EngineWorker implements EngineContext, Agent
         this.timerWheel = new DeadlineTimerWheel(MILLISECONDS, currentTimeMillis(), 512, 1024);
         this.tasksByTimerId = new Long2ObjectHashMap<>();
         this.futuresById = new Long2ObjectHashMap<>();
-        this.signaler = new ElektronSignaler(executor, Math.max(config.bufferSlotCapacity(), 512));
+        this.signaler = new EngineSignaler(executor, Math.max(config.bufferSlotCapacity(), 512));
 
         this.poller = new Poller();
 
@@ -1118,6 +1118,7 @@ public class EngineWorker implements EngineContext, Agent
                         .streamId(0L)
                         .sequence(0L)
                         .acknowledge(0L)
+                        .state(0)
                         .maximum(0)
                         .traceId(traceId)
                         .budgetId(budgetId)
@@ -1148,6 +1149,7 @@ public class EngineWorker implements EngineContext, Agent
             .streamId(0L)
             .sequence(0L)
             .acknowledge(0L)
+            .state(0)
             .maximum(reserved)
             .traceId(traceId)
             .budgetId(budgetId)
@@ -1181,6 +1183,7 @@ public class EngineWorker implements EngineContext, Agent
         final long streamId = frame.streamId();
         final long sequence = frame.sequence();
         final long acknowledge = frame.acknowledge();
+        final int state = frame.state();
         final int maximum = frame.maximum();
 
         this.lastReadStreamId = streamId;
@@ -1191,11 +1194,13 @@ public class EngineWorker implements EngineContext, Agent
         }
         else if (isInitial(streamId))
         {
-            handleReadInitial(originId, routedId, streamId, sequence, acknowledge, maximum, msgTypeId, buffer, index, length);
+            handleReadInitial(originId, routedId, streamId, sequence, acknowledge, state, maximum,
+                    msgTypeId, buffer, index, length);
         }
         else
         {
-            handleReadReply(originId, routedId, streamId, sequence, acknowledge, maximum, msgTypeId, buffer, index, length);
+            handleReadReply(originId, routedId, streamId, sequence, acknowledge, state, maximum,
+                    msgTypeId, buffer, index, length);
         }
     }
 
@@ -1205,6 +1210,7 @@ public class EngineWorker implements EngineContext, Agent
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         int msgTypeId,
         MutableDirectBuffer buffer,
@@ -1238,7 +1244,7 @@ public class EngineWorker implements EngineContext, Agent
                     handler.accept(msgTypeId, buffer, index, length);
                     break;
                 default:
-                    doReset(originId, routedId, streamId, sequence, acknowledge, maximum);
+                    doReset(originId, routedId, streamId, sequence, acknowledge, state, maximum);
                     break;
                 }
             }
@@ -1317,9 +1323,10 @@ public class EngineWorker implements EngineContext, Agent
                 final long streamId = frame.streamId();
                 final long sequence = frame.sequence();
                 final long acknowledge = frame.acknowledge();
+                final int state = frame.state();
                 final int maximum = frame.maximum();
 
-                doReset(originId, routedId, streamId, sequence, acknowledge, maximum);
+                doReset(originId, routedId, streamId, sequence, acknowledge, state, maximum);
             }
             break;
         case DataFW.TYPE_ID:
@@ -1375,6 +1382,7 @@ public class EngineWorker implements EngineContext, Agent
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         int msgTypeId,
         MutableDirectBuffer buffer,
@@ -1408,7 +1416,7 @@ public class EngineWorker implements EngineContext, Agent
                     handler.accept(msgTypeId, buffer, index, length);
                     break;
                 default:
-                    doReset(originId, routedId, streamId, sequence, acknowledge, maximum);
+                    doReset(originId, routedId, streamId, sequence, acknowledge, state, maximum);
                     break;
                 }
             }
@@ -1479,6 +1487,7 @@ public class EngineWorker implements EngineContext, Agent
             final long streamId = frame.streamId();
             final long sequence = frame.sequence();
             final long acknowledge = frame.acknowledge();
+            final int state = frame.state();
             final int maximum = frame.maximum();
             final MessageConsumer newHandler = handleBeginReply(msgTypeId, buffer, index, length);
             if (newHandler != null)
@@ -1487,7 +1496,7 @@ public class EngineWorker implements EngineContext, Agent
             }
             else
             {
-                doReset(originId, routedId, streamId, sequence, acknowledge, maximum);
+                doReset(originId, routedId, streamId, sequence, acknowledge, state, maximum);
             }
         }
         else if (msgTypeId == DataFW.TYPE_ID)
@@ -1502,6 +1511,7 @@ public class EngineWorker implements EngineContext, Agent
             final long streamId = frame.streamId();
             final long sequence = frame.sequence();
             final long acknowledge = frame.acknowledge();
+            final int state = frame.state();
             final int maximum = frame.maximum();
 
             final MessageConsumer newHandler = handleFlushReply(msgTypeId, buffer, index, length);
@@ -1511,7 +1521,7 @@ public class EngineWorker implements EngineContext, Agent
             }
             else
             {
-                doReset(originId, routedId, streamId, sequence, acknowledge, maximum);
+                doReset(originId, routedId, streamId, sequence, acknowledge, state, maximum);
             }
         }
     }
@@ -1617,7 +1627,9 @@ public class EngineWorker implements EngineContext, Agent
         final long routedId,
         final long streamId,
         final long sequence,
-        final long acknowledge, final int maximum)
+        final long acknowledge,
+        final int state,
+        final int maximum)
     {
         final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
@@ -1625,6 +1637,7 @@ public class EngineWorker implements EngineContext, Agent
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .build();
 
@@ -1644,6 +1657,7 @@ public class EngineWorker implements EngineContext, Agent
             .streamId(streamId)
             .sequence(Long.MAX_VALUE)
             .acknowledge(0L)
+            .state(0)
             .maximum(0)
             .build();
 
@@ -1662,6 +1676,7 @@ public class EngineWorker implements EngineContext, Agent
             .streamId(streamId)
             .sequence(Long.MAX_VALUE)
             .acknowledge(0L)
+            .state(0)
             .maximum(0)
             .build();
 
@@ -1888,7 +1903,7 @@ public class EngineWorker implements EngineContext, Agent
         return dispatcher;
     }
 
-    private final class ElektronSignaler implements Signaler
+    private final class EngineSignaler implements Signaler
     {
         private final ThreadLocal<SignalFW.Builder> signalRW;
 
@@ -1896,7 +1911,7 @@ public class EngineWorker implements EngineContext, Agent
 
         private long nextFutureId;
 
-        private ElektronSignaler(
+        private EngineSignaler(
             ExecutorService executorService,
             int slotCapacity)
         {
@@ -2074,6 +2089,7 @@ public class EngineWorker implements EngineContext, Agent
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(0)
                 .maximum(0)
                 .timestamp(timestamp)
                 .traceId(traceId)
@@ -2108,6 +2124,7 @@ public class EngineWorker implements EngineContext, Agent
                                             .streamId(streamId)
                                             .sequence(sequence)
                                             .acknowledge(acknowledge)
+                                            .state(0)
                                             .maximum(0)
                                             .timestamp(timestamp)
                                             .traceId(traceId)
