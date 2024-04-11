@@ -93,7 +93,7 @@ public final class OpenapiServerNamespaceGenerator extends OpenapiNamespaceGener
         int[] httpPorts,
         boolean secure)
     {
-        if (secure)
+        if (!secure)
         {
             binding
                 .route()
