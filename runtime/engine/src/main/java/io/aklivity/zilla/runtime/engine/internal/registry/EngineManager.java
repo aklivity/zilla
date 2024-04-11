@@ -83,7 +83,6 @@ public class EngineManager
     private final List<EngineExtSpi> extensions;
     private final BiFunction<URL, String, String> readURL;
     private final Resolver expressions;
-    private final Matcher matchName;
 
     private EngineConfig current;
 
@@ -116,7 +115,6 @@ public class EngineManager
         this.extensions = extensions;
         this.readURL = readURL;
         this.expressions = Resolver.instantiate(config);
-        this.matchName = NamespaceAdapter.PATTERN_NAME.matcher("");
     }
 
     public EngineConfig reconfigure(
@@ -419,11 +417,13 @@ public class EngineManager
     private final class NameResolver
     {
         private final int namespaceId;
+        private final Matcher matchName;
 
         private NameResolver(
             int namespaceId)
         {
             this.namespaceId = namespaceId;
+            this.matchName = NamespaceAdapter.PATTERN_NAME.matcher("");
         }
 
         private long resolve(
