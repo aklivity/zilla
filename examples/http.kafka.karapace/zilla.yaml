@@ -2,7 +2,7 @@
 name: example
 catalogs:
   my_catalog:
-    type: schema-registry
+    type: karapace
     options:
       url: http://karapace-reg:8081
       context: default
