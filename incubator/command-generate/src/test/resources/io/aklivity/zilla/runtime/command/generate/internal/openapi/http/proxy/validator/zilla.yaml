@@ -21,7 +21,7 @@ bindings:
         method: GET
         params:
           query:
-            limit: integer
+            limit: int32
       - path: /items
         method: POST
         content:
@@ -37,12 +37,12 @@ bindings:
       - path: "/items/{id}"
         method: PUT
         headers:
-          hello: integer
+          hello: int32
         params:
           path:
             id: string
           query:
-            limit: integer
+            limit: int32
             ciao: string
       - path: "/items/{id}"
         method: DELETE
@@ -87,7 +87,7 @@ bindings:
           content-type:
           - application/json
           headers:
-            x-pages: integer
+            x-pages: int32
             x-next: string
           content:
             model: json

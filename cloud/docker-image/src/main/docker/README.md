@@ -5,6 +5,10 @@ cat zpm.json.template | env VERSION=develop-SNAPSHOT envsubst > zpm.json
 ```
 
 ```bash
+./zpmw clean
+```
+
+```bash
 ./zpmw install --debug --exclude-remote-repositories  
 ```
 

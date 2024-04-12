@@ -1,0 +1,339 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/binding/properties/type/enum/-",
+        "value": "asyncapi"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/binding/allOf/-",
+        "value":
+        {
+            "if":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "asyncapi"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "asyncapi"
+                    },
+                    "kind":
+                    {
+                        "enum": [ "server", "client", "proxy" ]
+                    },
+                    "options":
+                    {
+                        "properties":
+                        {
+                            "specs":
+                            {
+                                "title": "Specifications",
+                                "type": "object",
+                                "patternProperties":
+                                {
+                                    "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                                    {
+                                        "type": "object",
+                                        "properties":
+                                        {
+                                            "servers":
+                                            {
+                                                "title": "Servers",
+                                                "type": "array",
+                                                "items":
+                                                {
+                                                    "type": "object",
+                                                    "properties":
+                                                    {
+                                                        "url":
+                                                        {
+                                                            "title": "URL",
+                                                            "type": "string",
+                                                            "pattern": "^([a-zA-Z0-9\\\\.-]+)(:(\\\\{[a-zA-Z_]+\\\\}|[0-9]+))?$"
+                                                        },
+                                                        "host":
+                                                        {
+                                                            "title": "Host",
+                                                            "type": "string",
+                                                            "pattern": "^([a-zA-Z0-9\\\\.-]+)(:(\\\\{[a-zA-Z_]+\\\\}|[0-9]+))?$"
+                                                        },
+                                                        "pathname":
+                                                        {
+                                                            "title": "Path Name",
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "additionalProperties": false
+                                                }
+                                            },
+                                            "catalog":
+                                            {
+                                                "type": "object",
+                                                "patternProperties":
+                                                {
+                                                    "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                                                    {
+                                                        "type": "object",
+                                                        "properties":
+                                                        {
+                                                            "subject":
+                                                            {
+                                                                "type": "string"
+                                                            },
+                                                            "version":
+                                                            {
+                                                                "type": "string",
+                                                                "default": "latest"
+                                                            }
+                                                        },
+                                                        "required":
+                                                        [
+                                                            "subject"
+                                                        ],
+                                                        "additionalProperties": false
+                                                    },
+                                                    "additionalProperties": false
+                                                }
+                                            }
+                                        },
+                                        "additionalProperties": false
+                                    }
+                                },
+                                "additionalProperties": false
+                            },
+                            "tcp":
+                            {
+                                "$ref": "#/$defs/options/binding/tcp"
+                            },
+                            "tls":
+                            {
+                                "$ref": "#/$defs/options/binding/tls"
+                            },
+                            "http":
+                            {
+                                "title": "Http",
+                                "type": "object",
+                                "properties":
+                                {
+                                    "authorization":
+                                    {
+                                        "$ref": "#/$defs/options/binding/http/authorization"
+                                    }
+                                },
+                                "additionalProperties": false
+                            },
+                            "mqtt":
+                            {
+                                "title": "MQTT",
+                                "type": "object",
+                                "properties":
+                                {
+                                    "authorization":
+                                    {
+                                        "$ref": "#/$defs/options/binding/mqtt/authorization"
+                                    }
+                                },
+                                "additionalProperties": false
+                            },
+                            "kafka":
+                            {
+                                "title": "Kafka",
+                                "type": "object",
+                                "properties":
+                                {
+                                    "sasl":
+                                    {
+                                        "$ref": "#/$defs/options/binding/kafka/sasl"
+                                    }
+                                },
+                                "additionalProperties": false
+                            },
+                            "mqtt-kafka":
+                            {
+                                "title": "MQTT-Kafka",
+                                "type": "object",
+                                "properties":
+                                {
+                                    "channels":
+                                    {
+                                        "title": "Channels",
+                                        "type": "object",
+                                        "properties":
+                                        {
+                                            "sessions":
+                                            {
+                                                "title": "Kafka Sessions Channel",
+                                                "type": "string"
+                                            },
+                                            "messages":
+                                            {
+                                                "title": "Kafka Messages Channel",
+                                                "type": "string"
+                                            },
+                                            "retained":
+                                            {
+                                                "title": "Kafka Retained Channel",
+                                                "type": "string"
+                                            },
+                                            "additionalProperties": false
+                                        },
+                                        "additionalProperties": false
+                                    }
+                                },
+                                "additionalProperties": false
+                            }
+                        },
+                        "additionalProperties": false
+                    },
+                    "routes":
+                    {
+                        "items":
+                        {
+                            "properties":
+                            {
+                                "when":
+                                {
+                                    "items":
+                                    {
+                                        "additionalProperties": false,
+                                        "properties":
+                                        {
+                                            "api-id":
+                                            {
+                                                "title": "Spec API Id",
+                                                "type": "string"
+                                            },
+                                            "operation-id":
+                                            {
+                                                "title": "MQTT Operation Id",
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                },
+                                "with":
+                                {
+                                    "properties":
+                                    {
+                                        "api-id":
+                                        {
+                                            "title": "Spec API Id",
+                                            "type": "string"
+                                        },
+                                        "operation-id":
+                                        {
+                                            "title": "MQTT Operation Id",
+                                            "type": "string"
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                }
+                            }
+                        }
+                    }
+                },
+                "oneOf":
+                [
+                    {
+                        "properties":
+                        {
+                            "kind":
+                            {
+                                "const": "server"
+                            }
+                        },
+                        "anyOf":
+                        [
+                            {
+                                "required":
+                                [
+                                    "exit"
+                                ]
+                            },
+                            {
+                                "properties":
+                                {
+                                    "routes":
+                                    {
+                                        "required":
+                                        [
+                                            "exit"
+                                        ]
+                                    }
+                                },
+                                "required":
+                                [
+                                    "routes"
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "properties":
+                        {
+                            "kind":
+                            {
+                                "const": "proxy"
+                            }
+                        },
+                        "anyOf":
+                        [
+                            {
+                                "required":
+                                [
+                                    "exit"
+                                ]
+                            },
+                            {
+                                "properties":
+                                {
+                                    "routes":
+                                    {
+                                        "required":
+                                        [
+                                            "exit"
+                                        ]
+                                    }
+                                },
+                                "required":
+                                [
+                                    "routes"
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "properties":
+                        {
+                            "kind":
+                            {
+                                "const": "client"
+                            },
+                            "routes":
+                            {
+                                "items":
+                                {
+                                    "properties":
+                                    {
+                                        "exit": false
+                                    }
+                                }
+                            },
+                            "exit": false
+                        }
+                    }
+                ]
+            }
+        }
+    }
+]

@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "zilla.fullname" . }}-test-connection"
+  labels:
+    {{- include "zilla.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+spec:
+  containers:
+    - name: wget
+      image: busybox
+      command: ['nc']
+      args: ['-vz', '{{ include "zilla.fullname" . }}:{{ (first .Values.service.ports).port  }}']
+  restartPolicy: Never

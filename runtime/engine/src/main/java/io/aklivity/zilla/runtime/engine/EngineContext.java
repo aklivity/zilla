@@ -74,6 +74,12 @@ public interface EngineContext
 
     EventFormatter supplyEventFormatter();
 
+    void attachComposite(
+        NamespaceConfig composite);
+
+    void detachComposite(
+        NamespaceConfig composite);
+
     void detachSender(
         long replyId);
 

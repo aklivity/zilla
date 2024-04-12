@@ -1,0 +1,149 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "zilla.fullname" . }}
+  labels:
+    {{- include "zilla.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "zilla.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "zilla.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      initContainers:
+        {{- toYaml .Values.initContainers | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          args:
+            {{- toYaml .Values.args | nindent 12 }}
+          env:
+            - name: ZILLA_VERSION
+              value: "{{ .Values.image.tag | default .Chart.AppVersion }}"
+          {{- if .Values.extraEnv }}
+          {{- toYaml .Values.extraEnv | nindent 12 }}
+          {{- end }}
+            {{- range $key, $value := .Values.envValueFrom }}
+            - name: {{ $key | quote }}
+              valueFrom:
+                {{- tpl (toYaml $value) $ | nindent 16 }}
+            {{- end }}
+            {{- range $key, $value := .Values.env }}
+            - name: "{{ tpl $key $ }}"
+              value: "{{ tpl (print $value) $ }}"
+            {{- end }}
+          {{- if or .Values.envFromSecret (or .Values.envRenderSecret .Values.envFromSecrets) .Values.envFromConfigMaps }}
+          envFrom:
+            {{- if .Values.envFromSecret }}
+            - secretRef:
+                name: {{ tpl .Values.envFromSecret . }}
+            {{- end }}
+            {{- if .Values.envRenderSecret }}
+            - secretRef:
+                name: {{ include "zilla.fullname" . }}-env
+            {{- end }}
+            {{- range .Values.envFromSecrets }}
+            - secretRef:
+                name: {{ tpl .name $ }}
+                optional: {{ .optional | default false }}
+              {{- if .prefix }}
+              prefix: {{ tpl .prefix $ }}
+              {{- end }}
+            {{- end }}
+            {{- range .Values.envFromConfigMaps }}
+            - configMapRef:
+                name: {{ tpl .name $ }}
+                optional: {{ .optional | default false }}
+              {{- if .prefix }}
+              prefix: {{ tpl .prefix $ }}
+              {{- end }}
+            {{- end }}
+          {{- end }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+          {{- range $port := .Values.service.ports }}
+          - name: {{ $port.name }}
+            containerPort: {{ $port.port }}
+            protocol: TCP
+          {{- end}}
+          {{- if .Values.livenessProbePort }}
+          livenessProbe:
+            tcpSocket:
+              port: {{ .Values.livenessProbePort }}
+          {{- end}}
+          {{- if .Values.readinessProbePort }}
+          readinessProbe:
+            tcpSocket:
+              port: {{ .Values.readinessProbePort }}
+          {{- end}}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            {{- if index .Values "zilla.yaml" }}
+            - name: {{ include "zilla.fullname" . }}
+              mountPath: {{ .Values.configPath }}
+            {{- end }}
+            {{- $configPath := .Values.configPath }}
+            {{- range $name, $configMap := .Values.configMaps }}
+            - name: {{ $name }}
+              mountPath: {{ $configPath }}/{{ $configMap.mountPath | default $name }}
+            {{- end }}
+            {{- range $name, $secret := .Values.secrets }}
+            - name: {{ $name }}
+              mountPath: {{ $configPath }}/{{ $secret.mountPath | default $name }}
+            {{- end }}
+            {{- range $name, $pvc := .Values.persistentVolumeClaims }}
+            - name: {{ $name }}
+              mountPath: {{ $pvc.mountPath }}
+            {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+        {{- if index .Values "zilla.yaml" }}
+        - name: {{ include "zilla.fullname" . }}
+          configMap:
+            name: {{ include "zilla.fullname" . }}
+        {{- end }}
+        {{- range $name, $_ := .Values.configMaps }}
+        - name: {{ $name }}
+          configMap:
+            name: {{ $name }}
+        {{- end }}
+        {{- range $name, $_ := .Values.secrets }}
+        - name: {{ $name }}
+          secret:
+            secretName: {{ $name }}
+        {{- end }}
+        {{- range $name, $pvc := .Values.persistentVolumeClaims }}
+        - name: {{ $name }}
+          persistentVolumeClaim:
+            claimName: {{ $name }}
+        {{- end }}

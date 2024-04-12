@@ -41,7 +41,6 @@ public final class BindingConfigBuilder<T> extends ConfigBuilder<T, BindingConfi
     private List<RouteConfig> routes;
     private List<CatalogedConfig> catalogs;
     private TelemetryRefConfig telemetryRef;
-    private List<NamespaceConfig> composites;
 
     BindingConfigBuilder(
         Function<BindingConfig, T> mapper)
@@ -181,29 +180,6 @@ public final class BindingConfigBuilder<T> extends ConfigBuilder<T, BindingConfi
         return this;
     }
 
-    public NamespaceConfigBuilder<BindingConfigBuilder<T>> composite()
-    {
-        return new NamespaceConfigBuilder<>(this::composite);
-    }
-
-    public BindingConfigBuilder<T> composite(
-        NamespaceConfig composite)
-    {
-        if (composites == null)
-        {
-            composites = new LinkedList<>();
-        }
-        composites.add(composite);
-        return this;
-    }
-
-    public BindingConfigBuilder<T> composites(
-        List<NamespaceConfig> composites)
-    {
-        composites.forEach(this::composite);
-        return this;
-    }
-
     @Override
     public T build()
     {
@@ -224,7 +200,6 @@ public final class BindingConfigBuilder<T> extends ConfigBuilder<T, BindingConfi
             options,
             Optional.ofNullable(catalogs).orElse(CATALOGS_DEFAULT),
             Optional.ofNullable(routes).orElse(ROUTES_DEFAULT),
-            telemetryRef,
-            Optional.ofNullable(composites).orElse(COMPOSITES_DEFAULT)));
+            telemetryRef));
     }
 }

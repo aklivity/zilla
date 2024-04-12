@@ -21,6 +21,7 @@ import static io.aklivity.zilla.runtime.engine.metrics.MetricContext.Direction.B
 import static io.aklivity.zilla.runtime.engine.metrics.MetricContext.Direction.RECEIVED;
 import static io.aklivity.zilla.runtime.engine.metrics.MetricContext.Direction.SENT;
 
+import java.util.Collection;
 import java.util.function.Function;
 import java.util.function.LongConsumer;
 import java.util.function.LongFunction;
@@ -136,6 +137,11 @@ public class NamespaceRegistry
         namespace.bindings.forEach(this::detachBinding);
         namespace.telemetry.metrics.forEach(this::detachMetric);
         namespace.telemetry.exporters.forEach(this::detachExporter);
+    }
+
+    public Collection<BindingRegistry> bindings()
+    {
+        return bindingsById.values();
     }
 
     private void attachBinding(

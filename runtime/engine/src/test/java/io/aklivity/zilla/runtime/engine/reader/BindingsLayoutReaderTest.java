@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.reader;
 
+import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
@@ -24,6 +25,7 @@ import java.util.Map;
 
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.internal.layouts.BindingsLayout;
 
 public class BindingsLayoutReaderTest
@@ -33,9 +35,25 @@ public class BindingsLayoutReaderTest
     {
         // GIVEN
         Path directory = Paths.get("target/zilla-itests");
-        BindingsLayout layout = BindingsLayout.builder().directory(directory).build();
-        layout.writeBindingInfo(1L, 2L, 3L, 4L, 5L);
-        BindingsLayoutReader reader = BindingsLayoutReader.builder().directory(directory).build();
+        BindingsLayout layout = BindingsLayout.builder()
+            .path(directory.resolve("bindings0"))
+            .build();
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("test0")
+            .type("test")
+            .kind(SERVER)
+            .build();
+        binding.id = 1L;
+        binding.typeId = 2L;
+        binding.kindId = 3L;
+        binding.originTypeId = 4L;
+        binding.routedTypeId = 5L;
+        layout.writeBindingInfo(binding);
+
+        BindingsLayoutReader reader = BindingsLayoutReader.builder()
+            .path(directory.resolve("bindings0"))
+            .build();
 
         // WHEN
         Map<Long, long[]> result = reader.bindings();

@@ -314,7 +314,9 @@ public final class ZillaDumpCommand extends ZillaCommand
                 final int streamBufferCount = streamBuffers.length;
 
                 final IdleStrategy idleStrategy = new BackoffIdleStrategy(MAX_SPINS, MAX_YIELDS, MIN_PARK_NS, MAX_PARK_NS);
-                final BindingsLayoutReader bindings = BindingsLayoutReader.builder().directory(directory).build();
+                final BindingsLayoutReader bindings = BindingsLayoutReader.builder()
+                    .path(directory.resolve("bindings"))
+                    .build();
                 final DumpHandler[] dumpHandlers = new DumpHandler[streamBufferCount];
                 for (int i = 0; i < streamBufferCount; i++)
                 {

@@ -48,76 +48,7 @@
                             },
                             "authorization":
                             {
-                                "title": "Authorizations",
-                                "type": "object",
-                                "patternProperties":
-                                {
-                                    "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
-                                    {
-                                        "title": "Guard",
-                                        "type": "object",
-                                        "properties":
-                                        {
-                                            "credentials":
-                                            {
-                                                "title": "Credentials",
-                                                "type": "object",
-                                                "properties":
-                                                {
-                                                    "connect":
-                                                    {
-                                                        "title": "Connect",
-                                                        "type": "object",
-                                                        "properties":
-                                                        {
-                                                            "username":
-                                                            {
-                                                                "title": "Username",
-                                                                "type": "string"
-                                                            },
-                                                            "password":
-                                                            {
-                                                                "title": "Password",
-                                                                "type": "string"
-                                                            }
-                                                        },
-                                                        "oneOf":
-                                                        [
-                                                            {
-                                                                "required":
-                                                                [
-                                                                    "username"
-                                                                ]
-                                                            },
-                                                            {
-                                                                "required":
-                                                                [
-                                                                    "password"
-                                                                ]
-                                                            }
-                                                        ]
-                                                    }
-                                                },
-                                                "additionalProperties": false,
-                                                "anyOf":
-                                                [
-                                                    {
-                                                        "required":
-                                                        [
-                                                            "connect"
-                                                        ]
-                                                    }
-                                                ]
-                                            }
-                                        },
-                                        "additionalProperties": false,
-                                        "required":
-                                        [
-                                            "credentials"
-                                        ]
-                                    }
-                                },
-                                "maxProperties": 1
+                                "$ref": "#/$defs/options/binding/mqtt/authorization"
                             },
                             "topics":
                             {
@@ -136,6 +67,17 @@
                                         "content":
                                         {
                                             "$ref": "#/$defs/validator"
+                                        },
+                                        "user-properties":
+                                        {
+                                            "type": "object",
+                                            "patternProperties":
+                                            {
+                                                "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                                                {
+                                                    "$ref": "#/$defs/validator"
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -218,6 +160,86 @@
                         ]
                     }
                 ]
+            }
+        }
+    },
+    {
+        "op": "add",
+        "path": "/$defs/options/binding/mqtt",
+        "value":
+        {
+            "authorization":
+            {
+                "title": "Authorizations",
+                "type": "object",
+                "patternProperties":
+                {
+                    "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                    {
+                        "title": "Guard",
+                        "type": "object",
+                        "properties":
+                        {
+                            "credentials":
+                            {
+                                "title": "Credentials",
+                                "type": "object",
+                                "properties":
+                                {
+                                    "connect":
+                                    {
+                                        "title": "Connect",
+                                        "type": "object",
+                                        "properties":
+                                        {
+                                            "username":
+                                            {
+                                                "title": "Username",
+                                                "type": "string"
+                                            },
+                                            "password":
+                                            {
+                                                "title": "Password",
+                                                "type": "string"
+                                            }
+                                        },
+                                        "oneOf":
+                                        [
+                                            {
+                                                "required":
+                                                [
+                                                    "username"
+                                                ]
+                                            },
+                                            {
+                                                "required":
+                                                [
+                                                    "password"
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                },
+                                "additionalProperties": false,
+                                "anyOf":
+                                [
+                                    {
+                                        "required":
+                                        [
+                                            "connect"
+                                        ]
+                                    }
+                                ]
+                            }
+                        },
+                        "additionalProperties": false,
+                        "required":
+                        [
+                            "credentials"
+                        ]
+                    }
+                },
+                "maxProperties": 1
             }
         }
     }

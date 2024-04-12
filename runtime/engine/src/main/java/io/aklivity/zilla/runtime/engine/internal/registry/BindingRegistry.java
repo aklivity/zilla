@@ -40,6 +40,11 @@ final class BindingRegistry
         this.context = context;
     }
 
+    public BindingConfig config()
+    {
+        return binding;
+    }
+
     public void attach()
     {
         attached = context.attach(binding);

@@ -42,7 +42,6 @@ import org.mockito.quality.Strictness;
 
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig;
 
@@ -82,7 +81,6 @@ public class BindingConfigsAdapterTest
         assertThat(bindings[0], not(nullValue()));
         assertThat(bindings[0].kind, equalTo(PROXY));
         assertThat(bindings[0].routes, emptyCollectionOf(RouteConfig.class));
-        assertThat(bindings[0].composites, not(emptyCollectionOf(NamespaceConfig.class)));
     }
 
     @Test

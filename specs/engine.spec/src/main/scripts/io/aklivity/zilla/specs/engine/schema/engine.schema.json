@@ -468,48 +468,72 @@
         },
         "converter":
         {
-            "type": "object",
-            "properties":
-            {
-                "model":
+            "oneOf":
+            [
                 {
                     "$ref": "#/$defs/converter/types"
+                },
+                {
+                    "$ref": "#/$defs/converter/model"
                 }
-            },
-            "required":
-            [
-                "model"
-            ],
-            "allOf":
-            [
             ],
             "types":
             {
                 "type": "string",
                 "enum": []
+            },
+            "model":
+            {
+                "type": "object",
+                "properties":
+                {
+                    "model":
+                    {
+                        "$ref": "#/$defs/converter/types"
+                    }
+                },
+                "required":
+                [
+                    "model"
+                ],
+                "allOf":
+                [
+                ]
             }
         },
         "validator":
         {
-            "type": "object",
-            "properties":
-            {
-                "model":
+            "oneOf":
+            [
                 {
                     "$ref": "#/$defs/validator/types"
+                },
+                {
+                    "$ref": "#/$defs/validator/model"
                 }
-            },
-            "required":
-            [
-                "model"
-            ],
-            "allOf":
-            [
             ],
             "types":
             {
                 "type": "string",
                 "enum": []
+            },
+            "model":
+            {
+                "type": "object",
+                "properties":
+                {
+                    "model":
+                    {
+                        "$ref": "#/$defs/validator/types"
+                    }
+                },
+                "required":
+                [
+                    "model"
+                ],
+                "allOf":
+                [
+                ]
             }
         }
     }

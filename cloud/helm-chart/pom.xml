@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>cloud</artifactId>
-    <version>0.9.74</version>
+    <version>0.9.75</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -44,7 +44,7 @@
               <tpl>SCRIPT_STYLE</tpl>
             </mapping>
             <excludes>
-              <exclude>src/main/helm/artifacthub-repo.yml</exclude>
+              <exclude>src/main/helm/zilla/**</exclude>
             </excludes>
           </configuration>
       </plugin>

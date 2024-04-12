@@ -47,12 +47,14 @@ import org.leadpony.justify.api.JsonValidationService;
 import org.leadpony.justify.api.ProblemHandler;
 
 import io.aklivity.zilla.runtime.engine.Engine;
+import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.internal.config.NamespaceAdapter;
 import io.aklivity.zilla.runtime.engine.internal.config.schema.UniquePropertyKeysSchema;
 import io.aklivity.zilla.runtime.engine.resolver.Resolver;
 
 public final class EngineConfigReader
 {
+    private final EngineConfiguration config;
     private final ConfigAdapterContext context;
     private final Resolver expressions;
     private final Collection<URL> schemaTypes;
@@ -60,11 +62,13 @@ public final class EngineConfigReader
 
 
     public EngineConfigReader(
+        EngineConfiguration config,
         ConfigAdapterContext context,
         Resolver expressions,
         Collection<URL> schemaTypes,
         Consumer<String> logger)
     {
+        this.config = config;
         this.context = context;
         this.expressions = expressions;
         this.schemaTypes = schemaTypes;
@@ -95,6 +99,11 @@ public final class EngineConfigReader
                 JsonPatch schemaPatch = schemaProvider.createPatch(schemaPatchArray);
 
                 schemaObject = schemaPatch.apply(schemaObject);
+            }
+
+            if (config.verboseSchemaPlain())
+            {
+                logSchema(schemaObject);
             }
 
             if (!validateAnnotatedSchema(schemaObject, schemaProvider, errors, configText))
@@ -176,6 +185,20 @@ public final class EngineConfigReader
         return engine;
     }
 
+    private void logSchema(
+        JsonObject schemaObject)
+    {
+        final StringWriter out = new StringWriter();
+        JsonProvider.provider()
+            .createGeneratorFactory(singletonMap(PRETTY_PRINTING, true))
+            .createGenerator(out)
+            .write(schemaObject)
+            .close();
+
+        final String schemaText = out.getBuffer().toString();
+        logger.accept(schemaText);
+    }
+
     private boolean validateAnnotatedSchema(
         JsonObject schemaObject,
         JsonProvider schemaProvider,
@@ -190,16 +213,9 @@ public final class EngineConfigReader
             final EngineConfigAnnotator annotator = new EngineConfigAnnotator();
             final JsonObject annotatedSchemaObject = annotator.annotate(schemaObject);
 
-            if (logger != null)
+            if (config.verboseSchema())
             {
-                final StringWriter out = new StringWriter();
-                schemaProvider.createGeneratorFactory(singletonMap(PRETTY_PRINTING, true))
-                    .createGenerator(out)
-                    .write(annotatedSchemaObject)
-                    .close();
-
-                final String schemaText = out.getBuffer().toString();
-                logger.accept(schemaText);
+                logSchema(annotatedSchemaObject);
             }
 
             final JsonParser schemaParser = schemaProvider.createParserFactory(null)
@@ -246,6 +262,4 @@ public final class EngineConfigReader
         return valid;
 
     }
-
-
 }

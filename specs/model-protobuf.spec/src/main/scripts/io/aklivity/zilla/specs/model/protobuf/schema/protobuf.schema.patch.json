@@ -1,0 +1,160 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/converter/types/enum/-",
+        "value": "protobuf"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/converter/model/allOf/-",
+        "value":
+        {
+            "if":
+            {
+                "properties":
+                {
+                    "model":
+                    {
+                        "const": "protobuf"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "model":
+                    {
+                        "const": "protobuf"
+                    },
+                    "view":
+                    {
+                        "type": "string",
+                        "enum":
+                        [
+                            "json"
+                        ]
+                    },
+                    "catalog":
+                    {
+                        "type": "object",
+                        "patternProperties":
+                        {
+                            "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                            {
+                                "type": "array",
+                                "items":
+                                {
+                                    "oneOf":
+                                    [
+                                        {
+                                            "type": "object",
+                                            "properties":
+                                            {
+                                                "id":
+                                                {
+                                                    "type": "integer"
+                                                },
+                                                "record":
+                                                {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required":
+                                            [
+                                                "id",
+                                                "record"
+                                            ],
+                                            "additionalProperties": false
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties":
+                                            {
+                                                "schema":
+                                                {
+                                                    "type": "string"
+                                                },
+                                                "version":
+                                                {
+                                                    "type": "string",
+                                                    "default": "latest"
+                                                },
+                                                "record":
+                                                {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required":
+                                            [
+                                                "schema",
+                                                "record"
+                                            ],
+                                            "additionalProperties": false
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties":
+                                            {
+                                                "strategy":
+                                                {
+                                                    "type": "string"
+                                                },
+                                                "version":
+                                                {
+                                                    "type": "string",
+                                                    "default": "latest"
+                                                },
+                                                "record":
+                                                {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required":
+                                            [
+                                                "strategy",
+                                                "record"
+                                            ],
+                                            "additionalProperties": false
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties":
+                                            {
+                                                "subject":
+                                                {
+                                                    "type": "string"
+                                                },
+                                                "version":
+                                                {
+                                                    "type": "string",
+                                                    "default": "latest"
+                                                },
+                                                "record":
+                                                {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required":
+                                            [
+                                                "subject",
+                                                "record"
+                                            ],
+                                            "additionalProperties": false
+                                        }
+                                    ]
+                                }
+                            }
+                        },
+                        "maxProperties": 1
+                    }
+                },
+                "required":
+                [
+                    "catalog"
+                ],
+                "additionalProperties": false
+            }
+        }
+    }
+]

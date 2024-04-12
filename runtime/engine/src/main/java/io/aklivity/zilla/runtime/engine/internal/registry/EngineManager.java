@@ -16,12 +16,12 @@
 package io.aklivity.zilla.runtime.engine.internal.registry;
 
 import static java.util.stream.Collectors.toList;
+import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -46,7 +46,6 @@ import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.ConfigException;
 import io.aklivity.zilla.runtime.engine.config.EngineConfig;
 import io.aklivity.zilla.runtime.engine.config.EngineConfigReader;
-import io.aklivity.zilla.runtime.engine.config.EngineConfigWriter;
 import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
 import io.aklivity.zilla.runtime.engine.config.GuardConfig;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
@@ -63,7 +62,6 @@ import io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
 import io.aklivity.zilla.runtime.engine.guard.Guard;
 import io.aklivity.zilla.runtime.engine.internal.Tuning;
 import io.aklivity.zilla.runtime.engine.internal.config.NamespaceAdapter;
-import io.aklivity.zilla.runtime.engine.internal.layouts.BindingsLayout;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 import io.aklivity.zilla.runtime.engine.resolver.Resolver;
 
@@ -78,14 +76,13 @@ public class EngineManager
     private final IntFunction<String> supplyName;
     private final IntFunction<ToIntFunction<KindConfig>> maxWorkers;
     private final Tuning tuning;
-    private final Collection<EngineWorker> dispatchers;
+    private final Collection<EngineWorker> workers;
     private final Consumer<String> logger;
     private final EngineExtContext context;
     private final EngineConfiguration config;
     private final List<EngineExtSpi> extensions;
     private final BiFunction<URL, String, String> readURL;
     private final Resolver expressions;
-    private final Matcher matchName;
 
     private EngineConfig current;
 
@@ -97,7 +94,7 @@ public class EngineManager
         IntFunction<String> supplyName,
         IntFunction<ToIntFunction<KindConfig>> maxWorkers,
         Tuning tuning,
-        Collection<EngineWorker> dispatchers,
+        Collection<EngineWorker> workers,
         Consumer<String> logger,
         EngineExtContext context,
         EngineConfiguration config,
@@ -111,14 +108,13 @@ public class EngineManager
         this.supplyName = supplyName;
         this.maxWorkers = maxWorkers;
         this.tuning = tuning;
-        this.dispatchers = dispatchers;
+        this.workers = workers;
         this.logger = logger;
         this.context = context;
         this.config = config;
         this.extensions = extensions;
         this.readURL = readURL;
         this.expressions = Resolver.instantiate(config);
-        this.matchName = NamespaceAdapter.PATTERN_NAME.matcher("");
     }
 
     public EngineConfig reconfigure(
@@ -137,17 +133,17 @@ public class EngineManager
 
                 try
                 {
-                    writeBindingsLayout(newConfig);
-                    register(newConfig);
                     current = newConfig;
+                    register(newConfig);
                 }
                 catch (Exception ex)
                 {
                     context.onError(ex);
-                    writeBindingsLayout(newConfig);
+
+                    current = oldConfig;
                     register(oldConfig);
 
-                    LangUtil.rethrowUnchecked(ex);
+                    rethrowUnchecked(ex);
                 }
             }
         }
@@ -165,6 +161,17 @@ public class EngineManager
         }
 
         return newConfig;
+    }
+
+    public void process(
+        NamespaceConfig namespace)
+    {
+        final List<GuardConfig> guards = current.namespaces.stream()
+                .map(n -> n.guards)
+                .flatMap(gs -> gs.stream())
+                .collect(toList());
+
+        process(guards, namespace);
     }
 
     private EngineConfig parse(
@@ -185,10 +192,11 @@ public class EngineManager
             final Function<String, String> namespaceReadURL = l -> readURL.apply(configURL, l);
 
             EngineConfigReader reader = new EngineConfigReader(
+                config,
                 new NamespaceConfigAdapterContext(namespaceReadURL),
                 expressions,
                 schemaTypes,
-                config.verboseSchema() ? logger : null);
+                logger);
 
             engine = reader.read(configText);
 
@@ -199,15 +207,8 @@ public class EngineManager
 
             for (NamespaceConfig namespace : engine.namespaces)
             {
-                process(guards, namespace, namespaceReadURL);
-            }
-
-            if (config.verboseComposites())
-            {
-                EngineConfigWriter writer = new EngineConfigWriter(null);
-                engine.namespaces.stream()
-                    .flatMap(n -> n.bindings.stream().flatMap(b -> b.composites.stream()))
-                    .forEach(n -> System.out.println(writer.write(n)));
+                namespace.readURL = l -> readURL.apply(configURL, l);
+                process(guards, namespace);
             }
         }
         catch (Throwable ex)
@@ -220,11 +221,11 @@ public class EngineManager
 
     private void process(
         List<GuardConfig> guards,
-        NamespaceConfig namespace,
-        Function<String, String> readURL)
+        NamespaceConfig namespace)
     {
+        assert namespace.readURL != null;
+
         namespace.id = supplyId.applyAsInt(namespace.name);
-        namespace.readURL = readURL;
 
         NameResolver resolver = new NameResolver(namespace.id);
 
@@ -259,6 +260,16 @@ public class EngineManager
             binding.id = resolver.resolve(binding.name);
             binding.entryId = resolver.resolve(binding.entry);
             binding.resolveId = resolver::resolve;
+            binding.readURL = namespace.readURL;
+
+            binding.typeId = supplyId.applyAsInt(binding.type);
+            binding.kindId = supplyId.applyAsInt(binding.kind.name().toLowerCase());
+
+            Binding typed = bindingByType.apply(binding.type);
+            String originType = typed.originType(binding.kind);
+            String routedType = typed.routedType(binding.kind);
+            binding.originTypeId = originType != null ? supplyId.applyAsInt(originType) : 0L;
+            binding.routedTypeId = routedType != null ? supplyId.applyAsInt(routedType) : 0L;
 
             if (binding.vault != null)
             {
@@ -342,11 +353,6 @@ public class EngineManager
             }
             binding.metricIds = metricIds.stream().mapToLong(Long::longValue).toArray();
 
-            for (NamespaceConfig composite : binding.composites)
-            {
-                process(guards, composite, readURL);
-            }
-
             long affinity = tuning.affinity(binding.id);
 
             final long maxbits = maxWorkers.apply(binding.type.intern().hashCode()).applyAsInt(binding.kind);
@@ -390,8 +396,8 @@ public class EngineManager
     private void register(
         NamespaceConfig namespace)
     {
-        dispatchers.stream()
-            .map(d -> d.attach(namespace))
+        workers.stream()
+            .map(w -> w.attach(namespace))
             .reduce(CompletableFuture::allOf)
             .ifPresent(CompletableFuture::join);
     }
@@ -401,53 +407,23 @@ public class EngineManager
     {
         if (namespace != null)
         {
-            dispatchers.stream()
-                .map(d -> d.detach(namespace))
+            workers.stream()
+                .map(w -> w.detach(namespace))
                 .reduce(CompletableFuture::allOf)
                 .ifPresent(CompletableFuture::join);
-        }
-    }
-
-    private void writeBindingsLayout(
-        EngineConfig engine)
-    {
-        try (BindingsLayout layout = BindingsLayout.builder()
-                .directory(config.directory())
-                .build())
-        {
-            LinkedList<NamespaceConfig> namespaces = new LinkedList<>(engine.namespaces);
-            for (int i = 0; i < namespaces.size(); i++)
-            {
-                NamespaceConfig namespace = namespaces.get(i);
-                for (BindingConfig binding : namespace.bindings)
-                {
-                    long typeId = binding.resolveId.applyAsLong(binding.type);
-                    long kindId = binding.resolveId.applyAsLong(binding.kind.name().toLowerCase());
-                    Binding typed = bindingByType.apply(binding.type);
-                    long originTypeId = binding.resolveId.applyAsLong(typed.originType(binding.kind));
-                    long routedTypeId = binding.resolveId.applyAsLong(typed.routedType(binding.kind));
-                    layout.writeBindingInfo(binding.id, typeId, kindId, originTypeId, routedTypeId);
-                    if (binding.composites != null)
-                    {
-                        namespaces.addAll(binding.composites);
-                    }
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            LangUtil.rethrowUnchecked(ex);
         }
     }
 
     private final class NameResolver
     {
         private final int namespaceId;
+        private final Matcher matchName;
 
         private NameResolver(
             int namespaceId)
         {
             this.namespaceId = namespaceId;
+            this.matchName = NamespaceAdapter.PATTERN_NAME.matcher("");
         }
 
         private long resolve(

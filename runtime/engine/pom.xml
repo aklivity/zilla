@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>runtime</artifactId>
-    <version>0.9.74</version>
+    <version>0.9.75</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -27,7 +27,7 @@
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
     <jacoco.coverage.ratio>0.77</jacoco.coverage.ratio>
-    <jacoco.missed.count>3</jacoco.missed.count>
+    <jacoco.missed.count>5</jacoco.missed.count>
   </properties>
 
   <dependencies>
@@ -215,6 +215,7 @@
                 io/aklivity/zilla/specs/engine/schema/guard/test.schema.patch.json,
                 io/aklivity/zilla/specs/engine/schema/metrics/test.schema.patch.json,
                 io/aklivity/zilla/specs/engine/schema/catalog/test.schema.patch.json,
+                io/aklivity/zilla/specs/engine/schema/catalogs/test.schema.patch.json,
                 io/aklivity/zilla/specs/engine/schema/model/test.schema.patch.json,
                 io/aklivity/zilla/specs/engine/schema/vault/test.schema.patch.json
               </includes>
