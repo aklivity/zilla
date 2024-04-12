@@ -1,20 +1,151 @@
 ---
 name: zilla-mqtt-kafka-broker
+catalogs:
+  catalog0:
+    type: inline
+    options:
+      subjects:
+        mqtt:
+          schema: |
+            asyncapi: 3.0.0
+            info:
+              title: Zilla MQTT Proxy
+              version: 1.0.0
+              license:
+                name: Aklivity Community License
+            servers:
+              plain:
+                host: localhost:7183
+                protocol: mqtt
+            defaultContentType: application/json
+            
+            channels:
+              sensors:
+                address: "sensors/{sensorId}"
+                title: MQTT Topic to produce & consume topic.
+                parameters:
+                  streetlightId:
+                    $ref: '#/components/parameters/sensorId'
+                messages:
+                  item:
+                    $ref: '#/components/messages/item'
+            
+            operations:
+              sendEvents:
+                action: send
+                channel:
+                  $ref: '#/channels/sensors'
+            
+              receiveEvents:
+                action: receive
+                channel:
+                  $ref: '#/channels/sensors'
+            
+            components:
+              parameters:
+                sensorId:
+                  description: Sensor ID
+                  location: $message.header#/id
+              messages:
+                item:
+                  name: event
+                  title: An event
+                  contentType: application/json
+                  payload:
+                    type: object
+                    properties:
+                      item:
+                        $ref: "#/components/schemas/item"
+              schemas:
+                item:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    status:
+                      type: string
+                  required:
+                    - id
+                    - status
+        kafka:
+          schema: |
+            asyncapi: 3.0.0
+            info:
+              title: Zilla Kafka Proxy
+              version: 1.0.0
+              license:
+                name: Aklivity Community License
+            servers:
+              plain:
+                host: host.docker.internal:9092
+                protocol: kafka
+            
+            operations:
+              onSensorData:
+                action: receive
+                channel:
+                  $ref: '#/channels/sensorData'
+              toSensorData:
+                action: send
+                channel:
+                  $ref: '#/channels/sensorData'
+            
+            channels:
+              sensorData:
+                description: This channel contains a message for sensors.
+                address: sensors
+                messages:
+                  sensorData:
+                    $ref: '#/components/messages/sensorData'
+              mqttSessions:
+                description: This channel contains MQTT sessions.
+                address: mqtt-sessions
+              mqttMessages:
+                description: This channel contains MQTT messages.
+                address: mqtt-messages
+              mqttRetained:
+                description: This channel contains MQTT retained messages.
+                address: mqtt-retained
+            
+            components:
+              messages:
+                sensorData:
+                  payload:
+                    type: object
+                    properties:
+                      sensorId:
+                        type: integer
+                        description: This property describes the id of the sensor
+                      message:
+                        type: string
+                        description: This property describes message of the sensor
 bindings:
   asyncapi_mqtt0:
     type: asyncapi
     kind: server
     options:
       specs:
-        mqtt_api: mqtt/mqtt-asyncapi.yaml
+        mqtt_api:
+          catalog:
+            catalog0:
+              subject: mqtt
+              version: latest
     exit: asyncapi_proxy0
   asyncapi_proxy0:
     type: asyncapi
     kind: proxy
     options:
       specs:
-        mqtt_api: mqtt/mqtt-asyncapi.yaml
-        kafka_api: kafka/kafka-asyncapi.yaml
+        mqtt_api:
+          catalog:
+            catalog0:
+              subject: mqtt
+              version: latest
+        kafka_api:
+          catalog:
+            catalog0:
+              subject: kafka
+              version: latest
       mqtt-kafka:
         channels:
           sessions: mqttSessions
@@ -40,7 +171,11 @@ bindings:
     kind: client
     options:
       specs:
-        kafka_api: kafka/kafka-asyncapi.yaml
+        kafka_api:
+          catalog:
+            catalog0:
+              subject: kafka
+              version: latest
       tcp:
         host: ${{env.KAFKA_HOST}}
         port: ${{env.KAFKA_PORT}}

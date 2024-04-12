@@ -10,7 +10,6 @@ services:
     environment:
       ZILLA_INCUBATOR_ENABLED: true
     volumes:
-      - ../../specs/schema.json:/etc/zilla/schema.json
       - ../../zilla.yaml:/etc/zilla/zilla.yaml
     command: start -v -e
 
