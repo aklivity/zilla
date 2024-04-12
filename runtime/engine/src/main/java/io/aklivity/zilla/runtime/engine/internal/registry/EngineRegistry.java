@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.registry;
 
+import java.util.Collection;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.LongConsumer;
 import java.util.function.ToIntFunction;
@@ -23,7 +25,6 @@ import org.agrona.collections.Int2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterContext;
 import io.aklivity.zilla.runtime.engine.guard.GuardContext;
@@ -49,6 +50,7 @@ public class EngineRegistry
     private final Int2ObjectHashMap<NamespaceRegistry> namespacesById;
     private final LongConsumer detachBinding;
     private final Collector collector;
+    private final Consumer<NamespaceConfig> process;
 
     public EngineRegistry(
         Function<String, BindingContext> bindingsByType,
@@ -62,7 +64,8 @@ public class EngineRegistry
         LongConsumer exporterDetached,
         ObjectLongLongFunction<Metric.Kind, LongConsumer> supplyMetricRecorder,
         LongConsumer detachBinding,
-        Collector collector)
+        Collector collector,
+        Consumer<NamespaceConfig> process)
     {
         this.bindingsByType = bindingsByType;
         this.guardsByType = guardsByType;
@@ -77,6 +80,25 @@ public class EngineRegistry
         this.namespacesById = new Int2ObjectHashMap<>();
         this.detachBinding = detachBinding;
         this.collector = collector;
+        this.process = process;
+    }
+
+    public void process(
+        NamespaceConfig composite)
+    {
+        process.accept(composite);
+    }
+
+    public void attachNow(
+        NamespaceConfig namespace)
+    {
+        attach(namespace).run();
+    }
+
+    public void detachNow(
+        NamespaceConfig namespace)
+    {
+        detach(namespace).run();
     }
 
     public NamespaceTask attach(
@@ -157,6 +179,11 @@ public class EngineRegistry
         namespacesById.clear();
     }
 
+    public Collection<NamespaceRegistry> namespaces()
+    {
+        return namespacesById.values();
+    }
+
     private NamespaceRegistry findNamespace(
         int namespaceId)
     {
@@ -172,17 +199,6 @@ public class EngineRegistry
                     supplyMetricRecorder, detachBinding, collector);
         namespacesById.put(registry.namespaceId(), registry);
         registry.attach();
-
-        for (BindingConfig binding : namespace.bindings)
-        {
-            for (NamespaceConfig composite : binding.composites.values())
-            {
-                if (composite.refs.intValue() == 0)
-                {
-                    attachNamespace(composite);
-                }
-            }
-        }
     }
 
     protected void detachNamespace(
@@ -191,16 +207,5 @@ public class EngineRegistry
         int namespaceId = supplyLabelId.applyAsInt(namespace.name);
         NamespaceRegistry registry = namespacesById.remove(namespaceId);
         registry.detach();
-
-        for (BindingConfig binding : namespace.bindings)
-        {
-            for (NamespaceConfig composite : binding.composites.values())
-            {
-                if (composite.refs.intValue() == 0)
-                {
-                    detachNamespace(composite);
-                }
-            }
-        }
     }
 }
