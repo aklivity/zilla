@@ -62,6 +62,8 @@ import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
 public final class OpenapiServerNamespaceGenerator extends OpenapiNamespaceGenerator
 {
+    private static final String JWT = "jwt";
+
     @Override
     public NamespaceConfig generate(
         BindingConfig binding,
@@ -306,7 +308,7 @@ public final class OpenapiServerNamespaceGenerator extends OpenapiNamespaceGener
             {
                 for (String securityItemLabel : securityItem.keySet())
                 {
-                    if (hasJwt && "jwt".equals(securitySchemes.get(securityItemLabel)))
+                    if (hasJwt && JWT.equalsIgnoreCase(securitySchemes.get(securityItemLabel)))
                     {
                         route
                             .guarded()
@@ -467,7 +469,7 @@ public final class OpenapiServerNamespaceGenerator extends OpenapiNamespaceGener
             for (String securitySchemeName : openApi.components.securitySchemes.keySet())
             {
                 String guardType = openApi.components.securitySchemes.get(securitySchemeName).bearerFormat;
-                if ("jwt".equalsIgnoreCase(guardType))
+                if (JWT.equalsIgnoreCase(guardType))
                 {
                     result.put(securitySchemeName, guardType);
                 }
