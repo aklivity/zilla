@@ -1,5 +1,27 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.74...HEAD)
+
+**Implemented enhancements:**
+
+- Support logging of events caused by Model [\#887](https://github.com/aklivity/zilla/issues/887)
+- Helm chart QoL improvements [\#884](https://github.com/aklivity/zilla/issues/884)
+- Support `mqtt` streetlights AsyncAPI validating proxy [\#880](https://github.com/aklivity/zilla/issues/880)
+- Promote components out of incubator [\#879](https://github.com/aklivity/zilla/issues/879)
+- Support specific server in AsyncAPI spec in `asyncapi` binding [\#878](https://github.com/aklivity/zilla/issues/878)
+- Support specific server in OpenAPI spec in `openapi` binding [\#877](https://github.com/aklivity/zilla/issues/877)
+- Support HTTP prefer async with OpenAPI [\#876](https://github.com/aklivity/zilla/issues/876)
+- Support OpenAPI and AsyncAPI validation cases [\#814](https://github.com/aklivity/zilla/issues/814)
+- Integrate `openapi` and `asyncapi` with `catalog` [\#813](https://github.com/aklivity/zilla/issues/813)
+
+**Fixed bugs:**
+
+- Error in JsonValidatorHandler when the remote registry can't be accessed [\#817](https://github.com/aklivity/zilla/issues/817)
+- Zilla doesn't communicate with bitnami/kafka in Taxi demo [\#690](https://github.com/aklivity/zilla/issues/690)
+- Bootstrap options on cache\_client vs cache\_server for the kafka binding [\#388](https://github.com/aklivity/zilla/issues/388)
+
 ## [0.9.74](https://github.com/aklivity/zilla/tree/0.9.74) (2024-03-19)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.73...0.9.74)
