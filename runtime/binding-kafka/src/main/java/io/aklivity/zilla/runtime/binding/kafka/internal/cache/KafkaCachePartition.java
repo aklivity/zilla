@@ -85,8 +85,6 @@ public final class KafkaCachePartition
     private static final long NO_ANCESTOR_OFFSET = -1L;
     private static final long NO_DESCENDANT_OFFSET = -1L;
     private static final int NO_SEQUENCE = -1;
-    private static final short NO_PRODUCER_ID = -1;
-    private static final short NO_PRODUCER_EPOCH = -1;
     private static final int NO_ACKNOWLEDGE = 0;
     private static final int NO_CONVERTED_POSITION = -1;
     private static final int NO_DELTA_POSITION = -1;
@@ -411,7 +409,7 @@ public final class KafkaCachePartition
         this.ancestorEntry = ancestor;
 
         int convertedPos = NO_CONVERTED_POSITION;
-        if (convertValue != ConverterHandler.NONE)
+        if (valueLength != -1 && convertValue != ConverterHandler.NONE)
         {
             int convertedPadding = convertValue.padding(payload.buffer(), payload.offset(), payload.sizeof());
             int convertedMaxLength = valueMaxLength + convertedPadding;
@@ -664,7 +662,7 @@ public final class KafkaCachePartition
         final int valueMaxLength = valueLength == -1 ? 0 : valueLength;
 
         int convertedPos = NO_CONVERTED_POSITION;
-        if (convertValue != ConverterHandler.NONE)
+        if (valueLength != -1 && convertValue != ConverterHandler.NONE)
         {
             int convertedPadding = convertValue.padding(payload.buffer(), payload.offset(), payload.sizeof());
             int convertedMaxLength = valueMaxLength + convertedPadding;
