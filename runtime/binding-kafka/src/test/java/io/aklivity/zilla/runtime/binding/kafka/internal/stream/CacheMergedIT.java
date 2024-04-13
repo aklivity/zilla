@@ -422,6 +422,16 @@ public class CacheMergedIT
     }
 
     @Test
+    @Configuration("cache.client.options.validate.yaml")
+    @Specification({
+        "${app}/merged.produce.message.values.null/client",
+        "${app}/unmerged.produce.message.values.null/server"})
+    public void shouldProduceMergedMessageValuesNullWithModel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("cache.options.merged.yaml")
     @Specification({
         "${app}/merged.produce.message.values/client",
