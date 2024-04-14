@@ -24,7 +24,7 @@ catalogs:
                 address: "sensors/{sensorId}"
                 title: MQTT Topic to produce & consume topic.
                 parameters:
-                  streetlightId:
+                  sensorId:
                     $ref: '#/components/parameters/sensorId'
                 messages:
                   item:
@@ -45,7 +45,7 @@ catalogs:
               parameters:
                 sensorId:
                   description: Sensor ID
-                  location: $message.header#/id
+                  location: $message.payload#/id
               messages:
                 item:
                   name: event
@@ -176,6 +176,3 @@ bindings:
             catalog0:
               subject: kafka
               version: latest
-      tcp:
-        host: ${{env.KAFKA_HOST}}
-        port: ${{env.KAFKA_PORT}}
