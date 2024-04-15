@@ -1,0 +1,52 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/catalog/properties/type/enum/-",
+        "value": "filesystem"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/catalog/allOf/-",
+        "value":
+        {
+            "if":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "filesystem"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "filesystem"
+                    },
+                    "options":
+                    {
+                        "properties":
+                        {
+                            "url":
+                            {
+                                "type": "string"
+                            },
+                            "max-age":
+                            {
+                                "title": "Max Age",
+                                "type": "number",
+                                "default": 300
+                            }
+                        },
+                        "additionalProperties": false
+                    }
+                },
+                "additionalProperties": false
+            }
+        }
+    }
+]

@@ -12,43 +12,31 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.catalog.apicurio.internal.config;
+package io.aklivity.zilla.runtime.catalog.filesystem.internal.config;
 
 import java.time.Duration;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
-public class ApicurioOptionsConfig extends OptionsConfig
+public class FilesystemOptionsConfig extends OptionsConfig
 {
-    public final String url;
-    public final String groupId;
-    public final String useId;
-    public final String idEncoding;
     public final Duration maxAge;
 
-    public static ApicurioOptionsConfigBuilder<ApicurioOptionsConfig> builder()
+    public static FilesystemOptionsConfigBuilder<FilesystemOptionsConfig> builder()
     {
-        return new ApicurioOptionsConfigBuilder<>(ApicurioOptionsConfig.class::cast);
+        return new FilesystemOptionsConfigBuilder<>(FilesystemOptionsConfig.class::cast);
     }
 
-    public static <T> ApicurioOptionsConfigBuilder<T> builder(
+    public static <T> FilesystemOptionsConfigBuilder<T> builder(
             Function<OptionsConfig, T> mapper)
     {
-        return new ApicurioOptionsConfigBuilder<>(mapper);
+        return new FilesystemOptionsConfigBuilder<>(mapper);
     }
 
-    ApicurioOptionsConfig(
-        String url,
-        String groupId,
-        String useId,
-        String idEncoding,
+    FilesystemOptionsConfig(
         Duration maxAge)
     {
-        this.url = url;
-        this.groupId = groupId;
-        this.useId = useId;
-        this.idEncoding = idEncoding;
         this.maxAge = maxAge;
     }
 }

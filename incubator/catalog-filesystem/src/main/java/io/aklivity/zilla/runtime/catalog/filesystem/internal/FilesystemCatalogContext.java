@@ -12,19 +12,18 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.catalog.apicurio.internal;
+package io.aklivity.zilla.runtime.catalog.filesystem.internal;
 
-import io.aklivity.zilla.runtime.catalog.filesystem.internal.config.ApicurioOptionsConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
 
-public class ApicurioCatalogContext implements CatalogContext
+public class FilesystemCatalogContext implements CatalogContext
 {
     private final EngineContext context;
 
-    public ApicurioCatalogContext(
+    public FilesystemCatalogContext(
         EngineContext context)
     {
         this.context = context;
@@ -34,6 +33,6 @@ public class ApicurioCatalogContext implements CatalogContext
     public CatalogHandler attach(
         CatalogConfig catalog)
     {
-        return new ApicurioCatalogHandler(ApicurioOptionsConfig.class.cast(catalog.options), context, catalog.id);
+        return new FilesystemCatalogHandler(FilesystemOptionsConfig.class.cast(catalog.options), context, catalog.id);
     }
 }

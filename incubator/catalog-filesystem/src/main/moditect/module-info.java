@@ -12,9 +12,8 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-module io.aklivity.zilla.runtime.catalog.apicurio
+module io.aklivity.zilla.runtime.catalog.filesystem
 {
-    requires java.net.http;
     requires io.aklivity.zilla.runtime.engine;
 
     provides io.aklivity.zilla.runtime.engine.catalog.CatalogFactorySpi

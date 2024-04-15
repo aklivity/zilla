@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.catalog.apicurio.internal;
+package io.aklivity.zilla.runtime.catalog.filesystem.internal;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -35,12 +35,12 @@ import org.junit.rules.Timeout;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 
-import io.aklivity.zilla.runtime.catalog.filesystem.internal.config.ApicurioOptionsConfig;
+import io.aklivity.zilla.runtime.catalog.filesystem.internal.config.FilesystemOptionsConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 
-public class ApicurioIT
+public class FilesystemIT
 {
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("local", "io/aklivity/zilla/runtime/catalog/schema/registry/internal");
@@ -50,15 +50,13 @@ public class ApicurioIT
     @Rule
     public final TestRule chain = outerRule(k3po).around(timeout);
 
-    private ApicurioOptionsConfig config;
+    private FilesystemOptionsConfig config;
     private EngineContext context = mock(EngineContext.class);
 
     @Before
     public void setup()
     {
-        config = ApicurioOptionsConfig.builder()
-            .url("http://localhost:8080")
-            .groupId("groupId")
+        config = FilesystemOptionsConfig.builder()
             .maxAge(Duration.ofSeconds(1))
             .build();
     }
@@ -80,7 +78,7 @@ public class ApicurioIT
             "    protocol: mqtt\n" +
             "defaultContentType: application/json";
 
-        ApicurioCatalogHandler catalog = new ApicurioCatalogHandler(config, context, 0L);
+        FilesystemCatalogHandler catalog = new FilesystemCatalogHandler(config, context, 0L);
 
         String artifact = catalog.resolve(1);
 
@@ -107,7 +105,7 @@ public class ApicurioIT
             "    protocol: mqtt\n" +
             "defaultContentType: application/json";
 
-        ApicurioCatalogHandler catalog = new ApicurioCatalogHandler(config, context, 0L);
+        FilesystemCatalogHandler catalog = new FilesystemCatalogHandler(config, context, 0L);
 
         int globalId = catalog.resolve("artifactId", "0");
 
@@ -137,7 +135,7 @@ public class ApicurioIT
             "    protocol: mqtt\n" +
             "defaultContentType: application/json";
 
-        ApicurioCatalogHandler catalog = new ApicurioCatalogHandler(config, context, 0L);
+        FilesystemCatalogHandler catalog = new FilesystemCatalogHandler(config, context, 0L);
 
         int globalId = catalog.resolve("artifactId", "latest");
 
@@ -167,7 +165,7 @@ public class ApicurioIT
             "    protocol: mqtt\n" +
             "defaultContentType: application/json";
 
-        ApicurioCatalogHandler catalog = new ApicurioCatalogHandler(config, context, 0L);
+        FilesystemCatalogHandler catalog = new FilesystemCatalogHandler(config, context, 0L);
 
         catalog.resolve(1);
 
@@ -196,7 +194,7 @@ public class ApicurioIT
             "    protocol: mqtt\n" +
             "defaultContentType: application/json";
 
-        ApicurioCatalogHandler catalog = new ApicurioCatalogHandler(config, context, 0L);
+        FilesystemCatalogHandler catalog = new FilesystemCatalogHandler(config, context, 0L);
 
         catalog.resolve(catalog.resolve("artifactId", "0"));
 
@@ -214,7 +212,7 @@ public class ApicurioIT
     @Test
     public void shouldVerifyMaxPadding()
     {
-        ApicurioCatalogHandler catalog = new ApicurioCatalogHandler(config, context, 0L);
+        FilesystemCatalogHandler catalog = new FilesystemCatalogHandler(config, context, 0L);
 
         assertEquals(9, catalog.encodePadding());
     }
@@ -222,7 +220,7 @@ public class ApicurioIT
     @Test
     public void shouldVerifyEncodedData()
     {
-        ApicurioCatalogHandler catalog = new ApicurioCatalogHandler(config, context, 0L);
+        FilesystemCatalogHandler catalog = new FilesystemCatalogHandler(config, context, 0L);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -238,7 +236,7 @@ public class ApicurioIT
     public void shouldResolveSchemaIdAndProcessData()
     {
 
-        ApicurioCatalogHandler catalog = new ApicurioCatalogHandler(config, context, 0L);
+        FilesystemCatalogHandler catalog = new FilesystemCatalogHandler(config, context, 0L);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -254,7 +252,7 @@ public class ApicurioIT
     @Test
     public void shouldResolveSchemaIdFromData()
     {
-        ApicurioCatalogHandler catalog = new ApicurioCatalogHandler(config, context, 0L);
+        FilesystemCatalogHandler catalog = new FilesystemCatalogHandler(config, context, 0L);
 
         DirectBuffer data = new UnsafeBuffer();
 

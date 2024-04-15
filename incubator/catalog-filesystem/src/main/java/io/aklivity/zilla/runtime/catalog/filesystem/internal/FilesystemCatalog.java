@@ -12,28 +12,40 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.catalog.apicurio.internal;
+package io.aklivity.zilla.runtime.catalog.filesystem.internal;
 
-import io.aklivity.zilla.runtime.catalog.filesystem.internal.config.ApicurioOptionsConfig;
+import java.net.URL;
+
+import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.catalog.Catalog;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
-import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
 
-public class ApicurioCatalogContext implements CatalogContext
+public class FilesystemCatalog implements Catalog
 {
-    private final EngineContext context;
+    public static final String NAME = "filesystem";
 
-    public ApicurioCatalogContext(
-        EngineContext context)
+    public FilesystemCatalog(
+        Configuration config)
     {
-        this.context = context;
     }
 
     @Override
-    public CatalogHandler attach(
-        CatalogConfig catalog)
+    public String name()
     {
-        return new ApicurioCatalogHandler(ApicurioOptionsConfig.class.cast(catalog.options), context, catalog.id);
+        return FilesystemCatalog.NAME;
+    }
+
+    @Override
+    public CatalogContext supply(
+        EngineContext context)
+    {
+        return new FilesystemCatalogContext(context);
+    }
+
+    @Override
+    public URL type()
+    {
+        return getClass().getResource("schema/apicurio.schema.patch.json");
     }
 }

@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.catalog.apicurio.internal.config;
+package io.aklivity.zilla.runtime.catalog.filesystem.internal.config;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -28,7 +28,7 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
-public class ApicurioOptionsConfigAdapterTest
+public class FilesystemOptionsConfigAdapterTest
 {
     private Jsonb jsonb;
 
@@ -36,7 +36,7 @@ public class ApicurioOptionsConfigAdapterTest
     public void initJson()
     {
         JsonbConfig config = new JsonbConfig()
-                .withAdapters(new ApicurioOptionsConfigAdapter());
+                .withAdapters(new FilesystemOptionsConfigAdapter());
         jsonb = JsonbBuilder.create(config);
     }
 
@@ -49,20 +49,16 @@ public class ApicurioOptionsConfigAdapterTest
                     "\"group-id\": \"default\"," +
                 "}";
 
-        ApicurioOptionsConfig catalog = jsonb.fromJson(text, ApicurioOptionsConfig.class);
+        FilesystemOptionsConfig catalog = jsonb.fromJson(text, FilesystemOptionsConfig.class);
 
         assertThat(catalog, not(nullValue()));
-        assertThat(catalog.url, equalTo("http://localhost:8081"));
-        assertThat(catalog.groupId, equalTo("default"));
         assertThat(catalog.maxAge.toSeconds(), equalTo(300L));
     }
 
     @Test
     public void shouldWriteCondition()
     {
-        ApicurioOptionsConfig catalog = ApicurioOptionsConfig.builder()
-            .url("http://localhost:8081")
-            .groupId("default")
+        FilesystemOptionsConfig catalog = FilesystemOptionsConfig.builder()
             .maxAge(Duration.ofSeconds(300))
             .build();
 
