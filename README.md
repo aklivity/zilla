@@ -51,19 +51,19 @@ The fastest way to try out Zilla is via the [Quickstart](https://docs.aklivity.i
 ### HTTP-Kafka Proxying
 Support for both REST and SEE Kafka proxying. Configure an application-centric REST API on top of Kafka for synchronous CRUD operations or correlated request-response over Kafka topics. Make existing OpenAPI service definitions asynchronous and event-driven by mapping them to Kafka. Reliably broadcast/fanout data out to clients at web-scale. 
 
-[Find out more](https://docs.aklivity.io/zilla/latest/concepts/kafka-proxies/http-proxy.md)
+[Find out more](https://docs.aklivity.io/zilla/latest/concepts/kafka-proxies/http-proxy.html)
 
 ### gRPC-Kafka Proxying
 
 Implement gRPC service definitions from protobuf files to produce and consume messages via Kafka topics.
 
-[Find out more](https://docs.aklivity.io/zilla/latest/concepts/kafka-proxies/http-proxy.md)
+[Find out more](https://docs.aklivity.io/zilla/latest/concepts/kafka-proxies/http-proxy.html)
 
 ### MQTT-Kafka Proxying
 
 Turn Kafka into an MQTT broker by persisting MQTT messages and client state across Kafka topics.
 
-[Find out more](https://docs.aklivity.io/zilla/latest/concepts/kafka-proxies/http-proxy.md)
+[Find out more](https://docs.aklivity.io/zilla/latest/concepts/kafka-proxies/http-proxy.html)
 
 ### Deployment, Performance & Other
 
