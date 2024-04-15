@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.9.76](https://github.com/aklivity/zilla/tree/0.9.76) (2024-04-15)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.75...0.9.76)
+
+**Merged pull requests:**
+
+- IT to validate null message in binding-kafka with Model configured  [\#925](https://github.com/aklivity/zilla/pull/925) ([aDaemonThread](https://github.com/aDaemonThread))
+- Convert non-null payloads only, … [\#923](https://github.com/aklivity/zilla/pull/923) ([jfallows](https://github.com/jfallows))
+- Fix validation bug [\#922](https://github.com/aklivity/zilla/pull/922) ([akrambek](https://github.com/akrambek))
+- Fix helm chart logo URL [\#920](https://github.com/aklivity/zilla/pull/920) ([attilakreiner](https://github.com/attilakreiner))
+
 ## [0.9.75](https://github.com/aklivity/zilla/tree/0.9.75) (2024-04-12)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.74...0.9.75)
