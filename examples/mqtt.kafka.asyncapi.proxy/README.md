@@ -22,51 +22,50 @@ Wether you chose [compose](./docker/compose) or [helm](./k8s/helm), the `setup.s
 
 ### Using this example
 
-Using eclipse-mosquitto subscribe to the sensors/# topic.
+Using eclipse-mosquitto subscribe to the `smartylighting/streetlights/1/0/event/+/lighting/measured` topic.
 
 ```bash
-mosquitto_sub -V '5' -t 'sensors/#' -d -p 7183
+ mosquitto_sub -V '5' -t 'smartylighting/streetlights/1/0/event/+/lighting/measured' -d -p 7183
 ```
 
 output:
 
 ```
 Client null sending CONNECT
-Client 7f37e11e-8f79-458a-a4b3-3ffb36a9e08b received CONNACK (0)
-Client 7f37e11e-8f79-458a-a4b3-3ffb36a9e08b sending SUBSCRIBE (Mid: 1, Topic: sensors/#, QoS: 0, Options: 0x00)
-Client 7f37e11e-8f79-458a-a4b3-3ffb36a9e08b received SUBACK
+Client 26c02b9a-0e29-44c6-9f0e-277655c8d712 received CONNACK (0)
+Client 26c02b9a-0e29-44c6-9f0e-277655c8d712 sending SUBSCRIBE (Mid: 1, Topic: smartylighting/streetlights/1/0/event/+/lighting/measured, QoS: 0, Options: 0x00)
+Client 26c02b9a-0e29-44c6-9f0e-277655c8d712 received SUBACK
 Subscribed (mid: 1): 0
-Client 7f37e11e-8f79-458a-a4b3-3ffb36a9e08b received PUBLISH (d0, q0, r0, m0, 'sensors/1', ... (24 bytes))
-{"id":"1","status":"on"}
+Client 26c02b9a-0e29-44c6-9f0e-277655c8d712 received PUBLISH (d0, q0, r0, m0, 'smartylighting/streetlights/1/0/event/5/lighting/measured', ... (49 bytes))
+{"lumens":50,"sentAt":"2024-06-07T12:34:32.000Z"}
 ```
 
-In a separate session, publish a valid message on the sensors/1 topic.
+In a separate session, publish a valid message on the `smartylighting/streetlights/1/0/event/1/lighting/measured` topic.
 
 ```bash
-mosquitto_pub -V '5' -t 'sensors/1' -m '{"id":"1","status":"on"}' -d -p 7183
+mosquitto_pub -V '5' -t 'smartylighting/streetlights/1/0/event/1/lighting/measured' -m '{"lumens":50,"sentAt":"2024-06-07T12:34:32.000Z"}' -d -p 7183
 ```
 
 output:
 
 ```
 Client null sending CONNECT
-Client 2fc05cdc-5e1d-4e00-be18-0026ae47e749 received CONNACK (0)
-Client 2fc05cdc-5e1d-4e00-be18-0026ae47e749 sending PUBLISH (d0, q0, r0, m1, 'sensors/1', ... (24 bytes))
-Client 2fc05cdc-5e1d-4e00-be18-0026ae47e749 sending DISCONNECT
+Client a1f4ad8c-c9e8-4671-ad46-69030d4f1c9a received CONNACK (0)
+Client a1f4ad8c-c9e8-4671-ad46-69030d4f1c9a sending PUBLISH (d0, q0, r0, m1, 'smartylighting/streetlights/1/0/event/1/lighting/measured', ... (49 bytes))
+Client a1f4ad8c-c9e8-4671-ad46-69030d4f1c9a sending DISCONNECT
 ```
 
-Now attempt to publish an invalid message, with property `stat` instead of `status`.
+Now attempt to publish an invalid message by setting `lumens` property to a negative value.
 
 ```bash
-mosquitto_pub -V '5' -t 'sensors/1' -m '{"id":"1","stat":"off"}' -d -p 7183 --repeat 2 --repeat-delay 3
+mosquitto_pub -V '5' -t 'smartylighting/streetlights/1/0/event/1/lighting/measured' -m '{"lumens":-1,"sentAt":"2024-06-07T12:34:32.000Z"}' -d -p 7183 --repeat 2 --repeat-delay 3
 ```
 
 output:
-
 ```
 Client null sending CONNECT
-Client cd166c27-de75-4a2e-b3c7-f16631bda2a9 received CONNACK (0)
-Client cd166c27-de75-4a2e-b3c7-f16631bda2a9 sending PUBLISH (d0, q0, r0, m1, 'sensors/1', ... (23 bytes))
+Client 30157eed-0ea7-42c6-91e8-466d1dd0ab66 received CONNACK (0)
+Client 30157eed-0ea7-42c6-91e8-466d1dd0ab66 sending PUBLISH (d0, q0, r0, m1, 'smartylighting/streetlights/1/0/event/1/lighting/measured', ... (49 bytes))
 Received DISCONNECT (153)
 Error: The client is not currently connected.
 ```
