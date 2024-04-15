@@ -21,7 +21,7 @@
   <a href="https://www.aklivity.io/blog"><b>Blog</b></a>  
 </h3>
 
-#  🦎 Zilla: Multi-protocol event-native edge/service proxy
+# 🦎 Zilla: Multi-protocol event-native edge/service proxy
 
 Zilla abstracts Apache Kafka® for web applications, IoT clients and microservices. With Zilla, Kafka topics can be securely and reliably exposed via user-defined `REST`, `Server-Sent Events (SSE)`, `MQTT`, or `gRPC` APIs.
 
@@ -33,9 +33,9 @@ When Zilla is deployed alongside Apache Kafka®, any application or service can 
 
 - [Getting Started](#getting-started)
 - [Key Features](#key-features)
-    - [HTTP-Kafka Proxying](#http-kafka-proxying)
-    - [gRPC-Kafka Proxying](#grpc-kafka-proxying)
-    - [MQTT-Kafka Proxying](#mqtt-kafka-proxying)
+  - [HTTP-Kafka Proxying](#http-kafka-proxying)
+  - [gRPC-Kafka Proxying](#grpc-kafka-proxying)
+  - [MQTT-Kafka Proxying](#mqtt-kafka-proxying)
 - [Resources](#resources)
 - [How Zilla Works](#how-zilla-works)
 - [FAQs](#faqs)
@@ -49,7 +49,8 @@ The fastest way to try out Zilla is via the [Quickstart](https://docs.aklivity.i
 ## Key Features
 
 ### HTTP-Kafka Proxying
-Support for both REST and SEE Kafka proxying. Configure an application-centric REST API on top of Kafka for synchronous CRUD operations or correlated request-response over Kafka topics. Make existing OpenAPI service definitions asynchronous and event-driven by mapping them to Kafka. Reliably broadcast/fanout data out to clients at web-scale. 
+
+Support for both REST and SEE Kafka proxying. Configure an application-centric REST API on top of Kafka for synchronous CRUD operations or correlated request-response over Kafka topics. Make existing OpenAPI service definitions asynchronous and event-driven by mapping them to Kafka. Reliably broadcast/fanout data out to clients at web-scale.
 
 [Find out more](https://docs.aklivity.io/zilla/latest/concepts/kafka-proxies/http-proxy.html)
 
@@ -57,13 +58,13 @@ Support for both REST and SEE Kafka proxying. Configure an application-centric R
 
 Implement gRPC service definitions from protobuf files to produce and consume messages via Kafka topics.
 
-[Find out more](https://docs.aklivity.io/zilla/latest/concepts/kafka-proxies/http-proxy.html)
+[Find out more](https://docs.aklivity.io/zilla/latest/concepts/kafka-proxies/grpc-proxy.html)
 
 ### MQTT-Kafka Proxying
 
 Turn Kafka into an MQTT broker by persisting MQTT messages and client state across Kafka topics.
 
-[Find out more](https://docs.aklivity.io/zilla/latest/concepts/kafka-proxies/http-proxy.html)
+[Find out more](https://docs.aklivity.io/zilla/latest/concepts/kafka-proxies/mqtt-proxy.html)
 
 ### Deployment, Performance & Other
 
@@ -78,6 +79,7 @@ Turn Kafka into an MQTT broker by persisting MQTT messages and client state acro
 - [x] **Prometheus Integration** — Export Zilla metrics to Prometheus for observability and auto-scaling.
 - [x] **Declarative Configuration** — API mappings and endpoints inside Zilla are declaratively configured via YAML.
 - [x] **Kafka Security** — Connect Zilla to Kafka over `PLAINTEXT`, `TLS/SSL`, `TLS/SSL with Client Certificates`, `SASL/PLAIN`, and `SASL/SCRAM`.
+
 ## <a name="resources"> Resources
 
 ### 📚 Read the docs
@@ -102,6 +104,7 @@ Turn Kafka into an MQTT broker by persisting MQTT messages and client state acro
 - **[Contact Us](https://www.aklivity.io/contact):** Submit non-techinal questions and inquiries.
 
 ## <a name="how-zilla-works"> How Zilla Works
+
 Inside Zilla, every protocol, whether it is `TCP`, `TLS`, `HTTP`, `Kafka`, `gRPC`, etc., is treated as a stream, so mediating between protocols simplifies to mapping protocol-specific metadata.
 
 Zilla’s declarative configuration defines a routed graph of protocol decoders, transformers, encoders and caches that combine to provide a secure and stateless API entry point into an event-driven architecture. This “routed graph” can be visualized and maintained with the help of the [Zilla VS Code extension](https://docs.aklivity.io/zilla/latest/reference/vscode/).
@@ -139,6 +142,7 @@ This benchmark was executed on 2019 MacBook Pro laptop with `2.3 GHZ 8-Core Inte
 ## <a name="faqs"> FAQs
 
 ### Is Zilla production-ready?
+
 Yes, Zilla has been built with the highest performance and security considerations in mind, and the Zilla engine has been deployed inside enterprise production environments. If you are looking to deploy Zilla for a mission-critical use case and need enterprise support, please [contact us](https://www.aklivity.io/contact).
 
 ### Does Zilla only work with Apache Kafka?
@@ -157,19 +161,20 @@ Please see the note above [on performance](#performance).
 
 Please review the [Zilla Roadamp][zilla-roadmap]. If you have a request or feedback, we would love to hear it! Get in touch through our community [channels](#support).
 
-## <a name="community"> 🌱 Community 
+## <a name="community"> 🌱 Community
 
 Looking to contribute to Zilla? Check out the [Contributing to Zilla](./.github/CONTRIBUTING.md) guide.
 ✨We value all contributions, whether it is source code, documentation, bug reports, feature requests or feedback!
 
-###  Many Thanks To Our Contributors!
+### Many Thanks To Our Contributors!
+
 <a href="https://github.com/aklivity/zilla/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=aklivity/zilla" />
 </a>
 
 ## <a name="license"> License
-Zilla is made available under the [Aklivity Community License](./LICENSE-AklivityCommunity). This is an open source-derived license that gives you the freedom to deploy, modify and run Zilla as you see fit, as long as you are not turning into a standalone commercialized “Zilla-as-a-service” offering. Running Zilla in the cloud for your own workloads, production or not, is completely fine.
 
+Zilla is made available under the [Aklivity Community License](./LICENSE-AklivityCommunity). This is an open source-derived license that gives you the freedom to deploy, modify and run Zilla as you see fit, as long as you are not turning into a standalone commercialized “Zilla-as-a-service” offering. Running Zilla in the cloud for your own workloads, production or not, is completely fine.
 
 <!-- Links -->
 [build-status-image]: https://github.com/aklivity/zilla/workflows/build/badge.svg
