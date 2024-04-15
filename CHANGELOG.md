@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.9.77](https://github.com/aklivity/zilla/tree/0.9.77) (2024-04-15)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.76...0.9.77)
+
+**Merged pull requests:**
+
+- zilla dump : bindings not found in /var/runtime/zilla directory [\#927](https://github.com/aklivity/zilla/pull/927) ([aDaemonThread](https://github.com/aDaemonThread))
+- README Docs links and formatting fixes [\#926](https://github.com/aklivity/zilla/pull/926) ([vordimous](https://github.com/vordimous))
+
 ## [0.9.76](https://github.com/aklivity/zilla/tree/0.9.76) (2024-04-15)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.75...0.9.76)
