@@ -3184,7 +3184,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                                 String16FW value = header.value();
                                 valid.value &=
                                     validator.validate(traceId, routedId, value.value(),
-                                        value.offset(), value.length(), ValueConsumer.NOP);
+                                        0, value.length(), ValueConsumer.NOP);
                             }
                         }
                     });
@@ -3231,7 +3231,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     {
                         String8FW value = new String8FW(matcher.group(2));
                         valid &= validator.validate(traceId, routedId, value.value(),
-                            value.offset(), value.length(), ValueConsumer.NOP);
+                            0, value.length(), ValueConsumer.NOP);
                     }
                 }
                 return valid;
@@ -6361,7 +6361,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     if (validator != null)
                     {
                         String8FW value = new String8FW(matcher.group(2));
-                        valid &= validator.validate(traceId, routedId, value.value(), value.offset(),
+                        valid &= validator.validate(traceId, routedId, value.value(), 0,
                             value.length(), ValueConsumer.NOP);
                     }
                 }
