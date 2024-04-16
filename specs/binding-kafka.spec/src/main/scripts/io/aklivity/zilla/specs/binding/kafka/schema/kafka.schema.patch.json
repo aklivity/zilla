@@ -154,6 +154,37 @@
                             "routes"
                         ]
                     }
+                ],
+                "oneOf":
+                [
+                    {
+                        "properties":
+                        {
+                            "kind":
+                            {
+                                "const": "cache_client"
+                            },
+                            "options":
+                            {
+                                "not":
+                                {
+                                    "required": [ "bootstrap" ]
+                                }
+                            }
+                        }
+                    },
+                    {
+                        "properties":
+                        {
+                            "kind":
+                            {
+                                "not":
+                                {
+                                    "const": "cache_client"
+                                }
+                            }
+                        }
+                    }
                 ]
             }
         }
