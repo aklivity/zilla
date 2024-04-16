@@ -903,7 +903,11 @@ public class EngineWorker implements EngineContext, Agent
         taskQueue.offer(attachTask);
         signaler.signalNow(0L, 0L, 0L, supplyTraceId(), SIGNAL_TASK_QUEUED, 0);
 
-        writeBindingTypes(registry);
+        if (localIndex == 0)
+        {
+            attachTask.future().join();
+            writeBindingTypes(registry);
+        }
 
         return attachTask.future();
     }
@@ -917,8 +921,11 @@ public class EngineWorker implements EngineContext, Agent
         taskQueue.offer(detachTask);
         signaler.signalNow(0L, 0L, 0L, supplyTraceId(), SIGNAL_TASK_QUEUED, 0);
 
-        writeBindingTypes(registry);
-
+        if (localIndex == 0)
+        {
+            detachTask.future().join();
+            writeBindingTypes(registry);
+        }
         return detachTask.future();
     }
 
