@@ -205,22 +205,25 @@ public final class OpenapiAsyncNamespaceGenerator
         correlated:
         for (String item : openapi.paths.keySet())
         {
-            OpenapiPathView path = OpenapiPathView.of(openapi.paths.get(item));
-            for (String method : path.methods().keySet())
+            if (!item.equals(format))
             {
-                final OpenapiOperation openapiOperation = path.methods().get(method);
-                boolean formatMatched = openapiOperation.responses.entrySet().stream()
-                    .anyMatch(o ->
-                    {
-                        OpenapiResponseByContentType content = o.getValue();
-                        return "202".equals(o.getKey()) && content.headers.entrySet().stream()
-                            .anyMatch(c -> matchFormat(format, c.getValue()));
-                    });
-
-                if (formatMatched)
+                OpenapiPathView path = OpenapiPathView.of(openapi.paths.get(item));
+                for (String method : path.methods().keySet())
                 {
-                    operationId = path.methods().get(method).operationId;
-                    break correlated;
+                    final OpenapiOperation openapiOperation = path.methods().get(method);
+                    boolean formatMatched = openapiOperation.responses.entrySet().stream()
+                        .anyMatch(o ->
+                        {
+                            OpenapiResponseByContentType content = o.getValue();
+                            return "202".equals(o.getKey()) && content.headers.entrySet().stream()
+                                .anyMatch(c -> matchFormat(format, c.getValue()));
+                        });
+
+                    if (formatMatched)
+                    {
+                        operationId = path.methods().get(method).operationId;
+                        break correlated;
+                    }
                 }
             }
         }
@@ -235,7 +238,7 @@ public final class OpenapiAsyncNamespaceGenerator
             .anyMatch(o ->
             {
                 OpenapiResponseByContentType content = o.getValue();
-                return content.headers.entrySet().stream()
+                return "202".equals(o.getKey()) && content.headers.entrySet().stream()
                     .anyMatch(c -> hasCorrelationId(c.getValue()));
             });
     }
