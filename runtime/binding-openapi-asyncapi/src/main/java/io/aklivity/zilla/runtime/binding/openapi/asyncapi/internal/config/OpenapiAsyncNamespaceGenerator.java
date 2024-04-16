@@ -145,24 +145,99 @@ public final class OpenapiAsyncNamespaceGenerator
                     condition.operationId : path.methods().get(method).operationId;
 
                 final OpenapiOperation openapiOperation = path.methods().get(method);
-                final Optional<AsyncapiOperation> asyncapiOperation = asyncapi.operations.entrySet().stream()
-                        .filter(f -> f.getKey().equals(operationId))
-                        .map(Map.Entry::getValue)
-                        .findFirst();
-                final List<String> paramNames = findParams(item);
+                final Optional<AsyncapiOperation> asyncapiOperation = findAsyncOperation(
+                    item, openapi, asyncapi, openapiOperation, operationId);
 
-                asyncapiOperation.ifPresent(operation -> binding
-                    .route()
-                    .exit(qname)
-                    .when(HttpKafkaConditionConfig::builder)
-                    .method(method)
-                    .path(item)
-                    .build()
-                    .inject(r -> injectHttpKafkaRouteWith(r, openapi, asyncapi, openapiOperation,
-                        operation, paramNames))
-                    .build());
+                asyncapiOperation.ifPresent(operation ->
+                {
+                    final List<String> paramNames = findParams(item);
+
+                    binding
+                        .route()
+                        .exit(qname)
+                        .when(HttpKafkaConditionConfig::builder)
+                        .method(method)
+                        .path(item)
+                        .build()
+                        .inject(r -> injectHttpKafkaRouteWith(r, openapi, asyncapi, openapiOperation,
+                            operation, paramNames))
+                        .build();
+                });
             }
         }
+    }
+
+    private Optional<AsyncapiOperation> findAsyncOperation(
+        String path,
+        Openapi openapi,
+        Asyncapi asyncapi,
+        OpenapiOperation openapiOperation,
+        String operationId)
+    {
+        Optional<AsyncapiOperation> operation = findAsyncOperationByOperationId(asyncapi.operations, operationId);
+
+        if (operation.isEmpty() && isOpenapiOperationAsync(openapiOperation))
+        {
+            Optional<String> correlatedOperationId = findOpenapiOperationIdByFormat(path, openapi);
+            if (correlatedOperationId.isPresent())
+            {
+                operation = findAsyncOperationByOperationId(asyncapi.operations, correlatedOperationId.get());
+            }
+        }
+        return operation;
+    }
+
+    private Optional<AsyncapiOperation> findAsyncOperationByOperationId(
+        Map<String, AsyncapiOperation> operations,
+        String operationId)
+    {
+        return operations.entrySet().stream()
+            .filter(f -> f.getKey().equals(operationId))
+            .map(Map.Entry::getValue)
+            .findFirst();
+    }
+
+    private Optional<String> findOpenapiOperationIdByFormat(
+        String format,
+        Openapi openapi)
+    {
+        String operationId = null;
+        correlated:
+        for (String item : openapi.paths.keySet())
+        {
+            OpenapiPathView path = OpenapiPathView.of(openapi.paths.get(item));
+            for (String method : path.methods().keySet())
+            {
+                final OpenapiOperation openapiOperation = path.methods().get(method);
+                boolean formatMatched = openapiOperation.responses.entrySet().stream()
+                    .anyMatch(o ->
+                    {
+                        OpenapiResponseByContentType content = o.getValue();
+                        return "202".equals(o.getKey()) && content.headers.entrySet().stream()
+                            .anyMatch(c -> matchFormat(format, c.getValue()));
+                    });
+
+                if (formatMatched)
+                {
+                    operationId = path.methods().get(method).operationId;
+                    break correlated;
+                }
+            }
+        }
+
+        return Optional.ofNullable(operationId);
+    }
+
+    private boolean isOpenapiOperationAsync(
+        OpenapiOperation openapiOperation)
+    {
+        return openapiOperation.responses.entrySet().stream()
+            .anyMatch(o ->
+            {
+                OpenapiResponseByContentType content = o.getValue();
+                return content.headers.entrySet().stream()
+                    .anyMatch(c -> hasCorrelationId(c.getValue()));
+            });
     }
 
     private List<String> findParams(
@@ -302,6 +377,21 @@ public final class OpenapiAsyncNamespaceGenerator
             hasCorrelationId = correlation.reset(schema.format).find();
         }
         return hasCorrelationId;
+    }
+
+    private boolean matchFormat(
+        String format,
+        OpenapiHeader header)
+    {
+        boolean matched = false;
+        OpenapiSchema schema = header.schema;
+        if (schema != null &&
+            schema.format != null)
+        {
+            matched = schema.format.equals(format);
+        }
+
+        return matched;
     }
 
     private <C> NamespaceConfigBuilder<C> injectNamespaceMetric(
