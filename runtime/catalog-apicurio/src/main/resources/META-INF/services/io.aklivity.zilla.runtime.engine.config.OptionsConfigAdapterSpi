@@ -1,1 +1,1 @@
-io.aklivity.zilla.runtime.catalog.filesystem.internal.config.FilesystemOptionsConfigAdapter
+io.aklivity.zilla.runtime.catalog.apicurio.internal.config.ApicurioOptionsConfigAdapter

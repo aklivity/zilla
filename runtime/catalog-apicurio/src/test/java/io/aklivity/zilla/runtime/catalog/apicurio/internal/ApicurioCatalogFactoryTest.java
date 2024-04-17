@@ -23,7 +23,7 @@ import java.time.Duration;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.catalog.filesystem.internal.config.ApicurioOptionsConfig;
+import io.aklivity.zilla.runtime.catalog.apicurio.internal.config.ApicurioOptionsConfig;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.Catalog;
