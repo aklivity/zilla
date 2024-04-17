@@ -375,6 +375,7 @@ public class MqttKafkaPublishProxyIT
         "${kafka}/publish.mixture.qos/server"})
     public void shouldSendMessageMixtureQos() throws Exception
     {
+        System.out.println("######### publish.mixture.qos");
         k3po.finish();
     }
 

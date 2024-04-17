@@ -1225,6 +1225,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 }
                 else
                 {
+                    System.out.printf("Add kafka topic partition %s-%d%n", topic, partition.partitionId());
                     initializablePartitions.add(new KafkaTopicPartition(topic, partition.partitionId()));
                 }
             });
@@ -1287,11 +1288,13 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         {
             if (!initializablePartitions.isEmpty())
             {
+                System.out.printf("initializablePartitions has %d partitions%n", initializablePartitions.size());
                 initializablePartitions.forEach(kp ->
                 {
                     final long partitionKey = partitionKey(kp.topic, kp.partitionId);
                     final KafkaOffsetMetadata metadata = new KafkaOffsetMetadata(producerId, producerEpoch);
                     this.metadata.offsets.put(partitionKey, metadata);
+                    System.out.printf("initial offset commit for %s-%d%n", kp.topic, kp.partitionId);
                     Flyweight initialOffsetCommit = kafkaDataExRW
                         .wrap(extBuffer, 0, extBuffer.capacity())
                         .typeId(kafkaTypeId)
@@ -1339,7 +1342,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            initializablePartitions.remove(0);
+            KafkaTopicPartition kp = initializablePartitions.remove(0);
+            System.out.printf("Remove initializable partition for %s-%d%n", kp.topic, kp.partitionId);
             if (initializablePartitions.isEmpty())
             {
                 doCreateSessionStream(traceId, authorization);
