@@ -69,7 +69,7 @@
         <version>${project.version}</version>
         <configuration>
           <scopeNames>core filesystem</scopeNames>
-          <packageName>io.aklivity.zilla.incubator.catalog.filesystem.internal.types</packageName>
+          <packageName>io.aklivity.zilla.specs.catalog.filesystem.internal.types</packageName>
         </configuration>
         <executions>
           <execution>
@@ -109,7 +109,7 @@
         <artifactId>jacoco-maven-plugin</artifactId>
         <configuration>
           <excludes>
-            <exclude>io/aklivity/zilla/incubator/catalog/filesystem/internal/types/**/*.class</exclude>
+            <exclude>io/aklivity/zilla/specs/catalog/filesystem/internal/types/**/*.class</exclude>
           </excludes>
           <rules>
             <rule>

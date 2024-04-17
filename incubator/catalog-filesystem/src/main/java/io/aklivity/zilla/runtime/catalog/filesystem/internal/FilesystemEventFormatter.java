@@ -16,10 +16,10 @@ package io.aklivity.zilla.runtime.catalog.filesystem.internal;
 
 import org.agrona.DirectBuffer;
 
-import io.aklivity.zilla.incubator.catalog.filesystem.internal.types.String16FW;
-import io.aklivity.zilla.incubator.catalog.filesystem.internal.types.event.EventFW;
-import io.aklivity.zilla.incubator.catalog.filesystem.internal.types.event.FilesystemEventExFW;
-import io.aklivity.zilla.incubator.catalog.filesystem.internal.types.event.FilesystemFileNotFoundExFW;
+import io.aklivity.zilla.runtime.catalog.filesystem.internal.types.String16FW;
+import io.aklivity.zilla.runtime.catalog.filesystem.internal.types.event.EventFW;
+import io.aklivity.zilla.runtime.catalog.filesystem.internal.types.event.FilesystemEventExFW;
+import io.aklivity.zilla.runtime.catalog.filesystem.internal.types.event.FilesystemFileNotFoundExFW;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.event.EventFormatterSpi;
 
