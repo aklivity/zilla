@@ -35,6 +35,6 @@ public class FilesystemCatalogContext implements CatalogContext
         CatalogConfig catalog)
     {
         return new FilesystemCatalogHandler(
-            FilesystemOptionsConfig.class.cast(catalog.options), context, catalog.id, catalog.readURL);
+            FilesystemOptionsConfig.class.cast(catalog.options), context, catalog.id);
     }
 }

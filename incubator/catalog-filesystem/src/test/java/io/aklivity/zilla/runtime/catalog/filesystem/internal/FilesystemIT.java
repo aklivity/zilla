@@ -50,7 +50,7 @@ public class FilesystemIT
     public void setup() throws IOException
     {
         config = new FilesystemOptionsConfig(singletonList(
-            new FilesystemSchemaConfig("subject1", "asyncapi/mqtt.yaml", "latest")));
+            new FilesystemSchemaConfig("subject1", "asyncapi/mqtt.yaml", "latest")), readURL);
 
         String content;
         try (InputStream resource = FilesystemIT.class
@@ -76,7 +76,7 @@ public class FilesystemIT
             "    protocol: mqtt\n" +
             "defaultContentType: application/json";
 
-        FilesystemCatalogHandler catalog = new FilesystemCatalogHandler(config, context, 0L, readURL);
+        FilesystemCatalogHandler catalog = new FilesystemCatalogHandler(config, context, 0L);
 
         int schemaId = catalog.resolve("subject1", "latest");
         String schema = catalog.resolve(schemaId);
@@ -88,7 +88,7 @@ public class FilesystemIT
     @Test
     public void shouldResolveSchemaIdAndProcessData()
     {
-        FilesystemCatalogHandler catalog = new FilesystemCatalogHandler(config, context, 0L, readURL);
+        FilesystemCatalogHandler catalog = new FilesystemCatalogHandler(config, context, 0L);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -108,7 +108,7 @@ public class FilesystemIT
     @Test
     public void shouldVerifyEncodedData()
     {
-        FilesystemCatalogHandler catalog = new FilesystemCatalogHandler(config, context, 0L, readURL);
+        FilesystemCatalogHandler catalog = new FilesystemCatalogHandler(config, context, 0L);
 
         DirectBuffer data = new UnsafeBuffer();
 

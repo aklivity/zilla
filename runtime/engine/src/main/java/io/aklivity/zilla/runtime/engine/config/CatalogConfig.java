@@ -17,12 +17,9 @@ package io.aklivity.zilla.runtime.engine.config;
 
 import static java.util.Objects.requireNonNull;
 
-import java.util.function.Function;
-
 public class CatalogConfig
 {
     public transient long id;
-    public transient Function<String, String> readURL;
 
     public final String namespace;
     public final String name;

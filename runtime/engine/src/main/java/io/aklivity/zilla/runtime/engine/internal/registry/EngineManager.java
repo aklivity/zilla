@@ -243,7 +243,6 @@ public class EngineManager
         for (CatalogConfig catalog : namespace.catalogs)
         {
             catalog.id = resolver.resolve(catalog.name);
-            catalog.readURL = namespace.readURL;
         }
 
         for (MetricConfig metric : namespace.telemetry.metrics)

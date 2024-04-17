@@ -26,6 +26,7 @@ public final class FilesystemOptionsConfigBuilder<T> extends ConfigBuilder<T, Fi
     private final Function<OptionsConfig, T> mapper;
 
     private List<FilesystemSchemaConfig> subjects;
+    private Function<String, String> readURL;
 
     FilesystemOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
@@ -56,9 +57,16 @@ public final class FilesystemOptionsConfigBuilder<T> extends ConfigBuilder<T, Fi
         return this;
     }
 
+    public FilesystemOptionsConfigBuilder<T> readURL(
+        Function<String, String> readURL)
+    {
+        this.readURL = readURL;
+        return this;
+    }
+
     @Override
     public T build()
     {
-        return mapper.apply(new FilesystemOptionsConfig(subjects));
+        return mapper.apply(new FilesystemOptionsConfig(subjects, readURL));
     }
 }

@@ -14,11 +14,14 @@
  */
 package io.aklivity.zilla.runtime.catalog.filesystem.internal.config;
 
+import java.util.function.Function;
+
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
@@ -28,6 +31,7 @@ public class FilesystemOptionsConfigAdapter implements OptionsConfigAdapterSpi, 
     private static final String VERSION_NAME = "version";
     private static final String URL_NAME = "url";
     private static final String VERSION_DEFAULT = "latest";
+    private Function<String, String> readURL;
 
     @Override
     public Kind kind()
@@ -92,6 +96,15 @@ public class FilesystemOptionsConfigAdapter implements OptionsConfigAdapterSpi, 
                 }
             }
         }
+        options.readURL(readURL);
+
         return options.build();
+    }
+
+    @Override
+    public void adaptContext(
+        ConfigAdapterContext context)
+    {
+        this.readURL = context::readURL;
     }
 }

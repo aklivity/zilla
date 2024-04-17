@@ -51,14 +51,13 @@ public class FilesystemCatalogFactoryTest
         assertThat(context, instanceOf(FilesystemCatalogContext.class));
 
         Function<String, String> readURL = mock(Function.class);
+        Mockito.doReturn("test").when(readURL).apply("asyncapi/mqtt.yaml");
 
         FilesystemOptionsConfig catalogConfig =
             new FilesystemOptionsConfig(singletonList(
-                new FilesystemSchemaConfig("subject1", "asyncapi/mqtt.yaml", "latest")));
+                new FilesystemSchemaConfig("subject1", "asyncapi/mqtt.yaml", "latest")), readURL);
 
         CatalogConfig options = new CatalogConfig("test", "catalog0", "filesystem", catalogConfig);
-        options.readURL = readURL;
-        Mockito.doReturn("test").when(readURL).apply("asyncapi/mqtt.yaml");
         CatalogHandler handler = context.attach(options);
 
         assertThat(handler, instanceOf(FilesystemCatalogHandler.class));

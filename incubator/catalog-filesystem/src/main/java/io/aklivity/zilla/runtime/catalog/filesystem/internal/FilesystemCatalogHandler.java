@@ -37,14 +37,13 @@ public class FilesystemCatalogHandler implements CatalogHandler
     public FilesystemCatalogHandler(
         FilesystemOptionsConfig config,
         EngineContext context,
-        long catalogId,
-        Function<String, String> readURL)
+        long catalogId)
     {
         this.schemas = new HashMap<>();
         this.schemaIds =  new HashMap<>();
         this.crc32c = new CRC32C();
         this.event = new FilesystemEventContext(context);
-        this.readURL = readURL;
+        this.readURL = config.readURL;
         this.catalogId = catalogId;
         registerSchema(config.subjects);
     }
