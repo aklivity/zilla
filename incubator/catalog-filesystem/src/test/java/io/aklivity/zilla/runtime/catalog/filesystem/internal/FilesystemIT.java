@@ -14,57 +14,55 @@
  */
 package io.aklivity.zilla.runtime.catalog.filesystem.internal;
 
-import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
-import static org.junit.rules.RuleChain.outerRule;
 import static org.mockito.Mockito.mock;
 
-import java.time.Duration;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.function.Function;
 
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.DisableOnDebug;
-import org.junit.rules.TestRule;
-import org.junit.rules.Timeout;
-import org.kaazing.k3po.junit.annotation.Specification;
-import org.kaazing.k3po.junit.rules.K3poRule;
+import org.mockito.Mock;
+import org.mockito.Mockito;
 
 import io.aklivity.zilla.runtime.catalog.filesystem.internal.config.FilesystemOptionsConfig;
+import io.aklivity.zilla.runtime.catalog.filesystem.internal.config.FilesystemSchemaConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 
 public class FilesystemIT
 {
-    private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("local", "io/aklivity/zilla/runtime/catalog/schema/registry/internal");
-
-    private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
-
-    @Rule
-    public final TestRule chain = outerRule(k3po).around(timeout);
-
     private FilesystemOptionsConfig config;
     private EngineContext context = mock(EngineContext.class);
+    @Mock
+    private Function<String, String> readURL = mock(Function.class);
 
     @Before
-    public void setup()
+    public void setup() throws IOException
     {
-        config = FilesystemOptionsConfig.builder()
-            .maxAge(Duration.ofSeconds(1))
-            .build();
+        config = new FilesystemOptionsConfig(singletonList(
+            new FilesystemSchemaConfig("subject1", "asyncapi/mqtt.yaml", "latest")));
+
+        String content;
+        try (InputStream resource = FilesystemIT.class
+            .getResourceAsStream("../../../../specs/catalog/filesystem/config/asyncapi/mqtt.yaml"))
+        {
+            content = new String(resource.readAllBytes(), UTF_8);
+        }
+        Mockito.doReturn(content).when(readURL).apply("asyncapi/mqtt.yaml");
     }
 
     @Test
-    @Specification({
-        "${local}/resolve.artifact.via.global.id" })
-    public void shouldResolveArtifactViaGlobalId() throws Exception
+    public void shouldResolveSchemaViaSchemaId()
     {
         String expected = "asyncapi: 3.0.0\n" +
             "info:\n" +
@@ -78,149 +76,39 @@ public class FilesystemIT
             "    protocol: mqtt\n" +
             "defaultContentType: application/json";
 
-        FilesystemCatalogHandler catalog = new FilesystemCatalogHandler(config, context, 0L);
+        FilesystemCatalogHandler catalog = new FilesystemCatalogHandler(config, context, 0L, readURL);
 
-        String artifact = catalog.resolve(1);
+        int schemaId = catalog.resolve("subject1", "latest");
+        String schema = catalog.resolve(schemaId);
 
-        k3po.finish();
-
-        assertThat(artifact, not(nullValue()));
-        assertEquals(expected, artifact);
+        assertThat(schema, not(nullValue()));
+        assertEquals(expected, schema);
     }
 
     @Test
-    @Specification({
-        "${local}/resolve.artifact.via.artifactid.version" })
-    public void shouldResolveArtifactViaArtifactIdVersion() throws Exception
+    public void shouldResolveSchemaIdAndProcessData()
     {
-        String expected = "asyncapi: 3.0.0\n" +
-            "info:\n" +
-            "  title: Zilla MQTT Proxy\n" +
-            "  version: 1.0.0\n" +
-            "  license:\n" +
-            "    name: Aklivity Community License\n" +
-            "servers:\n" +
-            "  plain:\n" +
-            "    host: mqtt://localhost:7183\n" +
-            "    protocol: mqtt\n" +
-            "defaultContentType: application/json";
+        FilesystemCatalogHandler catalog = new FilesystemCatalogHandler(config, context, 0L, readURL);
 
-        FilesystemCatalogHandler catalog = new FilesystemCatalogHandler(config, context, 0L);
+        DirectBuffer data = new UnsafeBuffer();
 
-        int globalId = catalog.resolve("artifactId", "0");
+        String payload =
+            "{" +
+                "\"id\": \"123\"," +
+                "\"status\": \"OK\"" +
+                "}";
+        byte[] bytes = payload.getBytes();
+        data.wrap(bytes, 0, bytes.length);
 
-        String artifact = catalog.resolve(globalId);
+        int valLength = catalog.decode(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP, CatalogHandler.Decoder.IDENTITY);
 
-        k3po.finish();
-
-        assertEquals(globalId, 1);
-        assertThat(artifact, not(nullValue()));
-        assertEquals(expected, artifact);
-    }
-
-    @Test
-    @Specification({
-        "${local}/resolve.artifact.latest.version" })
-    public void shouldResolveArtifactLatestVersion() throws Exception
-    {
-        String expected = "asyncapi: 3.0.0\n" +
-            "info:\n" +
-            "  title: Zilla MQTT Proxy\n" +
-            "  version: 1.0.0\n" +
-            "  license:\n" +
-            "    name: Aklivity Community License\n" +
-            "servers:\n" +
-            "  plain:\n" +
-            "    host: mqtt://localhost:7183\n" +
-            "    protocol: mqtt\n" +
-            "defaultContentType: application/json";
-
-        FilesystemCatalogHandler catalog = new FilesystemCatalogHandler(config, context, 0L);
-
-        int globalId = catalog.resolve("artifactId", "latest");
-
-        String artifact = catalog.resolve(globalId);
-
-        k3po.finish();
-
-        assertEquals(globalId, 1);
-        assertThat(artifact, not(nullValue()));
-        assertEquals(expected, artifact);
-    }
-
-    @Test
-    @Specification({
-        "${local}/resolve.artifact.via.global.id" })
-    public void shouldResolveArtifactViaGlobalIdFromCache() throws Exception
-    {
-        String expected = "asyncapi: 3.0.0\n" +
-            "info:\n" +
-            "  title: Zilla MQTT Proxy\n" +
-            "  version: 1.0.0\n" +
-            "  license:\n" +
-            "    name: Aklivity Community License\n" +
-            "servers:\n" +
-            "  plain:\n" +
-            "    host: mqtt://localhost:7183\n" +
-            "    protocol: mqtt\n" +
-            "defaultContentType: application/json";
-
-        FilesystemCatalogHandler catalog = new FilesystemCatalogHandler(config, context, 0L);
-
-        catalog.resolve(1);
-
-        k3po.finish();
-
-        String artifact = catalog.resolve(1);
-
-        assertThat(artifact, not(nullValue()));
-        assertEquals(expected, artifact);
-    }
-
-    @Test
-    @Specification({
-        "${local}/resolve.artifact.via.artifactid.version" })
-    public void shouldResolveArtifactViaArtifactIdVersionFromCache() throws Exception
-    {
-        String expected = "asyncapi: 3.0.0\n" +
-            "info:\n" +
-            "  title: Zilla MQTT Proxy\n" +
-            "  version: 1.0.0\n" +
-            "  license:\n" +
-            "    name: Aklivity Community License\n" +
-            "servers:\n" +
-            "  plain:\n" +
-            "    host: mqtt://localhost:7183\n" +
-            "    protocol: mqtt\n" +
-            "defaultContentType: application/json";
-
-        FilesystemCatalogHandler catalog = new FilesystemCatalogHandler(config, context, 0L);
-
-        catalog.resolve(catalog.resolve("artifactId", "0"));
-
-        k3po.finish();
-
-        int globalId = catalog.resolve("artifactId", "0");
-
-        String artifact = catalog.resolve(globalId);
-
-        assertEquals(1, globalId);
-        assertThat(artifact, not(nullValue()));
-        assertEquals(expected, artifact);
-    }
-
-    @Test
-    public void shouldVerifyMaxPadding()
-    {
-        FilesystemCatalogHandler catalog = new FilesystemCatalogHandler(config, context, 0L);
-
-        assertEquals(9, catalog.encodePadding());
+        assertEquals(data.capacity(), valLength);
     }
 
     @Test
     public void shouldVerifyEncodedData()
     {
-        FilesystemCatalogHandler catalog = new FilesystemCatalogHandler(config, context, 0L);
+        FilesystemCatalogHandler catalog = new FilesystemCatalogHandler(config, context, 0L, readURL);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -228,40 +116,7 @@ public class FilesystemIT
             0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
         data.wrap(bytes, 0, bytes.length);
 
-        assertEquals(18, catalog.encode(0L, 0L, 1, data, 0, data.capacity(),
+        assertEquals(13, catalog.encode(0L, 0L, 1, data, 0, data.capacity(),
             ValueConsumer.NOP, CatalogHandler.Encoder.IDENTITY));
-    }
-
-    @Test
-    public void shouldResolveSchemaIdAndProcessData()
-    {
-
-        FilesystemCatalogHandler catalog = new FilesystemCatalogHandler(config, context, 0L);
-
-        DirectBuffer data = new UnsafeBuffer();
-
-        byte[] bytes = {0x00, 0x00, 0x00, 0x00, 0x09, 0x06, 0x69, 0x64,
-            0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
-        data.wrap(bytes, 0, bytes.length);
-
-        int valLength = catalog.decode(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP, CatalogHandler.Decoder.IDENTITY);
-
-        assertEquals(data.capacity() - 9, valLength);
-    }
-
-    @Test
-    public void shouldResolveSchemaIdFromData()
-    {
-        FilesystemCatalogHandler catalog = new FilesystemCatalogHandler(config, context, 0L);
-
-        DirectBuffer data = new UnsafeBuffer();
-
-        byte[] bytes = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x09, 0x06, 0x69, 0x64,
-            0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
-        data.wrap(bytes, 0, bytes.length);
-
-        int schemaId = catalog.resolve(data, 0, data.capacity());
-
-        assertEquals(9, schemaId);
     }
 }

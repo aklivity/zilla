@@ -77,7 +77,7 @@
         <version>${project.version}</version>
         <configuration>
           <scopeNames>core filesystem internal</scopeNames>
-          <packageName>io.aklivity.zilla.incubator.catalog.filesystem.internal.types</packageName>
+          <packageName>io.aklivity.zilla.runtime.catalog.filesystem.internal.types</packageName>
         </configuration>
         <executions>
           <execution>
@@ -109,14 +109,32 @@
                   <artifactId>catalog-filesystem.spec</artifactId>
                   <fileMappers>
                     <org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
-                      <pattern>^\Qio/aklivity/zilla/incubator/catalog/filesystem/\E</pattern>
-                      <replacement>io/aklivity/zilla/incubator/catalog/filesystem/internal/</replacement>
+                      <pattern>^\Qio/aklivity/zilla/specs/catalog/filesystem/\E</pattern>
+                      <replacement>io/aklivity/zilla/runtime/catalog/filesystem/internal/</replacement>
                     </org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
                   </fileMappers>
                 </artifactItem>
               </artifactItems>
-              <includes>io/aklivity/zilla/incubator/catalog/filesystem/schema/filesystem.schema.patch.json</includes>
+              <includes>io/aklivity/zilla/specs/catalog/filesystem/schema/filesystem.schema.patch.json</includes>
               <outputDirectory>${project.build.directory}/classes</outputDirectory>
+            </configuration>
+          </execution>
+          <execution>
+            <id>unpack-asyncapi</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>unpack</goal>
+            </goals>
+            <configuration>
+              <artifactItems>
+                <artifactItem>
+                  <groupId>${project.groupId}</groupId>
+                  <artifactId>catalog-filesystem.spec</artifactId>
+                  <version>${project.version}</version>
+                  <outputDirectory>${basedir}/target/test-classes</outputDirectory>
+                  <includes>**\/*.yaml</includes>
+                </artifactItem>
+              </artifactItems>
             </configuration>
           </execution>
         </executions>
@@ -142,7 +160,7 @@
         <artifactId>jacoco-maven-plugin</artifactId>
         <configuration>
           <excludes>
-            <exclude>io/aklivity/zilla/incubator/catalog/filesystem/internal/types/**/*.class</exclude>
+            <exclude>io/aklivity/zilla/runtime/catalog/filesystem/internal/types/**/*.class</exclude>
           </excludes>
           <rules>
             <rule>

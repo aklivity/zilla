@@ -19,4 +19,8 @@ catalogs:
   catalog0:
     type: filesystem
     options:
-      max-age: 30
+      subjects:
+        subject1:
+          url: asyncapi/mqtt.yaml
+          version: latest
+

@@ -23,10 +23,15 @@ telemetry:
         events:
           - qname: test.catalog0
             id: catalog.filesystem.file.not.found
-            message: FILE_NOT_FOUND GET asyncapi.yaml 0
+            message: FILE_NOT_FOUND asyncapi/kafka.yaml
 catalogs:
   catalog0:
     type: filesystem
+    options:
+      subjects:
+        subject1:
+          url: asyncapi/kafka.yaml
+          version: latest
 bindings:
   net0:
     type: test

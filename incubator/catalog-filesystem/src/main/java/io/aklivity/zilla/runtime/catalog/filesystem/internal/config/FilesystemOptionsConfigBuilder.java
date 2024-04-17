@@ -14,7 +14,8 @@
  */
 package io.aklivity.zilla.runtime.catalog.filesystem.internal.config;
 
-import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
@@ -22,11 +23,9 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public final class FilesystemOptionsConfigBuilder<T> extends ConfigBuilder<T, FilesystemOptionsConfigBuilder<T>>
 {
-    private static final Duration MAX_AGE_DEFAULT = Duration.ofSeconds(300);
-
     private final Function<OptionsConfig, T> mapper;
 
-    private Duration maxAge;
+    private List<FilesystemSchemaConfig> subjects;
 
     FilesystemOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
@@ -41,17 +40,25 @@ public final class FilesystemOptionsConfigBuilder<T> extends ConfigBuilder<T, Fi
         return (Class<FilesystemOptionsConfigBuilder<T>>) getClass();
     }
 
-    public FilesystemOptionsConfigBuilder<T> maxAge(
-        Duration maxAge)
+    public FilesystemSchemaConfigBuilder<FilesystemOptionsConfigBuilder<T>> subjects()
     {
-        this.maxAge = maxAge;
+        return new FilesystemSchemaConfigBuilder<>(this::subjects);
+    }
+
+    public FilesystemOptionsConfigBuilder<T> subjects(
+        FilesystemSchemaConfig config)
+    {
+        if (subjects == null)
+        {
+            subjects = new ArrayList<>();
+        }
+        subjects.add(config);
         return this;
     }
 
     @Override
     public T build()
     {
-        Duration maxAge = (this.maxAge != null) ? this.maxAge : MAX_AGE_DEFAULT;
-        return mapper.apply(new FilesystemOptionsConfig(maxAge));
+        return mapper.apply(new FilesystemOptionsConfig(subjects));
     }
 }

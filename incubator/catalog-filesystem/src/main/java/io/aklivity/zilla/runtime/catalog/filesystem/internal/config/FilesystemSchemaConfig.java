@@ -12,18 +12,21 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.catalog.filesystem.internal;
+package io.aklivity.zilla.runtime.catalog.filesystem.internal.config;
 
-public class CachedArtifactId
+public class FilesystemSchemaConfig
 {
-    public long timestamp;
-    public int id;
+    public final String subject;
+    public final String url;
+    public final String version;
 
-    public CachedArtifactId(
-        long timestamp,
-        int id)
+    public FilesystemSchemaConfig(
+        String subject,
+        String url,
+        String version)
     {
-        this.timestamp = timestamp;
-        this.id = id;
+        this.subject = subject;
+        this.url = url;
+        this.version = version;
     }
 }

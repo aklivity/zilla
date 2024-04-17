@@ -1,0 +1,11 @@
+asyncapi: 3.0.0
+info:
+  title: Zilla MQTT Proxy
+  version: 1.0.0
+  license:
+    name: Aklivity Community License
+servers:
+  plain:
+    host: mqtt://localhost:7183
+    protocol: mqtt
+defaultContentType: application/json

@@ -14,16 +14,19 @@
  */
 package io.aklivity.zilla.runtime.catalog.filesystem.internal;
 
+import static java.util.Collections.singletonList;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 
-import java.time.Duration;
+import java.util.function.Function;
 
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import io.aklivity.zilla.runtime.catalog.filesystem.internal.config.FilesystemOptionsConfig;
+import io.aklivity.zilla.runtime.catalog.filesystem.internal.config.FilesystemSchemaConfig;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.Catalog;
@@ -47,10 +50,15 @@ public class FilesystemCatalogFactoryTest
         CatalogContext context = catalog.supply(mock(EngineContext.class));
         assertThat(context, instanceOf(FilesystemCatalogContext.class));
 
-        FilesystemOptionsConfig catalogConfig = FilesystemOptionsConfig.builder()
-            .maxAge(Duration.ofSeconds(100))
-            .build();
+        Function<String, String> readURL = mock(Function.class);
+
+        FilesystemOptionsConfig catalogConfig =
+            new FilesystemOptionsConfig(singletonList(
+                new FilesystemSchemaConfig("subject1", "asyncapi/mqtt.yaml", "latest")));
+
         CatalogConfig options = new CatalogConfig("test", "catalog0", "filesystem", catalogConfig);
+        options.readURL = readURL;
+        Mockito.doReturn("test").when(readURL).apply("asyncapi/mqtt.yaml");
         CatalogHandler handler = context.attach(options);
 
         assertThat(handler, instanceOf(FilesystemCatalogHandler.class));

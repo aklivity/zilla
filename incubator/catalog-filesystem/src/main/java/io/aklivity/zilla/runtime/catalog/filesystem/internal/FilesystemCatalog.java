@@ -46,6 +46,6 @@ public class FilesystemCatalog implements Catalog
     @Override
     public URL type()
     {
-        return getClass().getResource("schema/apicurio.schema.patch.json");
+        return getClass().getResource("schema/filesystem.schema.patch.json");
     }
 }

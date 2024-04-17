@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.catalog.filesystem.internal;
 
-import java.net.http.HttpRequest;
 import java.nio.ByteBuffer;
 import java.time.Clock;
 
@@ -49,18 +48,16 @@ public class FilesystemEventContext
         this.clock = context.clock();
     }
 
-    public void remoteAccessRejected(
+    public void fileNotFound(
         long catalogId,
-        HttpRequest httpRequest,
-        int status)
+        String location)
     {
         FilesystemEventExFW extension = schemaRegistryEventExRW
             .wrap(extensionBuffer, 0, extensionBuffer.capacity())
             .fileNotFound(e -> e
                 .typeId(FilesystemEventType.FILE_NOT_FOUND.value())
-                .location(httpRequest.uri().toString())
-            )
-            .build();
+                .location(location)
+            ).build();
         EventFW event = eventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .id(fileNotFoundEventId)

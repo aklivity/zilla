@@ -17,11 +17,11 @@ module io.aklivity.zilla.runtime.catalog.filesystem
     requires io.aklivity.zilla.runtime.engine;
 
     provides io.aklivity.zilla.runtime.engine.catalog.CatalogFactorySpi
-        with io.aklivity.zilla.runtime.catalog.apicurio.internal.ApicurioCatalogFactorySpi;
+        with io.aklivity.zilla.runtime.catalog.filesystem.internal.FilesystemCatalogFactorySpi;
 
     provides io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi
-        with io.aklivity.zilla.runtime.catalog.filesystem.internal.config.ApicurioOptionsConfigAdapter;
+        with io.aklivity.zilla.runtime.catalog.filesystem.internal.config.FilesystemOptionsConfigAdapter;
 
     provides io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi
-        with io.aklivity.zilla.runtime.catalog.apicurio.internal.ApicurioEventFormatterFactory;
+        with io.aklivity.zilla.runtime.catalog.filesystem.internal.FilesystemEventFormatterFactory;
 }

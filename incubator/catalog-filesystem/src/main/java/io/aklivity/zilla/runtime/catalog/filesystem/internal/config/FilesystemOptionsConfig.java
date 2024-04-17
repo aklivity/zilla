@@ -14,14 +14,14 @@
  */
 package io.aklivity.zilla.runtime.catalog.filesystem.internal.config;
 
-import java.time.Duration;
+import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public class FilesystemOptionsConfig extends OptionsConfig
 {
-    public final Duration maxAge;
+    public final List<FilesystemSchemaConfig> subjects;
 
     public static FilesystemOptionsConfigBuilder<FilesystemOptionsConfig> builder()
     {
@@ -34,9 +34,9 @@ public class FilesystemOptionsConfig extends OptionsConfig
         return new FilesystemOptionsConfigBuilder<>(mapper);
     }
 
-    FilesystemOptionsConfig(
-        Duration maxAge)
+    public FilesystemOptionsConfig(
+        List<FilesystemSchemaConfig> subjects)
     {
-        this.maxAge = maxAge;
+        this.subjects = subjects;
     }
 }

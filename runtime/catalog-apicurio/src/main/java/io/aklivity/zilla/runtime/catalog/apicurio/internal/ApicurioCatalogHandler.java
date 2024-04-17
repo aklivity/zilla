@@ -38,8 +38,8 @@ import org.agrona.DirectBuffer;
 import org.agrona.collections.Int2ObjectCache;
 import org.agrona.concurrent.UnsafeBuffer;
 
-import io.aklivity.zilla.runtime.catalog.filesystem.internal.config.ApicurioOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.apicurio.internal.types.ApicurioPrefixFW;
+import io.aklivity.zilla.runtime.catalog.filesystem.internal.config.ApicurioOptionsConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;

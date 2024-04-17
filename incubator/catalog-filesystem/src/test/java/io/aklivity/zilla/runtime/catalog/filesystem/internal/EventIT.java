@@ -39,7 +39,7 @@ public class EventIT
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
         .countersBufferCapacity(4096)
-        .configurationRoot("io/aklivity/zilla/specs/catalog/apicurio/config")
+        .configurationRoot("io/aklivity/zilla/specs/catalog/filesystem/config")
         .external("app0")
         .clean();
 

@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.catalog.filesystem.internal;
 
+import io.aklivity.zilla.runtime.catalog.filesystem.internal.config.FilesystemOptionsConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
@@ -33,6 +34,7 @@ public class FilesystemCatalogContext implements CatalogContext
     public CatalogHandler attach(
         CatalogConfig catalog)
     {
-        return new FilesystemCatalogHandler(FilesystemOptionsConfig.class.cast(catalog.options), context, catalog.id);
+        return new FilesystemCatalogHandler(
+            FilesystemOptionsConfig.class.cast(catalog.options), context, catalog.id, catalog.readURL);
     }
 }

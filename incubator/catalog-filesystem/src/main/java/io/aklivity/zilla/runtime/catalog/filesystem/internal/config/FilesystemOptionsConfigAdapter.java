@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.runtime.catalog.filesystem.internal.config;
 
-import java.time.Duration;
-
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
@@ -26,7 +24,10 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
 public class FilesystemOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
-    private static final String MAX_AGE_NAME = "max-age";
+    private static final String SUBJECTS_NAME = "subjects";
+    private static final String VERSION_NAME = "version";
+    private static final String URL_NAME = "url";
+    private static final String VERSION_DEFAULT = "latest";
 
     @Override
     public Kind kind()
@@ -45,15 +46,26 @@ public class FilesystemOptionsConfigAdapter implements OptionsConfigAdapterSpi, 
         OptionsConfig options)
     {
         FilesystemOptionsConfig config = (FilesystemOptionsConfig) options;
-        JsonObjectBuilder catalog = Json.createObjectBuilder();
+        JsonObjectBuilder subjects = Json.createObjectBuilder();
 
-        Duration maxAge = config.maxAge;
-        if (maxAge != null)
+        if (config.subjects != null && !config.subjects.isEmpty())
         {
-            catalog.add(MAX_AGE_NAME, maxAge.toSeconds());
-        }
+            JsonObjectBuilder catalogs = Json.createObjectBuilder();
+            for (FilesystemSchemaConfig schema : config.subjects)
+            {
+                JsonObjectBuilder schemaJson = Json.createObjectBuilder();
 
-        return catalog.build();
+                schemaJson.add(URL_NAME, schema.url);
+
+                if (schema.version != null)
+                {
+                    schemaJson.add(VERSION_NAME, schema.version);
+                }
+                catalogs.add(schema.subject, schemaJson);
+            }
+            subjects.add(SUBJECTS_NAME, catalogs);
+        }
+        return subjects.build();
     }
 
     @Override
@@ -61,15 +73,25 @@ public class FilesystemOptionsConfigAdapter implements OptionsConfigAdapterSpi, 
         JsonObject object)
     {
         FilesystemOptionsConfigBuilder<FilesystemOptionsConfig> options = FilesystemOptionsConfig.builder();
-
         if (object != null)
         {
-            if (object.containsKey(MAX_AGE_NAME))
+            if (object.containsKey(SUBJECTS_NAME))
             {
-                options.maxAge(Duration.ofSeconds(object.getJsonNumber(MAX_AGE_NAME).longValue()));
+                JsonObject subjectsJson = object.getJsonObject(SUBJECTS_NAME);
+                for (String subject: subjectsJson.keySet())
+                {
+                    JsonObject schemaJson = subjectsJson.getJsonObject(subject);
+
+                    String url = schemaJson.getString(URL_NAME);
+
+                    String version = schemaJson.containsKey(VERSION_NAME)
+                        ? schemaJson.getString(VERSION_NAME)
+                        : VERSION_DEFAULT;
+
+                    options.subjects(new FilesystemSchemaConfig(subject, url, version));
+                }
             }
         }
-
         return options.build();
     }
 }

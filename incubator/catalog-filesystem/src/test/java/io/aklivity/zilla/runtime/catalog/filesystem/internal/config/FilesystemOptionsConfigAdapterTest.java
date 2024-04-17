@@ -14,12 +14,11 @@
  */
 package io.aklivity.zilla.runtime.catalog.filesystem.internal.config;
 
+import static java.util.function.Function.identity;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
-
-import java.time.Duration;
 
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
@@ -43,28 +42,51 @@ public class FilesystemOptionsConfigAdapterTest
     @Test
     public void shouldReadCondition()
     {
-        String text =
-                "{" +
-                    "\"url\": \"http://localhost:8081\"," +
-                    "\"group-id\": \"default\"," +
+        String text = "{" +
+                "\"subjects\":" +
+                    "{" +
+                    "\"subject1\":" +
+                        "{" +
+                            "\"url\":\"asyncapi/mqtt.yaml\"," +
+                            "\"version\": \"latest\"" +
+                        "}" +
+                    "}" +
                 "}";
 
         FilesystemOptionsConfig catalog = jsonb.fromJson(text, FilesystemOptionsConfig.class);
 
         assertThat(catalog, not(nullValue()));
-        assertThat(catalog.maxAge.toSeconds(), equalTo(300L));
+        FilesystemSchemaConfig schema = catalog.subjects.get(0);
+        assertThat(schema.subject, equalTo("subject1"));
+        assertThat(schema.url, equalTo("asyncapi/mqtt.yaml"));
+        assertThat(schema.version, equalTo("latest"));
     }
 
     @Test
     public void shouldWriteCondition()
     {
-        FilesystemOptionsConfig catalog = FilesystemOptionsConfig.builder()
-            .maxAge(Duration.ofSeconds(300))
-            .build();
+        String expectedJson = "{" +
+            "\"subjects\":" +
+                "{" +
+                    "\"subject1\":" +
+                        "{" +
+                            "\"url\":\"asyncapi/mqtt.yaml\"," +
+                            "\"version\":\"latest\"" +
+                        "}" +
+                    "}" +
+                "}";
 
-        String text = jsonb.toJson(catalog);
+        FilesystemOptionsConfig catalog = (FilesystemOptionsConfig) new FilesystemOptionsConfigBuilder<>(identity())
+                .subjects()
+                    .subject("subject1")
+                        .url("asyncapi/mqtt.yaml")
+                        .version("latest")
+                        .build()
+                .build();
 
-        assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"url\":\"http://localhost:8081\",\"group-id\":\"default\",\"max-age\":300}"));
+        String json = jsonb.toJson(catalog);
+
+        assertThat(json, not(nullValue()));
+        assertThat(json, equalTo(expectedJson));
     }
 }
