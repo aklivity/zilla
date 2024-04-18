@@ -32,23 +32,6 @@
                         "enum": [ "server", "client"]
                     },
                     "vault": false,
-                    "options":
-                    {
-                        "properties":
-                        {
-                            "services":
-                            {
-                                "title": "Services",
-                                "type": "array",
-                                "items":
-                                {
-                                    "title": "Service",
-                                    "type": "string"
-                                }
-                            }
-                        },
-                        "additionalProperties": false
-                    },
                     "routes":
                     {
                         "items":
@@ -113,6 +96,44 @@
                         [
                             "routes"
                         ]
+                    }
+                ],
+                "oneOf":
+                [
+                    {
+                        "properties":
+                        {
+                            "kind":
+                            {
+                                "const": "server"
+                            },
+                            "options":
+                            {
+                                "properties":
+                                {
+                                    "services":
+                                    {
+                                        "title": "Services",
+                                        "type": "array",
+                                        "items":
+                                        {
+                                            "title": "Service",
+                                            "type": "string"
+                                        }
+                                    }
+                                },
+                                "additionalProperties": false
+                            }
+                        }
+                    },
+                    {
+                        "properties":
+                        {
+                            "kind":
+                            {
+                                "const": "client"
+                            }
+                        }
                     }
                 ]
             }
