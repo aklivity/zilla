@@ -508,6 +508,8 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                 {
                     kafkaFlags = flags & ~DATA_FLAG_FIN;
                     final long offsetKey = offsetKey(messages.topicString, messages.qos2PartitionId);
+                    System.out.printf("get offset metadata for offsetKey:%s --> %s-%d%n",
+                        offsetKey, messages.topicString, messages.qos2PartitionId);
                     final KafkaOffsetMetadata metadata = offsets.get(offsetKey);
                     producerId = metadata.producerId;
                     producerEpoch = metadata.producerEpoch;

@@ -377,6 +377,7 @@ public class MqttKafkaPublishProxyIT
     {
         System.out.println("######### publish.mixture.qos");
         k3po.finish();
+        System.out.println("######### finished");
     }
 
     @Test
