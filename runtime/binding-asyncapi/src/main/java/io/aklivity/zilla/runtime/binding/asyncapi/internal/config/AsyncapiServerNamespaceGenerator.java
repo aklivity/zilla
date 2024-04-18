@@ -18,10 +18,8 @@ import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 import static java.util.Collections.emptyList;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiServerView;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
@@ -36,22 +34,16 @@ public class AsyncapiServerNamespaceGenerator extends AsyncapiNamespaceGenerator
 {
     public NamespaceConfig generate(
         BindingConfig binding,
-        Asyncapi asyncapi)
+        AsyncapiBindingConfig.AsyncapiNamespaceConfig namespaceConfig)
     {
+        List<AsyncapiServerView> servers = namespaceConfig.servers;
         AsyncapiOptionsConfig options = binding.options != null ? (AsyncapiOptionsConfig) binding.options : EMPTY_OPTION;
         final List<MetricRefConfig> metricRefs = binding.telemetryRef != null ?
             binding.telemetryRef.metricRefs : emptyList();
 
-        this.asyncapi = asyncapi;
         this.qname = binding.qname;
         this.qvault = binding.qvault;
         this.namespace = binding.namespace;
-
-        final List<AsyncapiServerView> servers =
-            filterAsyncapiServers(asyncapi.servers, options.asyncapis.stream()
-                .flatMap(a -> a.servers.stream())
-                .collect(Collectors.toList()));
-        servers.forEach(s -> s.setAsyncapiProtocol(resolveProtocol(s.protocol(), options, servers)));
 
         //TODO: keep it until we support different protocols on the same composite binding
         AsyncapiServerView serverView = servers.get(0);
@@ -60,7 +52,7 @@ public class AsyncapiServerNamespaceGenerator extends AsyncapiNamespaceGenerator
         return NamespaceConfig.builder()
                 .name(String.format("%s/%s", qname, protocol.scheme))
                 .inject(n -> this.injectNamespaceMetric(n, !metricRefs.isEmpty()))
-                .inject(n -> this.injectCatalog(n, asyncapi))
+                .inject(n -> this.injectCatalog(n, namespaceConfig.asyncapis))
                 .inject(n -> injectTcpServer(n, servers, options, metricRefs))
                 .inject(n -> injectTlsServer(n, options))
                 .binding()

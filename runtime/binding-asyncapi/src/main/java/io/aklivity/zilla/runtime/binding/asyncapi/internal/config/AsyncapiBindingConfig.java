@@ -47,6 +47,7 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.HttpBeginExFW;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiServerView;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
@@ -228,7 +229,7 @@ public final class AsyncapiBindingConfig
         for (AsyncapiSchemaConfig config : configs)
         {
             Asyncapi asyncapi = config.asyncapi;
-            updateNamespace(config, composite, asyncapi);
+            //updateNamespace(config, composite, asyncapi);
         }
     }
 
@@ -236,25 +237,42 @@ public final class AsyncapiBindingConfig
         BindingConfig binding,
         List<AsyncapiSchemaConfig> configs)
     {
+        final Map<Integer, AsyncapiNamespaceConfig> namespaceConfigs = new HashMap<>();
         for (AsyncapiSchemaConfig config : configs)
         {
             Asyncapi asyncapi = config.asyncapi;
-            final NamespaceConfig composite = namespaceGenerator.generate(binding, asyncapi);
+            final List<AsyncapiServerView> servers =
+                namespaceGenerator.filterAsyncapiServers(asyncapi, options.asyncapis.stream()
+                    .filter(a -> a.apiLabel.equals(config.apiLabel))
+                    .flatMap(a -> a.servers.stream())
+                    .collect(Collectors.toList()));
+
+            servers.stream().collect(Collectors.groupingBy(AsyncapiServerView::getPort)).forEach((k, v) ->
+                namespaceConfigs.computeIfAbsent(k, s -> new AsyncapiNamespaceConfig()).addServersForSpec(v, config, asyncapi));
+            servers.forEach(s ->
+                s.setAsyncapiProtocol(namespaceGenerator.resolveProtocol(s.protocol(), options, asyncapi, servers)));
+        }
+
+        for (AsyncapiNamespaceConfig namespaceConfig : namespaceConfigs.values())
+        {
+            final NamespaceConfig composite = namespaceGenerator.generate(binding, namespaceConfig);
             composite.readURL = binding.readURL;
             attach.accept(composite);
-            updateNamespace(config, composite, asyncapi);
+            updateNamespace(namespaceConfig.configs, composite, namespaceConfig.asyncapis);
         }
     }
 
     private void updateNamespace(
-        AsyncapiSchemaConfig config,
+        List<AsyncapiSchemaConfig> configs,
         NamespaceConfig composite,
-        Asyncapi asyncapi)
+        List<Asyncapi> asyncapis)
     {
-        composites.put(config.schemaId, composite);
-        schemaIdsByApiId.put(config.apiLabel, config.schemaId);
-        extractChannels(asyncapi);
-        extractOperations(asyncapi);
+        //TODO: get first schemaId?
+        final int schemaId = configs.get(0).schemaId;
+        composites.put(schemaId, composite);
+        configs.forEach(c -> schemaIdsByApiId.put(c.apiLabel, schemaId));
+        asyncapis.forEach(this::extractChannels);
+        asyncapis.forEach(this::extractOperations);
     }
 
     private void extractNamespace(
@@ -400,6 +418,30 @@ public final class AsyncapiBindingConfig
             String16FW value)
         {
             authority = authorityRO.wrap(value.buffer(), value.offset(), value.limit());
+        }
+    }
+
+    static class AsyncapiNamespaceConfig
+    {
+        List<AsyncapiServerView> servers;
+        List<Asyncapi> asyncapis;
+        List<AsyncapiSchemaConfig> configs;
+
+        AsyncapiNamespaceConfig()
+        {
+            servers = new ArrayList<>();
+            asyncapis = new ArrayList<>();
+            configs = new ArrayList<>();
+        }
+
+        private void addServersForSpec(
+            List<AsyncapiServerView> servers,
+            AsyncapiSchemaConfig config,
+            Asyncapi asyncapi)
+        {
+            this.servers.addAll(servers);
+            this.configs.add(config);
+            this.asyncapis.add(asyncapi);
         }
     }
 }

@@ -65,7 +65,6 @@ public abstract class AsyncapiNamespaceGenerator
     protected static final Pattern VARIABLE = Pattern.compile("\\{([^}]*.?)\\}");
     protected final Matcher variable = VARIABLE.matcher("");
 
-    protected Asyncapi asyncapi;
     protected Map<String, Asyncapi> asyncapis;
     protected boolean isTlsEnabled;
     protected AsyncapiProtocol protocol;
@@ -76,7 +75,7 @@ public abstract class AsyncapiNamespaceGenerator
 
     public NamespaceConfig generate(
         BindingConfig binding,
-        Asyncapi asyncapi)
+        AsyncapiBindingConfig.AsyncapiNamespaceConfig namespaceConfig)
     {
         return null;
     }
@@ -92,6 +91,7 @@ public abstract class AsyncapiNamespaceGenerator
     protected AsyncapiProtocol resolveProtocol(
         String protocolName,
         AsyncapiOptionsConfig options,
+        Asyncapi asyncapi,
         List<AsyncapiServerView> servers)
     {
         Pattern pattern = Pattern.compile("(http|mqtt|kafka)");
@@ -121,9 +121,10 @@ public abstract class AsyncapiNamespaceGenerator
     }
 
     protected List<AsyncapiServerView> filterAsyncapiServers(
-        Map<String, AsyncapiServer> servers,
+        Asyncapi asyncapi,
         List<AsyncapiServerConfig> serverConfigs)
     {
+        final Map<String, AsyncapiServer> servers = asyncapi.servers;
         List<AsyncapiServerView> filtered;
         Map<String, AsyncapiServerView> serverViews = servers.entrySet().stream().collect(Collectors.toMap(
             Map.Entry::getKey, e -> AsyncapiServerView.of(e.getValue(), asyncapi.components.serverVariables)));
@@ -178,26 +179,30 @@ public abstract class AsyncapiNamespaceGenerator
 
     protected <C> NamespaceConfigBuilder<C> injectCatalog(
         NamespaceConfigBuilder<C> namespace,
-        Asyncapi asyncapi)
+        List<Asyncapi> asyncapis)
     {
-        if (asyncapi.components != null && asyncapi.components.schemas != null && !asyncapi.components.schemas.isEmpty())
+        for (Asyncapi asyncapi : asyncapis)
         {
-            namespace
-                .catalog()
-                    .name(INLINE_CATALOG_NAME)
-                    .type(INLINE_CATALOG_TYPE)
-                    .options(InlineOptionsConfig::builder)
-                        .subjects()
-                            .inject(this::injectSubjects)
+            if (asyncapi.components != null && asyncapi.components.schemas != null && !asyncapi.components.schemas.isEmpty())
+            {
+                namespace
+                    .catalog()
+                        .name(INLINE_CATALOG_NAME)
+                        .type(INLINE_CATALOG_TYPE)
+                        .options(InlineOptionsConfig::builder)
+                            .subjects()
+                                .inject(s -> injectSubjects(s, asyncapi))
+                                .build()
                             .build()
-                        .build()
-                    .build();
+                        .build();
+            }
         }
         return namespace;
     }
 
     protected <C> InlineSchemaConfigBuilder<C> injectSubjects(
-        InlineSchemaConfigBuilder<C> subjects)
+        InlineSchemaConfigBuilder<C> subjects,
+        Asyncapi asyncapi)
     {
         try (Jsonb jsonb = JsonbBuilder.create())
         {
