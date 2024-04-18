@@ -24,7 +24,6 @@ public class FilesystemSchemaConfigBuilder<T> extends ConfigBuilder<T, Filesyste
 
     private String subject;
     private String url;
-    private String version;
 
     public FilesystemSchemaConfigBuilder(
         Function<FilesystemSchemaConfig, T> mapper)
@@ -53,16 +52,9 @@ public class FilesystemSchemaConfigBuilder<T> extends ConfigBuilder<T, Filesyste
         return this;
     }
 
-    public FilesystemSchemaConfigBuilder<T> version(
-        String version)
-    {
-        this.version = version;
-        return this;
-    }
-
     @Override
     public T build()
     {
-        return mapper.apply(new FilesystemSchemaConfig(subject, url, version));
+        return mapper.apply(new FilesystemSchemaConfig(subject, url));
     }
 }

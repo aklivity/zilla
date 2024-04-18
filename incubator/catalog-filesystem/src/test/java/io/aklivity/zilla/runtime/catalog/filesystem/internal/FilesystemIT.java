@@ -50,7 +50,7 @@ public class FilesystemIT
     public void setup() throws IOException
     {
         config = new FilesystemOptionsConfig(singletonList(
-            new FilesystemSchemaConfig("subject1", "asyncapi/mqtt.yaml", "latest")), readURL);
+            new FilesystemSchemaConfig("subject1", "asyncapi/mqtt.yaml")), readURL);
 
         String content;
         try (InputStream resource = FilesystemIT.class

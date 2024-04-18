@@ -55,7 +55,7 @@ public class FilesystemCatalogFactoryTest
 
         FilesystemOptionsConfig catalogConfig =
             new FilesystemOptionsConfig(singletonList(
-                new FilesystemSchemaConfig("subject1", "asyncapi/mqtt.yaml", "latest")), readURL);
+                new FilesystemSchemaConfig("subject1", "asyncapi/mqtt.yaml")), readURL);
 
         CatalogConfig options = new CatalogConfig("test", "catalog0", "filesystem", catalogConfig);
         CatalogHandler handler = context.attach(options);

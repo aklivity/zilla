@@ -22,5 +22,4 @@ catalogs:
       subjects:
         subject1:
           url: asyncapi/mqtt.yaml
-          version: latest
 

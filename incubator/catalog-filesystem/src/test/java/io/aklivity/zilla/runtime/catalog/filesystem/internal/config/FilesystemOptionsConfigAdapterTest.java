@@ -47,8 +47,7 @@ public class FilesystemOptionsConfigAdapterTest
                     "{" +
                     "\"subject1\":" +
                         "{" +
-                            "\"url\":\"asyncapi/mqtt.yaml\"," +
-                            "\"version\": \"latest\"" +
+                            "\"url\":\"asyncapi/mqtt.yaml\"" +
                         "}" +
                     "}" +
                 "}";
@@ -59,7 +58,6 @@ public class FilesystemOptionsConfigAdapterTest
         FilesystemSchemaConfig schema = catalog.subjects.get(0);
         assertThat(schema.subject, equalTo("subject1"));
         assertThat(schema.url, equalTo("asyncapi/mqtt.yaml"));
-        assertThat(schema.version, equalTo("latest"));
     }
 
     @Test
@@ -70,8 +68,7 @@ public class FilesystemOptionsConfigAdapterTest
                 "{" +
                     "\"subject1\":" +
                         "{" +
-                            "\"url\":\"asyncapi/mqtt.yaml\"," +
-                            "\"version\":\"latest\"" +
+                            "\"url\":\"asyncapi/mqtt.yaml\"" +
                         "}" +
                     "}" +
                 "}";
@@ -80,7 +77,6 @@ public class FilesystemOptionsConfigAdapterTest
                 .subjects()
                     .subject("subject1")
                         .url("asyncapi/mqtt.yaml")
-                        .version("latest")
                         .build()
                 .build();
 

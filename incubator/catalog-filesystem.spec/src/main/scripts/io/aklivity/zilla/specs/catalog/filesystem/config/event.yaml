@@ -31,7 +31,6 @@ catalogs:
       subjects:
         subject1:
           url: asyncapi/kafka.yaml
-          version: latest
 bindings:
   net0:
     type: test

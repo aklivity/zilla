@@ -60,8 +60,7 @@ public class FilesystemCatalogHandler implements CatalogHandler
         String subject,
         String version)
     {
-        String key = subject + version;
-        return schemaIds.getOrDefault(key, NO_SCHEMA_ID);
+        return schemaIds.getOrDefault(subject, NO_SCHEMA_ID);
     }
 
 
@@ -75,7 +74,7 @@ public class FilesystemCatalogHandler implements CatalogHandler
             {
                 int schemaId = generateCRC32C(schema);
                 schemas.put(schemaId, schema);
-                schemaIds.put(config.subject + config.version, schemaId);
+                schemaIds.put(config.subject, schemaId);
             }
             else
             {

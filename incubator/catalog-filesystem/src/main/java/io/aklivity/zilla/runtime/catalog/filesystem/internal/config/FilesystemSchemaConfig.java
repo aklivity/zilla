@@ -18,15 +18,12 @@ public class FilesystemSchemaConfig
 {
     public final String subject;
     public final String url;
-    public final String version;
 
     public FilesystemSchemaConfig(
         String subject,
-        String url,
-        String version)
+        String url)
     {
         this.subject = subject;
         this.url = url;
-        this.version = version;
     }
 }

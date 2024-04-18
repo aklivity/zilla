@@ -28,9 +28,7 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 public class FilesystemOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
     private static final String SUBJECTS_NAME = "subjects";
-    private static final String VERSION_NAME = "version";
     private static final String URL_NAME = "url";
-    private static final String VERSION_DEFAULT = "latest";
     private Function<String, String> readURL;
 
     @Override
@@ -61,10 +59,6 @@ public class FilesystemOptionsConfigAdapter implements OptionsConfigAdapterSpi, 
 
                 schemaJson.add(URL_NAME, schema.url);
 
-                if (schema.version != null)
-                {
-                    schemaJson.add(VERSION_NAME, schema.version);
-                }
                 catalogs.add(schema.subject, schemaJson);
             }
             subjects.add(SUBJECTS_NAME, catalogs);
@@ -88,11 +82,7 @@ public class FilesystemOptionsConfigAdapter implements OptionsConfigAdapterSpi, 
 
                     String url = schemaJson.getString(URL_NAME);
 
-                    String version = schemaJson.containsKey(VERSION_NAME)
-                        ? schemaJson.getString(VERSION_NAME)
-                        : VERSION_DEFAULT;
-
-                    options.subjects(new FilesystemSchemaConfig(subject, url, version));
+                    options.subjects(new FilesystemSchemaConfig(subject, url));
                 }
             }
         }

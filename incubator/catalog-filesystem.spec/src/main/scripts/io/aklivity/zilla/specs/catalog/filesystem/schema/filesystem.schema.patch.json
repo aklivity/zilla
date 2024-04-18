@@ -45,11 +45,6 @@
                                             "url":
                                             {
                                                 "type": "string"
-                                            },
-                                            "version":
-                                            {
-                                                "type": "string",
-                                                "default": "latest"
                                             }
                                         },
                                         "required":
