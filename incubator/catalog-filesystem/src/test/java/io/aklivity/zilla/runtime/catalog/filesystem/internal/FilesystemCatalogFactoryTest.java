@@ -20,7 +20,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 
-import java.util.function.Function;
+import java.net.URL;
 
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -47,15 +47,17 @@ public class FilesystemCatalogFactoryTest
         assertThat(catalog, instanceOf(FilesystemCatalog.class));
         assertEquals("filesystem", catalog.name());
 
-        CatalogContext context = catalog.supply(mock(EngineContext.class));
-        assertThat(context, instanceOf(FilesystemCatalogContext.class));
+        EngineContext engineContext = mock(EngineContext.class);
+        URL url = FilesystemCatalogFactoryTest.class
+            .getResource("../../../../specs/catalog/filesystem/config/asyncapi/mqtt.yaml");
+        Mockito.doReturn(url).when(engineContext).resolvePath("asyncapi/mqtt.yaml");
 
-        Function<String, String> readURL = mock(Function.class);
-        Mockito.doReturn("test").when(readURL).apply("asyncapi/mqtt.yaml");
+        CatalogContext context = catalog.supply(engineContext);
+        assertThat(context, instanceOf(FilesystemCatalogContext.class));
 
         FilesystemOptionsConfig catalogConfig =
             new FilesystemOptionsConfig(singletonList(
-                new FilesystemSchemaConfig("subject1", "asyncapi/mqtt.yaml")), readURL);
+                new FilesystemSchemaConfig("subject1", "asyncapi/mqtt.yaml")));
 
         CatalogConfig options = new CatalogConfig("test", "catalog0", "filesystem", catalogConfig);
         CatalogHandler handler = context.attach(options);

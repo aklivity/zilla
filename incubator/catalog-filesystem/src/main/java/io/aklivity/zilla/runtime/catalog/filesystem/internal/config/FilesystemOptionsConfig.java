@@ -22,7 +22,6 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 public class FilesystemOptionsConfig extends OptionsConfig
 {
     public final List<FilesystemSchemaConfig> subjects;
-    public final Function<String, String> readURL;
 
     public static FilesystemOptionsConfigBuilder<FilesystemOptionsConfig> builder()
     {
@@ -36,10 +35,8 @@ public class FilesystemOptionsConfig extends OptionsConfig
     }
 
     public FilesystemOptionsConfig(
-        List<FilesystemSchemaConfig> subjects,
-        Function<String, String> readURL)
+        List<FilesystemSchemaConfig> subjects)
     {
         this.subjects = subjects;
-        this.readURL = readURL;
     }
 }

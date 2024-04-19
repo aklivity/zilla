@@ -42,14 +42,14 @@
                                         "type": "object",
                                         "properties":
                                         {
-                                            "url":
+                                            "path":
                                             {
                                                 "type": "string"
                                             }
                                         },
                                         "required":
                                         [
-                                            "url"
+                                            "path"
                                         ],
                                         "additionalProperties": false
                                     }

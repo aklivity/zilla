@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.catalog.filesystem.internal;
 
+import java.io.InputStream;
+import java.net.URL;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,7 +34,7 @@ public class FilesystemCatalogHandler implements CatalogHandler
     private final CRC32C crc32c;
     private final FilesystemEventContext event;
     private final long catalogId;
-    private final Function<String, String> readURL;
+    private final Function<String, URL> resolvePath;
 
     public FilesystemCatalogHandler(
         FilesystemOptionsConfig config,
@@ -43,7 +45,7 @@ public class FilesystemCatalogHandler implements CatalogHandler
         this.schemaIds =  new HashMap<>();
         this.crc32c = new CRC32C();
         this.event = new FilesystemEventContext(context);
-        this.readURL = config.readURL;
+        this.resolvePath = context::resolvePath;
         this.catalogId = catalogId;
         registerSchema(config.subjects);
     }
@@ -63,22 +65,25 @@ public class FilesystemCatalogHandler implements CatalogHandler
         return schemaIds.getOrDefault(subject, NO_SCHEMA_ID);
     }
 
-
-
-    private void registerSchema(List<FilesystemSchemaConfig> configs)
+    private void registerSchema(
+        List<FilesystemSchemaConfig> configs)
     {
         for (FilesystemSchemaConfig config : configs)
         {
-            String schema = readURL.apply(config.url);
-            if (schema != null && !schema.isEmpty())
+            try
             {
-                int schemaId = generateCRC32C(schema);
-                schemas.put(schemaId, schema);
-                schemaIds.put(config.subject, schemaId);
+                URL storeURL = resolvePath.apply(config.path);
+                try (InputStream input = storeURL.openStream())
+                {
+                    String schema = new String(input.readAllBytes());
+                    int schemaId = generateCRC32C(schema);
+                    schemas.put(schemaId, schema);
+                    schemaIds.put(config.subject, schemaId);
+                }
             }
-            else
+            catch (Exception ex)
             {
-                event.fileNotFound(catalogId, config.url);
+                event.fileNotFound(catalogId, config.path);
             }
         }
     }

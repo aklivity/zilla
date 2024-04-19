@@ -17,13 +17,13 @@ package io.aklivity.zilla.runtime.catalog.filesystem.internal.config;
 public class FilesystemSchemaConfig
 {
     public final String subject;
-    public final String url;
+    public final String path;
 
     public FilesystemSchemaConfig(
         String subject,
-        String url)
+        String path)
     {
         this.subject = subject;
-        this.url = url;
+        this.path = path;
     }
 }

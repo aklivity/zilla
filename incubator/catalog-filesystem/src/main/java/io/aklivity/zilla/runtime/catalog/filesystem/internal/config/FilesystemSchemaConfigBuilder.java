@@ -23,7 +23,7 @@ public class FilesystemSchemaConfigBuilder<T> extends ConfigBuilder<T, Filesyste
     private final Function<FilesystemSchemaConfig, T> mapper;
 
     private String subject;
-    private String url;
+    private String path;
 
     public FilesystemSchemaConfigBuilder(
         Function<FilesystemSchemaConfig, T> mapper)
@@ -45,16 +45,16 @@ public class FilesystemSchemaConfigBuilder<T> extends ConfigBuilder<T, Filesyste
         return this;
     }
 
-    public FilesystemSchemaConfigBuilder<T> url(
-        String url)
+    public FilesystemSchemaConfigBuilder<T> path(
+        String path)
     {
-        this.url = url;
+        this.path = path;
         return this;
     }
 
     @Override
     public T build()
     {
-        return mapper.apply(new FilesystemSchemaConfig(subject, url));
+        return mapper.apply(new FilesystemSchemaConfig(subject, path));
     }
 }

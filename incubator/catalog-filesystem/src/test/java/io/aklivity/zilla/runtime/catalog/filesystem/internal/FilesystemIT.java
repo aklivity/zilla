@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.catalog.filesystem.internal;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.not;
@@ -22,15 +21,12 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.function.Function;
+import java.net.URL;
 
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mock;
 import org.mockito.Mockito;
 
 import io.aklivity.zilla.runtime.catalog.filesystem.internal.config.FilesystemOptionsConfig;
@@ -43,22 +39,15 @@ public class FilesystemIT
 {
     private FilesystemOptionsConfig config;
     private EngineContext context = mock(EngineContext.class);
-    @Mock
-    private Function<String, String> readURL = mock(Function.class);
 
     @Before
-    public void setup() throws IOException
+    public void setup()
     {
         config = new FilesystemOptionsConfig(singletonList(
-            new FilesystemSchemaConfig("subject1", "asyncapi/mqtt.yaml")), readURL);
+            new FilesystemSchemaConfig("subject1", "asyncapi/mqtt.yaml")));
 
-        String content;
-        try (InputStream resource = FilesystemIT.class
-            .getResourceAsStream("../../../../specs/catalog/filesystem/config/asyncapi/mqtt.yaml"))
-        {
-            content = new String(resource.readAllBytes(), UTF_8);
-        }
-        Mockito.doReturn(content).when(readURL).apply("asyncapi/mqtt.yaml");
+        URL url = FilesystemIT.class.getResource("../../../../specs/catalog/filesystem/config/asyncapi/mqtt.yaml");
+        Mockito.doReturn(url).when(context).resolvePath("asyncapi/mqtt.yaml");
     }
 
     @Test
@@ -74,7 +63,7 @@ public class FilesystemIT
             "  plain:\n" +
             "    host: mqtt://localhost:7183\n" +
             "    protocol: mqtt\n" +
-            "defaultContentType: application/json";
+            "defaultContentType: application/json\n";
 
         FilesystemCatalogHandler catalog = new FilesystemCatalogHandler(config, context, 0L);
 

@@ -30,7 +30,7 @@ catalogs:
     options:
       subjects:
         subject1:
-          url: asyncapi/kafka.yaml
+          path: asyncapi/kafka.yaml
 bindings:
   net0:
     type: test

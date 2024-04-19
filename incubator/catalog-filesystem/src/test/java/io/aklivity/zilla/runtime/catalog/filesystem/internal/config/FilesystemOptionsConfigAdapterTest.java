@@ -47,7 +47,7 @@ public class FilesystemOptionsConfigAdapterTest
                     "{" +
                     "\"subject1\":" +
                         "{" +
-                            "\"url\":\"asyncapi/mqtt.yaml\"" +
+                            "\"path\":\"asyncapi/mqtt.yaml\"" +
                         "}" +
                     "}" +
                 "}";
@@ -57,7 +57,7 @@ public class FilesystemOptionsConfigAdapterTest
         assertThat(catalog, not(nullValue()));
         FilesystemSchemaConfig schema = catalog.subjects.get(0);
         assertThat(schema.subject, equalTo("subject1"));
-        assertThat(schema.url, equalTo("asyncapi/mqtt.yaml"));
+        assertThat(schema.path, equalTo("asyncapi/mqtt.yaml"));
     }
 
     @Test
@@ -68,7 +68,7 @@ public class FilesystemOptionsConfigAdapterTest
                 "{" +
                     "\"subject1\":" +
                         "{" +
-                            "\"url\":\"asyncapi/mqtt.yaml\"" +
+                            "\"path\":\"asyncapi/mqtt.yaml\"" +
                         "}" +
                     "}" +
                 "}";
@@ -76,7 +76,7 @@ public class FilesystemOptionsConfigAdapterTest
         FilesystemOptionsConfig catalog = (FilesystemOptionsConfig) new FilesystemOptionsConfigBuilder<>(identity())
                 .subjects()
                     .subject("subject1")
-                        .url("asyncapi/mqtt.yaml")
+                        .path("asyncapi/mqtt.yaml")
                         .build()
                 .build();
 

@@ -14,22 +14,18 @@
  */
 package io.aklivity.zilla.runtime.catalog.filesystem.internal.config;
 
-import java.util.function.Function;
-
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
 public class FilesystemOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
     private static final String SUBJECTS_NAME = "subjects";
-    private static final String URL_NAME = "url";
-    private Function<String, String> readURL;
+    private static final String PATH_NAME = "path";
 
     @Override
     public Kind kind()
@@ -57,7 +53,7 @@ public class FilesystemOptionsConfigAdapter implements OptionsConfigAdapterSpi, 
             {
                 JsonObjectBuilder schemaJson = Json.createObjectBuilder();
 
-                schemaJson.add(URL_NAME, schema.url);
+                schemaJson.add(PATH_NAME, schema.path);
 
                 catalogs.add(schema.subject, schemaJson);
             }
@@ -80,21 +76,13 @@ public class FilesystemOptionsConfigAdapter implements OptionsConfigAdapterSpi, 
                 {
                     JsonObject schemaJson = subjectsJson.getJsonObject(subject);
 
-                    String url = schemaJson.getString(URL_NAME);
+                    String url = schemaJson.getString(PATH_NAME);
 
                     options.subjects(new FilesystemSchemaConfig(subject, url));
                 }
             }
         }
-        options.readURL(readURL);
 
         return options.build();
-    }
-
-    @Override
-    public void adaptContext(
-        ConfigAdapterContext context)
-    {
-        this.readURL = context::readURL;
     }
 }
