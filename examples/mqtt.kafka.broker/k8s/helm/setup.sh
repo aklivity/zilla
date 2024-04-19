@@ -18,6 +18,7 @@ helm upgrade --install zilla $ZILLA_CHART --namespace $NAMESPACE --create-namesp
     --set-file secrets.tls.data.localhost\\.p12=../../tls/localhost.p12
 
 # Create the mqtt topics in Kafka
+if [[ "$KAFKA_SKIP_CREATE_TOPICS" != "yes" ]]; then
 kubectl run kafka-init-pod --image=bitnami/kafka:3.2 --namespace $NAMESPACE --rm --restart=Never -i -t -- /bin/sh -c "
 echo 'Creating topics for $KAFKA_HOST:$KAFKA_PORT'
 /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server $KAFKA_HOST:$KAFKA_PORT --create --if-not-exists --topic mqtt-messages
@@ -26,6 +27,7 @@ echo 'Creating topics for $KAFKA_HOST:$KAFKA_PORT'
 /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server $KAFKA_HOST:$KAFKA_PORT --create --if-not-exists --topic mqtt-sessions --config cleanup.policy=compact
 "
 kubectl wait --namespace $NAMESPACE --for=delete pod/kafka-init-pod
+fi
 
 # Start port forwarding
 SERVICE_PORTS=$(kubectl get svc --namespace $NAMESPACE zilla --template "{{ range .spec.ports }}{{.port}} {{ end }}")
