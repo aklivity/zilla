@@ -27,7 +27,7 @@ write zilla:begin.ext ${asyncapi:beginEx()
                                            .typeId(zilla:id("kafka"))
                                            .merged()
                                                .capabilities("PRODUCE_ONLY")
-                                               .topic("petstore")
+                                               .topic("petstore-customers")
                                                .partition(-1, -2)
                                                .ackMode("IN_SYNC_REPLICAS")
                                                .build()
@@ -49,8 +49,10 @@ write zilla:data.empty
 write flush
 
 write option zilla:flags "none"
-write "{\"id\": 1, \"name\": \"Dog\", \"tag\": \"test\"}"
+write "{ \"id\": 100000, \"username\": \"fehguy\", \"status\": \"approved\", \"address\": [ { \"street\": \"437 Lytton\", \"city\": \"Palo Alto\", \"state\": \"CA\", \"zip\": \"94301\" } ] }"
 write flush
+
+write notify SEND_ASYNC_REQUEST
 
 write option zilla:flags "fin"
 write zilla:data.empty
@@ -58,3 +60,75 @@ write flush
 
 write close
 read closed
+
+write notify SENT_ASYNC_REQUEST
+
+connect await SENT_ASYNC_REQUEST
+        "zilla://streams/asyncapi_client0"
+    option zilla:window 8192
+    option zilla:transmission "duplex"
+
+write zilla:begin.ext ${asyncapi:beginEx()
+                             .typeId(zilla:id("asyncapi"))
+                             .apiId(0)
+                             .extension(kafka:beginEx()
+                                      .typeId(zilla:id("kafka"))
+                                      .merged()
+                                          .capabilities("FETCH_ONLY")
+                                          .topic("petstore-verified-customers")
+                                          .partition(-1, -2)
+                                          .filter()
+                                            .header("zilla:correlation-id", "3f96592e-c8f1-4167-8c46-85f2aabb70a5-966ecfabf0fe9086ce63f615b87a6bed")
+                                            .build()
+                                          .build()
+                                      .build())
+                             .build()}
+
+connected
+
+read advised zilla:flush
+
+read notify RECEIVED_ASYNC_FLUSH
+
+read closed
+write close
+
+connect await RECEIVED_ASYNC_FLUSH
+        "zilla://streams/asyncapi_client0"
+    option zilla:window 8192
+    option zilla:transmission "duplex"
+
+write zilla:begin.ext ${asyncapi:beginEx()
+                             .typeId(zilla:id("asyncapi"))
+                             .apiId(0)
+                             .extension(kafka:beginEx()
+                                      .typeId(zilla:id("kafka"))
+                                      .merged()
+                                          .capabilities("FETCH_ONLY")
+                                          .topic("petstore-verified-customers")
+                                          .partition(-1, -2)
+                                          .filter()
+                                            .header("zilla:correlation-id", "3f96592e-c8f1-4167-8c46-85f2aabb70a5-966ecfabf0fe9086ce63f615b87a6bed")
+                                            .build()
+                                          .build()
+                                      .build())
+                             .build()}
+
+connected
+
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                             .fetch()
+                               .partition(0, 1, 2)
+                               .progress(0, 2)
+                               .progress(1, 1)
+                               .key("92d0bf92-63e0-4cfc-ae73-71dee92d1544")
+                               .header(":status", "204")
+                               .header("zilla:correlation-id", "3f96592e-c8f1-4167-8c46-85f2aabb70a5-966ecfabf0fe9086ce63f615b87a6bed")
+                               .build()
+                           .build()}
+read zilla:data.null
+
+read closed
+write close
