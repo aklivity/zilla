@@ -45,4 +45,14 @@ public class AsyncapiIT
         k3po.finish();
     }
 
+    @Test
+    @Specification({
+        "${asyncapi}/async.verify.customer/client",
+        "${asyncapi}/async.verify.customer/server"
+    })
+    public void shouldVerifyCustomerAsync() throws Exception
+    {
+        k3po.finish();
+    }
+
 }

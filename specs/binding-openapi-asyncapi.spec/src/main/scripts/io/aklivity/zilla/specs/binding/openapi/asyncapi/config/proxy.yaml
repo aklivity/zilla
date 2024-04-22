@@ -29,7 +29,7 @@ catalogs:
               name: MIT
           servers:
             - url: http://localhost:9090
-          paths:
+          paths:  
             /pets:
               get:
                 summary: List all pets

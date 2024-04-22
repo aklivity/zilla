@@ -45,4 +45,14 @@ public class OpenapiIT
         k3po.finish();
     }
 
+    @Test
+    @Specification({
+        "${openapi}/async.verify.customer/client",
+        "${openapi}/async.verify.customer/server"
+    })
+    public void shouldVerifyCustomerAsync() throws Exception
+    {
+        k3po.finish();
+    }
+
 }
