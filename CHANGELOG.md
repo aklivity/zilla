@@ -1,5 +1,13 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.78...HEAD)
+
+**Implemented enhancements:**
+
+- Support `filesystem` catalog for local schemas [\#908](https://github.com/aklivity/zilla/issues/908)
+
 ## [0.9.78](https://github.com/aklivity/zilla/tree/0.9.78) (2024-04-16)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.77...0.9.78)
