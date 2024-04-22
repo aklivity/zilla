@@ -443,6 +443,13 @@ public class KafkaConfiguration extends Configuration
     private static InstanceIdSupplier defaultInstanceId(
         Configuration config)
     {
-        return () -> String.format("%s-%s", KAFKA_CLIENT_ID.get(config), UUID.randomUUID());
+        return () -> String.format("%s-%s", clientIdWithDefault(config), UUID.randomUUID());
+    }
+
+    private static String clientIdWithDefault(
+        Configuration config)
+    {
+        String clientId = KAFKA_CLIENT_ID.get(config);
+        return clientId != null ? clientId : KAFKA_CLIENT_ID_DEFAULT;
     }
 }
