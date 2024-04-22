@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>cloud</artifactId>
-    <version>0.9.78</version>
+    <version>0.9.79</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -172,6 +172,12 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>catalog-apicurio</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>catalog-filesystem</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>
     </dependency>
