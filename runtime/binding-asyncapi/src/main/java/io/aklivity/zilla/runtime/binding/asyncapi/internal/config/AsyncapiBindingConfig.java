@@ -226,11 +226,7 @@ public final class AsyncapiBindingConfig
         final NamespaceConfig composite = namespaceGenerator.generateProxy(binding, asyncapis, schemaIdsByApiId::get);
         composite.readURL = binding.readURL;
         attach.accept(composite);
-        for (AsyncapiSchemaConfig config : configs)
-        {
-            Asyncapi asyncapi = config.asyncapi;
-            //updateNamespace(config, composite, asyncapi);
-        }
+        updateNamespace(configs, composite, new ArrayList<>(asyncapis.values()));
     }
 
     private void attachServerClientBinding(
