@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.9.78](https://github.com/aklivity/zilla/tree/0.9.78) (2024-04-16)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.77...0.9.78)
+
+**Merged pull requests:**
+
+- Ensure binding types are populated for `zilla dump` to dissect protocol-specific frames [\#928](https://github.com/aklivity/zilla/pull/928) ([attilakreiner](https://github.com/attilakreiner))
+
 ## [0.9.77](https://github.com/aklivity/zilla/tree/0.9.77) (2024-04-15)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.76...0.9.77)

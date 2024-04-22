@@ -253,6 +253,10 @@ public class EngineManager
         for (ExporterConfig exporter : namespace.telemetry.exporters)
         {
             exporter.id = resolver.resolve(exporter.name);
+            if (exporter.vault != null)
+            {
+                exporter.vaultId = resolver.resolve(exporter.vault);
+            }
         }
 
         for (BindingConfig binding : namespace.bindings)

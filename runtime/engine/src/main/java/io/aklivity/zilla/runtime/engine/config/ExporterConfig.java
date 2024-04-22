@@ -24,9 +24,11 @@ public class ExporterConfig
     public final String name;
     public final String qname;
     public final String type;
+    public final String vault;
     public final OptionsConfig options;
 
     public transient long id;
+    public transient long vaultId;
 
     public static ExporterConfigBuilder<ExporterConfig> builder()
     {
@@ -37,12 +39,14 @@ public class ExporterConfig
         String namespace,
         String name,
         String type,
+        String vault,
         OptionsConfig options)
     {
         this.namespace = requireNonNull(namespace);
         this.name = requireNonNull(name);
         this.qname = String.format("%s:%s", namespace, name);
         this.type = requireNonNull(type);
+        this.vault = vault;
         this.options = options;
     }
 }
