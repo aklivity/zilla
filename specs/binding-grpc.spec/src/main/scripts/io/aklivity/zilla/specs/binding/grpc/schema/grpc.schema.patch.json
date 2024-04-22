@@ -134,6 +134,10 @@
                             {
                                 "const": "client"
                             }
+                        },
+                        "not":
+                        {
+                            "required": ["options"]
                         }
                     }
                 ]

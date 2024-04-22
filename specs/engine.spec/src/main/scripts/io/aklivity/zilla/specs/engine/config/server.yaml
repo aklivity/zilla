@@ -44,7 +44,8 @@ bindings:
         type: test
         kind: server
         exit: app0
-        guarded:
+        routes:
+        - guarded:
             test0:
                 - read
         telemetry:

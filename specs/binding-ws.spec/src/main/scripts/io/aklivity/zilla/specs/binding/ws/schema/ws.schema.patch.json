@@ -142,6 +142,10 @@
                             {
                                 "const": "server"
                             }
+                        },
+                        "not":
+                        {
+                            "required": ["options"]
                         }
                     }
                 ]
