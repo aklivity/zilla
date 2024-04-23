@@ -421,7 +421,12 @@
                     "title": "Exit",
                     "type": "string"
                 },
-                "additionalProperties": false
+                "entry":
+                {
+                    "title": "Entry",
+                    "type": "string",
+                    "pattern": "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$"
+                }
             },
             "additionalProperties": false,
             "required":
@@ -437,12 +442,6 @@
                         "kind":
                         {
                             "const": "remote_server"
-                        },
-                        "entry":
-                        {
-                            "title": "Exit",
-                            "type": "string",
-                            "pattern": "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$"
                         }
                     },
                     "required":
@@ -459,7 +458,8 @@
                             {
                                 "const": "remote_server"
                             }
-                        }
+                        },
+                        "entry": false
                     }
                 }
             ],

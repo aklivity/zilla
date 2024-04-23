@@ -177,11 +177,8 @@
                             "kind":
                             {
                                 "const": "client"
-                            }
-                        },
-                        "not":
-                        {
-                            "required": ["options"]
+                            },
+                            "options": false
                         }
                     }
                 ]

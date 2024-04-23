@@ -141,11 +141,8 @@
                             "kind":
                             {
                                 "const": "server"
-                            }
-                        },
-                        "not":
-                        {
-                            "required": ["options"]
+                            },
+                            "options": false
                         }
                     }
                 ]

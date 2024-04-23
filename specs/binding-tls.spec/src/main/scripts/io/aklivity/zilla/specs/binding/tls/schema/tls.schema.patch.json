@@ -141,11 +141,8 @@
                             "kind":
                             {
                                 "const": "proxy"
-                            }
-                        },
-                        "not":
-                        {
-                            "required": ["options"]
+                            },
+                            "options": false
                         }
                     }
                 ]
