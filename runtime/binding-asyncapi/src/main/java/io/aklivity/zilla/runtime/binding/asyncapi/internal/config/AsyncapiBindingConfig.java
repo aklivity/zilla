@@ -223,6 +223,7 @@ public final class AsyncapiBindingConfig
                         (existingValue, newValue) -> existingValue,
                         Object2ObjectHashMap::new));
 
+        namespaceGenerator.init(binding);
         final NamespaceConfig composite = namespaceGenerator.generateProxy(binding, asyncapis, schemaIdsByApiId::get);
         composite.readURL = binding.readURL;
         attach.accept(composite);
@@ -236,6 +237,7 @@ public final class AsyncapiBindingConfig
         final Map<Integer, AsyncapiNamespaceConfig> namespaceConfigs = new HashMap<>();
         for (AsyncapiSchemaConfig config : configs)
         {
+            namespaceGenerator.init(binding);
             Asyncapi asyncapi = config.asyncapi;
             final List<AsyncapiServerView> servers =
                 namespaceGenerator.filterAsyncapiServers(asyncapi, options.asyncapis.stream()
@@ -245,12 +247,12 @@ public final class AsyncapiBindingConfig
 
             servers.stream().collect(Collectors.groupingBy(AsyncapiServerView::getPort)).forEach((k, v) ->
                 namespaceConfigs.computeIfAbsent(k, s -> new AsyncapiNamespaceConfig()).addServersForSpec(v, config, asyncapi));
-            servers.forEach(s ->
-                s.setAsyncapiProtocol(namespaceGenerator.resolveProtocol(s.protocol(), options, asyncapi, servers)));
         }
 
         for (AsyncapiNamespaceConfig namespaceConfig : namespaceConfigs.values())
         {
+            namespaceConfig.servers.forEach(s -> s.setAsyncapiProtocol(
+                namespaceGenerator.resolveProtocol(s.protocol(), options, namespaceConfig.asyncapis, namespaceConfig.servers)));
             final NamespaceConfig composite = namespaceGenerator.generate(binding, namespaceConfig);
             composite.readURL = binding.readURL;
             attach.accept(composite);
@@ -263,10 +265,11 @@ public final class AsyncapiBindingConfig
         NamespaceConfig composite,
         List<Asyncapi> asyncapis)
     {
-        //TODO: get first schemaId?
-        final int schemaId = configs.get(0).schemaId;
-        composites.put(schemaId, composite);
-        configs.forEach(c -> schemaIdsByApiId.put(c.apiLabel, schemaId));
+        configs.forEach(c ->
+        {
+            composites.put(c.schemaId, composite);
+            schemaIdsByApiId.put(c.apiLabel, c.schemaId);
+        });
         asyncapis.forEach(this::extractChannels);
         asyncapis.forEach(this::extractOperations);
     }

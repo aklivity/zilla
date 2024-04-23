@@ -73,6 +73,15 @@ public abstract class AsyncapiNamespaceGenerator
     protected String qvault;
     protected String vault;
 
+    public void init(
+        BindingConfig binding)
+    {
+        this.qname = binding.qname;
+        this.namespace = binding.namespace;
+        this.qvault = binding.qvault;
+        this.vault = binding.vault;
+    }
+
     public NamespaceConfig generate(
         BindingConfig binding,
         AsyncapiBindingConfig.AsyncapiNamespaceConfig namespaceConfig)
@@ -91,7 +100,7 @@ public abstract class AsyncapiNamespaceGenerator
     protected AsyncapiProtocol resolveProtocol(
         String protocolName,
         AsyncapiOptionsConfig options,
-        Asyncapi asyncapi,
+        List<Asyncapi> asyncapis,
         List<AsyncapiServerView> servers)
     {
         Pattern pattern = Pattern.compile("(http|mqtt|kafka)");
@@ -102,14 +111,14 @@ public abstract class AsyncapiNamespaceGenerator
             switch (matcher.group())
             {
             case "http":
-                protocol = new AsyncapiHttpProtocol(qname, asyncapi, options, protocolName);
+                protocol = new AsyncapiHttpProtocol(qname, asyncapis, options, protocolName);
                 break;
             case "mqtt":
-                protocol = new AsyncapiMqttProtocol(qname, asyncapi, options, protocolName, namespace);
+                protocol = new AsyncapiMqttProtocol(qname, asyncapis, options, protocolName, namespace);
                 break;
             case "kafka":
             case "kafka-secure":
-                protocol = new AyncapiKafkaProtocol(qname, asyncapi, servers, options, protocolName);
+                protocol = new AyncapiKafkaProtocol(qname, asyncapis, servers, options, protocolName);
                 break;
             }
         }

@@ -41,10 +41,6 @@ public class AsyncapiServerNamespaceGenerator extends AsyncapiNamespaceGenerator
         final List<MetricRefConfig> metricRefs = binding.telemetryRef != null ?
             binding.telemetryRef.metricRefs : emptyList();
 
-        this.qname = binding.qname;
-        this.qvault = binding.qvault;
-        this.namespace = binding.namespace;
-
         //TODO: keep it until we support different protocols on the same composite binding
         AsyncapiServerView serverView = servers.get(0);
         this.protocol = serverView.getAsyncapiProtocol();
@@ -60,10 +56,22 @@ public class AsyncapiServerNamespaceGenerator extends AsyncapiNamespaceGenerator
                     .type(protocol.scheme)
                     .inject(b -> this.injectMetrics(b, metricRefs, protocol.scheme))
                     .kind(SERVER)
-                    .inject(protocol::injectProtocolServerOptions)
-                    .inject(protocol::injectProtocolServerRoutes)
+                    .inject(b -> injectServerOptions(b, servers))
+                    .inject(b -> protocol.injectProtocolServerRoutes(b))
                     .build()
                 .build();
+    }
+
+    public <C> BindingConfigBuilder<C> injectServerOptions(
+        BindingConfigBuilder<C> binding,
+        List<AsyncapiServerView> servers)
+    {
+        for (AsyncapiServerView server : servers)
+        {
+            AsyncapiProtocol asyncapiProtocol = server.getAsyncapiProtocol();
+            asyncapiProtocol.injectProtocolServerOptions(binding);
+        }
+        return binding;
     }
 
     private <C> NamespaceConfigBuilder<C> injectTcpServer(

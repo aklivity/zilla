@@ -37,11 +37,6 @@ public class AsyncapiClientNamespaceGenerator extends AsyncapiNamespaceGenerator
         final List<MetricRefConfig> metricRefs = binding.telemetryRef != null ?
             binding.telemetryRef.metricRefs : emptyList();
 
-        this.qname = binding.qname;
-        this.namespace = binding.namespace;
-        this.qvault = binding.qvault;
-        this.vault = binding.vault;
-
         //TODO: keep it until we support different protocols on the same composite binding
         AsyncapiServerView serverView = servers.get(0);
         this.protocol = serverView.getAsyncapiProtocol();

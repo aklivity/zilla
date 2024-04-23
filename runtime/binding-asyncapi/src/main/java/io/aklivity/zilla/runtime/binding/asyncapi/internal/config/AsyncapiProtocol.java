@@ -16,10 +16,10 @@ package io.aklivity.zilla.runtime.binding.asyncapi.internal.config;
 
 import static java.util.Objects.requireNonNull;
 
-import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -28,7 +28,6 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiMessage;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiMessageView;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiSchemaView;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiServerView;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.MetricRefConfig;
@@ -37,12 +36,13 @@ import io.aklivity.zilla.runtime.engine.config.TelemetryRefConfigBuilder;
 
 public abstract class AsyncapiProtocol
 {
-    protected static final String INLINE_CATALOG_NAME = "catalog0";
+    protected static final AtomicInteger CATALOG_COUNTER = new AtomicInteger(0);
+    protected static final String INLINE_CATALOG_NAME_PREFIX = "catalog";
     protected static final Pattern JSON_CONTENT_TYPE = Pattern.compile("^application/(?:.+\\+)?json$");
     protected static final String VERSION_LATEST = "latest";
 
     protected final Matcher jsonContentType = JSON_CONTENT_TYPE.matcher("");
-    protected Asyncapi asyncApi;
+    protected final List<Asyncapi> asyncapis;
     protected String qname;
     protected Map<String, String> securitySchemes;
     protected boolean isJwtEnabled;
@@ -51,12 +51,12 @@ public abstract class AsyncapiProtocol
 
     protected AsyncapiProtocol(
         String qname,
-        Asyncapi asyncApi,
+        List<Asyncapi> asyncapis,
         String protocol,
         String scheme)
     {
         this.qname = qname;
-        this.asyncApi = asyncApi;
+        this.asyncapis = asyncapis;
         this.protocol = protocol;
         this.scheme = scheme;
         this.securitySchemes = resolveSecuritySchemes();
@@ -84,24 +84,25 @@ public abstract class AsyncapiProtocol
 
     protected <C> CatalogedConfigBuilder<C> injectJsonSchemas(
         CatalogedConfigBuilder<C> cataloged,
+        Asyncapi asyncapi,
         Map<String, AsyncapiMessage> messages,
         String contentType)
     {
         for (Map.Entry<String, AsyncapiMessage> messageEntry : messages.entrySet())
         {
             AsyncapiMessageView message =
-                AsyncapiMessageView.of(asyncApi.components.messages, messageEntry.getValue());
+                AsyncapiMessageView.of(asyncapi.components.messages, messageEntry.getValue());
             if (message.payload() != null)
             {
-                String schema = AsyncapiSchemaView.of(asyncApi.components.schemas, message.payload()).refKey();
+                String schema = AsyncapiSchemaView.of(asyncapi.components.schemas, message.payload()).refKey();
                 if (message.contentType() != null && message.contentType().equals(contentType) ||
-                    jsonContentType.reset(asyncApi.defaultContentType).matches())
+                    jsonContentType.reset(asyncapi.defaultContentType).matches())
                 {
                     cataloged
                         .schema()
-                        .version(VERSION_LATEST)
-                        .subject(schema)
-                        .build()
+                            .version(VERSION_LATEST)
+                            .subject(schema)
+                            .build()
                         .build();
                 }
                 else
@@ -113,54 +114,41 @@ public abstract class AsyncapiProtocol
         return cataloged;
     }
 
-    protected boolean hasJsonContentType()
+    protected boolean hasJsonContentType(
+        Asyncapi asyncapi)
     {
         String contentType = null;
-        if (asyncApi.components != null && asyncApi.components.messages != null &&
-            !asyncApi.components.messages.isEmpty())
+        if (asyncapi.components != null && asyncapi.components.messages != null &&
+            !asyncapi.components.messages.isEmpty())
         {
-            AsyncapiMessage firstAsyncapiMessage = asyncApi.components.messages.entrySet().stream()
+            AsyncapiMessage firstAsyncapiMessage = asyncapi.components.messages.entrySet().stream()
                 .findFirst().get().getValue();
-            contentType = AsyncapiMessageView.of(asyncApi.components.messages, firstAsyncapiMessage).contentType();
+            contentType = AsyncapiMessageView.of(asyncapi.components.messages, firstAsyncapiMessage).contentType();
         }
-        return contentType != null && jsonContentType.reset(contentType).matches() || asyncApi.defaultContentType != null &&
-            jsonContentType.reset(asyncApi.defaultContentType).matches();
+        return contentType != null && jsonContentType.reset(contentType).matches() || asyncapi.defaultContentType != null &&
+            jsonContentType.reset(asyncapi.defaultContentType).matches();
     }
 
     protected abstract boolean isSecure();
 
     protected Map<String, String> resolveSecuritySchemes()
     {
-        requireNonNull(asyncApi);
+        requireNonNull(asyncapis);
         Map<String, String> result = new HashMap<>();
-        if (asyncApi.components != null && asyncApi.components.securitySchemes != null)
+        for (Asyncapi asyncapi : asyncapis)
         {
-            for (String securitySchemeName : asyncApi.components.securitySchemes.keySet())
+            if (asyncapi.components != null && asyncapi.components.securitySchemes != null)
             {
-                String guardType = asyncApi.components.securitySchemes.get(securitySchemeName).bearerFormat;
-                //TODO: change when jwt support added for mqtt in asyncapi
-                //if ("jwt".equals(guardType))
-                //{
-                //    result.put(securitySchemeName, guardType);
-                //}
-                result.put(securitySchemeName, guardType);
-            }
-        }
-        return result;
-    }
-
-    protected URI findFirstServerUrlWithScheme(
-        String scheme)
-    {
-        requireNonNull(scheme);
-        URI result = null;
-        for (String key : asyncApi.servers.keySet())
-        {
-            AsyncapiServerView server = AsyncapiServerView.of(asyncApi.servers.get(key));
-            if (scheme.equals(server.url().getScheme()))
-            {
-                result = server.url();
-                break;
+                for (String securitySchemeName : asyncapi.components.securitySchemes.keySet())
+                {
+                    String guardType = asyncapi.components.securitySchemes.get(securitySchemeName).bearerFormat;
+                    //TODO: change when jwt support added for mqtt in asyncapi
+                    //if ("jwt".equals(guardType))
+                    //{
+                    //    result.put(securitySchemeName, guardType);
+                    //}
+                    result.put(securitySchemeName, guardType);
+                }
             }
         }
         return result;

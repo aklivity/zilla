@@ -1,0 +1,24 @@
+---
+name: example
+catalogs:
+  catalog0:
+    type: filesystem
+    options:
+      subjects:
+        petstore:
+          path: http/asyncapi.yaml
+bindings:
+  asyncapi_server:
+    type: asyncapi
+    kind: server
+    options:
+      specs:
+        my-asyncapi-spec:
+          catalog:
+            catalog0:
+              subject: petstore
+              version: latest
+    exit: north_echo_server
+  north_echo_server:
+    type: echo
+    kind: server
