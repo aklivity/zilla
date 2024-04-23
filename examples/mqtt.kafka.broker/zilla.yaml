@@ -86,8 +86,8 @@ bindings:
         sessions: mqtt-sessions
         messages: mqtt-messages
         retained: mqtt-retained
-    clients:
-      - place/{identity}/#
+      clients:
+        - place/{identity}/#
     routes:
       - when:
           - publish:

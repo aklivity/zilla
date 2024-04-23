@@ -103,9 +103,6 @@ bindings:
   west_grpc_client:
     type: grpc
     kind: client
-    options:
-      services:
-        - proto/echo.proto
     routes:
       - exit: west_http_client
         when:

@@ -105,8 +105,6 @@ bindings:
     type: kafka
     kind: cache_client
     options:
-      bootstrap:
-        - items-snapshots
       topics:
         - name: items-snapshots
           value:
