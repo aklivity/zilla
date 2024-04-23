@@ -56,4 +56,15 @@ public class OpenapiAsyncapiIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy-async.yaml")
+    @Specification({
+        "${openapi}/async.verify.customer/client",
+        "${asyncapi}/async.verify.customer/server"
+    })
+    public void shouldVerifyCustomerAsync() throws Exception
+    {
+        k3po.finish();
+    }
 }

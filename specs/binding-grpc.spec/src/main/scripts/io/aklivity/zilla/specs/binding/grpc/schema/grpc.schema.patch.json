@@ -44,7 +44,8 @@
                                 {
                                     "title": "Service",
                                     "type": "string"
-                                }
+                                },
+                                "deprecated": true
                             }
                         },
                         "additionalProperties": false

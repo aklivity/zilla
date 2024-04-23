@@ -31,6 +31,7 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 public class ExporterAdapter implements JsonbAdapter<ExporterConfig[], JsonObject>
 {
     private static final String TYPE_NAME = "type";
+    private static final String VAULT_NAME = "vault";
     private static final String OPTIONS_NAME = "options";
 
     private final OptionsConfigAdapter options;
@@ -60,6 +61,10 @@ public class ExporterAdapter implements JsonbAdapter<ExporterConfig[], JsonObjec
 
             JsonObjectBuilder item = Json.createObjectBuilder();
             item.add(TYPE_NAME, exporter.type);
+            if (exporter.vault != null)
+            {
+                item.add(VAULT_NAME, exporter.vault);
+            }
             if (exporter.options != null)
             {
                 item.add(OPTIONS_NAME, options.adaptToJson(exporter.options));
@@ -82,11 +87,17 @@ public class ExporterAdapter implements JsonbAdapter<ExporterConfig[], JsonObjec
 
             String type = item.getString(TYPE_NAME);
             options.adaptType(type);
+            String vault = null;
+            if (item.containsKey(VAULT_NAME))
+            {
+                vault = item.getString(VAULT_NAME);
+            }
 
             exporters.add(ExporterConfig.builder()
                 .namespace(namespace)
                 .name(name)
                 .type(type)
+                .vault(vault)
                 .options(options.adaptFromJson(item.getJsonObject(OPTIONS_NAME)))
                 .build());
         }

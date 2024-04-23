@@ -153,6 +153,7 @@ public class TelemetryConfigsAdapterTest
                         "\"test0\": " +
                         "{" +
                             "\"type\": \"test\"," +
+                            "\"vault\": \"vault0\"," +
                             "\"options\": {" +
                                 "\"mode\": \"test42\"" +
                             "}" +
@@ -173,6 +174,7 @@ public class TelemetryConfigsAdapterTest
         assertThat(telemetry.metrics.get(1).name, equalTo("test.histogram"));
         assertThat(telemetry.exporters.get(0).name, equalTo("test0"));
         assertThat(telemetry.exporters.get(0).type, equalTo("test"));
+        assertThat(telemetry.exporters.get(0).vault, equalTo("vault0"));
         assertThat(telemetry.exporters.get(0).options, instanceOf(TestExporterOptionsConfig.class));
         assertThat(((TestExporterOptionsConfig)telemetry.exporters.get(0).options).mode, equalTo("test42"));
     }
@@ -198,6 +200,7 @@ public class TelemetryConfigsAdapterTest
                     .namespace("test")
                     .name("test0")
                     .type("test")
+                    .vault("vault0")
                     .options(TestExporterOptionsConfig::builder)
                         .inject(identity())
                         .mode("test42")
@@ -213,6 +216,6 @@ public class TelemetryConfigsAdapterTest
         assertThat(text, equalTo(
                 "{\"attributes\":{\"test.attribute\":\"example\"}," +
                 "\"metrics\":[\"test.counter\"]," +
-                "\"exporters\":{\"test0\":{\"type\":\"test\",\"options\":{\"mode\":\"test42\"}}}}"));
+                "\"exporters\":{\"test0\":{\"type\":\"test\",\"vault\":\"vault0\",\"options\":{\"mode\":\"test42\"}}}}"));
     }
 }
