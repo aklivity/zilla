@@ -93,12 +93,14 @@ public class MqttKafkaPublishMetadata
         public final IntArrayList packetIds;
 
         public long sequence;
+        public String topic;
 
         KafkaOffsetMetadata(
+            String topic,
             long producerId,
             short producerEpoch)
         {
-            this(producerId, producerEpoch, new IntArrayList());
+            this(topic, producerId, producerEpoch, new IntArrayList());
         }
 
         KafkaOffsetMetadata(
@@ -107,6 +109,19 @@ public class MqttKafkaPublishMetadata
             IntArrayList packetIds)
         {
             this.sequence = 1;
+            this.producerId = producerId;
+            this.producerEpoch = producerEpoch;
+            this.packetIds = packetIds;
+        }
+
+        KafkaOffsetMetadata(
+            String topic,
+            long producerId,
+            short producerEpoch,
+            IntArrayList packetIds)
+        {
+            this.sequence = 1;
+            this.topic = topic;
             this.producerId = producerId;
             this.producerEpoch = producerEpoch;
             this.packetIds = packetIds;
