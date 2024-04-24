@@ -46,7 +46,7 @@ public class AsyncapiServerNamespaceGenerator extends AsyncapiNamespaceGenerator
         this.protocol = serverView.getAsyncapiProtocol();
 
         return NamespaceConfig.builder()
-                .name(String.format("%s/%s", qname, protocol.scheme))
+                .name(String.format("%s/%s-%d", qname, protocol.scheme))
                 .inject(n -> this.injectNamespaceMetric(n, !metricRefs.isEmpty()))
                 .inject(n -> this.injectCatalog(n, namespaceConfig.asyncapis))
                 .inject(n -> injectTcpServer(n, servers, options, metricRefs))

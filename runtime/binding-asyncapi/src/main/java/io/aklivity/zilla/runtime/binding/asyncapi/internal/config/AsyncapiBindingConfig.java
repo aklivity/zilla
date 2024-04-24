@@ -246,7 +246,7 @@ public final class AsyncapiBindingConfig
                     .collect(Collectors.toList()));
 
             servers.stream().collect(Collectors.groupingBy(AsyncapiServerView::getPort)).forEach((k, v) ->
-                namespaceConfigs.computeIfAbsent(k, s -> new AsyncapiNamespaceConfig()).addServersForSpec(v, config, asyncapi));
+                namespaceConfigs.computeIfAbsent(k, s -> new AsyncapiNamespaceConfig()).addSpecForNamespace(v, config, asyncapi));
         }
 
         for (AsyncapiNamespaceConfig namespaceConfig : namespaceConfigs.values())
@@ -433,7 +433,7 @@ public final class AsyncapiBindingConfig
             configs = new ArrayList<>();
         }
 
-        private void addServersForSpec(
+        private void addSpecForNamespace(
             List<AsyncapiServerView> servers,
             AsyncapiSchemaConfig config,
             Asyncapi asyncapi)
