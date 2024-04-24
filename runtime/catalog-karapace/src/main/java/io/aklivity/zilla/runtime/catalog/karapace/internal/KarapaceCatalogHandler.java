@@ -20,6 +20,9 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.ByteOrder;
 import java.text.MessageFormat;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.zip.CRC32C;
 
 import org.agrona.BitUtil;
@@ -54,11 +57,13 @@ public class KarapaceCatalogHandler implements CatalogHandler
     private final long maxAgeMillis;
     private final KarapaceEventContext event;
     private final long catalogId;
+    private final ConcurrentHashMap<Integer, CompletableFuture<String>> cache;
 
     public KarapaceCatalogHandler(
         KarapaceOptionsConfig config,
         EngineContext context,
-        long catalogId)
+        long catalogId,
+        ConcurrentHashMap<Integer, CompletableFuture<String>> cache)
     {
         this.baseUrl = config.url;
         this.client = HttpClient.newHttpClient();
@@ -69,24 +74,41 @@ public class KarapaceCatalogHandler implements CatalogHandler
         this.maxAgeMillis = config.maxAge.toMillis();
         this.event = new KarapaceEventContext(context);
         this.catalogId = catalogId;
+        this.cache = cache;
     }
 
     @Override
     public String resolve(
         int schemaId)
     {
-        String schema;
+        String schema = null;
         if (schemas.containsKey(schemaId))
         {
             schema = schemas.get(schemaId);
         }
         else
         {
-            String response = sendHttpRequest(MessageFormat.format(SCHEMA_PATH, schemaId));
-            schema = response != null ? request.resolveSchemaResponse(response) : null;
-            if (schema != null)
+            CompletableFuture<String> future = cache.get(schemaId);
+            if (future == null)
             {
-                schemas.put(schemaId, schema);
+                future = CompletableFuture.supplyAsync(() ->
+                {
+                    String response = sendHttpRequest(MessageFormat.format(SCHEMA_PATH, schemaId));
+                    return response != null ? request.resolveSchemaResponse(response) : null;
+                });
+            }
+            try
+            {
+                schema = future.get();
+                if (schema != null)
+                {
+                    cache.put(schemaId, future);
+                    schemas.put(schemaId, schema);
+                }
+            }
+            catch (ExecutionException | InterruptedException e)
+            {
+                // TODO: log an event
             }
         }
         return schema;
@@ -112,6 +134,10 @@ public class KarapaceCatalogHandler implements CatalogHandler
             if (schemaId != NO_SCHEMA_ID)
             {
                 schemaIds.put(checkSum, new CachedSchemaId(System.currentTimeMillis(), schemaId));
+            }
+            else if (schemaIds.containsKey(checkSum))
+            {
+                schemaId = schemaIds.get(checkSum).id;
             }
         }
         return schemaId;
