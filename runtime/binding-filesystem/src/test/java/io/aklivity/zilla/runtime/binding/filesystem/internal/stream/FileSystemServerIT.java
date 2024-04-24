@@ -75,6 +75,16 @@ public class FileSystemServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${app}/read.file.payload.empty/client",
+    })
+    public void shouldReadFilePayloadEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${app}/read.file.payload/client",
     })
     public void shouldReadFilePayloadOnly() throws Exception
