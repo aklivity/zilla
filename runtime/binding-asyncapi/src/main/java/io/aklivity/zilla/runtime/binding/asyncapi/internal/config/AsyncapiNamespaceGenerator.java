@@ -190,61 +190,66 @@ public abstract class AsyncapiNamespaceGenerator
         NamespaceConfigBuilder<C> namespace,
         List<Asyncapi> asyncapis)
     {
-        for (Asyncapi asyncapi : asyncapis)
+        final boolean injectCatalog = asyncapis.stream()
+            .anyMatch(a -> a.components != null && a.components.schemas != null && !a.components.schemas.isEmpty());
+        if (injectCatalog)
         {
-            if (asyncapi.components != null && asyncapi.components.schemas != null && !asyncapi.components.schemas.isEmpty())
-            {
-                namespace
-                    .catalog()
-                        .name(INLINE_CATALOG_NAME)
-                        .type(INLINE_CATALOG_TYPE)
-                        .options(InlineOptionsConfig::builder)
-                            .subjects()
-                                .inject(s -> injectSubjects(s, asyncapi))
-                                .build()
+            namespace
+                .catalog()
+                    .name(INLINE_CATALOG_NAME)
+                    .type(INLINE_CATALOG_TYPE)
+                    .options(InlineOptionsConfig::builder)
+                        .subjects()
+                            .inject(s -> injectSubjects(s, asyncapis))
                             .build()
-                        .build();
-            }
+                        .build()
+                    .build();
         }
         return namespace;
     }
 
     protected <C> InlineSchemaConfigBuilder<C> injectSubjects(
         InlineSchemaConfigBuilder<C> subjects,
-        Asyncapi asyncapi)
+        List<Asyncapi> asyncapis)
     {
-        try (Jsonb jsonb = JsonbBuilder.create())
+        for (Asyncapi asyncapi : asyncapis)
         {
-            YAMLMapper yaml = YAMLMapper.builder()
-                .disable(WRITE_DOC_START_MARKER)
-                .enable(MINIMIZE_QUOTES)
-                .build();
-            for (Map.Entry<String, AsyncapiSchema> entry : asyncapi.components.schemas.entrySet())
+            if (asyncapi.components != null && asyncapi.components.schemas != null && !asyncapi.components.schemas.isEmpty())
             {
-                AsyncapiSchemaView schema = AsyncapiSchemaView.of(asyncapi.components.schemas, entry.getValue());
-
-                subjects
-                    .subject(entry.getKey())
-                    .version(VERSION_LATEST)
-                    .schema(writeSchemaYaml(jsonb, yaml, schema))
-                    .build();
-            }
-            if (asyncapi.components.messageTraits != null)
-            {
-                for (Map.Entry<String, AsyncapiTrait> entry : asyncapi.components.messageTraits.entrySet())
+                try (Jsonb jsonb = JsonbBuilder.create())
                 {
-                    entry.getValue().headers.properties.forEach((k, v) ->
+                    YAMLMapper yaml = YAMLMapper.builder()
+                        .disable(WRITE_DOC_START_MARKER)
+                        .enable(MINIMIZE_QUOTES)
+                        .build();
+                    for (Map.Entry<String, AsyncapiSchema> entry : asyncapi.components.schemas.entrySet())
+                    {
+                        AsyncapiSchemaView schema = AsyncapiSchemaView.of(asyncapi.components.schemas, entry.getValue());
+
                         subjects
-                            .subject(k)
+                            .subject(entry.getKey())
                             .version(VERSION_LATEST)
-                            .schema(writeSchemaYaml(jsonb, yaml, v))
-                            .build());
+                            .schema(writeSchemaYaml(jsonb, yaml, schema))
+                            .build();
+                    }
+                    if (asyncapi.components.messageTraits != null)
+                    {
+                        for (Map.Entry<String, AsyncapiTrait> entry : asyncapi.components.messageTraits.entrySet())
+                        {
+                            entry.getValue().headers.properties.forEach((k, v) ->
+                                subjects
+                                    .subject(k)
+                                    .version(VERSION_LATEST)
+                                    .schema(writeSchemaYaml(jsonb, yaml, v))
+                                    .build());
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    rethrowUnchecked(ex);
                 }
             }
-        }
-        catch (Exception ex)
-        {
-            rethrowUnchecked(ex);
         }
         return subjects;
     }

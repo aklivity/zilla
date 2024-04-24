@@ -56,22 +56,10 @@ public class AsyncapiServerNamespaceGenerator extends AsyncapiNamespaceGenerator
                     .type(protocol.scheme)
                     .inject(b -> this.injectMetrics(b, metricRefs, protocol.scheme))
                     .kind(SERVER)
-                    .inject(b -> injectServerOptions(b, servers))
+                    .inject(b -> protocol.injectProtocolServerOptions(b))
                     .inject(b -> protocol.injectProtocolServerRoutes(b))
                     .build()
                 .build();
-    }
-
-    public <C> BindingConfigBuilder<C> injectServerOptions(
-        BindingConfigBuilder<C> binding,
-        List<AsyncapiServerView> servers)
-    {
-        for (AsyncapiServerView server : servers)
-        {
-            AsyncapiProtocol asyncapiProtocol = server.getAsyncapiProtocol();
-            asyncapiProtocol.injectProtocolServerOptions(binding);
-        }
-        return binding;
     }
 
     private <C> NamespaceConfigBuilder<C> injectTcpServer(

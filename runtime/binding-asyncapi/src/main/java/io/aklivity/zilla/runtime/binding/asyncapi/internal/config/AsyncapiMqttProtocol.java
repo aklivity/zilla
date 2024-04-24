@@ -97,7 +97,7 @@ public class AsyncapiMqttProtocol extends AsyncapiProtocol
                         .name(topic)
                         .content(JsonModelConfig::builder)
                             .catalog()
-                                .name(INLINE_CATALOG_NAME_PREFIX)
+                                .name(INLINE_CATALOG_NAME)
                                 .inject(cataloged -> injectJsonSchemas(cataloged, asyncapi, messages, APPLICATION_JSON))
                                 .build()
                             .build()
@@ -129,7 +129,7 @@ public class AsyncapiMqttProtocol extends AsyncapiProtocol
                     {
                         topic
                             .userProperty()
-                            .inject(u -> injectUserProperty(u, header.getKey()))
+                            .inject(u -> injectUserProperty(u, INLINE_CATALOG_NAME, header.getKey()))
                             .build();
                     }
                 }
@@ -141,13 +141,14 @@ public class AsyncapiMqttProtocol extends AsyncapiProtocol
 
     private <C> MqttUserPropertyConfigBuilder<C> injectUserProperty(
         MqttUserPropertyConfigBuilder<C> userProperty,
+        String catalogName,
         String subject)
     {
         userProperty
             .name(subject)
             .value(JsonModelConfig::builder)
             .catalog()
-                .name(INLINE_CATALOG_NAME_PREFIX)
+                .name(catalogName)
                 .schema()
                     .version(VERSION_LATEST)
                     .subject(subject)

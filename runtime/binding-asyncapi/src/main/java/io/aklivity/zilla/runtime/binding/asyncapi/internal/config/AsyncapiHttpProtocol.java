@@ -184,10 +184,9 @@ public class AsyncapiHttpProtocol extends AsyncapiProtocol
             {
                 request.
                     content(JsonModelConfig::builder)
-                       .catalog()
-                            .name(String.format(%sINLINE_CATALOG_NAME_PREFIX)
-                            .inject(cataloged -> injectJsonSchemas(cataloged, asyncapi, messages, APPLICATION_JSON))
-                            .build()
+                   .catalog()
+                        .name(INLINE_CATALOG_NAME)
+                        .inject(cataloged -> injectJsonSchemas(cataloged, asyncapi, messages, APPLICATION_JSON))
                         .build()
                     .build();
             }

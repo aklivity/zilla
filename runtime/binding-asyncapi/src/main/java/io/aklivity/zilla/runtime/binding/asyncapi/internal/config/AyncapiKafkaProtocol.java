@@ -194,7 +194,7 @@ public class AyncapiKafkaProtocol extends AsyncapiProtocol
                 topic
                     .value(JsonModelConfig::builder)
                         .catalog()
-                        .name(INLINE_CATALOG_NAME_PREFIX)
+                        .name(INLINE_CATALOG_NAME)
                         .inject(catalog -> injectSchemas(catalog, asyncapi, messages))
                         .build()
                     .build();

@@ -19,7 +19,6 @@ import static java.util.Objects.requireNonNull;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -36,8 +35,7 @@ import io.aklivity.zilla.runtime.engine.config.TelemetryRefConfigBuilder;
 
 public abstract class AsyncapiProtocol
 {
-    protected static final AtomicInteger CATALOG_COUNTER = new AtomicInteger(0);
-    protected static final String INLINE_CATALOG_NAME_PREFIX = "catalog";
+    protected static final String INLINE_CATALOG_NAME = "catalog0";
     protected static final Pattern JSON_CONTENT_TYPE = Pattern.compile("^application/(?:.+\\+)?json$");
     protected static final String VERSION_LATEST = "latest";
 
@@ -102,8 +100,7 @@ public abstract class AsyncapiProtocol
                         .schema()
                             .version(VERSION_LATEST)
                             .subject(schema)
-                            .build()
-                        .build();
+                            .build();
                 }
                 else
                 {
