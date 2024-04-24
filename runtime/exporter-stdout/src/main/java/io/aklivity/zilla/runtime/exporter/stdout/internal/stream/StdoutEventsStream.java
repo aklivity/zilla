@@ -24,6 +24,7 @@ import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.engine.binding.function.MessageReader;
 import io.aklivity.zilla.runtime.engine.event.EventFormatter;
+import io.aklivity.zilla.runtime.exporter.stdout.internal.StdoutExporter;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.StdoutExporterContext;
 import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.EventFW;
 
@@ -33,6 +34,7 @@ public class StdoutEventsStream
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd/MMM/yyyy:HH:mm:ss Z");
 
     private final StdoutExporterContext context;
+    private final int stdoutExporterTypeId;
     private final MessageReader readEvent;
     private final EventFormatter formatter;
     private final EventFW eventRO = new EventFW();
@@ -43,6 +45,7 @@ public class StdoutEventsStream
         PrintStream out)
     {
         this.context = context;
+        this.stdoutExporterTypeId = context.supplyTypeId(StdoutExporter.NAME);
         this.readEvent = context.supplyEventReader();
         this.formatter = context.supplyEventFormatter();
         this.out = out;
@@ -50,7 +53,7 @@ public class StdoutEventsStream
 
     public int process()
     {
-        return readEvent.read(this::handleEvent, 1);
+        return readEvent.read(this::handleEvent, stdoutExporterTypeId, 1);
     }
 
     private void handleEvent(

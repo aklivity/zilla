@@ -44,7 +44,7 @@ public class EventsLayoutTest
         msgTypeId = 0;
 
         // WHEN
-        int count = layout.readEvent(this::readEvent, 1);
+        int count = layout.readEvent(this::readEvent, 0, 1);
 
         // THEN
         assertThat(count, equalTo(1));

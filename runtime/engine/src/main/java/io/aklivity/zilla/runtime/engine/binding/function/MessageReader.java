@@ -19,5 +19,6 @@ public interface MessageReader
 {
     int read(
         MessageConsumer handler,
+        int readerId,
         int messageCountLimit);
 }

@@ -530,6 +530,7 @@ public final class Engine implements Collector, AutoCloseable
         @Override
         public int read(
             MessageConsumer handler,
+            int readerId,
             int messageCountLimit)
         {
             int messagesRead = 0;
@@ -550,13 +551,13 @@ public final class Engine implements Collector, AutoCloseable
                             minTimeStamp = eventRO.timestamp();
                             minWorkerIndex = workerIndex;
                         }
-                    });
+                    }, readerId);
                     eventCount += eventPeeked;
                 }
                 empty = eventCount == 0;
                 if (!empty)
                 {
-                    messagesRead += workers.get(minWorkerIndex).readEvent(handler, 1);
+                    messagesRead += workers.get(minWorkerIndex).readEvent(handler, readerId, 1);
                 }
             }
             return messagesRead;
