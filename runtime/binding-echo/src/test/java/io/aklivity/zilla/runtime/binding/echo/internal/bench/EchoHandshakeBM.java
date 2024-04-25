@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.echo.internal;
+package io.aklivity.zilla.runtime.binding.echo.internal.bench;
 
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -43,7 +43,8 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 import io.aklivity.zilla.runtime.binding.echo.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.echo.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.Configuration;
-import io.aklivity.zilla.runtime.engine.EngineConfiguration;
+import io.aklivity.zilla.runtime.engine.binding.BindingContext;
+import io.aklivity.zilla.runtime.engine.binding.BindingFactory;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
@@ -64,17 +65,14 @@ public class EchoHandshakeBM
     private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[BUFFER_SIZE]);
 
     private BindingHandler handler;
-    private BindingConfig echo;
-    private EchoBindingContext context;
+    private Runnable detacher;
 
     @Setup(Level.Trial)
     public void init() throws IOException
     {
-        final EngineConfiguration config = new EngineConfiguration(new Configuration());
-        final EchoBindingFactorySpi factorySpi = new EchoBindingFactorySpi();
-        final EchoWorker worker = new EchoWorker();
-        final EchoBinding binding = factorySpi.create(config);
-        context = binding.supply(worker);
+        BindingFactory bindings = BindingFactory.instantiate();
+        BindingContext context = bindings.create("echo", new Configuration())
+                .supply(new EchoWorker());
 
         NamespaceConfig namespace = NamespaceConfig.builder()
             .name("echo")
@@ -84,15 +82,20 @@ public class EchoHandshakeBM
                 .kind(SERVER)
                 .build()
             .build();
-        echo = namespace.bindings.get(0);
 
-        this.handler = context.attach(echo);
+        BindingConfig binding = namespace.bindings.stream()
+                .filter(b -> "echo_server0".equals(b.name))
+                .findFirst()
+                .get();
+
+        this.handler = context.attach(binding);
+        this.detacher = () -> context.detach(binding);
     }
 
     @TearDown(Level.Trial)
     public void destroy()
     {
-        context.detach(echo);
+        detacher.run();
     }
 
     @Setup(Level.Iteration)

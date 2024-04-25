@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.echo.internal;
+package io.aklivity.zilla.runtime.binding.echo.internal.bench;
 
 import java.net.InetAddress;
 import java.net.URL;
