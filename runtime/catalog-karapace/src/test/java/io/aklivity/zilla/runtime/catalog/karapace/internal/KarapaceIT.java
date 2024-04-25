@@ -23,7 +23,6 @@ import static org.junit.rules.RuleChain.outerRule;
 import static org.mockito.Mockito.mock;
 
 import java.time.Duration;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -73,7 +72,7 @@ public class KarapaceIT
             "{\"name\":\"status\",\"type\":\"string\"}]," +
             "\"name\":\"Event\",\"namespace\":\"io.aklivity.example\",\"type\":\"record\"}";
 
-        KarapaceCatalogHandler catalog = new KarapaceCatalogHandler(config, context, 0L, new ConcurrentHashMap<>());
+        KarapaceCatalogHandler catalog = new KarapaceCatalogHandler(config, context, 0L);
 
         String schema = catalog.resolve(9);
 
@@ -92,7 +91,7 @@ public class KarapaceIT
                 "{\"name\":\"status\",\"type\":\"string\"}]," +
                 "\"name\":\"Event\",\"namespace\":\"io.aklivity.example\",\"type\":\"record\"}";
 
-        KarapaceCatalogHandler catalog = new KarapaceCatalogHandler(config, context, 0L, new ConcurrentHashMap<>());
+        KarapaceCatalogHandler catalog = new KarapaceCatalogHandler(config, context, 0L);
 
         int schemaId = catalog.resolve("items-snapshots-value", "latest");
 
@@ -114,7 +113,7 @@ public class KarapaceIT
                 "{\"name\":\"status\",\"type\":\"string\"}]," +
                 "\"name\":\"Event\",\"namespace\":\"io.aklivity.example\",\"type\":\"record\"}";
 
-        KarapaceCatalogHandler catalog = new KarapaceCatalogHandler(config, context, 0L, new ConcurrentHashMap<>());
+        KarapaceCatalogHandler catalog = new KarapaceCatalogHandler(config, context, 0L);
 
         catalog.resolve(9);
 
@@ -135,7 +134,7 @@ public class KarapaceIT
                 "{\"name\":\"status\",\"type\":\"string\"}]," +
                 "\"name\":\"Event\",\"namespace\":\"io.aklivity.example\",\"type\":\"record\"}";
 
-        KarapaceCatalogHandler catalog = new KarapaceCatalogHandler(config, context, 0L, new ConcurrentHashMap<>());
+        KarapaceCatalogHandler catalog = new KarapaceCatalogHandler(config, context, 0L);
 
         catalog.resolve(catalog.resolve("items-snapshots-value", "latest"));
 
@@ -153,7 +152,7 @@ public class KarapaceIT
     @Test
     public void shouldVerifyMaxPadding()
     {
-        KarapaceCatalogHandler catalog = new KarapaceCatalogHandler(config, context, 0L, new ConcurrentHashMap<>());
+        KarapaceCatalogHandler catalog = new KarapaceCatalogHandler(config, context, 0L);
 
         assertEquals(5, catalog.encodePadding());
     }
@@ -161,7 +160,7 @@ public class KarapaceIT
     @Test
     public void shouldVerifyEncodedData()
     {
-        KarapaceCatalogHandler catalog = new KarapaceCatalogHandler(config, context, 0L, new ConcurrentHashMap<>());
+        KarapaceCatalogHandler catalog = new KarapaceCatalogHandler(config, context, 0L);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -177,7 +176,7 @@ public class KarapaceIT
     public void shouldResolveSchemaIdAndProcessData()
     {
 
-        KarapaceCatalogHandler catalog = new KarapaceCatalogHandler(config, context, 0L, new ConcurrentHashMap<>());
+        KarapaceCatalogHandler catalog = new KarapaceCatalogHandler(config, context, 0L);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -193,7 +192,7 @@ public class KarapaceIT
     @Test
     public void shouldResolveSchemaIdFromData()
     {
-        KarapaceCatalogHandler catalog = new KarapaceCatalogHandler(config, context, 0L, new ConcurrentHashMap<>());
+        KarapaceCatalogHandler catalog = new KarapaceCatalogHandler(config, context, 0L);
 
         DirectBuffer data = new UnsafeBuffer();
 
