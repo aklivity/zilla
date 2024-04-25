@@ -43,8 +43,9 @@ public class AsyncapiClientNamespaceGenerator extends AsyncapiNamespaceGenerator
         int[] compositeSecurePorts = resolvePorts(servers, true);
         this.isTlsEnabled =  compositeSecurePorts.length > 0;
 
+        final String namespace = String.join("+", namespaceConfig.asyncapiLabels);
         return NamespaceConfig.builder()
-                .name(String.format("%s.%s", qname, "$composite"))
+                .name(String.format("%s.%s-%s", qname, "$composite", namespace))
                 .inject(n -> this.injectNamespaceMetric(n, !metricRefs.isEmpty()))
                 .inject(n -> this.injectCatalog(n, namespaceConfig.asyncapis))
                 .inject(n -> protocol.injectProtocolClientCache(n, metricRefs))

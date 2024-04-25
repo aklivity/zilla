@@ -15,7 +15,6 @@
 package io.aklivity.zilla.runtime.binding.asyncapi.internal;
 
 import static io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiConfiguration.ASYNCAPI_TARGET_ROUTE_ID;
-import static io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiConfiguration.COMPOSITE_NAMESPACE_POSTFIX;
 import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
@@ -23,12 +22,10 @@ import org.junit.Test;
 public class AsyncapiConfigurationTest
 {
     public static final String ASYNCAPI_TARGET_ROUTE_ID_NAME = "zilla.binding.asyncapi.target.route.id";
-    public static final String COMPOSITE_NAMESPACE_POSTFIX_NAME = "zilla.binding.asyncapi.composite.namespace.postfix";
 
     @Test
     public void shouldVerifyConstants() throws Exception
     {
         assertEquals(ASYNCAPI_TARGET_ROUTE_ID.name(), ASYNCAPI_TARGET_ROUTE_ID_NAME);
-        assertEquals(COMPOSITE_NAMESPACE_POSTFIX.name(), COMPOSITE_NAMESPACE_POSTFIX_NAME);
     }
 }
