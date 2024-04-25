@@ -1,4 +1,11 @@
 name: example
+catalogs:
+  host_filesystem:
+    type: filesystem
+    options:
+      subjects:
+        echo:
+          path: proto/echo.proto
 vaults:
   my_servers:
     type: filesystem
@@ -47,9 +54,9 @@ bindings:
   north_grpc_server:
     type: grpc
     kind: server
-    options:
-      services:
-        - proto/echo.proto
+    catalog:
+      host_filesystem:
+        - subject: echo
     routes:
       - when:
           - method: example.EchoService/*
@@ -57,3 +64,7 @@ bindings:
   north_echo_server:
     type: echo
     kind: server
+telemetry:
+  exporters:
+    stdout_exporter:
+      type: stdout

@@ -3,6 +3,10 @@ extraEnv:
     value: mosquitto
   - name: MOSQUITTO_BROKER_PORT
     value: "1883"
+  - name: ZILLA_INCUBATOR_ENABLED
+    value: "true"
+  - name: JAVA_OPTIONS
+    value: -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
 
 livenessProbePort: 7183
 readinessProbePort: 7183
@@ -11,3 +15,5 @@ service:
   ports:
     - port: 7183
       name: mqtt
+    - port: 5005
+      name: debug

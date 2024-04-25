@@ -6,7 +6,8 @@ ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
 NAMESPACE=mqtt-proxy-asyncapi
 helm upgrade --install zilla $ZILLA_CHART --namespace $NAMESPACE --create-namespace --wait \
     --values values.yaml \
-    --set-file zilla\\.yaml=zilla.yaml
+    --set-file zilla\\.yaml=zilla.yaml \
+    --set-file configMaps.asyncapi.data.mqtt-asyncapi\\.yaml=mqtt-asyncapi.yaml
 
 # Install mosquitto mqtt broker to the Kubernetes cluster with helm and wait for the pod to start up
 helm upgrade --install mosquitto chart --namespace $NAMESPACE --create-namespace --wait

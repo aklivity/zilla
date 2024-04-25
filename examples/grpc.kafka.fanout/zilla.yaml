@@ -1,4 +1,11 @@
 name: example
+catalogs:
+  host_filesystem:
+    type: filesystem
+    options:
+      subjects:
+        fanout:
+          path: proto/fanout.proto
 vaults:
   my_servers:
     type: filesystem
@@ -44,9 +51,9 @@ bindings:
   north_grpc_server:
     type: grpc
     kind: server
-    options:
-      services:
-        - proto/fanout.proto
+    catalog:
+      host_filesystem:
+        - subject: fanout
     routes:
       - when:
           - method: example.FanoutService/*
@@ -82,3 +89,7 @@ bindings:
     routes:
       - when:
           - cidr: 0.0.0.0/0
+telemetry:
+  exporters:
+    stdout_exporter:
+      type: stdout

@@ -14,7 +14,9 @@ echo "Installing $ZILLA_CHART to $NAMESPACE with Kafka at $KAFKA_HOST:$KAFKA_POR
 helm upgrade --install zilla $ZILLA_CHART --namespace $NAMESPACE --create-namespace --wait \
     --values values.yaml \
     --set extraEnv[1].value="\"$KAFKA_HOST\"",extraEnv[2].value="\"$KAFKA_PORT\"" \
-    --set-file zilla\\.yaml=../../zilla.yaml
+    --set-file zilla\\.yaml=../../zilla.yaml \
+    --set-file configMaps.specs.data.mqtt-asyncapi\\.yaml=../../specs/mqtt-asyncapi.yaml \
+    --set-file configMaps.specs.data.kafka-asyncapi\\.yaml=../../specs/kafka-asyncapi.yaml
 
 # Create the mqtt topics in Kafka
 kubectl run kafka-init-pod --image=bitnami/kafka:3.2 --namespace $NAMESPACE --rm --restart=Never -i -t -- /bin/sh -c "

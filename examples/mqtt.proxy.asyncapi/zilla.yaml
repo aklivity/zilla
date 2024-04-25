@@ -1,96 +1,38 @@
 ---
 name: zilla-mqtt-kafka-broker
 catalogs:
-  catalog0:
-    type: inline
+  host_filesystem:
+    type: filesystem
     options:
       subjects:
         smartylighting:
-          schema: |
-            asyncapi: 3.0.0
-            info:
-              title: Zilla MQTT Proxy
-              version: 1.0.0
-              license:
-                name: Aklivity Community License
-            servers:
-              plain:
-                host: localhost:7183
-                protocol: mqtt
-            defaultContentType: application/json
-            
-            channels:
-              smartylighting:
-                address: "smartylighting/streetlights/1/0/event/1/lighting/measured"
-                title: MQTT Topic to produce & consume topic.
-                messages:
-                  item:
-                    $ref: '#/components/messages/item'
-            
-            operations:
-              sendEvents:
-                action: send
-                channel:
-                  $ref: '#/channels/smartylighting'
-            
-              receiveEvents:
-                action: receive
-                channel:
-                  $ref: '#/channels/smartylighting'
-            
-            components:
-              messages:
-                item:
-                  name: event
-                  title: An event
-                  headers:
-                    type: object
-                    properties:
-                      idempotency-key:
-                        description: Unique identifier for a given event
-                        type: string
-                      id:
-                        description: Street Light ID
-                        type: string
-                  contentType: application/json
-                  payload:
-                    type: object
-                    properties:
-                      item:
-                        $ref: "#/components/schemas/item"
-              schemas:
-                item:
-                  type: object
-                  properties:
-                    id:
-                      type: string
-                    status:
-                      type: string
-                  required:
-                    - id
-                    - status
+          path: asyncapi/mqtt-asyncapi.yaml
 bindings:
-  asyncapi_server:
+  mqtt_proxy_server:
     type: asyncapi
     kind: server
     options:
       specs:
         my-asyncapi-spec:
           catalog:
-            catalog0:
+            host_filesystem:
               subject: smartylighting
               version: latest
-    exit: asyncapi_client
-  asyncapi_client:
+    exit: mqtt_proxy_client
+  mqtt_proxy_client:
     type: asyncapi
     kind: client
     options:
       specs:
         my-asyncapi-spec:
           catalog:
-            catalog0:
+            host_filesystem:
               subject: smartylighting
               version: latest
       tcp:
         host: ${{env.MOSQUITTO_BROKER_HOST}}
         port: ${{env.MOSQUITTO_BROKER_PORT}}
+telemetry:
+  exporters:
+    stdout_exporter:
+      type: stdout

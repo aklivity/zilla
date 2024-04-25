@@ -14,6 +14,8 @@ services:
       ZILLA_INCUBATOR_ENABLED: "true"
     volumes:
       - ../../zilla.yaml:/etc/zilla/zilla.yaml
+      - ../../specs/mqtt-asyncapi.yaml:/etc/zilla/specs/mqtt-asyncapi.yaml
+      - ../../specs/kafka-asyncapi.yaml:/etc/zilla/specs/kafka-asyncapi.yaml
     command: start -v -e
 
 networks:
