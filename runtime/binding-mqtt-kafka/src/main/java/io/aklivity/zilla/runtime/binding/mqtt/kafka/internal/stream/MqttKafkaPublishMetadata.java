@@ -121,7 +121,7 @@ public class MqttKafkaPublishMetadata
             IntArrayList packetIds)
         {
             this.sequence = 1;
-            this.topic = topic;
+            this.topic = topic.intern();
             this.producerId = producerId;
             this.producerEpoch = producerEpoch;
             this.packetIds = packetIds;
