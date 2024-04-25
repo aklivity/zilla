@@ -72,20 +72,6 @@ public class AsyncapiHttpProtocol extends AsyncapiProtocol
         this.authorization = httpOptions != null ?  httpOptions.authorization : null;
     }
 
-    public <C> BindingConfigBuilder<C> injectProtocolServerOptions(
-        BindingConfigBuilder<C> binding,
-        List<AsyncapiServerView> servers)
-    {
-        return binding
-                    .options(HttpOptionsConfig::builder)
-                        .access()
-                            .policy(CROSS_ORIGIN)
-                            .build()
-                    .inject(this::injectHttpServerOptions)
-                    .inject(this::injectHttpServerRequests)
-                    .build();
-    }
-
     @Override
     public <C> BindingConfigBuilder<C> injectProtocolServerOptions(
         BindingConfigBuilder<C> binding)

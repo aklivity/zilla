@@ -84,7 +84,7 @@ public abstract class AsyncapiNamespaceGenerator
 
     public NamespaceConfig generate(
         BindingConfig binding,
-        AsyncapiBindingConfig.AsyncapiNamespaceConfig namespaceConfig)
+        AsyncapiNamespaceConfig namespaceConfig)
     {
         return null;
     }

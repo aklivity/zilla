@@ -38,5 +38,4 @@ public class AsyncapiConfiguration extends Configuration
     {
         return ASYNCAPI_TARGET_ROUTE_ID.getAsLong(this);
     }
-
 }

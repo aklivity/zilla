@@ -30,7 +30,7 @@ public class AsyncapiClientNamespaceGenerator extends AsyncapiNamespaceGenerator
 {
     public NamespaceConfig generate(
         BindingConfig binding,
-        AsyncapiBindingConfig.AsyncapiNamespaceConfig namespaceConfig)
+        AsyncapiNamespaceConfig namespaceConfig)
     {
         List<AsyncapiServerView> servers = namespaceConfig.servers;
         AsyncapiOptionsConfig options = binding.options != null ? (AsyncapiOptionsConfig) binding.options : EMPTY_OPTION;

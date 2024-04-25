@@ -419,31 +419,4 @@ public final class AsyncapiBindingConfig
             authority = authorityRO.wrap(value.buffer(), value.offset(), value.limit());
         }
     }
-
-    static class AsyncapiNamespaceConfig
-    {
-        List<String> asyncapiLabels;
-        List<AsyncapiServerView> servers;
-        List<Asyncapi> asyncapis;
-        List<AsyncapiSchemaConfig> configs;
-
-        AsyncapiNamespaceConfig()
-        {
-            asyncapiLabels = new ArrayList<>();
-            servers = new ArrayList<>();
-            asyncapis = new ArrayList<>();
-            configs = new ArrayList<>();
-        }
-
-        private void addSpecForNamespace(
-            List<AsyncapiServerView> servers,
-            AsyncapiSchemaConfig config,
-            Asyncapi asyncapi)
-        {
-            this.asyncapiLabels.add(config.apiLabel);
-            this.servers.addAll(servers);
-            this.configs.add(config);
-            this.asyncapis.add(asyncapi);
-        }
-    }
 }
