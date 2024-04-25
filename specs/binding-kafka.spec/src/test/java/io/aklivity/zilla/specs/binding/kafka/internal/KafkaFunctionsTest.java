@@ -151,9 +151,9 @@ public class KafkaFunctionsTest
                         .partitionId(0)
                         .partitionId(1)
                         .build()
+                    .build()
                 .build()
-            .build()
-        .build();
+            .build();
 
         DirectBuffer buffer = new UnsafeBuffer(build);
         Array32FW<MemberAssignmentFW> assignments =
@@ -4386,8 +4386,8 @@ public class KafkaFunctionsTest
             .typeId(0x01)
             .offsetFetch()
                 .partition(0, 1L, 0, "test-meta")
-            .build()
-        .build();
+                .build()
+            .build();
 
         DirectBuffer buffer = new UnsafeBuffer(build);
         KafkaDataExFW dataEx = new KafkaDataExFW().wrap(buffer, 0, buffer.capacity());

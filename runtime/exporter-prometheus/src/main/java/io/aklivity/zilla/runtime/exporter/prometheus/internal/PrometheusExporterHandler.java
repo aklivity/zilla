@@ -122,7 +122,7 @@ public class PrometheusExporterHandler implements ExporterHandler
         return output;
     }
 
-    private class MetricsHttpHandler implements HttpHandler
+    private final class MetricsHttpHandler implements HttpHandler
     {
         private static final int NO_RESPONSE_BODY = -1;
 

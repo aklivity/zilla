@@ -2132,7 +2132,7 @@ public class EngineWorker implements EngineContext, Agent
         }
     }
 
-    private static class Affinity
+    private static final class Affinity
     {
         BitSet mask;
         int nextIndex;
