@@ -43,6 +43,7 @@ bindings:
     net0:
         type: test
         kind: server
+        entry: entry0
         routes:
             - guarded:
                 test0:
