@@ -13,12 +13,6 @@
 # specific language governing permissions and limitations under the License.
 #
 
-accept "zilla://streams/app0"
-    option zilla:window 8192
-accepted
-connected
-
-
 accept "http://localhost:4318/v1/logs"
 accepted
 connected
