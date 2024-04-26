@@ -15,11 +15,12 @@
  */
 package io.aklivity.zilla.runtime.binding.tls.internal.bench;
 
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DIRECTORY;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
-import java.io.IOException;
+import java.util.Properties;
 
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -43,12 +44,9 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.WindowFW;
-import io.aklivity.zilla.runtime.engine.Configuration;
-import io.aklivity.zilla.runtime.engine.binding.BindingContext;
-import io.aklivity.zilla.runtime.engine.binding.BindingFactory;
+import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 
 @State(Scope.Benchmark)
@@ -65,18 +63,18 @@ public class TlsHandshakeBM
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
     private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[BUFFER_SIZE]);
 
-    private BindingHandler handler;
-    private Runnable detacher;
+    private BindingHandler streamFactory;
 
     @Setup(Level.Trial)
-    public void init() throws IOException
+    public void init()
     {
-        BindingFactory bindings = BindingFactory.instantiate();
-        BindingContext context = bindings.create("tls", new Configuration())
-                .supply(new TlsWorker());
+        final Properties properties = new Properties();
+        properties.setProperty(ENGINE_DIRECTORY.name(), "target/zilla-bm");
+        final EngineConfiguration config = new EngineConfiguration(properties);
+        TlsWorker worker = new TlsWorker(config);
 
         NamespaceConfig namespace = NamespaceConfig.builder()
-            .name("echo")
+            .name("tls")
             .binding()
                 .name("tls_client0")
                 .type("tls")
@@ -96,19 +94,14 @@ public class TlsHandshakeBM
                 .build()
             .build();
 
-        BindingConfig binding = namespace.bindings.stream()
-                .filter(b -> "tls_client0".equals(b.name))
-                .findFirst()
-                .get();
+        worker.attach(namespace);
 
-        this.handler = context.attach(binding);
-        this.detacher = () -> context.detach(binding);
+        streamFactory = worker.streamFactory();
     }
 
     @TearDown(Level.Trial)
     public void destroy()
     {
-        detacher.run();
     }
 
     @Setup(Level.Iteration)
@@ -122,7 +115,7 @@ public class TlsHandshakeBM
     {
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
             .originId(0L)
-            .routedId(0L)
+            .routedId(4261135416L)
             .streamId(0L)
             .sequence(0L)
             .acknowledge(0L)
@@ -133,13 +126,14 @@ public class TlsHandshakeBM
             .build();
 
         MessageConsumer sender = MessageConsumer.NOOP;
-        MessageConsumer receiver = handler.newStream(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof(), sender);
+        MessageConsumer receiver = streamFactory.newStream(
+            begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof(), sender);
 
         receiver.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
 
         final WindowFW window = windowRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(0L)
-                .routedId(0L)
+                .routedId(4261135416L)
                 .streamId(0L)
                 .sequence(0L)
                 .acknowledge(0L)
