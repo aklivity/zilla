@@ -1290,7 +1290,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 initializablePartitions.forEach(kp ->
                 {
                     final long partitionKey = partitionKey(kp.topic, kp.partitionId);
-                    final KafkaOffsetMetadata metadata = new KafkaOffsetMetadata(producerId, producerEpoch);
+                    final KafkaOffsetMetadata metadata = new KafkaOffsetMetadata(kp.topic, producerId, producerEpoch);
                     this.metadata.offsets.put(partitionKey, metadata);
                     Flyweight initialOffsetCommit = kafkaDataExRW
                         .wrap(extBuffer, 0, extBuffer.capacity())
