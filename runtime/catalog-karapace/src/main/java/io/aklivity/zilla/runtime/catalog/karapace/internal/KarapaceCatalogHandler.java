@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.catalog.karapace.internal;
 
+import static io.aklivity.zilla.runtime.catalog.karapace.internal.CachedSchemaId.IN_PROGRESS;
+
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -107,11 +109,16 @@ public class KarapaceCatalogHandler implements CatalogHandler
                 future = cachedSchemas.putIfAbsent(schemaId, newFuture);
                 if (future == null)
                 {
-                    newFuture = CompletableFuture.supplyAsync(() ->
+                    try
                     {
                         String response = sendHttpRequest(MessageFormat.format(SCHEMA_PATH, schemaId));
-                        return response != null ? request.resolveSchemaResponse(response) : null;
-                    });
+                        newFuture.complete(response != null ? request.resolveSchemaResponse(response) : null);
+                    }
+                    catch (Throwable ex)
+                    {
+                        // TODO: log an event
+                        newFuture.completeExceptionally(ex);
+                    }
                     future = newFuture;
                 }
             }
@@ -140,8 +147,7 @@ public class KarapaceCatalogHandler implements CatalogHandler
         int schemaId = NO_SCHEMA_ID;
 
         int schemaKey = generateCRC32C(subject, version);
-        if (schemaIds.containsKey(schemaKey) &&
-            (System.currentTimeMillis() - schemaIds.get(schemaKey).timestamp) < maxAgeMillis)
+        if (schemaIds.containsKey(schemaKey) && !schemaIds.get(schemaKey).expired(maxAgeMillis))
         {
             schemaId = schemaIds.get(schemaKey).id;
         }
@@ -151,16 +157,21 @@ public class KarapaceCatalogHandler implements CatalogHandler
             if (future == null)
             {
                 CompletableFuture<CachedSchemaId> newFuture = new CompletableFuture<>();
-                future = cachedSchemaIds.putIfAbsent(schemaKey, newFuture);
-                if (future == null)
+                future = cachedSchemaIds.merge(schemaKey, newFuture, (v1, v2) ->
+                    v1.getNow(IN_PROGRESS).expired(maxAgeMillis) ? v2 : v1);
+                if (future == newFuture)
                 {
-                    newFuture = CompletableFuture.supplyAsync(() ->
+                    try
                     {
                         String response = sendHttpRequest(MessageFormat.format(SUBJECT_VERSION_PATH, subject, version));
-                        return new CachedSchemaId(System.currentTimeMillis(),
-                            response != null ? request.resolveResponse(response) : NO_SCHEMA_ID);
-                    });
-                    future = newFuture;
+                        newFuture.complete(new CachedSchemaId(System.currentTimeMillis(),
+                            response != null ? request.resolveResponse(response) : NO_SCHEMA_ID));
+                    }
+                    catch (Throwable ex)
+                    {
+                        // TODO: log an event
+                        newFuture.completeExceptionally(ex);
+                    }
                 }
             }
             assert future != null;
@@ -168,37 +179,9 @@ public class KarapaceCatalogHandler implements CatalogHandler
             {
                 CachedSchemaId cachedSchemaId = future.get();
                 schemaId = cachedSchemaId.id;
-                if (schemaId != NO_SCHEMA_ID && (System.currentTimeMillis() - cachedSchemaId.timestamp) < maxAgeMillis)
+                if (schemaId != NO_SCHEMA_ID)
                 {
                     schemaIds.put(schemaKey, cachedSchemaId);
-                }
-                else
-                {
-                    CompletableFuture<CachedSchemaId> newFuture =
-                        cachedSchemaIds.computeIfPresent(schemaKey, (key, existingFuture) ->
-                        {
-                            if (existingFuture.isDone() || existingFuture.isCompletedExceptionally())
-                            {
-                                CompletableFuture<CachedSchemaId> id = CompletableFuture.supplyAsync(() ->
-                                {
-                                    String response = sendHttpRequest(MessageFormat.format(SUBJECT_VERSION_PATH,
-                                        subject, version));
-                                    return new CachedSchemaId(System.currentTimeMillis(),
-                                        response != null ? request.resolveResponse(response) : NO_SCHEMA_ID);
-                                });
-                                return id;
-                            }
-                            else
-                            {
-                                return existingFuture;
-                            }
-                        });
-                    cachedSchemaId = newFuture.get();
-                    schemaId = cachedSchemaId.id;
-                    if (schemaId != NO_SCHEMA_ID)
-                    {
-                        schemaIds.put(schemaKey, cachedSchemaId);
-                    }
                 }
             }
             catch (ExecutionException | InterruptedException e)

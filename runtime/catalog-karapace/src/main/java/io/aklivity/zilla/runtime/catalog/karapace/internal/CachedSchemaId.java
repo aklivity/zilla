@@ -14,8 +14,12 @@
  */
 package io.aklivity.zilla.runtime.catalog.karapace.internal;
 
+import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
+
 public class CachedSchemaId
 {
+    public static final CachedSchemaId IN_PROGRESS = new CachedSchemaId(Long.MAX_VALUE, NO_SCHEMA_ID);
+
     public long timestamp;
     public int id;
 
@@ -25,5 +29,11 @@ public class CachedSchemaId
     {
         this.timestamp = timestamp;
         this.id = id;
+    }
+
+    public boolean expired(
+        long maxAgeMillis)
+    {
+        return System.currentTimeMillis() - this.timestamp > maxAgeMillis;
     }
 }
