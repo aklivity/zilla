@@ -16,6 +16,10 @@ package io.aklivity.zilla.runtime.catalog.karapace.internal;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.time.Clock;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -25,6 +29,8 @@ import org.junit.rules.Timeout;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 
+import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
@@ -55,5 +61,25 @@ public class EventIT
     public void shouldLogEvents() throws Exception
     {
         k3po.finish();
+    }
+
+    @Test
+    public void shouldLogFutureCompletedExceptionally()
+    {
+        EngineContext context = mock(EngineContext.class);
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
+        KarapaceEventContext event = new KarapaceEventContext(context);
+        event.futureCompletedExceptionally(0L, "error");
+    }
+
+    @Test
+    public void shouldLogStaleSchemaServed()
+    {
+        EngineContext context = mock(EngineContext.class);
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
+        KarapaceEventContext event = new KarapaceEventContext(context);
+        event.staleSchemaServed(0L, 1);
     }
 }

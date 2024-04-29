@@ -25,7 +25,6 @@ import java.text.MessageFormat;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutionException;
 import java.util.zip.CRC32C;
 
 import org.agrona.BitUtil;
@@ -116,8 +115,8 @@ public class KarapaceCatalogHandler implements CatalogHandler
                     }
                     catch (Throwable ex)
                     {
-                        // TODO: log an event
                         newFuture.completeExceptionally(ex);
+                        event.futureCompletedExceptionally(catalogId, ex.getMessage());
                     }
                     future = newFuture;
                 }
@@ -131,9 +130,10 @@ public class KarapaceCatalogHandler implements CatalogHandler
                     schemas.put(schemaId, schema);
                 }
             }
-            catch (ExecutionException | InterruptedException e)
+            catch (Throwable ex)
             {
-                // TODO: log an event
+                future.completeExceptionally(ex);
+                event.futureCompletedExceptionally(catalogId, ex.getMessage());
             }
         }
         return schema;
@@ -153,25 +153,21 @@ public class KarapaceCatalogHandler implements CatalogHandler
         }
         else
         {
-            CompletableFuture<CachedSchemaId> future = cachedSchemaIds.get(schemaKey);
-            if (future == null)
+            CompletableFuture<CachedSchemaId> newFuture = new CompletableFuture<>();
+            CompletableFuture<CachedSchemaId> future = cachedSchemaIds.merge(schemaKey, newFuture, (v1, v2) ->
+                v1.getNow(IN_PROGRESS).expired(maxAgeMillis) ? v2 : v1);
+            if (future == newFuture)
             {
-                CompletableFuture<CachedSchemaId> newFuture = new CompletableFuture<>();
-                future = cachedSchemaIds.merge(schemaKey, newFuture, (v1, v2) ->
-                    v1.getNow(IN_PROGRESS).expired(maxAgeMillis) ? v2 : v1);
-                if (future == newFuture)
+                try
                 {
-                    try
-                    {
-                        String response = sendHttpRequest(MessageFormat.format(SUBJECT_VERSION_PATH, subject, version));
-                        newFuture.complete(new CachedSchemaId(System.currentTimeMillis(),
-                            response != null ? request.resolveResponse(response) : NO_SCHEMA_ID));
-                    }
-                    catch (Throwable ex)
-                    {
-                        // TODO: log an event
-                        newFuture.completeExceptionally(ex);
-                    }
+                    String response = sendHttpRequest(MessageFormat.format(SUBJECT_VERSION_PATH, subject, version));
+                    newFuture.complete(new CachedSchemaId(System.currentTimeMillis(),
+                        response != null ? request.resolveResponse(response) : NO_SCHEMA_ID));
+                }
+                catch (Throwable ex)
+                {
+                    newFuture.completeExceptionally(ex);
+                    event.futureCompletedExceptionally(catalogId, ex.getMessage());
                 }
             }
             assert future != null;
@@ -184,16 +180,17 @@ public class KarapaceCatalogHandler implements CatalogHandler
                     schemaIds.put(schemaKey, cachedSchemaId);
                 }
             }
-            catch (ExecutionException | InterruptedException e)
+            catch (Throwable ex)
             {
-                // TODO: log an event
+                future.completeExceptionally(ex);
+                event.futureCompletedExceptionally(catalogId, ex.getMessage());
             }
         }
 
         if (schemaId == NO_SCHEMA_ID && schemaIds.containsKey(schemaKey))
         {
             schemaId = schemaIds.get(schemaKey).id;
-            // TODO: log an event to notify, that stale schemaId was returned
+            event.staleSchemaServed(catalogId, schemaId);
         }
         return schemaId;
     }

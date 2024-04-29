@@ -18,7 +18,9 @@ scope karapace
     {
         enum KarapaceEventType (uint8)
         {
-            REMOTE_ACCESS_REJECTED (1)
+            REMOTE_ACCESS_REJECTED (1),
+            FUTURE_COMPLETED_EXCEPTIONALLY (2),
+            STALE_SCHEMA_SERVED (3)
         }
 
         struct KarapaceRemoteAccessRejectedEx extends core::stream::Extension
@@ -28,9 +30,21 @@ scope karapace
             int16 status;
         }
 
+        struct KarapaceFutureCompletedExceptionallyEx extends core::stream::Extension
+        {
+            string8 error;
+        }
+
+        struct KarapaceStaleSchemaServedEx extends core::stream::Extension
+        {
+             int32 schemaId;
+        }
+
         union KarapaceEventEx switch (KarapaceEventType)
         {
             case REMOTE_ACCESS_REJECTED: KarapaceRemoteAccessRejectedEx remoteAccessRejected;
+            case FUTURE_COMPLETED_EXCEPTIONALLY: KarapaceFutureCompletedExceptionallyEx futureCompletedExceptionally;
+            case STALE_SCHEMA_SERVED: KarapaceStaleSchemaServedEx staleSchemaServed;
         }
     }
 }

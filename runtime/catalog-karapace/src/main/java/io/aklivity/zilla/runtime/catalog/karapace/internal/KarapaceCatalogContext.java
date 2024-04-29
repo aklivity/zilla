@@ -15,7 +15,6 @@
 package io.aklivity.zilla.runtime.catalog.karapace.internal;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import io.aklivity.zilla.runtime.catalog.karapace.internal.config.KarapaceOptionsConfig;
@@ -27,15 +26,18 @@ import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
 public class KarapaceCatalogContext implements CatalogContext
 {
     private final EngineContext context;
+
     private final ConcurrentMap<Integer, CompletableFuture<String>> cachedSchemas;
     private final ConcurrentMap<Integer, CompletableFuture<CachedSchemaId>> cachedSchemaIds;
 
     public KarapaceCatalogContext(
-        EngineContext context)
+        EngineContext context,
+        ConcurrentMap<Integer, CompletableFuture<String>> cachedSchemas,
+        ConcurrentMap<Integer, CompletableFuture<CachedSchemaId>> cachedSchemaIds)
     {
         this.context = context;
-        this.cachedSchemas = new ConcurrentHashMap<>();
-        this.cachedSchemaIds = new ConcurrentHashMap<>();
+        this.cachedSchemas = cachedSchemas;
+        this.cachedSchemaIds = cachedSchemaIds;
     }
 
     @Override

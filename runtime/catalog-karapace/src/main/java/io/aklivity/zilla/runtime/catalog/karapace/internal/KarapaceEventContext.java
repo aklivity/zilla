@@ -14,8 +14,9 @@
  */
 package io.aklivity.zilla.runtime.catalog.karapace.internal;
 
-
+import static io.aklivity.zilla.runtime.catalog.karapace.internal.types.event.KarapaceEventType.FUTURE_COMPLETED_EXCEPTIONALLY;
 import static io.aklivity.zilla.runtime.catalog.karapace.internal.types.event.KarapaceEventType.REMOTE_ACCESS_REJECTED;
+import static io.aklivity.zilla.runtime.catalog.karapace.internal.types.event.KarapaceEventType.STALE_SCHEMA_SERVED;
 
 import java.net.http.HttpRequest;
 import java.nio.ByteBuffer;
@@ -39,6 +40,8 @@ public class KarapaceEventContext
     private final KarapaceEventExFW.Builder karapaceEventExRW = new KarapaceEventExFW.Builder();
     private final int karapaceTypeId;
     private final int remoteAccessRejectedEventId;
+    private final int futureCompletedExceptionallyId;
+    private final int staleSchemaServedId;
     private final MessageConsumer eventWriter;
     private final Clock clock;
 
@@ -47,6 +50,8 @@ public class KarapaceEventContext
     {
         this.karapaceTypeId = context.supplyTypeId(KarapaceCatalog.NAME);
         this.remoteAccessRejectedEventId = context.supplyEventId("catalog.karapace.remote.access.rejected");
+        this.futureCompletedExceptionallyId = context.supplyEventId("catalog.karapace.future.completed.exceptionally");
+        this.staleSchemaServedId = context.supplyEventId("catalog.karapace.stale.schema.served");
         this.eventWriter = context.supplyEventWriter();
         this.clock = context.clock();
     }
@@ -68,6 +73,50 @@ public class KarapaceEventContext
         EventFW event = eventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .id(remoteAccessRejectedEventId)
+            .timestamp(clock.millis())
+            .traceId(0L)
+            .namespacedId(catalogId)
+            .extension(extension.buffer(), extension.offset(), extension.limit())
+            .build();
+        eventWriter.accept(karapaceTypeId, event.buffer(), event.offset(), event.limit());
+    }
+
+    public void futureCompletedExceptionally(
+        long catalogId,
+        String error)
+    {
+        KarapaceEventExFW extension = karapaceEventExRW
+            .wrap(extensionBuffer, 0, extensionBuffer.capacity())
+            .futureCompletedExceptionally(e -> e
+                .typeId(FUTURE_COMPLETED_EXCEPTIONALLY.value())
+                .error(error)
+            )
+            .build();
+        EventFW event = eventRW
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .id(futureCompletedExceptionallyId)
+            .timestamp(clock.millis())
+            .traceId(0L)
+            .namespacedId(catalogId)
+            .extension(extension.buffer(), extension.offset(), extension.limit())
+            .build();
+        eventWriter.accept(karapaceTypeId, event.buffer(), event.offset(), event.limit());
+    }
+
+    public void staleSchemaServed(
+        long catalogId,
+        int schemaId)
+    {
+        KarapaceEventExFW extension = karapaceEventExRW
+            .wrap(extensionBuffer, 0, extensionBuffer.capacity())
+            .staleSchemaServed(e -> e
+                .typeId(STALE_SCHEMA_SERVED.value())
+                .schemaId(schemaId)
+            )
+            .build();
+        EventFW event = eventRW
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .id(staleSchemaServedId)
             .timestamp(clock.millis())
             .traceId(0L)
             .namespacedId(catalogId)
