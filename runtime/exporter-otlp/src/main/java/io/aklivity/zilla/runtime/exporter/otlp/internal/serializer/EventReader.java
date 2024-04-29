@@ -28,7 +28,6 @@ import org.agrona.DirectBuffer;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageReader;
 import io.aklivity.zilla.runtime.engine.event.EventFormatter;
-import io.aklivity.zilla.runtime.exporter.otlp.internal.OtlpExporter;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.types.event.EventFW;
 
 public class EventReader
@@ -42,7 +41,6 @@ public class EventReader
     private static final String STRING_ATTRIBUTE_FORMAT = "{\"key\":\"%s\", \"value\":{\"stringValue\": \"%s\"}}";
 
     private final EngineContext context;
-    private final int otlpExporterTypeId;
     private final MessageReader readEvent;
     private final EventFormatter formatter;
     private final EventFW eventRO = new EventFW();
@@ -55,7 +53,6 @@ public class EventReader
         EngineContext context)
     {
         this.context = context;
-        this.otlpExporterTypeId = context.supplyTypeId(OtlpExporter.NAME);
         this.readEvent = context.supplyEventReader();
         this.formatter = context.supplyEventFormatter();
     }
@@ -63,7 +60,7 @@ public class EventReader
     public JsonArray readEvents()
     {
         eventsJson = Json.createArrayBuilder();
-        readEvent.read(this::handleEvent, otlpExporterTypeId, MESSAGE_COUNT_LIMIT);
+        readEvent.read(this::handleEvent, MESSAGE_COUNT_LIMIT);
         return eventsJson.build();
     }
 

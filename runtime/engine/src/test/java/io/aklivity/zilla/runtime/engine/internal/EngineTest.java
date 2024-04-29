@@ -263,7 +263,7 @@ public class EngineTest
         {
             engine.start();
             MessageReader events = engine.supplyEventReader();
-            events.read((m, b, i, l) -> {}, 0, 1);
+            events.read((m, b, i, l) -> {}, 1);
         }
         catch (Throwable ex)
         {

@@ -1718,19 +1718,9 @@ public class EngineWorker implements EngineContext, Agent
         return writersByIndex.computeIfAbsent(remoteIndex, supplyWriter);
     }
 
-    public int readEvent(
-        MessageConsumer handler,
-        int readerId,
-        int messageCountLimit)
+    public EventsLayout.EventAccessor createEventAccessor()
     {
-        return eventsLayout.readEvent(handler, readerId, messageCountLimit);
-    }
-
-    public int peekEvent(
-        MessageConsumer handler,
-        int readerId)
-    {
-        return eventsLayout.peekEvent(handler, readerId);
+        return eventsLayout.createEventAccessor();
     }
 
     public MessageReader supplyEventReader()

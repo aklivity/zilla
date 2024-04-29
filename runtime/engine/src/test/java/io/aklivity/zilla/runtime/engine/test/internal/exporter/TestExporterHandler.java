@@ -53,7 +53,7 @@ class TestExporterHandler implements ExporterHandler
     @Override
     public int export()
     {
-        return readEvent.read(this::handleEvent, 0, 1);
+        return readEvent.read(this::handleEvent, 1);
     }
 
     @Override

@@ -73,10 +73,4 @@ public class StdoutExporterContext implements ExporterContext
     {
         return context.supplyEventReader();
     }
-
-    public int supplyTypeId(
-        String name)
-    {
-        return context.supplyTypeId(name);
-    }
 }
