@@ -855,7 +855,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         {
             this.originId = originId;
             this.routedId = route.id;
-            this.topic = route.messages;
+            this.topic = route.with.resolveMessages(null);
             this.serverRef = serverRef;
             this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
@@ -1118,7 +1118,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         {
             this.originId = originId;
             this.routedId = route.id;
-            this.topic = route.messages;
+            this.topic = route.with.resolveMessages(null);
             this.topicKey = System.identityHashCode(topic.asString().intern());
             this.routeConfig = route;
             this.mqtt = mqtt;

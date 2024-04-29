@@ -27,14 +27,14 @@ import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 
 public class MqttKafkaRouteConfig
 {
-    private final Optional<MqttKafkaWithResolver> with;
+
+    public final MqttKafkaWithResolver with;
     private final List<MqttKafkaConditionMatcher> when;
     private final LongPredicate authorized;
 
     public final long id;
     public final long order;
 
-    public final String16FW messages;
     public final String16FW retained;
 
     public MqttKafkaRouteConfig(
@@ -45,12 +45,14 @@ public class MqttKafkaRouteConfig
         this.order = route.order;
         this.with = Optional.ofNullable(route.with)
             .map(MqttKafkaWithConfig.class::cast)
-            .map(c -> new MqttKafkaWithResolver(options, c));
-        this.messages = with.isPresent() ? with.get().messages() : options.topics.messages;
+            .map(c -> new MqttKafkaWithResolver(options, c))
+            .orElse(new MqttKafkaWithResolver(options, null));
+        //this.messages = with.isPresent() ? with.get().resolveMessages() : options.topics.messages;
         this.retained = options.topics.retained;
         this.when = route.when.stream()
             .map(MqttKafkaConditionConfig.class::cast)
             .map(MqttKafkaConditionMatcher::new)
+            .peek(m -> m.observe(with::onConditionMatched))
             .collect(toList());
         this.authorized = route.authorized;
     }

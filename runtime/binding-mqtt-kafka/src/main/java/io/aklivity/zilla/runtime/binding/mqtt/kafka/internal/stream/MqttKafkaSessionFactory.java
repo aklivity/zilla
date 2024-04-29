@@ -457,7 +457,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             final MqttKafkaBindingConfig binding = supplyBinding.apply(bindingId);
             final String16FW messagesTopic = binding.messagesTopic();
             this.retainedTopic = binding.retainedTopic();
-            this.messagesTopics = binding.routes.stream().map(r -> r.messages).collect(Collectors.toSet());
+            this.messagesTopics = binding.routes.stream().map(r -> r.with.resolveMessages(null)).collect(Collectors.toSet());
             this.messagesTopics.add(messagesTopic);
             this.unfetchedKafkaTopics = messagesTopics.size() + 1;
             this.unackedPacketIds = new IntArrayQueue();

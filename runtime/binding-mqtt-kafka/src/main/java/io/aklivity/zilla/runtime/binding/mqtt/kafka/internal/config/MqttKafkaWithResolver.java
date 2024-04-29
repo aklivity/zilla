@@ -18,20 +18,52 @@ package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaWithConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttBeginExFW;
+
+import java.util.function.Function;
+import java.util.regex.MatchResult;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class MqttKafkaWithResolver
 {
-    private final String16FW messages;
+    private static final Pattern PARAMS_PATTERN = Pattern.compile("\\$\\{params\\.([a-zA-Z_]+)\\}");
+
+    private final Matcher paramsMatcher;
+    private final MqttKafkaWithConfig with;
+    private final MqttKafkaOptionsConfig options;
+
+    private Function<MatchResult, String> replacer = r -> null;
 
     public MqttKafkaWithResolver(
         MqttKafkaOptionsConfig options,
         MqttKafkaWithConfig with)
     {
-        this.messages = with.messages == null ? options.topics.messages : new String16FW(with.messages);
+        this.paramsMatcher = PARAMS_PATTERN.matcher("");
+        this.with = with;
+        this.options = options;
+        //this.messages = with.messages == null ? options.topics.messages : new String16FW(with.messages);
     }
 
-    public String16FW messages()
+    public void onConditionMatched(
+        MqttKafkaConditionMatcher condition)
     {
-        return messages;
+        this.replacer = r -> condition.parameter(r.group(1));
+    }
+
+    public String16FW resolveMessages(
+        MqttBeginExFW mqttBeginEx)
+    {
+        String topic = null;
+        if (with != null)
+        {
+            topic = with.messages;
+            Matcher topicMatcher = paramsMatcher.reset(topic);
+            if (topicMatcher.matches())
+            {
+                topic = topicMatcher.replaceAll(replacer);
+            }
+        }
+        return topic == null ? options.topics.messages : new String16FW(topic);
     }
 }

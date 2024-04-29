@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -24,34 +25,45 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaConditionKin
 
 public class MqttKafkaConditionMatcher
 {
-    private final List<Matcher> matchers;
+    private final Matcher matcher;
     public final MqttKafkaConditionKind kind;
+    private Consumer<MqttKafkaConditionMatcher> observer;
 
     public MqttKafkaConditionMatcher(
         MqttKafkaConditionConfig condition)
     {
-        this.matchers = asTopicMatchers(condition.topics);
+        this.matcher = asTopicMatcher(condition.topics);
         this.kind = condition.kind;
     }
 
     public boolean matches(
         String topic)
     {
-        boolean match = false;
-        if (matchers != null)
-        {
-            for (Matcher matcher : matchers)
-            {
-                if (matcher.reset(topic).matches())
-                {
-                    match = true;
-                    break;
-                }
-            }
-        }
-        return match;
+        return this.matcher == null ||
+            (this.matcher.reset(topic).matches() && observeMatched());
     }
 
+    public String parameter(
+        String name)
+    {
+        return matcher.group(name);
+    }
+
+    public void observe(
+        Consumer<MqttKafkaConditionMatcher> observer)
+    {
+        this.observer = observer;
+    }
+
+    private boolean observeMatched()
+    {
+        if (observer != null)
+        {
+            observer.accept(this);
+        }
+
+        return true;
+    }
 
     private static List<Matcher> asTopicMatchers(
         List<String> wildcards)
@@ -62,9 +74,34 @@ public class MqttKafkaConditionMatcher
             String patternBegin = wildcard.startsWith("/") ? "(" : "^(?!\\/)(";
             String fixedPattern = patternBegin + asRegexPattern(wildcard, 0, true) + ")?\\/?\\#?";
             String nonFixedPattern = patternBegin + asRegexPattern(wildcard, 0, false) + ")?\\/?\\#";
+            fixedPattern = fixedPattern.replaceAll("\\{([a-zA-Z_]+)\\}", "(?<$1>.+)");
+            nonFixedPattern = nonFixedPattern.replaceAll("\\{([a-zA-Z_]+)\\}", "");
             matchers.add(Pattern.compile(nonFixedPattern + "|" + fixedPattern).matcher(""));
         }
         return matchers;
+    }
+
+    private static Matcher asTopicMatcher(
+        List<String> wildcards)
+    {
+        StringBuilder combinedRegex = new StringBuilder();
+
+        for (String wildcard : wildcards)
+        {
+            String patternBegin = wildcard.startsWith("/") ? "(" : "^(?!\\/)(";
+            String fixedPattern = patternBegin + asRegexPattern(wildcard, 0, true) + ")?\\/?\\#?";
+            String nonFixedPattern = patternBegin + asRegexPattern(wildcard, 0, false) + ")?\\/?\\#";
+            fixedPattern = fixedPattern.replaceAll("\\{([a-zA-Z_]+)\\}", "(?<$1>.+)");
+            nonFixedPattern = nonFixedPattern.replaceAll("\\{([a-zA-Z_]+)\\}", "");
+
+            combinedRegex.append(nonFixedPattern).append("|").append(fixedPattern).append("|");
+        }
+
+        if (combinedRegex.length() > 0) {
+            combinedRegex.deleteCharAt(combinedRegex.length() - 1);
+        }
+
+        return Pattern.compile(combinedRegex.toString()).matcher("");
     }
 
     private static String asRegexPattern(
