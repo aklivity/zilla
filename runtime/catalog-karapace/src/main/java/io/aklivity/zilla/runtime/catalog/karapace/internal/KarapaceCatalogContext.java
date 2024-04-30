@@ -39,8 +39,7 @@ public class KarapaceCatalogContext implements CatalogContext
     public CatalogHandler attach(
         CatalogConfig catalog)
     {
-        cache.putIfAbsent(catalog.id, new KarapaceCache());
-        return new KarapaceCatalogHandler(KarapaceOptionsConfig.class.cast(catalog.options), context, catalog.id,
-            cache.get(catalog.id));
+        KarapaceCache karapaceCache = cache.computeIfAbsent(catalog.id, id -> new KarapaceCache());
+        return new KarapaceCatalogHandler(KarapaceOptionsConfig.class.cast(catalog.options), context, catalog.id, karapaceCache);
     }
 }
