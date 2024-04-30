@@ -23,7 +23,6 @@ import java.net.http.HttpResponse;
 import java.nio.ByteOrder;
 import java.text.MessageFormat;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.zip.CRC32C;
 

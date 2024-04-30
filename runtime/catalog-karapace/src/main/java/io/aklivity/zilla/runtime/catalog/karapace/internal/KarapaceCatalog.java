@@ -15,7 +15,6 @@
 package io.aklivity.zilla.runtime.catalog.karapace.internal;
 
 import java.net.URL;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 

@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.catalog.karapace.internal;
 
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentMap;
 
 import io.aklivity.zilla.runtime.catalog.karapace.internal.config.KarapaceOptionsConfig;
