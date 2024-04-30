@@ -54,7 +54,7 @@ public class AsyncapiProxyNamespaceGenerator extends AsyncapiNamespaceGenerator
             .map(r -> new AsyncapiRouteConfig(r, resolveApiId))
             .collect(Collectors.toList());
         this.asyncapis = asyncapis;
-        this.qname = binding.qname;
+
         final List<MetricRefConfig> metricRefs = binding.telemetryRef != null ?
             binding.telemetryRef.metricRefs : emptyList();
 

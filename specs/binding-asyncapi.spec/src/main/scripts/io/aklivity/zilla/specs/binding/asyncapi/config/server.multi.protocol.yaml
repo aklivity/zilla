@@ -20,6 +20,88 @@ catalogs:
   catalog0:
     type: test
     options:
+      id: 0
+      subject: smartylighting
+      schema: |
+        asyncapi: 3.0.0
+        info:
+          title: Zilla MQTT Proxy
+          version: 1.0.0
+          license:
+            name: Aklivity Community License
+        servers:
+          production:
+            host: '{subdomain}.example.com:{port}'
+            protocol: mqtt
+            variables:
+              subdomain:
+                $ref: '#/components/serverVariables/subdomain'
+              port:
+                $ref: '#/components/serverVariables/port'
+          development:
+            host: '{subdomain}.dev.example.com:{port}'
+            protocol: mqtt
+            variables:
+              subdomain:
+                $ref: '#/components/serverVariables/subdomain'
+              port:
+                $ref: '#/components/serverVariables/port'
+                defaultContentType: application/json
+        channels:
+          sensors:
+            address: "sensors/{sensorId}"
+            title: MQTT Topic to produce & consume topic.
+            parameters:
+              streetlightId:
+                $ref: '#/components/parameters/sensorId'
+            messages:
+              items:
+                $ref: '#/components/messages/item'
+
+        operations:
+          sendEvents:
+            action: send
+            channel:
+              $ref: '#/channels/sensors'
+
+          receiveEvents:
+            action: receive
+            channel:
+              $ref: '#/channels/sensors'
+
+        components:
+          serverVariables:
+            subdomain:
+              enum:
+                - development
+                - staging
+                - production
+              default: development
+            port:
+              default: '1883'
+              enum:
+                - '1883'
+                - '8883'
+          parameters:
+            sensorId:
+              description: Sensor ID
+              location: $message.header#/id
+          messages:
+            item:
+              name: event
+              title: An event
+              headers:
+                type: object
+                properties:
+                  idempotency-key:
+                    description: Unique identifier for a given event
+                    type: string
+                  id:
+                    description: Sensor ID
+                    type: string
+  catalog1:
+    type: test
+    options:
       id: 1
       subject: petstore
       schema: |
@@ -35,7 +117,7 @@ catalogs:
             protocol: http
             protocolVersion: '2.0'
         defaultContentType: application/json
-        
+
         channels:
           pets:
             address: /pets
@@ -47,7 +129,7 @@ catalogs:
             messages:
               pet:
                 $ref: '#/components/messages/pet'
-        
+
         operations:
           createPet:
             action: send
@@ -75,7 +157,7 @@ catalogs:
                       type: number
             channel:
               $ref: '#/channels/showPetById'
-        
+
         components:
           correlationIds:
             petsCorrelationId:
@@ -109,13 +191,16 @@ bindings:
     kind: server
     options:
       specs:
-        http_api:
+        mqtt_api:
+          servers:
+            - host: 'development.dev.example.com:1883'
           catalog:
             catalog0:
+              subject: smartylighting
+              version: latest
+        http_api:
+          catalog:
+            catalog1:
               subject: petstore
               version: latest
-      tcp:
-        host: localhost
-        port:
-          - 8080
     exit: asyncapi0
