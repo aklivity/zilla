@@ -15,8 +15,8 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.layouts;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -42,9 +42,10 @@ public class EventsLayoutTest
             .build();
         layout.writeEvent(42, new UnsafeBuffer(), 0, 0);
         msgTypeId = 0;
+        EventsLayout.EventAccessor accessor = layout.createEventAccessor();
 
         // WHEN
-        int count = layout.readEvent(this::readEvent, 1);
+        int count = accessor.readEvent(this::readEvent, 1);
 
         // THEN
         assertThat(count, equalTo(1));
