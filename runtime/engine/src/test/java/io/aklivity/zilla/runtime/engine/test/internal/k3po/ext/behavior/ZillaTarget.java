@@ -154,6 +154,7 @@ final class ZillaTarget implements AutoCloseable
         int maximum)
     {
         final WindowFW window = windowRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                .originId(0L)
                 .routedId(0L)
                 .streamId(0L)
                 .sequence(0L)
@@ -172,6 +173,7 @@ final class ZillaTarget implements AutoCloseable
         long budgetId)
     {
         final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                .originId(0L)
                 .routedId(0L)
                 .streamId(0L)
                 .sequence(0L)
