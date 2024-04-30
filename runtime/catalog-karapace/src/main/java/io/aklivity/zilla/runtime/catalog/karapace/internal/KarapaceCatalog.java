@@ -28,14 +28,12 @@ public class KarapaceCatalog implements Catalog
 {
     public static final String NAME = "karapace";
 
-    private final ConcurrentMap<Integer, CompletableFuture<String>> cachedSchemas;
-    private final ConcurrentMap<Integer, CompletableFuture<CachedSchemaId>> cachedSchemaIds;
+    private final ConcurrentMap<Long, KarapaceCache> cache;
 
     public KarapaceCatalog(
         Configuration config)
     {
-        this.cachedSchemas = new ConcurrentHashMap<>();
-        this.cachedSchemaIds = new ConcurrentHashMap<>();
+        this.cache = new ConcurrentHashMap<>();
     }
 
     @Override
@@ -48,7 +46,7 @@ public class KarapaceCatalog implements Catalog
     public CatalogContext supply(
         EngineContext context)
     {
-        return new KarapaceCatalogContext(context, cachedSchemas, cachedSchemaIds);
+        return new KarapaceCatalogContext(context, cache);
     }
 
     @Override

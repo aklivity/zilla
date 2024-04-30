@@ -67,15 +67,14 @@ public class KarapaceCatalogHandler implements CatalogHandler
         EngineContext context,
         long catalogId)
     {
-        this(config, context, catalogId, new ConcurrentHashMap<>(), new ConcurrentHashMap<>());
+        this(config, context, catalogId, new KarapaceCache());
     }
 
     public KarapaceCatalogHandler(
         KarapaceOptionsConfig config,
         EngineContext context,
         long catalogId,
-        ConcurrentMap<Integer, CompletableFuture<String>> cachedSchemas,
-        ConcurrentMap<Integer, CompletableFuture<CachedSchemaId>> cachedSchemaIds)
+        KarapaceCache cache)
     {
         this.baseUrl = config.url;
         this.client = HttpClient.newHttpClient();
@@ -86,8 +85,8 @@ public class KarapaceCatalogHandler implements CatalogHandler
         this.maxAgeMillis = config.maxAge.toMillis();
         this.event = new KarapaceEventContext(context);
         this.catalogId = catalogId;
-        this.cachedSchemas = cachedSchemas;
-        this.cachedSchemaIds = cachedSchemaIds;
+        this.cachedSchemas = cache.cachedSchemas;
+        this.cachedSchemaIds = cache.cachedSchemaIds;
     }
 
     @Override
