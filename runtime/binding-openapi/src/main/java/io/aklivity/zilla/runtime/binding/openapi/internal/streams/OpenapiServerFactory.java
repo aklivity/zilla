@@ -386,9 +386,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
             final long traceId = reset.traceId();
 
             assert acknowledge <= sequence;
-            assert sequence <= replySeq;
             assert acknowledge >= replyAck;
-            assert maximum >= replyMax;
 
             replyAck = acknowledge;
             replyMax = maximum;
