@@ -15,12 +15,15 @@
  */
 package io.aklivity.zilla.runtime.binding.tls.internal.bench;
 
+import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.isInitial;
+import static java.lang.ThreadLocal.withInitial;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.net.InetAddress;
 import java.net.URL;
 import java.nio.channels.SelectableChannel;
 import java.time.Clock;
+import java.util.function.IntConsumer;
 import java.util.function.LongSupplier;
 import java.util.zip.CRC32C;
 
@@ -29,6 +32,8 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
+import org.agrona.concurrent.ringbuffer.OneToOneRingBuffer;
+import org.agrona.concurrent.ringbuffer.RingBuffer;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
@@ -50,7 +55,10 @@ import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.event.EventFormatter;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.internal.layouts.BufferPoolLayout;
+import io.aklivity.zilla.runtime.engine.internal.stream.StreamId;
+import io.aklivity.zilla.runtime.engine.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.FrameFW;
+import io.aklivity.zilla.runtime.engine.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
@@ -59,16 +67,23 @@ import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
 public class TlsWorker implements EngineContext
 {
-    private static final int BUFFER_SIZE = 1024 * 8;
+    private static final int BUFFER_SIZE = 1024 * 64;
     private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[BUFFER_SIZE]);
+    private final RingBuffer streamsBuffer = new OneToOneRingBuffer(new UnsafeBuffer(new byte[1024 * 1024 + 768]));
     private final BufferPool bufferPool;
     private final Long2ObjectHashMap<BindingHandler> handlers;
     private final Object2ObjectHashMap<String, Binding> bindings;
+    private final Long2ObjectHashMap<MessageConsumer> streamsById;
+    private final Long2ObjectHashMap<MessageConsumer> throtllesById;
     private final BindingFactory factory;
     private final Configuration config;
 
+    private final TlsSignaler signaler;
+
     private final FrameFW frameRO = new FrameFW();
     private final CRC32C crc32C = new CRC32C();
+
+    private int nextInitialId = 3;
 
     public TlsWorker(
         EngineConfiguration config)
@@ -82,9 +97,13 @@ public class TlsWorker implements EngineContext
                 .build()
                 .bufferPool();
 
+        this.signaler = new TlsSignaler();
+
         this.factory = BindingFactory.instantiate();
         this.bindings = new Object2ObjectHashMap<>();
         this.handlers = new Long2ObjectHashMap<>();
+        this.streamsById = new Long2ObjectHashMap<>();
+        this.throtllesById = new Long2ObjectHashMap<>();
     }
 
     @Override
@@ -96,7 +115,7 @@ public class TlsWorker implements EngineContext
     @Override
     public Signaler signaler()
     {
-        return null;
+        return signaler;
     }
 
     @Override
@@ -110,14 +129,15 @@ public class TlsWorker implements EngineContext
     public long supplyInitialId(
         long bindingId)
     {
-        return 0;
+        return nextInitialId += 2;
     }
 
     @Override
     public long supplyReplyId(
         long initialId)
     {
-        return 0;
+        assert isInitial(initialId);
+        return initialId & 0xffff_ffff_ffff_fffeL;
     }
 
     @Override
@@ -377,7 +397,7 @@ public class TlsWorker implements EngineContext
     @Override
     public MessageConsumer supplyEventWriter()
     {
-        return null;
+        return MessageConsumer.NOOP;
     }
 
     @Override
@@ -389,7 +409,12 @@ public class TlsWorker implements EngineContext
     @Override
     public Clock clock()
     {
-        return null;
+        return Clock.systemUTC();
+    }
+
+    public void doWork()
+    {
+        streamsBuffer.read(this::handleRead, Integer.MAX_VALUE);
     }
 
     public void attach(
@@ -412,6 +437,22 @@ public class TlsWorker implements EngineContext
         });
     }
 
+    private void handleRead(
+        int msgTypeId,
+        MutableDirectBuffer buffer,
+        int index,
+        int length)
+    {
+        final FrameFW frame = frameRO.wrap(buffer, index, index + length);
+        final long streamId = frame.streamId();
+
+        final MessageConsumer stream = StreamId.isThrottle(msgTypeId)
+            ? throtllesById.get(streamId)
+            : streamsById.get(streamId);
+
+        stream.accept(msgTypeId, buffer, index, length);
+    }
+
     private MessageConsumer newStream(
         int msgTypeId,
         DirectBuffer buffer,
@@ -419,12 +460,46 @@ public class TlsWorker implements EngineContext
         int length,
         MessageConsumer sender)
     {
-        final FrameFW frame = frameRO.wrap(buffer, index, length);
-        final long bindingId = frame.routedId();
+        switch (msgTypeId)
+        {
+        case BeginFW.TYPE_ID:
+            final FrameFW frame = frameRO.wrap(buffer, index, index + length);
+            final long routedId = frame.routedId();
+            final long streamId = frame.streamId();
 
-        final BindingHandler handler = handlers.get(bindingId);
+            if (StreamId.isInitial(streamId))
+            {
+                final BindingHandler handler = handlers.get(routedId);
+                MessageConsumer stream = handler.newStream(msgTypeId, buffer, index, length, this::handleWrite);
+                streamsById.put(streamId, stream);
+                throtllesById.put(streamId, sender);
 
-        return handler.newStream(msgTypeId, buffer, index, length, sender);
+                long replyId = supplyReplyId(streamId);
+                throtllesById.put(replyId, stream);
+                streamsById.put(replyId, sender);
+            }
+            break;
+        }
+
+        return this::handleWrite;
+    }
+
+    private void handleWrite(
+        int msgTypeId,
+        DirectBuffer buffer,
+        int index,
+        int length)
+    {
+        streamsBuffer.write(msgTypeId, buffer, index, length);
+    }
+
+    private void handleEventWrite(
+        int msgTypeId,
+        DirectBuffer buffer,
+        int index,
+        int length)
+    {
+        streamsBuffer.write(msgTypeId, buffer, index, length);
     }
 
     private Binding supplyBinding(
@@ -446,5 +521,173 @@ public class TlsWorker implements EngineContext
         crc32C.update(value.getBytes(UTF_8));
 
         return crc32C.getValue();
+    }
+
+    private static SignalFW.Builder newSignalRW(
+        int capacity)
+    {
+        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[capacity]);
+        return new SignalFW.Builder().wrap(buffer, 0, buffer.capacity());
+    }
+
+    private final class TlsSignaler implements Signaler
+    {
+        private final ThreadLocal<SignalFW.Builder> signalRW;
+
+        private TlsSignaler()
+        {
+            signalRW = withInitial(() -> newSignalRW(512));
+        }
+
+        @Override
+        public long signalAt(
+            long timeMillis,
+            int signalId,
+            IntConsumer handler)
+        {
+            handler.accept(signalId);
+
+            return System.currentTimeMillis();
+        }
+
+        @Override
+        public long signalAt(
+            long timeMillis,
+            long originId,
+            long routedId,
+            long streamId,
+            long traceId,
+            int signalId,
+            int contextId)
+        {
+            signal(originId, routedId, streamId, 0L, 0L,
+                traceId, NO_CANCEL_ID, signalId, contextId);
+            return System.currentTimeMillis();
+        }
+
+        @Override
+        public long signalTask(
+            Runnable task,
+            long originId,
+            long routedId,
+            long streamId,
+            long traceId,
+            int signalId,
+            int contextId)
+        {
+            try
+            {
+                task.run();
+            }
+            finally
+            {
+                final SignalFW signal = signalRW.get()
+                    .rewrap()
+                    .originId(originId)
+                    .routedId(routedId)
+                    .streamId(streamId)
+                    .sequence(0L)
+                    .acknowledge(0L)
+                    .maximum(0)
+                    .timestamp(0L)
+                    .traceId(traceId)
+                    .cancelId(NO_CANCEL_ID)
+                    .signalId(signalId)
+                    .contextId(contextId)
+                    .build();
+
+                streamsBuffer.write(signal.typeId(), signal.buffer(), signal.offset(), signal.sizeof());
+            }
+
+            return NO_CANCEL_ID;
+        }
+
+        @Override
+        public void signalNow(
+            long originId,
+            long routedId,
+            long streamId,
+            long traceId,
+            int signalId,
+            int contextId)
+        {
+            signal(originId, routedId, streamId, 0L, 0L, traceId, NO_CANCEL_ID, signalId, contextId);
+        }
+
+        @Override
+        public void signalNow(
+            long originId,
+            long routedId,
+            long streamId,
+            long traceId,
+            int signalId,
+            int contextId,
+            DirectBuffer buffer,
+            int offset,
+            int length)
+        {
+            signal(originId, routedId, streamId, 0L, 0L, traceId, NO_CANCEL_ID, signalId, contextId,
+                buffer, offset, length);
+        }
+
+        @Override
+        public boolean cancel(
+            long cancelId)
+        {
+            return true;
+        }
+
+        private void signal(
+            long originId,
+            long routedId,
+            long streamId,
+            long sequence,
+            long acknowledge,
+            long traceId,
+            long cancelId,
+            int signalId,
+            int contextId)
+        {
+            //NOOP
+        }
+
+        private void signal(
+            long originId,
+            long routedId,
+            long streamId,
+            long sequence,
+            long acknowledge,
+            long traceId,
+            long cancelId,
+            int signalId,
+            int contextId,
+            DirectBuffer buffer,
+            int offset,
+            int length)
+        {
+            //NOOP
+        }
+
+        private void invokeAndSignal(
+            Runnable task,
+            long originId,
+            long routedId,
+            long streamId,
+            long sequence,
+            long acknowledge,
+            long traceId,
+            long cancelId,
+            int signalId,
+            int contextId)
+        {
+            try
+            {
+                task.run();
+            }
+            finally
+            {
+                signal(originId, routedId, streamId, sequence, acknowledge, traceId, cancelId, signalId, contextId);
+            }
+        }
     }
 }

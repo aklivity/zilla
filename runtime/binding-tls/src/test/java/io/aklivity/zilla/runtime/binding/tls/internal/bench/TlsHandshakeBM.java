@@ -64,6 +64,7 @@ public class TlsHandshakeBM
     private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[BUFFER_SIZE]);
 
     private BindingHandler streamFactory;
+    private TlsWorker worker;
 
     @Setup(Level.Trial)
     public void init()
@@ -71,7 +72,7 @@ public class TlsHandshakeBM
         final Properties properties = new Properties();
         properties.setProperty(ENGINE_DIRECTORY.name(), "target/zilla-bm");
         final EngineConfiguration config = new EngineConfiguration(properties);
-        TlsWorker worker = new TlsWorker(config);
+        this.worker = new TlsWorker(config);
 
         NamespaceConfig namespace = NamespaceConfig.builder()
             .name("tls")
@@ -113,10 +114,13 @@ public class TlsHandshakeBM
     public void handshake(
         final Control control) throws Exception
     {
+        final long initialId = worker.supplyInitialId(0L);
+        final long replyId = worker.supplyReplyId(initialId);
+
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
             .originId(0L)
             .routedId(4261135416L)
-            .streamId(0L)
+            .streamId(initialId)
             .sequence(0L)
             .acknowledge(0L)
             .maximum(BUFFER_SIZE)
@@ -134,7 +138,7 @@ public class TlsHandshakeBM
         final WindowFW window = windowRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(0L)
                 .routedId(4261135416L)
-                .streamId(0L)
+                .streamId(replyId)
                 .sequence(0L)
                 .acknowledge(0L)
                 .maximum(BUFFER_SIZE)
@@ -144,6 +148,8 @@ public class TlsHandshakeBM
                 .build();
 
         receiver.accept(window.typeId(), window.buffer(), window.offset(), window.sizeof());
+
+        worker.doWork();
     }
 
     public static void main(
