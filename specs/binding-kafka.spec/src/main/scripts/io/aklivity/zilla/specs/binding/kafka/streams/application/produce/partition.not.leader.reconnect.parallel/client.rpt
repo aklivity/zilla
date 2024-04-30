@@ -70,9 +70,17 @@ write zilla:data.ext ${kafka:dataEx()
                               .build()}
 write flush
 
-write "Hello, world"
-write flush
 write "Hello, again"
+write flush
+
+write zilla:data.ext ${kafka:dataEx()
+                              .typeId(zilla:id("kafka"))
+                              .produce()
+                                  .timestamp(newTimestamp)
+                                  .build()
+                              .build()}
+write flush
+write "Hello, world"
 write flush
 
 read zilla:reset.ext ${kafka:resetEx()
@@ -114,7 +122,14 @@ write zilla:data.ext ${kafka:dataEx()
                                   .timestamp(newTimestamp)
                                   .build()
                               .build()}
-write "Hello, world"
-write flush
 write "Hello, again"
+write flush
+
+write zilla:data.ext ${kafka:dataEx()
+                              .typeId(zilla:id("kafka"))
+                              .produce()
+                                  .timestamp(newTimestamp)
+                                  .build()
+                              .build()}
+write "Hello, world"
 write flush
