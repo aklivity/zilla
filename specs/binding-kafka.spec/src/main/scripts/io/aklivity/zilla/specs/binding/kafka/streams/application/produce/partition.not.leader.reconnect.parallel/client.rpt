@@ -72,8 +72,6 @@ write flush
 
 write "Hello, world"
 write flush
-write "Hello, again"
-write flush
 
 read zilla:reset.ext ${kafka:resetEx()
                            .typeId(zilla:id("kafka"))

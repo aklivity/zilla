@@ -73,7 +73,6 @@ read zilla:data.ext ${kafka:matchDataEx()
                                  .build()
                              .build()}
 read "Hello, world"
-read "Hello, again"
 
 write zilla:reset.ext ${kafka:resetEx()
                            .typeId(zilla:id("kafka"))
