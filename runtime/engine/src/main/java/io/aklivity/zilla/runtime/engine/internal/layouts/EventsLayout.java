@@ -30,7 +30,9 @@ import java.nio.file.StandardCopyOption;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 
 import org.agrona.CloseHelper;
 import org.agrona.DirectBuffer;
@@ -106,7 +108,7 @@ public final class EventsLayout implements AutoCloseable
             rethrowUnchecked(ex);
         }
         buffer = createRingBuffer(path, capacity);
-        accessors.forEach(a -> a.setBufferSpy(createRingBufferSpy()));
+        accessors.forEach(a -> a.addNextBufferSpy(createRingBufferSpy()));
     }
 
     private RingBufferSpy createRingBufferSpy()
@@ -141,11 +143,13 @@ public final class EventsLayout implements AutoCloseable
 
     public static final class EventAccessor
     {
+        private final Queue<RingBufferSpy> nextBufferSpies;
         private RingBufferSpy bufferSpy;
 
         private EventAccessor(
             RingBufferSpy bufferSpy)
         {
+            this.nextBufferSpies = new LinkedList<>();
             this.bufferSpy = bufferSpy;
         }
 
@@ -153,19 +157,31 @@ public final class EventsLayout implements AutoCloseable
             MessageConsumer handler,
             int messageCountLimit)
         {
-            return bufferSpy.spy(handler, messageCountLimit);
+            int result = bufferSpy.spy(handler, messageCountLimit);
+            if (result == 0 && !nextBufferSpies.isEmpty())
+            {
+                bufferSpy = nextBufferSpies.poll();
+                result = bufferSpy.spy(handler, messageCountLimit);
+            }
+            return result;
         }
 
         public int peekEvent(
             MessageConsumer handler)
         {
-            return bufferSpy.peek(handler);
+            int result = bufferSpy.peek(handler);
+            if (result == 0 && !nextBufferSpies.isEmpty())
+            {
+                bufferSpy = nextBufferSpies.poll();
+                result = bufferSpy.peek(handler);
+            }
+            return result;
         }
 
-        private void setBufferSpy(
+        private void addNextBufferSpy(
             RingBufferSpy bufferSpy)
         {
-            this.bufferSpy = bufferSpy;
+            this.nextBufferSpies.add(bufferSpy);
         }
     }
 
