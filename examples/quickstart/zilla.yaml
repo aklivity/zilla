@@ -241,16 +241,13 @@ bindings:
   south_kafka_client:
     type: kafka
     kind: client
+    options:
+      servers:
+        -  ${{env.KAFKA_BOOTSTRAP_SERVER}}
     exit: south_kafka_tcp_client
   south_kafka_tcp_client:
     type: tcp
     kind: client
-    options:
-      host: ${{env.KAFKA_HOST}}
-      port: ${{env.KAFKA_PORT}}
-    routes:
-      - when:
-          - cidr: 0.0.0.0/0
 
 # Kafka to external gRPC server
   west_kafka_grpc_remote_server:

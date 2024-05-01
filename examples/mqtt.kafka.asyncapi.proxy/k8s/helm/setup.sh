@@ -1,17 +1,17 @@
 #!/bin/bash
 set -e
 
-if [[ -z "$KAFKA_HOST" && -z "$KAFKA_PORT" ]]; then
-  export KAFKA_HOST=kafka.zilla-kafka-broker.svc.cluster.local
-  export KAFKA_PORT=9092
-  echo "==== This example requires env vars KAFKA_HOST and KAFKA_PORT for a running kafka instance. Setting to the default ($KAFKA_HOST:$KAFKA_PORT) ===="
-fi
+ZILLA_VERSION="${ZILLA_VERSION:-^0.9.0}"
+NAMESPACE="${NAMESPACE:-zilla-mqtt-kafka-asyncapi-proxy}"
+export KAFKA_BROKER="${KAFKA_BROKER:-kafka}"
+export KAFKA_BOOTSTRAP_SERVER="${KAFKA_BOOTSTRAP_SERVER:-host.docker.internal:9092}"
+export KAFKA_PORT="${KAFKA_PORT:-9092}"
+INIT_KAFKA="${INIT_KAFKA:-true}"
+ZILLA_CHART="${ZILLA_CHART:-oci://ghcr.io/aklivity/charts/zilla}"
 
 # Install Zilla to the Kubernetes cluster with helm and wait for the pod to start up
-NAMESPACE=zilla-mqtt-kafka-asyncapi-proxy
-ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
-echo "Installing $ZILLA_CHART to $NAMESPACE with Kafka at $KAFKA_HOST:$KAFKA_PORT"
-helm upgrade --install zilla $ZILLA_CHART --namespace $NAMESPACE --create-namespace --wait \
+echo "==== Installing $ZILLA_CHART to $NAMESPACE with $KAFKA_BROKER($KAFKA_BOOTSTRAP_SERVER) ===="
+helm upgrade --install zilla $ZILLA_CHART --version $ZILLA_VERSION --namespace $NAMESPACE --create-namespace --wait \
     --values values.yaml \
     --set extraEnv[1].value="\"$KAFKA_HOST\"",extraEnv[2].value="\"$KAFKA_PORT\"" \
     --set-file zilla\\.yaml=../../zilla.yaml \
@@ -19,14 +19,16 @@ helm upgrade --install zilla $ZILLA_CHART --namespace $NAMESPACE --create-namesp
     --set-file configMaps.specs.data.kafka-asyncapi\\.yaml=../../specs/kafka-asyncapi.yaml
 
 # Create the mqtt topics in Kafka
-kubectl run kafka-init-pod --image=bitnami/kafka:3.2 --namespace $NAMESPACE --rm --restart=Never -i -t -- /bin/sh -c "
-echo 'Creating topics for $KAFKA_HOST:$KAFKA_PORT'
-/opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server $KAFKA_HOST:$KAFKA_PORT --create --if-not-exists --topic mqtt-messages
-/opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server $KAFKA_HOST:$KAFKA_PORT --create --if-not-exists --topic streetlights
-/opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server $KAFKA_HOST:$KAFKA_PORT --create --if-not-exists --topic mqtt-retained --config cleanup.policy=compact
-/opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server $KAFKA_HOST:$KAFKA_PORT --create --if-not-exists --topic mqtt-sessions --config cleanup.policy=compact
-"
-kubectl wait --namespace $NAMESPACE --for=delete pod/kafka-init-pod
+if [[ $INIT_KAFKA == true ]]; then
+  kubectl run kafka-init-pod --image=bitnami/kafka:3.2 --namespace $NAMESPACE --rm --restart=Never -i -t -- /bin/sh -c "
+  echo 'Creating topics for $KAFKA_BOOTSTRAP_SERVER'
+  /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server $KAFKA_BOOTSTRAP_SERVER --create --if-not-exists --topic mqtt-messages
+  /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server $KAFKA_BOOTSTRAP_SERVER --create --if-not-exists --topic streetlights
+  /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server $KAFKA_BOOTSTRAP_SERVER --create --if-not-exists --topic mqtt-retained --config cleanup.policy=compact
+  /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server $KAFKA_BOOTSTRAP_SERVER --create --if-not-exists --topic mqtt-sessions --config cleanup.policy=compact
+  "
+  kubectl wait --namespace $NAMESPACE --for=delete pod/kafka-init-pod
+fi
 
 # Start port forwarding
 SERVICE_PORTS=$(kubectl get svc --namespace $NAMESPACE zilla --template "{{ range .spec.ports }}{{.port}} {{ end }}")

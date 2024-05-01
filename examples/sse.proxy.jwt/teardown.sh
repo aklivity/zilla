@@ -5,6 +5,6 @@ set -x
 pgrep kubectl && killall kubectl
 
 # Uninstall Zilla and SSE Server
-NAMESPACE=zilla-sse-proxy-jwt
+NAMESPACE="${NAMESPACE:-zilla-sse-proxy-jwt}"
 helm uninstall zilla sse-server --namespace $NAMESPACE
 kubectl delete namespace $NAMESPACE

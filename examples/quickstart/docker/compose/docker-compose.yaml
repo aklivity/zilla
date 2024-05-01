@@ -1,7 +1,7 @@
 version: '3'
 services:
   zilla:
-    image: ghcr.io/aklivity/zilla:latest
+    image: ghcr.io/aklivity/zilla:${ZILLA_VERSION}
     container_name: zilla
     pull_policy: always
     restart: unless-stopped

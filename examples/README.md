@@ -25,7 +25,7 @@ Install and run any of the [examples](#examples) using the `startup.sh` script:
 You can specify your own Kafka host and port or the working directory where you want the examples to be downloaded. Existing example directories will `not` be overwritten.
 
 ```bash
-./startup.sh -m -h kafka -p 9092 -d /tmp example.name
+./startup.sh -m -k kafka:9092 -d /tmp example.name
 ```
 
 Alternatively, you can run this script the same way without cloning the repo.
@@ -41,20 +41,20 @@ wget -qO- https://raw.githubusercontent.com/aklivity/zilla-examples/main/startup
 ```
 
 ```text
-Usage: startup.sh [-km][-h KAFKA_HOST -p KAFKA_PORT][-d WORKDIR][-v VERSION][--no-kafka][--auto-teardown][--redpanda] example.name
+Usage: startup.sh [-hm][-k KAFKA_BOOTSTRAP_SERVER][-d WORKDIR][-v ZILLA_VERSION][-e EX_VERSION][--no-kafka-init][--redpanda] example.name
 
 Operand:
     example.name          The name of the example to use                                 [default: quickstart][string]
 
 Options:
     -d | --workdir        Sets the directory used to download and run the example                             [string]
-    -h | --kafka-host     Sets the hostname used when connecting to Kafka                                     [string]
-    -k | --use-helm       Use the helm install, if available, instead of compose                             [boolean]
+    -e | --ex-version     Sets the examples version to download                              [default: latest][string]
+    -h | --use-helm       Use the helm install, if available, instead of compose                             [boolean]
+    -k | --kafka-server   Sets the Kafka Boostrap Server to use                                               [string]
     -m | --use-main       Download the head of the main branch                                               [boolean]
-    -p | --kafka-port     Sets the port used when connecting to Kafka                                         [string]
-    -v | --version        Sets the version to download                                       [default: latest][string]
+    -v | --zilla-version  Sets the zilla version to use                                      [default: latest][string]
          --auto-teardown  Executes the teardown script immediately after setup                               [boolean]
-         --no-kafka       The script wont try to start a kafka broker                                        [boolean]
+         --no-kafka-init  The script wont try to bootstrap the kafka broker                                  [boolean]
          --redpanda       Makes the included kafka broker and scripts use Redpanda                           [boolean]
          --help           Print help                                                                         [boolean]
 ```
@@ -79,7 +79,7 @@ Options:
 | [http.kafka.oneway](http.kafka.oneway)                             | Sends messages to a Kafka topic, fire-and-forget                                                    |
 | [http.kafka.crud](http.kafka.crud)                                 | Exposes a REST API with CRUD operations where a log-compacted Kafka topic acts as a table           |
 | [http.kafka.sasl.scram](http.kafka.sasl.scram)                     | Sends messages to a SASL/SCRAM enabled Kafka                                                        |
-| [http.kafka.karapace](http.kafka.karapace)           | Validate messages while produce and fetch to a Kafka topic                                          |
+| [http.kafka.karapace](http.kafka.karapace)                         | Validate messages while produce and fetch to a Kafka topic                                          |
 | [http.redpanda.sasl.scram](http.redpanda.sasl.scram)               | Sends messages to a SASL/SCRAM enabled Redpanda Cluster                                             |
 | [kubernetes.prometheus.autoscale](kubernetes.prometheus.autoscale) | Demo Kubernetes Horizontal Pod Autoscaling feature based a on a custom metric with Prometheus       |
 | [grpc.echo](grpc.echo)                                             | Echoes messages sent to the gRPC server from a gRPC client                                          |

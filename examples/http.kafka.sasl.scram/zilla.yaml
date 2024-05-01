@@ -71,6 +71,8 @@ bindings:
     type: kafka
     kind: client
     options:
+      servers:
+        - kafka:29092
       sasl:
         mechanism: scram-sha-256
         username: ${{env.SASL_USERNAME}}
@@ -79,9 +81,3 @@ bindings:
   south_tcp_client:
     type: tcp
     kind: client
-    options:
-      host: kafka
-      port: 29091
-    routes:
-      - when:
-          - cidr: 0.0.0.0/0

@@ -1,7 +1,7 @@
 #!/bin/bash
 BOLD='\033[1;97m'
 END='\033[0m'
-NAMESPACE=zilla-kubernetes-prometheus-autoscale
+NAMESPACE="${NAMESPACE:-zilla-kubernetes-prometheus-autoscale}"
 
 echo -e "${BOLD}The status of horizontal pod autoscaling${END}"
 echo -e "${BOLD}----------------------------------------${END}\n"

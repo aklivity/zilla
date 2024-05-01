@@ -5,9 +5,10 @@ set -ex
 docker image inspect zilla-examples/grpc-echo:latest --format 'Image Found {{.RepoTags}}'
 
 # Install Zilla to the Kubernetes cluster with helm and wait for the pod to start up
-ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
-NAMESPACE=zilla-grpc-kafka-proxy
-helm upgrade --install zilla $ZILLA_CHART --namespace $NAMESPACE --create-namespace --wait \
+ZILLA_CHART="${ZILLA_CHART:-oci://ghcr.io/aklivity/charts/zilla}"
+ZILLA_VERSION="${ZILLA_VERSION:-^0.9.0}"
+NAMESPACE="${NAMESPACE:-zilla-grpc-kafka-proxy}"
+helm upgrade --install zilla $ZILLA_CHART --version $ZILLA_VERSION --namespace $NAMESPACE --create-namespace --wait \
     --values values.yaml \
     --set-file zilla\\.yaml=zilla.yaml \
     --set-file configMaps.proto.data.echo\\.proto=proto/echo.proto \

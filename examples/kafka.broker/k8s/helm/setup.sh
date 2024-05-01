@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-NAMESPACE=zilla-kafka-broker
+NAMESPACE="${NAMESPACE:-zilla-kafka-broker}"
 # Install Kafka to the Kubernetes cluster with helm and wait for the pod to start up
 helm upgrade --install kafka . --namespace $NAMESPACE --create-namespace --wait
 helm upgrade --install kafka-ui kafka-ui --version 0.7.5 --namespace $NAMESPACE --repo https://provectus.github.io/kafka-ui-charts --wait \

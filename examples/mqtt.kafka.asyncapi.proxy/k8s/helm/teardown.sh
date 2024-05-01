@@ -5,6 +5,6 @@ set -x
 pgrep kubectl && killall kubectl
 
 # Uninstall Zilla and Kafka
-NAMESPACE=zilla-mqtt-kafka-asyncapi-proxy
+NAMESPACE="${NAMESPACE:-zilla-mqtt-kafka-asyncapi-proxy}"
 helm uninstall zilla --namespace $NAMESPACE
 kubectl delete namespace $NAMESPACE

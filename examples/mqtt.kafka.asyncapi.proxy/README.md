@@ -7,7 +7,7 @@ Zilla implements MQTT API defined in AsyncAPI specifications and uses Kafka API 
 
 This example can be run using Docker compose or Kubernetes. The setup scripts are in the [compose](./docker/compose) and [helm](./k8s/helm) folders respectively and work the same way.
 
-You will need a running kafka broker. To start one locally you will find instructions in the [kafka.broker](../kafka.broker) folder.
+You will need a running kafka broker. To start one locally you will find instructions in the [kafka.broker](../kafka.broker) folder. Alternatively you can use the [redpanda.broker](../redpanda.broker) folder.
 
 ### Setup
 

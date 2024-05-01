@@ -105,6 +105,9 @@ bindings:
   south_kafka_client:
     type: kafka
     kind: client
+    options:
+      servers:
+        - kafka:29092
     exit: south_tcp_client
     telemetry:
       metrics:
@@ -112,12 +115,6 @@ bindings:
   south_tcp_client:
     type: tcp
     kind: client
-    options:
-      host: kafka
-      port: 29092
-    routes:
-      - when:
-          - cidr: 0.0.0.0/0
     telemetry:
       metrics:
         - stream.*

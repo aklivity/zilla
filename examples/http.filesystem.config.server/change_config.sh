@@ -2,7 +2,7 @@
 set -ex
 
 # change configfile
-NAMESPACE=zilla-config-server
+NAMESPACE="${NAMESPACE:-zilla-config-server}"
 ZILLA_CONFIG_POD=$(kubectl get pods --namespace $NAMESPACE --selector app.kubernetes.io/instance=zilla-config -o json | jq -r '.items[0].metadata.name')
 kubectl cp --namespace $NAMESPACE www-updated/zilla.yaml "$ZILLA_CONFIG_POD:/var/www/zilla.yaml"
 
