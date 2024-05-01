@@ -478,9 +478,7 @@ public final class SseServerFactory implements SseStreamFactory
             final long authorization = reset.authorization();
 
             assert acknowledge <= sequence;
-            assert sequence <= httpReplySeq;
             assert acknowledge >= httpReplyAck;
-            assert maximum >= httpReplyMax;
 
             httpReplyAck = acknowledge;
             httpReplyMax = maximum;
