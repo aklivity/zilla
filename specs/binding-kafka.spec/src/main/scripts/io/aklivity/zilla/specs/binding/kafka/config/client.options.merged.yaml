@@ -23,6 +23,4 @@ bindings:
     options:
       servers:
         - localhost:9092
-      merged:
-        - test
     exit: net0

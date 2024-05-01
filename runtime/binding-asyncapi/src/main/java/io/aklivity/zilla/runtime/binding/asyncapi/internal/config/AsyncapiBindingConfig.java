@@ -47,6 +47,7 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.HttpBeginExFW;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiServerView;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
@@ -222,39 +223,55 @@ public final class AsyncapiBindingConfig
                         (existingValue, newValue) -> existingValue,
                         Object2ObjectHashMap::new));
 
+        namespaceGenerator.init(binding);
         final NamespaceConfig composite = namespaceGenerator.generateProxy(binding, asyncapis, schemaIdsByApiId::get);
         composite.readURL = binding.readURL;
         attach.accept(composite);
-        for (AsyncapiSchemaConfig config : configs)
-        {
-            Asyncapi asyncapi = config.asyncapi;
-            updateNamespace(config, composite, asyncapi);
-        }
+        updateNamespace(configs, composite, new ArrayList<>(asyncapis.values()));
     }
 
     private void attachServerClientBinding(
         BindingConfig binding,
         List<AsyncapiSchemaConfig> configs)
     {
+        final Map<Integer, AsyncapiNamespaceConfig> namespaceConfigs = new HashMap<>();
         for (AsyncapiSchemaConfig config : configs)
         {
+            namespaceGenerator.init(binding);
             Asyncapi asyncapi = config.asyncapi;
-            final NamespaceConfig composite = namespaceGenerator.generate(binding, asyncapi);
+            final List<AsyncapiServerView> servers =
+                namespaceGenerator.filterAsyncapiServers(asyncapi, options.asyncapis.stream()
+                    .filter(a -> a.apiLabel.equals(config.apiLabel))
+                    .flatMap(a -> a.servers.stream())
+                    .collect(Collectors.toList()));
+
+            servers.stream().collect(Collectors.groupingBy(AsyncapiServerView::getPort)).forEach((k, v) ->
+                namespaceConfigs.computeIfAbsent(k, s -> new AsyncapiNamespaceConfig()).addSpecForNamespace(v, config, asyncapi));
+        }
+
+        for (AsyncapiNamespaceConfig namespaceConfig : namespaceConfigs.values())
+        {
+            namespaceConfig.servers.forEach(s -> s.setAsyncapiProtocol(
+                namespaceGenerator.resolveProtocol(s.protocol(), options, namespaceConfig.asyncapis, namespaceConfig.servers)));
+            final NamespaceConfig composite = namespaceGenerator.generate(binding, namespaceConfig);
             composite.readURL = binding.readURL;
             attach.accept(composite);
-            updateNamespace(config, composite, asyncapi);
+            updateNamespace(namespaceConfig.configs, composite, namespaceConfig.asyncapis);
         }
     }
 
     private void updateNamespace(
-        AsyncapiSchemaConfig config,
+        List<AsyncapiSchemaConfig> configs,
         NamespaceConfig composite,
-        Asyncapi asyncapi)
+        List<Asyncapi> asyncapis)
     {
-        composites.put(config.schemaId, composite);
-        schemaIdsByApiId.put(config.apiLabel, config.schemaId);
-        extractChannels(asyncapi);
-        extractOperations(asyncapi);
+        configs.forEach(c ->
+        {
+            composites.put(c.schemaId, composite);
+            schemaIdsByApiId.put(c.apiLabel, c.schemaId);
+        });
+        asyncapis.forEach(this::extractChannels);
+        asyncapis.forEach(this::extractOperations);
     }
 
     private void extractNamespace(

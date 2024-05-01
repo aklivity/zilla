@@ -36,6 +36,7 @@ import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
 import java.util.function.Supplier;
 
+import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
@@ -385,9 +386,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
                 {
                     final byte[] readArray = readBuffer.byteArray();
                     int bytesRead = input.read(readArray, 0, readArray.length);
-                    byte[] content = new byte[bytesRead];
-                    readBuffer.getBytes(0, content, 0, bytesRead);
-                    newTag = calculateHash(content);
+                    newTag = calculateHash(readArray, 0, Math.max(bytesRead, 0));
                 }
             }
             catch (IOException ex)
@@ -412,16 +411,14 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         }
 
         private String calculateHash(
-            byte[] content)
+            byte[] input,
+            int offset,
+            int length)
         {
-
-            byte[] hash = md5.digest(content);
-            StringBuilder sb = new StringBuilder(hash.length * 2);
-            for (byte b: hash)
-            {
-                sb.append(String.format("%02x", b));
-            }
-            return sb.toString();
+            md5.reset();
+            md5.update(input, offset, length);
+            byte[] hash = md5.digest();
+            return BitUtil.toHex(hash);
         }
 
         private void onAppEnd(
@@ -631,12 +628,13 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             if (replyWin > 0)
             {
                 InputStream input = getInputStream();
-                boolean replyClosable = input == null;
-                if (input != null)
+                try
                 {
-                    try
+                    int available = input != null ? input.available() : 0;
+
+                    if (available > 0)
                     {
-                        int reserved = Math.min(replyWin, input.available() + replyPad);
+                        int reserved = Math.min(replyWin, available + replyPad);
                         int length = Math.max(reserved - replyPad, 0);
 
                         if (length > 0 && replyDebIndex != NO_DEBITOR_INDEX && replyDeb != null)
@@ -657,25 +655,25 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
                                 doAppData(traceId, reserved, payload);
 
                                 replyBytes += bytesRead;
-                                replyClosable = replyBytes == attributes.size();
+
+                                if (replyBytes == attributes.size())
+                                {
+                                    input.close();
+                                    input = null;
+                                }
                             }
                         }
-                        if (replyClosable)
-                        {
-                            input.close();
-                            doAppEnd(traceId);
-                        }
                     }
-                    catch (IOException ex)
-                    {
-                        doAppAbort(traceId);
-                    }
-                }
-                else
-                {
-                    doAppEnd(traceId);
-                }
 
+                    if (available <= 0 || input == null)
+                    {
+                        doAppEnd(traceId);
+                    }
+                }
+                catch (IOException ex)
+                {
+                    doAppAbort(traceId);
+                }
             }
         }
     }

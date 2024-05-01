@@ -406,6 +406,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final Map<MqttPacketType, MqttServerDecoder> decodersByPacketTypeV4;
     private final Map<MqttPacketType, MqttServerDecoder> decodersByPacketTypeV5;
     private final IntSupplier supplySubscriptionId;
+    private final MqttQoS publishQosMax;
     private final EngineContext context;
 
     private int maximumPacketSize = Integer.MAX_VALUE;
@@ -520,6 +521,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         this.validator = new MqttValidator();
         this.utf8Decoder = StandardCharsets.UTF_8.newDecoder();
         this.supplySubscriptionId = config.subscriptionId();
+        this.publishQosMax = config.publishQosMax();
         final Optional<String16FW> clientId = Optional.ofNullable(config.clientId()).map(String16FW::new);
         this.supplyClientId = clientId.isPresent() ? clientId::get : () -> new String16FW(UUID.randomUUID().toString());
         this.decodePacketTypeByVersion = new Int2ObjectHashMap<>();
@@ -2938,7 +2940,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     .session(s -> s
                         .flags(connectFlags & (CLEAN_START_FLAG_MASK | WILL_FLAG_MASK))
                         .expiry(sessionExpiry)
-                        .publishQosMax(MqttQoS.EXACTLY_ONCE.value())
+                        .publishQosMax(publishQosMax.value())
                         .capabilities(capabilities)
                         .clientId(clientId));
 

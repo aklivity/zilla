@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        java: [ 11, 17, 20 ]
+        java: [ 17, 21, 22 ]
 
     steps:
     - name: Checkout GitHub sources

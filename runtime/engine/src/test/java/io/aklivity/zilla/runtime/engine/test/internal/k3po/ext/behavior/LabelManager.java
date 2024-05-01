@@ -98,7 +98,7 @@ public final class LabelManager
                 this.sizeInBytes = -1L;
             }
 
-            if (this.sizeInBytes == -1L || this.sizeInBytes < Files.size(labelsPath))
+            if (this.sizeInBytes == -1L || this.sizeInBytes != Files.size(labelsPath))
             {
                 Files.createDirectories(labelsPath.getParent());
                 try (FileChannel channel = FileChannel.open(labelsPath, CREATE, READ, WRITE))

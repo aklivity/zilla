@@ -12,11 +12,7 @@ updates:
   schedule:
     interval: daily
 - package-ecosystem: docker
-  directory: /cloud/docker-image/src/main/docker/release
-  schedule:
-    interval: daily
-- package-ecosystem: docker
-  directory: /cloud/docker-image/src/main/docker/incubator
+  directory: /cloud/docker-image/src/main/docker
   schedule:
     interval: daily
 - package-ecosystem: github-actions

@@ -68,6 +68,7 @@ import io.aklivity.zilla.runtime.engine.guard.Guard;
 import io.aklivity.zilla.runtime.engine.internal.Info;
 import io.aklivity.zilla.runtime.engine.internal.LabelManager;
 import io.aklivity.zilla.runtime.engine.internal.Tuning;
+import io.aklivity.zilla.runtime.engine.internal.layouts.EventsLayout;
 import io.aklivity.zilla.runtime.engine.internal.registry.EngineManager;
 import io.aklivity.zilla.runtime.engine.internal.registry.EngineWorker;
 import io.aklivity.zilla.runtime.engine.internal.registry.FileWatcherTask;
@@ -523,9 +524,19 @@ public final class Engine implements Collector, AutoCloseable
 
     private final class EventReader implements MessageReader
     {
+        private final EventsLayout.EventAccessor[] accessors;
         private final EventFW eventRO = new EventFW();
         private int minWorkerIndex;
         private long minTimeStamp;
+
+        EventReader()
+        {
+            accessors = new EventsLayout.EventAccessor[workers.size()];
+            for (int i = 0; i < workers.size(); i++)
+            {
+                accessors[i] = workers.get(i).createEventAccessor();
+            }
+        }
 
         @Override
         public int read(
@@ -542,7 +553,7 @@ public final class Engine implements Collector, AutoCloseable
                 for (int j = 0; j < workers.size(); j++)
                 {
                     final int workerIndex = j;
-                    int eventPeeked = workers.get(workerIndex).peekEvent((m, b, i, l) ->
+                    int eventPeeked = accessors[workerIndex].peekEvent((m, b, i, l) ->
                     {
                         eventRO.wrap(b, i, i + l);
                         if (eventRO.timestamp() < minTimeStamp)
@@ -556,7 +567,7 @@ public final class Engine implements Collector, AutoCloseable
                 empty = eventCount == 0;
                 if (!empty)
                 {
-                    messagesRead += workers.get(minWorkerIndex).readEvent(handler, 1);
+                    messagesRead += accessors[minWorkerIndex].readEvent(handler, 1);
                 }
             }
             return messagesRead;

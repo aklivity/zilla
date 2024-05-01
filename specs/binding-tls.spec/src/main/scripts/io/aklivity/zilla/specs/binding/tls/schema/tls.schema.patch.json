@@ -31,10 +31,6 @@
                     {
                         "enum": [ "client", "server", "proxy" ]
                     },
-                    "options":
-                    {
-                        "$ref": "#/$defs/options/binding/tls"
-                    },
                     "routes":
                     {
                         "items":
@@ -109,6 +105,45 @@
                         [
                             "routes"
                         ]
+                    }
+                ],
+                "oneOf":
+                [
+                    {
+                        "properties":
+                        {
+                            "kind":
+                            {
+                                "const": "client"
+                            },
+                            "options":
+                            {
+                                "$ref": "#/$defs/options/binding/tls"
+                            }
+                        }
+                    },
+                    {
+                        "properties":
+                        {
+                            "kind":
+                            {
+                                "const": "server"
+                            },
+                            "options":
+                            {
+                                "$ref": "#/$defs/options/binding/tls"
+                            }
+                        }
+                    },
+                    {
+                        "properties":
+                        {
+                            "kind":
+                            {
+                                "const": "proxy"
+                            },
+                            "options": false
+                        }
                     }
                 ]
             }
