@@ -597,7 +597,7 @@ public class TlsWorker implements EngineContext
         {
             signal(originId, routedId, streamId, 0L, 0L,
                 traceId, NO_CANCEL_ID, signalId, contextId);
-            return System.currentTimeMillis();
+            return NO_CANCEL_ID;
         }
 
         @Override
