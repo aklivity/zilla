@@ -388,6 +388,35 @@
                             "routes"
                         ]
                     }
+                ],
+                "oneOf":
+                [
+                    {
+                        "properties":
+                        {
+                            "kind":
+                            {
+                                "const": "server"
+                            }
+                        }
+                    },
+                    {
+                        "properties":
+                        {
+                            "kind":
+                            {
+                                "const": "client"
+                            },
+                            "options":
+                            {
+                                "properties":
+                                {
+                                    "access-control": false,
+                                    "authorization": false
+                                }
+                            }
+                        }
+                    }
                 ]
             }
         }

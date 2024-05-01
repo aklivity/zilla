@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.9.79](https://github.com/aklivity/zilla/tree/0.9.79) (2024-04-22)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.78...0.9.79)
+
+**Implemented enhancements:**
+
+- Support `filesystem` catalog for local schemas [\#908](https://github.com/aklivity/zilla/issues/908)
+- Check for files on startup when the zilla.yaml specifies paths to files or directories [\#292](https://github.com/aklivity/zilla/issues/292)
+
+**Fixed bugs:**
+
+- Fix k3po does not reload labels when labels file size decreases [\#972](https://github.com/aklivity/zilla/pull/972) ([bmaidics](https://github.com/bmaidics))
+
+**Merged pull requests:**
+
+- Support config for mqtt publish qos max [\#971](https://github.com/aklivity/zilla/pull/971) ([jfallows](https://github.com/jfallows))
+- Use default kafka client id for kafka client instance id [\#968](https://github.com/aklivity/zilla/pull/968) ([jfallows](https://github.com/jfallows))
+- Add vault parameter to exporter [\#966](https://github.com/aklivity/zilla/pull/966) ([attilakreiner](https://github.com/attilakreiner))
+- Implement filesystem catalog [\#962](https://github.com/aklivity/zilla/pull/962) ([bmaidics](https://github.com/bmaidics))
+
 ## [0.9.78](https://github.com/aklivity/zilla/tree/0.9.78) (2024-04-16)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.77...0.9.78)

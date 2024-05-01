@@ -13,12 +13,6 @@
 # specific language governing permissions and limitations under the License.
 #
 
-connect "zilla://streams/app0"
-    option zilla:window 8192
-
-connected
-
-
 connect "http://localhost:4318/v1/logs"
 connected
 

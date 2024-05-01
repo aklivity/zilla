@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.asyncapi.internal.config;
 
 import static io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiNamespaceGenerator.APPLICATION_JSON;
 
+import java.util.List;
 import java.util.Map;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
@@ -46,12 +47,12 @@ public class AsyncapiMqttProtocol extends AsyncapiProtocol
 
     public AsyncapiMqttProtocol(
         String qname,
-        Asyncapi asyncApi,
+        List<Asyncapi> asyncapis,
         AsyncapiOptionsConfig options,
         String protocol,
         String namespace)
     {
-        super(qname, asyncApi, protocol, SCHEME);
+        super(qname, asyncapis, protocol, SCHEME);
         final MqttOptionsConfig mqttOptions = options.mqtt;
         this.guardName =  mqttOptions != null ? String.format("%s:%s", namespace, mqttOptions.authorization.name) : null;
         this.authorization = mqttOptions != null ?
@@ -83,23 +84,26 @@ public class AsyncapiMqttProtocol extends AsyncapiProtocol
     private <C> MqttOptionsConfigBuilder<C> injectMqttTopicsOptions(
         MqttOptionsConfigBuilder<C> options)
     {
-        for (Map.Entry<String, AsyncapiChannel> channelEntry : asyncApi.channels.entrySet())
+        for (Asyncapi asyncapi : asyncapis)
         {
-            String topic = channelEntry.getValue().address.replaceAll("\\{[^}]+\\}", "#");
-            Map<String, AsyncapiMessage> messages = channelEntry.getValue().messages;
-            if (hasJsonContentType())
+            for (Map.Entry<String, AsyncapiChannel> channelEntry : asyncapi.channels.entrySet())
             {
-                options
-                    .topic()
-                    .name(topic)
-                    .content(JsonModelConfig::builder)
-                        .catalog()
-                            .name(INLINE_CATALOG_NAME)
-                            .inject(cataloged -> injectJsonSchemas(cataloged, messages, APPLICATION_JSON))
+                String topic = channelEntry.getValue().address.replaceAll("\\{[^}]+\\}", "#");
+                Map<String, AsyncapiMessage> messages = channelEntry.getValue().messages;
+                if (hasJsonContentType(asyncapi))
+                {
+                    options
+                        .topic()
+                        .name(topic)
+                        .content(JsonModelConfig::builder)
+                            .catalog()
+                                .name(INLINE_CATALOG_NAME)
+                                .inject(cataloged -> injectJsonSchemas(cataloged, asyncapi, messages, APPLICATION_JSON))
+                                .build()
                             .build()
-                        .build()
-                    .inject(t -> injectMqttUserPropertiesConfig(t, messages))
-                    .build();
+                        .inject(t -> injectMqttUserPropertiesConfig(t, asyncapi, messages))
+                        .build();
+                }
             }
         }
         return options;
@@ -107,24 +111,25 @@ public class AsyncapiMqttProtocol extends AsyncapiProtocol
 
     private <C> MqttTopicConfigBuilder<C> injectMqttUserPropertiesConfig(
         MqttTopicConfigBuilder<C> topic,
+        Asyncapi asyncapi,
         Map<String, AsyncapiMessage> messages)
     {
         for (Map.Entry<String, AsyncapiMessage> messageEntry : messages.entrySet())
         {
             AsyncapiMessageView message =
-                AsyncapiMessageView.of(asyncApi.components.messages, messageEntry.getValue());
+                AsyncapiMessageView.of(asyncapi.components.messages, messageEntry.getValue());
 
             if (message.traits() != null)
             {
                 for (AsyncapiTrait asyncapiTrait : message.traits())
                 {
-                    AsyncapiTraitView trait = AsyncapiTraitView.of(asyncApi.components.messageTraits, asyncapiTrait);
+                    AsyncapiTraitView trait = AsyncapiTraitView.of(asyncapi.components.messageTraits, asyncapiTrait);
 
                     for (Map.Entry<String, AsyncapiItem> header : trait.commonHeaders().properties.entrySet())
                     {
                         topic
                             .userProperty()
-                            .inject(u -> injectUserProperty(u, header.getKey()))
+                            .inject(u -> injectUserProperty(u, INLINE_CATALOG_NAME, header.getKey()))
                             .build();
                     }
                 }
@@ -136,13 +141,14 @@ public class AsyncapiMqttProtocol extends AsyncapiProtocol
 
     private <C> MqttUserPropertyConfigBuilder<C> injectUserProperty(
         MqttUserPropertyConfigBuilder<C> userProperty,
+        String catalogName,
         String subject)
     {
         userProperty
             .name(subject)
             .value(JsonModelConfig::builder)
             .catalog()
-                .name(INLINE_CATALOG_NAME)
+                .name(catalogName)
                 .schema()
                     .version(VERSION_LATEST)
                     .subject(subject)
@@ -156,23 +162,26 @@ public class AsyncapiMqttProtocol extends AsyncapiProtocol
     public <C> BindingConfigBuilder<C> injectProtocolServerRoutes(
         BindingConfigBuilder<C> binding)
     {
-        for (Map.Entry<String, AsyncapiChannel> entry : asyncApi.channels.entrySet())
+        for (Asyncapi asyncapi : asyncapis)
         {
-            String topic = entry.getValue().address.replaceAll("\\{[^}]+\\}", "#");
-            binding
-                .route()
-                    .when(MqttConditionConfig::builder)
-                        .publish()
-                            .topic(topic)
+            for (Map.Entry<String, AsyncapiChannel> entry : asyncapi.channels.entrySet())
+            {
+                String topic = entry.getValue().address.replaceAll("\\{[^}]+\\}", "#");
+                binding
+                    .route()
+                        .when(MqttConditionConfig::builder)
+                            .publish()
+                                .topic(topic)
+                                .build()
                             .build()
-                        .build()
-                    .when(MqttConditionConfig::builder)
-                        .subscribe()
-                            .topic(topic)
+                        .when(MqttConditionConfig::builder)
+                            .subscribe()
+                                .topic(topic)
+                                .build()
                             .build()
-                        .build()
-                    .exit(qname)
-                .build();
+                        .exit(qname)
+                    .build();
+            }
         }
         return binding;
     }

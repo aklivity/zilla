@@ -23,6 +23,7 @@ import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
+import org.kaazing.k3po.junit.annotation.ScriptProperty;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 
@@ -52,9 +53,11 @@ public class EventIT
     @Test
     @Configuration("event.yaml")
     @Specification({
-        "${net}/event/client",
+        "${net}/handshake/client",
+        "${net}/handshake/server",
         "${app}/event/server"
     })
+    @ScriptProperty("serverAddress \"zilla://streams/app0\"")
     public void shouldPostEventLogToOtlpCollector() throws Exception
     {
         k3po.finish();

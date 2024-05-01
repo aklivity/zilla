@@ -128,14 +128,4 @@ public class NetworkIT
     {
         k3po.finish();
     }
-
-    @Test
-    @Specification({
-        "${net}/event/server",
-        "${net}/event/client"
-    })
-    public void shouldConnect() throws Exception
-    {
-        k3po.finish();
-    }
 }
