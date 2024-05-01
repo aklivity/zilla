@@ -18,8 +18,10 @@ package io.aklivity.zilla.runtime.binding.tls.internal.bench;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.isInitial;
 import static java.lang.ThreadLocal.withInitial;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.net.InetAddress;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.channels.SelectableChannel;
 import java.time.Clock;
@@ -63,6 +65,9 @@ import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
+import io.aklivity.zilla.runtime.engine.vault.Vault;
+import io.aklivity.zilla.runtime.engine.vault.VaultContext;
+import io.aklivity.zilla.runtime.engine.vault.VaultFactory;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
 public class TlsWorker implements EngineContext
@@ -73,10 +78,14 @@ public class TlsWorker implements EngineContext
     private final BufferPool bufferPool;
     private final Long2ObjectHashMap<BindingHandler> handlers;
     private final Object2ObjectHashMap<String, Binding> bindings;
+    private final Long2ObjectHashMap<VaultHandler> vaultHandlers;
+    private final Object2ObjectHashMap<String, Vault> vaults;
     private final Long2ObjectHashMap<MessageConsumer> streamsById;
     private final Long2ObjectHashMap<MessageConsumer> throtllesById;
     private final BindingFactory factory;
+    private final VaultFactory vaultFactory;
     private final Configuration config;
+    private final URL configURL;
 
     private final TlsSignaler signaler;
 
@@ -96,12 +105,16 @@ public class TlsWorker implements EngineContext
                 .readonly(false)
                 .build()
                 .bufferPool();
+        this.configURL = config.configURL();
 
         this.signaler = new TlsSignaler();
 
         this.factory = BindingFactory.instantiate();
+        this.vaultFactory = VaultFactory.instantiate();
         this.bindings = new Object2ObjectHashMap<>();
         this.handlers = new Long2ObjectHashMap<>();
+        this.vaultHandlers = new Long2ObjectHashMap<>();
+        this.vaults = new Object2ObjectHashMap<>();
         this.streamsById = new Long2ObjectHashMap<>();
         this.throtllesById = new Long2ObjectHashMap<>();
     }
@@ -335,7 +348,7 @@ public class TlsWorker implements EngineContext
     public VaultHandler supplyVault(
         long vaultId)
     {
-        return null;
+        return vaultHandlers.get(vaultId);
     }
 
     @Override
@@ -370,7 +383,16 @@ public class TlsWorker implements EngineContext
     public URL resolvePath(
         String path)
     {
-        return null;
+        URL resolved = null;
+        try
+        {
+            resolved = new URL(configURL, path);
+        }
+        catch (MalformedURLException ex)
+        {
+            rethrowUnchecked(ex);
+        }
+        return resolved;
     }
 
     @Override
@@ -420,6 +442,15 @@ public class TlsWorker implements EngineContext
     public void attach(
         NamespaceConfig namespace)
     {
+        namespace.vaults.forEach(v ->
+        {
+            Vault vault = supplyVault(v.type);
+            VaultContext context = vault.supply(this);
+            VaultHandler handler = context.attach(v);
+
+            vaultHandlers.put(crc32c(v.name), handler);
+        });
+
         namespace.bindings.stream()
             .peek(b -> b.id = crc32c(b.name))
             .map(b -> b.routes)
@@ -431,6 +462,7 @@ public class TlsWorker implements EngineContext
         {
             Binding binding = supplyBinding(b.type);
             BindingContext context = binding.supply(this);
+            b.vaultId = b.vault != null ? crc32c(b.vault) : 0L;
             BindingHandler handler = context.attach(b);
 
             handlers.put(b.id, handler);
@@ -493,19 +525,22 @@ public class TlsWorker implements EngineContext
         streamsBuffer.write(msgTypeId, buffer, index, length);
     }
 
-    private void handleEventWrite(
-        int msgTypeId,
-        DirectBuffer buffer,
-        int index,
-        int length)
-    {
-        streamsBuffer.write(msgTypeId, buffer, index, length);
-    }
-
     private Binding supplyBinding(
         String type)
     {
         return bindings.computeIfAbsent(type, this::createBinding);
+    }
+
+    private Vault supplyVault(
+        String type)
+    {
+        return vaults.computeIfAbsent(type, this::createVault);
+    }
+
+    private Vault createVault(
+        String type)
+    {
+        return vaultFactory.create(type, config);
     }
 
     private Binding createBinding(

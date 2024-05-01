@@ -15,11 +15,13 @@
  */
 package io.aklivity.zilla.runtime.binding.tls.internal.bench;
 
-import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DIRECTORY;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_CONFIG_URL;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
+import java.net.URL;
+import java.util.List;
 import java.util.Properties;
 
 import org.agrona.MutableDirectBuffer;
@@ -42,12 +44,14 @@ import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
+import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
+import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig;
 
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.Throughput)
@@ -70,22 +74,49 @@ public class TlsHandshakeBM
     public void init()
     {
         final Properties properties = new Properties();
-        properties.setProperty(ENGINE_DIRECTORY.name(), "target/zilla-bm");
+        URL configURL = TlsHandshakeBM.class.getClassLoader().getResource("io/aklivity/zilla/specs/binding/tls/config");
+        properties.setProperty(ENGINE_CONFIG_URL.name(), String.format("%s/zilla.yaml", configURL.toString()));
         final EngineConfiguration config = new EngineConfiguration(properties);
         this.worker = new TlsWorker(config);
 
         NamespaceConfig namespace = NamespaceConfig.builder()
             .name("tls")
+            .vault()
+                .name("server")
+                .type("filesystem")
+                .options(FileSystemOptionsConfig.builder()
+                    .keys()
+                        .store("stores/server/keys")
+                        .type("pkcs12")
+                        .password("generated")
+                        .build()
+                    .trust()
+                        .store("stores/client/trust")
+                        .type("pkcs12")
+                        .password("generated")
+                        .build()
+                    .build())
+                .build()
             .binding()
                 .name("tls_client0")
                 .type("tls")
                 .kind(CLIENT)
+                .vault("server")
+                .options(TlsOptionsConfig.builder()
+                    .trust(List.of("serverca"))
+                    .sni(List.of("localhost"))
+                    .build())
                 .exit("tls_server0")
                 .build()
             .binding()
                 .name("tls_server0")
                 .type("tls")
                 .kind(SERVER)
+                .vault("server")
+                .options(TlsOptionsConfig.builder()
+                    .keys(List.of("localhost"))
+                    .version("tls")
+                    .build())
                 .exit("echo_server0")
                 .build()
             .binding()
