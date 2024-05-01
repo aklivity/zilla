@@ -30,12 +30,12 @@ bindings:
         - 7143
         - 7114
     routes:
-        - when:
-            - port: 7143
-          exit: north_tls_server
-        - when:
-            - port: 7114
-          exit: north_http_server
+      - when:
+          - port: 7143
+        exit: north_tls_server
+      - when:
+          - port: 7114
+        exit: north_http_server
     telemetry:
       metrics:
         - stream.*

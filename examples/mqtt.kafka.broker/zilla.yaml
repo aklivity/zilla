@@ -17,17 +17,15 @@ bindings:
           - port: 7114
         exit: north_http_server
       - when:
-          - port: 7143
-        exit: north_wss_tls_server
-      - when:
           - port: 7183
         exit: north_mqtt_server
       - when:
+          - port: 7143
           - port: 7883
-        exit: north_mqtts_tls_server
+        exit: north_tls_server
 
   # TLS decrypting
-  north_mqtts_tls_server:
+  north_tls_server:
     type: tls
     kind: server
     vault: my_servers
@@ -36,17 +34,13 @@ bindings:
         - localhost
       sni:
         - localhost
-    exit: north_mqtt_server
-  north_wss_tls_server:
-    type: tls
-    kind: server
-    vault: my_servers
-    options:
-      keys:
-        - localhost
-      sni:
-        - localhost
-    exit: north_http_server
+    routes:
+      - when:
+          - port: 7143
+        exit: north_http_server
+      - when:
+          - port: 7883
+        exit: north_mqtt_server
 
   # WebSocket server
   north_http_server:
