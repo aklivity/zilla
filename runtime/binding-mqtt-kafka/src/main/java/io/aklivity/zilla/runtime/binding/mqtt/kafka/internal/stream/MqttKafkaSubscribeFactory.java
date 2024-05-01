@@ -2072,7 +2072,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                                 if (((filters >> i) & 1) == 1)
                                 {
                                     long subscriptionId = mqtt.retainedSubscriptionIds.get(i);
-                                    if (mqtt.retainAsPublished.getOrDefault(subscriptionId, false))
+                                    if (mqtt.retainAsPublished.getOrDefault(subscriptionId, Boolean.FALSE))
                                     {
                                         flag |= RETAIN_FLAG;
                                     }

@@ -180,30 +180,6 @@ write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
                                .fetch()
                                    .topic("test")
-                                   .partition(2, -2)
-                                   .build()
-                               .build()}
-
-connected
-
-read zilla:begin.ext ${kafka:beginEx()
-                              .typeId(zilla:id("kafka"))
-                              .fetch()
-                                  .topic("test")
-                                  .partition(2, 1, 3)
-                                  .build()
-                              .build()}
-
-connect await PARTITION_COUNT_4
-        "zilla://streams/app1"
-    option zilla:window 8192
-    option zilla:transmission "half-duplex"
-    option zilla:affinity 0x03
-
-write zilla:begin.ext ${kafka:beginEx()
-                               .typeId(zilla:id("kafka"))
-                               .fetch()
-                                   .topic("test")
                                    .partition(3, -2)
                                    .build()
                                .build()}
@@ -221,6 +197,30 @@ read zilla:begin.ext ${kafka:beginEx()
 # write zilla:resetEx ${kafka:resetEx("NOT_LEADER_FOR_PARTITION")}
 write aborted
 read abort
+
+connect await PARTITION_COUNT_4
+        "zilla://streams/app1"
+    option zilla:window 8192
+    option zilla:transmission "half-duplex"
+    option zilla:affinity 0x03
+
+write zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .fetch()
+                                   .topic("test")
+                                   .partition(2, -2)
+                                   .build()
+                               .build()}
+
+connected
+
+read zilla:begin.ext ${kafka:beginEx()
+                              .typeId(zilla:id("kafka"))
+                              .fetch()
+                                  .topic("test")
+                                  .partition(2, 1, 3)
+                                  .build()
+                              .build()}
 
 connect await PARTITION_LEADER_CHANGED
         "zilla://streams/app1"

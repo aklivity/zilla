@@ -174,6 +174,31 @@ connect await PARTITION_COUNT_4
         "zilla://streams/app1"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
+    option zilla:affinity 0x03
+
+write zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .fetch()
+                                   .topic("test")
+                                   .partition(3, -2)
+                                   .build()
+                               .build()}
+
+connected
+
+read zilla:begin.ext ${kafka:beginEx()
+                              .typeId(zilla:id("kafka"))
+                              .fetch()
+                                  .topic("test")
+                                  .partition(3, 1, 2)
+                                  .build()
+                              .build()}
+
+
+connect await PARTITION_COUNT_4
+        "zilla://streams/app1"
+    option zilla:window 8192
+    option zilla:transmission "half-duplex"
     option zilla:affinity 0x02
 
 write zilla:begin.ext ${kafka:beginEx()
@@ -198,30 +223,6 @@ write aborted
 read abort
 
 write notify PARTITION_TWO_LEADER_ABORTED
-
-connect await PARTITION_COUNT_4
-        "zilla://streams/app1"
-    option zilla:window 8192
-    option zilla:transmission "half-duplex"
-    option zilla:affinity 0x03
-
-write zilla:begin.ext ${kafka:beginEx()
-                               .typeId(zilla:id("kafka"))
-                               .fetch()
-                                   .topic("test")
-                                   .partition(3, -2)
-                                   .build()
-                               .build()}
-
-connected
-
-read zilla:begin.ext ${kafka:beginEx()
-                              .typeId(zilla:id("kafka"))
-                              .fetch()
-                                  .topic("test")
-                                  .partition(3, 1, 2)
-                                  .build()
-                              .build()}
 
 connect await PARTITION_ONE_LEADER_ABORTED
         "zilla://streams/app1"

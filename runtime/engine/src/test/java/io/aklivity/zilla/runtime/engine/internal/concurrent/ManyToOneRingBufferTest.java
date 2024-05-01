@@ -201,8 +201,8 @@ public class ManyToOneRingBufferTest
 
         inOrder.verify(buffer).putInt(lengthOffset(alignedRecordLength), 0);
         inOrder.verify(buffer).putLongOrdered(TAIL_COUNTER_INDEX, tail + alignedRecordLength + HEADER_LENGTH);
-        inOrder.verify(buffer).putInt(typeOffset(0), MSG_TYPE_ID);
         inOrder.verify(buffer).putBytes(encodedMsgOffset(0), srcBuffer, srcIndex, length);
+        inOrder.verify(buffer).putInt(typeOffset(0), MSG_TYPE_ID);
         inOrder.verify(buffer).putIntOrdered(lengthOffset(0), recordLength);
     }
 
@@ -408,7 +408,7 @@ public class ManyToOneRingBufferTest
         assertThat(ringBuffer.capacity(), equalTo(CAPACITY));
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test(expected = IllegalArgumentException.class)
     public void shouldThrowExceptionForCapacityThatIsNotPowerOfTwo()
     {
         final int capacity = 777;
