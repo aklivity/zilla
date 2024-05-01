@@ -71,6 +71,12 @@ public final class StreamId
         return (streamId & 0x0000_0000_0000_0001L) != 0L;
     }
 
+    public static boolean isThrottle(
+        int typeId)
+    {
+        return (typeId & 0x4000_0000) != 0;
+    }
+
     private static boolean isInitial(
         int instanceId)
     {
