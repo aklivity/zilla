@@ -582,7 +582,7 @@ public class TlsWorker implements EngineContext
         {
             handler.accept(signalId);
 
-            return System.currentTimeMillis();
+            return NO_CANCEL_ID;
         }
 
         @Override
