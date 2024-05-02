@@ -14,8 +14,11 @@
 # under the License.
 #
 
+property authorization 1L
+
 connect "zilla://streams/net0"
   option zilla:window 8192
+  option zilla:authorization ${authorization}
   option zilla:transmission "duplex"
   option zilla:byteorder "network"
 
