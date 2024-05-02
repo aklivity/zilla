@@ -20,6 +20,7 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
+import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapter;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.runtime.engine.config.VaultConfig;
 import io.aklivity.zilla.runtime.engine.config.VaultConfigBuilder;
@@ -29,12 +30,20 @@ public class VaultAdapter
     private static final String TYPE_NAME = "type";
     private static final String OPTIONS_NAME = "options";
 
-    private final OptionsAdapter options;
+    private final OptionsConfigAdapter options;
+
+    private String namespace;
 
     public VaultAdapter(
         ConfigAdapterContext context)
     {
-        this.options = new OptionsAdapter(OptionsConfigAdapterSpi.Kind.VAULT, context);
+        this.options = new OptionsConfigAdapter(OptionsConfigAdapterSpi.Kind.VAULT, context);
+    }
+
+    public void adaptNamespace(
+        String namespace)
+    {
+        this.namespace = namespace;
     }
 
     public JsonObject adaptToJson(
@@ -62,6 +71,7 @@ public class VaultAdapter
         options.adaptType(type);
 
         VaultConfigBuilder<VaultConfig> vault = VaultConfig.builder()
+            .namespace(namespace)
             .name(name)
             .type(type);
 

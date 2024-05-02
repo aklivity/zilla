@@ -19,6 +19,8 @@ import static io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder.ROUTE
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
+import java.util.regex.Matcher;
 
 import jakarta.json.Json;
 import jakarta.json.JsonArrayBuilder;
@@ -32,6 +34,7 @@ import org.agrona.collections.MutableInteger;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
+import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapter;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 
@@ -49,16 +52,27 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
 
     private final KindAdapter kind;
     private final RouteAdapter route;
-    private final OptionsAdapter options;
+    private final OptionsConfigAdapter options;
+    private final CatalogedAdapter cataloged;
     private final TelemetryRefAdapter telemetryRef;
+
+    private String namespace;
 
     public BindingConfigsAdapter(
         ConfigAdapterContext context)
     {
         this.kind = new KindAdapter(context);
         this.route = new RouteAdapter(context);
-        this.options = new OptionsAdapter(OptionsConfigAdapterSpi.Kind.BINDING, context);
+        this.options = new OptionsConfigAdapter(OptionsConfigAdapterSpi.Kind.BINDING, context);
+        this.cataloged = new CatalogedAdapter();
         this.telemetryRef = new TelemetryRefAdapter();
+    }
+
+    public BindingConfigsAdapter adaptNamespace(
+        String namespace)
+    {
+        this.namespace = namespace;
+        return this;
     }
 
     @Override
@@ -74,11 +88,6 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
 
             JsonObjectBuilder item = Json.createObjectBuilder();
 
-            if (binding.vault != null)
-            {
-                item.add(VAULT_NAME, binding.vault);
-            }
-
             item.add(TYPE_NAME, binding.type);
 
             item.add(KIND_NAME, kind.adaptToJson(binding.kind));
@@ -88,9 +97,21 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
                 item.add(ENTRY_NAME, binding.entry);
             }
 
+            if (binding.vault != null)
+            {
+                item.add(VAULT_NAME, binding.vault);
+            }
+
             if (binding.options != null)
             {
                 item.add(OPTIONS_NAME, options.adaptToJson(binding.options));
+            }
+
+            if (binding.catalogs != null && !binding.catalogs.isEmpty())
+            {
+                JsonArrayBuilder catalogs = Json.createArrayBuilder();
+                catalogs.add(cataloged.adaptToJson(binding.catalogs));
+                item.add(CATALOG_NAME, catalogs);
             }
 
             if (!ROUTES_DEFAULT.equals(binding.routes))
@@ -117,6 +138,7 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
                 item.add(TELEMETRY_NAME, telemetryRef0);
             }
 
+            assert namespace.equals(binding.namespace);
             object.add(binding.name, item);
         }
 
@@ -131,6 +153,12 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
 
         for (String name : object.keySet())
         {
+            Matcher matcher = NamespaceAdapter.PATTERN_NAME.matcher(name);
+            if (!matcher.matches())
+            {
+                throw new IllegalStateException(String.format("%s does not match pattern", name));
+            }
+
             JsonObject item = object.getJsonObject(name);
 
             String type = item.getString(TYPE_NAME);
@@ -138,13 +166,24 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
             options.adaptType(type);
 
             BindingConfigBuilder<BindingConfig> binding = BindingConfig.builder()
-                .name(name)
+                .namespace(Optional.ofNullable(matcher.group("namespace")).orElse(namespace))
+                .name(matcher.group("name"))
                 .type(type)
                 .kind(kind.adaptFromJson(item.getJsonString(KIND_NAME)));
+
+            if (item.containsKey(ENTRY_NAME))
+            {
+                binding.entry(item.getString(ENTRY_NAME));
+            }
 
             if (item.containsKey(VAULT_NAME))
             {
                 binding.vault(item.getString(VAULT_NAME));
+            }
+
+            if (item.containsKey(CATALOG_NAME))
+            {
+                binding.catalogs(cataloged.adaptFromJson(item.getJsonObject(CATALOG_NAME)));
             }
 
             if (item.containsKey(OPTIONS_NAME))
@@ -172,11 +211,6 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
             if (item.containsKey(TELEMETRY_NAME))
             {
                 binding.telemetry(telemetryRef.adaptFromJson(item.getJsonObject(TELEMETRY_NAME)));
-            }
-
-            if (item.containsKey(ENTRY_NAME))
-            {
-                binding.entry(item.getString(ENTRY_NAME));
             }
 
             bindings.add(binding.build());

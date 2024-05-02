@@ -54,6 +54,7 @@ public class ReconfigureHttpIT
         .external("app0")
         .external("app1")
         .external("app2")
+        .exceptions(m -> m.endsWith("Status500"))
         .clean();
 
     @Rule
@@ -134,7 +135,7 @@ public class ReconfigureHttpIT
         "${app}/reconfigure.server.error.via.http/server",
         "${net}/reconfigure.server.error.via.http/client"
     })
-    public void shouldNotReconfigureWhen500Returned() throws Exception
+    public void shouldNotReconfigureWhenStatus500() throws Exception
     {
         k3po.start();
         k3po.awaitBarrier("CHECK_RECONFIGURE");

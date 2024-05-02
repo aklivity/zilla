@@ -24,7 +24,6 @@ import java.util.function.Function;
 
 public final class NamespaceConfigBuilder<T> extends ConfigBuilder<T, NamespaceConfigBuilder<T>>
 {
-    public static final List<NamespaceRefConfig> NAMESPACES_DEFAULT = emptyList();
     public static final List<BindingConfig> BINDINGS_DEFAULT = emptyList();
     public static final List<CatalogConfig> CATALOGS_DEFAULT = emptyList();
     public static final List<GuardConfig> GUARDS_DEFAULT = emptyList();
@@ -34,7 +33,6 @@ public final class NamespaceConfigBuilder<T> extends ConfigBuilder<T, NamespaceC
     private final Function<NamespaceConfig, T> mapper;
 
     private String name;
-    private List<NamespaceRefConfig> namespaces;
     private TelemetryConfig telemetry;
     private List<BindingConfig> bindings;
     private List<CatalogConfig> catalogs;
@@ -61,25 +59,9 @@ public final class NamespaceConfigBuilder<T> extends ConfigBuilder<T, NamespaceC
         return this;
     }
 
-    public NamespaceRefConfigBuilder<NamespaceConfigBuilder<T>> namespace()
-    {
-        return new NamespaceRefConfigBuilder<>(this::namespace);
-    }
-
-    public NamespaceConfigBuilder<T> namespace(
-        NamespaceRefConfig namespace)
-    {
-        if (namespaces == null)
-        {
-            namespaces = new LinkedList<>();
-        }
-        namespaces.add(namespace);
-        return this;
-    }
-
     public TelemetryConfigBuilder<NamespaceConfigBuilder<T>> telemetry()
     {
-        return new TelemetryConfigBuilder<>(this::telemetry);
+        return new TelemetryConfigBuilder<>(this::telemetry).namespace(name);
     }
 
     public NamespaceConfigBuilder<T> telemetry(
@@ -91,7 +73,7 @@ public final class NamespaceConfigBuilder<T> extends ConfigBuilder<T, NamespaceC
 
     public BindingConfigBuilder<NamespaceConfigBuilder<T>> binding()
     {
-        return new BindingConfigBuilder<>(this::binding);
+        return new BindingConfigBuilder<>(this::binding).namespace(name);
     }
 
     public NamespaceConfigBuilder<T> binding(
@@ -114,7 +96,7 @@ public final class NamespaceConfigBuilder<T> extends ConfigBuilder<T, NamespaceC
 
     public CatalogConfigBuilder<NamespaceConfigBuilder<T>> catalog()
     {
-        return new CatalogConfigBuilder<>(this::catalog);
+        return new CatalogConfigBuilder<>(this::catalog).namespace(name);
     }
 
     public NamespaceConfigBuilder<T> catalog(
@@ -137,7 +119,7 @@ public final class NamespaceConfigBuilder<T> extends ConfigBuilder<T, NamespaceC
 
     public GuardConfigBuilder<NamespaceConfigBuilder<T>> guard()
     {
-        return new GuardConfigBuilder<>(this::guard);
+        return new GuardConfigBuilder<>(this::guard).namespace(name);
     }
 
     public NamespaceConfigBuilder<T> guard(
@@ -160,7 +142,7 @@ public final class NamespaceConfigBuilder<T> extends ConfigBuilder<T, NamespaceC
 
     public VaultConfigBuilder<NamespaceConfigBuilder<T>> vault()
     {
-        return new VaultConfigBuilder<>(this::vault);
+        return new VaultConfigBuilder<>(this::vault).namespace(name);
     }
 
     public NamespaceConfigBuilder<T> vault(
@@ -185,7 +167,6 @@ public final class NamespaceConfigBuilder<T> extends ConfigBuilder<T, NamespaceC
     {
         return mapper.apply(new NamespaceConfig(
             name,
-            Optional.ofNullable(namespaces).orElse(NAMESPACES_DEFAULT),
             Optional.ofNullable(telemetry).orElse(TELEMETRY_DEFAULT),
             Optional.ofNullable(bindings).orElse(BINDINGS_DEFAULT),
             Optional.ofNullable(guards).orElse(GUARDS_DEFAULT),

@@ -15,9 +15,13 @@
  */
 module io.aklivity.zilla.runtime.binding.kafka
 {
+    requires io.aklivity.zilla.runtime.common;
     requires io.aklivity.zilla.runtime.engine;
 
     exports io.aklivity.zilla.runtime.binding.kafka.config;
+    exports io.aklivity.zilla.runtime.binding.kafka.identity;
+
+    uses io.aklivity.zilla.runtime.binding.kafka.identity.KafkaClientIdSupplierFactorySpi;
 
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
         with io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBindingFactorySpi;
@@ -27,4 +31,10 @@ module io.aklivity.zilla.runtime.binding.kafka
 
     provides io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi
         with io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaConditionConfigAdapter;
+
+    provides io.aklivity.zilla.runtime.binding.kafka.identity.KafkaClientIdSupplierFactorySpi
+        with io.aklivity.zilla.runtime.binding.kafka.internal.identity.KafkaConfluentClientIdSupplierFactory;
+
+    provides io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi
+        with io.aklivity.zilla.runtime.binding.kafka.internal.KafkaEventFormatterFactory;
 }

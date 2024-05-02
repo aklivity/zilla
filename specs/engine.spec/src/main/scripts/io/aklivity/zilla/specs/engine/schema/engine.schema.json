@@ -105,6 +105,10 @@
 
     "$defs":
     {
+        "expression":{
+            "type": "string",
+            "pattern": "\\$\\{\\{\\s*([^\\s\\}]*)\\.([^\\s\\}]*)\\s*\\}\\}"
+        },
         "vault":
         {
             "type": "object",
@@ -218,6 +222,93 @@
             [
             ]
         },
+        "cataloged":
+        {
+            "oneOf":
+            [
+                {
+                    "type": "object",
+                    "properties":
+                    {
+                        "id":
+                        {
+                            "type": "integer"
+                        }
+                    },
+                    "required":
+                    [
+                        "id"
+                    ],
+                    "additionalProperties": false
+                },
+                {
+                    "type": "object",
+                    "properties":
+                    {
+                        "schema":
+                        {
+                            "type": "string"
+                        },
+                        "version":
+                        {
+                            "type": "string",
+                            "default": "latest"
+                        }
+                    },
+                    "required":
+                    [
+                        "schema"
+                    ],
+                    "additionalProperties": false
+                },
+                {
+                    "type": "object",
+                    "properties":
+                    {
+                        "strategy":
+                        {
+                            "type": "string"
+                        },
+                        "version":
+                        {
+                            "type": "string",
+                            "default": "latest"
+                        }
+                    },
+                    "required":
+                    [
+                        "strategy"
+                    ],
+                    "additionalProperties": false
+                },
+                {
+                    "type": "object",
+                    "properties":
+                    {
+                        "subject":
+                        {
+                            "type": "string"
+                        },
+                        "version":
+                        {
+                            "type": "string",
+                            "default": "latest"
+                        }
+                    },
+                    "required":
+                    [
+                        "subject"
+                    ],
+                    "additionalProperties": false
+                }
+            ]
+        },
+        "options":
+        {
+            "binding":
+            {
+            }
+        },
         "binding":
         {
             "title": "Binding",
@@ -228,6 +319,22 @@
                 {
                     "title": "Vault",
                     "type": "string"
+                },
+                "catalog":
+                {
+                    "type": "object",
+                    "patternProperties":
+                    {
+                        "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                        {
+                            "type": "array",
+                            "items":
+                            {
+                                "$ref": "#/$defs/cataloged"
+                            }
+                        }
+                    },
+                    "maxProperties": 1
                 },
                 "type":
                 {
@@ -314,8 +421,14 @@
                     "title": "Exit",
                     "type": "string"
                 },
-                "additionalProperties": false
+                "entry":
+                {
+                    "title": "Entry",
+                    "type": "string",
+                    "pattern": "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$"
+                }
             },
+            "additionalProperties": false,
             "required":
             [
                 "type",
@@ -329,12 +442,6 @@
                         "kind":
                         {
                             "const": "remote_server"
-                        },
-                        "entry":
-                        {
-                            "title": "Exit",
-                            "type": "string",
-                            "pattern": "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$"
                         }
                     },
                     "required":
@@ -351,7 +458,8 @@
                             {
                                 "const": "remote_server"
                             }
-                        }
+                        },
+                        "entry": false
                     }
                 }
             ],
@@ -359,135 +467,73 @@
             [
             ]
         },
-        "validator":
+        "converter":
         {
-            "type":
-            {
-                "oneOf":
-                [
-                    {
-                        "$ref": "#/$defs/validator/types"
-                    },
-                    {
-                        "type": "object",
-                        "properties":
-                        {
-                            "type":
-                            {
-                                "$ref": "#/$defs/validator/types"
-                            },
-                            "encoding":
-                            {
-                                "type": "string",
-                                "enum":
-                                [
-                                    "utf_8"
-                                ]
-                            },
-                            "catalog":
-                            {
-                                "type": "object",
-                                "patternProperties":
-                                {
-                                    "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
-                                    {
-                                        "type": "array",
-                                        "items":
-                                        {
-                                            "$ref": "#/$defs/validator/schema"
-                                        }
-                                    }
-                                }
-                            }
-                        },
-                        "additionalProperties": false
-                    }
-                ]
-            },
+            "oneOf":
+            [
+                {
+                    "$ref": "#/$defs/converter/types"
+                },
+                {
+                    "$ref": "#/$defs/converter/model"
+                }
+            ],
             "types":
             {
                 "type": "string",
                 "enum": []
             },
-            "schema":
+            "model":
             {
-                "oneOf":
-                [
+                "type": "object",
+                "properties":
+                {
+                    "model":
                     {
-                        "type": "object",
-                        "properties":
-                        {
-                            "id":
-                            {
-                                "type": "integer"
-                            }
-                        },
-                        "required":
-                        [
-                            "id"
-                        ],
-                        "additionalProperties": false
-                    },
-                    {
-                        "type": "object",
-                        "properties":
-                        {
-                            "schema":
-                            {
-                                "type": "string"
-                            },
-                            "version":
-                            {
-                                "type": "string",
-                                "default": "latest"
-                            }
-                        },
-                        "required":
-                        [
-                            "schema"
-                        ],
-                        "additionalProperties": false
-                    },
-                    {
-                        "type": "object",
-                        "properties":
-                        {
-                            "strategy":
-                            {
-                                "type": "string"
-                            },
-                            "version":
-                            {
-                                "type": "string",
-                                "default": "latest"
-                            }
-                        },
-                        "required":
-                        [
-                            "strategy"
-                        ],
-                        "additionalProperties": false
-                    },
-                    {
-                        "type": "object",
-                        "properties":
-                        {
-                            "subject":
-                            {
-                                "type": "string"
-                            },
-                            "version":
-                            {
-                                "type": "string",
-                                "default": "latest"
-                            }
-                        },
-                        "required":
-                        [
-                            "subject"
-                        ],
-                        "additionalProperties": false
+                        "$ref": "#/$defs/converter/types"
                     }
+                },
+                "required":
+                [
+                    "model"
+                ],
+                "allOf":
+                [
+                ]
+            }
+        },
+        "validator":
+        {
+            "oneOf":
+            [
+                {
+                    "$ref": "#/$defs/validator/types"
+                },
+                {
+                    "$ref": "#/$defs/validator/model"
+                }
+            ],
+            "types":
+            {
+                "type": "string",
+                "enum": []
+            },
+            "model":
+            {
+                "type": "object",
+                "properties":
+                {
+                    "model":
+                    {
+                        "$ref": "#/$defs/validator/types"
+                    }
+                },
+                "required":
+                [
+                    "model"
+                ],
+                "allOf":
+                [
                 ]
             }
         }

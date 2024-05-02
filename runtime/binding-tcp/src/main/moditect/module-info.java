@@ -27,4 +27,7 @@ module io.aklivity.zilla.runtime.binding.tcp
 
     provides io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi
         with io.aklivity.zilla.runtime.binding.tcp.internal.config.TcpConditionConfigAdapter;
+
+    provides io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi
+        with io.aklivity.zilla.runtime.binding.tcp.internal.TcpEventFormatterFactory;
 }

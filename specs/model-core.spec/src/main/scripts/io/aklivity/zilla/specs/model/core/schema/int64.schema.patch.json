@@ -1,0 +1,106 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/converter/types/enum/-",
+        "value": "int64"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/converter/model/allOf/-",
+        "value":
+        {
+            "if":
+            {
+                "properties":
+                {
+                    "model":
+                    {
+                        "const": "int64"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "model":
+                    {
+                        "const": "int64"
+                    },
+                    "format":
+                    {
+                        "type": "string",
+                        "enum":
+                        [
+                            "binary",
+                            "text"
+                        ],
+                        "default": "text"
+                    },
+                    "range":
+                    {
+                        "type": "string",
+                        "pattern": "((?:\\(|\\[))(-?\\d+)?,(-?\\d+)?((?:\\)|\\]))"
+                    },
+                    "multiple":
+                    {
+                        "type": "number"
+                    }
+                },
+                "additionalProperties": false
+            }
+        }
+    },
+    {
+        "op": "add",
+        "path": "/$defs/validator/types/enum/-",
+        "value": "int64"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/validator/model/allOf/-",
+        "value":
+        {
+            "if":
+            {
+                "properties":
+                {
+                    "model":
+                    {
+                        "const": "int64"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "model":
+                    {
+                        "const": "int64"
+                    },
+                    "format":
+                    {
+                        "type": "string",
+                        "enum":
+                        [
+                            "binary",
+                            "text"
+                        ],
+                        "default": "text"
+                    },
+                    "range":
+                    {
+                        "type": "string",
+                        "pattern": "((?:\\(|\\[))(-?\\d+)?,(-?\\d+)?((?:\\)|\\]))"
+                    },
+                    "multiple":
+                    {
+                        "type": "number"
+                    }
+                },
+                "additionalProperties": false
+            }
+        }
+    }
+]

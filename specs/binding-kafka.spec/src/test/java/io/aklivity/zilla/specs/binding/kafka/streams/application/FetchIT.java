@@ -183,33 +183,6 @@ public class FetchIT
 
     @Test
     @Specification({
-        "${app}/message.value.string.invalid/client",
-        "${app}/message.value.string.invalid/server"})
-    public void shouldReceiveMessageValueStringInvalid() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/message.value.valid/client",
-        "${app}/message.value.valid/server"})
-    public void shouldReceiveMessageValueTest() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/message.value.invalid/client",
-        "${app}/message.value.invalid/server"})
-    public void shouldReceiveMessageValueTestInvalid() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/message.value.empty/client",
         "${app}/message.value.empty/server"})
     public void shouldReceiveMessageValueEmpty() throws Exception
@@ -710,6 +683,15 @@ public class FetchIT
         "${app}/partition.leader.distinct/client",
         "${app}/partition.leader.distinct/server"})
     public void shouldReceiveDistinctPartitionLeader() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/no.message.value/client",
+        "${app}/no.message.value/server"})
+    public void shouldReceiveNoMessage() throws Exception
     {
         k3po.finish();
     }

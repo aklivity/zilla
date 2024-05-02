@@ -168,7 +168,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
         this.supplyBinding = supplyBinding;
         this.supplyCache = supplyCache;
         this.supplyCacheRoute = supplyCacheRoute;
-        this.cursorFactory = new KafkaCacheCursorFactory(writeBuffer);
+        this.cursorFactory = new KafkaCacheCursorFactory(writeBuffer.capacity());
         this.supplyRemoteIndex = context::supplyClientIndex;
         this.crc32c = new CRC32C();
         this.reconnectDelay = config.cacheServerReconnect();
@@ -1171,6 +1171,8 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                 {
                     final long partitionOffset = nextEntry.offset$();
                     final long timestamp = nextEntry.timestamp();
+                    final long producerId = nextEntry.producerId();
+                    final short producerEpoch = nextEntry.producerEpoch();
                     final int sequence = nextEntry.sequence();
                     final KafkaAckMode ackMode = KafkaAckMode.valueOf(nextEntry.ackMode());
                     final KafkaKeyFW key = nextEntry.key();
@@ -1201,6 +1203,13 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
 
                         final int deferred = remaining - length;
                         assert deferred >= 0 : String.format("%d >= 0", deferred);
+
+                        if (messageOffset == 0 &&
+                            length == 0 &&
+                            deferred > 0)
+                        {
+                            break produce;
+                        }
 
                         int flags = 0x00;
                         if (messageOffset == 0)
@@ -1234,12 +1243,12 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                         switch (flags)
                         {
                         case FLAG_INIT | FLAG_FIN:
-                            doServerInitialDataFull(traceId, timestamp, sequence, checksum, ackMode, key, headers, trailers,
-                                fragment, reserved, flags);
+                            doServerInitialDataFull(traceId, timestamp, producerId, producerEpoch, sequence, checksum,
+                                ackMode, key, headers, trailers, fragment, reserved, flags);
                             break;
                         case FLAG_INIT:
-                            doServerInitialDataInit(traceId, deferred, timestamp, sequence, checksum, ackMode, key,
-                                headers, trailers, fragment, reserved, flags);
+                            doServerInitialDataInit(traceId, deferred, timestamp, producerId, producerEpoch, sequence,
+                                checksum, ackMode, key, headers, trailers, fragment, reserved, flags);
                             break;
                         case FLAG_NONE:
                             doServerInitialDataNone(traceId, fragment, reserved, length, flags);
@@ -1277,6 +1286,8 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
         private void doServerInitialDataFull(
             long traceId,
             long timestamp,
+            long producerId,
+            short produceEpoch,
             int sequence,
             long checksum,
             KafkaAckMode ackMode,
@@ -1291,6 +1302,8 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                 ex -> ex.set((b, o, l) -> kafkaDataExRW.wrap(b, o, l)
                            .typeId(kafkaTypeId)
                            .produce(f -> f.timestamp(timestamp)
+                                        .producerId(producerId)
+                                        .producerEpoch(produceEpoch)
                                         .sequence(sequence)
                                         .crc32c(checksum)
                                         .ackMode(a -> a.set(ackMode))
@@ -1308,6 +1321,8 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
             long traceId,
             int deferred,
             long timestamp,
+            long producerId,
+            short produceEpoch,
             int sequence,
             long checksum,
             KafkaAckMode ackMode,
@@ -1323,6 +1338,8 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                            .typeId(kafkaTypeId)
                            .produce(f -> f.deferred(deferred)
                                           .timestamp(timestamp)
+                                          .producerId(producerId)
+                                          .producerEpoch(produceEpoch)
                                           .sequence(sequence)
                                           .crc32c(checksum)
                                           .ackMode(a -> a.set(ackMode))

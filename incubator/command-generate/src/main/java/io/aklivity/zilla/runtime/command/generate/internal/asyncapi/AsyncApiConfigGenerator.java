@@ -33,7 +33,6 @@ import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.model.Messag
 import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.model.Schema;
 import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.view.MessageView;
 import io.aklivity.zilla.runtime.command.generate.internal.asyncapi.view.SchemaView;
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 
 public abstract class AsyncApiConfigGenerator extends ConfigGenerator
@@ -51,8 +50,8 @@ public abstract class AsyncApiConfigGenerator extends ConfigGenerator
         return contentType != null && jsonContentType.reset(contentType).matches();
     }
 
-    protected NamespaceConfigBuilder<NamespaceConfig> injectCatalog(
-        NamespaceConfigBuilder<NamespaceConfig> namespace)
+    protected <C> NamespaceConfigBuilder<C> injectCatalog(
+        NamespaceConfigBuilder<C> namespace)
     {
         if (asyncApi.components != null && asyncApi.components.schemas != null && !asyncApi.components.schemas.isEmpty())
         {

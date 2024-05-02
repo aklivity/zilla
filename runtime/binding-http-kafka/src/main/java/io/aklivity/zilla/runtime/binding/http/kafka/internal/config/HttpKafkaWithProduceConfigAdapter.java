@@ -22,6 +22,10 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithConfig;
+import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithProduceAsyncHeaderConfig;
+import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithProduceConfig;
+import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithProduceOverrideConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaAckMode;
 
 public final class HttpKafkaWithProduceConfigAdapter implements JsonbAdapter<HttpKafkaWithConfig, JsonObject>
@@ -114,7 +118,10 @@ public final class HttpKafkaWithProduceConfigAdapter implements JsonbAdapter<Htt
             {
                 String value = overrides.getString(name);
 
-                newOverrides.add(new HttpKafkaWithProduceOverrideConfig(name, value));
+                newOverrides.add(HttpKafkaWithProduceOverrideConfig.builder()
+                    .name(name)
+                    .value(value)
+                    .build());
             }
         }
 
@@ -132,11 +139,22 @@ public final class HttpKafkaWithProduceConfigAdapter implements JsonbAdapter<Htt
             {
                 String value = async.getString(name);
 
-                newAsync.add(new HttpKafkaWithProduceAsyncHeaderConfig(name, value));
+                newAsync.add(HttpKafkaWithProduceAsyncHeaderConfig.builder()
+                    .name(name)
+                    .value(value)
+                    .build());
             }
         }
 
-        return new HttpKafkaWithConfig(
-                new HttpKafkaWithProduceConfig(newTopic, newAcks, newKey, newOverrides, newReplyTo, newAsync));
+        return HttpKafkaWithConfig.builder()
+            .produce(HttpKafkaWithProduceConfig.builder()
+                .topic(newTopic)
+                .acks(newAcks.name())
+                .key(newKey)
+                .overrides(newOverrides)
+                .replyTo(newReplyTo)
+                .async(newAsync)
+                .build())
+            .build();
     }
 }

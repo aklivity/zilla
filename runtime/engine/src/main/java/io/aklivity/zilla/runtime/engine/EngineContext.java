@@ -18,25 +18,28 @@ package io.aklivity.zilla.runtime.engine;
 import java.net.InetAddress;
 import java.net.URL;
 import java.nio.channels.SelectableChannel;
+import java.time.Clock;
 import java.util.function.LongSupplier;
-import java.util.function.ToLongFunction;
 
 import org.agrona.MutableDirectBuffer;
 
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageReader;
 import io.aklivity.zilla.runtime.engine.budget.BudgetCreditor;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
-import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
+import io.aklivity.zilla.runtime.engine.event.EventFormatter;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
+import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
+import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
-import io.aklivity.zilla.runtime.engine.validator.Validator;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
 public interface EngineContext
@@ -68,6 +71,14 @@ public interface EngineContext
 
     MessageConsumer supplyReceiver(
         long streamId);
+
+    EventFormatter supplyEventFormatter();
+
+    void attachComposite(
+        NamespaceConfig composite);
+
+    void detachComposite(
+        NamespaceConfig composite);
 
     void detachSender(
         long replyId);
@@ -117,6 +128,12 @@ public interface EngineContext
     String supplyLocalName(
         long namespacedId);
 
+    String supplyQName(
+        long namespacedId);
+
+    int supplyEventId(
+        String name);
+
     BindingHandler streamFactory();
 
     GuardHandler supplyGuard(
@@ -128,19 +145,30 @@ public interface EngineContext
     CatalogHandler supplyCatalog(
         long catalogId);
 
+    ValidatorHandler supplyValidator(
+        ModelConfig config);
+
+    ConverterHandler supplyReadConverter(
+        ModelConfig config);
+
+    ConverterHandler supplyWriteConverter(
+        ModelConfig config);
+
     URL resolvePath(
         String path);
 
     Metric resolveMetric(
         String name);
 
-    Validator createValidator(
-        ValidatorConfig validator,
-        ToLongFunction<String> resolveId);
-
     void onExporterAttached(
         long exporterId);
 
     void onExporterDetached(
         long exporterId);
+
+    MessageConsumer supplyEventWriter();
+
+    MessageReader supplyEventReader();
+
+    Clock clock();
 }

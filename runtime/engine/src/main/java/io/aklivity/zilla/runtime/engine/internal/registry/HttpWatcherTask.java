@@ -37,7 +37,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
+import io.aklivity.zilla.runtime.engine.config.EngineConfig;
 
 public class HttpWatcherTask extends WatcherTask
 {
@@ -50,7 +50,7 @@ public class HttpWatcherTask extends WatcherTask
     private final int pollSeconds;
 
     public HttpWatcherTask(
-        BiFunction<URL, String, NamespaceConfig> changeListener,
+        BiFunction<URL, String, EngineConfig> changeListener,
         int pollSeconds)
     {
         super(changeListener);
@@ -84,16 +84,23 @@ public class HttpWatcherTask extends WatcherTask
     }
 
     @Override
-    public CompletableFuture<NamespaceConfig> watch(
+    public CompletableFuture<EngineConfig> watch(
         URL configURL)
     {
         URI configURI = toURI(configURL);
-        NamespaceConfig config = sendSync(configURI);
-        if (config == null)
+
+        CompletableFuture<EngineConfig> configFuture;
+        try
         {
-            return CompletableFuture.failedFuture(new Exception("Parsing of the initial configuration failed."));
+            EngineConfig config = sendSync(configURI);
+            configFuture = CompletableFuture.completedFuture(config);
         }
-        return CompletableFuture.completedFuture(config);
+        catch (Exception ex)
+        {
+            configFuture = CompletableFuture.failedFuture(ex);
+        }
+
+        return configFuture;
     }
 
     @Override
@@ -103,7 +110,7 @@ public class HttpWatcherTask extends WatcherTask
         configQueue.add(CLOSE_REQUESTED);
     }
 
-    private NamespaceConfig sendSync(
+    private EngineConfig sendSync(
         URI configURI)
     {
         HttpClient client = HttpClient.newBuilder()
@@ -157,10 +164,10 @@ public class HttpWatcherTask extends WatcherTask
         return null;
     }
 
-    private NamespaceConfig handleConfigChange(
+    private EngineConfig handleConfigChange(
         HttpResponse<String> response)
     {
-        NamespaceConfig config = null;
+        EngineConfig config = null;
         try
         {
             URI configURI = response.request().uri();

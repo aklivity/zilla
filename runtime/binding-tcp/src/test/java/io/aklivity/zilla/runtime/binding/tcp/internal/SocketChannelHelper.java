@@ -104,7 +104,7 @@ public final class SocketChannelHelper
 
     }
 
-    private static class Rule implements TestRule
+    private static final class Rule implements TestRule
     {
         @Override
         public Statement apply(Statement base, Description description)

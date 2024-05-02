@@ -24,6 +24,12 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithConfig;
+import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchConfig;
+import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchFilterConfig;
+import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchFilterHeaderConfig;
+import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchMergeConfig;
+
 public final class HttpKafkaWithFetchConfigAdapter implements JsonbAdapter<HttpKafkaWithConfig, JsonObject>
 {
     private static final String CAPABILITY_NAME = "capability";
@@ -138,11 +144,17 @@ public final class HttpKafkaWithFetchConfigAdapter implements JsonbAdapter<HttpK
                     for (String newHeaderName : headers.keySet())
                     {
                         String newHeaderValue = headers.getString(newHeaderName);
-                        newHeaders.add(new HttpKafkaWithFetchFilterHeaderConfig(newHeaderName, newHeaderValue));
+                        newHeaders.add(HttpKafkaWithFetchFilterHeaderConfig.builder()
+                            .name(newHeaderName)
+                            .value(newHeaderValue)
+                            .build());
                     }
                 }
 
-                newFilters.add(new HttpKafkaWithFetchFilterConfig(newKey, newHeaders));
+                newFilters.add(HttpKafkaWithFetchFilterConfig.builder()
+                    .key(newKey)
+                    .headers(newHeaders)
+                    .build());
             }
         }
 
@@ -166,10 +178,20 @@ public final class HttpKafkaWithFetchConfigAdapter implements JsonbAdapter<HttpK
                     path = patch.getString(MERGE_PATCH_PATH_NAME);
                 }
 
-                newMerged = new HttpKafkaWithFetchMergeConfig(contentType, initial, path);
+                newMerged = HttpKafkaWithFetchMergeConfig.builder()
+                    .contentType(contentType)
+                    .initial(initial)
+                    .path(path)
+                    .build();
             }
         }
 
-        return new HttpKafkaWithConfig(new HttpKafkaWithFetchConfig(newTopic, newFilters, newMerged));
+        return HttpKafkaWithConfig.builder()
+            .fetch(HttpKafkaWithFetchConfig.builder()
+                .topic(newTopic)
+                .filters(newFilters)
+                .merged(newMerged)
+                .build())
+            .build();
     }
 }

@@ -15,14 +15,51 @@
  */
 package io.aklivity.zilla.runtime.engine.catalog;
 
+import org.agrona.DirectBuffer;
+
+import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
+
 public interface CatalogHandler
 {
     int NO_SCHEMA_ID = 0;
 
-    int register(
-        String subject,
-        String type,
-        String schema);
+    @FunctionalInterface
+    interface Decoder
+    {
+        Decoder IDENTITY = (traceId, bindingId, schemaId, data, index, length, next) ->
+        {
+            next.accept(data, index, length);
+            return length;
+        };
+
+        int accept(
+            long traceId,
+            long bindingId,
+            int schemaId,
+            DirectBuffer data,
+            int index,
+            int length,
+            ValueConsumer next);
+    }
+
+    @FunctionalInterface
+    interface Encoder
+    {
+        Encoder IDENTITY = (traceId, bindingId, schemaId, data, index, length, next) ->
+        {
+            next.accept(data, index, length);
+            return length;
+        };
+
+        int accept(
+            long traceId,
+            long bindingId,
+            int schemaId,
+            DirectBuffer data,
+            int index,
+            int length,
+            ValueConsumer next);
+    }
 
     String resolve(
         int schemaId);
@@ -30,4 +67,42 @@ public interface CatalogHandler
     int resolve(
         String subject,
         String version);
+
+    default int resolve(
+        DirectBuffer data,
+        int index,
+        int length)
+    {
+        return NO_SCHEMA_ID;
+    }
+
+    default int decode(
+        long traceId,
+        long bindingId,
+        DirectBuffer data,
+        int index,
+        int length,
+        ValueConsumer next,
+        Decoder decoder)
+    {
+        return decoder.accept(traceId, bindingId, NO_SCHEMA_ID, data, index, length, next);
+    }
+
+    default int encode(
+        long traceId,
+        long bindingId,
+        int schemaId,
+        DirectBuffer data,
+        int index,
+        int length,
+        ValueConsumer next,
+        Encoder encoder)
+    {
+        return encoder.accept(traceId, bindingId, schemaId, data, index, length, next);
+    }
+
+    default int encodePadding()
+    {
+        return 0;
+    }
 }

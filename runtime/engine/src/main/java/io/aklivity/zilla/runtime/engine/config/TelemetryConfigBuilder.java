@@ -32,6 +32,8 @@ public final class TelemetryConfigBuilder<T> extends ConfigBuilder<T, TelemetryC
     private List<MetricConfig> metrics;
     private List<ExporterConfig> exporters;
 
+    private String namespace;
+
     TelemetryConfigBuilder(
         Function<TelemetryConfig, T> mapper)
     {
@@ -43,6 +45,13 @@ public final class TelemetryConfigBuilder<T> extends ConfigBuilder<T, TelemetryC
     protected Class<TelemetryConfigBuilder<T>> thisType()
     {
         return (Class<TelemetryConfigBuilder<T>>) getClass();
+    }
+
+    public TelemetryConfigBuilder<T> namespace(
+        String namespace)
+    {
+        this.namespace = namespace;
+        return this;
     }
 
     public AttributeConfigBuilder<TelemetryConfigBuilder<T>> attribute()
@@ -79,7 +88,7 @@ public final class TelemetryConfigBuilder<T> extends ConfigBuilder<T, TelemetryC
 
     public ExporterConfigBuilder<TelemetryConfigBuilder<T>> exporter()
     {
-        return new ExporterConfigBuilder<>(this::exporter);
+        return new ExporterConfigBuilder<>(this::exporter).namespace(namespace);
     }
 
     public TelemetryConfigBuilder<T> exporter(

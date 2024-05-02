@@ -120,6 +120,10 @@ public class DefaultBudgetCreditor implements BudgetCreditor, AutoCloseable
                         System.nanoTime(), budgetId, budgetIndex);
             }
         }
+        else
+        {
+            throw new IllegalStateException(String.format("Failed to acquire budget index for budget %d", budgetId));
+        }
 
         return budgetIndex;
     }

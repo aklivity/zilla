@@ -33,13 +33,13 @@ connected
 
 write "GET / HTTP/1.1" "\r\n"
       "Host: example.com:9090" "\r\n"
-      "Authorization: Bearer EXPIRED" "\r\n"
+      "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6ImV4YW1wbGUifQ.eyJhdWQiOiJodHRwczovL2FwaS5leGFtcGxlLmNvbSIsImV4cCI6MTcwODk0MDQ0MCwiaXNzIjoiaHR0cHM6Ly9hdXRoLmV4YW1wbGUuY29tIiwic3ViIjoidXNlciJ9.KwZt_rDTDEOQ33URwZ8Gd1WqQjAIJESbt5Et309Yz7AJm1wWWyFhWm7AV6lt1rkX-eD-jVh0wHAsy7L4kdzBOErCdwFcdaB4u2jFDGn_9IK28lCedxIYmYtI4qn6eY916IIqRpwZcqzw08OEljfYUKo4UeX7JPAtha0GQmfZY1-NNcncg06xw3xkKSZ1SnIh9MZM1FNH_5QPZPL4NHP7DRXtaMn2w6YpO7n695Sc_3LuSDlfDDMVIUWuEreOzOXem6jheGIbJ-eDKhIXXPrOz1NBAJmvizbugMR7m_bodiEzzqt5ttKDs1974alrR_sYP8OYmR_rCqXc5N3lp_SW3A" "\r\n"
       "\r\n"
 write flush
 
 write close
 
-read "HTTP/1.1 404 Not Found" "\r\n"
+read "HTTP/1.1 403 Forbidden" "\r\n"
      "Server: Zilla" "\r\n"
      "Connection: close" "\r\n"
      "\r\n"

@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.binding.config;
 
+import java.util.LinkedList;
+import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
@@ -25,6 +27,9 @@ public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, T
     private final Function<OptionsConfig, T> mapper;
 
     private String mode;
+    private TestAuthorizationConfig authorization;
+    private List<String> catalogs;
+    private List<TestBindingOptionsConfig.Event> events;
 
     TestBindingOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
@@ -46,9 +51,40 @@ public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, T
         return this;
     }
 
+    public TestBindingOptionsConfigBuilder<T> catalog(
+        String catalog)
+    {
+        if (this.catalogs == null)
+        {
+            this.catalogs = new LinkedList<>();
+        }
+        this.catalogs.add(catalog);
+        return this;
+    }
+
+    public TestBindingOptionsConfigBuilder<T> authorization(
+        String name,
+        String credentials)
+    {
+        this.authorization = new TestAuthorizationConfig(name, credentials);
+        return this;
+    }
+
+    public TestBindingOptionsConfigBuilder<T> event(
+        long timestamp,
+        String message)
+    {
+        if (this.events == null)
+        {
+            this.events = new LinkedList<>();
+        }
+        this.events.add(new TestBindingOptionsConfig.Event(timestamp, message));
+        return this;
+    }
+
     @Override
     public T build()
     {
-        return mapper.apply(new TestBindingOptionsConfig(mode));
+        return mapper.apply(new TestBindingOptionsConfig(mode, authorization, catalogs, events));
     }
 }

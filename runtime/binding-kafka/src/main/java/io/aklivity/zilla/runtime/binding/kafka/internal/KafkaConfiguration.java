@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.binding.kafka.internal;
 
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_CACHE_DIRECTORY;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_VERBOSE;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -36,6 +37,8 @@ public class KafkaConfiguration extends Configuration
 {
     public static final boolean DEBUG = Boolean.getBoolean("zilla.binding.kafka.debug");
     public static final boolean DEBUG_PRODUCE = DEBUG || Boolean.getBoolean("zilla.binding.kafka.debug.produce");
+
+    public static final String KAFKA_CLIENT_ID_DEFAULT = "zilla";
 
     public static final IntPropertyDef KAFKA_CLIENT_MAX_IDLE_MILLIS;
     public static final LongPropertyDef KAFKA_CLIENT_CONNECTION_POOL_CLEANUP_MILLIS;
@@ -70,16 +73,18 @@ public class KafkaConfiguration extends Configuration
     public static final PropertyDef<Duration> KAFKA_CLIENT_GROUP_REBALANCE_TIMEOUT;
     public static final IntPropertyDef KAFKA_CLIENT_GROUP_MIN_SESSION_TIMEOUT_DEFAULT;
     public static final IntPropertyDef KAFKA_CLIENT_GROUP_MAX_SESSION_TIMEOUT_DEFAULT;
+    public static final IntPropertyDef KAFKA_CLIENT_GROUP_INITIAL_REBALANCE_DELAY_DEFAULT;
     public static final PropertyDef<String> KAFKA_CLIENT_ID;
     public static final PropertyDef<InstanceIdSupplier> KAFKA_CLIENT_INSTANCE_ID;
     public static final BooleanPropertyDef KAFKA_CLIENT_CONNECTION_POOL;
+    public static final BooleanPropertyDef KAFKA_VERBOSE;
 
     private static final ConfigurationDef KAFKA_CONFIG;
 
     static
     {
         final ConfigurationDef config = new ConfigurationDef("zilla.binding.kafka");
-        KAFKA_CLIENT_ID = config.property("client.id", "zilla");
+        KAFKA_CLIENT_ID = config.property("client.id");
         KAFKA_CLIENT_INSTANCE_ID = config.property(InstanceIdSupplier.class, "client.instance.id",
             KafkaConfiguration::decodeInstanceId, KafkaConfiguration::defaultInstanceId);
         KAFKA_CLIENT_MAX_IDLE_MILLIS = config.property("client.max.idle.ms", 1 * 60 * 1000);
@@ -101,6 +106,8 @@ public class KafkaConfiguration extends Configuration
             (int) Duration.ofSeconds(6).toMillis());
         KAFKA_CLIENT_GROUP_MAX_SESSION_TIMEOUT_DEFAULT = config.property("client.group.max.session.timeout.default",
             (int) Duration.ofMinutes(5).toMillis());
+        KAFKA_CLIENT_GROUP_INITIAL_REBALANCE_DELAY_DEFAULT = config.property("client.group.initial.rebalance.delay.default",
+            0);
         KAFKA_CACHE_DIRECTORY = config.property(Path.class, "cache.directory",
             KafkaConfiguration::cacheDirectory, KafkaBinding.NAME);
         KAFKA_CACHE_SERVER_BOOTSTRAP = config.property("cache.server.bootstrap", true);
@@ -122,6 +129,7 @@ public class KafkaConfiguration extends Configuration
         KAFKA_CACHE_SEGMENT_INDEX_BYTES = config.property("cache.segment.index.bytes", 0xA00000);
         KAFKA_CACHE_CLIENT_TRAILERS_SIZE_MAX = config.property("cache.client.trailers.size.max", 256);
         KAFKA_CLIENT_CONNECTION_POOL = config.property("client.connection.pool", true);
+        KAFKA_VERBOSE = config.property("verbose", KafkaConfiguration::supplyVerbose);
         KAFKA_CONFIG = config;
     }
 
@@ -194,6 +202,11 @@ public class KafkaConfiguration extends Configuration
     public Path cacheDirectory()
     {
         return KAFKA_CACHE_DIRECTORY.get(this);
+    }
+
+    public boolean verbose()
+    {
+        return KAFKA_VERBOSE.get(this);
     }
 
     public long cacheProduceCapacity()
@@ -303,6 +316,17 @@ public class KafkaConfiguration extends Configuration
     public int clientGroupMaxSessionTimeoutDefault()
     {
         return KAFKA_CLIENT_GROUP_MAX_SESSION_TIMEOUT_DEFAULT.get(this);
+    }
+
+    public int clientGroupInitialRebalanceDelayDefault()
+    {
+        return KAFKA_CLIENT_GROUP_INITIAL_REBALANCE_DELAY_DEFAULT.get(this);
+    }
+
+    private static boolean supplyVerbose(
+        Configuration config)
+    {
+        return ENGINE_VERBOSE.getAsBoolean(config);
     }
 
     private static Path cacheDirectory(
@@ -419,6 +443,13 @@ public class KafkaConfiguration extends Configuration
     private static InstanceIdSupplier defaultInstanceId(
         Configuration config)
     {
-        return () -> String.format("%s-%s", KAFKA_CLIENT_ID.get(config), UUID.randomUUID());
+        return () -> String.format("%s-%s", clientIdWithDefault(config), UUID.randomUUID());
+    }
+
+    private static String clientIdWithDefault(
+        Configuration config)
+    {
+        String clientId = KAFKA_CLIENT_ID.get(config);
+        return clientId != null ? clientId : KAFKA_CLIENT_ID_DEFAULT;
     }
 }

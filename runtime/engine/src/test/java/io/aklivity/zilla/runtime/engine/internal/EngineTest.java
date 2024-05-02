@@ -21,6 +21,7 @@ import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKER
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertTrue;
 
 import java.net.URL;
 import java.util.LinkedList;
@@ -33,6 +34,7 @@ import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.Engine;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageReader;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtContext;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
 
@@ -74,6 +76,110 @@ public class EngineTest
     public void shouldConfigure()
     {
         String resource = String.format("%s-%s.json", getClass().getSimpleName(), "configure");
+        URL configURL = getClass().getResource(resource);
+        assert configURL != null;
+        properties.put(ENGINE_CONFIG_URL.name(), configURL.toString());
+        EngineConfiguration config = new EngineConfiguration(properties);
+        List<Throwable> errors = new LinkedList<>();
+        try (Engine engine = Engine.builder()
+                .config(config)
+                .errorHandler(errors::add)
+                .build())
+        {
+            engine.start();
+        }
+        catch (Throwable ex)
+        {
+            errors.add(ex);
+        }
+        finally
+        {
+            assertThat(errors, empty());
+        }
+    }
+
+    @Test
+    public void shouldConfigureWithExpression()
+    {
+        String resource = String.format("%s-%s.yaml", getClass().getSimpleName(), "configure-expression");
+        URL configURL = getClass().getResource(resource);
+        assert configURL != null;
+        properties.put(ENGINE_CONFIG_URL.name(), configURL.toString());
+        EngineConfiguration config = new EngineConfiguration(properties);
+        List<Throwable> errors = new LinkedList<>();
+        try (Engine engine = Engine.builder()
+            .config(config)
+            .errorHandler(errors::add)
+            .build())
+        {
+            engine.start();
+        }
+        catch (Throwable ex)
+        {
+            errors.add(ex);
+        }
+        finally
+        {
+            assertThat(errors, empty());
+        }
+    }
+
+    @Test
+    public void shouldConfigureWithExpressionInvalid()
+    {
+        String resource = String.format("%s-%s.yaml", getClass().getSimpleName(), "configure-expression-invalid");
+        URL configURL = getClass().getResource(resource);
+        assert configURL != null;
+        properties.put(ENGINE_CONFIG_URL.name(), configURL.toString());
+        EngineConfiguration config = new EngineConfiguration(properties);
+        List<Throwable> errors = new LinkedList<>();
+        try (Engine engine = Engine.builder()
+            .config(config)
+            .errorHandler(errors::add)
+            .build())
+        {
+            engine.start();
+        }
+        catch (Throwable ex)
+        {
+            errors.add(ex);
+        }
+        finally
+        {
+            assertTrue(!errors.isEmpty());
+        }
+    }
+
+    @Test
+    public void shouldConfigureComposite()
+    {
+        String resource = String.format("%s-%s.json", getClass().getSimpleName(), "configure-composite");
+        URL configURL = getClass().getResource(resource);
+        assert configURL != null;
+        properties.put(ENGINE_CONFIG_URL.name(), configURL.toString());
+        EngineConfiguration config = new EngineConfiguration(properties);
+        List<Throwable> errors = new LinkedList<>();
+        try (Engine engine = Engine.builder()
+                .config(config)
+                .errorHandler(errors::add)
+                .build())
+        {
+            engine.start();
+        }
+        catch (Throwable ex)
+        {
+            errors.add(ex);
+        }
+        finally
+        {
+            assertThat(errors, empty());
+        }
+    }
+
+    @Test
+    public void shouldConfigureMultiple()
+    {
+        String resource = String.format("%s-%s.yaml", getClass().getSimpleName(), "configure-multiple");
         URL configURL = getClass().getResource(resource);
         assert configURL != null;
         properties.put(ENGINE_CONFIG_URL.name(), configURL.toString());
@@ -142,6 +248,30 @@ public class EngineTest
         finally
         {
             assertThat(errors, not(empty()));
+        }
+    }
+
+    @Test
+    public void shouldReadEvents()
+    {
+        List<Throwable> errors = new LinkedList<>();
+        EngineConfiguration config = new EngineConfiguration(properties);
+        try (Engine engine = Engine.builder()
+                .config(config)
+                .errorHandler(errors::add)
+                .build())
+        {
+            engine.start();
+            MessageReader events = engine.supplyEventReader();
+            events.read((m, b, i, l) -> {}, 1);
+        }
+        catch (Throwable ex)
+        {
+            errors.add(ex);
+        }
+        finally
+        {
+            assertThat(errors, empty());
         }
     }
 

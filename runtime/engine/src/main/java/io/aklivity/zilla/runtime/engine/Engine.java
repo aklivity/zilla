@@ -33,7 +33,6 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -52,17 +51,16 @@ import java.util.function.LongSupplier;
 import java.util.function.ToIntFunction;
 import java.util.stream.Collectors;
 
-import org.agrona.CloseHelper;
 import org.agrona.ErrorHandler;
-import org.agrona.LangUtil;
 import org.agrona.collections.Int2ObjectHashMap;
-import org.agrona.concurrent.AgentRunner;
 
 import io.aklivity.zilla.runtime.engine.binding.Binding;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageReader;
 import io.aklivity.zilla.runtime.engine.catalog.Catalog;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
+import io.aklivity.zilla.runtime.engine.event.EventFormatterFactory;
 import io.aklivity.zilla.runtime.engine.exporter.Exporter;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtContext;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
@@ -70,24 +68,23 @@ import io.aklivity.zilla.runtime.engine.guard.Guard;
 import io.aklivity.zilla.runtime.engine.internal.Info;
 import io.aklivity.zilla.runtime.engine.internal.LabelManager;
 import io.aklivity.zilla.runtime.engine.internal.Tuning;
-import io.aklivity.zilla.runtime.engine.internal.layouts.BindingsLayout;
-import io.aklivity.zilla.runtime.engine.internal.registry.ConfigurationManager;
+import io.aklivity.zilla.runtime.engine.internal.layouts.EventsLayout;
+import io.aklivity.zilla.runtime.engine.internal.registry.EngineManager;
 import io.aklivity.zilla.runtime.engine.internal.registry.EngineWorker;
 import io.aklivity.zilla.runtime.engine.internal.registry.FileWatcherTask;
 import io.aklivity.zilla.runtime.engine.internal.registry.HttpWatcherTask;
 import io.aklivity.zilla.runtime.engine.internal.registry.WatcherTask;
-import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
+import io.aklivity.zilla.runtime.engine.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
-import io.aklivity.zilla.runtime.engine.validator.ValidatorFactory;
-import io.aklivity.zilla.runtime.engine.validator.ValidatorFactorySpi;
+import io.aklivity.zilla.runtime.engine.model.Model;
+import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 
 public final class Engine implements Collector, AutoCloseable
 {
     private final Collection<Binding> bindings;
     private final ExecutorService tasks;
-    private final Collection<AgentRunner> runners;
     private final Tuning tuning;
     private final List<EngineExtSpi> extensions;
     private final ContextImpl context;
@@ -95,14 +92,13 @@ public final class Engine implements Collector, AutoCloseable
     private final AtomicInteger nextTaskId;
     private final ThreadFactory factory;
 
-    private final ConfigurationManager configurationManager;
     private final WatcherTask watcherTask;
-    private final Map<URL, NamespaceConfig> namespaces;
-    private final URL rootConfigURL;
+    private final URL configURL;
     private final List<EngineWorker> workers;
     private final boolean readonly;
     private final EngineConfiguration config;
-    private final Map<String, Binding> bindingsByType;
+    private final EngineManager manager;
+
     private Future<Void> watcherTaskRef;
 
     Engine(
@@ -113,7 +109,8 @@ public final class Engine implements Collector, AutoCloseable
         Collection<MetricGroup> metricGroups,
         Collection<Vault> vaults,
         Collection<Catalog> catalogs,
-        ValidatorFactory validatorFactory,
+        Collection<Model> models,
+        EventFormatterFactory eventFormatterFactory,
         ErrorHandler errorHandler,
         Collection<EngineAffinity> affinities,
         boolean readonly)
@@ -164,12 +161,12 @@ public final class Engine implements Collector, AutoCloseable
         this.tuning = tuning;
 
         List<EngineWorker> workers = new ArrayList<>(workerCount);
-        for (int coreIndex = 0; coreIndex < workerCount; coreIndex++)
+        for (int workerIndex = 0; workerIndex < workerCount; workerIndex++)
         {
             EngineWorker worker =
-                new EngineWorker(config, tasks, labels, errorHandler, tuning::affinity,
-                        bindings, exporters, guards, vaults, catalogs, metricGroups, validatorFactory,
-                    this, coreIndex, readonly);
+                new EngineWorker(config, tasks, labels, errorHandler, tuning::affinity, bindings, exporters,
+                    guards, vaults, catalogs, models, metricGroups, this, this::supplyEventReader,
+                    eventFormatterFactory, workerIndex, readonly, this::process);
             workers.add(worker);
         }
         this.workers = workers;
@@ -189,42 +186,50 @@ public final class Engine implements Collector, AutoCloseable
         schemaTypes.addAll(metricGroups.stream().map(MetricGroup::type).filter(Objects::nonNull).collect(toList()));
         schemaTypes.addAll(vaults.stream().map(Vault::type).filter(Objects::nonNull).collect(toList()));
         schemaTypes.addAll(catalogs.stream().map(Catalog::type).filter(Objects::nonNull).collect(toList()));
-        schemaTypes.addAll(validatorFactory.validatorSpis().stream().map(ValidatorFactorySpi::schema).collect(toList()));
+        schemaTypes.addAll(models.stream().map(Model::type).filter(Objects::nonNull).collect(toList()));
 
-        bindingsByType = bindings.stream().collect(Collectors.toMap(b -> b.name(), b -> b));
+        final Map<String, Binding> bindingsByType = bindings.stream()
+            .collect(Collectors.toMap(b -> b.name(), b -> b));
         final Map<String, Guard> guardsByType = guards.stream()
             .collect(Collectors.toMap(g -> g.name(), g -> g));
 
-        this.rootConfigURL = config.configURL();
-        String protocol = rootConfigURL.getProtocol();
+        EngineManager manager = new EngineManager(
+            schemaTypes,
+            bindingsByType::get,
+            guardsByType::get,
+            labels::supplyLabelId,
+            labels::lookupLabel,
+            maxWorkers,
+            tuning,
+            workers,
+            logger,
+            context,
+            config,
+            extensions,
+            this::readURL);
+
+        this.configURL = config.configURL();
+        String protocol = configURL.getProtocol();
         if ("file".equals(protocol) || "jar".equals(protocol))
         {
-            Function<String, String> watcherReadURL = l -> readURL(rootConfigURL, l);
-            this.watcherTask = new FileWatcherTask(watcherReadURL, this::reconfigure);
+            Function<String, String> watcherReadURL = l -> readURL(configURL, l);
+            this.watcherTask = new FileWatcherTask(manager::reconfigure, watcherReadURL);
         }
         else if ("http".equals(protocol) || "https".equals(protocol))
         {
-            this.watcherTask = new HttpWatcherTask(this::reconfigure, config.configPollIntervalSeconds());
+            this.watcherTask = new HttpWatcherTask(manager::reconfigure, config.configPollIntervalSeconds());
         }
         else
         {
             throw new UnsupportedOperationException();
         }
 
-        this.configurationManager = new ConfigurationManager(schemaTypes, guardsByType::get, labels::supplyLabelId, maxWorkers,
-            tuning, workers, logger, context, config, extensions, this::readURL);
-
-        this.namespaces = new HashMap<>();
-
-        List<AgentRunner> runners = new ArrayList<>(workers.size());
-        workers.forEach(d -> runners.add(d.runner()));
-
         this.bindings = bindings;
         this.tasks = tasks;
         this.extensions = extensions;
         this.context = context;
-        this.runners = runners;
         this.readonly = readonly;
+        this.manager = manager;
     }
 
     public <T> T binding(
@@ -237,17 +242,24 @@ public final class Engine implements Collector, AutoCloseable
                 .orElse(null);
     }
 
+    private void process(
+        NamespaceConfig config)
+    {
+        manager.process(config);
+    }
+
     public void start() throws Exception
     {
-        for (AgentRunner runner : runners)
+        for (EngineWorker worker : workers)
         {
-            AgentRunner.startOnThread(runner, Thread::new);
+            worker.doStart();
         }
+
         watcherTaskRef = watcherTask.submit();
         if (!readonly)
         {
             // ignore the config file in read-only mode; no config will be read so no namespaces, bindings, etc will be attached
-            watcherTask.watch(rootConfigURL).get();
+            watcherTask.watch(configURL).get();
         }
     }
 
@@ -264,11 +276,11 @@ public final class Engine implements Collector, AutoCloseable
         watcherTask.close();
         watcherTaskRef.get();
 
-        for (AgentRunner runner : runners)
+        for (EngineWorker worker : workers)
         {
             try
             {
-                CloseHelper.close(runner);
+                worker.doClose();
             }
             catch (Throwable ex)
             {
@@ -297,54 +309,6 @@ public final class Engine implements Collector, AutoCloseable
     public ContextImpl context()
     {
         return context;
-    }
-
-    private NamespaceConfig reconfigure(
-        URL configURL,
-        String configText)
-    {
-        NamespaceConfig newNamespace = configurationManager.parse(configURL, configText);
-        if (newNamespace != null)
-        {
-            writeBindingsLayout(newNamespace);
-            NamespaceConfig oldNamespace = namespaces.get(configURL);
-            configurationManager.unregister(oldNamespace);
-            try
-            {
-                configurationManager.register(newNamespace);
-                namespaces.put(configURL, newNamespace);
-            }
-            catch (Exception ex)
-            {
-                context.onError(ex);
-                configurationManager.register(oldNamespace);
-                namespaces.put(configURL, oldNamespace);
-            }
-        }
-        return newNamespace;
-    }
-
-    private void writeBindingsLayout(
-        NamespaceConfig namespace)
-    {
-        BindingsLayout bindingsLayout = BindingsLayout.builder().directory(config.directory()).build();
-        for (BindingConfig binding : namespace.bindings)
-        {
-            long typeId = namespace.resolveId.applyAsLong(binding.type);
-            long kindId = namespace.resolveId.applyAsLong(binding.kind.name().toLowerCase());
-            Binding b = bindingsByType.get(binding.type);
-            long originTypeId = namespace.resolveId.applyAsLong(b.originType(binding.kind));
-            long routedTypeId = namespace.resolveId.applyAsLong(b.routedType(binding.kind));
-            bindingsLayout.writeBindingInfo(binding.id, typeId, kindId, originTypeId, routedTypeId);
-        }
-        try
-        {
-            bindingsLayout.close();
-        }
-        catch (Exception ex)
-        {
-            LangUtil.rethrowUnchecked(ex);
-        }
     }
 
     public static EngineBuilder builder()
@@ -539,6 +503,11 @@ public final class Engine implements Collector, AutoCloseable
         return worker.histogramIds();
     }
 
+    public MessageReader supplyEventReader()
+    {
+        return new EventReader();
+    }
+
     public String supplyLocalName(
         long namespacedId)
     {
@@ -551,6 +520,58 @@ public final class Engine implements Collector, AutoCloseable
     {
         EngineWorker worker = workers.get(0);
         return worker.supplyTypeId(label);
+    }
+
+    private final class EventReader implements MessageReader
+    {
+        private final EventsLayout.EventAccessor[] accessors;
+        private final EventFW eventRO = new EventFW();
+        private int minWorkerIndex;
+        private long minTimeStamp;
+
+        EventReader()
+        {
+            accessors = new EventsLayout.EventAccessor[workers.size()];
+            for (int i = 0; i < workers.size(); i++)
+            {
+                accessors[i] = workers.get(i).createEventAccessor();
+            }
+        }
+
+        @Override
+        public int read(
+            MessageConsumer handler,
+            int messageCountLimit)
+        {
+            int messagesRead = 0;
+            boolean empty = false;
+            while (!empty && messagesRead < messageCountLimit)
+            {
+                int eventCount = 0;
+                minWorkerIndex = 0;
+                minTimeStamp = Long.MAX_VALUE;
+                for (int j = 0; j < workers.size(); j++)
+                {
+                    final int workerIndex = j;
+                    int eventPeeked = accessors[workerIndex].peekEvent((m, b, i, l) ->
+                    {
+                        eventRO.wrap(b, i, i + l);
+                        if (eventRO.timestamp() < minTimeStamp)
+                        {
+                            minTimeStamp = eventRO.timestamp();
+                            minWorkerIndex = workerIndex;
+                        }
+                    });
+                    eventCount += eventPeeked;
+                }
+                empty = eventCount == 0;
+                if (!empty)
+                {
+                    messagesRead += accessors[minWorkerIndex].readEvent(handler, 1);
+                }
+            }
+            return messagesRead;
+        }
     }
 
     // visible for testing

@@ -17,13 +17,15 @@
 ---
 name: test
 bindings:
-    app0:
-        type: kafka
-        kind: client
-        options:
-            sasl:
-                mechanism: scram-sha-1
-                username: user
-                password: pencil
-        routes:
-            - exit: net0
+  app0:
+    type: kafka
+    kind: client
+    options:
+      servers:
+        - localhost:9092
+      sasl:
+        mechanism: scram-sha-1
+        username: user
+        password: pencil
+    routes:
+      - exit: net0

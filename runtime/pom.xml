@@ -18,6 +18,7 @@
 
   <modules>
     <module>engine</module>
+    <module>binding-asyncapi</module>
     <module>binding-echo</module>
     <module>binding-fan</module>
     <module>binding-filesystem</module>
@@ -30,21 +31,34 @@
     <module>binding-kafka-grpc</module>
     <module>binding-mqtt</module>
     <module>binding-mqtt-kafka</module>
+    <module>binding-openapi</module>
+    <module>binding-openapi-asyncapi</module>
     <module>binding-proxy</module>
     <module>binding-sse</module>
     <module>binding-sse-kafka</module>
     <module>binding-tcp</module>
     <module>binding-tls</module>
     <module>binding-ws</module>
+    <module>catalog-apicurio</module>
+    <module>catalog-inline</module>
+    <module>catalog-karapace</module>
+    <module>common</module>
     <module>command</module>
     <module>command-metrics</module>
     <module>command-start</module>
     <module>command-stop</module>
+    <module>exporter-otlp</module>
     <module>exporter-prometheus</module>
+    <module>exporter-stdout</module>
     <module>guard-jwt</module>
     <module>metrics-grpc</module>
     <module>metrics-http</module>
     <module>metrics-stream</module>
+    <module>model-avro</module>
+    <module>model-core</module>
+    <module>model-json</module>
+    <module>model-protobuf</module>
+    <module>resolver-env</module>
     <module>vault-filesystem</module>
   </modules>
 
@@ -55,6 +69,11 @@
         <artifactId>engine</artifactId>
         <version>${project.version}</version>
       </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>binding-asyncapi</artifactId>
+        <version>${project.version}</version>
+      </dependency>      
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>binding-echo</artifactId>
@@ -117,6 +136,16 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
+        <artifactId>binding-openapi</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>binding-openapi-asyncapi</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
         <artifactId>binding-proxy</artifactId>
         <version>${project.version}</version>
       </dependency>
@@ -147,6 +176,26 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
+        <artifactId>catalog-apicurio</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>catalog-inline</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>catalog-karapace</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>common</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
         <artifactId>command</artifactId>
         <version>${project.version}</version>
       </dependency>
@@ -167,7 +216,17 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
+        <artifactId>exporter-otlp</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
         <artifactId>exporter-prometheus</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>exporter-stdout</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -192,13 +251,43 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
+        <artifactId>model-avro</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>model-core</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>model-json</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>model-protobuf</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>resolver-env</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
         <artifactId>vault-filesystem</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-api</artifactId>
+        <version>${slf4j.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.slf4j</groupId>
         <artifactId>slf4j-simple</artifactId>
-        <version>2.0.9</version>
+        <version>${slf4j.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>

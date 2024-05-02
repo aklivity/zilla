@@ -149,85 +149,7 @@
                             },
                             "authorization":
                             {
-                                "title": "Authorizations",
-                                "type": "object",
-                                "patternProperties":
-                                {
-                                    "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
-                                    {
-                                        "title": "Authorization",
-                                        "type": "object",
-                                        "properties":
-                                        {
-                                            "credentials":
-                                            {
-                                                "title": "Credentials",
-                                                "type": "object",
-                                                "properties":
-                                                {
-                                                    "cookies":
-                                                    {
-                                                        "title": "Cookies",
-                                                        "type": "object",
-                                                        "additionalProperties":
-                                                        {
-                                                            "type": "string",
-                                                            "pattern": ".*\\{credentials\\}.*"
-                                                        }
-                                                    },
-                                                    "headers":
-                                                    {
-                                                        "title": "Headers",
-                                                        "type": "object",
-                                                        "additionalProperties":
-                                                        {
-                                                            "type": "string",
-                                                            "pattern": ".*\\{credentials\\}.*"
-                                                        }
-                                                    },
-                                                    "query":
-                                                    {
-                                                        "title": "Query Parameters",
-                                                        "type": "object",
-                                                        "additionalProperties":
-                                                        {
-                                                            "type": "string",
-                                                            "pattern": ".*\\{credentials\\}.*"
-                                                        }
-                                                    }
-                                                },
-                                                "additionalProperties": false,
-                                                "anyOf":
-                                                [
-                                                    {
-                                                        "required":
-                                                        [
-                                                            "cookies"
-                                                        ]
-                                                    },
-                                                    {
-                                                        "required":
-                                                        [
-                                                            "headers"
-                                                        ]
-                                                    },
-                                                    {
-                                                        "required":
-                                                        [
-                                                            "query"
-                                                        ]
-                                                    }
-                                                ]
-                                            }
-                                        },
-                                        "additionalProperties": false,
-                                        "required":
-                                        [
-                                            "credentials"
-                                        ]
-                                    }
-                                },
-                                "maxProperties": 1
+                                "$ref": "#/$defs/options/binding/http/authorization"
                             },
                             "overrides":
                             {
@@ -280,7 +202,7 @@
                                             {
                                                 "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
                                                 {
-                                                    "$ref": "#/$defs/validator/type"
+                                                    "$ref": "#/$defs/validator"
                                                 }
                                             }
                                         },
@@ -296,7 +218,7 @@
                                                     {
                                                         "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
                                                         {
-                                                            "$ref": "#/$defs/validator/type"
+                                                            "$ref": "#/$defs/validator"
                                                         }
                                                     }
                                                 },
@@ -307,7 +229,7 @@
                                                     {
                                                         "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
                                                         {
-                                                            "$ref": "#/$defs/validator/type"
+                                                            "$ref": "#/$defs/validator"
                                                         }
                                                     }
                                                 }
@@ -316,7 +238,73 @@
                                         },
                                         "content":
                                         {
-                                            "$ref": "#/$defs/validator/type"
+                                            "$ref": "#/$defs/validator"
+                                        },
+                                        "responses":
+                                        {
+                                            "type": "array",
+                                            "items":
+                                            {
+                                                "type": "object",
+                                                "properties":
+                                                {
+                                                    "status":
+                                                    {
+                                                        "oneOf":
+                                                        [
+                                                            {
+                                                                "type": "integer"
+                                                            },
+                                                            {
+                                                                "type": "array",
+                                                                "items":
+                                                                {
+                                                                    "type": "integer"
+                                                                }
+                                                            }
+                                                        ]
+                                                    },
+                                                    "content-type":
+                                                    {
+                                                        "type": "array",
+                                                        "items":
+                                                        {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "headers":
+                                                    {
+                                                        "type": "object",
+                                                        "patternProperties":
+                                                        {
+                                                            "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                                                            {
+                                                                "$ref": "#/$defs/validator"
+                                                            }
+                                                        }
+                                                    },
+                                                    "content":
+                                                    {
+                                                        "$ref": "#/$defs/validator"
+                                                    }
+                                                },
+                                                "anyOf":
+                                                [
+                                                    {
+                                                        "required":
+                                                        [
+                                                            "content"
+                                                        ]
+                                                    },
+                                                    {
+                                                        "required":
+                                                        [
+                                                            "headers"
+                                                        ]
+                                                    }
+                                                ],
+                                                "additionalProperties": false
+                                            }
                                         }
                                     },
                                     "anyOf":
@@ -340,6 +328,13 @@
                                             [
                                                 "path",
                                                 "content"
+                                            ]
+                                        },
+                                        {
+                                            "required":
+                                            [
+                                                "path",
+                                                "responses"
                                             ]
                                         }
                                     ],
@@ -393,7 +388,125 @@
                             "routes"
                         ]
                     }
+                ],
+                "oneOf":
+                [
+                    {
+                        "properties":
+                        {
+                            "kind":
+                            {
+                                "const": "server"
+                            }
+                        }
+                    },
+                    {
+                        "properties":
+                        {
+                            "kind":
+                            {
+                                "const": "client"
+                            },
+                            "options":
+                            {
+                                "properties":
+                                {
+                                    "access-control": false,
+                                    "authorization": false
+                                }
+                            }
+                        }
+                    }
                 ]
+            }
+        }
+    },
+    {
+        "op": "add",
+        "path": "/$defs/options/binding/http",
+        "value":
+        {
+            "authorization":
+            {
+                "title": "Authorizations",
+                "type": "object",
+                "patternProperties":
+                {
+                    "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                    {
+                        "title": "Authorization",
+                        "type": "object",
+                        "properties":
+                        {
+                            "credentials":
+                            {
+                                "title": "Credentials",
+                                "type": "object",
+                                "properties":
+                                {
+                                    "cookies":
+                                    {
+                                        "title": "Cookies",
+                                        "type": "object",
+                                        "additionalProperties":
+                                        {
+                                            "type": "string",
+                                            "pattern": ".*\\{credentials\\}.*"
+                                        }
+                                    },
+                                    "headers":
+                                    {
+                                        "title": "Headers",
+                                        "type": "object",
+                                        "additionalProperties":
+                                        {
+                                            "type": "string",
+                                            "pattern": ".*\\{credentials\\}.*"
+                                        }
+                                    },
+                                    "query":
+                                    {
+                                        "title": "Query Parameters",
+                                        "type": "object",
+                                        "additionalProperties":
+                                        {
+                                            "type": "string",
+                                            "pattern": ".*\\{credentials\\}.*"
+                                        }
+                                    }
+                                },
+                                "additionalProperties": false,
+                                "anyOf":
+                                [
+                                    {
+                                        "required":
+                                        [
+                                            "cookies"
+                                        ]
+                                    },
+                                    {
+                                        "required":
+                                        [
+                                            "headers"
+                                        ]
+                                    },
+                                    {
+                                        "required":
+                                        [
+                                            "query"
+                                        ]
+                                    }
+                                ]
+                            }
+                        },
+                        "additionalProperties": false,
+                        "required":
+                        [
+                            "credentials"
+                        ]
+                    }
+                },
+                "maxProperties": 1
             }
         }
     }

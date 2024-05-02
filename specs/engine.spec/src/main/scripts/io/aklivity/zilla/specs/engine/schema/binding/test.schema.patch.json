@@ -31,7 +31,98 @@
                     {
                         "enum": [ "server", "proxy" ]
                     },
-                    "options": false
+                    "options":
+                    {
+                        "title": "Options",
+                        "type": "object",
+                        "properties":
+                        {
+                            "value":
+                            {
+                                "$ref": "#/$defs/converter"
+                            },
+                            "port":
+                            {
+                                "title": "Port",
+                                "oneOf":
+                                [
+                                    {
+                                        "type": "integer"
+                                    },
+                                    {
+                                        "type": "string",
+                                        "pattern": "^\\d+(-\\d+)?$"
+                                    },
+                                    {
+                                        "type": "array",
+                                        "items":
+                                        {
+                                            "oneOf":
+                                            [
+                                                {
+                                                    "type": "integer"
+                                                },
+                                                {
+                                                    "type": "string",
+                                                    "pattern": "^\\d+(-\\d+)?$"
+                                                }
+                                            ]
+                                        }
+                                    }
+                                ]
+                            },
+                            "catalogs":
+                            {
+                                "type": "array",
+                                "items":
+                                {
+                                    "type": "string"
+                                }
+                            },
+                            "authorization":
+                            {
+                                "type": "object",
+                                "properties":
+                                {
+                                    "type": "object",
+                                    "patternProperties":
+                                    {
+                                        "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                                        {
+                                            "type": "object",
+                                            "properties":
+                                            {
+                                                "credentials":
+                                                {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            "events":
+                            {
+                                "type": "array",
+                                "items":
+                                {
+                                    "type": "object",
+                                    "properties":
+                                    {
+                                        "timestamp":
+                                        {
+                                            "type": "integer"
+                                        },
+                                        "message":
+                                        {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "additionalProperties": false
+                    }
                 },
                 "anyOf":
                 [

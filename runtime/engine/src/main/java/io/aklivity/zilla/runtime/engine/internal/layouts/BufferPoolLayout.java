@@ -101,6 +101,18 @@ public final class BufferPoolLayout implements AutoCloseable
 
             final MappedByteBuffer mapped = mapExistingFile(layoutFile, "bufferPool");
 
+            int slotCapacity = this.slotCapacity;
+            int slotCount = this.slotCount;
+
+            if (readonly)
+            {
+                final int totalLength = (int) layoutFile.length();
+                final int slotCountIndex = totalLength - Integer.BYTES;
+
+                slotCount = mapped.getInt(slotCountIndex);
+                slotCapacity = slotCountIndex / slotCount - Long.BYTES;
+            }
+
             return new BufferPoolLayout(new DefaultBufferPool(slotCapacity, slotCount, mapped));
         }
     }

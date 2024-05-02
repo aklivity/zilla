@@ -23,7 +23,7 @@ write zilla:begin.ext ${kafka:beginEx()
                                  .capabilities("PRODUCE_ONLY")
                                  .topic("mqtt-clients")
                                  .partition(-1, -2)
-                                 .ackMode("LEADER_ONLY")
+                                 .ackMode("NONE")
                                  .build()
                              .build()}
 
@@ -62,7 +62,7 @@ write zilla:begin.ext ${kafka:beginEx()
                                  .capabilities("PRODUCE_ONLY")
                                  .topic("mqtt-clients")
                                  .partition(-1, -2)
-                                 .ackMode("LEADER_ONLY")
+                                 .ackMode("NONE")
                                  .build()
                              .build()}
 

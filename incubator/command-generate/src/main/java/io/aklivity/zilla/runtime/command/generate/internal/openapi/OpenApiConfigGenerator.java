@@ -32,7 +32,6 @@ import io.aklivity.zilla.runtime.command.generate.internal.openapi.model.MediaTy
 import io.aklivity.zilla.runtime.command.generate.internal.openapi.model.OpenApi;
 import io.aklivity.zilla.runtime.command.generate.internal.openapi.model.Schema;
 import io.aklivity.zilla.runtime.command.generate.internal.openapi.view.SchemaView;
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 
 public abstract class OpenApiConfigGenerator extends ConfigGenerator
@@ -57,8 +56,8 @@ public abstract class OpenApiConfigGenerator extends ConfigGenerator
         return mediaType == null ? null : SchemaView.of(openApi.components.schemas, mediaType.schema);
     }
 
-    protected NamespaceConfigBuilder<NamespaceConfig> injectCatalog(
-        NamespaceConfigBuilder<NamespaceConfig> namespace)
+    protected <C> NamespaceConfigBuilder<C> injectCatalog(
+        NamespaceConfigBuilder<C> namespace)
     {
         if (openApi.components != null && openApi.components.schemas != null && !openApi.components.schemas.isEmpty())
         {

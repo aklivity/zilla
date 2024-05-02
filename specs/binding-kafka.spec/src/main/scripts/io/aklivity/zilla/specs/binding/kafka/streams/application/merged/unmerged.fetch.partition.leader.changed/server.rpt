@@ -178,27 +178,6 @@ read zilla:begin.ext ${kafka:beginEx()
                               .typeId(zilla:id("kafka"))
                               .fetch()
                                   .topic("test")
-                                  .partition(2, -2)
-                                  .build()
-                              .build()}
-
-connected
-
-write zilla:begin.ext ${kafka:beginEx()
-                               .typeId(zilla:id("kafka"))
-                               .fetch()
-                                   .topic("test")
-                                   .partition(2, 1, 3)
-                                   .build()
-                               .build()}
-write flush
-
-accepted
-
-read zilla:begin.ext ${kafka:beginEx()
-                              .typeId(zilla:id("kafka"))
-                              .fetch()
-                                  .topic("test")
                                   .partition(3, -2)
                                   .build()
                               .build()}
@@ -219,6 +198,27 @@ read await CHANGED_PARTITION_LEADER
 # read zilla:resetEx ${kafka:resetEx("NOT_LEADER_FOR_PARTITION")}
 read abort
 write aborted
+
+accepted
+
+read zilla:begin.ext ${kafka:beginEx()
+                              .typeId(zilla:id("kafka"))
+                              .fetch()
+                                  .topic("test")
+                                  .partition(2, -2)
+                                  .build()
+                              .build()}
+
+connected
+
+write zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .fetch()
+                                   .topic("test")
+                                   .partition(2, 1, 3)
+                                   .build()
+                               .build()}
+write flush
 
 accepted
 

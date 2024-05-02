@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.kafka.internal.types.ProxyAddressProtocol.STREAM;
 import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_BUDGET_ID;
 import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_INDEX;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
@@ -31,6 +32,7 @@ import org.agrona.collections.LongLongConsumer;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
@@ -56,6 +58,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaDataEx
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaOffsetCommitBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaOffsetCommitDataExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaResetExFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ProxyBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.WindowFW;
@@ -100,6 +103,7 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
     private final KafkaResetExFW.Builder kafkaResetExRW = new KafkaResetExFW.Builder();
+    private final ProxyBeginExFW.Builder proxyBeginExRW = new ProxyBeginExFW.Builder();
 
     private final RequestHeaderFW.Builder requestHeaderRW = new RequestHeaderFW.Builder();
     private final OffsetCommitRequestFW.Builder offsetCommitRequestRW = new OffsetCommitRequestFW.Builder();
@@ -127,6 +131,7 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
     private final KafkaOffsetCommitClientDecoder decodeReject = this::decodeReject;
 
     private final int kafkaTypeId;
+    private final int proxyTypeId;
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer extBuffer;
     private final BufferPool decodePool;
@@ -150,6 +155,7 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
     {
         super(config, context);
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
+        this.proxyTypeId = context.supplyTypeId("proxy");
         this.signaler = signaler;
         this.streamFactory = streamFactory;
         this.resolveSasl = resolveSasl;
@@ -185,20 +191,27 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
         assert kafkaBeginEx.kind() == KafkaBeginExFW.KIND_OFFSET_COMMIT;
         final KafkaOffsetCommitBeginExFW kafkaOffsetCommitBeginEx = kafkaBeginEx.offsetCommit();
         final String groupId = kafkaOffsetCommitBeginEx.groupId().asString();
-        final String topic = kafkaOffsetCommitBeginEx.topic().asString();
         final String memberId = kafkaOffsetCommitBeginEx.memberId().asString();
         final String instanceId = kafkaOffsetCommitBeginEx.instanceId().asString();
+        final String host = kafkaOffsetCommitBeginEx.host().asString();
+        final int port = kafkaOffsetCommitBeginEx.port();
 
         MessageConsumer newStream = null;
 
         final KafkaBindingConfig binding = supplyBinding.apply(routedId);
         final KafkaRouteConfig resolved = binding != null ?
-            binding.resolve(authorization, topic, groupId) : null;
+            binding.resolve(authorization, null, groupId) : null;
 
         if (resolved != null)
         {
             final long resolvedId = resolved.id;
             final KafkaSaslConfig sasl = resolveSasl.apply(binding.sasl());
+
+            // TODO: use affinity (like meta, fetch, produce) instead of host and port
+            final KafkaServerConfig server = KafkaServerConfig.builder()
+                .host(host)
+                .port(port)
+                .build();
 
             newStream = new KafkaOffsetCommitStream(
                     application,
@@ -208,9 +221,9 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
                     affinity,
                     resolvedId,
                     groupId,
-                    topic,
                     memberId,
                     instanceId,
+                    server,
                     sasl)::onApplication;
         }
 
@@ -579,11 +592,11 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
             }
             else
             {
+                client.onDecodeResponseErrorCode(traceId, client.originId, OFFSET_COMMIT_API_KEY, OFFSET_COMMIT_API_VERSION,
+                    errorCode);
                 client.errorCode = errorCode;
                 client.decoder = decodeReject;
             }
-
-
         }
 
         return progress;
@@ -649,9 +662,9 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
             long affinity,
             long resolvedId,
             String groupId,
-            String topic,
             String memberId,
             String instanceId,
+            KafkaServerConfig server,
             KafkaSaslConfig sasl)
         {
             this.application = application;
@@ -661,8 +674,8 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = affinity;
             this.initialMax = encodeMaxBytes;
-            this.client = new KafkaOffsetCommitClient(this, routedId, resolvedId, groupId, topic,
-                memberId, instanceId, sasl);
+            this.client = new KafkaOffsetCommitClient(this, routedId, resolvedId, groupId,
+                memberId, instanceId, server, sasl);
         }
 
         private void onApplication(
@@ -743,11 +756,12 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
                     kafkaDataExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit()) : null;
 
                 final KafkaOffsetCommitDataExFW commitDataExFW = kafkaDataEx.offsetCommit();
+                final String topic = commitDataExFW.topic().asString();
                 final KafkaOffsetFW progress = commitDataExFW.progress();
                 final int generationId = commitDataExFW.generationId();
                 final int leaderEpoch = commitDataExFW.leaderEpoch();
 
-                client.onOffsetCommit(traceId, progress.partitionId(), progress.partitionOffset(),
+                client.onOffsetCommit(traceId, topic, progress.partitionId(), progress.partitionOffset(),
                     generationId, leaderEpoch, progress.metadata().asString());
             }
         }
@@ -800,7 +814,7 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
         {
             final long traceId = reset.traceId();
 
-            state = KafkaState.closedInitial(state);
+            state = KafkaState.closedReply(state);
 
             client.doNetworkResetIfNecessary(traceId);
         }
@@ -933,7 +947,6 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
         private final LongLongConsumer encodeOffsetCommitRequest = this::doEncodeOffsetCommitRequestIfNecessary;
 
         private final String groupId;
-        private final String topic;
         private final String memberId;
         private final String instanceId;
         private final KafkaOffsetCommitStream delegate;
@@ -975,15 +988,14 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
             long originId,
             long routedId,
             String groupId,
-            String topic,
             String memberId,
             String instanceId,
+            KafkaServerConfig server,
             KafkaSaslConfig sasl)
         {
-            super(sasl, originId, routedId);
+            super(server, sasl, originId, routedId);
             this.delegate = delegate;
             this.groupId = requireNonNull(groupId);
-            this.topic = requireNonNull(topic);
             this.memberId = requireNonNull(memberId);
             this.instanceId = instanceId;
             this.commits = new ArrayDeque<>();
@@ -1207,8 +1219,24 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
         {
             state = KafkaState.openingInitial(state);
 
+            Consumer<OctetsFW.Builder> extension = EMPTY_EXTENSION;
+
+            if (server != null)
+            {
+                extension = e -> e.set((b, o, l) -> proxyBeginExRW.wrap(b, o, l)
+                                                                .typeId(proxyTypeId)
+                                                                .address(a -> a.inet(i -> i.protocol(p -> p.set(STREAM))
+                                                                        .source("0.0.0.0")
+                                                                        .destination(server.host)
+                                                                        .sourcePort(0)
+                                                                        .destinationPort(server.port)))
+                                                                .infos(i -> i.item(ii -> ii.authority(server.host)))
+                                                                .build()
+                                                                .sizeof());
+            }
+
             network = newStream(this::onNetwork, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, authorization, affinity, EMPTY_EXTENSION);
+                    traceId, authorization, affinity, extension);
         }
 
         @Override
@@ -1299,13 +1327,14 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
 
         private void onOffsetCommit(
             long traceId,
+            String topic,
             int partitionId,
             long partitionOffset,
             int generationId,
             int leaderEpoch,
             String metadata)
         {
-            commits.add(new KafkaPartitionOffset(partitionId,
+            commits.add(new KafkaPartitionOffset(topic, partitionId,
                 partitionOffset, generationId, leaderEpoch, metadata));
 
             doEncodeRequestIfNecessary(traceId, initialBudgetId);
@@ -1373,7 +1402,7 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
 
             final OffsetCommitTopicRequestFW topicRequest =
                 offsetCommitTopicRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
-                    .name(topic)
+                    .name(commit.topic)
                     .partitionCount(1)
                     .build();
             encodeProgress = topicRequest.limit();
@@ -1420,7 +1449,6 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
             flush:
             if (reserved > 0)
             {
-
                 boolean claimed = false;
 
                 if (initialDebIndex != NO_DEBITOR_INDEX)
@@ -1479,6 +1507,7 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
         {
             KafkaOffsetCommitClientDecoder previous = null;
             int progress = offset;
+
             while (progress <= limit && previous != decoder)
             {
                 previous = decoder;

@@ -26,8 +26,39 @@
                     "type":
                     {
                         "const": "test"
+                    },
+                    "options":
+                    {
+                        "type": "object",
+                        "properties":
+                        {
+                            "events":
+                            {
+                                "type": "array",
+                                "items":
+                                {
+                                    "type": "object",
+                                    "properties":
+                                    {
+                                        "qname":
+                                        {
+                                            "type": "string"
+                                        },
+                                        "id":
+                                        {
+                                            "type": "string"
+                                        },
+                                        "message":
+                                        {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
-                }
+                },
+                "additionalProperties": false
             }
         }
     }

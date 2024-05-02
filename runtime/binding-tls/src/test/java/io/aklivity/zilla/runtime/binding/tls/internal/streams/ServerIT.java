@@ -94,6 +94,13 @@ public class ServerIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("server.keys.not.found.yaml")
+    public void shouldIgnoreKeysNotFound() throws Exception
+    {
+    }
+
+
     @Ignore("https://github.com/k3po/k3po/issues/454 - Support connect aborted")
     @Test
     @Configuration("server.yaml")
@@ -308,6 +315,25 @@ public class ServerIT
         "${net}/server.port.not.routed/client"
     })
     public void shouldRejectWhenPortNotRouted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.event.tls.failed.yaml")
+    @Specification({
+        "${net}/client.hello.malformed/client"})
+    public void shouldLogTlsFailedEvent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.event.handshake.failed.yaml")
+    @Specification({
+        "${net}/server.handshake.timeout/client"})
+    @Configure(name = TlsConfigurationTest.TLS_HANDSHAKE_TIMEOUT_NAME, value = "1")
+    public void shouldLogHandshakeFailedEvent() throws Exception
     {
         k3po.finish();
     }

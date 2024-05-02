@@ -15,10 +15,15 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CLIENT_ID_DEFAULT;
+
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.List;
+import java.util.Map;
 import java.util.function.LongUnaryOperator;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
@@ -31,10 +36,14 @@ import org.agrona.DirectBuffer;
 import org.agrona.LangUtil;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.LongLongConsumer;
+import org.agrona.collections.Object2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
+import io.aklivity.zilla.runtime.binding.kafka.identity.KafkaClientIdSupplier;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
+import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaEventContext;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaScramMechanism;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.RequestHeaderFW;
@@ -56,6 +65,7 @@ public abstract class KafkaClientSaslHandshaker
     private static final short SASL_AUTHENTICATE_API_VERSION = 1;
     private static final int ERROR_SASL_AUTHENTICATION_FAILED = 58;
     private static final int ERROR_NONE = 0;
+    private static final int ERROR_UNSUPPORTED_VERSION = 35;
 
     private static final String CLIENT_KEY = "Client Key";
     private static final String SERVER_KEY = "Server Key";
@@ -74,6 +84,8 @@ public abstract class KafkaClientSaslHandshaker
     private static final byte[] SASL_SCRAM_SALT_PASSWORD = ",p=".getBytes(StandardCharsets.US_ASCII);
     private static final String SASL_SCRAM_CHANNEL_RANDOM = Base64.getEncoder().encodeToString(SASL_SCRAM_CHANNEL_BINDING);
 
+    private static final String16FW KAFKA_CLIENT_ID_DEFAULT_VALUE = new String16FW(KAFKA_CLIENT_ID_DEFAULT);
+
     private final RequestHeaderFW.Builder requestHeaderRW = new RequestHeaderFW.Builder();
     private final SaslHandshakeRequestFW.Builder saslHandshakeRequestRW = new SaslHandshakeRequestFW.Builder();
     private final SaslAuthenticateRequestFW.Builder saslAuthenticateRequestRW = new SaslAuthenticateRequestFW.Builder();
@@ -82,12 +94,16 @@ public abstract class KafkaClientSaslHandshaker
     private final SaslHandshakeResponseFW saslHandshakeResponseRO = new SaslHandshakeResponseFW();
     private final SaslHandshakeMechanismResponseFW saslHandshakeMechanismResponseRO = new SaslHandshakeMechanismResponseFW();
     private final SaslAuthenticateResponseFW saslAuthenticateResponseRO = new SaslAuthenticateResponseFW();
+    private final KafkaEventContext event;
 
     private KafkaSaslClientDecoder decodeSaslPlainAuthenticate = this::decodeSaslPlainAuthenticate;
     private KafkaSaslClientDecoder decodeSaslScramAuthenticateFirst = this::decodeSaslScramAuthenticateFirst;
     private KafkaSaslClientDecoder decodeSaslScramAuthenticateFinal = this::decodeSaslScramAuthenticateFinal;
 
+    private final SecureRandom random = new SecureRandom();
+
     private final MutableDirectBuffer scramBuffer = new UnsafeBuffer(new byte[1024]);
+
     private MessageDigest messageDigest;
     private Mac mac;
     private Supplier<String> nonceSupplier;
@@ -95,7 +111,9 @@ public abstract class KafkaClientSaslHandshaker
     private Matcher serverResponseMatcher;
     private byte[] result, ui, prev;
 
-    protected final String16FW clientId;
+    private final Map<KafkaServerConfig, String16FW> clientIdsByServer;
+
+    protected final KafkaClientIdSupplier clientIdSupplier;
     protected final LongUnaryOperator supplyInitialId;
     protected final LongUnaryOperator supplyReplyId;
     protected final MutableDirectBuffer writeBuffer;
@@ -104,11 +122,13 @@ public abstract class KafkaClientSaslHandshaker
         KafkaConfiguration config,
         EngineContext context)
     {
-        this.clientId = new String16FW(config.clientId());
+        this.clientIdSupplier = KafkaClientIdSupplier.instantiate(config);
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.writeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.nonceSupplier = config.nonceSupplier();
+        this.clientIdsByServer = new Object2ObjectHashMap<>();
+        this.event = new KafkaEventContext(context);
     }
 
     public abstract class KafkaSaslClient
@@ -116,6 +136,9 @@ public abstract class KafkaClientSaslHandshaker
         protected final KafkaSaslConfig sasl;
         protected final long originId;
         protected final long routedId;
+        protected final KafkaServerConfig server;
+        protected final String16FW clientId;
+
         protected long initialId;
         protected long replyId;
 
@@ -132,15 +155,29 @@ public abstract class KafkaClientSaslHandshaker
         private LongLongConsumer encodeSaslAuthenticate;
         private KafkaSaslClientDecoder decodeSaslAuthenticate;
 
-
         protected KafkaSaslClient(
+            List<KafkaServerConfig> servers,
             KafkaSaslConfig sasl,
             long originId,
             long routedId)
         {
+            this(servers != null && !servers.isEmpty()
+                    ? servers.get(random.nextInt(servers.size()))
+                    : null,
+                sasl, originId, routedId);
+        }
+
+        protected KafkaSaslClient(
+            KafkaServerConfig server,
+            KafkaSaslConfig sasl,
+            long originId,
+            long routedId)
+        {
+            this.server = server;
             this.sasl = sasl;
             this.originId = originId;
             this.routedId = routedId;
+            this.clientId = supplyClientId(server);
             this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
         }
@@ -388,6 +425,19 @@ public abstract class KafkaClientSaslHandshaker
             doNetworkData(traceId, budgetId, encodeBuffer, encodeOffset, encodeProgress);
 
             doDecodeSaslAuthenticateResponse(traceId);
+        }
+
+        protected final void onDecodeResponseErrorCode(
+            long traceId,
+            long bindingId,
+            int apiKey,
+            int apiVersion,
+            int errorCode)
+        {
+            if (errorCode == ERROR_UNSUPPORTED_VERSION)
+            {
+                event.apiVersionRejected(traceId, bindingId, apiKey, apiVersion);
+            }
         }
 
         protected abstract void doNetworkData(
@@ -656,6 +706,10 @@ public abstract class KafkaClientSaslHandshaker
             if (authenticateResponse != null)
             {
                 final int errorCode = authenticateResponse.errorCode();
+                if (errorCode != ERROR_NONE)
+                {
+                    event.authorizationFailed(traceId, client.originId, client.sasl.username);
+                }
 
                 progress = authenticateResponse.limit();
 
@@ -690,6 +744,10 @@ public abstract class KafkaClientSaslHandshaker
             if (authenticateResponse != null)
             {
                 final int errorCode = authenticateResponse.errorCode();
+                if (errorCode != ERROR_NONE)
+                {
+                    event.authorizationFailed(traceId, client.originId, client.sasl.username);
+                }
 
                 progress = authenticateResponse.limit();
 
@@ -778,6 +836,21 @@ public abstract class KafkaClientSaslHandshaker
         }
 
         return progress;
+    }
+
+    private String16FW supplyClientId(
+        KafkaServerConfig server)
+    {
+        return server != null
+            ? clientIdsByServer.computeIfAbsent(server, this::createClientId)
+            : KAFKA_CLIENT_ID_DEFAULT_VALUE;
+    }
+
+    private String16FW createClientId(
+        KafkaServerConfig server)
+    {
+        String clientId = clientIdSupplier.get(server.host);
+        return clientId != null ? new String16FW(clientId) : KAFKA_CLIENT_ID_DEFAULT_VALUE;
     }
 
     public byte[] hmac(byte[] key, byte[] bytes)

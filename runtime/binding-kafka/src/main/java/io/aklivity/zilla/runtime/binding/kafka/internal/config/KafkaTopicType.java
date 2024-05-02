@@ -15,18 +15,62 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.config;
 
-import io.aklivity.zilla.runtime.engine.validator.Validator;
+import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfig;
+import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 
 public class KafkaTopicType
 {
-    public final Validator key;
-    public final Validator value;
+    public static final KafkaTopicType DEFAULT_TOPIC_TYPE = new KafkaTopicType();
+
+    public final ConverterHandler keyReader;
+    public final ConverterHandler keyWriter;
+    public final ConverterHandler valueReader;
+    public final ConverterHandler valueWriter;
+
+    private final Matcher topicMatch;
+
+    private KafkaTopicType()
+    {
+        this.topicMatch = null;
+        this.keyReader = ConverterHandler.NONE;
+        this.keyWriter = ConverterHandler.NONE;
+        this.valueReader = ConverterHandler.NONE;
+        this.valueWriter = ConverterHandler.NONE;
+    }
 
     public KafkaTopicType(
-        Validator key,
-        Validator value)
+        EngineContext context,
+        KafkaTopicConfig topicConfig)
     {
-        this.key = key;
-        this.value = value;
+        this.topicMatch = topicConfig.name != null ? asMatcher(topicConfig.name) : null;
+        this.keyReader = Optional.ofNullable(topicConfig.key)
+            .map(context::supplyReadConverter)
+            .orElse(ConverterHandler.NONE);
+        this.keyWriter = Optional.ofNullable(topicConfig.key)
+            .map(context::supplyWriteConverter)
+            .orElse(ConverterHandler.NONE);
+        this.valueReader = Optional.ofNullable(topicConfig.value)
+            .map(context::supplyReadConverter)
+            .orElse(ConverterHandler.NONE);
+        this.valueWriter = Optional.ofNullable(topicConfig.value)
+            .map(context::supplyWriteConverter)
+            .orElse(ConverterHandler.NONE);
+    }
+
+    public boolean matches(
+        String topic)
+    {
+        return this.topicMatch == null || this.topicMatch.reset(topic).matches();
+    }
+
+    private static Matcher asMatcher(
+        String topic)
+    {
+        return Pattern.compile(topic.replaceAll("\\{[^}]+\\}", ".+")).matcher("");
     }
 }

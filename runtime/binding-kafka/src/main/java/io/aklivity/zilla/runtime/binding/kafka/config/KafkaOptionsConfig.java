@@ -15,7 +15,13 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.config;
 
+import static java.util.Collections.emptyList;
+import static java.util.stream.Collectors.toList;
+
 import java.util.List;
+import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Stream;
 
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
@@ -26,12 +32,29 @@ public final class KafkaOptionsConfig extends OptionsConfig
     public final List<KafkaServerConfig> servers;
     public final KafkaSaslConfig sasl;
 
-    public KafkaOptionsConfig(
+    public static KafkaOptionsConfigBuilder<KafkaOptionsConfig> builder()
+    {
+        return new KafkaOptionsConfigBuilder<>(KafkaOptionsConfig.class::cast);
+    }
+
+    public static <T> KafkaOptionsConfigBuilder<T> builder(
+        Function<OptionsConfig, T> mapper)
+    {
+        return new KafkaOptionsConfigBuilder<>(mapper);
+    }
+
+    KafkaOptionsConfig(
         List<String> bootstrap,
         List<KafkaTopicConfig> topics,
         List<KafkaServerConfig> servers,
         KafkaSaslConfig sasl)
     {
+        super(topics != null && !topics.isEmpty()
+            ? topics.stream()
+                .flatMap(t -> Stream.of(t.key, t.value))
+                .filter(Objects::nonNull)
+                .collect(toList())
+            : emptyList());
         this.bootstrap = bootstrap;
         this.topics = topics;
         this.servers = servers;

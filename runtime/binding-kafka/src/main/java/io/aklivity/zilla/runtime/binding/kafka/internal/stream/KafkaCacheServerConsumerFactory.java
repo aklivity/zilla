@@ -651,11 +651,11 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
 
                 this.receiver = newStream(this::onConsumerMessage,
                     originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, authorization, 0L,
-                    ex -> ex.set((b, o, l) -> kafkaBeginExRW.wrap(b, o, l)
+                    traceId, authorization, 0L, ex -> ex
+                        .set((b, o, l) -> kafkaBeginExRW.wrap(b, o, l)
                         .typeId(kafkaTypeId)
-                        .group(g ->
-                            g.groupId(groupId)
+                        .group(g -> g
+                            .groupId(groupId)
                             .protocol("rebalance")
                             .timeout(timeout)
                             .metadataLen(metadata.sizeof())
@@ -1543,10 +1543,11 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
                     traceId, this.authorization, affinity, ex -> ex.set((b, o, l) -> kafkaBeginExRW.wrap(b, o, l)
                         .typeId(kafkaTypeId)
                         .offsetCommit(oc -> oc
-                            .topic(delegate.topic)
                             .groupId(delegate.fanout.groupId)
                             .memberId(delegate.fanout.memberId)
-                            .instanceId(delegate.fanout.instanceId))
+                            .instanceId(delegate.fanout.instanceId)
+                            .host(delegate.fanout.host)
+                            .port(delegate.fanout.port))
                         .build().sizeof()));
                 state = KafkaState.openingInitial(state);
             }
@@ -1749,6 +1750,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
             doOffsetCommitInitialBegin(traceId, 0);
 
             commitRequests.add(new KafkaPartitionOffset(
+                delegate.topic,
                 partition.partitionId(),
                 partition.partitionOffset(),
                 delegate.fanout.generationId,
@@ -1795,6 +1797,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
                         .set((b, o, l) -> kafkaDataExRW.wrap(b, o, l)
                         .typeId(kafkaTypeId)
                         .offsetCommit(oc -> oc
+                            .topic(delegate.topic)
                             .progress(p -> p.partitionId(commit.partitionId)
                                 .partitionOffset(commit.partitionOffset)
                                 .metadata(commit.metadata))

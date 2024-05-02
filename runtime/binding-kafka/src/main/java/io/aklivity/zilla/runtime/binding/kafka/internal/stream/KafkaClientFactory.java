@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
+import java.util.function.IntFunction;
 import java.util.function.LongFunction;
 import java.util.function.UnaryOperator;
 
@@ -62,11 +63,19 @@ public final class KafkaClientFactory implements KafkaStreamFactory
         final BindingHandler streamFactory = config.clientConnectionPool() ? connectionPool.streamFactory() :
                 context.streamFactory();
 
+        final IntFunction<BindingHandler> streamFactorySupplier = d ->
+            d == 0 ? streamFactory : context.streamFactory();
+
         final UnaryOperator<KafkaSaslConfig> resolveSasl = config.clientConnectionPool() ? c -> null :
             UnaryOperator.identity();
 
+        final IntFunction<UnaryOperator<KafkaSaslConfig>> resolveSaslSupplier = d ->
+            d == 0 ? resolveSasl : UnaryOperator.identity();
+
         final Signaler signaler = config.clientConnectionPool() ? connectionPool.signaler() :
                 context.signaler();
+
+        final IntFunction<Signaler> signalSupplier = d -> d == 0 ? signaler : context.signaler();
 
         final KafkaClientMetaFactory clientMetaFactory = new KafkaClientMetaFactory(
                 config, context, bindings::get, accountant::supplyDebitor, supplyClientRoute,
@@ -76,8 +85,8 @@ public final class KafkaClientFactory implements KafkaStreamFactory
                 config, context, bindings::get, accountant::supplyDebitor, signaler, streamFactory, resolveSasl);
 
         final KafkaClientGroupFactory clientGroupFactory = new KafkaClientGroupFactory(
-            config, context, bindings::get, accountant::supplyDebitor, signaler, streamFactory,
-            resolveSasl, supplyClientRoute);
+            config, context, bindings::get, accountant::supplyDebitor, signalSupplier, streamFactorySupplier,
+            resolveSaslSupplier, supplyClientRoute);
 
         final KafkaClientFetchFactory clientFetchFactory = new KafkaClientFetchFactory(
                 config, context, bindings::get, accountant::supplyDebitor, supplyClientRoute);
@@ -91,6 +100,9 @@ public final class KafkaClientFactory implements KafkaStreamFactory
         final KafkaClientOffsetCommitFactory clientOffsetCommitFactory = new KafkaClientOffsetCommitFactory(
             config, context, bindings::get, accountant::supplyDebitor, signaler, streamFactory, resolveSasl);
 
+        final KafkaClientInitProducerIdFactory clientInitProducerIdFactory = new KafkaClientInitProducerIdFactory(
+            config, context, bindings::get, accountant::supplyDebitor, signaler, streamFactory, resolveSasl);
+
         final KafkaMergedFactory clientMergedFactory = new KafkaMergedFactory(
                 config, context, bindings::get, accountant.creditor());
 
@@ -102,6 +114,7 @@ public final class KafkaClientFactory implements KafkaStreamFactory
         factories.put(KafkaBeginExFW.KIND_PRODUCE, clientProduceFactory);
         factories.put(KafkaBeginExFW.KIND_OFFSET_COMMIT, clientOffsetCommitFactory);
         factories.put(KafkaBeginExFW.KIND_OFFSET_FETCH, clientOffsetFetchFactory);
+        factories.put(KafkaBeginExFW.KIND_INIT_PRODUCER_ID, clientInitProducerIdFactory);
         factories.put(KafkaBeginExFW.KIND_MERGED, clientMergedFactory);
 
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);

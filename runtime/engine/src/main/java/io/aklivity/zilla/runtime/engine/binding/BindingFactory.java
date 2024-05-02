@@ -15,23 +15,21 @@
  */
 package io.aklivity.zilla.runtime.engine.binding;
 
-import static java.util.Collections.unmodifiableMap;
 import static java.util.Objects.requireNonNull;
 import static java.util.ServiceLoader.load;
 
 import java.util.Map;
-import java.util.ServiceLoader;
-import java.util.TreeMap;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.factory.Factory;
 
-public final class BindingFactory
+public final class BindingFactory extends Factory
 {
     private final Map<String, BindingFactorySpi> factorySpis;
 
     public static BindingFactory instantiate()
     {
-        return instantiate(load(BindingFactorySpi.class));
+        return instantiate(load(BindingFactorySpi.class), BindingFactory::new);
     }
 
     public Iterable<String> names()
@@ -48,15 +46,6 @@ public final class BindingFactory
         BindingFactorySpi factorySpi = requireNonNull(factorySpis.get(name), () -> "Unrecognized binding name: " + name);
 
         return factorySpi.create(config);
-    }
-
-    private static BindingFactory instantiate(
-        ServiceLoader<BindingFactorySpi> factories)
-    {
-        Map<String, BindingFactorySpi> factorySpisByName = new TreeMap<>();
-        factories.forEach(factorySpi -> factorySpisByName.put(factorySpi.name(), factorySpi));
-
-        return new BindingFactory(unmodifiableMap(factorySpisByName));
     }
 
     private BindingFactory(

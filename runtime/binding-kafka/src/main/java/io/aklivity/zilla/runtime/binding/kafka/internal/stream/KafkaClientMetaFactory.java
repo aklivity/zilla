@@ -23,7 +23,6 @@ import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static java.lang.System.currentTimeMillis;
 import static java.util.Objects.requireNonNull;
 
-import java.security.SecureRandom;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -137,8 +136,6 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
     private final KafkaMetaClientDecoder decodeMetaPartition = this::decodeMetaPartition;
     private final KafkaMetaClientDecoder decodeIgnoreAll = this::decodeIgnoreAll;
     private final KafkaMetaClientDecoder decodeReject = this::decodeReject;
-
-    private final SecureRandom randomServerIdGenerator = new SecureRandom();
 
     private final long maxAgeMillis;
     private final int kafkaTypeId;
@@ -977,7 +974,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
         {
             final long traceId = reset.traceId();
 
-            state = KafkaState.closedInitial(state);
+            state = KafkaState.closedReply(state);
 
             client.doNetworkResetIfNecessary(traceId);
         }
@@ -1032,10 +1029,13 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
         private void doApplicationEnd(
             long traceId)
         {
-            state = KafkaState.closedReply(state);
-            //client.stream = nullIfClosed(state, client.stream);
-            doEnd(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, client.authorization, EMPTY_EXTENSION);
+            if (!KafkaState.replyClosed(state))
+            {
+                state = KafkaState.closedReply(state);
+                //client.stream = nullIfClosed(state, client.stream);
+                doEnd(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                        traceId, client.authorization, EMPTY_EXTENSION);
+            }
         }
 
         private void doApplicationAbort(
@@ -1130,9 +1130,8 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
             private MessageConsumer network;
             private final String topic;
             private final Int2IntHashMap topicPartitions;
-            private final List<KafkaServerConfig> servers;
 
-            private final Long2ObjectHashMap<KafkaBrokerInfo> newBrokers;
+            private final Long2ObjectHashMap<KafkaServerConfig> newServers;
             private final Int2IntHashMap newPartitions;
 
             private int state;
@@ -1179,11 +1178,10 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                 List<KafkaServerConfig> servers,
                 KafkaSaslConfig sasl)
             {
-                super(sasl, originId, routedId);
+                super(servers, sasl, originId, routedId);
                 this.topic = requireNonNull(topic);
                 this.topicPartitions = clientRoute.supplyPartitions(topic);
-                this.servers = servers;
-                this.newBrokers = new Long2ObjectHashMap<>();
+                this.newServers = new Long2ObjectHashMap<>();
                 this.newPartitions = new Int2IntHashMap(-1);
 
                 this.encoder = sasl != null ? encodeSaslHandshakeRequest : encodeMetaRequest;
@@ -1408,19 +1406,16 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
 
                 Consumer<OctetsFW.Builder> extension = EMPTY_EXTENSION;
 
-                final KafkaServerConfig kafkaServerConfig =
-                    servers != null ? servers.get(randomServerIdGenerator.nextInt(servers.size())) : null;
-
-                if (kafkaServerConfig != null)
+                if (server != null)
                 {
                     extension =  e -> e.set((b, o, l) -> proxyBeginExRW.wrap(b, o, l)
                         .typeId(proxyTypeId)
                         .address(a -> a.inet(i -> i.protocol(p -> p.set(STREAM))
                             .source("0.0.0.0")
-                            .destination(kafkaServerConfig.host)
+                            .destination(server.host)
                             .sourcePort(0)
-                            .destinationPort(kafkaServerConfig.port)))
-                        .infos(i -> i.item(ii -> ii.authority(kafkaServerConfig.host)))
+                            .destinationPort(server.port)))
+                        .infos(i -> i.item(ii -> ii.authority(server.host)))
                         .build()
                         .sizeof());
                 }
@@ -1786,7 +1781,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
 
             private void onDecodeMetadata()
             {
-                newBrokers.clear();
+                newServers.clear();
             }
 
             private void onDecodeBroker(
@@ -1794,14 +1789,14 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                 String host,
                 int port)
             {
-                newBrokers.put(brokerId, new KafkaBrokerInfo(brokerId, host, port));
+                newServers.put(brokerId, KafkaServerConfig.builder().host(host).port(port).build());
             }
 
             private void onDecodeBrokers()
             {
-                // TODO: share brokers across cores
-                clientRoute.brokers.clear();
-                clientRoute.brokers.putAll(newBrokers);
+                // TODO: share servers across cores
+                clientRoute.servers.clear();
+                clientRoute.servers.putAll(newServers);
             }
 
             private void onDecodeTopic(
@@ -1818,6 +1813,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                     newPartitions.clear();
                     break;
                 default:
+                    onDecodeResponseErrorCode(traceId, originId, errorCode);
                     final KafkaResetExFW resetEx = kafkaResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
                                                                  .typeId(kafkaTypeId)
                                                                  .error(errorCode)
@@ -1838,6 +1834,18 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                 {
                     newPartitions.put(partitionId, leaderId);
                 }
+                else
+                {
+                    onDecodeResponseErrorCode(traceId, originId, partitionError);
+                }
+            }
+
+            private void onDecodeResponseErrorCode(
+                long traceId,
+                long originId,
+                int errorCode)
+            {
+                super.onDecodeResponseErrorCode(traceId, originId, METADATA_API_KEY, METADATA_API_VERSION, errorCode);
             }
 
             @Override

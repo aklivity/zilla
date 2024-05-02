@@ -29,6 +29,7 @@ import jakarta.json.JsonString;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfig;
@@ -114,7 +115,7 @@ public final class KafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi,
     public OptionsConfig adaptFromJson(
         JsonObject object)
     {
-
+        KafkaOptionsConfigBuilder<KafkaOptionsConfig> optionsBuilder = KafkaOptionsConfig.builder();
         JsonArray bootstrapArray = object.containsKey(BOOTSTRAP_NAME)
                 ? object.getJsonArray(BOOTSTRAP_NAME)
                 : null;
@@ -131,29 +132,23 @@ public final class KafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi,
                 ? object.getJsonObject(SASL_NAME)
                 : null;
 
-        List<String> bootstrap = null;
-
         if (bootstrapArray != null)
         {
-            List<String> bootstrap0 = new ArrayList<>();
-            bootstrapArray.forEach(v -> bootstrap0.add(JsonString.class.cast(v).getString()));
-            bootstrap = bootstrap0;
+            List<String> bootstrap = new ArrayList<>();
+            bootstrapArray.forEach(v -> bootstrap.add(JsonString.class.cast(v).getString()));
+            optionsBuilder.bootstrap(bootstrap);
         }
-
-        List<KafkaTopicConfig> topics = null;
 
         if (topicsArray != null)
         {
-            List<KafkaTopicConfig> topics0 = new ArrayList<>();
-            topicsArray.forEach(v -> topics0.add(topic.adaptFromJson(v.asJsonObject())));
-            topics = topics0;
+            List<KafkaTopicConfig> topics = new ArrayList<>();
+            topicsArray.forEach(v -> topics.add(topic.adaptFromJson(v.asJsonObject())));
+            optionsBuilder.topics(topics);
         }
-
-        List<KafkaServerConfig> servers = null;
 
         if (serversArray != null)
         {
-            List<KafkaServerConfig> servers0 = new ArrayList<>();
+            List<KafkaServerConfig> servers = new ArrayList<>();
             serversArray.forEach(v ->
             {
                 final String server = JsonString.class.cast(v).getString();
@@ -163,13 +158,11 @@ public final class KafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi,
                     final String host = matcher.group(1);
                     final int port = Integer.parseInt(matcher.group(2));
 
-                    servers0.add(new KafkaServerConfig(host, port));
+                    servers.add(KafkaServerConfig.builder().host(host).port(port).build());
                 }
             });
-            servers = servers0;
+            optionsBuilder.servers(servers);
         }
-
-        KafkaSaslConfig sasl = null;
 
         if (saslObject != null)
         {
@@ -177,9 +170,13 @@ public final class KafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi,
             final String username = saslObject.getString(SASL_PLAIN_USERNAME_NAME);
             final String password = saslObject.getString(SASL_PLAIN_PASSWORD_NAME);
 
-            sasl = new KafkaSaslConfig(mechanism, username, password);
+            optionsBuilder.sasl(KafkaSaslConfig.builder()
+                .mechanism(mechanism)
+                .username(username)
+                .password(password)
+                .build());
         }
 
-        return new KafkaOptionsConfig(bootstrap, topics, servers, sasl);
+        return optionsBuilder.build();
     }
 }

@@ -16,11 +16,10 @@
 package io.aklivity.zilla.runtime.engine.catalog;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.factory.FactorySpi;
 
-public interface CatalogFactorySpi
+public interface CatalogFactorySpi extends FactorySpi
 {
-    String name();
-
     Catalog create(
         Configuration config);
 }

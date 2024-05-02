@@ -17,6 +17,7 @@ This project includes:
   Apache Commons Collections under GPL 3
   Apache Commons Lang under GPL 3
   Jakarta Dependency Injection under The Apache Software License, Version 2.0
+  zilla::runtime::common under The Apache Software License, Version 2.0
 
 
 This project also includes code under copyright of the following entities:

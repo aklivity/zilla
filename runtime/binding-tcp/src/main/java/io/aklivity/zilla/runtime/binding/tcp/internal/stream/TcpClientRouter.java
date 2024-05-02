@@ -30,6 +30,7 @@ import java.util.stream.Collectors;
 import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
+import io.aklivity.zilla.runtime.binding.tcp.internal.TcpEventContext;
 import io.aklivity.zilla.runtime.binding.tcp.internal.config.TcpBindingConfig;
 import io.aklivity.zilla.runtime.binding.tcp.internal.config.TcpRouteConfig;
 import io.aklivity.zilla.runtime.binding.tcp.internal.types.Array32FW;
@@ -49,12 +50,14 @@ public final class TcpClientRouter
 
     private final Function<String, InetAddress[]> resolveHost;
     private final Long2ObjectHashMap<TcpBindingConfig> bindings;
+    private final TcpEventContext event;
 
     public TcpClientRouter(
         EngineContext context)
     {
         this.resolveHost = context::resolveHost;
         this.bindings = new Long2ObjectHashMap<>();
+        this.event = new TcpEventContext(context);
     }
 
     public void attach(
@@ -71,6 +74,7 @@ public final class TcpClientRouter
 
     public InetSocketAddress resolve(
         TcpBindingConfig binding,
+        long traceId,
         long authorization,
         ProxyBeginExFW beginEx)
     {
@@ -79,65 +83,21 @@ public final class TcpClientRouter
 
         InetSocketAddress resolved = null;
 
-        if (beginEx == null)
+        try
         {
-            resolved = options != null ? new InetSocketAddress(options.host, port) : null;
-        }
-        else if (binding.routes == TcpBindingConfig.DEFAULT_CLIENT_ROUTES)
-        {
-            ProxyAddressFW address = beginEx.address();
-            resolved = resolveInetSocketAddress(address);
-        }
-        else
-        {
-            final ProxyAddressFW address = beginEx.address();
-
-            for (TcpRouteConfig route : binding.routes)
+            if (beginEx == null)
             {
-                if (!route.authorized(authorization))
-                {
-                    continue;
-                }
-
-                Array32FW<ProxyInfoFW> infos = beginEx.infos();
-                ProxyInfoFW authorityInfo = infos.matchFirst(i -> i.kind() == AUTHORITY);
-                if (authorityInfo != null && route.matchesExplicit(r -> r.authority != null))
-                {
-                    final List<InetSocketAddress> authorities = Arrays
-                        .stream(resolveHost.apply(authorityInfo.authority().asString()))
-                        .map(a -> new InetSocketAddress(a, port))
-                        .collect(Collectors.toList());
-
-                    for (InetSocketAddress authority : authorities)
-                    {
-                        if (route.matchesExplicit(authority))
-                        {
-                            resolved = authority;
-                            break;
-                        }
-                    }
-                }
-
-                if (resolved == null)
-                {
-                    resolved = resolve(address, authorization, route::matchesExplicit);
-                }
-
-                if (resolved != null)
-                {
-                    break;
-                }
+                InetAddress[] addresses = options != null ? resolveHost(options.host) : null;
+                resolved = addresses != null ? new InetSocketAddress(addresses[0], port) : null;
             }
-
-            if (resolved == null &&
-                options != null &&
-                options.host != null &&
-                !"*".equals(options.host))
+            else if (binding.routes == TcpBindingConfig.DEFAULT_CLIENT_ROUTES)
             {
-                final List<InetSocketAddress> host = Arrays
-                    .stream(resolveHost.apply(options.host))
-                    .map(a -> new InetSocketAddress(a, port))
-                    .collect(Collectors.toList());
+                ProxyAddressFW address = beginEx.address();
+                resolved = resolveInetSocketAddress(address);
+            }
+            else
+            {
+                final ProxyAddressFW address = beginEx.address();
 
                 for (TcpRouteConfig route : binding.routes)
                 {
@@ -146,17 +106,81 @@ public final class TcpClientRouter
                         continue;
                     }
 
-                    resolved = resolve(address, authorization, host::contains);
+                    Array32FW<ProxyInfoFW> infos = beginEx.infos();
+                    ProxyInfoFW authorityInfo = infos.matchFirst(i -> i.kind() == AUTHORITY);
+                    if (authorityInfo != null && route.matchesExplicit(r -> r.authority != null))
+                    {
+                        final List<InetSocketAddress> authorities = Arrays
+                            .stream(resolveHost(authorityInfo.authority().asString()))
+                            .map(a -> new InetSocketAddress(a, port))
+                            .collect(Collectors.toList());
+
+                        for (InetSocketAddress authority : authorities)
+                        {
+                            if (route.matchesExplicit(authority))
+                            {
+                                resolved = authority;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (resolved == null)
+                    {
+                        resolved = resolve(address, authorization, route::matchesExplicit);
+                    }
 
                     if (resolved != null)
                     {
                         break;
                     }
                 }
+
+                if (resolved == null &&
+                    options != null &&
+                    options.host != null &&
+                    !"*".equals(options.host))
+                {
+                    final List<InetSocketAddress> host = Arrays
+                        .stream(resolveHost(options.host))
+                        .map(a -> new InetSocketAddress(a, port))
+                        .collect(Collectors.toList());
+
+                    for (TcpRouteConfig route : binding.routes)
+                    {
+                        if (!route.authorized(authorization))
+                        {
+                            continue;
+                        }
+
+                        resolved = resolve(address, authorization, host::contains);
+
+                        if (resolved != null)
+                        {
+                            break;
+                        }
+                    }
+                }
             }
         }
-
+        catch (TcpDnsFailedException ex)
+        {
+            event.dnsFailed(traceId, binding.id, ex.hostname);
+        }
         return resolved;
+    }
+
+    private InetAddress[] resolveHost(
+        String hostname)
+    {
+        try
+        {
+            return resolveHost.apply(hostname);
+        }
+        catch (Throwable ex)
+        {
+            throw new TcpDnsFailedException(ex, hostname);
+        }
     }
 
     public void detach(
@@ -290,5 +314,18 @@ public final class TcpClientRouter
         }
 
         return resolved;
+    }
+
+    private static final class TcpDnsFailedException extends RuntimeException
+    {
+        private final String hostname;
+
+        TcpDnsFailedException(
+            Throwable cause,
+            String hostname)
+        {
+            super(cause);
+            this.hostname = hostname;
+        }
     }
 }

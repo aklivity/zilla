@@ -24,4 +24,11 @@ public final class ConfigException extends RuntimeException
     {
         super(message);
     }
+
+    public ConfigException(
+        String message,
+        Throwable cause)
+    {
+        super(message, cause);
+    }
 }

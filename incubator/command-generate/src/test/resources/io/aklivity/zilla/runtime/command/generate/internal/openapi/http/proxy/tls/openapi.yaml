@@ -17,15 +17,6 @@ paths:
       responses:
         '200':
           description: A paged array of items
-          headers:
-            x-next:
-              description: A link to the next page of responses
-              schema:
-                type: string
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Items"
         default:
           description: unexpected error
           content:

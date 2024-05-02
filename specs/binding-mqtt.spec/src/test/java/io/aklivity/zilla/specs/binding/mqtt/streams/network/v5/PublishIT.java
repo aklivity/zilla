@@ -47,6 +47,15 @@ public class PublishIT
 
     @Test
     @Specification({
+        "${net}/publish.one.message.disconnect/client",
+        "${net}/publish.one.message.disconnect/server"})
+    public void shouldPublishOneMessageAndDisconnect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/publish.multiple.messages/client",
         "${net}/publish.multiple.messages/server"})
     public void shouldSendMultipleMessages() throws Exception
@@ -324,6 +333,24 @@ public class PublishIT
         "${net}/publish.valid.message/client",
         "${net}/publish.valid.message/server"})
     public void shouldPublishValidMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/publish.valid.user.property/client",
+        "${net}/publish.valid.user.property/server"})
+    public void shouldPublishValidUserProperty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/publish.invalid.user.property/client",
+        "${net}/publish.invalid.user.property/server"})
+    public void shouldNotPublishInvalidUserProperty() throws Exception
     {
         k3po.finish();
     }

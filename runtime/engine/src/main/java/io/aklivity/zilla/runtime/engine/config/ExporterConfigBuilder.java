@@ -21,8 +21,10 @@ public final class ExporterConfigBuilder<T> extends ConfigBuilder<T, ExporterCon
 {
     private final Function<ExporterConfig, T> mapper;
 
+    private String namespace;
     private String name;
     private String type;
+    private String vault;
     private OptionsConfig options;
 
     ExporterConfigBuilder(
@@ -38,10 +40,24 @@ public final class ExporterConfigBuilder<T> extends ConfigBuilder<T, ExporterCon
         return (Class<ExporterConfigBuilder<T>>) getClass();
     }
 
+    public ExporterConfigBuilder<T> namespace(
+        String namespace)
+    {
+        this.namespace = namespace;
+        return this;
+    }
+
     public ExporterConfigBuilder<T> name(
         String name)
     {
         this.name = name;
+        return this;
+    }
+
+    public ExporterConfigBuilder<T> vault(
+        String vault)
+    {
+        this.vault = vault;
         return this;
     }
 
@@ -68,6 +84,6 @@ public final class ExporterConfigBuilder<T> extends ConfigBuilder<T, ExporterCon
     @Override
     public T build()
     {
-        return mapper.apply(new ExporterConfig(name, type, options));
+        return mapper.apply(new ExporterConfig(namespace, name, type, vault, options));
     }
 }

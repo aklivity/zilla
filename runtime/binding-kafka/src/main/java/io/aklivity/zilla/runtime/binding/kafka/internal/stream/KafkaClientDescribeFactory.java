@@ -24,7 +24,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
 import java.nio.ByteOrder;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -133,8 +132,6 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
     private final KafkaDescribeClientDecoder decodeDescribeResponse = this::decodeDescribeResponse;
     private final KafkaDescribeClientDecoder decodeIgnoreAll = this::decodeIgnoreAll;
     private final KafkaDescribeClientDecoder decodeReject = this::decodeReject;
-
-    private final SecureRandom randomServerIdGenerator = new SecureRandom();
 
     private final long maxAgeMillis;
     private final int kafkaTypeId;
@@ -753,7 +750,7 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
         {
             final long traceId = reset.traceId();
 
-            state = KafkaState.closedInitial(state);
+            state = KafkaState.closedReply(state);
 
             client.doNetworkResetIfNecessary(traceId);
         }
@@ -812,10 +809,13 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
         private void doApplicationEnd(
             long traceId)
         {
-            state = KafkaState.closedReply(state);
-            //client.stream = nullIfClosed(state, client.stream);
-            doEnd(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            if (!KafkaState.replyClosed(state))
+            {
+                state = KafkaState.closedReply(state);
+                //client.stream = nullIfClosed(state, client.stream);
+                doEnd(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, client.authorization, EMPTY_EXTENSION);
+            }
         }
 
         private void doApplicationAbort(
@@ -824,7 +824,7 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
             state = KafkaState.closedReply(state);
             //client.stream = nullIfClosed(state, client.stream);
             doAbort(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, client.authorization, EMPTY_EXTENSION);
+                traceId, client.authorization, EMPTY_EXTENSION);
         }
 
         private void doApplicationWindow(
@@ -858,7 +858,7 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
             //client.stream = nullIfClosed(state, client.stream);
 
             doReset(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, client.authorization, extension);
+                traceId, client.authorization, extension);
         }
 
         private void doApplicationAbortIfNecessary(
@@ -909,7 +909,6 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
             private MessageConsumer network;
             private final String topic;
             private final Map<String, String> configs;
-            private final List<KafkaServerConfig> servers;
 
             private int state;
             private long authorization;
@@ -948,10 +947,9 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
                 List<KafkaServerConfig> servers,
                 KafkaSaslConfig sasl)
             {
-                super(sasl, originId, routedId);
+                super(servers, sasl, originId, routedId);
                 this.topic = requireNonNull(topic);
                 this.configs = new LinkedHashMap<>(configs.size());
-                this.servers = servers;
                 configs.forEach(c -> this.configs.put(c, null));
 
                 this.encoder = sasl != null ? encodeSaslHandshakeRequest : encodeDescribeRequest;
@@ -970,6 +968,7 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
                     assert resource.equals(this.topic);
                     break;
                 default:
+                    onDecodeResponseErrorCode(traceId, originId, errorCode);
                     final KafkaResetExFW resetEx = kafkaResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
                                                                  .typeId(kafkaTypeId)
                                                                  .error(errorCode)
@@ -978,6 +977,15 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
                     doNetworkEnd(traceId, authorization);
                     break;
                 }
+            }
+
+            private void onDecodeResponseErrorCode(
+                long traceId,
+                long originId,
+                int errorCode)
+            {
+                super.onDecodeResponseErrorCode(traceId, originId, DESCRIBE_CONFIGS_API_KEY, DESCRIBE_CONFIGS_API_VERSION,
+                    errorCode);
             }
 
             private void onNetwork(
@@ -1196,19 +1204,16 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
 
                 Consumer<OctetsFW.Builder> extension = EMPTY_EXTENSION;
 
-                final KafkaServerConfig kafkaServerConfig =
-                    servers != null ? servers.get(randomServerIdGenerator.nextInt(servers.size())) : null;
-
-                if (kafkaServerConfig != null)
+                if (server != null)
                 {
                     extension =  e -> e.set((b, o, l) -> proxyBeginExRW.wrap(b, o, l)
                         .typeId(proxyTypeId)
                         .address(a -> a.inet(i -> i.protocol(p -> p.set(STREAM))
                             .source("0.0.0.0")
-                            .destination(kafkaServerConfig.host)
+                            .destination(server.host)
                             .sourcePort(0)
-                            .destinationPort(kafkaServerConfig.port)))
-                        .infos(i -> i.item(ii -> ii.authority(kafkaServerConfig.host)))
+                            .destinationPort(server.port)))
+                        .infos(i -> i.item(ii -> ii.authority(server.host)))
                         .build()
                         .sizeof());
                 }

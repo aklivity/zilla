@@ -23,17 +23,20 @@ public class SchemaConfig
     public final String version;
     public final String subject;
     public final int id;
+    public final String record;
 
     SchemaConfig(
         String strategy,
         String subject,
         String version,
-        int id)
+        int id,
+        String record)
     {
         this.strategy = strategy;
         this.version = version;
         this.subject = subject;
         this.id = id;
+        this.record = record;
     }
 
     public static <T> SchemaConfigBuilder<T> builder(

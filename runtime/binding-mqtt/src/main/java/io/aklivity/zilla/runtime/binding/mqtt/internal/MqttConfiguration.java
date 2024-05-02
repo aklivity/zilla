@@ -24,6 +24,7 @@ import java.util.function.IntSupplier;
 
 import org.agrona.LangUtil;
 
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttQoS;
 import io.aklivity.zilla.runtime.engine.Configuration;
 
 public class MqttConfiguration extends Configuration
@@ -44,6 +45,7 @@ public class MqttConfiguration extends Configuration
     public static final IntPropertyDef SESSION_EXPIRY_GRACE_PERIOD;
     public static final PropertyDef<String> CLIENT_ID;
     public static final PropertyDef<IntSupplier> SUBSCRIPTION_ID;
+    public static final PropertyDef<MqttQoS> PUBLISH_QOS_MAX;
     public static final int GENERATED_SUBSCRIPTION_ID_MASK = 0x70;
 
     static
@@ -66,6 +68,8 @@ public class MqttConfiguration extends Configuration
         CLIENT_ID = config.property("client.id");
         SUBSCRIPTION_ID = config.property(IntSupplier.class, "subscription.id",
             MqttConfiguration::decodeIntSupplier, MqttConfiguration::defaultSubscriptionId);
+        PUBLISH_QOS_MAX = config.property(MqttQoS.class, "publish.qos.max",
+            MqttConfiguration::decodePublishQosMax, MqttQoS.EXACTLY_ONCE);
         MQTT_CONFIG = config;
     }
 
@@ -130,10 +134,20 @@ public class MqttConfiguration extends Configuration
         return CLIENT_ID.get(this);
     }
 
-
     public IntSupplier subscriptionId()
     {
         return SUBSCRIPTION_ID.get(this);
+    }
+
+    public MqttQoS publishQosMax()
+    {
+        return PUBLISH_QOS_MAX.get(this);
+    }
+
+    private static MqttQoS decodePublishQosMax(
+        String value)
+    {
+        return MqttQoS.valueOf(value.toUpperCase());
     }
 
     private static IntSupplier decodeIntSupplier(

@@ -451,7 +451,7 @@ read zilla:begin.ext ${kafka:beginEx()
                                 .capabilities("PRODUCE_ONLY")
                                 .topic("mqtt-messages")
                                 .partition(-1, -2)
-                                .ackMode("LEADER_ONLY")
+                                .ackMode("NONE")
                                 .build()
                             .build()}
 

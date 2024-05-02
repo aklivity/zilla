@@ -38,6 +38,8 @@ import io.aklivity.zilla.runtime.engine.internal.layouts.BudgetsLayout;
 
 public class EngineConfiguration extends Configuration
 {
+    public static final String ZILLA_NAME_PROPERTY = "zilla.name";
+
     public static final boolean DEBUG_BUDGETS = Boolean.getBoolean("zilla.engine.debug.budgets");
 
     public static final PropertyDef<URL> ENGINE_CONFIG_URL;
@@ -50,6 +52,7 @@ public class EngineConfiguration extends Configuration
     public static final IntPropertyDef ENGINE_BUFFER_POOL_CAPACITY;
     public static final IntPropertyDef ENGINE_BUFFER_SLOT_CAPACITY;
     public static final IntPropertyDef ENGINE_STREAMS_BUFFER_CAPACITY;
+    public static final IntPropertyDef ENGINE_EVENTS_BUFFER_CAPACITY;
     public static final IntPropertyDef ENGINE_COUNTERS_BUFFER_CAPACITY;
     public static final IntPropertyDef ENGINE_BUDGETS_BUFFER_CAPACITY;
     public static final BooleanPropertyDef ENGINE_TIMESTAMPS;
@@ -66,8 +69,9 @@ public class EngineConfiguration extends Configuration
     public static final LongPropertyDef ENGINE_CREDITOR_CHILD_CLEANUP_LINGER_MILLIS;
     public static final BooleanPropertyDef ENGINE_VERBOSE;
     public static final BooleanPropertyDef ENGINE_VERBOSE_SCHEMA;
+    public static final BooleanPropertyDef ENGINE_VERBOSE_SCHEMA_PLAIN;
+    public static final BooleanPropertyDef ENGINE_VERBOSE_COMPOSITES;
     public static final IntPropertyDef ENGINE_WORKERS;
-    public static final BooleanPropertyDef ENGINE_CONFIG_RESOLVE_EXPRESSIONS;
 
     private static final ConfigurationDef ENGINE_CONFIG;
 
@@ -77,7 +81,7 @@ public class EngineConfiguration extends Configuration
         final ConfigurationDef config = new ConfigurationDef("zilla.engine");
         ENGINE_CONFIG_URL = config.property(URL.class, "config.url", EngineConfiguration::configURL, "file:zilla.yaml");
         ENGINE_CONFIG_POLL_INTERVAL_SECONDS = config.property("config.poll.interval.seconds", 60);
-        ENGINE_NAME = config.property("name", "engine");
+        ENGINE_NAME = config.property("name", EngineConfiguration::defaultName);
         ENGINE_DIRECTORY = config.property("directory", ".");
         ENGINE_CACHE_DIRECTORY = config.property(Path.class, "cache.directory", EngineConfiguration::cacheDirectory, "cache");
         ENGINE_HOST_RESOLVER = config.property(HostResolver.class, "host.resolver",
@@ -87,6 +91,8 @@ public class EngineConfiguration extends Configuration
         ENGINE_BUFFER_SLOT_CAPACITY = config.property("buffer.slot.capacity", 64 * 1024);
         ENGINE_STREAMS_BUFFER_CAPACITY = config.property("streams.buffer.capacity",
                 EngineConfiguration::defaultStreamsBufferCapacity);
+        ENGINE_EVENTS_BUFFER_CAPACITY = config.property("events.buffer.capacity",
+                EngineConfiguration::defaultEventsBufferCapacity);
         ENGINE_BUDGETS_BUFFER_CAPACITY = config.property("budgets.buffer.capacity",
                 EngineConfiguration::defaultBudgetsBufferCapacity);
         ENGINE_COUNTERS_BUFFER_CAPACITY = config.property("counters.buffer.capacity", 1024 * 1024);
@@ -103,9 +109,10 @@ public class EngineConfiguration extends Configuration
         ENGINE_ROUTED_DELAY_MILLIS = config.property("routed.delay.millis", 0L);
         ENGINE_CREDITOR_CHILD_CLEANUP_LINGER_MILLIS = config.property("child.cleanup.linger", SECONDS.toMillis(5L));
         ENGINE_VERBOSE = config.property("verbose", false);
+        ENGINE_VERBOSE_COMPOSITES = config.property("verbose.composites", false);
         ENGINE_VERBOSE_SCHEMA = config.property("verbose.schema", false);
+        ENGINE_VERBOSE_SCHEMA_PLAIN = config.property("verbose.schema.plain", false);
         ENGINE_WORKERS = config.property("workers", Runtime.getRuntime().availableProcessors());
-        ENGINE_CONFIG_RESOLVE_EXPRESSIONS = config.property("config.resolve.expressions", true);
         ENGINE_CONFIG = config;
     }
 
@@ -177,6 +184,11 @@ public class EngineConfiguration extends Configuration
     public int streamsBufferCapacity()
     {
         return ENGINE_STREAMS_BUFFER_CAPACITY.getAsInt(this);
+    }
+
+    public int eventsBufferCapacity()
+    {
+        return ENGINE_EVENTS_BUFFER_CAPACITY.getAsInt(this);
     }
 
     public int countersBufferCapacity()
@@ -254,14 +266,19 @@ public class EngineConfiguration extends Configuration
         return ENGINE_VERBOSE_SCHEMA.getAsBoolean(this);
     }
 
+    public boolean verboseSchemaPlain()
+    {
+        return ENGINE_VERBOSE_SCHEMA_PLAIN.getAsBoolean(this);
+    }
+
+    public boolean verboseComposites()
+    {
+        return ENGINE_VERBOSE_COMPOSITES.getAsBoolean(this);
+    }
+
     public int workers()
     {
         return ENGINE_WORKERS.getAsInt(this);
-    }
-
-    public boolean configResolveExpressions()
-    {
-        return ENGINE_CONFIG_RESOLVE_EXPRESSIONS.getAsBoolean(this);
     }
 
     public Function<String, InetAddress[]> hostResolver()
@@ -276,6 +293,12 @@ public class EngineConfiguration extends Configuration
     }
 
     private static int defaultStreamsBufferCapacity(
+        Configuration config)
+    {
+        return ENGINE_BUFFER_SLOT_CAPACITY.get(config) * ENGINE_WORKER_CAPACITY.getAsInt(config);
+    }
+
+    private static int defaultEventsBufferCapacity(
         Configuration config)
     {
         return ENGINE_BUFFER_SLOT_CAPACITY.get(config) * ENGINE_WORKER_CAPACITY.getAsInt(config);
@@ -317,6 +340,12 @@ public class EngineConfiguration extends Configuration
     {
         InetAddress[] resolve(
             String name);
+    }
+
+    private static String defaultName(
+        Configuration config)
+    {
+        return System.getProperty(ZILLA_NAME_PROPERTY, "zilla");
     }
 
     private static HostResolver decodeHostResolver(

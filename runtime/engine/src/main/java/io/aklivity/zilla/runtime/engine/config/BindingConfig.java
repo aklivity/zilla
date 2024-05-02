@@ -19,6 +19,7 @@ import static java.util.Objects.requireNonNull;
 import static java.util.function.Function.identity;
 
 import java.util.List;
+import java.util.function.Function;
 import java.util.function.ToLongFunction;
 
 public class BindingConfig
@@ -26,17 +27,28 @@ public class BindingConfig
     public transient long id;
     public transient long entryId;
     public transient ToLongFunction<String> resolveId;
+    public transient Function<String, String> readURL;
 
     public transient long vaultId;
+    public transient String qvault;
 
     public transient long[] metricIds;
 
-    public final String vault;
+    public transient long typeId;
+    public transient long kindId;
+
+    public transient long originTypeId;
+    public transient long routedTypeId;
+
+    public final String namespace;
     public final String name;
+    public final String qname;
     public final String type;
     public final KindConfig kind;
     public final String entry;
+    public final String vault;
     public final OptionsConfig options;
+    public final List<CatalogedConfig> catalogs;
     public final List<RouteConfig> routes;
     public final TelemetryRefConfig telemetryRef;
 
@@ -45,23 +57,50 @@ public class BindingConfig
         return new BindingConfigBuilder<>(identity());
     }
 
+    public static <T> BindingConfigBuilder<T> builder(
+        Function<BindingConfig, T> mapper)
+    {
+        return new BindingConfigBuilder<>(mapper);
+    }
+
+    public static BindingConfigBuilder<BindingConfig> builder(
+        BindingConfig binding)
+    {
+        return builder()
+            .vault(binding.vault)
+            .namespace(binding.namespace)
+            .name(binding.name)
+            .type(binding.type)
+            .kind(binding.kind)
+            .entry(binding.entry)
+            .options(binding.options)
+            .catalogs(binding.catalogs)
+            .routes(binding.routes)
+            .telemetry(binding.telemetryRef);
+    }
+
     BindingConfig(
-        String vault,
+        String namespace,
         String name,
         String type,
         KindConfig kind,
         String entry,
+        String vault,
         OptionsConfig options,
+        List<CatalogedConfig> catalogs,
         List<RouteConfig> routes,
         TelemetryRefConfig telemetryRef)
     {
-        this.vault = vault;
-        this.name = name;
+        this.namespace = requireNonNull(namespace);
+        this.name = requireNonNull(name);
+        this.qname = String.format("%s:%s", namespace, name);
         this.type = requireNonNull(type);
         this.kind = requireNonNull(kind);
         this.entry = entry;
+        this.vault = vault;
         this.options = options;
         this.routes = routes;
+        this.catalogs = catalogs;
         this.telemetryRef = telemetryRef;
     }
 }

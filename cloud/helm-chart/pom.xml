@@ -44,7 +44,7 @@
               <tpl>SCRIPT_STYLE</tpl>
             </mapping>
             <excludes>
-              <exclude>src/main/helm/artifacthub-repo.yml</exclude>
+              <exclude>src/main/helm/zilla/**</exclude>
             </excludes>
           </configuration>
       </plugin>

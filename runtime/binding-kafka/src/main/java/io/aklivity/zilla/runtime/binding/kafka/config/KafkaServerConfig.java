@@ -15,12 +15,25 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.config;
 
+import java.util.function.Function;
+
 public class KafkaServerConfig
 {
     public final String host;
     public final int port;
 
-    public KafkaServerConfig(
+    public static KafkaServerConfigBuilder<KafkaServerConfig> builder()
+    {
+        return new KafkaServerConfigBuilder<>(KafkaServerConfig.class::cast);
+    }
+
+    public static <T> KafkaServerConfigBuilder<T> builder(
+        Function<KafkaServerConfig, T> mapper)
+    {
+        return new KafkaServerConfigBuilder<>(mapper);
+    }
+
+    KafkaServerConfig(
         String host,
         int port)
     {

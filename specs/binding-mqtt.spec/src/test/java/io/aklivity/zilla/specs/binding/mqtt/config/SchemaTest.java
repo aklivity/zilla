@@ -34,7 +34,7 @@ public class SchemaTest
         .schemaPatch("io/aklivity/zilla/specs/binding/mqtt/schema/mqtt.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/guard/test.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/catalog/test.schema.patch.json")
-        .schemaPatch("io/aklivity/zilla/specs/engine/schema/validator/test.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/specs/engine/schema/model/test.schema.patch.json")
         .configurationRoot("io/aklivity/zilla/specs/binding/mqtt/config");
 
     @Ignore("TODO")
@@ -91,6 +91,14 @@ public class SchemaTest
     }
 
     @Test
+    public void shouldValidateServerProtocolVersion()
+    {
+        JsonObject config = schema.validate("server.protocol.version.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
     public void shouldValidateServerWithAuthorizationOptions()
     {
         JsonObject config = schema.validate("server.credentials.username.yaml");
@@ -102,6 +110,14 @@ public class SchemaTest
     public void shouldValidateServerWithTopicValidators()
     {
         JsonObject config = schema.validate("server.validator.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateServerWithUserPropertiesValidators()
+    {
+        JsonObject config = schema.validate("server.user.properties.validator.yaml");
 
         assertThat(config, not(nullValue()));
     }

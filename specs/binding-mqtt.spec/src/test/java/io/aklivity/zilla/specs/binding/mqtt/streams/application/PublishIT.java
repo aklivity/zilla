@@ -192,6 +192,15 @@ public class PublishIT
 
     @Test
     @Specification({
+        "${app}/publish.valid.user.property/client",
+        "${app}/publish.valid.user.property/server"})
+    public void shouldPublishValidUserProperty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/publish.unroutable/client",
         "${app}/publish.unroutable/server"})
     public void shouldRejectUnroutable() throws Exception
@@ -222,6 +231,15 @@ public class PublishIT
         "${app}/publish.qos2.ack.with.reasoncode/client",
         "${app}/publish.qos2.ack.with.reasoncode/server"})
     public void shouldPublishQoS2MessageAckWithReasoncode() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/publish.qos2.recovery/client",
+        "${app}/publish.qos2.recovery/server"})
+    public void shouldReleaseQos2PacketIdDuringRecovery() throws Exception
     {
         k3po.finish();
     }

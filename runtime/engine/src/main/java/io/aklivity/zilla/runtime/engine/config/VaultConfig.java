@@ -22,7 +22,9 @@ public class VaultConfig
 {
     public transient long id;
 
+    public final String namespace;
     public final String name;
+    public final String qname;
     public final String type;
     public final OptionsConfig options;
 
@@ -32,11 +34,14 @@ public class VaultConfig
     }
 
     VaultConfig(
+        String namespace,
         String name,
         String type,
         OptionsConfig options)
     {
         this.name = requireNonNull(name);
+        this.namespace = requireNonNull(namespace);
+        this.qname = String.format("%s:%s", namespace, name);
         this.type = requireNonNull(type);
         this.options = options;
     }

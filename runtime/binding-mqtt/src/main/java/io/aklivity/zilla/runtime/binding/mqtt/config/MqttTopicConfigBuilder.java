@@ -15,17 +15,20 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.config;
 
+import java.util.LinkedList;
+import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.ValidatorConfig;
+import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 
 public class MqttTopicConfigBuilder<T> extends ConfigBuilder<T, MqttTopicConfigBuilder<T>>
 {
     private final Function<MqttTopicConfig, T> mapper;
 
     private String name;
-    private ValidatorConfig content;
+    private ModelConfig content;
+    private List<MqttUserPropertyConfig> userProperties;
 
     MqttTopicConfigBuilder(
         Function<MqttTopicConfig, T> mapper)
@@ -48,14 +51,41 @@ public class MqttTopicConfigBuilder<T> extends ConfigBuilder<T, MqttTopicConfigB
     }
 
     public MqttTopicConfigBuilder<T> content(
-        ValidatorConfig content)
+        ModelConfig content)
     {
         this.content = content;
         return this;
     }
 
+    public MqttTopicConfigBuilder<T> userProperties(
+        List<MqttUserPropertyConfig> userProperties)
+    {
+        if (userProperties == null)
+        {
+            userProperties = new LinkedList<>();
+        }
+        this.userProperties = userProperties;
+        return this;
+    }
+
+    public MqttTopicConfigBuilder<T> userProperty(
+        MqttUserPropertyConfig userProperty)
+    {
+        if (userProperties == null)
+        {
+            userProperties = new LinkedList<>();
+        }
+        userProperties.add(userProperty);
+        return this;
+    }
+
+    public MqttUserPropertyConfigBuilder<MqttTopicConfigBuilder<T>> userProperty()
+    {
+        return new MqttUserPropertyConfigBuilder<>(this::userProperty);
+    }
+
     public <C extends ConfigBuilder<MqttTopicConfigBuilder<T>, C>> C content(
-        Function<Function<ValidatorConfig, MqttTopicConfigBuilder<T>>, C> content)
+        Function<Function<ModelConfig, MqttTopicConfigBuilder<T>>, C> content)
     {
         return content.apply(this::content);
     }
@@ -63,6 +93,6 @@ public class MqttTopicConfigBuilder<T> extends ConfigBuilder<T, MqttTopicConfigB
     @Override
     public T build()
     {
-        return mapper.apply(new MqttTopicConfig(name, content));
+        return mapper.apply(new MqttTopicConfig(name, content, userProperties));
     }
 }
