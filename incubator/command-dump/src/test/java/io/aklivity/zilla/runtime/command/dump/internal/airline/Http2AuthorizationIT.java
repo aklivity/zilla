@@ -14,12 +14,10 @@
  */
 package io.aklivity.zilla.runtime.command.dump.internal.airline;
 
+import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_CONCURRENT_STREAMS;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_SERVER_HEADER;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
-
-import java.net.URL;
-import java.nio.file.Path;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -32,29 +30,27 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
-public class HttpAuthorizationIT
+public class Http2AuthorizationIT
 {
-    private static final Path ENGINE_PATH = Path.of("target/zilla-itests");
-
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/http/streams/network/rfc7230/authorization")
-        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/http/streams/application/rfc7230/authorization");
+        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/http/streams/network/rfc7540/authorization")
+        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/http/streams/application/rfc7540/authorization");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
     private final EngineRule engine = new EngineRule()
-        .directory(ENGINE_PATH.toString())
+        .directory("target/zilla-itests")
         .countersBufferCapacity(8192)
+        .configure(HTTP_CONCURRENT_STREAMS, 100)
         .configure(HTTP_SERVER_HEADER, "Zilla")
-        .configurationRoot("io/aklivity/zilla/specs/binding/http/config/v1.1")
+        .configurationRoot("io/aklivity/zilla/specs/binding/http/config/v2")
         .external("app0")
         .clean();
 
-    private final HelloRule hello = new HelloRule();
+    private final DumpRule dump = new DumpRule();
 
     @Rule
-    //public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
-    public final TestRule chain = outerRule(hello).around(engine).around(k3po).around(timeout);
+    public final TestRule chain = outerRule(dump).around(engine).around(k3po).around(timeout);
 
     @Test
     @Configuration("server.authorization.credentials.yaml")
@@ -64,17 +60,7 @@ public class HttpAuthorizationIT
     })
     public void shouldChallengeCredentialsHeader() throws Exception
     {
-        System.out.println("----> 001");
         k3po.finish();
-        System.out.println("----> 002");
-        hello.expect(resourceToPath("expected_http_authorization.txt"));
-    }
-
-    private static Path resourceToPath(
-        String name) throws Exception
-    {
-        URL resource = HttpAuthorizationIT.class.getResource(name);
-        assert resource != null;
-        return Path.of(resource.toURI());
+        dump.expect("expected_http2_authorization_challenge_credentials_header.txt");
     }
 }

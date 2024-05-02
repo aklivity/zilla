@@ -21,7 +21,7 @@ public class DumpCommandRunner
 {
     private static final Path ENGINE_PATH = Path.of("target/zilla-itests");
 
-    private ZillaDumpCommand command;
+    private final ZillaDumpCommand command;
 
     public DumpCommandRunner()
     {
