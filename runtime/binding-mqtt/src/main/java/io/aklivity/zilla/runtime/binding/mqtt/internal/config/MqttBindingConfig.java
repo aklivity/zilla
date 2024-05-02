@@ -212,7 +212,7 @@ public final class MqttBindingConfig
     private Function<String, String> asAccessor(
         MqttCredentialsConfig credentials)
     {
-        Function<String, String> accessor = DEFAULT_CREDENTIALS;
+        Function<String, String> injector = DEFAULT_CREDENTIALS;
         List<MqttPatternConfig> connectPatterns = credentials.connect;
 
         if (connectPatterns != null && !connectPatterns.isEmpty())
@@ -223,7 +223,7 @@ public final class MqttBindingConfig
                 Pattern.compile(config.pattern.replace("{credentials}", "(?<credentials>[^\\s]+)"))
                     .matcher("");
 
-            accessor = orElseIfNull(accessor, connect ->
+            injector = orElseIfNull(injector, connect ->
             {
                 String result = null;
                 if (connect != null && connectMatch.reset(connect).matches())
@@ -234,7 +234,7 @@ public final class MqttBindingConfig
             });
         }
 
-        return accessor;
+        return injector;
     }
 
     private Function<String, String> asInjector(
