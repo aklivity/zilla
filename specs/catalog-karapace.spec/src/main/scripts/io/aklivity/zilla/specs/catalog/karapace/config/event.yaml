@@ -22,8 +22,8 @@ telemetry:
       options:
         events:
           - qname: test.catalog0
-            id: catalog.karapace.remote.access.rejected
-            message: REMOTE_ACCESS_REJECTED GET http://localhost:8081/schemas/ids/0 0
+            id: catalog.karapace.unretrievable.schema.id
+            message: UNRETRIEVABLE_SCHEMA_ID 0
 catalogs:
   catalog0:
     type: karapace

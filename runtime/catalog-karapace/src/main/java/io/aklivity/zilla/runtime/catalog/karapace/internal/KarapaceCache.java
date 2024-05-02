@@ -20,12 +20,12 @@ import java.util.concurrent.ConcurrentMap;
 
 public class KarapaceCache
 {
-    public final ConcurrentMap<Integer, CompletableFuture<String>> cachedSchemas;
-    public final ConcurrentMap<Integer, CompletableFuture<CachedSchemaId>> cachedSchemaIds;
+    public final ConcurrentMap<Integer, CompletableFuture<CachedSchema>> schemas;
+    public final ConcurrentMap<Integer, CompletableFuture<CachedSchemaId>> schemaIds;
 
     public KarapaceCache()
     {
-        this.cachedSchemas = new ConcurrentHashMap<>();
-        this.cachedSchemaIds = new ConcurrentHashMap<>();
+        this.schemas = new ConcurrentHashMap<>();
+        this.schemaIds = new ConcurrentHashMap<>();
     }
 }

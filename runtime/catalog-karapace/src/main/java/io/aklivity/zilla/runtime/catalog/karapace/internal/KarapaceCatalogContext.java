@@ -25,21 +25,21 @@ import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
 public class KarapaceCatalogContext implements CatalogContext
 {
     private final EngineContext context;
-    private final ConcurrentMap<Long, KarapaceCache> cache;
+    private final ConcurrentMap<Long, KarapaceCache> cachesById;
 
     public KarapaceCatalogContext(
         EngineContext context,
-        ConcurrentMap<Long, KarapaceCache> cache)
+        ConcurrentMap<Long, KarapaceCache> cachesById)
     {
         this.context = context;
-        this.cache = cache;
+        this.cachesById = cachesById;
     }
 
     @Override
     public CatalogHandler attach(
         CatalogConfig catalog)
     {
-        KarapaceCache karapaceCache = cache.computeIfAbsent(catalog.id, id -> new KarapaceCache());
-        return new KarapaceCatalogHandler(KarapaceOptionsConfig.class.cast(catalog.options), context, catalog.id, karapaceCache);
+        KarapaceCache cache = cachesById.computeIfAbsent(catalog.id, id -> new KarapaceCache());
+        return new KarapaceCatalogHandler(KarapaceOptionsConfig.class.cast(catalog.options), context, catalog.id, cache);
     }
 }

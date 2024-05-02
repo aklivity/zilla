@@ -64,22 +64,17 @@ public class EventIT
     }
 
     @Test
-    public void shouldLogFutureCompletedExceptionally()
+    public void shouldLogRemoteRegistryEvents()
     {
         EngineContext context = mock(EngineContext.class);
         when(context.clock()).thenReturn(Clock.systemUTC());
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
         KarapaceEventContext event = new KarapaceEventContext(context);
-        event.futureCompletedExceptionally(0L, "error");
+        event.unretrievableSchemaSubjectVersion(0L, "subject", "version");
+        event.retrievableSchemaSubjectVersion(0L, "subject", "version");
+        event.unretrievableSchemaSubjectVersionStaleSchema(0L, "subject", "version", 1);
+        event.unretrievableSchemaId(0L, 1);
+        event.retrievableSchemaId(0L, 1);
     }
 
-    @Test
-    public void shouldLogStaleSchemaServed()
-    {
-        EngineContext context = mock(EngineContext.class);
-        when(context.clock()).thenReturn(Clock.systemUTC());
-        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
-        KarapaceEventContext event = new KarapaceEventContext(context);
-        event.staleSchemaServed(0L, 1);
-    }
 }

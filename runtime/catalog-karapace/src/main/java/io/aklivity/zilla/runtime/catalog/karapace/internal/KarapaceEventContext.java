@@ -14,11 +14,12 @@
  */
 package io.aklivity.zilla.runtime.catalog.karapace.internal;
 
-import static io.aklivity.zilla.runtime.catalog.karapace.internal.types.event.KarapaceEventType.FUTURE_COMPLETED_EXCEPTIONALLY;
-import static io.aklivity.zilla.runtime.catalog.karapace.internal.types.event.KarapaceEventType.REMOTE_ACCESS_REJECTED;
-import static io.aklivity.zilla.runtime.catalog.karapace.internal.types.event.KarapaceEventType.STALE_SCHEMA_SERVED;
+import static io.aklivity.zilla.runtime.catalog.karapace.internal.types.event.KarapaceEventType.RETRIEVED_SCHEMA_ID;
+import static io.aklivity.zilla.runtime.catalog.karapace.internal.types.event.KarapaceEventType.RETRIEVED_SCHEMA_SUBJECT_VERSION;
+import static io.aklivity.zilla.runtime.catalog.karapace.internal.types.event.KarapaceEventType.UNRETRIEVABLE_SCHEMA_ID;
+import static io.aklivity.zilla.runtime.catalog.karapace.internal.types.event.KarapaceEventType.UNRETRIEVABLE_SCHEMA_SUBJECT_VERSION;
+import static io.aklivity.zilla.runtime.catalog.karapace.internal.types.event.KarapaceEventType.UNRETRIEVABLE_SCHEMA_SUBJECT_VERSION_STALE_SCHEMA;
 
-import java.net.http.HttpRequest;
 import java.nio.ByteBuffer;
 import java.time.Clock;
 
@@ -39,9 +40,11 @@ public class KarapaceEventContext
     private final EventFW.Builder eventRW = new EventFW.Builder();
     private final KarapaceEventExFW.Builder karapaceEventExRW = new KarapaceEventExFW.Builder();
     private final int karapaceTypeId;
-    private final int remoteAccessRejectedEventId;
-    private final int futureCompletedExceptionallyId;
-    private final int staleSchemaServedId;
+    private final int unretrievableSchemaSubjectVersionId;
+    private final int staleSchemaID;
+    private final int unretrievableSchemaId;
+    private final int retrievableSchemaSubjectVersionId;
+    private final int retrievableSchemaId;
     private final MessageConsumer eventWriter;
     private final Clock clock;
 
@@ -49,30 +52,31 @@ public class KarapaceEventContext
         EngineContext context)
     {
         this.karapaceTypeId = context.supplyTypeId(KarapaceCatalog.NAME);
-        this.remoteAccessRejectedEventId = context.supplyEventId("catalog.karapace.remote.access.rejected");
-        this.futureCompletedExceptionallyId = context.supplyEventId("catalog.karapace.future.completed.exceptionally");
-        this.staleSchemaServedId = context.supplyEventId("catalog.karapace.stale.schema.served");
+        this.unretrievableSchemaSubjectVersionId = context.supplyEventId("catalog.karapace.unretrievable.schema.subject.version");
+        this.staleSchemaID = context.supplyEventId("catalog.karapace.unretrievable.schema.subject.version.stale.schema");
+        this.unretrievableSchemaId = context.supplyEventId("catalog.karapace.unretrievable.schema.id");
+        this.retrievableSchemaSubjectVersionId = context.supplyEventId("catalog.karapace.retrievable.schema.subject.version");
+        this.retrievableSchemaId = context.supplyEventId("catalog.karapace.retrievable.schema.id");
         this.eventWriter = context.supplyEventWriter();
         this.clock = context.clock();
     }
 
-    public void remoteAccessRejected(
+    public void unretrievableSchemaSubjectVersion(
         long catalogId,
-        HttpRequest httpRequest,
-        int status)
+        String subject,
+        String version)
     {
         KarapaceEventExFW extension = karapaceEventExRW
             .wrap(extensionBuffer, 0, extensionBuffer.capacity())
-            .remoteAccessRejected(e -> e
-                .typeId(REMOTE_ACCESS_REJECTED.value())
-                .method(httpRequest.method())
-                .url(httpRequest.uri().toString())
-                .status((short) status)
+            .unretrievableSchemaSubjectVersion(e -> e
+                .typeId(UNRETRIEVABLE_SCHEMA_SUBJECT_VERSION.value())
+                .subject(subject)
+                .version(version)
             )
             .build();
         EventFW event = eventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
-            .id(remoteAccessRejectedEventId)
+            .id(unretrievableSchemaSubjectVersionId)
             .timestamp(clock.millis())
             .traceId(0L)
             .namespacedId(catalogId)
@@ -81,42 +85,92 @@ public class KarapaceEventContext
         eventWriter.accept(karapaceTypeId, event.buffer(), event.offset(), event.limit());
     }
 
-    public void futureCompletedExceptionally(
+    public void unretrievableSchemaSubjectVersionStaleSchema(
         long catalogId,
-        String error)
-    {
-        KarapaceEventExFW extension = karapaceEventExRW
-            .wrap(extensionBuffer, 0, extensionBuffer.capacity())
-            .futureCompletedExceptionally(e -> e
-                .typeId(FUTURE_COMPLETED_EXCEPTIONALLY.value())
-                .error(error)
-            )
-            .build();
-        EventFW event = eventRW
-            .wrap(eventBuffer, 0, eventBuffer.capacity())
-            .id(futureCompletedExceptionallyId)
-            .timestamp(clock.millis())
-            .traceId(0L)
-            .namespacedId(catalogId)
-            .extension(extension.buffer(), extension.offset(), extension.limit())
-            .build();
-        eventWriter.accept(karapaceTypeId, event.buffer(), event.offset(), event.limit());
-    }
-
-    public void staleSchemaServed(
-        long catalogId,
+        String subject,
+        String version,
         int schemaId)
     {
         KarapaceEventExFW extension = karapaceEventExRW
             .wrap(extensionBuffer, 0, extensionBuffer.capacity())
-            .staleSchemaServed(e -> e
-                .typeId(STALE_SCHEMA_SERVED.value())
+            .unretrievableSchemaSubjectVersionStaleSchema(e -> e
+                .typeId(UNRETRIEVABLE_SCHEMA_SUBJECT_VERSION_STALE_SCHEMA.value())
+                .subject(subject)
+                .version(version)
                 .schemaId(schemaId)
             )
             .build();
         EventFW event = eventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
-            .id(staleSchemaServedId)
+            .id(staleSchemaID)
+            .timestamp(clock.millis())
+            .traceId(0L)
+            .namespacedId(catalogId)
+            .extension(extension.buffer(), extension.offset(), extension.limit())
+            .build();
+        eventWriter.accept(karapaceTypeId, event.buffer(), event.offset(), event.limit());
+    }
+
+    public void unretrievableSchemaId(
+        long catalogId,
+        int schemaId)
+    {
+        KarapaceEventExFW extension = karapaceEventExRW
+            .wrap(extensionBuffer, 0, extensionBuffer.capacity())
+            .unretrievableSchemaId(e -> e
+                .typeId(UNRETRIEVABLE_SCHEMA_ID.value())
+                .schemaId(schemaId)
+            )
+            .build();
+        EventFW event = eventRW
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .id(unretrievableSchemaId)
+            .timestamp(clock.millis())
+            .traceId(0L)
+            .namespacedId(catalogId)
+            .extension(extension.buffer(), extension.offset(), extension.limit())
+            .build();
+        eventWriter.accept(karapaceTypeId, event.buffer(), event.offset(), event.limit());
+    }
+
+    public void retrievableSchemaSubjectVersion(
+        long catalogId,
+        String subject,
+        String version)
+    {
+        KarapaceEventExFW extension = karapaceEventExRW
+            .wrap(extensionBuffer, 0, extensionBuffer.capacity())
+            .retrievableSchemaSubjectVersion(e -> e
+                .typeId(RETRIEVED_SCHEMA_SUBJECT_VERSION.value())
+                .subject(subject)
+                .version(version)
+            )
+            .build();
+        EventFW event = eventRW
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .id(retrievableSchemaSubjectVersionId)
+            .timestamp(clock.millis())
+            .traceId(0L)
+            .namespacedId(catalogId)
+            .extension(extension.buffer(), extension.offset(), extension.limit())
+            .build();
+        eventWriter.accept(karapaceTypeId, event.buffer(), event.offset(), event.limit());
+    }
+
+    public void retrievableSchemaId(
+        long catalogId,
+        int schemaId)
+    {
+        KarapaceEventExFW extension = karapaceEventExRW
+            .wrap(extensionBuffer, 0, extensionBuffer.capacity())
+            .retrievableSchemaId(e -> e
+                .typeId(RETRIEVED_SCHEMA_ID.value())
+                .schemaId(schemaId)
+            )
+            .build();
+        EventFW event = eventRW
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .id(retrievableSchemaId)
             .timestamp(clock.millis())
             .traceId(0L)
             .namespacedId(catalogId)
