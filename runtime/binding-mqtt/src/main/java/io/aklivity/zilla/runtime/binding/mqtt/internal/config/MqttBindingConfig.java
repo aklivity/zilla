@@ -51,7 +51,8 @@ public final class MqttBindingConfig
     public final KindConfig kind;
     public final MqttOptionsConfig options;
     public final List<MqttRouteConfig> routes;
-    public final Function<String, String> credentials;
+    public final Function<String, String> resolveCredentials;
+    public final Function<String, String> injectCredentials;
     public final Map<Matcher, TopicValidator> topics;
     public final List<MqttVersion> versions;
     public final ToLongFunction<String> resolveId;
@@ -67,8 +68,10 @@ public final class MqttBindingConfig
         this.routes = binding.routes.stream().map(MqttRouteConfig::new).collect(toList());
         this.options = (MqttOptionsConfig) binding.options;
         this.resolveId = binding.resolveId;
-        this.credentials = options != null && options.authorization != null ?
+        this.resolveCredentials = options != null && options.authorization != null ?
             asAccessor(options.authorization.credentials) : DEFAULT_CREDENTIALS;
+        this.injectCredentials = options != null && options.authorization != null ?
+            asInjector(options.authorization.credentials) : DEFAULT_CREDENTIALS;
         this.topics = new HashMap<>();
         if (options != null && options.topics != null)
         {
@@ -175,9 +178,14 @@ public final class MqttBindingConfig
         return config;
     }
 
-    public Function<String, String> credentials()
+    public Function<String, String> resolveCredentials()
     {
-        return credentials;
+        return resolveCredentials;
+    }
+
+    public Function<String, String> injectCredentials()
+    {
+        return injectCredentials;
     }
 
     public MqttConnectProperty authField()
@@ -221,6 +229,30 @@ public final class MqttBindingConfig
                 if (connect != null && connectMatch.reset(connect).matches())
                 {
                     result = connectMatch.group("credentials");
+                }
+                return result;
+            });
+        }
+
+        return accessor;
+    }
+
+    private Function<String, String> asInjector(
+        MqttCredentialsConfig credentials)
+    {
+        Function<String, String> accessor = DEFAULT_CREDENTIALS;
+        List<MqttPatternConfig> connectPatterns = credentials.connect;
+
+        if (connectPatterns != null && !connectPatterns.isEmpty())
+        {
+            MqttPatternConfig config = connectPatterns.get(0);
+
+            accessor = orElseIfNull(accessor, connect ->
+            {
+                String result = null;
+                if (connect != null)
+                {
+                    result = config.pattern.replace("{credentials}", connect);
                 }
                 return result;
             });

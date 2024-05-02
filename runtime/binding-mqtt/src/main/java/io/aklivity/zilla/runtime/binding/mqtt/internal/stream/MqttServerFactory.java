@@ -574,7 +574,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 affinity,
                 binding.versions,
                 binding.guard,
-                binding.credentials(),
+                binding.resolveCredentials(),
                 binding.authField())::onNetwork;
         }
         return newStream;
