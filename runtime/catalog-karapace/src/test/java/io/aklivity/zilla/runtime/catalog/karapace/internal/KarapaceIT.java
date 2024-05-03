@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.catalog.karapace.internal;
 
+import static io.aklivity.zilla.runtime.catalog.karapace.internal.KarapaceCatalogHandler.RETRY_INITIAL_DELAY_MS_DEFAULT;
+import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.not;
@@ -21,8 +23,12 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.rules.RuleChain.outerRule;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+import java.time.Clock;
 import java.time.Duration;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -37,6 +43,7 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 
 import io.aklivity.zilla.runtime.catalog.karapace.internal.config.KarapaceOptionsConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 
@@ -143,6 +150,109 @@ public class KarapaceIT
         int schemaId = catalog.resolve("items-snapshots-value", "latest");
 
         String schema = catalog.resolve(schemaId);
+
+        assertEquals(schemaId, 9);
+        assertThat(schema, not(nullValue()));
+        assertEquals(expected, schema);
+    }
+
+    @Test
+    @Specification({
+        "${local}/resolve.schema.via.schema.id.failed"})
+    public void shouldLogFailedRegistryResponseForSchema() throws Exception
+    {
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
+        KarapaceCache cache = new KarapaceCache();
+        KarapaceCatalogHandler catalog = new KarapaceCatalogHandler(config, context, 0L, cache);
+
+        String schema = catalog.resolve(1);
+
+        k3po.finish();
+
+        assertEquals(schema, null);
+        assertEquals(cache.schemas.get(1).get().event.get(), 1);
+    }
+
+    @Test
+    @Specification({
+        "${local}/resolve.schema.via.subject.version.failed"})
+    public void shouldBackOffAfterFailedRegistryResponseForId() throws Exception
+    {
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
+        KarapaceCache cache = new KarapaceCache();
+        KarapaceCatalogHandler catalog = new KarapaceCatalogHandler(config, context, 0L, cache);
+
+        int schemaId = catalog.resolve("items-snapshots-value", "latest");
+
+        k3po.finish();
+
+        assertEquals(schemaId, NO_SCHEMA_ID);
+
+        for (int schemaKey: cache.schemaIds.keySet())
+        {
+            assertEquals(cache.schemaIds.get(schemaKey).get().retry, RETRY_INITIAL_DELAY_MS_DEFAULT);
+            assertEquals(cache.schemaIds.get(schemaKey).get().event.get(), 1);
+        }
+
+        schemaId = catalog.resolve("items-snapshots-value", "latest");
+        assertEquals(schemaId, NO_SCHEMA_ID);
+    }
+
+    @Test
+    public void shouldServeStaleSchemaIdFromCacheDueToRetryTimeout() throws Exception
+    {
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
+        KarapaceCache cache = new KarapaceCache();
+        CompletableFuture<CachedSchemaId> future = new CompletableFuture<>();
+        future.complete(new CachedSchemaId(System.currentTimeMillis(), 1, new AtomicInteger(1), 2000L));
+        cache.schemaIds.put(-754089167, future);
+
+        KarapaceCatalogHandler catalog = new KarapaceCatalogHandler(config, context, 0L, cache);
+
+        int schemaId = catalog.resolve("items-snapshots-value", "latest");
+
+        assertEquals(schemaId, 1);
+
+        for (int schemaKey: cache.schemaIds.keySet())
+        {
+            assertEquals(cache.schemaIds.get(schemaKey).get().retry, 2000);
+            assertEquals(cache.schemaIds.get(schemaKey).get().event.get(), 2);
+        }
+    }
+
+    @Test
+    @Specification({
+        "${local}/resolve.schema.via.subject.version" })
+    public void shouldRetryToResolveSchemaViaSubjectVersionFromCache() throws Exception
+    {
+        String expected = "{\"fields\":[{\"name\":\"id\",\"type\":\"string\"}," +
+            "{\"name\":\"status\",\"type\":\"string\"}]," +
+            "\"name\":\"Event\",\"namespace\":\"io.aklivity.example\",\"type\":\"record\"}";
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
+        KarapaceCache cache = new KarapaceCache();
+        CompletableFuture<CachedSchemaId> future = new CompletableFuture<>();
+        future.complete(new CachedSchemaId(System.currentTimeMillis(), 1, new AtomicInteger(2), 2000L));
+        cache.schemaIds.put(-754089167, future);
+
+        KarapaceCatalogHandler catalog = new KarapaceCatalogHandler(config, context, 0L, cache);
+
+        int schemaId = catalog.resolve("items-snapshots-value", "latest");
+
+        Thread.sleep(2000);
+
+        assertEquals(schemaId, 1);
+
+        k3po.start();
+
+        schemaId = catalog.resolve("items-snapshots-value", "latest");
+
+        String schema = catalog.resolve(schemaId);
+
+        k3po.finish();
 
         assertEquals(schemaId, 9);
         assertThat(schema, not(nullValue()));

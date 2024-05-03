@@ -18,7 +18,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class CachedSchema
 {
-    public static final CachedSchema IN_PROGRESS = new CachedSchema(null, new AtomicInteger(0));
+    public static final String SCHEMA_PLACEHOLDER = "schema";
+    public static final CachedSchema IN_PROGRESS = new CachedSchema(SCHEMA_PLACEHOLDER, new AtomicInteger(0));
 
     public String schema;
     public AtomicInteger event;

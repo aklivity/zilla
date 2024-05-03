@@ -46,6 +46,9 @@ public class KarapaceCatalogHandler implements CatalogHandler
     private static final String REGISTER_SCHEMA_PATH = "/subjects/{0}/versions";
     private static final int MAX_PADDING_LENGTH = 5;
     private static final byte MAGIC_BYTE = 0x0;
+    public static final long RESET_RETRY_DELAY_MS_DEFAULT = 0L;
+    public static final long RETRY_INITIAL_DELAY_MS_DEFAULT = 1000L;
+    public static final int RETRY_MULTIPLER_DEFAULT = 2;
 
     private final KarapacePrefixFW.Builder prefixRW = new KarapacePrefixFW.Builder()
         .wrap(new UnsafeBuffer(new byte[5]), 0, 5);
@@ -94,65 +97,68 @@ public class KarapaceCatalogHandler implements CatalogHandler
         int schemaId)
     {
         String schema = null;
-        AtomicInteger eventStatus = new AtomicInteger();
-        if (schemas.containsKey(schemaId))
+        if (schemaId != NO_SCHEMA_ID)
         {
-            schema = schemas.get(schemaId);
-        }
-        else
-        {
-            CompletableFuture<CachedSchema> newFuture = new CompletableFuture<>();
-            CompletableFuture<CachedSchema> existing = cachedSchemas.get(schemaId);
-            if (existing != null && existing.isDone())
+            if (schemas.containsKey(schemaId))
             {
+                schema = schemas.get(schemaId);
+            }
+            else
+            {
+                AtomicInteger eventStatus = new AtomicInteger();
+                CompletableFuture<CachedSchema> newFuture = new CompletableFuture<>();
+                CompletableFuture<CachedSchema> existing = cachedSchemas.get(schemaId);
+                if (existing != null && existing.isDone())
+                {
+                    try
+                    {
+                        CachedSchema cachedSchema = existing.get();
+                        if (cachedSchema != null)
+                        {
+                            eventStatus = cachedSchema.event;
+                        }
+                    }
+                    catch (Throwable ex)
+                    {
+                        existing.completeExceptionally(ex);
+                    }
+                }
+                CompletableFuture<CachedSchema> future = cachedSchemas.merge(schemaId, newFuture, (v1, v2) ->
+                    v1.getNow(CachedSchema.IN_PROGRESS).schema == null ? v2 : v1);
+                if (future == newFuture)
+                {
+                    try
+                    {
+                        String response = sendHttpRequest(MessageFormat.format(SCHEMA_PATH, schemaId));
+                        if (response == null && eventStatus.getAndIncrement() == 0)
+                        {
+                            event.unretrievableSchemaId(catalogId, schemaId);
+                        }
+                        else if (response != null && eventStatus.getAndSet(0) > 0)
+                        {
+                            event.retrievableSchemaId(catalogId, schemaId);
+                        }
+                        newFuture.complete(new CachedSchema(response != null ? request.resolveSchemaResponse(response) : null,
+                            eventStatus));
+                    }
+                    catch (Throwable ex)
+                    {
+                        newFuture.completeExceptionally(ex);
+                    }
+                }
+                assert future != null;
                 try
                 {
-                    CachedSchema cachedSchema = existing.get();
-                    if (cachedSchema != null)
+                    schema = future.get().schema;
+                    if (schema != null)
                     {
-                        eventStatus = cachedSchema.event;
+                        schemas.put(schemaId, schema);
                     }
                 }
                 catch (Throwable ex)
                 {
-                    existing.completeExceptionally(ex);
+                    future.completeExceptionally(ex);
                 }
-            }
-            CompletableFuture<CachedSchema> future = cachedSchemas.merge(schemaId, newFuture, (v1, v2) ->
-                v1.getNow(CachedSchema.IN_PROGRESS).schema == null ? v2 : v1);
-            if (future == newFuture)
-            {
-                try
-                {
-                    String response = sendHttpRequest(MessageFormat.format(SCHEMA_PATH, schemaId));
-                    if (response == null && eventStatus.getAndIncrement() == 0)
-                    {
-                        event.unretrievableSchemaId(catalogId, schemaId);
-                    }
-                    else if (response != null && eventStatus.getAndSet(0) > 0)
-                    {
-                        event.retrievableSchemaId(catalogId, schemaId);
-                    }
-                    newFuture.complete(new CachedSchema(response != null ? request.resolveSchemaResponse(response) : null,
-                        eventStatus));
-                }
-                catch (Throwable ex)
-                {
-                    newFuture.completeExceptionally(ex);
-                }
-            }
-            assert future != null;
-            try
-            {
-                schema = future.get().schema;
-                if (schema != null)
-                {
-                    schemas.put(schemaId, schema);
-                }
-            }
-            catch (Throwable ex)
-            {
-                future.completeExceptionally(ex);
             }
         }
         return schema;
@@ -164,7 +170,6 @@ public class KarapaceCatalogHandler implements CatalogHandler
         String version)
     {
         int schemaId = NO_SCHEMA_ID;
-        AtomicInteger eventStatus = new AtomicInteger();
 
         int schemaKey = generateCRC32C(subject, version);
         if (schemaIds.containsKey(schemaKey) && !schemaIds.get(schemaKey).expired(maxAgeMillis))
@@ -173,13 +178,16 @@ public class KarapaceCatalogHandler implements CatalogHandler
         }
         else
         {
+            CachedSchemaId cachedSchemaId = null;
+            AtomicInteger eventStatus = new AtomicInteger();
+            long retry = RESET_RETRY_DELAY_MS_DEFAULT;
             CompletableFuture<CachedSchemaId> newFuture = new CompletableFuture<>();
             CompletableFuture<CachedSchemaId> existing = cachedSchemaIds.get(schemaKey);
             if (existing != null && existing.isDone())
             {
                 try
                 {
-                    CachedSchemaId cachedSchemaId = existing.get();
+                    cachedSchemaId = existing.get();
                     if (cachedSchemaId != null)
                     {
                         eventStatus = cachedSchemaId.event;
@@ -191,23 +199,35 @@ public class KarapaceCatalogHandler implements CatalogHandler
                 }
             }
             CompletableFuture<CachedSchemaId> future = cachedSchemaIds.merge(schemaKey, newFuture, (v1, v2) ->
-                v1.getNow(IN_PROGRESS).id == NO_SCHEMA_ID || v1.getNow(IN_PROGRESS).expired(maxAgeMillis) ? v2 : v1);
+                v1.getNow(IN_PROGRESS).retry() &&
+                    (v1.getNow(IN_PROGRESS).id == NO_SCHEMA_ID || v1.getNow(IN_PROGRESS).expired(maxAgeMillis)) ? v2 : v1);
             if (future == newFuture)
             {
                 try
                 {
                     String response = sendHttpRequest(MessageFormat.format(SUBJECT_VERSION_PATH, subject, version));
-                    if (response == null && eventStatus.getAndIncrement() == 0)
+                    if (response == null)
                     {
-                        event.unretrievableSchemaSubjectVersion(catalogId, subject, version);
+                        if (eventStatus.getAndIncrement() == 0)
+                        {
+                            retry = RETRY_INITIAL_DELAY_MS_DEFAULT;
+                            event.unretrievableSchemaSubjectVersion(catalogId, subject, version);
+                        }
+
+                        if (cachedSchemaId != null && cachedSchemaId.retry != RESET_RETRY_DELAY_MS_DEFAULT)
+                        {
+                            long current = cachedSchemaId.retry;
+                            long update = current * RETRY_MULTIPLER_DEFAULT;
+                            retry = update < maxAgeMillis ? update : current;
+                        }
                     }
                     else if (response != null && eventStatus.getAndSet(0) > 0)
                     {
                         event.retrievableSchemaSubjectVersion(catalogId, subject, version);
                     }
                     newFuture.complete(new CachedSchemaId(System.currentTimeMillis(),
-                        response != null ? request.resolveResponse(response) : NO_SCHEMA_ID,
-                        eventStatus));
+                        response != null ? request.resolveResponse(response) :
+                            cachedSchemaId != null ? cachedSchemaId.id : NO_SCHEMA_ID, eventStatus, retry));
                 }
                 catch (Throwable ex)
                 {
@@ -217,21 +237,14 @@ public class KarapaceCatalogHandler implements CatalogHandler
             assert future != null;
             try
             {
-                CachedSchemaId cachedSchemaId = future.get();
+                cachedSchemaId = future.get();
                 schemaId = cachedSchemaId.id;
                 if (schemaId != NO_SCHEMA_ID)
                 {
                     schemaIds.put(schemaKey, cachedSchemaId);
-                }
-                else
-                {
-                    if (schemaIds.containsKey(schemaKey))
+                    if (cachedSchemaId.event.getAndIncrement() == 1)
                     {
-                        schemaId = schemaIds.get(schemaKey).id;
-                        if (eventStatus.getAndIncrement() == 1)
-                        {
-                            event.unretrievableSchemaSubjectVersionStaleSchema(catalogId, subject, version, schemaId);
-                        }
+                        event.unretrievableSchemaSubjectVersionStaleSchema(catalogId, subject, version, schemaId);
                     }
                 }
             }
