@@ -22,7 +22,6 @@ import java.util.regex.Pattern;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaWithConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttBeginExFW;
 
 public class MqttKafkaWithResolver
 {
@@ -41,7 +40,6 @@ public class MqttKafkaWithResolver
         this.paramsMatcher = PARAMS_PATTERN.matcher("");
         this.with = with;
         this.options = options;
-        //this.messages = with.messages == null ? options.topics.messages : new String16FW(with.messages);
     }
 
     public void onConditionMatched(
@@ -52,11 +50,10 @@ public class MqttKafkaWithResolver
 
     public boolean containsParams()
     {
-        return paramsMatcher.reset(with.messages).find();
+        return with != null && paramsMatcher.reset(with.messages).find();
     }
 
-    public String16FW resolveMessages(
-        MqttBeginExFW mqttBeginEx)
+    public String16FW resolveMessages()
     {
         String topic = null;
         if (with != null)

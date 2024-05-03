@@ -97,7 +97,7 @@ public class MqttKafkaBindingConfig
 
     public boolean qos2Supported()
     {
-        return routes.stream().noneMatch(r -> r.with.containsParams());
+        return routes.stream().noneMatch(r -> r.with != null && r.with.containsParams());
     }
 
     public String16FW messagesTopic()

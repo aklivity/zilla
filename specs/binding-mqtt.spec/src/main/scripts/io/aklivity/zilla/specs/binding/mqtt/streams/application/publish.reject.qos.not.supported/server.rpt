@@ -33,6 +33,7 @@ write zilla:begin.ext ${mqtt:beginEx()
                               .session()
                                 .flags("CLEAN_START")
                                 .subscribeQosMax(0)
+                                .publishQosMax(0)
                                 .packetSizeMax(66560)
                                 .capabilities("RETAIN", "WILDCARD", "SUBSCRIPTION_IDS", "SHARED_SUBSCRIPTIONS")
                                 .clientId("client")
@@ -43,20 +44,5 @@ connected
 
 write zilla:data.empty
 write flush
-
-read aborted
-
-
-accepted
-
-read zilla:begin.ext ${mqtt:matchBeginEx()
-                             .typeId(zilla:id("mqtt"))
-                             .publish()
-                                .clientId("client")
-                                .topic("sensor/one")
-                                .build()
-                             .build()}
-
-connected
 
 read aborted

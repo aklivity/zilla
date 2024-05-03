@@ -47,7 +47,6 @@ public class MqttKafkaRouteConfig
             .map(MqttKafkaWithConfig.class::cast)
             .map(c -> new MqttKafkaWithResolver(options, c))
             .orElse(new MqttKafkaWithResolver(options, null));
-        //this.messages = with.isPresent() ? with.get().resolveMessages() : options.topics.messages;
         this.retained = options.topics.retained;
         this.when = route.when.stream()
             .map(MqttKafkaConditionConfig.class::cast)

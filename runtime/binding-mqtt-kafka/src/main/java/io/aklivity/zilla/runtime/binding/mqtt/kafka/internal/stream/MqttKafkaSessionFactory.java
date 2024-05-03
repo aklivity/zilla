@@ -466,7 +466,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             }
             else
             {
-                this.messagesTopics = binding.routes.stream().map(r -> r.with.resolveMessages(null)).collect(Collectors.toSet());
+                this.messagesTopics = binding.routes.stream().map(r -> r.with.resolveMessages()).collect(Collectors.toSet());
                 this.messagesTopics.add(messagesTopic);
                 this.unfetchedKafkaTopics = messagesTopics.size() + 1;
                 this.unackedPacketIds = new IntArrayQueue();
@@ -1442,7 +1442,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                         .flags(sessionFlags)
                         .expiry((int) TimeUnit.MILLISECONDS.toSeconds(sessionExpiryMillis))
                         .subscribeQosMax(MQTT_KAFKA_MAX_QOS)
-                        .publishQosMax(MQTT_KAFKA_MAX_QOS)
+                        .publishQosMax(publishQosMax)
                         .capabilities(MQTT_KAFKA_CAPABILITIES)
                         .clientId(clientId);
 
@@ -2925,6 +2925,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                         .flags(delegate.sessionFlags)
                         .expiry((int) TimeUnit.MILLISECONDS.toSeconds(delegate.sessionExpiryMillis))
                         .subscribeQosMax(MQTT_KAFKA_MAX_QOS)
+                        .publishQosMax(delegate.publishQosMax)
                         .capabilities(MQTT_KAFKA_CAPABILITIES)
                         .clientId(delegate.clientId))
                     .build();

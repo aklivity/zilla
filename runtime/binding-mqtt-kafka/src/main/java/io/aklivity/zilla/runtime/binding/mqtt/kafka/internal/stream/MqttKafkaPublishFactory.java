@@ -210,7 +210,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         if (resolved != null)
         {
             final long resolvedId = resolved.id;
-            final String16FW messagesTopic = resolved.with.resolveMessages(null);
+            final String16FW messagesTopic = resolved.with.resolveMessages();
             final int qos = mqttPublishBeginEx.qos();
             final MqttPublishProxy proxy = new MqttPublishProxy(mqtt, originId, routedId, initialId, resolvedId, affinity,
                 binding, messagesTopic, binding.retainedTopic(), qos, binding.clients);
