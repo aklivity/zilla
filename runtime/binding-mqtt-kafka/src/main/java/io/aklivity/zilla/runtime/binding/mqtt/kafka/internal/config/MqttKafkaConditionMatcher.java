@@ -131,6 +131,7 @@ public class MqttKafkaConditionMatcher
                 .replace(".", "\\.")
                 .replace("$", "\\$")
                 .replace("+", "[^/]*")
+                .replace("\\{[^}]+\\}", "[^/]*")
                 .replace("#", ".*");
             pattern = (level > 0) ? "(\\/\\+|\\/" + currentPart + ")" : "(\\+|" + currentPart + ")";
         }

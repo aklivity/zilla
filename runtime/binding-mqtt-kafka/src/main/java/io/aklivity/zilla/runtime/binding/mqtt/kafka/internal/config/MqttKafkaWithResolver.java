@@ -50,6 +50,11 @@ public class MqttKafkaWithResolver
         this.replacer = r -> condition.parameter(r.group(1));
     }
 
+    public boolean containsParams()
+    {
+        return paramsMatcher.reset(with.messages).find();
+    }
+
     public String16FW resolveMessages(
         MqttBeginExFW mqttBeginEx)
     {

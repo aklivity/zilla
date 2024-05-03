@@ -336,8 +336,9 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         {
             final long resolvedId = resolved.id;
             final String16FW sessionTopic = binding.sessionsTopic();
+
             final MqttSessionProxy proxy = new MqttSessionProxy(mqtt, originId, routedId, initialId, resolvedId,
-                binding.id, sessionTopic);
+                binding.id, sessionTopic, binding.qos2Supported());
             newStream = proxy::onMqttMessage;
         }
 
@@ -391,8 +392,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         private final List<KafkaOffsetFetchStream> offsetFetches;
         private final List<KafkaTopicPartition> initializablePartitions;
         private final Long2LongHashMap leaderEpochs;
-        private final IntArrayQueue unackedPacketIds;
 
+        private IntArrayQueue unackedPacketIds;
         private String lifetimeId;
         private KafkaSessionStream session;
         private KafkaGroupStream group;
@@ -424,11 +425,12 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         private String willId;
         private int delay;
         private boolean redirect;
-        private int publishQosMax;
+        private int publishQosMax = -1;
         private int unfetchedKafkaTopics;
         private MqttKafkaPublishMetadata metadata;
-        private final Set<String16FW> messagesTopics;
         private final String16FW retainedTopic;
+
+        private Set<String16FW> messagesTopics;
         private long producerId;
         private short producerEpoch;
 
@@ -439,7 +441,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             long initialId,
             long resolvedId,
             long bindingId,
-            String16FW sessionsTopic)
+            String16FW sessionsTopic,
+            boolean qos2Supported)
         {
             this.mqtt = mqtt;
             this.originId = originId;
@@ -457,10 +460,17 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             final MqttKafkaBindingConfig binding = supplyBinding.apply(bindingId);
             final String16FW messagesTopic = binding.messagesTopic();
             this.retainedTopic = binding.retainedTopic();
-            this.messagesTopics = binding.routes.stream().map(r -> r.with.resolveMessages(null)).collect(Collectors.toSet());
-            this.messagesTopics.add(messagesTopic);
-            this.unfetchedKafkaTopics = messagesTopics.size() + 1;
-            this.unackedPacketIds = new IntArrayQueue();
+            if (!qos2Supported)
+            {
+                this.publishQosMax = 1;
+            }
+            else
+            {
+                this.messagesTopics = binding.routes.stream().map(r -> r.with.resolveMessages(null)).collect(Collectors.toSet());
+                this.messagesTopics.add(messagesTopic);
+                this.unfetchedKafkaTopics = messagesTopics.size() + 1;
+                this.unackedPacketIds = new IntArrayQueue();
+            }
         }
 
         private void onMqttMessage(
@@ -534,7 +544,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             sessionExpiryMillis = (int) SECONDS.toMillis(mqttSessionBeginEx.expiry());
             sessionFlags = mqttSessionBeginEx.flags();
             redirect = hasRedirectCapability(mqttSessionBeginEx.capabilities());
-            publishQosMax = mqttSessionBeginEx.publishQosMax();
+            publishQosMax = publishQosMax == -1 ? mqttSessionBeginEx.publishQosMax() : publishQosMax;
 
             if (!isSetWillFlag(sessionFlags) || isSetCleanStart(sessionFlags))
             {
@@ -1137,6 +1147,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                         .flags(sessionFlags)
                         .expiry((int) TimeUnit.MILLISECONDS.toSeconds(sessionExpiryMillis))
                         .subscribeQosMax(MQTT_KAFKA_MAX_QOS)
+                        .publishQosMax(publishQosMax)
                         .capabilities(MQTT_KAFKA_CAPABILITIES)
                         .clientId(clientId))
                     .build();

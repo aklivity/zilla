@@ -95,6 +95,11 @@ public class MqttKafkaBindingConfig
             .collect(Collectors.toList());
     }
 
+    public boolean qos2Supported()
+    {
+        return routes.stream().noneMatch(r -> r.with.containsParams());
+    }
+
     public String16FW messagesTopic()
     {
         return options.topics.messages;

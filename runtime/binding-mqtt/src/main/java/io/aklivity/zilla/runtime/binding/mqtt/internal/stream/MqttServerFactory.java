@@ -406,7 +406,6 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final Map<MqttPacketType, MqttServerDecoder> decodersByPacketTypeV4;
     private final Map<MqttPacketType, MqttServerDecoder> decodersByPacketTypeV5;
     private final IntSupplier supplySubscriptionId;
-    private final MqttQoS publishQosMax;
     private final EngineContext context;
 
     private int maximumPacketSize = Integer.MAX_VALUE;
@@ -481,6 +480,8 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final MqttValidator validator;
     private final CharsetDecoder utf8Decoder;
     private final Function<ModelConfig, ValidatorHandler> supplyValidator;
+
+    private MqttQoS publishQosMax;
 
     public MqttServerFactory(
         MqttConfiguration config,
@@ -1251,6 +1252,13 @@ public final class MqttServerFactory implements MqttStreamFactory
             String16FW topicName;
             int publishLimit;
             int packetId = 0;
+
+            if (qos > publishQosMax.value())
+            {
+                reasonCode = QOS_NOT_SUPPORTED;
+                break decode;
+            }
+
             if (qos > 0)
             {
                 final MqttPublishQosV4FW publish =
@@ -1355,6 +1363,13 @@ public final class MqttServerFactory implements MqttStreamFactory
             MqttPropertiesFW properties;
             int publishLimit;
             int packetId = 0;
+
+            if (qos > publishQosMax.value())
+            {
+                reasonCode = QOS_NOT_SUPPORTED;
+                break decode;
+            }
+
             if (qos > 0)
             {
                 final MqttPublishQosV5FW publish =
@@ -3175,11 +3190,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             int reasonCode = SUCCESS;
 
-            if (qos > subscribeQosMax)
-            {
-                reasonCode = QOS_NOT_SUPPORTED;
-            }
-            else if (retained && !retainAvailable(capabilities))
+            if (retained && !retainAvailable(capabilities))
             {
                 reasonCode = RETAIN_NOT_SUPPORTED;
             }
@@ -5212,6 +5223,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     sessionExpiry = mqttSessionBeginEx.expiry();
                     capabilities = mqttSessionBeginEx.capabilities();
                     subscribeQosMax = mqttSessionBeginEx.subscribeQosMax();
+                    publishQosMax = MqttQoS.valueOf(mqttSessionBeginEx.publishQosMax());
                     if (packetIds != null)
                     {
                         packetIds.forEachRemaining((IntConsumer) p -> unreleasedPacketIds.add(p));
