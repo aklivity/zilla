@@ -40,7 +40,7 @@ public class MqttKafkaConditionMatcher
         String topic)
     {
         return this.matcher == null ||
-            (this.matcher.reset(topic).matches() && observeMatched());
+            this.matcher.reset(topic).matches() && observeMatched();
     }
 
     public String parameter(
@@ -97,7 +97,8 @@ public class MqttKafkaConditionMatcher
             combinedRegex.append(nonFixedPattern).append("|").append(fixedPattern).append("|");
         }
 
-        if (combinedRegex.length() > 0) {
+        if (combinedRegex.length() > 0)
+        {
             combinedRegex.deleteCharAt(combinedRegex.length() - 1);
         }
 

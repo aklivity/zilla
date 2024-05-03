@@ -27,8 +27,7 @@ bindings:
     routes:
       - exit: kafka0
         when:
-          - publish:
+          - subscribe:
               - topic: sensor/{sensorId}
         with:
           messages: sensors.${params.sensorId}
-

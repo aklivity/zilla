@@ -136,6 +136,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/publish.one.message.resolve.topic.params/client",
+        "${kafka}/publish.one.message.resolve.topic.params/server"})
+    public void shouldSendOneMessageWithResolvingParams() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/publish.10k/client",
         "${kafka}/publish.10k/server"})
     public void shouldSendMessage10k() throws Exception
@@ -355,6 +364,15 @@ public class KafkaIT
         "${kafka}/subscribe.one.message.changed.topic.name/client",
         "${kafka}/subscribe.one.message.changed.topic.name/server"})
     public void shouldReceiveOneMessageWithChangedTopicName() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.one.message.resolve.topic.params/client",
+        "${kafka}/subscribe.one.message.resolve.topic.params/server"})
+    public void shouldReceiveOneMessageWithResolvingParams() throws Exception
     {
         k3po.finish();
     }

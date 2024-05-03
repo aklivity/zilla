@@ -14,16 +14,15 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config;
 
+import java.util.function.Function;
+import java.util.regex.MatchResult;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaWithConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttBeginExFW;
-
-import java.util.function.Function;
-import java.util.regex.MatchResult;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class MqttKafkaWithResolver
 {
@@ -59,10 +58,15 @@ public class MqttKafkaWithResolver
         {
             topic = with.messages;
             Matcher topicMatcher = paramsMatcher.reset(topic);
-            if (topicMatcher.matches())
+            StringBuilder result = new StringBuilder();
+            while (topicMatcher.find())
             {
-                topic = topicMatcher.replaceAll(replacer);
+                String replacement = replacer.apply(paramsMatcher.toMatchResult());
+                topicMatcher.appendReplacement(result, replacement);
             }
+            topicMatcher.appendTail(result);
+
+            topic = result.toString();
         }
         return topic == null ? options.topics.messages : new String16FW(topic);
     }

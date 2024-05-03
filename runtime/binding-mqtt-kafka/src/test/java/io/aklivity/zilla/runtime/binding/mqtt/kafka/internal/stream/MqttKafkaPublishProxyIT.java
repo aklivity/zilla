@@ -170,6 +170,17 @@ public class MqttKafkaPublishProxyIT
     }
 
     @Test
+    @Configuration("proxy.when.publish.topic.with.messages.params.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/publish.one.message/client",
+        "${kafka}/publish.one.message.resolve.topic.params/server"})
+    public void shouldSendOneMessageWithResolvingParams() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.when.publish.topic.with.messages.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
