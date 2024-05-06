@@ -23,7 +23,6 @@ import static org.agrona.LangUtil.rethrowUnchecked;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
@@ -67,26 +66,23 @@ public final class OpenapiServerNamespaceGenerator extends OpenapiNamespaceGener
     @Override
     public NamespaceConfig generate(
         BindingConfig binding,
-        Openapi openapi)
+        OpenapiNamespaceConfig namespaceConfig)
     {
         final OpenapiOptionsConfig options = binding.options != null ? (OpenapiOptionsConfig) binding.options : EMPTY_OPTIONS;
         final List<MetricRefConfig> metricRefs = binding.telemetryRef != null ?
             binding.telemetryRef.metricRefs : emptyList();
-        final List<OpenapiServerView> servers =
-            filterOpenapiServers(
-                openapi.servers, options.openapis.stream()
-                .flatMap(o -> o.servers.stream())
-                .collect(Collectors.toList()));
+        final List<OpenapiServerView> servers = namespaceConfig.servers;
 
         final String qvault = String.format("%s:%s", binding.namespace, binding.vault);
 
+        final String namespace = String.join("+", namespaceConfig.openapiLabels);
         return NamespaceConfig.builder()
-                .name(String.format("%s/http", binding.qname))
-                .inject(namespace -> injectNamespaceMetric(namespace, !metricRefs.isEmpty()))
-                .inject(n -> injectCatalog(n, openapi))
+                .name(String.format("%s/%s", binding.qname, namespace))
+                .inject(n -> injectNamespaceMetric(n, !metricRefs.isEmpty()))
+                .inject(n -> injectCatalog(n, namespaceConfig.openapis))
                 .inject(n -> injectTcpServer(n, servers, options, metricRefs))
                 .inject(n -> injectTlsServer(n, qvault, servers, options, metricRefs))
-                .inject(n -> injectHttpServer(n, binding.qname, openapi, servers, options, metricRefs))
+                .inject(n -> injectHttpServer(n, binding.qname, namespaceConfig.openapis, servers, options, metricRefs))
                 .build();
     }
 
@@ -166,25 +162,28 @@ public final class OpenapiServerNamespaceGenerator extends OpenapiNamespaceGener
 
     private <C> HttpOptionsConfigBuilder<C> injectHttpServerRequests(
         HttpOptionsConfigBuilder<C> options,
-        Openapi openapi)
+        List<Openapi> openapis)
     {
-        for (String pathName : openapi.paths.keySet())
+        for (Openapi openapi : openapis)
         {
-            OpenapiPathView path = OpenapiPathView.of(openapi.paths.get(pathName));
-            for (String methodName : path.methods().keySet())
+            for (String pathName : openapi.paths.keySet())
             {
-                final OpenapiOperation operation = path.methods().get(methodName);
-                if (operation.requestBody != null ||
-                    operation.parameters != null &&
-                    !operation.parameters.isEmpty())
+                OpenapiPathView path = OpenapiPathView.of(openapi.paths.get(pathName));
+                for (String methodName : path.methods().keySet())
                 {
-                    options
-                        .request()
-                            .path(pathName)
-                            .method(HttpRequestConfig.Method.valueOf(methodName))
-                            .inject(request -> injectContent(request, operation, openapi))
-                            .inject(request -> injectParams(request, operation))
-                            .build();
+                    final OpenapiOperation operation = path.methods().get(methodName);
+                    if (operation.requestBody != null ||
+                        operation.parameters != null &&
+                        !operation.parameters.isEmpty())
+                    {
+                        options
+                            .request()
+                                .path(pathName)
+                                .method(HttpRequestConfig.Method.valueOf(methodName))
+                                .inject(request -> injectContent(request, operation, openapi))
+                                .inject(request -> injectParams(request, operation))
+                                .build();
+                    }
                 }
             }
         }
@@ -267,25 +266,28 @@ public final class OpenapiServerNamespaceGenerator extends OpenapiNamespaceGener
 
     private <C> BindingConfigBuilder<C> injectHttpServerRoutes(
         BindingConfigBuilder<C> binding,
-        Openapi openApi,
+        List<Openapi> openApis,
         String qname,
         String guardName,
         Map<String, String> securitySchemes)
     {
-        for (String item : openApi.paths.keySet())
+        for (Openapi openApi : openApis)
         {
-            OpenapiPathView path = OpenapiPathView.of(openApi.paths.get(item));
-            for (String method : path.methods().keySet())
+            for (String item : openApi.paths.keySet())
             {
-                binding
-                    .route()
-                        .exit(qname)
-                        .when(HttpConditionConfig::builder)
-                            .header(":path", item.replaceAll("\\{[^}]+\\}", "*"))
-                            .header(":method", method)
-                            .build()
-                        .inject(route -> injectHttpServerRouteGuarded(route, path, method, guardName, securitySchemes))
-                        .build();
+                OpenapiPathView path = OpenapiPathView.of(openApi.paths.get(item));
+                for (String method : path.methods().keySet())
+                {
+                    binding
+                        .route()
+                            .exit(qname)
+                            .when(HttpConditionConfig::builder)
+                                .header(":path", item.replaceAll("\\{[^}]+\\}", "*"))
+                                .header(":method", method)
+                                .build()
+                            .inject(route -> injectHttpServerRouteGuarded(route, path, method, guardName, securitySchemes))
+                            .build();
+                }
             }
         }
 
@@ -335,11 +337,11 @@ public final class OpenapiServerNamespaceGenerator extends OpenapiNamespaceGener
 
     private <C> NamespaceConfigBuilder<C> injectCatalog(
         NamespaceConfigBuilder<C> namespace,
-        Openapi openapi)
+        List<Openapi> openapis)
     {
-        if (openapi.components != null &&
-            openapi.components.schemas != null &&
-            !openapi.components.schemas.isEmpty())
+        final boolean injectCatalog = openapis.stream()
+            .anyMatch(a -> a.components != null && a.components.schemas != null && !a.components.schemas.isEmpty());
+        if (injectCatalog)
         {
             namespace
                 .catalog()
@@ -347,7 +349,7 @@ public final class OpenapiServerNamespaceGenerator extends OpenapiNamespaceGener
                     .type(INLINE_CATALOG_TYPE)
                     .options(InlineOptionsConfig::builder)
                         .subjects()
-                            .inject(s -> this.injectSubjects(s, openapi))
+                            .inject(s -> this.injectSubjects(s, openapis))
                             .build()
                         .build()
                     .build();
@@ -390,12 +392,12 @@ public final class OpenapiServerNamespaceGenerator extends OpenapiNamespaceGener
     private <C> NamespaceConfigBuilder<C> injectHttpServer(
         NamespaceConfigBuilder<C> namespace,
         String qname,
-        Openapi openapi,
+        List<Openapi> openapis,
         List<OpenapiServerView> servers,
         OpenapiOptionsConfig options,
         List<MetricRefConfig> metricRefs)
     {
-        final Map<String, String> securitySchemes = resolveSecuritySchemes(openapi);
+        final Map<String, String> securitySchemes = resolveSecuritySchemes(openapis);
         final boolean hasJwt = !securitySchemes.isEmpty();
         final HttpOptionsConfig httpOptions = options.http;
         final String guardName = httpOptions != null ? httpOptions.authorization.name : null;
@@ -412,9 +414,9 @@ public final class OpenapiServerNamespaceGenerator extends OpenapiNamespaceGener
             .policy(CROSS_ORIGIN)
             .build()
             .inject(o -> this.injectHttpServerOptions(o, authorization, hasJwt))
-            .inject(r -> this.injectHttpServerRequests(r, openapi))
+            .inject(r -> this.injectHttpServerRequests(r, openapis))
             .build()
-            .inject(b -> this.injectHttpServerRoutes(b, openapi, qname, guardName, securitySchemes))
+            .inject(b -> this.injectHttpServerRoutes(b, openapis, qname, guardName, securitySchemes))
             .inject(b -> this.injectMetrics(b, metricRefs, "http"))
             .build();
 
@@ -423,25 +425,28 @@ public final class OpenapiServerNamespaceGenerator extends OpenapiNamespaceGener
 
     private <C> InlineSchemaConfigBuilder<C> injectSubjects(
         InlineSchemaConfigBuilder<C> subjects,
-        Openapi openApi)
+        List<Openapi> openApis)
     {
-        try (Jsonb jsonb = JsonbBuilder.create())
+        for (Openapi openApi : openApis)
         {
-            for (Map.Entry<String, OpenapiSchema> entry : openApi.components.schemas.entrySet())
+            try (Jsonb jsonb = JsonbBuilder.create())
             {
-                OpenapiSchemaView schemaView = OpenapiSchemaView.of(openApi.components.schemas, entry.getValue());
-                OpenapiSchema schema = schemaView.ref() != null ? schemaView.ref() : entry.getValue();
+                for (Map.Entry<String, OpenapiSchema> entry : openApi.components.schemas.entrySet())
+                {
+                    OpenapiSchemaView schemaView = OpenapiSchemaView.of(openApi.components.schemas, entry.getValue());
+                    OpenapiSchema schema = schemaView.ref() != null ? schemaView.ref() : entry.getValue();
 
-                subjects
-                    .subject(entry.getKey())
-                    .schema(jsonb.toJson(schema))
-                    .version(VERSION_LATEST)
-                    .build();
+                    subjects
+                        .subject(entry.getKey())
+                        .schema(jsonb.toJson(schema))
+                        .version(VERSION_LATEST)
+                        .build();
+                }
             }
-        }
-        catch (Exception ex)
-        {
-            rethrowUnchecked(ex);
+            catch (Exception ex)
+            {
+                rethrowUnchecked(ex);
+            }
         }
         return subjects;
     }
@@ -459,19 +464,22 @@ public final class OpenapiServerNamespaceGenerator extends OpenapiNamespaceGener
     }
 
     private Map<String, String> resolveSecuritySchemes(
-        Openapi openApi)
+        List<Openapi> openApis)
     {
-        requireNonNull(openApi);
+        requireNonNull(openApis);
         Map<String, String> result = new Object2ObjectHashMap<>();
-        if (openApi.components != null &&
-            openApi.components.securitySchemes != null)
+        for (Openapi openApi : openApis)
         {
-            for (String securitySchemeName : openApi.components.securitySchemes.keySet())
+            if (openApi.components != null &&
+                openApi.components.securitySchemes != null)
             {
-                String guardType = openApi.components.securitySchemes.get(securitySchemeName).bearerFormat;
-                if (JWT.equalsIgnoreCase(guardType))
+                for (String securitySchemeName : openApi.components.securitySchemes.keySet())
                 {
-                    result.put(securitySchemeName, guardType);
+                    String guardType = openApi.components.securitySchemes.get(securitySchemeName).bearerFormat;
+                    if (JWT.equalsIgnoreCase(guardType))
+                    {
+                        result.put(securitySchemeName, guardType);
+                    }
                 }
             }
         }
