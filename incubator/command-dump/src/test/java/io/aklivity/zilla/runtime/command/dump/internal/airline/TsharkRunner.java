@@ -80,7 +80,8 @@ public class TsharkRunner
     {
         String containerPath = String.format("/opt/%s", file.getFileName());
         tshark.copyFileToContainer(Transferable.of(Files.readAllBytes(file)), containerPath);
-        return tshark.execInContainer("tshark", "-O", "zilla", "-r", containerPath);
+        String protocols = "zilla,http,http2,tls,mqtt,kafka,amqp";
+        return tshark.execInContainer("tshark", "-O", protocols, "-r", containerPath);
     }
 
     private static Path resourceToPath(
