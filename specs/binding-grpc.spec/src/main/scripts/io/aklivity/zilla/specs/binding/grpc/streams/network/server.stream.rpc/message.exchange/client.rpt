@@ -14,6 +14,7 @@
 #
 
 connect "zilla://streams/net0"
+  option zilla:ephemeral "test"
   option zilla:window 8192
   option zilla:transmission "half-duplex"
 
