@@ -44,6 +44,10 @@ import io.aklivity.zilla.runtime.engine.config.MetricRefConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
+import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
+import io.aklivity.zilla.runtime.model.core.config.StringModelConfigBuilder;
+import io.aklivity.zilla.runtime.model.core.config.StringPattern;
+import io.aklivity.zilla.runtime.model.core.internal.StringModel;
 import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
 public final class OpenapiClientNamespaceGenerator extends OpenapiNamespaceGenerator
@@ -175,16 +179,33 @@ public final class OpenapiClientNamespaceGenerator extends OpenapiNamespaceGener
             {
                 String name = header.getKey();
                 OpenapiSchema schema = header.getValue().schema;
-                String modelName = schema.format != null ? String.format("%s:%s", schema.type, schema.format) :
-                        schema.type;
-                ModelConfig model = models.get(modelName);
-                if (model != null)
+                if (schema != null)
                 {
-                    response
-                        .header()
+                    String format = schema.format;
+                    String type = schema.type;
+                    ModelConfig model;
+                    if (StringModel.NAME.equals(type))
+                    {
+                        StringModelConfigBuilder<StringModelConfig> builder = StringModelConfig.builder();
+                        if (format != null)
+                        {
+                            builder.pattern(StringPattern.of(format));
+                        }
+                        model = builder.build();
+                    }
+                    else
+                    {
+                        model = MODELS.get(format != null ? String.format("%s:%s", type, format) : type);
+                    }
+
+                    if (model != null)
+                    {
+                        response
+                            .header()
                             .name(name)
                             .model(model)
                             .build();
+                    }
                 }
             }
         }

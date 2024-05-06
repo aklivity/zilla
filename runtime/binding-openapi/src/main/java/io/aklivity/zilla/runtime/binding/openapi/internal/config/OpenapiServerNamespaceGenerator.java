@@ -58,6 +58,10 @@ import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
+import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
+import io.aklivity.zilla.runtime.model.core.config.StringModelConfigBuilder;
+import io.aklivity.zilla.runtime.model.core.config.StringPattern;
+import io.aklivity.zilla.runtime.model.core.internal.StringModel;
 import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
 public final class OpenapiServerNamespaceGenerator extends OpenapiNamespaceGenerator
@@ -226,12 +230,25 @@ public final class OpenapiServerNamespaceGenerator extends OpenapiNamespaceGener
         {
             for (OpenapiParameter parameter : operation.parameters)
             {
-                if (parameter.schema != null && parameter.schema.type != null)
+                OpenapiSchema schema = parameter.schema;
+                if (schema != null && schema.type != null)
                 {
-                    OpenapiSchema schema = parameter.schema;
-                    String modelName = schema.format != null ? String.format("%s:%s", schema.type, schema.format) :
-                        schema.type;
-                    ModelConfig model = models.get(modelName);
+                    String format = schema.format;
+                    String type = schema.type;
+                    ModelConfig model;
+                    if (StringModel.NAME.equals(type))
+                    {
+                        StringModelConfigBuilder<StringModelConfig> builder = StringModelConfig.builder();
+                        if (format != null)
+                        {
+                            builder.pattern(StringPattern.of(format));
+                        }
+                        model = builder.build();
+                    }
+                    else
+                    {
+                        model = MODELS.get(format != null ? String.format("%s:%s", type, format) : type);
+                    }
                     if (model != null)
                     {
                         switch (parameter.in)
