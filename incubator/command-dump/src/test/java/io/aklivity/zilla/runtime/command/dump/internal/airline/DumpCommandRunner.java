@@ -29,7 +29,6 @@ public class DumpCommandRunner
         command.verbose = true;
         command.continuous = false;
         command.properties = List.of(String.format("zilla.engine.directory=%s", ENGINE_PATH));
-        command.replaceNamespace = "ephemeral=test";
     }
 
     public void createPcap(

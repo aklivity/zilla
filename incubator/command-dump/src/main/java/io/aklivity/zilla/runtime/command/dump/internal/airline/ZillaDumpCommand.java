@@ -80,7 +80,6 @@ import io.aklivity.zilla.runtime.command.dump.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.binding.function.MessagePredicate;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
-import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 import io.aklivity.zilla.runtime.engine.reader.BindingsLayoutReader;
 
 @Command(name = "dump", description = "Dump stream content")
@@ -186,11 +185,6 @@ public final class ZillaDumpCommand extends ZillaCommand
         description = "Path to properties",
         hidden = true)
     public String propertiesPath;
-
-    @Option(name = {"--replace-namespace"},
-        description = "Replace namespace (old-namespace-name=new-namespace-name)",
-        hidden = true)
-    public String replaceNamespace;
 
     @Option(name = "-e",
         description = "Show exception traces",
@@ -326,8 +320,7 @@ public final class ZillaDumpCommand extends ZillaCommand
                 final DumpHandler[] dumpHandlers = new DumpHandler[streamBufferCount];
                 for (int i = 0; i < streamBufferCount; i++)
                 {
-                    dumpHandlers[i] = new DumpHandler(i, filter, labels::lookupLabel, labels::lookupLabelId,
-                        bindings.bindings()::get, writer);
+                    dumpHandlers[i] = new DumpHandler(i, filter, labels::lookupLabel, bindings.bindings()::get, writer);
                 }
 
                 final MutableDirectBuffer buffer = writeBuffer;
@@ -457,15 +450,12 @@ public final class ZillaDumpCommand extends ZillaCommand
         private final LongPredicate allowedBinding;
         private final WritableByteChannel writer;
         private final IntFunction<String> lookupLabel;
-        private final Function<String, Integer> lookupLabelId;
         private final Function<Long, long[]> lookupBindingInfo;
         private final CRC32C crc;
         private final ExtensionFW extensionRO;
         private final MutableDirectBuffer labelsBuffer;
         private final Long2LongHashMap sequence;
         private final Int2IntHashMap crcCache;
-        private final int oldNamespace;
-        private final int newNamespace;
 
         private long nextTimestamp = Long.MAX_VALUE;
 
@@ -473,14 +463,12 @@ public final class ZillaDumpCommand extends ZillaCommand
             int worker,
             LongPredicate allowedBinding,
             IntFunction<String> lookupLabel,
-            Function<String, Integer> lookupLabelId,
             Function<Long, long[]> lookupBindingInfo,
             WritableByteChannel writer)
         {
             this.worker = worker;
             this.allowedBinding = allowedBinding;
             this.lookupLabel = lookupLabel;
-            this.lookupLabelId = lookupLabelId;
             this.lookupBindingInfo = lookupBindingInfo;
             this.writer = writer;
             this.crc = new CRC32C();
@@ -488,17 +476,6 @@ public final class ZillaDumpCommand extends ZillaCommand
             this.labelsBuffer = new UnsafeBuffer(ByteBuffer.allocate(LABELS_BUFFER_SLOT_CAPACITY));
             this.sequence = new Long2LongHashMap(0L);
             this.crcCache = new Int2IntHashMap(0);
-            if (replaceNamespace != null)
-            {
-                String[] namespaces = replaceNamespace.split("=");
-                oldNamespace = lookupLabelId.apply(namespaces[0]);
-                newNamespace = lookupLabelId.apply(namespaces[1]);
-            }
-            else
-            {
-                oldNamespace = 0;
-                newNamespace = 0;
-            }
         }
 
         private boolean nextTimestamp(
@@ -783,8 +760,8 @@ public final class ZillaDumpCommand extends ZillaCommand
             long routedId)
         {
             int protocolTypeLabelId = 0;
-            long[] origin = lookupBindingInfo.apply(replaceNamespace(originId));
-            long[] routed = lookupBindingInfo.apply(replaceNamespace(routedId));
+            long[] origin = lookupBindingInfo.apply(originId);
+            long[] routed = lookupBindingInfo.apply(routedId);
 
             if (origin != null && routed != null)
             {
@@ -800,20 +777,6 @@ public final class ZillaDumpCommand extends ZillaCommand
                 }
             }
             return supplyLabelCrc(protocolTypeLabelId);
-        }
-
-        private long replaceNamespace(
-            long bindingId)
-        {
-            long result = bindingId;
-            if (oldNamespace != 0 && newNamespace != 0)
-            {
-                if (NamespacedId.namespaceId(bindingId) == oldNamespace)
-                {
-                    result = NamespacedId.id(newNamespace, NamespacedId.localId(bindingId));
-                }
-            }
-            return result;
         }
 
         private void encodePcapHeader(
