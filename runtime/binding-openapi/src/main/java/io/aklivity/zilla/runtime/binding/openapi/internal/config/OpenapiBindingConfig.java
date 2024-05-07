@@ -125,7 +125,6 @@ public final class OpenapiBindingConfig
         final Map<Integer, OpenapiNamespaceConfig> namespaceConfigs = new HashMap<>();
         for (OpenapiSchemaConfig config : configs)
         {
-            //namespaceGenerator.init(binding);
             Openapi openapi = config.openapi;
             final List<OpenapiServerView> servers =
                 namespaceGenerator.filterOpenapiServers(openapi.servers, options.openapis.stream()
