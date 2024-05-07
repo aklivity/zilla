@@ -69,12 +69,12 @@ public class EventIT
         EngineContext context = mock(EngineContext.class);
         when(context.clock()).thenReturn(Clock.systemUTC());
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
-        KarapaceEventContext event = new KarapaceEventContext(context);
-        event.unretrievableSchemaSubjectVersion(0L, "subject", "version");
-        event.retrievableSchemaSubjectVersion(0L, "subject", "version");
-        event.unretrievableSchemaSubjectVersionStaleSchema(0L, "subject", "version", 1);
-        event.unretrievableSchemaId(0L, 1);
-        event.retrievableSchemaId(0L, 1);
+        KarapaceEventContext events = new KarapaceEventContext(context);
+        events.onUnretrievableSchemaSubjectVersion(0L, "subject", "version");
+        events.onRetrievableSchemaSubjectVersion(0L, "subject", "version");
+        events.onUnretrievableSchemaSubjectVersionStaleSchema(0L, "subject", "version", 1);
+        events.onUnretrievableSchemaId(0L, 1);
+        events.onRetrievableSchemaId(0L, 1);
     }
 
 }

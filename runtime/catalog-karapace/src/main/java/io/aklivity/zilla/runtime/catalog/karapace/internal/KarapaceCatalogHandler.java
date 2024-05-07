@@ -46,9 +46,8 @@ public class KarapaceCatalogHandler implements CatalogHandler
     private static final String REGISTER_SCHEMA_PATH = "/subjects/{0}/versions";
     private static final int MAX_PADDING_LENGTH = 5;
     private static final byte MAGIC_BYTE = 0x0;
-    public static final long RESET_RETRY_DELAY_MS_DEFAULT = 0L;
-    public static final long RETRY_INITIAL_DELAY_MS_DEFAULT = 1000L;
-    public static final int RETRY_MULTIPLER_DEFAULT = 2;
+    private static final long RESET_RETRY_DELAY_MS_DEFAULT = 0L;
+    private static final long RETRY_INITIAL_DELAY_MS_DEFAULT = 1000L;
 
     private final KarapacePrefixFW.Builder prefixRW = new KarapacePrefixFW.Builder()
         .wrap(new UnsafeBuffer(new byte[5]), 0, 5);
@@ -105,7 +104,7 @@ public class KarapaceCatalogHandler implements CatalogHandler
             }
             else
             {
-                AtomicInteger eventStatus = new AtomicInteger();
+                AtomicInteger retryAttempts = new AtomicInteger();
                 CompletableFuture<CachedSchema> newFuture = new CompletableFuture<>();
                 CompletableFuture<CachedSchema> existing = cachedSchemas.get(schemaId);
                 if (existing != null && existing.isDone())
@@ -115,7 +114,7 @@ public class KarapaceCatalogHandler implements CatalogHandler
                         CachedSchema cachedSchema = existing.get();
                         if (cachedSchema != null)
                         {
-                            eventStatus = cachedSchema.event;
+                            retryAttempts = cachedSchema.retryAttempts;
                         }
                     }
                     catch (Throwable ex)
@@ -130,16 +129,22 @@ public class KarapaceCatalogHandler implements CatalogHandler
                     try
                     {
                         String response = sendHttpRequest(MessageFormat.format(SCHEMA_PATH, schemaId));
-                        if (response == null && eventStatus.getAndIncrement() == 0)
+                        if (response == null)
                         {
-                            event.unretrievableSchemaId(catalogId, schemaId);
+                            if (retryAttempts.getAndIncrement() == 0)
+                            {
+                                event.onUnretrievableSchemaId(catalogId, schemaId);
+                            }
+                            newFuture.complete(new CachedSchema(null, retryAttempts));
                         }
-                        else if (response != null && eventStatus.getAndSet(0) > 0)
+                        else
                         {
-                            event.retrievableSchemaId(catalogId, schemaId);
+                            if (retryAttempts.getAndSet(0) > 0)
+                            {
+                                event.onRetrievableSchemaId(catalogId, schemaId);
+                            }
+                            newFuture.complete(new CachedSchema(request.resolveSchemaResponse(response), retryAttempts));
                         }
-                        newFuture.complete(new CachedSchema(response != null ? request.resolveSchemaResponse(response) : null,
-                            eventStatus));
                     }
                     catch (Throwable ex)
                     {
@@ -179,8 +184,8 @@ public class KarapaceCatalogHandler implements CatalogHandler
         else
         {
             CachedSchemaId cachedSchemaId = null;
-            AtomicInteger eventStatus = new AtomicInteger();
-            long retry = RESET_RETRY_DELAY_MS_DEFAULT;
+            AtomicInteger retryAttempts = new AtomicInteger();
+            long retryAfter = RESET_RETRY_DELAY_MS_DEFAULT;
             CompletableFuture<CachedSchemaId> newFuture = new CompletableFuture<>();
             CompletableFuture<CachedSchemaId> existing = cachedSchemaIds.get(schemaKey);
             if (existing != null && existing.isDone())
@@ -190,7 +195,7 @@ public class KarapaceCatalogHandler implements CatalogHandler
                     cachedSchemaId = existing.get();
                     if (cachedSchemaId != null)
                     {
-                        eventStatus = cachedSchemaId.event;
+                        retryAttempts = cachedSchemaId.retryAttempts;
                     }
                 }
                 catch (Throwable ex)
@@ -208,26 +213,24 @@ public class KarapaceCatalogHandler implements CatalogHandler
                     String response = sendHttpRequest(MessageFormat.format(SUBJECT_VERSION_PATH, subject, version));
                     if (response == null)
                     {
-                        if (eventStatus.getAndIncrement() == 0)
+                        if (retryAttempts.getAndIncrement() == 0)
                         {
-                            retry = RETRY_INITIAL_DELAY_MS_DEFAULT;
-                            event.unretrievableSchemaSubjectVersion(catalogId, subject, version);
+                            retryAfter = RETRY_INITIAL_DELAY_MS_DEFAULT;
+                            event.onUnretrievableSchemaSubjectVersion(catalogId, subject, version);
                         }
 
-                        if (cachedSchemaId != null && cachedSchemaId.retry != RESET_RETRY_DELAY_MS_DEFAULT)
+                        if (cachedSchemaId != null && cachedSchemaId.retryAfter != RESET_RETRY_DELAY_MS_DEFAULT)
                         {
-                            long current = cachedSchemaId.retry;
-                            long update = current * RETRY_MULTIPLER_DEFAULT;
-                            retry = update < maxAgeMillis ? update : current;
+                            retryAfter = Math.min(cachedSchemaId.retryAfter << 1, maxAgeMillis);
                         }
                     }
-                    else if (response != null && eventStatus.getAndSet(0) > 0)
+                    else if (response != null && retryAttempts.getAndSet(0) > 0)
                     {
-                        event.retrievableSchemaSubjectVersion(catalogId, subject, version);
+                        event.onRetrievableSchemaSubjectVersion(catalogId, subject, version);
                     }
                     newFuture.complete(new CachedSchemaId(System.currentTimeMillis(),
                         response != null ? request.resolveResponse(response) :
-                            cachedSchemaId != null ? cachedSchemaId.id : NO_SCHEMA_ID, eventStatus, retry));
+                            cachedSchemaId != null ? cachedSchemaId.id : NO_SCHEMA_ID, retryAttempts, retryAfter));
                 }
                 catch (Throwable ex)
                 {
@@ -242,9 +245,9 @@ public class KarapaceCatalogHandler implements CatalogHandler
                 if (schemaId != NO_SCHEMA_ID)
                 {
                     schemaIds.put(schemaKey, cachedSchemaId);
-                    if (cachedSchemaId.event.getAndIncrement() == 1)
+                    if (cachedSchemaId.retryAttempts.getAndIncrement() == 1)
                     {
-                        event.unretrievableSchemaSubjectVersionStaleSchema(catalogId, subject, version, schemaId);
+                        event.onUnretrievableSchemaSubjectVersionStaleSchema(catalogId, subject, version, schemaId);
                     }
                 }
             }
@@ -329,17 +332,18 @@ public class KarapaceCatalogHandler implements CatalogHandler
                 .build();
         // TODO: introduce interrupt/timeout for request to schema registry
 
+        String responseBody;
         try
         {
             HttpResponse<String> httpResponse = client.send(httpRequest, HttpResponse.BodyHandlers.ofString());
             boolean success = httpResponse.statusCode() == 200;
-            String responseBody = success ? httpResponse.body() : null;
-            return responseBody;
+            responseBody = success ? httpResponse.body() : null;
         }
         catch (Exception ex)
         {
+            responseBody = null;
         }
-        return null;
+        return responseBody;
     }
 
     private URI toURI(

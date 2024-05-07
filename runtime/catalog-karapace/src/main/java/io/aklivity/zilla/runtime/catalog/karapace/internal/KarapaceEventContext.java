@@ -61,7 +61,7 @@ public class KarapaceEventContext
         this.clock = context.clock();
     }
 
-    public void unretrievableSchemaSubjectVersion(
+    public void onUnretrievableSchemaSubjectVersion(
         long catalogId,
         String subject,
         String version)
@@ -85,7 +85,7 @@ public class KarapaceEventContext
         eventWriter.accept(karapaceTypeId, event.buffer(), event.offset(), event.limit());
     }
 
-    public void unretrievableSchemaSubjectVersionStaleSchema(
+    public void onUnretrievableSchemaSubjectVersionStaleSchema(
         long catalogId,
         String subject,
         String version,
@@ -111,7 +111,7 @@ public class KarapaceEventContext
         eventWriter.accept(karapaceTypeId, event.buffer(), event.offset(), event.limit());
     }
 
-    public void unretrievableSchemaId(
+    public void onUnretrievableSchemaId(
         long catalogId,
         int schemaId)
     {
@@ -133,7 +133,7 @@ public class KarapaceEventContext
         eventWriter.accept(karapaceTypeId, event.buffer(), event.offset(), event.limit());
     }
 
-    public void retrievableSchemaSubjectVersion(
+    public void onRetrievableSchemaSubjectVersion(
         long catalogId,
         String subject,
         String version)
@@ -157,7 +157,7 @@ public class KarapaceEventContext
         eventWriter.accept(karapaceTypeId, event.buffer(), event.offset(), event.limit());
     }
 
-    public void retrievableSchemaId(
+    public void onRetrievableSchemaId(
         long catalogId,
         int schemaId)
     {

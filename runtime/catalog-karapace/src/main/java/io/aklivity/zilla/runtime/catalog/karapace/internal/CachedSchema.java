@@ -19,16 +19,23 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class CachedSchema
 {
     public static final String SCHEMA_PLACEHOLDER = "schema";
-    public static final CachedSchema IN_PROGRESS = new CachedSchema(SCHEMA_PLACEHOLDER, new AtomicInteger(0));
+    public static final CachedSchema IN_PROGRESS = new CachedSchema(SCHEMA_PLACEHOLDER);
 
-    public String schema;
-    public AtomicInteger event;
+    public final String schema;
+    public final AtomicInteger retryAttempts;
+
+    public CachedSchema(
+        String schema)
+    {
+        this.schema = schema;
+        this.retryAttempts = new AtomicInteger();
+    }
 
     public CachedSchema(
         String schema,
-        AtomicInteger event)
+        AtomicInteger retryAttempts)
     {
         this.schema = schema;
-        this.event = event;
+        this.retryAttempts = retryAttempts;
     }
 }

@@ -20,23 +20,23 @@ public class CachedSchemaId
 {
     public static final int PLACEHOLDER_SCHEMA_ID = -1;
     public static final CachedSchemaId IN_PROGRESS = new CachedSchemaId(Long.MAX_VALUE, PLACEHOLDER_SCHEMA_ID,
-        new AtomicInteger(0), Long.MAX_VALUE);
+        new AtomicInteger(), Long.MAX_VALUE);
 
-    public long timestamp;
-    public int id;
-    public AtomicInteger event;
-    public long retry;
+    public final long timestamp;
+    public final int id;
+    public final AtomicInteger retryAttempts;
+    public final long retryAfter;
 
     public CachedSchemaId(
         long timestamp,
         int id,
-        AtomicInteger event,
-        long retry)
+        AtomicInteger retryAttempts,
+        long retryAfter)
     {
         this.timestamp = timestamp;
         this.id = id;
-        this.event = event;
-        this.retry = retry;
+        this.retryAttempts = retryAttempts;
+        this.retryAfter = retryAfter;
     }
 
     public boolean expired(
@@ -47,6 +47,6 @@ public class CachedSchemaId
 
     public boolean retry()
     {
-        return System.currentTimeMillis() - this.timestamp > this.retry;
+        return System.currentTimeMillis() - this.timestamp > this.retryAfter;
     }
 }

@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.catalog.karapace.internal;
 
-import static io.aklivity.zilla.runtime.catalog.karapace.internal.KarapaceCatalogHandler.RETRY_INITIAL_DELAY_MS_DEFAULT;
 import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -171,7 +170,7 @@ public class KarapaceIT
         k3po.finish();
 
         assertEquals(schema, null);
-        assertEquals(cache.schemas.get(1).get().event.get(), 1);
+        assertEquals(cache.schemas.get(1).get().retryAttempts.get(), 1);
     }
 
     @Test
@@ -192,8 +191,8 @@ public class KarapaceIT
 
         for (int schemaKey: cache.schemaIds.keySet())
         {
-            assertEquals(cache.schemaIds.get(schemaKey).get().retry, RETRY_INITIAL_DELAY_MS_DEFAULT);
-            assertEquals(cache.schemaIds.get(schemaKey).get().event.get(), 1);
+            assertEquals(cache.schemaIds.get(schemaKey).get().retryAfter, 1000L);
+            assertEquals(cache.schemaIds.get(schemaKey).get().retryAttempts.get(), 1);
         }
 
         schemaId = catalog.resolve("items-snapshots-value", "latest");
@@ -218,8 +217,8 @@ public class KarapaceIT
 
         for (int schemaKey: cache.schemaIds.keySet())
         {
-            assertEquals(cache.schemaIds.get(schemaKey).get().retry, 2000);
-            assertEquals(cache.schemaIds.get(schemaKey).get().event.get(), 2);
+            assertEquals(cache.schemaIds.get(schemaKey).get().retryAfter, 2000);
+            assertEquals(cache.schemaIds.get(schemaKey).get().retryAttempts.get(), 2);
         }
     }
 
