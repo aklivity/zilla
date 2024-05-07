@@ -219,18 +219,30 @@ public class KarapaceCatalogHandler implements CatalogHandler
                             event.onUnretrievableSchemaSubjectVersion(catalogId, subject, version);
                         }
 
-                        if (cachedSchemaId != null && cachedSchemaId.retryAfter != RESET_RETRY_DELAY_MS_DEFAULT)
+                        if (cachedSchemaId != null)
                         {
-                            retryAfter = Math.min(cachedSchemaId.retryAfter << 1, maxAgeMillis);
+                            if (cachedSchemaId.retryAfter != RESET_RETRY_DELAY_MS_DEFAULT)
+                            {
+                                retryAfter = Math.min(cachedSchemaId.retryAfter << 1, maxAgeMillis);
+                            }
+                            newFuture.complete(new CachedSchemaId(cachedSchemaId.timestamp, cachedSchemaId.id,
+                                retryAttempts, retryAfter));
+                        }
+                        else
+                        {
+                            newFuture.complete(new CachedSchemaId(System.currentTimeMillis(), NO_SCHEMA_ID,
+                                retryAttempts, retryAfter));
                         }
                     }
-                    else if (response != null && retryAttempts.getAndSet(0) > 0)
+                    else if (response != null)
                     {
-                        event.onRetrievableSchemaSubjectVersion(catalogId, subject, version);
+                        if (retryAttempts.getAndSet(0) > 0)
+                        {
+                            event.onRetrievableSchemaSubjectVersion(catalogId, subject, version);
+                        }
+                        newFuture.complete(new CachedSchemaId(System.currentTimeMillis(), request.resolveResponse(response),
+                            retryAttempts, retryAfter));
                     }
-                    newFuture.complete(new CachedSchemaId(System.currentTimeMillis(),
-                        response != null ? request.resolveResponse(response) :
-                            cachedSchemaId != null ? cachedSchemaId.id : NO_SCHEMA_ID, retryAttempts, retryAfter));
                 }
                 catch (Throwable ex)
                 {
@@ -245,7 +257,7 @@ public class KarapaceCatalogHandler implements CatalogHandler
                 if (schemaId != NO_SCHEMA_ID)
                 {
                     schemaIds.put(schemaKey, cachedSchemaId);
-                    if (cachedSchemaId.retryAttempts.getAndIncrement() == 1)
+                    if (cachedSchemaId.retryAttempts.compareAndSet(1, 2))
                     {
                         event.onUnretrievableSchemaSubjectVersionStaleSchema(catalogId, subject, version, schemaId);
                     }
