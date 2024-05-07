@@ -130,7 +130,8 @@
                                                 },
                                                 "additionalProperties": false
                                             }
-                                        }
+                                        },
+                                        "maxProperties": 1
                                     }
                                 },
                                 "required": [ "openapi", "asyncapi" ]
