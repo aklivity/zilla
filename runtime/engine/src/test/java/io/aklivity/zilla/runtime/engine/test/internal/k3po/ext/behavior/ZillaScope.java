@@ -57,7 +57,6 @@ public final class ZillaScope implements AutoCloseable
     private final Long2ObjectHashMap<MessageHandler> throttlesById;
     private final Long2ObjectHashMap<ZillaCorrelation> correlations;
     private final ToIntFunction<Long> lookupTargetIndex;
-    private final LongSupplier supplyTimestamp;
     private final LongSupplier supplyTraceId;
     private final ZillaSource source;
 
@@ -68,7 +67,6 @@ public final class ZillaScope implements AutoCloseable
         LabelManager labels,
         int scopeIndex,
         ToIntFunction<Long> lookupTargetIndex,
-        LongSupplier supplyTimestamp,
         LongSupplier supplyTraceId)
     {
         this.config = config;
@@ -81,7 +79,6 @@ public final class ZillaScope implements AutoCloseable
         this.targetsByIndex = new Int2ObjectHashMap<>();
         this.debitorsByIndex = new Int2ObjectHashMap<>();
         this.lookupTargetIndex = lookupTargetIndex;
-        this.supplyTimestamp = supplyTimestamp;
         this.supplyTraceId = supplyTraceId;
         this.source = new ZillaSource(config, scopeIndex, supplyTraceId,
                 correlations::remove, this::supplySender, this::supplyTarget,
@@ -365,7 +362,7 @@ public final class ZillaScope implements AutoCloseable
 
         final ZillaTarget target = new ZillaTarget(source.scopeIndex(), targetPath, layout, writeBuffer,
                 throttlesById::put, throttlesById::remove, correlations::put,
-                supplyTimestamp, supplyTraceId);
+                supplyTraceId);
 
         this.targets = ArrayUtil.add(this.targets, target);
 

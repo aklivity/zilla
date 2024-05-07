@@ -26,6 +26,7 @@ import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.Zill
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_SHARED_WINDOW;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_STREAM_ID;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_THROTTLE;
+import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_TIMESTAMPS;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_TRANSMISSION;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_UPDATE;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_WINDOW;
@@ -49,6 +50,7 @@ public class DefaultZillaChannelConfig extends DefaultChannelConfig implements Z
     private ZillaUpdateMode update = ZillaUpdateMode.STREAM;
     private long affinity;
     private byte capabilities;
+    private boolean timestamps;
 
     public DefaultZillaChannelConfig()
     {
@@ -190,6 +192,19 @@ public class DefaultZillaChannelConfig extends DefaultChannelConfig implements Z
     }
 
     @Override
+    public void setTimestamps(
+        boolean timestamps)
+    {
+        this.timestamps = timestamps;
+    }
+
+    @Override
+    public boolean hasTimestamps()
+    {
+        return timestamps;
+    }
+
+    @Override
     protected boolean setOption0(
         String key,
         Object value)
@@ -241,6 +256,10 @@ public class DefaultZillaChannelConfig extends DefaultChannelConfig implements Z
         else if (OPTION_CAPABILITIES.getName().equals(key))
         {
             setCapabilities(convertToByte(value));
+        }
+        else if (OPTION_TIMESTAMPS.getName().equals(key))
+        {
+            setTimestamps(Boolean.parseBoolean(Objects.toString(value, "false")));
         }
         else
         {
