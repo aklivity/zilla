@@ -63,7 +63,7 @@ public final class OpenapiClientNamespaceGenerator extends OpenapiNamespaceGener
                 .collect(Collectors.toList()));
 
         final int[] httpsPorts = resolvePortsForScheme("https", servers);
-        final boolean secure = httpsPorts.length != 0;
+        final boolean secure = httpsPorts != null;
 
         return NamespaceConfig.builder()
                 .name(String.format(binding.qname, "$composite"))
