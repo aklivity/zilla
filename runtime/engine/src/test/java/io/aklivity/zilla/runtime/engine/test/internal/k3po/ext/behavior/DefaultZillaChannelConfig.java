@@ -56,6 +56,7 @@ public class DefaultZillaChannelConfig extends DefaultChannelConfig implements Z
     {
         super();
         setBufferFactory(NATIVE_BUFFER_FACTORY);
+        setTimestamps(true);
     }
 
     @Override

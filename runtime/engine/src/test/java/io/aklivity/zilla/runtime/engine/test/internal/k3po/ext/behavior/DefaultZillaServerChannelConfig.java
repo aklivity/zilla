@@ -55,6 +55,7 @@ public class DefaultZillaServerChannelConfig extends DefaultServerChannelConfig 
     {
         super();
         setBufferFactory(NATIVE_BUFFER_FACTORY);
+        setTimestamps(true);
     }
 
     @Override
