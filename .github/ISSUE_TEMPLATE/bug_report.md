@@ -48,7 +48,10 @@ kubectl describe pod <zilla pod name prefix> -n <zilla k8s namespace>
 **Attach the `zilla.yaml` config file:**
 
 **Attach the `zilla dump` pcap file:**
-<!-- docs: https://docs.aklivity.io/zilla/latest/reference/config/zilla-cli.html#zilla-dump -->
+<!--
+This command will need to be executed inside the running container or where zilla is installed.
+docs: https://docs.aklivity.io/zilla/latest/reference/config/zilla-cli.html#zilla-dump 
+-->
 ```
 ZILLA_INCUBATOR_ENABLED=true ./zilla dump --verbose --write /tmp/zilla.pcap
 ```
@@ -63,6 +66,7 @@ ZILLA_INCUBATOR_ENABLED=true ./zilla dump --verbose --write /tmp/zilla.pcap
 <!-- If applicable, please complete the following information and any other relevant details -->
  - Service: [e.g. IoT, Microservice, REST client]
  - Library/SDK:
+ - Browser:
  - Version:
 
 **Additional context**
