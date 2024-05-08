@@ -1979,7 +1979,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 crc.update(encodeSlotByteBuffer);
 
                 long checksum = crc.getValue();
-                if (partialValueSize != 0)
+                if (encodeableRecordBytesDeferred > 0)
                 {
                     checksum = computeChecksum(encodeBuffer, encodeLimit, encodeProgress, encodeSlotBuffer, checksum);
                 }
