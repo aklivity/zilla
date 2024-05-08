@@ -28,7 +28,6 @@ import org.agrona.collections.MutableInteger;
 
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiServerConfig;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.Openapi;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiServer;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiServerView;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
@@ -38,9 +37,10 @@ import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.TelemetryRefConfigBuilder;
+import io.aklivity.zilla.runtime.model.core.config.DoubleModelConfig;
+import io.aklivity.zilla.runtime.model.core.config.FloatModelConfig;
 import io.aklivity.zilla.runtime.model.core.config.Int32ModelConfig;
 import io.aklivity.zilla.runtime.model.core.config.Int64ModelConfig;
-import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
 
 public abstract class OpenapiNamespaceGenerator
 {
@@ -49,18 +49,20 @@ public abstract class OpenapiNamespaceGenerator
     protected static final String VERSION_LATEST = "latest";
     protected static final Pattern JSON_CONTENT_TYPE = Pattern.compile("^application/(?:.+\\+)?json$");
     protected static final OpenapiOptionsConfig EMPTY_OPTIONS = OpenapiOptionsConfig.builder().build();
-
-    protected final Matcher jsonContentType = JSON_CONTENT_TYPE.matcher("");
-    protected final Map<String, ModelConfig> models = Map.of(
-        "string", StringModelConfig.builder().build(),
+    protected static final Map<String, ModelConfig> MODELS = Map.of(
         "integer", Int32ModelConfig.builder().build(),
         "integer:int32", Int32ModelConfig.builder().build(),
-        "integer:int64", Int64ModelConfig.builder().build()
+        "integer:int64", Int64ModelConfig.builder().build(),
+        "number", FloatModelConfig.builder().build(),
+        "number:float", FloatModelConfig.builder().build(),
+        "number:double", DoubleModelConfig.builder().build()
     );
+
+    protected final Matcher jsonContentType = JSON_CONTENT_TYPE.matcher("");
 
     public abstract NamespaceConfig generate(
         BindingConfig binding,
-        Openapi openapi);
+        OpenapiNamespaceConfig namespaceConfig);
 
     protected <C> NamespaceConfigBuilder<C> injectNamespaceMetric(
         NamespaceConfigBuilder<C> namespace,

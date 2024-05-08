@@ -25,6 +25,7 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiMessage;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiOperation;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiParameter;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiSchema;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiServer;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiChannelView;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiServerView;
@@ -38,18 +39,29 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
+import io.aklivity.zilla.runtime.model.core.config.DoubleModelConfig;
+import io.aklivity.zilla.runtime.model.core.config.FloatModelConfig;
 import io.aklivity.zilla.runtime.model.core.config.Int32ModelConfig;
+import io.aklivity.zilla.runtime.model.core.config.Int64ModelConfig;
 import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
+import io.aklivity.zilla.runtime.model.core.config.StringModelConfigBuilder;
+import io.aklivity.zilla.runtime.model.core.config.StringPattern;
+import io.aklivity.zilla.runtime.model.core.internal.StringModel;
 import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
 public class AsyncapiHttpProtocol extends AsyncapiProtocol
 {
-    private static final Map<String, ModelConfig> MODELS = Map.of(
-        "string", StringModelConfig.builder().build(),
-        "integer", Int32ModelConfig.builder().build()
-    );
     private static final String SCHEME = "http";
     private static final String SECURE_PROTOCOL = "https";
+
+    protected static final Map<String, ModelConfig> MODELS = Map.of(
+        "integer", Int32ModelConfig.builder().build(),
+        "integer:int32", Int32ModelConfig.builder().build(),
+        "integer:int64", Int64ModelConfig.builder().build(),
+        "number", FloatModelConfig.builder().build(),
+        "number:float", FloatModelConfig.builder().build(),
+        "number:double", DoubleModelConfig.builder().build()
+    );
 
     private static final String SECURE_SCHEME = "https";
     private final Map<String, String> securitySchemes;
@@ -189,9 +201,25 @@ public class AsyncapiHttpProtocol extends AsyncapiProtocol
             for (String name : parameters.keySet())
             {
                 AsyncapiParameter parameter = parameters.get(name);
-                if (parameter.schema != null && parameter.schema.type != null)
+                AsyncapiSchema schema = parameter.schema;
+                if (schema != null && schema.type != null)
                 {
-                    ModelConfig model = MODELS.get(parameter.schema.type);
+                    String format = schema.format;
+                    String type = schema.type;
+                    ModelConfig model;
+                    if (StringModel.NAME.equals(type))
+                    {
+                        StringModelConfigBuilder<StringModelConfig> builder = StringModelConfig.builder();
+                        if (format != null)
+                        {
+                            builder.pattern(StringPattern.of(format));
+                        }
+                        model = builder.build();
+                    }
+                    else
+                    {
+                        model = MODELS.get(format != null ? String.format("%s:%s", type, format) : type);
+                    }
                     if (model != null)
                     {
                         request
