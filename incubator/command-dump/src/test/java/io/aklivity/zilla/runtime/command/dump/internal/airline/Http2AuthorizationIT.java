@@ -33,8 +33,8 @@ import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 public class Http2AuthorizationIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/http/streams/network/rfc7540/authorization")
-        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/http/streams/application/rfc7540/authorization");
+        .addScriptRoot("net", "io/aklivity/zilla/specs/command/dump/binding/http/streams/network/rfc7540/authorization")
+        .addScriptRoot("app", "io/aklivity/zilla/specs/command/dump/binding/http/streams/application/rfc7540/authorization");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
@@ -43,7 +43,7 @@ public class Http2AuthorizationIT
         .countersBufferCapacity(8192)
         .configure(HTTP_CONCURRENT_STREAMS, 100)
         .configure(HTTP_SERVER_HEADER, "Zilla")
-        .configurationRoot("io/aklivity/zilla/specs/binding/http/config/v2")
+        .configurationRoot("io/aklivity/zilla/specs/command/dump/binding/http/config/v2")
         .external("app0")
         .clean();
 

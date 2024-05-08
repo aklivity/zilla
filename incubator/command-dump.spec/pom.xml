@@ -12,8 +12,8 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <artifactId>command-dump</artifactId>
-  <name>zilla::incubator::command-dump</name>
+  <artifactId>command-dump.spec</artifactId>
+  <name>zilla::incubator::command-dump.spec</name>
 
   <licenses>
     <license>
@@ -32,29 +32,14 @@
 
   <dependencies>
     <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>command-dump.spec</artifactId>
-      <version>${project.version}</version>
+      <groupId>org.kaazing</groupId>
+      <artifactId>k3po.lang</artifactId>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>engine.spec</artifactId>
       <version>${project.version}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>engine</artifactId>
-      <version>${project.version}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>engine</artifactId>
-      <type>test-jar</type>
-      <version>${project.version}</version>
-      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>junit</groupId>
@@ -62,42 +47,18 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>command</artifactId>
-      <version>${project.version}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
       <groupId>org.kaazing</groupId>
       <artifactId>k3po.junit</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.kaazing</groupId>
-      <artifactId>k3po.lang</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.aklivity.zilla</groupId>
-      <artifactId>binding-proxy.spec</artifactId>
-      <version>${project.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.aklivity.zilla</groupId>
-      <artifactId>binding-http</artifactId>
-      <version>${project.version}</version>
+      <groupId>org.hamcrest</groupId>
+      <artifactId>hamcrest-library</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>binding-http.spec</artifactId>
-      <version>${project.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.aklivity.zilla</groupId>
-      <artifactId>binding-grpc</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
@@ -143,36 +104,48 @@
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>org.testcontainers</groupId>
-      <artifactId>testcontainers</artifactId>
-      <version>1.19.7</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-simple</artifactId>
-      <scope>test</scope>
-    </dependency>
   </dependencies>
 
   <build>
+    <resources>
+      <resource>
+        <directory>src/main/resources</directory>
+      </resource>
+      <resource>
+        <directory>src/main/scripts</directory>
+      </resource>
+    </resources>
+
     <plugins>
       <plugin>
         <groupId>org.jasig.maven</groupId>
         <artifactId>maven-notice-plugin</artifactId>
       </plugin>
       <plugin>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>flyweight-maven-plugin</artifactId>
+        <version>${project.version}</version>
+        <configuration>
+          <scopeNames>core</scopeNames>
+          <packageName>io.aklivity.zilla.specs.command.dump.internal.types</packageName>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>validate</goal>
+              <goal>generate</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
         <groupId>com.mycila</groupId>
         <artifactId>license-maven-plugin</artifactId>
         <configuration>
           <excludes>
-            <exclude>src/test/resources/io/aklivity/zilla/runtime/command/dump/internal/airline/*.txt</exclude>
+            <exclude>**/keys</exclude>
+            <exclude>**/trust</exclude>
+            <exclude>**/signers</exclude>
           </excludes>
         </configuration>
       </plugin>
@@ -213,19 +186,12 @@
         <artifactId>maven-failsafe-plugin</artifactId>
       </plugin>
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-resources-plugin</artifactId>
-        <version>3.3.1</version>
-      </plugin>
-      <plugin>
         <groupId>org.jacoco</groupId>
         <artifactId>jacoco-maven-plugin</artifactId>
         <configuration>
           <excludes>
-            <exclude>io/aklivity/zilla/runtime/command/dump/internal/types/**/*.class</exclude>
-            <!--TODO: remove this once, we have proper test coverage-->
-            <exclude>io/aklivity/zilla/runtime/command/dump/*</exclude>
-            <exclude>io/aklivity/zilla/runtime/command/dump/**/*</exclude>
+            <exclude>io/aklivity/zilla/specs/command/dump/binding/**/*.class</exclude>
+            <exclude>io/aklivity/zilla/specs/command/dump/internal/types/**/*.class</exclude>
           </excludes>
           <rules>
             <rule>
@@ -246,31 +212,6 @@
           </rules>
         </configuration>
       </plugin>
-      <plugin>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>flyweight-maven-plugin</artifactId>
-        <version>${project.version}</version>
-        <configuration>
-          <scopeNames>core pcap</scopeNames>
-          <packageName>io.aklivity.zilla.runtime.command.dump.internal.types</packageName>
-        </configuration>
-        <executions>
-          <execution>
-            <goals>
-              <goal>generate</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
     </plugins>
-    <resources>
-      <resource>
-        <directory>src/main/resources</directory>
-        <filtering>true</filtering>
-        <includes>
-          <include>**/zilla.lua</include>
-        </includes>
-      </resource>
-    </resources>
   </build>
 </project>
