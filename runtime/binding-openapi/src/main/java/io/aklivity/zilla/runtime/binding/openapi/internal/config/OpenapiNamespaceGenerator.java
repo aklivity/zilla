@@ -28,7 +28,6 @@ import org.agrona.collections.MutableInteger;
 
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiServerConfig;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.Openapi;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiServer;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiServerView;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
@@ -63,7 +62,7 @@ public abstract class OpenapiNamespaceGenerator
 
     public abstract NamespaceConfig generate(
         BindingConfig binding,
-        Openapi openapi);
+        OpenapiNamespaceConfig namespaceConfig);
 
     protected <C> NamespaceConfigBuilder<C> injectNamespaceMetric(
         NamespaceConfigBuilder<C> namespace,

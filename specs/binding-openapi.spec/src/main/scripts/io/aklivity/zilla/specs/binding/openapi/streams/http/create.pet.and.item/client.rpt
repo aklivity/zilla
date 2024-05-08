@@ -23,14 +23,43 @@ write zilla:begin.ext ${http:beginEx()
                               .typeId(zilla:id("http"))
                               .header(":method", "POST")
                               .header(":scheme", "http")
-                              .header(":path", "/prod/pets")
-                              .header(":authority", "localhost:9090")
+                              .header(":path", "/pets")
+                              .header(":authority", "localhost:8080")
                               .header("content-type", "application/json")
                               .header("content-length", "39")
                               .build()}
 connected
 
 write "{\"id\": 1, \"name\": \"rocky \"tag\": \"test\"}"
+write close
+
+read zilla:begin.ext ${http:beginEx()
+                             .typeId(zilla:id("http"))
+                             .header(":status", "200")
+                             .header("content-type", "application/json")
+                             .header("content-length", "34")
+                             .build()}
+
+read "{\"code\": 0,\"message\": \"string\"}"
+
+
+connect "zilla://streams/composite0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+        option zilla:ephemeral "test:composite0/itemstore"
+
+write zilla:begin.ext ${http:beginEx()
+                              .typeId(zilla:id("http"))
+                              .header(":method", "POST")
+                              .header(":scheme", "http")
+                              .header(":path", "/items")
+                              .header(":authority", "localhost:8081")
+                              .header("content-type", "application/json")
+                              .header("content-length", "26")
+                              .build()}
+connected
+
+write "{\"id\": 1, \"name\": \"table\"}"
 write close
 
 read zilla:begin.ext ${http:beginEx()

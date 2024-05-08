@@ -19,7 +19,6 @@ import static java.util.Collections.emptyList;
 
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfigBuilder;
@@ -55,16 +54,12 @@ public final class OpenapiClientNamespaceGenerator extends OpenapiNamespaceGener
     @Override
     public NamespaceConfig generate(
         BindingConfig binding,
-        Openapi openapi)
+        OpenapiNamespaceConfig namespaceConfig)
     {
         final OpenapiOptionsConfig options = (OpenapiOptionsConfig) binding.options;
         final List<MetricRefConfig> metricRefs = binding.telemetryRef != null ?
             binding.telemetryRef.metricRefs : emptyList();
-        final List<OpenapiServerView> servers =
-            filterOpenapiServers(
-                openapi.servers, options.openapis.stream()
-                .flatMap(o -> o.servers.stream())
-                .collect(Collectors.toList()));
+        List<OpenapiServerView> servers = namespaceConfig.servers;
 
         final int[] httpsPorts = resolvePortsForScheme("https", servers);
         final boolean secure = httpsPorts.length != 0;
@@ -76,7 +71,7 @@ public final class OpenapiClientNamespaceGenerator extends OpenapiNamespaceGener
                     .name("http_client0")
                     .type("http")
                     .kind(CLIENT)
-                    .inject(b -> this.injectHttpClientOptions(b, openapi))
+                    .inject(b -> this.injectHttpClientOptions(b, namespaceConfig.openapis))
                     .inject(b -> this.injectMetrics(b, metricRefs, "http"))
                     .exit(secure ? "tls_client0" : "tcp_client0")
                     .build()
@@ -93,15 +88,18 @@ public final class OpenapiClientNamespaceGenerator extends OpenapiNamespaceGener
 
     private <C> BindingConfigBuilder<C> injectHttpClientOptions(
         BindingConfigBuilder<C> binding,
-        Openapi openApi)
+        List<Openapi> openApis)
     {
-        OpenapiOperationsView operations = OpenapiOperationsView.of(openApi.paths);
-        if (operations.hasResponses())
+        for (Openapi openApi : openApis)
         {
-            binding.
-                options(HttpOptionsConfig::builder)
-                    .inject(options -> injectHttpClientRequests(operations, options, openApi))
-                    .build();
+            OpenapiOperationsView operations = OpenapiOperationsView.of(openApi.paths);
+            if (operations.hasResponses())
+            {
+                binding.
+                    options(HttpOptionsConfig::builder)
+                        .inject(options -> injectHttpClientRequests(operations, options, openApi))
+                        .build();
+            }
         }
         return binding;
     }
