@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.command.dump.internal.airline;
 
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_TIMESTAMPS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -39,6 +40,7 @@ public class GrpcServerStreamRpcIT
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
         .countersBufferCapacity(4096)
+        .configure(ENGINE_TIMESTAMPS, false)
         .configurationRoot("io/aklivity/zilla/specs/command/dump/binding/grpc/config")
         .external("app0")
         .clean();

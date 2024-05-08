@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.command.dump.internal.airline;
 
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_SERVER_HEADER;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_TIMESTAMPS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -41,6 +42,7 @@ public class Http1AuthorizationIT
         .directory("target/zilla-itests")
         .countersBufferCapacity(8192)
         .configure(HTTP_SERVER_HEADER, "Zilla")
+        .configure(ENGINE_TIMESTAMPS, false)
         .configurationRoot("io/aklivity/zilla/specs/command/dump/binding/http/config/v1.1")
         .external("app0")
         .clean();

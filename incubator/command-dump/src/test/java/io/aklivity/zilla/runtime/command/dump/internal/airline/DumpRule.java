@@ -20,8 +20,6 @@ import static org.hamcrest.Matchers.equalTo;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -30,9 +28,6 @@ import org.testcontainers.containers.Container;
 
 public final class DumpRule implements TestRule
 {
-    private static final Matcher TIMESTAMP_MATCHER = Pattern.compile("Timestamp: 0x[0-9A-Fa-f]+").matcher("");
-    private static final String TIMESTAMP_PLACEHOLDER = "Timestamp: [timestamp]";
-
     private static final Path ENGINE_PATH = Path.of("target/zilla-itests");
     private static final Path PCAP_PATH = ENGINE_PATH.resolve("actual.pcap");
     private static final Path TXT_PATH = ENGINE_PATH.resolve("actual.txt");
@@ -54,11 +49,10 @@ public final class DumpRule implements TestRule
                 base.evaluate();
                 DUMP.createPcap(PCAP_PATH);
                 Container.ExecResult result = TSHARK.createTxt(PCAP_PATH);
-                String result0 = replaceTimestamps(result.getStdout());
-                Files.writeString(TXT_PATH, result0);
+                Files.writeString(TXT_PATH, result.getStdout());
                 assertThat(result.getExitCode(), equalTo(0));
                 assert expected != null;
-                assertThat(result0, equalTo(Files.readString(expected)));
+                assertThat(result.getStdout(), equalTo(Files.readString(expected)));
             }
         };
     }
@@ -67,13 +61,6 @@ public final class DumpRule implements TestRule
         String file) throws Exception
     {
         this.expected = resourceToPath(file);
-    }
-
-    private String replaceTimestamps(
-        String input)
-    {
-        TIMESTAMP_MATCHER.reset(input);
-        return TIMESTAMP_MATCHER.replaceAll(TIMESTAMP_PLACEHOLDER);
     }
 
     private static Path resourceToPath(

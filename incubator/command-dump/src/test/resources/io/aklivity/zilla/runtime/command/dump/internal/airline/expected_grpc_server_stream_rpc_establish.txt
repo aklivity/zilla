@@ -16,7 +16,7 @@ Zilla Frame
     Sequence: 0
     Acknowledge: 0
     Maximum: 0
-    Timestamp: [timestamp]
+    Timestamp: 0x0000000000000000
     Trace ID: 0x0000000000000001
     Authorization: 0x0000000000000000
     Cancel ID: 0xffffffffffffffff
@@ -49,7 +49,7 @@ Zilla Frame
     Sequence: 0
     Acknowledge: 0
     Maximum: 0
-    Timestamp: [timestamp]
+    Timestamp: 0x0000000000000000
     Trace ID: 0x8000000000000001
     Authorization: 0x0000000000000000
     Affinity: 0x0000000000000000
@@ -104,7 +104,7 @@ Zilla Frame
     Sequence: 0
     Acknowledge: 0
     Maximum: 0
-    Timestamp: [timestamp]
+    Timestamp: 0x0000000000000000
     Trace ID: 0x8000000000000001
     Authorization: 0x0000000000000000
     Affinity: 0x0000000000000000
@@ -174,7 +174,7 @@ Zilla Frame
     Sequence: 0
     Acknowledge: 0
     Maximum: 8192
-    Timestamp: [timestamp]
+    Timestamp: 0x0000000000000000
     Trace ID: 0x8000000000000002
     Authorization: 0x0000000000000000
     Budget ID: 0x0000000000000000
@@ -208,7 +208,7 @@ Zilla Frame
     Sequence: 0
     Acknowledge: 0
     Maximum: 8192
-    Timestamp: [timestamp]
+    Timestamp: 0x0000000000000000
     Trace ID: 0x8000000000000002
     Authorization: 0x0000000000000000
     Budget ID: 0x0000000000000000
@@ -242,7 +242,7 @@ Zilla Frame
     Sequence: 0
     Acknowledge: 0
     Maximum: 8192
-    Timestamp: [timestamp]
+    Timestamp: 0x0000000000000000
     Trace ID: 0x8000000000000003
     Authorization: 0x0000000000000000
     Flags: 0x03
@@ -282,7 +282,7 @@ Zilla Frame
     Sequence: 0
     Acknowledge: 0
     Maximum: 8192
-    Timestamp: [timestamp]
+    Timestamp: 0x0000000000000000
     Trace ID: 0x8000000000000003
     Authorization: 0x0000000000000000
     Flags: 0x03
@@ -322,7 +322,7 @@ Zilla Frame
     Sequence: 18
     Acknowledge: 0
     Maximum: 8192
-    Timestamp: [timestamp]
+    Timestamp: 0x0000000000000000
     Trace ID: 0x8000000000000004
     Authorization: 0x0000000000000000
 
@@ -350,7 +350,7 @@ Zilla Frame
     Sequence: 18
     Acknowledge: 0
     Maximum: 8192
-    Timestamp: [timestamp]
+    Timestamp: 0x0000000000000000
     Trace ID: 0x8000000000000004
     Authorization: 0x0000000000000000
 
@@ -378,7 +378,7 @@ Zilla Frame
     Sequence: 0
     Acknowledge: 0
     Maximum: 0
-    Timestamp: [timestamp]
+    Timestamp: 0x0000000000000000
     Trace ID: 0x8000000000000006
     Authorization: 0x0000000000000000
     Affinity: 0x0000000000000000
@@ -428,7 +428,7 @@ Zilla Frame
     Sequence: 18
     Acknowledge: 18
     Maximum: 8192
-    Timestamp: [timestamp]
+    Timestamp: 0x0000000000000000
     Trace ID: 0x8000000000000005
     Authorization: 0x0000000000000000
     Budget ID: 0x0000000000000000
@@ -462,7 +462,7 @@ Zilla Frame
     Sequence: 0
     Acknowledge: 0
     Maximum: 8192
-    Timestamp: [timestamp]
+    Timestamp: 0x0000000000000000
     Trace ID: 0x8000000000000007
     Authorization: 0x0000000000000000
     Budget ID: 0x0000000000000000
@@ -496,7 +496,7 @@ Zilla Frame
     Sequence: 0
     Acknowledge: 0
     Maximum: 0
-    Timestamp: [timestamp]
+    Timestamp: 0x0000000000000000
     Trace ID: 0x8000000000000006
     Authorization: 0x0000000000000000
     Affinity: 0x0000000000000000
@@ -525,7 +525,7 @@ Zilla Frame
     Sequence: 0
     Acknowledge: 0
     Maximum: 8192
-    Timestamp: [timestamp]
+    Timestamp: 0x0000000000000000
     Trace ID: 0x8000000000000008
     Authorization: 0x0000000000000000
     Flags: 0x03
@@ -565,7 +565,7 @@ Zilla Frame
     Sequence: 0
     Acknowledge: 0
     Maximum: 8192
-    Timestamp: [timestamp]
+    Timestamp: 0x0000000000000000
     Trace ID: 0x8000000000000007
     Authorization: 0x0000000000000000
     Budget ID: 0x0000000000000000
@@ -599,7 +599,7 @@ Zilla Frame
     Sequence: 19
     Acknowledge: 0
     Maximum: 8192
-    Timestamp: [timestamp]
+    Timestamp: 0x0000000000000000
     Trace ID: 0x8000000000000009
     Authorization: 0x0000000000000000
     Flags: 0x03
@@ -639,7 +639,7 @@ Zilla Frame
     Sequence: 0
     Acknowledge: 0
     Maximum: 8192
-    Timestamp: [timestamp]
+    Timestamp: 0x0000000000000000
     Trace ID: 0x8000000000000008
     Authorization: 0x0000000000000000
     Flags: 0x03
@@ -679,7 +679,7 @@ Zilla Frame
     Sequence: 38
     Acknowledge: 0
     Maximum: 8192
-    Timestamp: [timestamp]
+    Timestamp: 0x0000000000000000
     Trace ID: 0x800000000000000a
     Authorization: 0x0000000000000000
     Extension: http
@@ -718,7 +718,7 @@ Zilla Frame
     Sequence: 19
     Acknowledge: 0
     Maximum: 8192
-    Timestamp: [timestamp]
+    Timestamp: 0x0000000000000000
     Trace ID: 0x8000000000000009
     Authorization: 0x0000000000000000
     Flags: 0x03
@@ -758,7 +758,7 @@ Zilla Frame
     Sequence: 38
     Acknowledge: 0
     Maximum: 8192
-    Timestamp: [timestamp]
+    Timestamp: 0x0000000000000000
     Trace ID: 0x800000000000000a
     Authorization: 0x0000000000000000
 
@@ -786,7 +786,7 @@ Zilla Frame
     Sequence: 19
     Acknowledge: 19
     Maximum: 8192
-    Timestamp: [timestamp]
+    Timestamp: 0x0000000000000000
     Trace ID: 0x800000000000000b
     Authorization: 0x0000000000000000
     Budget ID: 0x0000000000000000
@@ -820,7 +820,7 @@ Zilla Frame
     Sequence: 38
     Acknowledge: 38
     Maximum: 8192
-    Timestamp: [timestamp]
+    Timestamp: 0x0000000000000000
     Trace ID: 0x800000000000000c
     Authorization: 0x0000000000000000
     Budget ID: 0x0000000000000000
