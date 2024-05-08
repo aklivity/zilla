@@ -98,7 +98,7 @@ write 140                               # size
       83                                # length
       -1
       [0x02]
-      0x4e8723aa
+      0x460c54e9
       0s
       0                                 # last offset delta
       ${newTimestamp}                   # first timestamp
@@ -148,7 +148,7 @@ write 140                               # size
       83                                # length
       -1
       [0x02]
-      0x4e8723aa
+      0x26cd6cf
       0s
       0                                 # last offset delta
       ${newTimestamp}                   # first timestamp

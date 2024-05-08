@@ -159,7 +159,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
     private final KafkaProduceClientFlusher flushRecord = this::flushRecord;
     private final KafkaProduceClientFlusher flushRecordInit = this::flushRecordInit;
-    private final KafkaProduceClientFlusher frameProduceRecordContFin = this::flushRecordContFin;
+    private final KafkaProduceClientFlusher flushRecordContFin = this::flushRecordContFin;
     private final KafkaProduceClientFlusher flushRecordIgnoreAll = this::flushRecordIgnoreAll;
 
     private final KafkaProduceClientDecoder decodeSaslHandshakeResponse = this::decodeSaslHandshakeResponse;
@@ -546,10 +546,9 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
         final KafkaAckMode ackMode = kafkaProduceDataEx.ackMode().get();
         final KafkaKeyFW key = kafkaProduceDataEx.key();
         final Array32FW<KafkaHeaderFW> headers = kafkaProduceDataEx.headers();
-        client.encodeableRecordBytesDeferred = kafkaProduceDataEx.deferred();
-        client.valueChecksum = kafkaProduceDataEx.crc32c();
+        final int deferred = kafkaProduceDataEx.deferred();
         final int valueSize = payload != null ? payload.sizeof() : 0;
-        client.valueCompleteSize = valueSize + client.encodeableRecordBytesDeferred;
+        final int valueCompleteSize = valueSize + deferred;
 
         final int maxEncodeableBytes = client.encodeSlotLimit + client.valueCompleteSize + produceRecordFramingSize;
 
@@ -561,6 +560,10 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
         {
             client.doEncodeRequestIfNecessary(traceId, budgetId);
         }
+
+        client.valueChecksum = kafkaProduceDataEx.crc32c();
+        client.encodeableRecordBytesDeferred = deferred;
+        client.valueCompleteSize = valueCompleteSize;
 
         if (client.producerId == RECORD_BATCH_PRODUCER_ID_NONE)
         {
@@ -574,8 +577,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
         client.doEncodeRecordInit(traceId, timestamp, ackMode, key, payload, headers);
         if (client.encodeSlot != NO_SLOT)
         {
-            client.flusher = frameProduceRecordContFin;
-            client.flushFlags = FLAGS_INIT;
+            client.flusher = flushRecordContFin;
         }
         else
         {
@@ -610,6 +612,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
             assert progress == limit;
             client.flusher = flushRecord;
             client.flushFlags = FLAGS_FIN;
+            client.encodeableRecordBytesDeferred = 0;
         }
 
         return progress;
@@ -1967,7 +1970,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
                 final ByteBuffer encodeSlotByteBuffer = encodePool.byteBuffer(encodeSlot);
                 final int encodeSlotBytePosition = encodeSlotByteBuffer.position();
-                final int partialValueSize = flushFlags != FLAGS_FIN ? encodeableRecordValueBytes : 0;
+                final int partialValueSize = encodeableRecordBytesDeferred > 0 ? encodeableRecordValueBytes : 0;
                 encodeSlotByteBuffer.limit(encodeSlotBytePosition + encodeSlotLimit - partialValueSize);
                 encodeSlotByteBuffer.position(encodeSlotBytePosition + encodeSlotOffset + crcLimit);
 
@@ -1976,7 +1979,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 crc.update(encodeSlotByteBuffer);
 
                 long checksum = crc.getValue();
-                if (flushFlags != FLAGS_FIN)
+                if (partialValueSize != 0)
                 {
                     checksum = computeChecksum(encodeBuffer, encodeLimit, encodeProgress, encodeSlotBuffer, checksum);
                 }
