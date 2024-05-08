@@ -212,7 +212,7 @@ public final class MqttBindingConfig
     private Function<String, String> asAccessor(
         MqttCredentialsConfig credentials)
     {
-        Function<String, String> injector = DEFAULT_CREDENTIALS;
+        Function<String, String> accessor = DEFAULT_CREDENTIALS;
         List<MqttPatternConfig> connectPatterns = credentials.connect;
 
         if (connectPatterns != null && !connectPatterns.isEmpty())
@@ -223,7 +223,7 @@ public final class MqttBindingConfig
                 Pattern.compile(config.pattern.replace("{credentials}", "(?<credentials>[^\\s]+)"))
                     .matcher("");
 
-            injector = orElseIfNull(injector, connect ->
+            accessor = orElseIfNull(accessor, connect ->
             {
                 String result = null;
                 if (connect != null && connectMatch.reset(connect).matches())
@@ -234,20 +234,20 @@ public final class MqttBindingConfig
             });
         }
 
-        return injector;
+        return accessor;
     }
 
     private Function<String, String> asInjector(
         MqttCredentialsConfig credentials)
     {
-        Function<String, String> accessor = DEFAULT_CREDENTIALS;
+        Function<String, String> injector = DEFAULT_CREDENTIALS;
         List<MqttPatternConfig> connectPatterns = credentials.connect;
 
         if (connectPatterns != null && !connectPatterns.isEmpty())
         {
             MqttPatternConfig config = connectPatterns.get(0);
 
-            accessor = orElseIfNull(accessor, connect ->
+            injector = connect ->
             {
                 String result = null;
                 if (connect != null)
@@ -255,10 +255,10 @@ public final class MqttBindingConfig
                     result = config.pattern.replace("{credentials}", connect);
                 }
                 return result;
-            });
+            };
         }
 
-        return accessor;
+        return injector;
     }
 
     private static Function<String, String> orElseIfNull(

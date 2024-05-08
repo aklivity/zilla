@@ -176,8 +176,9 @@ public class JwtGuardHandler implements GuardHandler
                 .orElse(null);
 
             JwtSessionStore sessionStore = supplySessionStore(contextId);
-            session = sessionStore.supplySession(subject, credentials, roles);
+            session = sessionStore.supplySession(subject, roles);
 
+            session.credentials = credentials;
             session.roles = roles;
             session.expiresAt = notAfter != null
                 ? Math.max(session.expiresAt, notAfter.getValueInMillis())
@@ -299,7 +300,6 @@ public class JwtGuardHandler implements GuardHandler
 
         private JwtSession supplySession(
             String subject,
-            String credentials,
             List<String> roles)
         {
             String subjectKey = subject != null ? subject.intern() : null;
@@ -307,28 +307,26 @@ public class JwtGuardHandler implements GuardHandler
 
             if (subjectKey == null || session != null && roles != null && !supersetOf(session, roles))
             {
-                session = newSession(subjectKey, credentials);
+                session = newSession(subjectKey);
             }
             else
             {
-                session = sessionsBySubject.computeIfAbsent(subjectKey, s -> newSharedSession(s, credentials));
+                session = sessionsBySubject.computeIfAbsent(subjectKey, this::newSharedSession);
             }
 
             return session;
         }
 
         private JwtSession newSharedSession(
-            String subject,
-            String credentials)
+            String subject)
         {
-            return new JwtSession(supplyAuthorizedId.getAsLong(), subject, credentials, this::onUnshared);
+            return new JwtSession(supplyAuthorizedId.getAsLong(), subject, this::onUnshared);
         }
 
         private JwtSession newSession(
-            String subject,
-            String credentials)
+            String subject)
         {
-            return new JwtSession(supplyAuthorizedId.getAsLong(), subject, credentials);
+            return new JwtSession(supplyAuthorizedId.getAsLong(), subject);
         }
 
         private void onUnshared(
@@ -346,9 +344,9 @@ public class JwtGuardHandler implements GuardHandler
     {
         private final long authorized;
         private final String subject;
-        private final String credentials;
         private final Consumer<JwtSession> unshare;
 
+        private String credentials;
         private long expiresAt;
         private long challengeAt;
         private long challengedAt;
@@ -359,21 +357,18 @@ public class JwtGuardHandler implements GuardHandler
 
         private JwtSession(
             long authorized,
-            String subject,
-            String credentials)
+            String subject)
         {
-            this(authorized, subject, credentials, null);
+            this(authorized, subject, null);
         }
 
         private JwtSession(
             long authorized,
             String subject,
-            String credentials,
             Consumer<JwtSession> unshare)
         {
             this.authorized = authorized;
             this.subject = subject;
-            this.credentials = credentials;
             this.unshare = unshare;
         }
 
