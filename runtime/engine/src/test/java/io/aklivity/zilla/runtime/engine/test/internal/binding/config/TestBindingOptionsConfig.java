@@ -18,13 +18,14 @@ package io.aklivity.zilla.runtime.engine.test.internal.binding.config;
 import java.util.List;
 import java.util.function.Function;
 
+import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public final class TestBindingOptionsConfig extends OptionsConfig
 {
     public final String mode;
     public final TestAuthorizationConfig authorization;
-    public final List<String> catalogs;
+    public final List<CatalogedConfig> cataloged;
     public final List<Event> events;
 
     public static TestBindingOptionsConfigBuilder<TestBindingOptionsConfig> builder()
@@ -41,12 +42,12 @@ public final class TestBindingOptionsConfig extends OptionsConfig
     TestBindingOptionsConfig(
         String mode,
         TestAuthorizationConfig authorization,
-        List<String> catalogs,
+        List<CatalogedConfig> cataloged,
         List<Event> events)
     {
         this.mode = mode;
         this.authorization = authorization;
-        this.catalogs = catalogs;
+        this.cataloged = cataloged;
         this.events = events;
     }
 

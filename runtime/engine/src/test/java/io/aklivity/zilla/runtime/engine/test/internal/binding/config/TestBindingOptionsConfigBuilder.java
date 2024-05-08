@@ -19,6 +19,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Function;
 
+import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
@@ -28,7 +29,7 @@ public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, T
 
     private String mode;
     private TestAuthorizationConfig authorization;
-    private List<String> catalogs;
+    private List<CatalogedConfig> catalogs;
     private List<TestBindingOptionsConfig.Event> events;
 
     TestBindingOptionsConfigBuilder(
@@ -52,13 +53,9 @@ public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, T
     }
 
     public TestBindingOptionsConfigBuilder<T> catalog(
-        String catalog)
+        List<CatalogedConfig> catalogs)
     {
-        if (this.catalogs == null)
-        {
-            this.catalogs = new LinkedList<>();
-        }
-        this.catalogs.add(catalog);
+        this.catalogs = catalogs;
         return this;
     }
 

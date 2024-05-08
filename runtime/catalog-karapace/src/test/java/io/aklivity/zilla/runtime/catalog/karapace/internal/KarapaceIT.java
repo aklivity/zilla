@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.catalog.karapace.internal;
 
-import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.not;
@@ -176,49 +175,26 @@ public class KarapaceIT
     @Test
     @Specification({
         "${local}/resolve.schema.via.subject.version.failed"})
-    public void shouldBackOffAfterFailedRegistryResponseForId() throws Exception
+    public void shouldServeStaleSchemaIdFromCacheAfterFailedRegistryResponseForId() throws Exception
     {
         when(context.clock()).thenReturn(Clock.systemUTC());
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
         KarapaceCache cache = new KarapaceCache();
+        CompletableFuture<CachedSchemaId> future = new CompletableFuture<>();
+        future.complete(new CachedSchemaId(0L, 1, new AtomicInteger(0), 0L));
+        cache.schemaIds.put(-754089167, future);
         KarapaceCatalogHandler catalog = new KarapaceCatalogHandler(config, context, 0L, cache);
 
         int schemaId = catalog.resolve("items-snapshots-value", "latest");
 
         k3po.finish();
 
-        assertEquals(schemaId, NO_SCHEMA_ID);
+        assertEquals(schemaId, 1);
 
         for (int schemaKey: cache.schemaIds.keySet())
         {
             assertEquals(cache.schemaIds.get(schemaKey).get().retryAfter, 1000L);
             assertEquals(cache.schemaIds.get(schemaKey).get().retryAttempts.get(), 1);
-        }
-
-        schemaId = catalog.resolve("items-snapshots-value", "latest");
-        assertEquals(schemaId, NO_SCHEMA_ID);
-    }
-
-    @Test
-    public void shouldServeStaleSchemaIdFromCacheDueToRetryTimeout() throws Exception
-    {
-        when(context.clock()).thenReturn(Clock.systemUTC());
-        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
-        KarapaceCache cache = new KarapaceCache();
-        CompletableFuture<CachedSchemaId> future = new CompletableFuture<>();
-        future.complete(new CachedSchemaId(System.currentTimeMillis(), 1, new AtomicInteger(1), 2000L));
-        cache.schemaIds.put(-754089167, future);
-
-        KarapaceCatalogHandler catalog = new KarapaceCatalogHandler(config, context, 0L, cache);
-
-        int schemaId = catalog.resolve("items-snapshots-value", "latest");
-
-        assertEquals(schemaId, 1);
-
-        for (int schemaKey: cache.schemaIds.keySet())
-        {
-            assertEquals(cache.schemaIds.get(schemaKey).get().retryAfter, 2000);
-            assertEquals(cache.schemaIds.get(schemaKey).get().retryAttempts.get(), 2);
         }
     }
 

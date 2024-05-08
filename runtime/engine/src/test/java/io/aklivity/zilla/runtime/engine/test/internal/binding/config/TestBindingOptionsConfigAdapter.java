@@ -15,26 +15,33 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.binding.config;
 
+import java.util.LinkedList;
+import java.util.List;
+
 import jakarta.json.Json;
 import jakarta.json.JsonArray;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 
+import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
+import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
+import io.aklivity.zilla.runtime.engine.config.SchemaConfigAdapter;
 
 public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapterSpi
 {
     private static final String MODE_NAME = "mode";
-    private static final String CATALOGS_NAME = "catalogs";
+    private static final String CATALOG_NAME = "catalog";
     private static final String AUTHORIZATION_NAME = "authorization";
     private static final String CREDENTIALS_NAME = "credentials";
     private static final String EVENTS_NAME = "events";
     private static final String TIMESTAMP_NAME = "timestamp";
     private static final String MESSAGE_NAME = "message";
+
+    private final SchemaConfigAdapter schema = new SchemaConfigAdapter();
 
     @Override
     public Kind kind()
@@ -60,14 +67,19 @@ public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapt
         {
             object.add(MODE_NAME, testOptions.mode);
         }
-        if (testOptions.catalogs != null)
+        if (testOptions.cataloged != null && !testOptions.cataloged.isEmpty())
         {
-            JsonArrayBuilder catalogs = Json.createArrayBuilder();
-            for (String catalog : testOptions.catalogs)
+            JsonObjectBuilder catalogs = Json.createObjectBuilder();
+            for (CatalogedConfig catalog : testOptions.cataloged)
             {
-                catalogs.add(catalog);
+                JsonArrayBuilder array = Json.createArrayBuilder();
+                for (SchemaConfig schemaItem: catalog.schemas)
+                {
+                    array.add(schema.adaptToJson(schemaItem));
+                }
+                catalogs.add(catalog.name, array);
             }
-            object.add(CATALOGS_NAME, catalogs);
+            object.add(CATALOG_NAME, catalogs);
         }
         if (testOptions.authorization != null)
         {
@@ -105,13 +117,23 @@ public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapt
             {
                 testOptions.mode(object.getString(MODE_NAME));
             }
-            if (object.containsKey(CATALOGS_NAME))
+            if (object.containsKey(CATALOG_NAME))
             {
-                JsonArray catalogs = object.getJsonArray(CATALOGS_NAME);
-                for (JsonValue catalog : catalogs)
+                JsonObject catalogsJson = object.getJsonObject(CATALOG_NAME);
+                List<CatalogedConfig> catalogs = new LinkedList<>();
+                for (String catalogName: catalogsJson.keySet())
                 {
-                    testOptions.catalog(((JsonString) catalog).getString());
+                    JsonArray schemasJson = catalogsJson.getJsonArray(catalogName);
+                    List<SchemaConfig> schemas = new LinkedList<>();
+                    for (JsonValue item : schemasJson)
+                    {
+                        JsonObject schemaJson = (JsonObject) item;
+                        SchemaConfig schemaElement = schema.adaptFromJson(schemaJson);
+                        schemas.add(schemaElement);
+                    }
+                    catalogs.add(new CatalogedConfig(catalogName, schemas));
                 }
+                testOptions.catalog(catalogs);
             }
             if (object.containsKey(AUTHORIZATION_NAME))
             {

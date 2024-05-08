@@ -27,7 +27,9 @@ import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
+import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig;
@@ -73,6 +75,7 @@ final class TestBindingFactory implements BindingHandler
     private final TestEventContext event;
 
     private List<CatalogHandler> catalogs;
+    private SchemaConfig catalog;
     private GuardHandler guard;
     private String credentials;
     private List<TestBindingOptionsConfig.Event> events;
@@ -102,13 +105,14 @@ final class TestBindingFactory implements BindingHandler
         TestBindingOptionsConfig options = (TestBindingOptionsConfig) binding.options;
         if (options != null)
         {
-            if (options.catalogs != null)
+            if (options.cataloged != null)
             {
+                this.catalog = options.cataloged.size() != 0 ? options.cataloged.get(0).schemas.get(0) : null;
                 this.catalogs = new LinkedList<>();
-                for (String catalog : options.catalogs)
+                for (CatalogedConfig catalog : options.cataloged)
                 {
                     int namespaceId = context.supplyTypeId(binding.namespace);
-                    int catalogId = context.supplyTypeId(catalog);
+                    int catalogId = context.supplyTypeId(catalog.name);
                     catalogs.add(context.supplyCatalog(NamespacedId.id(namespaceId, catalogId)));
                 }
             }
@@ -246,9 +250,16 @@ final class TestBindingFactory implements BindingHandler
 
             if (catalogs != null)
             {
-                for (CatalogHandler catalog : catalogs)
+                for (CatalogHandler handler : catalogs)
                 {
-                    catalog.resolve(0);
+                    if (catalog.subject != null && catalog.version != null)
+                    {
+                        handler.resolve(catalog.subject, catalog.version);
+                    }
+                    else
+                    {
+                        handler.resolve(catalog.id);
+                    }
                 }
             }
             if (guard != null)

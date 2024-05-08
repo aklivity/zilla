@@ -16,10 +16,6 @@ package io.aklivity.zilla.runtime.catalog.karapace.internal;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.time.Clock;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -29,8 +25,6 @@ import org.junit.rules.Timeout;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 
-import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
@@ -53,28 +47,24 @@ public class EventIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("event.yaml")
+    @Configuration("unretrievable/schema/id/event.yaml")
     @Specification({
         "${net}/event/client",
         "${app}/event/server"
     })
-    public void shouldLogEvents() throws Exception
+    public void shouldLogEventsUnretrievableSchemaId() throws Exception
     {
         k3po.finish();
     }
 
     @Test
-    public void shouldLogRemoteRegistryEvents()
+    @Configuration("unretrievable/schema/subject/version/event.yaml")
+    @Specification({
+        "${net}/handshake/client",
+        "${app}/handshake/server"
+    })
+    public void shouldLogEventsUnretrievableSchemaSubjectVersionId() throws Exception
     {
-        EngineContext context = mock(EngineContext.class);
-        when(context.clock()).thenReturn(Clock.systemUTC());
-        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
-        KarapaceEventContext events = new KarapaceEventContext(context);
-        events.onUnretrievableSchemaSubjectVersion(0L, "subject", "version");
-        events.onRetrievableSchemaSubjectVersion(0L, "subject", "version");
-        events.onUnretrievableSchemaSubjectVersionStaleSchema(0L, "subject", "version", 1);
-        events.onUnretrievableSchemaId(0L, 1);
-        events.onRetrievableSchemaId(0L, 1);
+        k3po.finish();
     }
-
 }
