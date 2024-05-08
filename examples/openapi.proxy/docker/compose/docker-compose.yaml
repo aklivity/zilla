@@ -21,6 +21,7 @@ services:
       - ../../specs:/app
     ports:
       - "8000:5000"
+    command: open-api-mocker -s /app/petstore.yaml
 
 networks:
   default:

@@ -18,8 +18,8 @@ bindings:
             host_filesystem:
               subject: petstore
               version: latest
-    exit: south_openapi_lcient
-  south_openapi_lcient:
+    exit: south_openapi_client
+  south_openapi_client:
     type: openapi
     kind: client
     options:

@@ -6,14 +6,14 @@ info:
   license:
     name: MIT
 servers:
-- url: http://localhost:7114
+  - url: http://localhost:7114
 paths:
   "/pets":
     get:
       summary: List all pets
       operationId: listPets
       tags:
-      - pets
+        - pets
       responses:
         '200':
           description: A paged array of pets
@@ -31,7 +31,7 @@ paths:
       summary: Create a pet
       operationId: createPets
       tags:
-      - pets
+        - pets
       requestBody:
         content:
           application/json:
@@ -52,8 +52,8 @@ components:
     Pet:
       type: object
       required:
-      - id
-      - name
+        - id
+        - name
       properties:
         id:
           type: integer
@@ -70,8 +70,8 @@ components:
     Error:
       type: object
       required:
-      - code
-      - message
+        - code
+        - message
       properties:
         code:
           type: integer
