@@ -48,6 +48,16 @@ public class HttpIT
 
     @Test
     @Specification({
+        "${http}/create.pet.and.item/client",
+        "${http}/create.pet.and.item/server"
+    })
+    public void shouldCreatePetAndItem() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${http}/reject.non.composite.origin/client",
         "${http}/reject.non.composite.origin/server"
     })
