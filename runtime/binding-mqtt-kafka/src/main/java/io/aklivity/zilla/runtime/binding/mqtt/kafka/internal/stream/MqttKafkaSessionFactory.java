@@ -72,6 +72,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttExpirySig
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttPayloadFormat;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttPayloadFormatFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttPublishFlags;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttQoS;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSessionFlags;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSessionSignalFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSessionStateFW;
@@ -338,7 +339,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             final String16FW sessionTopic = binding.sessionsTopic();
 
             final MqttSessionProxy proxy = new MqttSessionProxy(mqtt, originId, routedId, initialId, resolvedId,
-                binding.id, sessionTopic, binding.qos2Supported());
+                binding.id, sessionTopic, binding.publishMaxQos());
             newStream = proxy::onMqttMessage;
         }
 
@@ -442,7 +443,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             long resolvedId,
             long bindingId,
             String16FW sessionsTopic,
-            boolean qos2Supported)
+            MqttQoS publishQosMax)
         {
             this.mqtt = mqtt;
             this.originId = originId;
@@ -460,7 +461,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             final MqttKafkaBindingConfig binding = supplyBinding.apply(bindingId);
             final String16FW messagesTopic = binding.messagesTopic();
             this.retainedTopic = binding.retainedTopic();
-            if (!qos2Supported)
+            if (publishQosMax != MqttQoS.EXACTLY_ONCE)
             {
                 this.publishQosMax = 1;
             }

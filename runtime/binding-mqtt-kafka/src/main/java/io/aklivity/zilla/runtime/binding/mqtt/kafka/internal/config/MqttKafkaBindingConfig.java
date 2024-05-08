@@ -29,6 +29,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaOptionsConfi
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaRouteConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionFactory;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.Array32FW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttQoS;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttTopicFilterFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
@@ -95,9 +96,10 @@ public class MqttKafkaBindingConfig
             .collect(Collectors.toList());
     }
 
-    public boolean qos2Supported()
+    public MqttQoS publishMaxQos()
     {
-        return routes.stream().noneMatch(r -> r.with != null && r.with.containsParams());
+        return routes.stream().noneMatch(r -> r.with != null && r.with.containsParams()) ?
+            MqttQoS.EXACTLY_ONCE : MqttQoS.AT_LEAST_ONCE;
     }
 
     public String16FW messagesTopic()

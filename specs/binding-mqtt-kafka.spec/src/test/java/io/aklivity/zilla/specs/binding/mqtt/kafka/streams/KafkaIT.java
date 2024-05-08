@@ -199,6 +199,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/publish.topic.space.with.params/client",
+        "${kafka}/publish.topic.space.with.params/server"})
+    public void shouldSendUsingTopicSpaceWithParams() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/publish.client.topic.space/client",
         "${kafka}/publish.client.topic.space/server"})
     public void shouldSendUsingClientTopicSpace() throws Exception
