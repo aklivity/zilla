@@ -16,9 +16,6 @@
 
 property networkAcceptWindow 8192
 
-property deltaMillis 0L
-property newTimestamp ${kafka:timestamp() + deltaMillis}
-
 accept "zilla://streams/net0"
   option zilla:window ${networkAcceptWindow}
   option zilla:transmission "duplex"
@@ -94,7 +91,7 @@ read 140
      83                                 # length
      -1
      [0x02]
-     [0..4]
+     0x0460c54e9
      0s
      0                                  # last offset delta
      (long:timestamp)                   # first timestamp
@@ -144,7 +141,7 @@ read 140
      83                                 # length
      -1
      [0x02]
-     [0..4]
+     0x026cd6cf
      0s
      0                                  # last offset delta
      (long:timestamp)                   # first timestamp
