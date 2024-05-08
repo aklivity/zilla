@@ -91,7 +91,7 @@ read 140
      83                                 # length
      -1
      [0x02]
-     0x460c54e9
+     0x0460c54e9
      0s
      0                                  # last offset delta
      (long:timestamp)                   # first timestamp
@@ -141,7 +141,7 @@ read 140
      83                                 # length
      -1
      [0x02]
-     0x26cd6cf
+     0x026cd6cf
      0s
      0                                  # last offset delta
      (long:timestamp)                   # first timestamp
