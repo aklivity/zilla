@@ -178,6 +178,7 @@ public class JwtGuardHandler implements GuardHandler
             JwtSessionStore sessionStore = supplySessionStore(contextId);
             session = sessionStore.supplySession(subject, roles);
 
+            session.credentials = credentials;
             session.roles = roles;
             session.expiresAt = notAfter != null
                 ? Math.max(session.expiresAt, notAfter.getValueInMillis())
@@ -222,6 +223,14 @@ public class JwtGuardHandler implements GuardHandler
     {
         JwtSession session = sessionsById.get(sessionId);
         return session != null ? session.subject : null;
+    }
+
+    @Override
+    public String credentials(
+        long sessionId)
+    {
+        JwtSession session = sessionsById.get(sessionId);
+        return session != null ? session.credentials : null;
     }
 
     @Override
@@ -337,6 +346,7 @@ public class JwtGuardHandler implements GuardHandler
         private final String subject;
         private final Consumer<JwtSession> unshare;
 
+        private String credentials;
         private long expiresAt;
         private long challengeAt;
         private long challengedAt;

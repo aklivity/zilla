@@ -54,6 +54,16 @@ public interface GuardHandler
         long sessionId);
 
     /*
+     * Returns the authorized credentials.
+     *
+     * @param sessionId     the session identifier
+     *
+     * @return  the authorized credentials
+     */
+    String credentials(
+        long sessionId);
+
+    /*
      * Returns the session expiration time in UTC milliseconds.
      *
      * @param sessionId     the session identifier
