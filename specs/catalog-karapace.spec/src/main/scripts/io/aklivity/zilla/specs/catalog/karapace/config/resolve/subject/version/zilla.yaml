@@ -15,15 +15,6 @@
 
 ---
 name: test
-telemetry:
-  exporters:
-    exporter0:
-      type: test
-      options:
-        events:
-          - qname: test.catalog0
-            id: catalog.karapace.unretrievable.schema.id
-            message: UNRETRIEVABLE_SCHEMA_ID 1
 catalogs:
   catalog0:
     type: karapace
@@ -36,5 +27,7 @@ bindings:
     options:
       catalog:
         catalog0:
-          - id: 1
+          - subject: items-snapshots-value
+      catalog-assertion:
+        - id: 9
     exit: app0

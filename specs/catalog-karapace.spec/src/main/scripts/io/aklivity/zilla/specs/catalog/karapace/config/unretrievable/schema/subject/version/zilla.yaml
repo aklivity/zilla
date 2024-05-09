@@ -23,7 +23,7 @@ telemetry:
         events:
           - qname: test.catalog0
             id: catalog.karapace.unretrievable.schema.subject.version
-            message: UNRETRIEVABLE_SCHEMA test latest
+            message: UNRETRIEVABLE_SCHEMA items-snapshots-value latest
 catalogs:
   catalog0:
     type: karapace
@@ -36,6 +36,7 @@ bindings:
     options:
       catalog:
         catalog0:
-          - subject: test
-            version: latest
+          - subject: items-snapshots-value
+      catalog-assertion:
+        - id: 0
     exit: app0

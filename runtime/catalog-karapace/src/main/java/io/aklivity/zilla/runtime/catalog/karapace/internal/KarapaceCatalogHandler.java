@@ -219,7 +219,8 @@ public class KarapaceCatalogHandler implements CatalogHandler
                             event.onUnretrievableSchemaSubjectVersion(catalogId, subject, version);
                             if (cachedSchemaId != null && cachedSchemaId.id != NO_SCHEMA_ID)
                             {
-                                event.onUnretrievableSchemaSubjectVersionStaleSchema(catalogId, subject, version, schemaId);
+                                event.onUnretrievableSchemaSubjectVersionStaleSchema(catalogId, subject, version,
+                                    cachedSchemaId.id);
                             }
                         }
 

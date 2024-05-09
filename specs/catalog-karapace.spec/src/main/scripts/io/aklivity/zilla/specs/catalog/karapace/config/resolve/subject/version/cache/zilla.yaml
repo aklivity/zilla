@@ -15,22 +15,12 @@
 
 ---
 name: test
-telemetry:
-  exporters:
-    exporter0:
-      type: test
-      options:
-        events:
-          - qname: test.catalog0
-            id: catalog.filesystem.file.not.found
-            message: FILE_NOT_FOUND asyncapi/kafka.yaml
 catalogs:
   catalog0:
-    type: filesystem
+    type: karapace
     options:
-      subjects:
-        subject1:
-          path: asyncapi/kafka.yaml
+      url: http://localhost:8081
+      max-age: 5000
 bindings:
   net0:
     type: test
@@ -38,5 +28,8 @@ bindings:
     options:
       catalog:
         catalog0:
-          - subject: not-subject1
+          - subject: items-snapshots-value
+      catalog-assertion:
+        - id: 9
+        - id: 9
     exit: app0

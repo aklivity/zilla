@@ -49,3 +49,49 @@ write '{'
        '}'
 
 write close
+
+accepted
+connected
+
+read http:method "GET"
+read http:version "HTTP/1.1"
+read closed
+
+write http:status "500" "Internal Server Error"
+write http:content-length
+write close
+
+accepted
+connected
+
+read http:method "GET"
+read http:version "HTTP/1.1"
+read closed
+
+write http:status "200" "OK"
+write http:header "content-type" "application/vnd.schemaregistry.v1+json"
+write http:content-length
+
+write '{'
+         '"subject":"items-snapshots-value",'
+         '"id":10,'
+         '"version":"latest",'
+         '"schema":"'
+         '{'
+          '\\"fields\\":['
+            '{'
+              '\\"name\\":\\"id\\",'
+              '\\"type\\":\\"int\\"'
+            '},'
+            '{'
+              '\\"name\\":\\"status\\",'
+              '\\"type\\":\\"string\\"'
+            '}'
+          '],'
+          '\\"name\\":\\"Event\\",'
+          '\\"namespace\\":\\"io.aklivity.example\\",'
+          '\\"type\\":\\"record\\"'
+        '}"'
+       '}'
+
+write close

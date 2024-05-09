@@ -57,6 +57,29 @@
                                 },
                                 "maxProperties": 1
                             },
+                            "catalog-assertion":
+                            {
+                                "type": "array",
+                                "items":
+                                {
+                                    "type": "object",
+                                    "properties":
+                                    {
+                                        "id":
+                                        {
+                                            "type": "integer"
+                                        },
+                                        "schema":
+                                        {
+                                            "type": ["string", "null"]
+                                        },
+                                        "interval":
+                                        {
+                                            "type": "number"
+                                        }
+                                    }
+                                }
+                            },
                             "port":
                             {
                                 "title": "Port",

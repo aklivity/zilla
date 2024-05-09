@@ -40,6 +40,10 @@ public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapt
     private static final String EVENTS_NAME = "events";
     private static final String TIMESTAMP_NAME = "timestamp";
     private static final String MESSAGE_NAME = "message";
+    private static final String CATALOG_ASSERTION = "catalog-assertion";
+    private static final String ID_NAME = "id";
+    private static final String SCHEMA_NAME = "schema";
+    private static final String INTERVAL_NAME = "interval";
 
     private final SchemaConfigAdapter schema = new SchemaConfigAdapter();
 
@@ -80,6 +84,19 @@ public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapt
                 catalogs.add(catalog.name, array);
             }
             object.add(CATALOG_NAME, catalogs);
+        }
+        if (testOptions.catalogAssertions != null)
+        {
+            JsonArrayBuilder assertions = Json.createArrayBuilder();
+            for (TestBindingOptionsConfig.CatalogAssertion c : testOptions.catalogAssertions)
+            {
+                JsonObjectBuilder assertion = Json.createObjectBuilder();
+                assertion.add(ID_NAME, c.id);
+                assertion.add(SCHEMA_NAME, c.schema);
+                assertion.add(INTERVAL_NAME, c.interval);
+                assertions.add(assertion);
+            }
+            object.add(CATALOG_ASSERTION, assertions);
         }
         if (testOptions.authorization != null)
         {
@@ -134,6 +151,17 @@ public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapt
                     catalogs.add(new CatalogedConfig(catalogName, schemas));
                 }
                 testOptions.catalog(catalogs);
+            }
+            if (object.containsKey(CATALOG_ASSERTION))
+            {
+                JsonArray assertions = object.getJsonArray(CATALOG_ASSERTION);
+                for (JsonValue assertion : assertions)
+                {
+                    JsonObject c = assertion.asJsonObject();
+                    testOptions.catalogAssertion(c.containsKey(ID_NAME) ? c.getInt(ID_NAME) : 0,
+                        c.containsKey(SCHEMA_NAME) ? !c.isNull(SCHEMA_NAME) ? c.getString(SCHEMA_NAME) : null : null,
+                        c.containsKey(INTERVAL_NAME) ? c.getJsonNumber(INTERVAL_NAME).longValue() : 0L);
+                }
             }
             if (object.containsKey(AUTHORIZATION_NAME))
             {

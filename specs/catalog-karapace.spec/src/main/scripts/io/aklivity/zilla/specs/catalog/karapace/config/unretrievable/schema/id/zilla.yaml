@@ -22,15 +22,13 @@ telemetry:
       options:
         events:
           - qname: test.catalog0
-            id: catalog.filesystem.file.not.found
-            message: FILE_NOT_FOUND asyncapi/kafka.yaml
+            id: catalog.karapace.unretrievable.schema.id
+            message: UNRETRIEVABLE_SCHEMA_ID 1
 catalogs:
   catalog0:
-    type: filesystem
+    type: karapace
     options:
-      subjects:
-        subject1:
-          path: asyncapi/kafka.yaml
+      url: http://localhost:8081
 bindings:
   net0:
     type: test
@@ -38,5 +36,7 @@ bindings:
     options:
       catalog:
         catalog0:
-          - subject: not-subject1
+          - id: 1
+      catalog-assertion:
+        - schema: null
     exit: app0
