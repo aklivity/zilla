@@ -22,7 +22,6 @@ write zilla:begin.ext ${kafka:beginEx()
                             .merged()
                                 .capabilities("PRODUCE_AND_FETCH")
                                 .topic("mqtt-sessions")
-
                                 .filter()
                                     .key("client#migrate")
                                     .headerNot("sender-id", "sender-1")

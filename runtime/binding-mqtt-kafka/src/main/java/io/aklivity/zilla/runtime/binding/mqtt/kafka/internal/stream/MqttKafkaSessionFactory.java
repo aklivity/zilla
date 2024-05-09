@@ -340,8 +340,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             final long resolvedId = resolved.id;
             final String16FW sessionTopic = binding.sessionsTopic();
 
-            final MqttQoS publishQosMax = binding.publishQosMax().value() < this.publishQosMax.value() ?
-                binding.publishQosMax() : this.publishQosMax;
+            final MqttQoS publishQosMax = MqttQoS.valueOf(Math.min(binding.publishQosMax().value(), this.publishQosMax.value()));
             final MqttSessionProxy proxy = new MqttSessionProxy(mqtt, originId, routedId, initialId, resolvedId,
                 binding.id, sessionTopic, publishQosMax);
             newStream = proxy::onMqttMessage;

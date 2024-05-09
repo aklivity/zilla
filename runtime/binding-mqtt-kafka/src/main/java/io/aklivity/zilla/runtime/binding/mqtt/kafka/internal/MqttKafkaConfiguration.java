@@ -40,7 +40,7 @@ public class MqttKafkaConfiguration extends Configuration
     public static final IntPropertyDef WILL_STREAM_RECONNECT_DELAY;
     public static final BooleanPropertyDef BOOTSTRAP_AVAILABLE;
     public static final IntPropertyDef BOOTSTRAP_STREAM_RECONNECT_DELAY;
-    public static final IntPropertyDef PUBLISH_MAX_QOS;
+    public static final IntPropertyDef PUBLISH_QOS_MAX;
 
     static
     {
@@ -59,7 +59,7 @@ public class MqttKafkaConfiguration extends Configuration
         WILL_STREAM_RECONNECT_DELAY = config.property("will.stream.reconnect", 2);
         BOOTSTRAP_AVAILABLE = config.property("bootstrap.available", true);
         BOOTSTRAP_STREAM_RECONNECT_DELAY = config.property("bootstrap.stream.reconnect", 2);
-        PUBLISH_MAX_QOS = config.property("publish.max.qos", 2);
+        PUBLISH_QOS_MAX = config.property("publish.qos.max", 2);
         MQTT_KAFKA_CONFIG = config;
     }
 
@@ -121,7 +121,7 @@ public class MqttKafkaConfiguration extends Configuration
 
     public MqttQoS publishQosMax()
     {
-        return MqttQoS.valueOf(PUBLISH_MAX_QOS.getAsInt(this));
+        return MqttQoS.valueOf(PUBLISH_QOS_MAX.getAsInt(this));
     }
 
 

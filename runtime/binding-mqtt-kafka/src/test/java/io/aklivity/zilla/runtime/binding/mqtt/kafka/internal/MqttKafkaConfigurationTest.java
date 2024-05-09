@@ -19,7 +19,7 @@ import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaCon
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.BOOTSTRAP_STREAM_RECONNECT_DELAY;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.INSTANCE_ID;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.LIFETIME_ID;
-import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.PUBLISH_MAX_QOS;
+import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.PUBLISH_QOS_MAX;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.SESSION_ID;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.TIME;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.WILL_AVAILABLE;
@@ -36,7 +36,7 @@ public class MqttKafkaConfigurationTest
     public static final String WILL_STREAM_RECONNECT_DELAY_NAME = "zilla.binding.mqtt.kafka.will.stream.reconnect";
     public static final String BOOTSTRAP_AVAILABLE_NAME = "zilla.binding.mqtt.kafka.bootstrap.available";
     public static final String BOOTSTRAP_STREAM_RECONNECT_DELAY_NAME = "zilla.binding.mqtt.kafka.bootstrap.stream.reconnect";
-    public static final String PUBLISH_MAX_QOS_NAME = "zilla.binding.mqtt.kafka.publish.max.qos";
+    public static final String PUBLISH_MAX_QOS_NAME = "zilla.binding.mqtt.kafka.publish.qos.max";
     public static final String SESSION_ID_NAME = "zilla.binding.mqtt.kafka.session.id";
     public static final String WILL_ID_NAME = "zilla.binding.mqtt.kafka.will.id";
     public static final String LIFETIME_ID_NAME = "zilla.binding.mqtt.kafka.lifetime.id";
@@ -54,6 +54,6 @@ public class MqttKafkaConfigurationTest
         assertEquals(WILL_ID.name(), WILL_ID_NAME);
         assertEquals(LIFETIME_ID.name(), LIFETIME_ID_NAME);
         assertEquals(INSTANCE_ID.name(), INSTANCE_ID_NAME);
-        assertEquals(PUBLISH_MAX_QOS.name(), PUBLISH_MAX_QOS_NAME);
+        assertEquals(PUBLISH_QOS_MAX.name(), PUBLISH_MAX_QOS_NAME);
     }
 }
