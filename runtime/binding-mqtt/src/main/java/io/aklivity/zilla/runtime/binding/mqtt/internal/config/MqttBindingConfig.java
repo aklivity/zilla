@@ -223,7 +223,7 @@ public final class MqttBindingConfig
                 Pattern.compile(config.pattern.replace("{credentials}", "(?<credentials>[^\\s]+)"))
                     .matcher("");
 
-            accessor = orElseIfNull(accessor, connect ->
+            accessor = connect ->
             {
                 String result = null;
                 if (connect != null && connectMatch.reset(connect).matches())
@@ -231,7 +231,7 @@ public final class MqttBindingConfig
                     result = connectMatch.group("credentials");
                 }
                 return result;
-            });
+            };
         }
 
         return accessor;
@@ -259,17 +259,6 @@ public final class MqttBindingConfig
         }
 
         return injector;
-    }
-
-    private static Function<String, String> orElseIfNull(
-        Function<String, String> first,
-        Function<String, String> second)
-    {
-        return x ->
-        {
-            String result = first.apply(x);
-            return result != null ? result : second.apply(x);
-        };
     }
 
     private static class TopicValidator
