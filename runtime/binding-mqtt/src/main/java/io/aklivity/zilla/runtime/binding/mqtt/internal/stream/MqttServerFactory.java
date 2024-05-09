@@ -204,7 +204,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private static final String16FW MQTT_PROTOCOL_NAME = new String16FW("MQTT", BIG_ENDIAN);
     public static final int MQTT_PROTOCOL_VERSION_5 = 5;
     public static final int MQTT_PROTOCOL_VERSION_4 = 4;
-    private static final int MAXIMUM_CLIENT_ID_LENGTH = 36;
+    private static final int MAXIMUM_CLIENT_ID_LENGTH = 256;
     private static final int CONNECT_FIXED_HEADER = 0b0001_0000;
     private static final int SUBSCRIBE_FIXED_HEADER = 0b1000_0010;
     private static final int UNSUBSCRIBE_FIXED_HEADER = 0b1010_0010;
