@@ -96,7 +96,7 @@ public class MqttKafkaBindingConfig
             .collect(Collectors.toList());
     }
 
-    public MqttQoS publishMaxQos()
+    public MqttQoS publishQosMax()
     {
         return routes.stream().noneMatch(r -> r.with != null && r.with.containsParams()) ?
             MqttQoS.EXACTLY_ONCE : MqttQoS.AT_LEAST_ONCE;

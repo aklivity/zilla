@@ -19,6 +19,7 @@ import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaCon
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.BOOTSTRAP_STREAM_RECONNECT_DELAY;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.INSTANCE_ID;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.LIFETIME_ID;
+import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.PUBLISH_MAX_QOS;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.SESSION_ID;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.TIME;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.WILL_AVAILABLE;
@@ -53,5 +54,6 @@ public class MqttKafkaConfigurationTest
         assertEquals(WILL_ID.name(), WILL_ID_NAME);
         assertEquals(LIFETIME_ID.name(), LIFETIME_ID_NAME);
         assertEquals(INSTANCE_ID.name(), INSTANCE_ID_NAME);
+        assertEquals(PUBLISH_MAX_QOS.name(), PUBLISH_MAX_QOS_NAME);
     }
 }

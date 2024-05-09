@@ -29,7 +29,6 @@ write zilla:begin.ext ${kafka:beginEx()
 
 connected
 
-write notify PRODUCE_CONNECTED
 write zilla:data.ext ${kafka:dataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()

@@ -263,6 +263,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private final Int2ObjectHashMap<String16FW> qosLevels;
     private final Long2ObjectHashMap<MqttKafkaPublishMetadata> clientMetadata;
     private final KafkaOffsetMetadataHelper offsetMetadataHelper;
+    private final MqttQoS publishQosMax;
 
     private String serverRef;
     private int reconnectAttempt;
@@ -304,6 +305,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         this.sessionExpiryIds = new Object2LongHashMap<>(-1);
         this.instanceId = instanceId;
         this.reconnectDelay = config.willStreamReconnectDelay();
+        this.publishQosMax = config.publishQosMax();
         this.qosLevels = new Int2ObjectHashMap<>();
         this.qosLevels.put(0, new String16FW("0"));
         this.qosLevels.put(1, new String16FW("1"));
@@ -338,8 +340,10 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             final long resolvedId = resolved.id;
             final String16FW sessionTopic = binding.sessionsTopic();
 
+            final MqttQoS publishQosMax = binding.publishQosMax().value() < this.publishQosMax.value() ?
+                binding.publishQosMax() : this.publishQosMax;
             final MqttSessionProxy proxy = new MqttSessionProxy(mqtt, originId, routedId, initialId, resolvedId,
-                binding.id, sessionTopic, binding.publishMaxQos());
+                binding.id, sessionTopic, publishQosMax);
             newStream = proxy::onMqttMessage;
         }
 
@@ -461,11 +465,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             final MqttKafkaBindingConfig binding = supplyBinding.apply(bindingId);
             final String16FW messagesTopic = binding.messagesTopic();
             this.retainedTopic = binding.retainedTopic();
-            if (publishQosMax != MqttQoS.EXACTLY_ONCE)
-            {
-                this.publishQosMax = 1;
-            }
-            else
+            this.publishQosMax = publishQosMax.value();
+            if (publishQosMax == MqttQoS.EXACTLY_ONCE)
             {
                 this.messagesTopics = binding.routes.stream().map(r -> r.with.resolveMessages()).collect(Collectors.toSet());
                 this.messagesTopics.add(messagesTopic);

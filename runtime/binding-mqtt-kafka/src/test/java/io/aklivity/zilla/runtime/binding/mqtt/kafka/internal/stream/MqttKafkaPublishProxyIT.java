@@ -202,6 +202,17 @@ public class MqttKafkaPublishProxyIT
     }
 
     @Test
+    @Configuration("proxy.when.publish.topic.with.messages.params.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/publish.reject.qos2/client",
+        "${kafka}/publish.reject.qos2/server"})
+    public void shouldRejectPublishWhenTopicSpaceWithParams() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.when.client.topic.space.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Configure(name = BOOTSTRAP_AVAILABLE_NAME, value = "false")

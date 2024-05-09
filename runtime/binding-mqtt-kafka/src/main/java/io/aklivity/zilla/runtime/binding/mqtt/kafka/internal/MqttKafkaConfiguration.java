@@ -25,6 +25,7 @@ import java.util.function.Supplier;
 
 import org.agrona.LangUtil;
 
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttQoS;
 import io.aklivity.zilla.runtime.engine.Configuration;
 
 public class MqttKafkaConfiguration extends Configuration
@@ -39,6 +40,7 @@ public class MqttKafkaConfiguration extends Configuration
     public static final IntPropertyDef WILL_STREAM_RECONNECT_DELAY;
     public static final BooleanPropertyDef BOOTSTRAP_AVAILABLE;
     public static final IntPropertyDef BOOTSTRAP_STREAM_RECONNECT_DELAY;
+    public static final IntPropertyDef PUBLISH_MAX_QOS;
 
     static
     {
@@ -57,6 +59,7 @@ public class MqttKafkaConfiguration extends Configuration
         WILL_STREAM_RECONNECT_DELAY = config.property("will.stream.reconnect", 2);
         BOOTSTRAP_AVAILABLE = config.property("bootstrap.available", true);
         BOOTSTRAP_STREAM_RECONNECT_DELAY = config.property("bootstrap.stream.reconnect", 2);
+        PUBLISH_MAX_QOS = config.property("publish.max.qos", 2);
         MQTT_KAFKA_CONFIG = config;
     }
 
@@ -114,6 +117,11 @@ public class MqttKafkaConfiguration extends Configuration
     public int bootstrapStreamReconnectDelay()
     {
         return BOOTSTRAP_STREAM_RECONNECT_DELAY.getAsInt(this);
+    }
+
+    public MqttQoS publishQosMax()
+    {
+        return MqttQoS.valueOf(PUBLISH_MAX_QOS.getAsInt(this));
     }
 
 

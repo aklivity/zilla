@@ -27,7 +27,6 @@ write zilla:begin.ext ${mqtt:beginEx()
 
 connected
 
-write notify PUBLISH_CONNECTED
 write zilla:data.ext ${mqtt:dataEx()
                              .typeId(zilla:id("mqtt"))
                              .publish()
