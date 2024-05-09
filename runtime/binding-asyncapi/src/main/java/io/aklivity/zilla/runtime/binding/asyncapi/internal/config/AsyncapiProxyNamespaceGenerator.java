@@ -130,14 +130,15 @@ public class AsyncapiProxyNamespaceGenerator extends AsyncapiNamespaceGenerator
                 final AsyncapiChannelView channel = AsyncapiChannelView.of(mqttAsyncapi.channels, whenOperation.channel);
                 final MqttKafkaConditionKind kind = whenOperation.action.equals(ASYNCAPI_SEND_ACTION_NAME) ?
                     MqttKafkaConditionKind.PUBLISH : MqttKafkaConditionKind.SUBSCRIBE;
-                final String topic = channel.address().replaceAll("\\{[^}]+\\}", "+");
+                String topic = channel.address();
+
                 routeBuilder
                     .when(MqttKafkaConditionConfig::builder)
                         .topic(topic)
                         .kind(kind)
                         .build()
                     .with(MqttKafkaWithConfig::builder)
-                        .messages(messages)
+                        .messages(messages.replaceAll("\\{([^{}]*)\\}", "\\${params.$1}"))
                         .build()
                     .exit(qname);
             }

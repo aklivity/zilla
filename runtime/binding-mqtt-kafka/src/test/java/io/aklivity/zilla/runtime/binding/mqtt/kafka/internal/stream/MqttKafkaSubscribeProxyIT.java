@@ -175,6 +175,17 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
+    @Configuration("proxy.when.subscribe.topic.with.messages.params.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.one.message/client",
+        "${kafka}/subscribe.one.message.resolve.topic.params/server"})
+    public void shouldReceiveOneMessageWithResolvingParams() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.when.subscribe.topic.with.messages.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
