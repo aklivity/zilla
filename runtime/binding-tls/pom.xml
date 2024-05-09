@@ -41,7 +41,6 @@
       <groupId>${project.groupId}</groupId>
       <artifactId>engine</artifactId>
       <version>${project.version}</version>
-      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -53,6 +52,12 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>vault-filesystem</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>binding-echo</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
@@ -241,6 +246,8 @@
             <includes>
               <include>org.agrona:agrona</include>
               <include>io.aklivity.zilla:engine</include>
+              <include>io.aklivity.zilla:common</include>
+              <include>io.aklivity.zilla:binding-echo</include>
               <include>org.openjdk.jmh:jmh-core</include>
               <include>net.sf.jopt-simple:jopt-simple</include>
               <include>org.apache.commons:commons-math3</include>

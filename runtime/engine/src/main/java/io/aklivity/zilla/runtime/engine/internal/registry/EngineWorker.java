@@ -225,7 +225,7 @@ public class EngineWorker implements EngineContext, Agent
     private final HistogramsLayout histogramsLayout;
     private final EventsLayout eventsLayout;
     private final Supplier<MessageReader> supplyEventReader;
-    private final EventFormatter eventFormatter;
+    private final EventFormatterFactory eventFormatterFactory;
 
     private long initialId;
     private long promiseId;
@@ -435,7 +435,7 @@ public class EngineWorker implements EngineContext, Agent
         this.errorHandler = errorHandler;
         this.exportersById = new Long2ObjectHashMap<>();
         this.supplyEventReader = supplyEventReader;
-        this.eventFormatter = eventFormatterFactory.create(config, this);
+        this.eventFormatterFactory = eventFormatterFactory;
     }
 
     public static int indexOfId(
@@ -1718,17 +1718,9 @@ public class EngineWorker implements EngineContext, Agent
         return writersByIndex.computeIfAbsent(remoteIndex, supplyWriter);
     }
 
-    public int readEvent(
-        MessageConsumer handler,
-        int messageCountLimit)
+    public EventsLayout.EventAccessor createEventAccessor()
     {
-        return eventsLayout.readEvent(handler, messageCountLimit);
-    }
-
-    public int peekEvent(
-        MessageConsumer handler)
-    {
-        return eventsLayout.peekEvent(handler);
+        return eventsLayout.createEventAccessor();
     }
 
     public MessageReader supplyEventReader()
@@ -1738,7 +1730,7 @@ public class EngineWorker implements EngineContext, Agent
 
     public EventFormatter supplyEventFormatter()
     {
-        return this.eventFormatter;
+        return eventFormatterFactory.create(config, this);
     }
 
     private MessageConsumer supplyWriter(
@@ -2132,7 +2124,7 @@ public class EngineWorker implements EngineContext, Agent
         }
     }
 
-    private static class Affinity
+    private static final class Affinity
     {
         BitSet mask;
         int nextIndex;

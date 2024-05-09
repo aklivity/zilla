@@ -15,7 +15,8 @@
 #
 
 property deltaMillis 0L
-property newTimestamp ${kafka:timestamp() + deltaMillis}
+property timestamp 1715191875046L
+property newTimestamp ${timestamp + deltaMillis}
 
 connect "zilla://streams/app0"
     option zilla:window 8192

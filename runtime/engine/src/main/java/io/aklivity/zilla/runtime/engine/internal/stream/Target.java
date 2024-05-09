@@ -330,8 +330,8 @@ public final class Target implements AutoCloseable
                 .originId(syntheticId)
                 .routedId(syntheticId)
                 .streamId(streamId)
-                .sequence(-1L)
-                .acknowledge(-1L)
+                .sequence(Long.MAX_VALUE)
+                .acknowledge(0L)
                 .maximum(0)
                 .build();
 

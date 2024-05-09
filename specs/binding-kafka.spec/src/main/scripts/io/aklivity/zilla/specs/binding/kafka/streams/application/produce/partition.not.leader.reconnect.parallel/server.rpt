@@ -72,8 +72,14 @@ read zilla:data.ext ${kafka:matchDataEx()
                              .produce()
                                  .build()
                              .build()}
-read "Hello, world"
 read "Hello, again"
+
+read zilla:data.ext ${kafka:matchDataEx()
+                             .typeId(zilla:id("kafka"))
+                             .produce()
+                                 .build()
+                             .build()}
+read "Hello, world"
 
 write zilla:reset.ext ${kafka:resetEx()
                            .typeId(zilla:id("kafka"))
@@ -107,8 +113,16 @@ read zilla:data.ext ${kafka:matchDataEx()
                              .produce()
                                  .build()
                              .build()}
-read "Hello, world"
 read "Hello, again"
+
+read zilla:data.ext ${kafka:matchDataEx()
+                             .typeId(zilla:id("kafka"))
+                             .produce()
+                                 .build()
+                             .build()}
+read "Hello, world"
+
+
 
 read option zilla:ack 24
 write flush

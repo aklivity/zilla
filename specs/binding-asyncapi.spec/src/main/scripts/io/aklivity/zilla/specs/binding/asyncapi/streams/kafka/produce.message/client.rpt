@@ -20,7 +20,7 @@ property newTimestamp ${kafka:timestamp() + deltaMillis}
 connect "zilla://streams/composite0"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
-    option zilla:ephemeral "test:composite0/kafka"
+    option zilla:ephemeral "test:composite0/kafka_api"
 
 write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))

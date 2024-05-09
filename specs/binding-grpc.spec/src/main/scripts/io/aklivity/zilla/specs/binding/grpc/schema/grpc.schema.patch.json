@@ -32,24 +32,6 @@
                         "enum": [ "server", "client"]
                     },
                     "vault": false,
-                    "options":
-                    {
-                        "properties":
-                        {
-                            "services":
-                            {
-                                "title": "Services",
-                                "type": "array",
-                                "items":
-                                {
-                                    "title": "Service",
-                                    "type": "string"
-                                },
-                                "deprecated": true
-                            }
-                        },
-                        "additionalProperties": false
-                    },
                     "routes":
                     {
                         "items":
@@ -114,6 +96,46 @@
                         [
                             "routes"
                         ]
+                    }
+                ],
+                "oneOf":
+                [
+                    {
+                        "properties":
+                        {
+                            "kind":
+                            {
+                                "const": "server"
+                            },
+                            "options":
+                            {
+                                "properties":
+                                {
+                                    "services":
+                                    {
+                                        "title": "Services",
+                                        "type": "array",
+                                        "items":
+                                        {
+                                            "title": "Service",
+                                            "type": "string"
+                                        },
+                                        "deprecated": true
+                                    }
+                                },
+                                "additionalProperties": false
+                            }
+                        }
+                    },
+                    {
+                        "properties":
+                        {
+                            "kind":
+                            {
+                                "const": "client"
+                            },
+                            "options": false
+                        }
                     }
                 ]
             }

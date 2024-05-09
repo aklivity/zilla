@@ -28,7 +28,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Queue;
 
 import org.agrona.CloseHelper;
 import org.agrona.DirectBuffer;
@@ -46,20 +50,19 @@ public final class EventsLayout implements AutoCloseable
 {
     private final Path path;
     private final long capacity;
+    private final List<EventAccessor> accessors;
 
     private RingBuffer buffer;
-    private RingBufferSpy bufferSpy;
 
     private EventsLayout(
         Path path,
         long capacity,
-        RingBuffer buffer,
-        RingBufferSpy bufferSpy)
+        RingBuffer buffer)
     {
         this.path = path;
         this.capacity = capacity;
         this.buffer = buffer;
-        this.bufferSpy = bufferSpy;
+        this.accessors = new ArrayList<>();
     }
 
     @Override
@@ -82,17 +85,12 @@ public final class EventsLayout implements AutoCloseable
         }
     }
 
-    public int readEvent(
-        MessageConsumer handler,
-        int messageCountLimit)
+    public EventAccessor createEventAccessor()
     {
-        return bufferSpy.spy(handler, messageCountLimit);
-    }
-
-    public int peekEvent(
-        MessageConsumer handler)
-    {
-        return bufferSpy.peek(handler);
+        RingBufferSpy ringBufferSpy = createRingBufferSpy();
+        EventAccessor accessor = new EventAccessor(ringBufferSpy);
+        accessors.add(accessor);
+        return accessor;
     }
 
     private void rotateFile()
@@ -110,7 +108,15 @@ public final class EventsLayout implements AutoCloseable
             rethrowUnchecked(ex);
         }
         buffer = createRingBuffer(path, capacity);
-        bufferSpy = createRingBufferSpy(path);
+        accessors.forEach(a -> a.addNextBufferSpy(createRingBufferSpy()));
+    }
+
+    private RingBufferSpy createRingBufferSpy()
+    {
+        AtomicBuffer atomicBuffer = createAtomicBuffer(path, 0, false);
+        OneToOneRingBufferSpy spy = new OneToOneRingBufferSpy(atomicBuffer);
+        spy.spyAt(ZERO);
+        return spy;
     }
 
     private static AtomicBuffer createAtomicBuffer(
@@ -135,13 +141,48 @@ public final class EventsLayout implements AutoCloseable
         return new OneToOneRingBuffer(atomicBuffer);
     }
 
-    private static RingBufferSpy createRingBufferSpy(
-        Path path)
+    public static final class EventAccessor
     {
-        AtomicBuffer atomicBuffer = createAtomicBuffer(path, 0, false);
-        OneToOneRingBufferSpy spy = new OneToOneRingBufferSpy(atomicBuffer);
-        spy.spyAt(ZERO);
-        return spy;
+        private final Queue<RingBufferSpy> nextBufferSpies;
+        private RingBufferSpy bufferSpy;
+
+        private EventAccessor(
+            RingBufferSpy bufferSpy)
+        {
+            this.nextBufferSpies = new LinkedList<>();
+            this.bufferSpy = bufferSpy;
+        }
+
+        public int readEvent(
+            MessageConsumer handler,
+            int messageCountLimit)
+        {
+            int result = bufferSpy.spy(handler, messageCountLimit);
+            if (result == 0 && !nextBufferSpies.isEmpty())
+            {
+                bufferSpy = nextBufferSpies.poll();
+                result = bufferSpy.spy(handler, messageCountLimit);
+            }
+            return result;
+        }
+
+        public int peekEvent(
+            MessageConsumer handler)
+        {
+            int result = bufferSpy.peek(handler);
+            if (result == 0 && !nextBufferSpies.isEmpty())
+            {
+                bufferSpy = nextBufferSpies.poll();
+                result = bufferSpy.peek(handler);
+            }
+            return result;
+        }
+
+        private void addNextBufferSpy(
+            RingBufferSpy bufferSpy)
+        {
+            this.nextBufferSpies.add(bufferSpy);
+        }
     }
 
     public static final class Builder
@@ -166,8 +207,7 @@ public final class EventsLayout implements AutoCloseable
         public EventsLayout build()
         {
             RingBuffer ringBuffer = createRingBuffer(path, capacity);
-            RingBufferSpy ringBufferSpy = createRingBufferSpy(path);
-            return new EventsLayout(path, capacity, ringBuffer, ringBufferSpy);
+            return new EventsLayout(path, capacity, ringBuffer);
         }
     }
 }

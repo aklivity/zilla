@@ -183,6 +183,29 @@ write await ABORT_PARTITION_LEADERS_ONE_AND_TWO
 read abort
 write aborted
 
+accepted
+
+read zilla:begin.ext ${kafka:beginEx()
+                              .typeId(zilla:id("kafka"))
+                              .fetch()
+                                  .topic("test")
+                                  .partition(3, -2)
+                                  .build()
+                              .build()}
+
+connected
+
+write zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .fetch()
+                                   .topic("test")
+                                   .partition(3, 1, 2)
+                                   .build()
+                               .build()}
+write flush
+
+write notify PARTITION_THREE_LEADER_READY
+
 
 accepted
 
@@ -211,31 +234,6 @@ write await ABORT_PARTITION_LEADERS_ONE_AND_TWO
 
 read abort
 write aborted
-
-
-accepted
-
-read zilla:begin.ext ${kafka:beginEx()
-                              .typeId(zilla:id("kafka"))
-                              .fetch()
-                                  .topic("test")
-                                  .partition(3, -2)
-                                  .build()
-                              .build()}
-
-connected
-
-write zilla:begin.ext ${kafka:beginEx()
-                               .typeId(zilla:id("kafka"))
-                               .fetch()
-                                   .topic("test")
-                                   .partition(3, 1, 2)
-                                   .build()
-                               .build()}
-write flush
-
-write notify PARTITION_THREE_LEADER_READY
-
 
 # rejected zilla:resetEx ${kafka:resetEx("NOT_LEADER_FOR_PARTITION")}
 rejected

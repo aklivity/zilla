@@ -43,10 +43,11 @@ bindings:
     net0:
         type: test
         kind: server
-        exit: app0
-        guarded:
-            test0:
-                - read
+        routes:
+            - guarded:
+                test0:
+                    - read
+              exit: app0
         telemetry:
             metrics:
                 - test.*

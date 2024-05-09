@@ -18,10 +18,8 @@ import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
 import static java.util.Collections.emptyList;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiServerView;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.MetricRefConfig;
@@ -32,22 +30,12 @@ public class AsyncapiClientNamespaceGenerator extends AsyncapiNamespaceGenerator
 {
     public NamespaceConfig generate(
         BindingConfig binding,
-        Asyncapi asyncapi)
+        AsyncapiNamespaceConfig namespaceConfig)
     {
+        List<AsyncapiServerView> servers = namespaceConfig.servers;
         AsyncapiOptionsConfig options = binding.options != null ? (AsyncapiOptionsConfig) binding.options : EMPTY_OPTION;
         final List<MetricRefConfig> metricRefs = binding.telemetryRef != null ?
             binding.telemetryRef.metricRefs : emptyList();
-
-        this.asyncapi = asyncapi;
-        this.qname = binding.qname;
-        this.namespace = binding.namespace;
-        this.qvault = binding.qvault;
-        this.vault = binding.vault;
-        final List<AsyncapiServerView> servers =
-            filterAsyncapiServers(asyncapi.servers, options.asyncapis.stream()
-                .flatMap(a -> a.servers.stream())
-                .collect(Collectors.toList()));
-        servers.forEach(s -> s.setAsyncapiProtocol(resolveProtocol(s.protocol(), options, servers)));
 
         //TODO: keep it until we support different protocols on the same composite binding
         AsyncapiServerView serverView = servers.get(0);
@@ -55,10 +43,11 @@ public class AsyncapiClientNamespaceGenerator extends AsyncapiNamespaceGenerator
         int[] compositeSecurePorts = resolvePorts(servers, true);
         this.isTlsEnabled =  compositeSecurePorts.length > 0;
 
+        final String namespace = String.join("+", namespaceConfig.asyncapiLabels);
         return NamespaceConfig.builder()
-                .name(String.format("%s.%s", qname, "$composite"))
+                .name(String.format("%s.%s-%s", qname, "$composite", namespace))
                 .inject(n -> this.injectNamespaceMetric(n, !metricRefs.isEmpty()))
-                .inject(n -> this.injectCatalog(n, asyncapi))
+                .inject(n -> this.injectCatalog(n, namespaceConfig.asyncapis))
                 .inject(n -> protocol.injectProtocolClientCache(n, metricRefs))
                 .binding()
                     .name(String.format("%s_client0", protocol.scheme))
