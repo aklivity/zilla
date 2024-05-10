@@ -34,5 +34,5 @@ bindings:
         port: ${{env.MOSQUITTO_BROKER_PORT}}
 telemetry:
   exporters:
-    stdout_exporter:
+    stdout_logs_exporter:
       type: stdout

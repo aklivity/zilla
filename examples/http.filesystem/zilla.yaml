@@ -63,3 +63,7 @@ bindings:
     kind: server
     options:
       location: /var/www/
+telemetry:
+  exporters:
+    stdout_logs_exporter:
+      type: stdout

@@ -34,3 +34,7 @@ bindings:
   north_echo_server:
     type: echo
     kind: server
+telemetry:
+  exporters:
+    stdout_logs_exporter:
+      type: stdout

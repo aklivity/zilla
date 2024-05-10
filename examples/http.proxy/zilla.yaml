@@ -71,3 +71,7 @@ bindings:
     options:
       host: nginx
       port: 443
+telemetry:
+  exporters:
+    stdout_logs_exporter:
+      type: stdout

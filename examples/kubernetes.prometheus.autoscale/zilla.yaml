@@ -1,27 +1,5 @@
 ---
 name: example
-telemetry:
-  metrics:
-    - http.request.size
-    - http.response.size
-    - stream.active.received
-    - stream.active.sent
-    - stream.opens.received
-    - stream.opens.sent
-    - stream.data.received
-    - stream.data.sent
-    - stream.errors.received
-    - stream.errors.sent
-    - stream.closes.received
-    - stream.closes.sent
-  exporters:
-    prometheus_endpoint:
-      type: prometheus
-      options:
-        endpoints:
-          - scheme: http
-            path: /metrics
-            port: 7190
 bindings:
   north_tcp_server:
     type: tcp
@@ -52,3 +30,27 @@ bindings:
   north_echo_server:
     type: echo
     kind: server
+telemetry:
+  metrics:
+    - http.request.size
+    - http.response.size
+    - stream.active.received
+    - stream.active.sent
+    - stream.opens.received
+    - stream.opens.sent
+    - stream.data.received
+    - stream.data.sent
+    - stream.errors.received
+    - stream.errors.sent
+    - stream.closes.received
+    - stream.closes.sent
+  exporters:
+    stdout_logs_exporter:
+      type: stdout
+    prometheus_endpoint:
+      type: prometheus
+      options:
+        endpoints:
+          - scheme: http
+            path: /metrics
+            port: 7190

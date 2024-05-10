@@ -303,8 +303,11 @@ telemetry:
     - grpc.requests.per.rpc
     - grpc.responses.per.rpc
 
-  # Prometheus endpoint definition
   exporters:
+    # Enable Standard Out logs
+    stdout_logs_exporter:
+      type: stdout
+    # Prometheus endpoint definition
     prometheus_metric_exporter:
       type: prometheus
       options:

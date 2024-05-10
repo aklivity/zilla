@@ -66,5 +66,5 @@ bindings:
     kind: server
 telemetry:
   exporters:
-    stdout_exporter:
+    stdout_logs_exporter:
       type: stdout

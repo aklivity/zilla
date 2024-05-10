@@ -8,18 +8,6 @@ vaults:
         store: tls/localhost.p12
         type: pkcs12
         password: ${{env.KEYSTORE_PASSWORD}}
-telemetry:
-  metrics:
-    - stream.active.received
-    - stream.active.sent
-    - stream.opens.received
-    - stream.opens.sent
-    - stream.data.received
-    - stream.data.sent
-    - stream.errors.received
-    - stream.errors.sent
-    - stream.closes.received
-    - stream.closes.sent
 bindings:
   north_tcp_server:
     type: tcp
@@ -118,3 +106,18 @@ bindings:
     telemetry:
       metrics:
         - stream.*
+telemetry:
+  metrics:
+    - stream.active.received
+    - stream.active.sent
+    - stream.opens.received
+    - stream.opens.sent
+    - stream.data.received
+    - stream.data.sent
+    - stream.errors.received
+    - stream.errors.sent
+    - stream.closes.received
+    - stream.closes.sent
+  exporters:
+    stdout_logs_exporter:
+      type: stdout

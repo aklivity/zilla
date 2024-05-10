@@ -126,5 +126,5 @@ bindings:
       port: 8080
 telemetry:
   exporters:
-    stdout_exporter:
+    stdout_logs_exporter:
       type: stdout

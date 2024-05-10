@@ -87,3 +87,7 @@ bindings:
   south_tcp_client:
     type: tcp
     kind: client
+telemetry:
+  exporters:
+    stdout_logs_exporter:
+      type: stdout
