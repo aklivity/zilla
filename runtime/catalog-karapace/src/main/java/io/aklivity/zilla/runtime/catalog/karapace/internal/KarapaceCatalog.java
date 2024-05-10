@@ -15,6 +15,8 @@
 package io.aklivity.zilla.runtime.catalog.karapace.internal;
 
 import java.net.URL;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -25,9 +27,12 @@ public class KarapaceCatalog implements Catalog
 {
     public static final String NAME = "karapace";
 
+    private final ConcurrentMap<Long, KarapaceCache> cache;
+
     public KarapaceCatalog(
         Configuration config)
     {
+        this.cache = new ConcurrentHashMap<>();
     }
 
     @Override
@@ -40,7 +45,7 @@ public class KarapaceCatalog implements Catalog
     public CatalogContext supply(
         EngineContext context)
     {
-        return new KarapaceCatalogContext(context);
+        return new KarapaceCatalogContext(context, cache);
     }
 
     @Override

@@ -13,30 +13,15 @@
 # specific language governing permissions and limitations under the License.
 #
 
----
-name: test
-telemetry:
-  exporters:
-    exporter0:
-      type: test
-      options:
-        events:
-          - qname: test.catalog0
-            id: catalog.filesystem.file.not.found
-            message: FILE_NOT_FOUND asyncapi/kafka.yaml
-catalogs:
-  catalog0:
-    type: filesystem
-    options:
-      subjects:
-        subject1:
-          path: asyncapi/kafka.yaml
-bindings:
-  net0:
-    type: test
-    kind: server
-    options:
-      catalog:
-        catalog0:
-          - subject: not-subject1
-    exit: app0
+accept "http://localhost:8081/schemas/ids/1"
+
+accepted
+connected
+
+read http:method "GET"
+read http:version "HTTP/1.1"
+read closed
+
+write http:status "500" "Internal Server Error"
+write http:content-length
+write close
