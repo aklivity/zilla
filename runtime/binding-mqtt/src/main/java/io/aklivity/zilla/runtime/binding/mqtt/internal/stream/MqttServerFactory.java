@@ -204,7 +204,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private static final String16FW MQTT_PROTOCOL_NAME = new String16FW("MQTT", BIG_ENDIAN);
     public static final int MQTT_PROTOCOL_VERSION_5 = 5;
     public static final int MQTT_PROTOCOL_VERSION_4 = 4;
-    private static final int MAXIMUM_CLIENT_ID_LENGTH = 36;
+    private static final int MAXIMUM_CLIENT_ID_LENGTH = 256;
     private static final int CONNECT_FIXED_HEADER = 0b0001_0000;
     private static final int SUBSCRIBE_FIXED_HEADER = 0b1000_0010;
     private static final int UNSUBSCRIBE_FIXED_HEADER = 0b1010_0010;
@@ -406,7 +406,6 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final Map<MqttPacketType, MqttServerDecoder> decodersByPacketTypeV4;
     private final Map<MqttPacketType, MqttServerDecoder> decodersByPacketTypeV5;
     private final IntSupplier supplySubscriptionId;
-    private final MqttQoS publishQosMax;
     private final EngineContext context;
 
     private int maximumPacketSize = Integer.MAX_VALUE;
@@ -481,6 +480,8 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final MqttValidator validator;
     private final CharsetDecoder utf8Decoder;
     private final Function<ModelConfig, ValidatorHandler> supplyValidator;
+
+    private MqttQoS publishQosMax;
 
     public MqttServerFactory(
         MqttConfiguration config,
@@ -574,7 +575,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 affinity,
                 binding.versions,
                 binding.guard,
-                binding.credentials(),
+                binding.resolveCredentials(),
                 binding.authField())::onNetwork;
         }
         return newStream;
@@ -1251,6 +1252,13 @@ public final class MqttServerFactory implements MqttStreamFactory
             String16FW topicName;
             int publishLimit;
             int packetId = 0;
+
+            if (qos > publishQosMax.value())
+            {
+                reasonCode = QOS_NOT_SUPPORTED;
+                break decode;
+            }
+
             if (qos > 0)
             {
                 final MqttPublishQosV4FW publish =
@@ -1355,6 +1363,13 @@ public final class MqttServerFactory implements MqttStreamFactory
             MqttPropertiesFW properties;
             int publishLimit;
             int packetId = 0;
+
+            if (qos > publishQosMax.value())
+            {
+                reasonCode = QOS_NOT_SUPPORTED;
+                break decode;
+            }
+
             if (qos > 0)
             {
                 final MqttPublishQosV5FW publish =
@@ -3175,11 +3190,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             int reasonCode = SUCCESS;
 
-            if (qos > subscribeQosMax)
-            {
-                reasonCode = QOS_NOT_SUPPORTED;
-            }
-            else if (retained && !retainAvailable(capabilities))
+            if (retained && !retainAvailable(capabilities))
             {
                 reasonCode = RETAIN_NOT_SUPPORTED;
             }
@@ -5217,6 +5228,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     sessionExpiry = mqttSessionBeginEx.expiry();
                     capabilities = mqttSessionBeginEx.capabilities();
                     subscribeQosMax = mqttSessionBeginEx.subscribeQosMax();
+                    publishQosMax = MqttQoS.valueOf(mqttSessionBeginEx.publishQosMax());
                     if (packetIds != null)
                     {
                         packetIds.forEachRemaining((IntConsumer) p -> unreleasedPacketIds.add(p));

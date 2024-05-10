@@ -102,6 +102,15 @@ public class ConnectionIT
 
     @Test
     @Specification({
+        "${net}/connect.reject.exceeding.max.client.id/client",
+        "${net}/connect.reject.exceeding.max.client.id/server"})
+    public void shouldRejectExceedingClientIdMax() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/disconnect/client",
         "${net}/disconnect/server"})
     public void shouldConnectThenDisconnect() throws Exception

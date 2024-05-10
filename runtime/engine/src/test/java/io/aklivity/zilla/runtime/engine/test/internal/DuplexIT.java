@@ -200,6 +200,16 @@ public class DuplexIT
 
     @Test
     @Specification({
+        "timestamps.false/client",
+        "timestamps.false/server"
+    })
+    public void shouldConnectWithoutTimestamps() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "client.sent.data/client",
         "client.sent.data/server"
     })

@@ -31,6 +31,7 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
                               .session()
                                 .flags("CLEAN_START")
                                 .subscribeQosMax(0)
+                                .publishQosMax(0)
                                 .packetSizeMax(66560)
                                 .capabilities("RETAIN", "WILDCARD", "SUBSCRIPTION_IDS", "SHARED_SUBSCRIPTIONS")
                                 .clientId("client")
@@ -40,20 +41,3 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
 connected
 
 read zilla:data.empty
-read notify RECEIVED_SESSION_STATE
-
-
-connect await RECEIVED_SESSION_STATE
-        "zilla://streams/app0"
-         option zilla:window 8192
-         option zilla:transmission "duplex"
-
-write zilla:begin.ext ${mqtt:beginEx()
-                              .typeId(zilla:id("mqtt"))
-                              .publish()
-                                .clientId("client")
-                                .topic("sensor/one")
-                                .build()
-                              .build()}
-
-connected

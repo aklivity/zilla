@@ -60,4 +60,8 @@ public interface ZillaChannelConfig extends ChannelConfig
     void setCapabilities(byte capabilities);
 
     byte getCapabilities();
+
+    void setTimestamps(boolean timestamps);
+
+    boolean hasTimestamps();
 }

@@ -19,13 +19,22 @@ import org.agrona.DirectBuffer;
 import io.aklivity.zilla.runtime.catalog.karapace.internal.types.StringFW;
 import io.aklivity.zilla.runtime.catalog.karapace.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.catalog.karapace.internal.types.event.KarapaceEventExFW;
-import io.aklivity.zilla.runtime.catalog.karapace.internal.types.event.KarapaceRemoteAccessRejectedExFW;
+import io.aklivity.zilla.runtime.catalog.karapace.internal.types.event.KarapaceRetrievableSchemaIdExFW;
+import io.aklivity.zilla.runtime.catalog.karapace.internal.types.event.KarapaceRetrievableSchemaSubjectVersionExFW;
+import io.aklivity.zilla.runtime.catalog.karapace.internal.types.event.KarapaceUnretrievableSchemaIdExFW;
+import io.aklivity.zilla.runtime.catalog.karapace.internal.types.event.KarapaceUnretrievableSchemaSubjectVersionExFW;
+import io.aklivity.zilla.runtime.catalog.karapace.internal.types.event.KarapaceUnretrievableSchemaSubjectVersionStaleSchemaExFW;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.event.EventFormatterSpi;
 
 public final class KarapaceEventFormatter implements EventFormatterSpi
 {
-    private static final String REMOTE_ACCESS_REJECTED = "REMOTE_ACCESS_REJECTED %s %s %d";
+    private static final String UNRETRIEVABLE_SCHEMA_SUBJECT_VERSION = "UNRETRIEVABLE_SCHEMA %s %s";
+    private static final String UNRETRIEVABLE_SCHEMA_SUBJECT_VERSION_STALE_SCHEMA =
+        "UNRETRIEVABLE_SCHEMA %s %s, USING_STALE_SCHEMA %d";
+    private static final String UNRETRIEVABLE_SCHEMA_ID = "UNRETRIEVABLE_SCHEMA_ID %d";
+    private static final String RETRIEVED_SCHEMA_SUBJECT_VERSION = "RETRIEVED_SCHEMA_SUBJECT_VERSION %s %s";
+    private static final String RETRIEVED_SCHEMA_ID = "RETRIEVED_SCHEMA_ID %d";
 
     private final EventFW eventRO = new EventFW();
     private final KarapaceEventExFW karapaceEventExRO = new KarapaceEventExFW();
@@ -46,11 +55,36 @@ public final class KarapaceEventFormatter implements EventFormatterSpi
         String result = null;
         switch (extension.kind())
         {
-        case REMOTE_ACCESS_REJECTED:
+        case UNRETRIEVABLE_SCHEMA_SUBJECT_VERSION:
         {
-            KarapaceRemoteAccessRejectedExFW ex = extension.remoteAccessRejected();
-            result = String.format(REMOTE_ACCESS_REJECTED, asString(ex.method()), asString(ex.url()),
-                ex.status());
+            KarapaceUnretrievableSchemaSubjectVersionExFW ex = extension.unretrievableSchemaSubjectVersion();
+            result = String.format(UNRETRIEVABLE_SCHEMA_SUBJECT_VERSION, asString(ex.subject()), asString(ex.version()));
+            break;
+        }
+        case UNRETRIEVABLE_SCHEMA_SUBJECT_VERSION_STALE_SCHEMA:
+        {
+            KarapaceUnretrievableSchemaSubjectVersionStaleSchemaExFW ex = extension
+                .unretrievableSchemaSubjectVersionStaleSchema();
+            result = String.format(UNRETRIEVABLE_SCHEMA_SUBJECT_VERSION_STALE_SCHEMA, asString(ex.subject()),
+                asString(ex.version()), ex.schemaId());
+            break;
+        }
+        case UNRETRIEVABLE_SCHEMA_ID:
+        {
+            KarapaceUnretrievableSchemaIdExFW ex = extension.unretrievableSchemaId();
+            result = String.format(UNRETRIEVABLE_SCHEMA_ID, ex.schemaId());
+            break;
+        }
+        case RETRIEVED_SCHEMA_SUBJECT_VERSION:
+        {
+            KarapaceRetrievableSchemaSubjectVersionExFW ex = extension.retrievableSchemaSubjectVersion();
+            result = String.format(RETRIEVED_SCHEMA_SUBJECT_VERSION, asString(ex.subject()), asString(ex.version()));
+            break;
+        }
+        case RETRIEVED_SCHEMA_ID:
+        {
+            KarapaceRetrievableSchemaIdExFW ex = extension.retrievableSchemaId();
+            result = String.format(RETRIEVED_SCHEMA_ID, ex.schemaId());
             break;
         }
         }

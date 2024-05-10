@@ -62,6 +62,26 @@ public class ConnectionIT
     }
 
     @Test
+    @Configuration("client.credentials.username.yaml")
+    @Specification({
+        "${net}/connect.username.authentication.successful/server",
+        "${app}/session.connect.authorization/client"})
+    public void shouldAuthenticateUsernameAndConnect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.credentials.password.yaml")
+    @Specification({
+        "${net}/connect.password.authentication.successful/server",
+        "${app}/session.connect.authorization/client"})
+    public void shouldAuthenticatePasswordAndConnect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("client.yaml")
     @Specification({
         "${net}/session.will.message.retain/server",

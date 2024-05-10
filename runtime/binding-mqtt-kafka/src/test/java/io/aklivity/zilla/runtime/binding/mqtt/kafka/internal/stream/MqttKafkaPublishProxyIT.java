@@ -169,12 +169,45 @@ public class MqttKafkaPublishProxyIT
     }
 
     @Test
+    @Configuration("proxy.when.publish.topic.with.messages.params.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/publish.one.message/client",
+        "${kafka}/publish.one.message.resolve.topic.params/server"})
+    public void shouldSendOneMessageWithResolvingParams() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.when.publish.topic.with.messages.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/publish.topic.space/client",
         "${kafka}/publish.topic.space/server"})
     public void shouldSendUsingTopicSpace() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.when.publish.topic.with.messages.params.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/publish.topic.space.with.params/client",
+        "${kafka}/publish.topic.space.with.params/server"})
+    public void shouldSendUsingTopicSpaceWithParams() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.when.publish.topic.with.messages.params.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/publish.reject.qos2/client",
+        "${kafka}/publish.reject.qos2/server"})
+    public void shouldRejectPublishWhenTopicSpaceWithParams() throws Exception
     {
         k3po.finish();
     }

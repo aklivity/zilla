@@ -41,6 +41,56 @@
                             {
                                 "$ref": "#/$defs/converter"
                             },
+                            "catalog":
+                            {
+                                "type": "object",
+                                "patternProperties":
+                                {
+                                    "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                                    {
+                                        "type": "array",
+                                        "items":
+                                        {
+                                            "$ref": "#/$defs/cataloged"
+                                        }
+                                    }
+                                },
+                                "maxProperties": 1
+                            },
+                            "assertions":
+                            {
+                                "catalog":
+                                {
+                                    "type": "object",
+                                    "patternProperties":
+                                    {
+                                        "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                                        {
+                                            "type": "array",
+                                            "items":
+                                            {
+                                                "type": "object",
+                                                "properties":
+                                                {
+                                                    "id":
+                                                    {
+                                                        "type": "integer"
+                                                    },
+                                                    "schema":
+                                                    {
+                                                        "type": ["string", "null"]
+                                                    },
+                                                    "delay":
+                                                    {
+                                                        "type": "number"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "maxProperties": 1
+                                }
+                            },
                             "port":
                             {
                                 "title": "Port",
@@ -70,14 +120,6 @@
                                         }
                                     }
                                 ]
-                            },
-                            "catalogs":
-                            {
-                                "type": "array",
-                                "items":
-                                {
-                                    "type": "string"
-                                }
                             },
                             "authorization":
                             {

@@ -49,37 +49,3 @@ write '{'
        '}'
 
 write close
-
-accept "http://localhost:8081/schemas/ids/9"
-
-accepted
-connected
-
-read http:method "GET"
-read http:version "HTTP/1.1"
-read closed
-
-write http:status "200" "OK"
-write http:header "content-type" "application/vnd.schemaregistry.v1+json"
-write http:content-length
-
-write '{'
-         '"schema":"'
-          '{'
-           '\\"fields\\":['
-             '{'
-               '\\"name\\":\\"id\\",'
-               '\\"type\\":\\"string\\"'
-             '},'
-             '{'
-               '\\"name\\":\\"status\\",'
-               '\\"type\\":\\"string\\"'
-             '}'
-           '],'
-           '\\"name\\":\\"Event\\",'
-           '\\"namespace\\":\\"io.aklivity.example\\",'
-           '\\"type\\":\\"record\\"'
-         '}"'
-       '}'
-
-write close

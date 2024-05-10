@@ -85,6 +85,13 @@ public final class TestGuardHandler implements GuardHandler
     }
 
     @Override
+    public String credentials(
+        long sessionId)
+    {
+        return credentials;
+    }
+
+    @Override
     public long expiresAt(
         long sessionId)
     {
