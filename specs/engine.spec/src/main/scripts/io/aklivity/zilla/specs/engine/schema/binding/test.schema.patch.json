@@ -57,27 +57,38 @@
                                 },
                                 "maxProperties": 1
                             },
-                            "catalog-assertion":
+                            "assertions":
                             {
-                                "type": "array",
-                                "items":
+                                "catalog":
                                 {
                                     "type": "object",
-                                    "properties":
+                                    "patternProperties":
                                     {
-                                        "id":
+                                        "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
                                         {
-                                            "type": "integer"
-                                        },
-                                        "schema":
-                                        {
-                                            "type": ["string", "null"]
-                                        },
-                                        "interval":
-                                        {
-                                            "type": "number"
+                                            "type": "array",
+                                            "items":
+                                            {
+                                                "type": "object",
+                                                "properties":
+                                                {
+                                                    "id":
+                                                    {
+                                                        "type": "integer"
+                                                    },
+                                                    "schema":
+                                                    {
+                                                        "type": ["string", "null"]
+                                                    },
+                                                    "delay":
+                                                    {
+                                                        "type": "number"
+                                                    }
+                                                }
+                                            }
                                         }
-                                    }
+                                    },
+                                    "maxProperties": 1
                                 }
                             },
                             "port":

@@ -28,6 +28,8 @@ bindings:
       catalog:
         catalog0:
           - id: 9
-      catalog-assertion:
-        - schema: '{"fields":[{"name":"id","type":"string"},{"name":"status","type":"string"}],"name":"Event","namespace":"io.aklivity.example","type":"record"}'
+      assertions:
+        catalog:
+          catalog0:
+            - schema: '{"fields":[{"name":"id","type":"string"},{"name":"status","type":"string"}],"name":"Event","namespace":"io.aklivity.example","type":"record"}'
     exit: app0

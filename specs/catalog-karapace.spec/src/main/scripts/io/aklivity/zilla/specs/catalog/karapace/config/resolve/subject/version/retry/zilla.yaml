@@ -44,10 +44,12 @@ bindings:
       catalog:
         catalog0:
           - subject: items-snapshots-value
-      catalog-assertion:
-        - id: 9
-        - id: 9
-          interval: 1000
-        - id: 10
-          interval: 1000
+      assertions:
+        catalog:
+          catalog0:
+            - id: 9
+            - id: 9
+              delay: 1000
+            - id: 10
+              delay: 1000
     exit: app0

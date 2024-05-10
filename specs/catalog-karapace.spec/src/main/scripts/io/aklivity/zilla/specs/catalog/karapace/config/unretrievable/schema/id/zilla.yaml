@@ -37,6 +37,8 @@ bindings:
       catalog:
         catalog0:
           - id: 1
-      catalog-assertion:
-        - schema: null
+      assertions:
+        catalog:
+          catalog0:
+            - schema: null
     exit: app0

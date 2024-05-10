@@ -118,7 +118,8 @@ final class TestBindingFactory implements BindingHandler
                     int catalogId = context.supplyTypeId(catalog.name);
                     catalogs.add(context.supplyCatalog(NamespacedId.id(namespaceId, catalogId)));
                 }
-                this.catalogAssertions = options.catalogAssertions;
+                this.catalogAssertions = options.catalogAssertions != null && !options.catalogAssertions.isEmpty() ?
+                    options.catalogAssertions.get(0).assertions : null;
             }
             if (options.authorization != null)
             {
@@ -261,7 +262,7 @@ final class TestBindingFactory implements BindingHandler
                     {
                         try
                         {
-                            Thread.sleep(assertion.interval);
+                            Thread.sleep(assertion.delay);
                         }
                         catch (Exception ex)
                         {

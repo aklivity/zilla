@@ -37,6 +37,8 @@ bindings:
       catalog:
         catalog0:
           - subject: items-snapshots-value
-      catalog-assertion:
-        - id: 0
+      assertions:
+        catalog:
+          catalog0:
+            - id: 0
     exit: app0

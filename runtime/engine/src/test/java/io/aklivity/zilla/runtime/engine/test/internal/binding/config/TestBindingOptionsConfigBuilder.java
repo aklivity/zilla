@@ -31,7 +31,7 @@ public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, T
     private TestAuthorizationConfig authorization;
     private List<CatalogedConfig> catalogs;
     private List<TestBindingOptionsConfig.Event> events;
-    private List<TestBindingOptionsConfig.CatalogAssertion> catalogAssertions;
+    private List<TestBindingOptionsConfig.CatalogAssertions> catalogAssertions;
 
     TestBindingOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
@@ -80,16 +80,15 @@ public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, T
         return this;
     }
 
-    public TestBindingOptionsConfigBuilder<T> catalogAssertion(
-        int id,
-        String schema,
-        long interval)
+    public TestBindingOptionsConfigBuilder<T> catalogAssertions(
+        String name,
+        List<TestBindingOptionsConfig.CatalogAssertion> assertions)
     {
         if (this.catalogAssertions == null)
         {
             this.catalogAssertions = new LinkedList<>();
         }
-        this.catalogAssertions.add(new TestBindingOptionsConfig.CatalogAssertion(id, schema, interval));
+        this.catalogAssertions.add(new TestBindingOptionsConfig.CatalogAssertions(name, assertions));
         return this;
     }
 

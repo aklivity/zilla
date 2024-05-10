@@ -27,7 +27,7 @@ public final class TestBindingOptionsConfig extends OptionsConfig
     public final TestAuthorizationConfig authorization;
     public final List<CatalogedConfig> cataloged;
     public final List<Event> events;
-    public final List<CatalogAssertion> catalogAssertions;
+    public final List<CatalogAssertions> catalogAssertions;
 
     public static TestBindingOptionsConfigBuilder<TestBindingOptionsConfig> builder()
     {
@@ -45,7 +45,7 @@ public final class TestBindingOptionsConfig extends OptionsConfig
         TestAuthorizationConfig authorization,
         List<CatalogedConfig> cataloged,
         List<Event> events,
-        List<CatalogAssertion> catalogAssertions)
+        List<CatalogAssertions> catalogAssertions)
     {
         this.mode = mode;
         this.authorization = authorization;
@@ -68,20 +68,34 @@ public final class TestBindingOptionsConfig extends OptionsConfig
         }
     }
 
+    public static final class CatalogAssertions
+    {
+        public final String name;
+        public final List<CatalogAssertion> assertions;
+
+        public CatalogAssertions(
+            String name,
+            List<CatalogAssertion> assertions)
+        {
+            this.name = name;
+            this.assertions = assertions;
+        }
+    }
+
     public static final class CatalogAssertion
     {
         public final int id;
         public final String schema;
-        public final long interval;
+        public final long delay;
 
         public CatalogAssertion(
             int id,
             String schema,
-            long interval)
+            long delay)
         {
             this.id = id;
             this.schema = schema;
-            this.interval = interval;
+            this.delay = delay;
         }
     }
 }
