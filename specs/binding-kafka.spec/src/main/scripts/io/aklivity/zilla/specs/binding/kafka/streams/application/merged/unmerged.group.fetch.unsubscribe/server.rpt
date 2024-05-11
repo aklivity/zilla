@@ -292,5 +292,4 @@ write flush
 
 write notify FETCH_REQUEST_RECEIVED
 
-read closed
-write close
+read aborted

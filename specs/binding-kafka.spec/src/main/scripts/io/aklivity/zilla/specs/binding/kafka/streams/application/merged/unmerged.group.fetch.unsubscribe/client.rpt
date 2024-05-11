@@ -298,7 +298,6 @@ read zilla:begin.ext ${kafka:beginEx()
                                   .build()
                               .build()}
 
-write close
-read closed
+write abort
 
 

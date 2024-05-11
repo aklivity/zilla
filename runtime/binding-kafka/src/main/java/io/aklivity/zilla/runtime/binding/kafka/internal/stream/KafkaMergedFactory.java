@@ -2004,6 +2004,20 @@ public final class KafkaMergedFactory implements BindingHandler
 
             doFetchPartitionOffsets(traceId);
             doProducePartitionsIfNecessary(traceId);
+
+            fetchStreams.forEach(f ->
+            {
+                f.doFetchInitialEndIfNecessary(traceId);
+                f.doFetchReplyResetIfNecessary(traceId);
+            });
+            fetchStreams.clear();
+
+            produceStreams.forEach(p ->
+            {
+                p.doProduceInitialEndIfNecessary(traceId);
+                p.doProduceReplyResetIfNecessary(traceId);
+            });
+            produceStreams.clear();
         }
 
         private void onTopicOffsetFetchDataChanged(
