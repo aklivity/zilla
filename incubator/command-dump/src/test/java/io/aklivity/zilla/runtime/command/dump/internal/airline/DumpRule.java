@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.command.dump.internal.airline;
 
+import static org.agrona.LangUtil.rethrowUnchecked;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
@@ -34,13 +35,27 @@ public final class DumpRule implements TestRule
     private static final DumpCommandRunner DUMP = new DumpCommandRunner();
     private static final TsharkRunner TSHARK = new TsharkRunner();
 
-    private Path expected;
-
     @Override
     public Statement apply(
         Statement base,
         Description description)
     {
+        Class<?> testClass = description.getTestClass();
+        String testMethod = description.getMethodName();
+        String resourceName = String.format("%s_%s.txt", testClass.getSimpleName(), testMethod);
+        URL resource = testClass.getResource(resourceName);
+        assert resource != null;
+        String expected = null;
+        try
+        {
+            expected = Files.readString(Path.of(resource.toURI()));
+        }
+        catch (Exception ex)
+        {
+            rethrowUnchecked(ex);
+        }
+        final String expected0 = expected;
+
         return new Statement()
         {
             @Override
@@ -51,23 +66,9 @@ public final class DumpRule implements TestRule
                 Container.ExecResult result = TSHARK.createTxt(PCAP_PATH);
                 Files.writeString(TXT_PATH, result.getStdout());
                 assertThat(result.getExitCode(), equalTo(0));
-                assert expected != null;
-                assertThat(result.getStdout(), equalTo(Files.readString(expected)));
+                assert expected0 != null;
+                assertThat(result.getStdout(), equalTo(expected0));
             }
         };
-    }
-
-    public void expect(
-        String file) throws Exception
-    {
-        this.expected = resourceToPath(file);
-    }
-
-    private static Path resourceToPath(
-        String name) throws Exception
-    {
-        URL resource = DumpRule.class.getResource(name);
-        assert resource != null;
-        return Path.of(resource.toURI());
     }
 }

@@ -63,6 +63,5 @@ public class Http2AuthorizationIT
     public void shouldChallengeCredentialsHeader() throws Exception
     {
         k3po.finish();
-        dump.expect("expected_http2_authorization_challenge_credentials_header.txt");
     }
 }

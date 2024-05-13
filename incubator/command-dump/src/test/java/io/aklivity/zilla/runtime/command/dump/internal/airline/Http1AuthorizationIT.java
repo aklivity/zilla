@@ -61,6 +61,5 @@ public class Http1AuthorizationIT
     public void shouldChallengeCredentialsHeader() throws Exception
     {
         k3po.finish();
-        dump.expect("expected_http1_authorization_challenge_credentials_header.txt");
     }
 }

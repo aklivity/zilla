@@ -59,6 +59,5 @@ public class GrpcServerStreamRpcIT
     public void shouldEstablishServerStreamRpc() throws Exception
     {
         k3po.finish();
-        dump.expect("expected_grpc_server_stream_rpc_establish.txt");
     }
 }
