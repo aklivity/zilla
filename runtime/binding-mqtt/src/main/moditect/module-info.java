@@ -27,4 +27,7 @@ module io.aklivity.zilla.runtime.binding.mqtt
 
     provides io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi
         with io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttConditionConfigAdapter;
+
+    provides io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi
+        with io.aklivity.zilla.runtime.binding.mqtt.internal.MqttEventFormatterFactory;
 }

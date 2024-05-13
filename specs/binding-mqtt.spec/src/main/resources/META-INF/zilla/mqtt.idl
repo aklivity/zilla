@@ -261,4 +261,23 @@ scope mqtt
             INCOMPLETE(1)
         }
     }
+
+    scope event
+    {
+        enum MqttEventType (uint8)
+        {
+            CLIENT_CONNECTED (1)
+        }
+
+        struct MqttClientConnectedEx extends core::stream::Extension
+        {
+            string8 identity;
+            string8 clientId;
+        }
+
+        union MqttEventEx switch (MqttEventType)
+        {
+            case CLIENT_CONNECTED: MqttClientConnectedEx clientConnected;
+        }
+    }
 }
