@@ -141,13 +141,6 @@
       <plugin>
         <groupId>com.mycila</groupId>
         <artifactId>license-maven-plugin</artifactId>
-        <configuration>
-          <excludes>
-            <exclude>**/keys</exclude>
-            <exclude>**/trust</exclude>
-            <exclude>**/signers</exclude>
-          </excludes>
-        </configuration>
       </plugin>
       <plugin>
         <artifactId>maven-checkstyle-plugin</artifactId>

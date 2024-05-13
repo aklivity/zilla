@@ -172,7 +172,7 @@
         <artifactId>license-maven-plugin</artifactId>
         <configuration>
           <excludes>
-            <exclude>src/test/resources/io/aklivity/zilla/runtime/command/dump/internal/test/*.txt</exclude>
+            <exclude>src/test/resources/io/aklivity/zilla/runtime/command/dump/internal/*.txt</exclude>
           </excludes>
         </configuration>
       </plugin>

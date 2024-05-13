@@ -32,6 +32,8 @@ import org.testcontainers.images.builder.ImageFromDockerfile;
 import org.testcontainers.images.builder.Transferable;
 import org.testcontainers.utility.DockerImageName;
 
+import io.aklivity.zilla.runtime.command.dump.internal.airline.ZillaDumpCommand;
+
 class TsharkRunner
 {
     private static final String TSHARK_DOCKER_IMAGE = "kreinerattila/tshark:4.2.0";
@@ -97,7 +99,7 @@ class TsharkRunner
         String containerPath) throws IOException
     {
         assert container.isRunning();
-        try (InputStream is = TsharkRunner.class.getResourceAsStream(resourceName))
+        try (InputStream is = ZillaDumpCommand.class.getResourceAsStream(resourceName))
         {
             assert is != null;
             container.copyFileToContainer(Transferable.of(is.readAllBytes()), containerPath);
