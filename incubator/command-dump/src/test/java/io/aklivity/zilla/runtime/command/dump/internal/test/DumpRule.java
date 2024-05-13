@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.command.dump.internal.airline;
+package io.aklivity.zilla.runtime.command.dump.internal.test;
 
 import static org.agrona.LangUtil.rethrowUnchecked;
 import static org.hamcrest.MatcherAssert.assertThat;

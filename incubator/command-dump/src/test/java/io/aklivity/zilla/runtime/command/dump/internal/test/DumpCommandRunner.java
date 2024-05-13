@@ -12,18 +12,20 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.command.dump.internal.airline;
+package io.aklivity.zilla.runtime.command.dump.internal.test;
 
 import java.nio.file.Path;
 import java.util.List;
 
-public class DumpCommandRunner
+import io.aklivity.zilla.runtime.command.dump.internal.airline.ZillaDumpCommand;
+
+class DumpCommandRunner
 {
     private static final Path ENGINE_PATH = Path.of("target/zilla-itests");
 
     private final ZillaDumpCommand command;
 
-    public DumpCommandRunner()
+    DumpCommandRunner()
     {
         command = new ZillaDumpCommand();
         command.verbose = true;

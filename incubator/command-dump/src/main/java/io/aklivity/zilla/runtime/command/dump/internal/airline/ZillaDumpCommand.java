@@ -191,7 +191,7 @@ public final class ZillaDumpCommand extends ZillaCommand
         hidden = true)
     public boolean exceptions;
 
-    boolean continuous = true;
+    public boolean continuous = true;
 
     private final FrameFW frameRO = new FrameFW();
     private final BeginFW beginRO = new BeginFW();

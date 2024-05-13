@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.command.dump.internal.airline;
+package io.aklivity.zilla.runtime.command.dump.internal.test;
 
 import static org.agrona.LangUtil.rethrowUnchecked;
 
@@ -32,7 +32,7 @@ import org.testcontainers.images.builder.ImageFromDockerfile;
 import org.testcontainers.images.builder.Transferable;
 import org.testcontainers.utility.DockerImageName;
 
-public class TsharkRunner
+class TsharkRunner
 {
     private static final String TSHARK_DOCKER_IMAGE = "kreinerattila/tshark:4.2.0";
     private static final String COMMAND = "sleep infinity";
@@ -40,7 +40,7 @@ public class TsharkRunner
 
     private GenericContainer<?> tshark;
 
-    public TsharkRunner()
+    TsharkRunner()
     {
         try
         {
