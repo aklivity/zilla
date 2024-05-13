@@ -14,12 +14,17 @@
  */
 package io.aklivity.zilla.runtime.catalog.karapace.internal;
 
+import static io.aklivity.zilla.runtime.catalog.karapace.internal.CachedSchemaId.IN_PROGRESS;
+
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.ByteOrder;
 import java.text.MessageFormat;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.CRC32C;
 
 import org.agrona.BitUtil;
@@ -41,6 +46,8 @@ public class KarapaceCatalogHandler implements CatalogHandler
     private static final String REGISTER_SCHEMA_PATH = "/subjects/{0}/versions";
     private static final int MAX_PADDING_LENGTH = 5;
     private static final byte MAGIC_BYTE = 0x0;
+    private static final long RESET_RETRY_DELAY_MS_DEFAULT = 0L;
+    private static final long RETRY_INITIAL_DELAY_MS_DEFAULT = 1000L;
 
     private final KarapacePrefixFW.Builder prefixRW = new KarapacePrefixFW.Builder()
         .wrap(new UnsafeBuffer(new byte[5]), 0, 5);
@@ -54,11 +61,22 @@ public class KarapaceCatalogHandler implements CatalogHandler
     private final long maxAgeMillis;
     private final KarapaceEventContext event;
     private final long catalogId;
+    private final ConcurrentMap<Integer, CompletableFuture<CachedSchema>> cachedSchemas;
+    private final ConcurrentMap<Integer, CompletableFuture<CachedSchemaId>> cachedSchemaIds;
 
     public KarapaceCatalogHandler(
         KarapaceOptionsConfig config,
         EngineContext context,
         long catalogId)
+    {
+        this(config, context, catalogId, new KarapaceCache());
+    }
+
+    public KarapaceCatalogHandler(
+        KarapaceOptionsConfig config,
+        EngineContext context,
+        long catalogId,
+        KarapaceCache cache)
     {
         this.baseUrl = config.url;
         this.client = HttpClient.newHttpClient();
@@ -69,24 +87,83 @@ public class KarapaceCatalogHandler implements CatalogHandler
         this.maxAgeMillis = config.maxAge.toMillis();
         this.event = new KarapaceEventContext(context);
         this.catalogId = catalogId;
+        this.cachedSchemas = cache.schemas;
+        this.cachedSchemaIds = cache.schemaIds;
     }
 
     @Override
     public String resolve(
         int schemaId)
     {
-        String schema;
-        if (schemas.containsKey(schemaId))
+        String schema = null;
+        if (schemaId != NO_SCHEMA_ID)
         {
-            schema = schemas.get(schemaId);
-        }
-        else
-        {
-            String response = sendHttpRequest(MessageFormat.format(SCHEMA_PATH, schemaId));
-            schema = response != null ? request.resolveSchemaResponse(response) : null;
-            if (schema != null)
+            if (schemas.containsKey(schemaId))
             {
-                schemas.put(schemaId, schema);
+                schema = schemas.get(schemaId);
+            }
+            else
+            {
+                AtomicInteger retryAttempts = new AtomicInteger();
+                CompletableFuture<CachedSchema> newFuture = new CompletableFuture<>();
+                CompletableFuture<CachedSchema> existing = cachedSchemas.get(schemaId);
+                if (existing != null && existing.isDone())
+                {
+                    try
+                    {
+                        CachedSchema cachedSchema = existing.get();
+                        if (cachedSchema != null)
+                        {
+                            retryAttempts = cachedSchema.retryAttempts;
+                        }
+                    }
+                    catch (Throwable ex)
+                    {
+                        existing.completeExceptionally(ex);
+                    }
+                }
+                CompletableFuture<CachedSchema> future = cachedSchemas.merge(schemaId, newFuture, (v1, v2) ->
+                    v1.getNow(CachedSchema.IN_PROGRESS).schema == null ? v2 : v1);
+                if (future == newFuture)
+                {
+                    try
+                    {
+                        String response = sendHttpRequest(MessageFormat.format(SCHEMA_PATH, schemaId));
+                        if (response == null)
+                        {
+                            if (retryAttempts.getAndIncrement() == 0)
+                            {
+                                event.onUnretrievableSchemaId(catalogId, schemaId);
+                            }
+                            newFuture.complete(new CachedSchema(null, retryAttempts));
+                        }
+                        else
+                        {
+                            if (retryAttempts.getAndSet(0) > 0)
+                            {
+                                event.onRetrievableSchemaId(catalogId, schemaId);
+                            }
+                            newFuture.complete(new CachedSchema(request.resolveSchemaResponse(response), retryAttempts));
+                        }
+                    }
+                    catch (Throwable ex)
+                    {
+                        newFuture.completeExceptionally(ex);
+                    }
+                }
+                assert future != null;
+                try
+                {
+                    schema = future.get().schema;
+                    if (schema != null)
+                    {
+                        schemas.put(schemaId, schema);
+                    }
+                }
+                catch (Throwable ex)
+                {
+                    future.completeExceptionally(ex);
+                }
             }
         }
         return schema;
@@ -97,21 +174,99 @@ public class KarapaceCatalogHandler implements CatalogHandler
         String subject,
         String version)
     {
-        int schemaId;
+        int schemaId = NO_SCHEMA_ID;
 
-        int checkSum = generateCRC32C(subject, version);
-        if (schemaIds.containsKey(checkSum) &&
-            (System.currentTimeMillis() - schemaIds.get(checkSum).timestamp) < maxAgeMillis)
+        int schemaKey = generateCRC32C(subject, version);
+        if (schemaIds.containsKey(schemaKey) && !schemaIds.get(schemaKey).expired(maxAgeMillis))
         {
-            schemaId = schemaIds.get(checkSum).id;
+            schemaId = schemaIds.get(schemaKey).id;
         }
         else
         {
-            String response = sendHttpRequest(MessageFormat.format(SUBJECT_VERSION_PATH, subject, version));
-            schemaId = response != null ? request.resolveResponse(response) : NO_SCHEMA_ID;
-            if (schemaId != NO_SCHEMA_ID)
+            CachedSchemaId cachedSchemaId = null;
+            AtomicInteger retryAttempts = new AtomicInteger();
+            long retryAfter = RESET_RETRY_DELAY_MS_DEFAULT;
+            CompletableFuture<CachedSchemaId> newFuture = new CompletableFuture<>();
+            CompletableFuture<CachedSchemaId> existing = cachedSchemaIds.get(schemaKey);
+            if (existing != null && existing.isDone())
             {
-                schemaIds.put(checkSum, new CachedSchemaId(System.currentTimeMillis(), schemaId));
+                try
+                {
+                    cachedSchemaId = existing.get();
+                    if (cachedSchemaId != null)
+                    {
+                        retryAttempts = cachedSchemaId.retryAttempts;
+                    }
+                }
+                catch (Throwable ex)
+                {
+                    existing.completeExceptionally(ex);
+                }
+            }
+            CompletableFuture<CachedSchemaId> future = cachedSchemaIds.merge(schemaKey, newFuture, (v1, v2) ->
+                v1.getNow(IN_PROGRESS).retry() &&
+                    (v1.getNow(IN_PROGRESS).id == NO_SCHEMA_ID || v1.getNow(IN_PROGRESS).expired(maxAgeMillis)) ? v2 : v1);
+            if (future == newFuture)
+            {
+                try
+                {
+                    String response = sendHttpRequest(MessageFormat.format(SUBJECT_VERSION_PATH, subject, version));
+                    if (response == null)
+                    {
+                        if (retryAttempts.getAndIncrement() == 0)
+                        {
+                            retryAfter = RETRY_INITIAL_DELAY_MS_DEFAULT;
+                            event.onUnretrievableSchemaSubjectVersion(catalogId, subject, version);
+                            if (cachedSchemaId != null && cachedSchemaId.id != NO_SCHEMA_ID)
+                            {
+                                event.onUnretrievableSchemaSubjectVersionStaleSchema(catalogId, subject, version,
+                                    cachedSchemaId.id);
+                            }
+                        }
+
+                        if (cachedSchemaId != null)
+                        {
+                            if (cachedSchemaId.retryAfter != RESET_RETRY_DELAY_MS_DEFAULT)
+                            {
+                                retryAfter = Math.min(cachedSchemaId.retryAfter << 1, maxAgeMillis);
+                            }
+                            newFuture.complete(new CachedSchemaId(cachedSchemaId.timestamp, cachedSchemaId.id,
+                                retryAttempts, retryAfter));
+                        }
+                        else
+                        {
+                            newFuture.complete(new CachedSchemaId(System.currentTimeMillis(), NO_SCHEMA_ID,
+                                retryAttempts, retryAfter));
+                        }
+                    }
+                    else if (response != null)
+                    {
+                        if (retryAttempts.getAndSet(0) > 0)
+                        {
+                            event.onRetrievableSchemaSubjectVersion(catalogId, subject, version);
+                        }
+                        newFuture.complete(new CachedSchemaId(System.currentTimeMillis(), request.resolveResponse(response),
+                            retryAttempts, retryAfter));
+                    }
+                }
+                catch (Throwable ex)
+                {
+                    newFuture.completeExceptionally(ex);
+                }
+            }
+            assert future != null;
+            try
+            {
+                cachedSchemaId = future.get();
+                schemaId = cachedSchemaId.id;
+                if (schemaId != NO_SCHEMA_ID)
+                {
+                    schemaIds.put(schemaKey, cachedSchemaId);
+                }
+            }
+            catch (Throwable ex)
+            {
+                future.completeExceptionally(ex);
             }
         }
         return schemaId;
@@ -190,22 +345,17 @@ public class KarapaceCatalogHandler implements CatalogHandler
                 .build();
         // TODO: introduce interrupt/timeout for request to schema registry
 
+        String responseBody;
         try
         {
             HttpResponse<String> httpResponse = client.send(httpRequest, HttpResponse.BodyHandlers.ofString());
-            boolean success = httpResponse.statusCode() == 200;
-            String responseBody = success ? httpResponse.body() : null;
-            if (!success)
-            {
-                event.remoteAccessRejected(catalogId, httpRequest, httpResponse.statusCode());
-            }
-            return responseBody;
+            responseBody = httpResponse.statusCode() == 200 ? httpResponse.body() : null;
         }
         catch (Exception ex)
         {
-            event.remoteAccessRejected(catalogId, httpRequest, 0);
+            responseBody = null;
         }
-        return null;
+        return responseBody;
     }
 
     private URI toURI(

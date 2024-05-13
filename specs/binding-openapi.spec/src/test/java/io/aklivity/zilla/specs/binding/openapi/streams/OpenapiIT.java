@@ -46,4 +46,13 @@ public class OpenapiIT
         k3po.finish();
     }
 
+    @Test
+    @Specification({
+        "${openapi}/create.pet.and.item/client",
+        "${openapi}/create.pet.and.item/server"
+    })
+    public void shouldCreatePetAndItem() throws Exception
+    {
+        k3po.finish();
+    }
 }

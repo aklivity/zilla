@@ -58,6 +58,17 @@ public class OpenapiServerIT
     }
 
     @Test
+    @Configuration("server.multiple.specs.yaml")
+    @Specification({
+        "${http}/create.pet.and.item/client",
+        "${openapi}/create.pet.and.item/server"
+    })
+    public void shouldCreatePetAndItem() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server-secure.yaml")
     @Specification({
         "${http}/create.pet/client",

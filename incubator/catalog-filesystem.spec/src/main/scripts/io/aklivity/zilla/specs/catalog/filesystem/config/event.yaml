@@ -36,6 +36,7 @@ bindings:
     type: test
     kind: server
     options:
-      catalogs:
-        - catalog0
+      catalog:
+        catalog0:
+          - subject: not-subject1
     exit: app0

@@ -77,6 +77,7 @@ import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
@@ -90,6 +91,7 @@ import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.ObjectHashSet;
 import org.agrona.concurrent.UnsafeBuffer;
 
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttPatternConfig.MqttConnectProperty;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttBinding;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttBindingConfig;
@@ -107,6 +109,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttWillMessageFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.Varuint32FW;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.BinaryFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttConnackV5FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttConnectFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttConnectV5FW;
@@ -156,6 +159,7 @@ import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public final class MqttClientFactory implements MqttStreamFactory
 {
@@ -176,6 +180,9 @@ public final class MqttClientFactory implements MqttStreamFactory
     private static final int NO_LOCAL_FLAG_MASK = 0b0000_0100;
     private static final int RETAIN_AS_PUBLISHED_MASK = 0b0000_1000;
     private static final int RETAIN_HANDLING_MASK = 0b0011_0000;
+
+    private static final int USERNAME_MASK = 0b1000_0000;
+    private static final int PASSWORD_MASK = 0b0100_0000;
 
     private static final int WILL_FLAG_MASK = 0b0000_0100;
     private static final int WILL_QOS_MASK = 0b0001_1000;
@@ -287,6 +294,8 @@ public final class MqttClientFactory implements MqttStreamFactory
         new Array32FW.Builder<>(new MqttUserPropertyFW.Builder(), new MqttUserPropertyFW());
     private final Array32FW.Builder<Varuint32FW.Builder, Varuint32FW> subscriptionIdsRW =
         new Array32FW.Builder<>(new Varuint32FW.Builder(), new Varuint32FW());
+    private final BinaryFW.Builder passwordRW = new BinaryFW.Builder();
+
     private final MqttClientDecoder decodeInitialType = this::decodeInitialType;
     private final MqttClientDecoder decodePacketType = this::decodePacketType;
     private final MqttClientDecoder decodeConnack = this::decodeConnack;
@@ -327,7 +336,8 @@ public final class MqttClientFactory implements MqttStreamFactory
     private final MutableDirectBuffer propertyBuffer;
     private final MutableDirectBuffer userPropertiesBuffer;
     private final MutableDirectBuffer subscriptionIdsBuffer;
-    private final MutableDirectBuffer willMessageBuffer;
+    private final MutableDirectBuffer connectPayloadBuffer;
+    private final MutableDirectBuffer passwordBuffer;
     private final MutableDirectBuffer willPropertyBuffer;
 
     private final ByteBuffer charsetBuffer;
@@ -347,8 +357,9 @@ public final class MqttClientFactory implements MqttStreamFactory
     private final long publishTimeoutMillis;
     private final long connackTimeoutMillis;
     private final int encodeBudgetMax;
-
     private final CharsetDecoder utf8Decoder;
+
+    private final EngineContext context;
 
     public MqttClientFactory(
         MqttConfiguration config,
@@ -363,11 +374,13 @@ public final class MqttClientFactory implements MqttStreamFactory
         this.subscriptionIdsBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.payloadBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.charsetBuffer = ByteBuffer.wrap(new byte[writeBuffer.capacity()]);
-        this.willMessageBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
+        this.connectPayloadBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
+        this.passwordBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.willPropertyBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.bufferPool = context.bufferPool();
         this.creditor = context.creditor();
         this.signaler = context.signaler();
+        this.context = context;
         this.droppedHandler = context.droppedFrameHandler();
         this.streamFactory = context.streamFactory();
         this.supplyDebitor = context::supplyDebitor;
@@ -389,7 +402,7 @@ public final class MqttClientFactory implements MqttStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        MqttBindingConfig mqttBinding = new MqttBindingConfig(binding, null);
+        MqttBindingConfig mqttBinding = new MqttBindingConfig(binding, context);
         bindings.put(binding.id, mqttBinding);
     }
 
@@ -434,7 +447,8 @@ public final class MqttClientFactory implements MqttStreamFactory
             final MqttBeginExFW mqttBeginEx = extension.get(mqttBeginExRO::tryWrap);
             final int kind = mqttBeginEx.kind();
 
-            MqttClient client = resolveClient(routedId, resolvedId, supplyInitialId.applyAsLong(resolvedId), affinity, kind);
+            MqttClient client = resolveClient(routedId, resolvedId, supplyInitialId.applyAsLong(resolvedId), affinity, kind,
+                binding.guard, binding.injectCredentials(), binding.authField());
             switch (kind)
             {
             case MqttBeginExFW.KIND_SESSION:
@@ -460,10 +474,14 @@ public final class MqttClientFactory implements MqttStreamFactory
         long resolvedId,
         long initialId,
         long affinity,
-        int kind)
+        int kind,
+        GuardHandler guard,
+        Function<String, String> credentials,
+        MqttConnectProperty authField)
     {
         return kind == MqttBeginExFW.KIND_SESSION ? clients.computeIfAbsent(affinity,
-            s -> new MqttClient(routedId, resolvedId, initialId, maximumPacketSize)) : clients.get(affinity);
+            s -> new MqttClient(routedId, resolvedId, initialId, maximumPacketSize, guard, credentials, authField)) :
+            clients.get(affinity);
     }
 
     private MessageConsumer newStream(
@@ -1199,6 +1217,9 @@ public final class MqttClientFactory implements MqttStreamFactory
         private final Int2ObjectHashMap<MqttSubscribeStream> subscribeStreams;
         private final Int2ObjectHashMap<String> topicAliases;
         private final long encodeBudgetId;
+        private final GuardHandler guard;
+        private final Function<String, String> credentials;
+        private final MqttConnectProperty authField;
 
         private long budgetId;
         private int state;
@@ -1262,7 +1283,10 @@ public final class MqttClientFactory implements MqttStreamFactory
             long originId,
             long routedId,
             long initialId,
-            int maximumPacketSize)
+            int maximumPacketSize,
+            GuardHandler guard,
+            Function<String, String> credentials,
+            MqttConnectProperty authField)
         {
             this.originId = originId;
             this.routedId = routedId;
@@ -1275,6 +1299,9 @@ public final class MqttClientFactory implements MqttStreamFactory
             this.topicAliases = new Int2ObjectHashMap<>();
             this.maximumPacketSize = maximumPacketSize;
             this.packetIdCounter = new AtomicInteger();
+            this.guard = guard;
+            this.credentials = credentials;
+            this.authField = authField;
         }
 
         private void onNetwork(
@@ -2248,6 +2275,7 @@ public final class MqttClientFactory implements MqttStreamFactory
                 propertiesSize = mqttProperty.limit();
             }
             MqttWillV5FW will = null;
+            int connectPayloadProgress = 0;
             if (willMessage != null)
             {
                 final int expiryInterval = willMessage.expiryInterval();
@@ -2307,14 +2335,38 @@ public final class MqttClientFactory implements MqttStreamFactory
                     willPropertiesSize.set(mqttWillPropertyRW.limit());
                 });
 
-                will = willMessageRW.wrap(willMessageBuffer, 0, willMessageBuffer.capacity())
+                will = willMessageRW.wrap(connectPayloadBuffer, 0, connectPayloadBuffer.capacity())
                     .properties(p -> p.length(willPropertiesSize.get())
                         .value(willPropertyBuffer, 0, willPropertiesSize.get()))
                     .topic(willMessage.topic())
                     .payloadSize(willMessage.payloadSize())
                     .build();
 
-                willMessageBuffer.putBytes(will.limit(), willPayload.buffer(), willPayload.offset(), willPayload.limit());
+                connectPayloadBuffer.putBytes(will.limit(), willPayload.buffer(), willPayload.offset(), willPayload.limit());
+                connectPayloadProgress = willPayload.limit();
+            }
+
+            int credentialsSize = 0;
+            if (guard != null)
+            {
+                Flyweight credentials = EMPTY_OCTETS;
+                String credentials0 = this.credentials.apply(guard.credentials(authorization));
+                if (this.authField.equals(MqttConnectProperty.USERNAME))
+                {
+                    flags |= USERNAME_MASK;
+                    credentials = new String16FW(credentials0, BIG_ENDIAN);
+                    credentialsSize = credentials.sizeof();
+                }
+                else if (this.authField.equals(MqttConnectProperty.PASSWORD))
+                {
+                    flags |= PASSWORD_MASK;
+                    credentials = passwordRW.wrap(passwordBuffer, 0, passwordBuffer.capacity())
+                        .bytes(b -> b.set(credentials0.getBytes(StandardCharsets.UTF_8))).build();
+                    credentialsSize = credentials.sizeof();
+                }
+
+                connectPayloadBuffer
+                    .putBytes(connectPayloadProgress, credentials.buffer(), credentials.offset(), credentials.limit());
             }
 
             final int propertiesSize0 = propertiesSize;
@@ -2324,7 +2376,7 @@ public final class MqttClientFactory implements MqttStreamFactory
             final MqttConnectV5FW connect =
                 mqttConnectV5RW.wrap(writeBuffer, FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
                     .typeAndFlags(0x10)
-                    .remainingLength(11 + propertiesSize0 + clientId.length() + 2 + willSize)
+                    .remainingLength(11 + propertiesSize0 + clientId.length() + 2 + willSize + credentialsSize)
                     .protocolName(MQTT_PROTOCOL_NAME)
                     .protocolVersion(MQTT_PROTOCOL_VERSION)
                     .flags(flags)
@@ -2335,9 +2387,9 @@ public final class MqttClientFactory implements MqttStreamFactory
                     .build();
 
             doNetworkData(traceId, authorization, 0L, connect);
-            if (will != null)
+            if (will != null || guard != null)
             {
-                doNetworkData(traceId, authorization, 0L, willMessageBuffer, 0, willSize);
+                doNetworkData(traceId, authorization, 0L, connectPayloadBuffer, 0, willSize + credentialsSize);
             }
         }
 

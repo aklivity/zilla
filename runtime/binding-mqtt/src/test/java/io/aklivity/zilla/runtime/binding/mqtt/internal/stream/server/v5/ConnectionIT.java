@@ -127,6 +127,15 @@ public class ConnectionIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/connect.reject.exceeding.max.client.id/client"})
+    public void shouldRejectExceedingClientIdMax() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/disconnect/client",
         "${app}/session.connect/server"})
     public void shouldConnectThenDisconnect() throws Exception

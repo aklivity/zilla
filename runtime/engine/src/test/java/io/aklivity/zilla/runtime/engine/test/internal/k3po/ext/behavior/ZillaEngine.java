@@ -285,7 +285,7 @@ public final class ZillaEngine implements Runnable, ExternalResourceReleasable
         int scopeIndex)
     {
         ZillaScope scope = new ZillaScope(config, labels, scopeIndex, this::lookupTargetIndex,
-                System::nanoTime, traceIds::incrementAndGet);
+                traceIds::incrementAndGet);
         this.scopes = ArrayUtil.add(this.scopes, scope);
         return scope;
     }

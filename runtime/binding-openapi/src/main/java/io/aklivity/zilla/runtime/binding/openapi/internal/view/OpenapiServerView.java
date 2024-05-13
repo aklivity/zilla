@@ -39,6 +39,11 @@ public final class OpenapiServerView
         return URI.create(server.url);
     }
 
+    public int getPort()
+    {
+        return URI.create(server.url).getPort();
+    }
+
     public void resolveURL(
         String url)
     {

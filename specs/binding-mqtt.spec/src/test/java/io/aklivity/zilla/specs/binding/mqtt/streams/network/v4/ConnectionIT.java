@@ -110,6 +110,15 @@ public class ConnectionIT
 
     @Test
     @Specification({
+        "${net}/connect.reject.exceeding.max.client.id/client",
+        "${net}/connect.reject.exceeding.max.client.id/server"})
+    public void shouldRejectExceedingClientIdMax() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/connect.reject.no.client.id.no.clean.session/client",
         "${net}/connect.reject.no.client.id.no.clean.session/server"})
     public void shouldRejectNoClientIdNoCleanSession() throws Exception

@@ -18,19 +18,49 @@ scope karapace
     {
         enum KarapaceEventType (uint8)
         {
-            REMOTE_ACCESS_REJECTED (1)
+            UNRETRIEVABLE_SCHEMA_SUBJECT_VERSION (1),
+            UNRETRIEVABLE_SCHEMA_SUBJECT_VERSION_STALE_SCHEMA (2),
+            UNRETRIEVABLE_SCHEMA_ID (3),
+            RETRIEVED_SCHEMA_SUBJECT_VERSION (4),
+            RETRIEVED_SCHEMA_ID (5)
         }
 
-        struct KarapaceRemoteAccessRejectedEx extends core::stream::Extension
+        struct KarapaceUnretrievableSchemaSubjectVersionEx extends core::stream::Extension
         {
-            string8 method;
-            string16 url;
-            int16 status;
+            string8 subject;
+            string8 version;
+        }
+
+        struct KarapaceUnretrievableSchemaSubjectVersionStaleSchemaEx extends core::stream::Extension
+        {
+            string8 subject;
+            string8 version;
+            int32 schemaId;
+        }
+
+        struct KarapaceUnretrievableSchemaIdEx extends core::stream::Extension
+        {
+            int32 schemaId;
+        }
+
+        struct KarapaceRetrievableSchemaSubjectVersionEx extends core::stream::Extension
+        {
+            string8 subject;
+            string8 version;
+        }
+
+        struct KarapaceRetrievableSchemaIdEx extends core::stream::Extension
+        {
+            int32 schemaId;
         }
 
         union KarapaceEventEx switch (KarapaceEventType)
         {
-            case REMOTE_ACCESS_REJECTED: KarapaceRemoteAccessRejectedEx remoteAccessRejected;
+            case UNRETRIEVABLE_SCHEMA_SUBJECT_VERSION: KarapaceUnretrievableSchemaSubjectVersionEx unretrievableSchemaSubjectVersion;
+            case UNRETRIEVABLE_SCHEMA_SUBJECT_VERSION_STALE_SCHEMA: KarapaceUnretrievableSchemaSubjectVersionStaleSchemaEx unretrievableSchemaSubjectVersionStaleSchema;
+            case UNRETRIEVABLE_SCHEMA_ID: KarapaceUnretrievableSchemaIdEx unretrievableSchemaId;
+            case RETRIEVED_SCHEMA_SUBJECT_VERSION: KarapaceRetrievableSchemaSubjectVersionEx retrievableSchemaSubjectVersion;
+            case RETRIEVED_SCHEMA_ID: KarapaceRetrievableSchemaIdEx retrievableSchemaId;
         }
     }
 }

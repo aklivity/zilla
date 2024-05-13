@@ -145,6 +145,24 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/publish.topic.space.with.params/client",
+        "${mqtt}/publish.topic.space.with.params/server"})
+    public void shouldSendUsingTopicSpaceWithParams() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/publish.reject.qos2/client",
+        "${mqtt}/publish.reject.qos2/server"})
+    public void shouldRejectPublishWhenTopicSpaceWithParams() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/publish.client.topic.space/client",
         "${mqtt}/publish.client.topic.space/server"})
     public void shouldSendUsingClientTopicSpace() throws Exception

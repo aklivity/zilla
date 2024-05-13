@@ -14,16 +14,39 @@
  */
 package io.aklivity.zilla.runtime.catalog.karapace.internal;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 public class CachedSchemaId
 {
-    public long timestamp;
-    public int id;
+    public static final int PLACEHOLDER_SCHEMA_ID = -1;
+    public static final CachedSchemaId IN_PROGRESS = new CachedSchemaId(Long.MAX_VALUE, PLACEHOLDER_SCHEMA_ID,
+        new AtomicInteger(), Long.MAX_VALUE);
+
+    public final long timestamp;
+    public final int id;
+    public final AtomicInteger retryAttempts;
+    public final long retryAfter;
 
     public CachedSchemaId(
         long timestamp,
-        int id)
+        int id,
+        AtomicInteger retryAttempts,
+        long retryAfter)
     {
         this.timestamp = timestamp;
         this.id = id;
+        this.retryAttempts = retryAttempts;
+        this.retryAfter = retryAfter;
+    }
+
+    public boolean expired(
+        long maxAgeMillis)
+    {
+        return System.currentTimeMillis() - this.timestamp > maxAgeMillis;
+    }
+
+    public boolean retry()
+    {
+        return System.currentTimeMillis() - this.timestamp > this.retryAfter;
     }
 }

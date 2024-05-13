@@ -19,7 +19,6 @@ import static java.util.Collections.emptyList;
 
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfigBuilder;
@@ -44,6 +43,10 @@ import io.aklivity.zilla.runtime.engine.config.MetricRefConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
+import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
+import io.aklivity.zilla.runtime.model.core.config.StringModelConfigBuilder;
+import io.aklivity.zilla.runtime.model.core.config.StringPattern;
+import io.aklivity.zilla.runtime.model.core.internal.StringModel;
 import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
 public final class OpenapiClientNamespaceGenerator extends OpenapiNamespaceGenerator
@@ -51,19 +54,15 @@ public final class OpenapiClientNamespaceGenerator extends OpenapiNamespaceGener
     @Override
     public NamespaceConfig generate(
         BindingConfig binding,
-        Openapi openapi)
+        OpenapiNamespaceConfig namespaceConfig)
     {
         final OpenapiOptionsConfig options = (OpenapiOptionsConfig) binding.options;
         final List<MetricRefConfig> metricRefs = binding.telemetryRef != null ?
             binding.telemetryRef.metricRefs : emptyList();
-        final List<OpenapiServerView> servers =
-            filterOpenapiServers(
-                openapi.servers, options.openapis.stream()
-                .flatMap(o -> o.servers.stream())
-                .collect(Collectors.toList()));
+        List<OpenapiServerView> servers = namespaceConfig.servers;
 
         final int[] httpsPorts = resolvePortsForScheme("https", servers);
-        final boolean secure = httpsPorts != null;
+        final boolean secure = httpsPorts.length != 0;
 
         return NamespaceConfig.builder()
                 .name(String.format(binding.qname, "$composite"))
@@ -72,7 +71,7 @@ public final class OpenapiClientNamespaceGenerator extends OpenapiNamespaceGener
                     .name("http_client0")
                     .type("http")
                     .kind(CLIENT)
-                    .inject(b -> this.injectHttpClientOptions(b, openapi))
+                    .inject(b -> this.injectHttpClientOptions(b, namespaceConfig.openapis))
                     .inject(b -> this.injectMetrics(b, metricRefs, "http"))
                     .exit(secure ? "tls_client0" : "tcp_client0")
                     .build()
@@ -89,15 +88,18 @@ public final class OpenapiClientNamespaceGenerator extends OpenapiNamespaceGener
 
     private <C> BindingConfigBuilder<C> injectHttpClientOptions(
         BindingConfigBuilder<C> binding,
-        Openapi openApi)
+        List<Openapi> openApis)
     {
-        OpenapiOperationsView operations = OpenapiOperationsView.of(openApi.paths);
-        if (operations.hasResponses())
+        for (Openapi openApi : openApis)
         {
-            binding.
-                options(HttpOptionsConfig::builder)
-                    .inject(options -> injectHttpClientRequests(operations, options, openApi))
-                    .build();
+            OpenapiOperationsView operations = OpenapiOperationsView.of(openApi.paths);
+            if (operations.hasResponses())
+            {
+                binding.
+                    options(HttpOptionsConfig::builder)
+                        .inject(options -> injectHttpClientRequests(operations, options, openApi))
+                        .build();
+            }
         }
         return binding;
     }
@@ -175,16 +177,33 @@ public final class OpenapiClientNamespaceGenerator extends OpenapiNamespaceGener
             {
                 String name = header.getKey();
                 OpenapiSchema schema = header.getValue().schema;
-                String modelName = schema.format != null ? String.format("%s:%s", schema.type, schema.format) :
-                        schema.type;
-                ModelConfig model = models.get(modelName);
-                if (model != null)
+                if (schema != null)
                 {
-                    response
-                        .header()
+                    String format = schema.format;
+                    String type = schema.type;
+                    ModelConfig model;
+                    if (StringModel.NAME.equals(type))
+                    {
+                        StringModelConfigBuilder<StringModelConfig> builder = StringModelConfig.builder();
+                        if (format != null)
+                        {
+                            builder.pattern(StringPattern.of(format));
+                        }
+                        model = builder.build();
+                    }
+                    else
+                    {
+                        model = MODELS.get(format != null ? String.format("%s:%s", type, format) : type);
+                    }
+
+                    if (model != null)
+                    {
+                        response
+                            .header()
                             .name(name)
                             .model(model)
                             .build();
+                    }
                 }
             }
         }
