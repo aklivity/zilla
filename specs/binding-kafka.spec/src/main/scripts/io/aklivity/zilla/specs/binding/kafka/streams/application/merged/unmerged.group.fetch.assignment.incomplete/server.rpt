@@ -245,6 +245,69 @@ write ${kafka:topicAssignment()
               .build()}
 write flush
 
+write await OFFSET_FETCH_REQUEST_RECEIVED
+
+write advise zilla:flush ${kafka:flushEx()
+                             .typeId(zilla:id("kafka"))
+                             .group()
+                                 .generationId(1)
+                                 .leaderId("memberId-1")
+                                 .memberId("memberId-1")
+                                 .members("memberId-1", kafka:memberMetadata()
+                                     .consumerId("consumer-1")
+                                     .topic("test")
+                                        .partitionId(0)
+                                        .build()
+                                     .build())
+                                 .members("memberId-2", kafka:memberMetadata()
+                                     .consumerId("consumer-2")
+                                     .topic("test")
+                                        .partitionId(0)
+                                        .build()
+                                     .build())
+                             .build()
+                         .build()}
+write flush
+
+read ${kafka:memberAssignment()
+          .member("memberId-2")
+            .assignment()
+              .topic("test")
+              .consumer()
+                 .id("consumer-2")
+                 .build()
+              .consumer()
+                 .id("consumer-1")
+                 .partitionId(0)
+                 .build()
+              .build()
+            .build()
+          .member("memberId-1")
+            .assignment()
+              .topic("test")
+              .partitionId(0)
+              .consumer()
+                 .id("consumer-2")
+                 .build()
+              .consumer()
+                 .id("consumer-1")
+                 .partitionId(0)
+                 .build()
+              .build()
+            .build()
+          .build()}
+
+write ${kafka:topicAssignment()
+                .topic()
+                  .id("test")
+                  .consumer()
+                    .id("consumer-2")
+                    .partitionId(0)
+                    .build()
+                  .build()
+              .build()}
+write flush
+
 accepted
 
 read zilla:begin.ext ${kafka:beginEx()
@@ -293,6 +356,24 @@ write zilla:begin.ext ${kafka:beginEx()
 write flush
 
 write notify FETCH_REQUEST_RECEIVED
+
+read aborted
+
+accepted
+
+read zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .offsetFetch()
+                                   .groupId("client-1")
+                                   .host("broker1.example.com")
+                                   .port(9092)
+                                   .topic("test")
+                                   .build()
+                               .build()}
+
+connected
+
+write notify OFFSET_FETCH_REQUEST_RECEIVED
 
 read aborted
 

@@ -909,4 +909,13 @@ public class MergedIT
         k3po.finish();
     }
 
+    @Test
+    @Specification({
+        "${app}/unmerged.group.fetch.assignment.incomplete/client",
+        "${app}unmerged.group.fetch.assignment.incomplete/server"})
+    public void shouldCancelUnmergedPreviousIncompleteOffsetFetchRequest() throws Exception
+    {
+        k3po.finish();
+    }
+
 }

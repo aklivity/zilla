@@ -723,4 +723,14 @@ public class CacheMergedIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("cache.options.merged.yaml")
+    @Specification({
+        "${app}/merged.fetch.unsubscribe/client",
+        "${app}unmerged.group.fetch.assignment.incomplete/server"})
+    public void shouldCancelPreviousIncompleteOffsetFetchRequest() throws Exception
+    {
+        k3po.finish();
+    }
 }

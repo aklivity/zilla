@@ -1712,21 +1712,24 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
         private void onDecodeOffsetFetchResponse(
             long traceId)
         {
-            delegate.doApplicationWindow(traceId, 0L, 0, 0, 0);
+            if (!topicPartitions.isEmpty())
+            {
+                delegate.doApplicationWindow(traceId, 0L, 0, 0, 0);
 
-            final KafkaDataExFW kafkaDataEx = kafkaDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
-                .typeId(kafkaTypeId)
-                .offsetFetch(m -> m
-                    .partitions(o -> topicPartitions.forEach(tp ->
-                        o.item(to -> to
-                            .partitionId(tp.partitionId)
-                            .partitionOffset(tp.partitionOffset)
-                            .leaderEpoch(tp.leaderEpoch)
-                            .metadata(tp.metadata)
-                        ))))
-                .build();
+                final KafkaDataExFW kafkaDataEx = kafkaDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                    .typeId(kafkaTypeId)
+                    .offsetFetch(m -> m
+                        .partitions(o -> topicPartitions.forEach(tp ->
+                            o.item(to -> to
+                                .partitionId(tp.partitionId)
+                                .partitionOffset(tp.partitionOffset)
+                                .leaderEpoch(tp.leaderEpoch)
+                                .metadata(tp.metadata)
+                            ))))
+                    .build();
 
-            delegate.doApplicationData(traceId, authorization, kafkaDataEx);
+                delegate.doApplicationData(traceId, authorization, kafkaDataEx);
+            }
         }
 
         private void onDecodeEmptyOffsetFetchResponse(

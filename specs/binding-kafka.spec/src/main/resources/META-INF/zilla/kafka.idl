@@ -470,6 +470,7 @@ scope kafka
             string16 host;
             int32 port;
             string16 topic;
+            KafkaTopicPartition[] partitions;
         }
 
         struct KafkaOffsetFetchDataEx

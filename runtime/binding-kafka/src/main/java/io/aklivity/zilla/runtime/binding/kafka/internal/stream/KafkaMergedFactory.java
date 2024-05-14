@@ -2040,6 +2040,7 @@ public final class KafkaMergedFactory implements BindingHandler
         {
             if (hasFetchCapability(capabilities))
             {
+                offsetFetchStream.resetStreamIfNecessary(traceId);
                 offsetFetchStream.doOffsetFetchInitialBeginIfNecessary(traceId);
             }
         }
@@ -3442,6 +3443,16 @@ public final class KafkaMergedFactory implements BindingHandler
 
             doReset(receiver, merged.routedId, merged.resolvedId, replyId, replySeq, replyAck, replyMax,
                 traceId, merged.authorization, EMPTY_EXTENSION);
+        }
+
+        private void resetStreamIfNecessary(
+            long traceId)
+        {
+            if (KafkaState.initialOpening(state))
+            {
+                doOffsetFetchInitialAbortIfNecessary(traceId);
+                doOffsetFetchReplyResetIfNecessary(traceId);
+            }
         }
     }
 

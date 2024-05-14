@@ -947,6 +947,12 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
                 IntHashSet partitions = new IntHashSet();
                 List<TopicPartition> topicConsumers = new ArrayList<>();
 
+                if (KafkaConfiguration.DEBUG_CONSUMER)
+                {
+                    System.out.printf("Subscription: MemberId - %s\n", memberId);
+                    ta.partitions().forEach(np -> System.out.printf("%s\n", np));
+                }
+
                 stream.doConsumerReplyData(traceId, flags, replyPad, EMPTY_OCTETS,
                     ex -> ex.set((b, o, l) -> kafkaDataExRW.wrap(b, o, l)
                         .typeId(kafkaTypeId)
@@ -1095,7 +1101,6 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
                     .wrap(writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity());
 
                 this.consumers.forEach((k, v) ->
-                {
                     assignmentBuilder.item(ma -> ma
                         .memberId(k)
                         .assignments(ta -> v.forEach(tp -> ta.item(i -> i
@@ -1107,11 +1112,18 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
                                         u.item(ud -> ud
                                             .consumerId(at.consumerId)
                                             .partitions(pt -> at.partitions.forEach(up ->
-                                                pt.item(pi -> pi.partitionId(up))))))))
-                        ))));
-                });
+                                                pt.item(pi -> pi.partitionId(up)))))))))))));
 
                 Array32FW<MemberAssignmentFW> assignment = assignmentBuilder.build();
+
+                if (KafkaConfiguration.DEBUG_CONSUMER)
+                {
+                    assignment.forEach(c ->
+                    {
+                        System.out.printf("Assignment: MemberId - %s\n", c.memberId());
+                        c.assignments().forEach(a -> a.partitions().forEach(System.out::println));
+                    });
+                }
 
                 doConsumerInitialData(traceId, authorization, initialBud, assignment.sizeof(), 3,
                     assignment.buffer(), assignment.offset(), assignment.sizeof(), EMPTY_OCTETS);
