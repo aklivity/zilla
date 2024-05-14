@@ -18,7 +18,6 @@ import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_TIMEST
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -51,7 +50,6 @@ public class FileSystemServerIT
     @Rule
     public final TestRule chain = outerRule(dump).around(engine).around(k3po).around(timeout);
 
-    @Ignore
     @Test
     @Configuration("server.yaml")
     @Specification({
