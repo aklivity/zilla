@@ -24,18 +24,18 @@ accept "zilla://streams/app0"
 accepted
 
 read zilla:begin.ext ${kafka:beginEx()
-                              .typeId(zilla:id("kafka"))
-                              .merged()
+                               .typeId(zilla:id("kafka"))
+                               .merged()
                                    .capabilities("FETCH_ONLY")
                                    .topic("test")
-                                   .groupId("client-2")
+                                   .groupId("client-1")
                                    .consumerId("consumer-2")
                                    .timeout(45000)
                                    .partition(0, 1)
                                    .partition(1, 1)
                                    .partition(-1, 1)
                                    .build()
-                              .build()}
+                               .build()}
 
 connected
 

@@ -891,4 +891,22 @@ public class MergedIT
         k3po.finish();
     }
 
+    @Test
+    @Specification({
+        "${app}/merged.fetch.unsubscribe/client",
+        "${app}/merged.fetch.unsubscribe/server"})
+    public void shouldUnsubscribeOnPartitionReassignment() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/unmerged.group.fetch.unsubscribe/client",
+        "${app}/unmerged.group.fetch.unsubscribe/server"})
+    public void shouldUnsubscribeUnmergeOnPartitionReassignment() throws Exception
+    {
+        k3po.finish();
+    }
+
 }

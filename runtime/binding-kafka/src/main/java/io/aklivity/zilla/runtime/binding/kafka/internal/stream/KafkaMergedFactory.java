@@ -2004,26 +2004,14 @@ public final class KafkaMergedFactory implements BindingHandler
 
             doFetchPartitionOffsets(traceId);
             doProducePartitionsIfNecessary(traceId);
-
-            fetchStreams.forEach(f ->
-            {
-                f.doFetchInitialEndIfNecessary(traceId);
-                f.doFetchReplyResetIfNecessary(traceId);
-            });
-            fetchStreams.clear();
-
-            produceStreams.forEach(p ->
-            {
-                p.doProduceInitialEndIfNecessary(traceId);
-                p.doProduceReplyResetIfNecessary(traceId);
-            });
-            produceStreams.clear();
         }
 
         private void onTopicOffsetFetchDataChanged(
             long traceId,
             Array32FW<KafkaTopicPartitionOffsetFW> partitions)
         {
+            offsetsByPartitionId.clear();
+
             partitions.forEach(p -> offsetsByPartitionId.put(p.partitionId(),
                 new KafkaPartitionOffset(
                     topic,
@@ -2034,6 +2022,17 @@ public final class KafkaMergedFactory implements BindingHandler
                     p.metadata().asString())));
 
             doFetchPartitionsIfNecessary(traceId);
+
+            fetchStreams.removeIf(f ->
+            {
+                boolean missing = !leadersByAssignedId.containsKey(f.partitionId);
+                if (missing)
+                {
+                    f.doFetchInitialEndIfNecessary(traceId);
+                    f.doFetchReplyResetIfNecessary(traceId);
+                }
+                return missing;
+            });
         }
 
         private void doFetchPartitionOffsets(
@@ -3204,7 +3203,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doOffsetFetchInitialBeginIfNecessary(
             long traceId)
         {
-            if (!KafkaState.initialOpening(state))
+            if (!KafkaState.initialOpening(state) || KafkaState.closed(state))
             {
                 doOffsetFetchInitialBegin(traceId);
             }
@@ -3213,6 +3212,11 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doOffsetFetchInitialBegin(
             long traceId)
         {
+            if (KafkaState.closed(state))
+            {
+                state = 0;
+            }
+
             assert state == 0;
 
             state = KafkaState.openingInitial(state);
@@ -3346,7 +3350,8 @@ public final class KafkaMergedFactory implements BindingHandler
                 final Array32FW<KafkaTopicPartitionOffsetFW> partitions = kafkaOffsetFetchDataEx.partitions();
                 merged.onTopicOffsetFetchDataChanged(traceId, partitions);
 
-                doOffsetFetchReplyWindow(traceId, 0, replyMax);
+                doOffsetFetchInitialEndIfNecessary(traceId);
+                doOffsetFetchReplyResetIfNecessary(traceId);
             }
         }
 

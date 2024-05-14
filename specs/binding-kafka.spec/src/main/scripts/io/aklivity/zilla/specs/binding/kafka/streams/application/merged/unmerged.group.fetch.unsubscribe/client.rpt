@@ -100,7 +100,6 @@ read zilla:data.ext ${kafka:dataEx()
                              .typeId(zilla:id("kafka"))
                              .meta()
                                  .partition(0, 2)
-                                 .partition(1, 2)
                                  .build()
                              .build()}
 
@@ -119,10 +118,9 @@ write zilla:begin.ext ${kafka:beginEx()
                                  .protocol("rebalance")
                                  .timeout(45000)
                                  .metadata(kafka:memberMetadata()
-                                      .consumerId("consumer-1")
+                                      .consumerId("consumer-2")
                                       .topic("test")
                                          .partitionId(0)
-                                         .partitionId(1)
                                          .build()
                                       .build())
                                  .build()
@@ -160,7 +158,6 @@ write ${kafka:memberAssignment()
           .member("memberId-2")
             .assignment()
               .topic("test")
-              .partitionId(1)
               .partitionId(0)
               .consumer()
                  .id("consumer-2")
@@ -170,6 +167,8 @@ write ${kafka:memberAssignment()
             .build()
            .build()}
 write flush
+
+write notify FETCH_REQUEST_RECEIVED
 
 read ${kafka:topicAssignment()
                 .topic()
@@ -273,6 +272,8 @@ read zilla:data.ext ${kafka:dataEx()
                              .build()}
 read zilla:data.empty
 
+write close
+
 read notify RECEIVED_OFFSET_FETCH
 
 connect await RECEIVED_OFFSET_FETCH
@@ -300,4 +301,31 @@ read zilla:begin.ext ${kafka:beginEx()
 
 write abort
 
+read notify RECEIVED_UNSUBSCRIPTION
 
+connect await RECEIVED_UNSUBSCRIPTION
+        "zilla://streams/app1"
+    option zilla:window 8192
+    option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .offsetFetch()
+                                   .groupId("client-1")
+                                   .host("broker1.example.com")
+                                   .port(9092)
+                                   .topic("test")
+                                   .build()
+                               .build()}
+
+connected
+
+read zilla:data.ext ${kafka:dataEx()
+                                   .typeId(zilla:id("kafka"))
+                                   .offsetFetch()
+                                     .build()
+                                   .build()}
+
+read zilla:data.empty
+
+write close

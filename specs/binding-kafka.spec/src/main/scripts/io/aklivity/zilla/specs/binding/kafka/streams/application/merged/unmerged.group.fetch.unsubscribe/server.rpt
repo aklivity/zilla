@@ -269,6 +269,8 @@ write zilla:data.ext ${kafka:dataEx()
 write zilla:data.empty
 write flush
 
+read closed
+
 accepted
 
 read zilla:begin.ext ${kafka:matchBeginEx()
@@ -293,3 +295,27 @@ write flush
 write notify FETCH_REQUEST_RECEIVED
 
 read aborted
+
+accepted
+
+read zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .offsetFetch()
+                                   .groupId("client-1")
+                                   .host("broker1.example.com")
+                                   .port(9092)
+                                   .topic("test")
+                                   .build()
+                               .build()}
+
+connected
+
+write zilla:data.ext ${kafka:dataEx()
+                                   .typeId(zilla:id("kafka"))
+                                   .offsetFetch()
+                                     .build()
+                                   .build()}
+write zilla:data.empty
+write flush
+
+read closed
