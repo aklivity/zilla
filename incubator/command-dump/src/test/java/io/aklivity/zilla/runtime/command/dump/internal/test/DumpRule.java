@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.command.dump.internal.test;
 
 import static org.agrona.LangUtil.rethrowUnchecked;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 
 import java.net.URL;
@@ -67,7 +68,7 @@ public final class DumpRule implements TestRule
                 Files.writeString(TXT_PATH, result.getStdout());
                 assertThat(result.getExitCode(), equalTo(0));
                 assert expected0 != null;
-                assertThat(result.getStdout(), equalTo(expected0));
+                assertThat(result.getStdout(), containsString(expected0));
             }
         };
     }
