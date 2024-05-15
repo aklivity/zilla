@@ -26,7 +26,7 @@ import io.aklivity.zilla.runtime.engine.event.EventFormatterSpi;
 public final class FilesystemEventFormatter implements EventFormatterSpi
 {
     private final EventFW eventRO = new EventFW();
-    private final FilesystemEventExFW schemaRegistryEventExRO = new FilesystemEventExFW();
+    private final FilesystemEventExFW filesystemEventExRO = new FilesystemEventExFW();
 
     FilesystemEventFormatter(
         Configuration config)
