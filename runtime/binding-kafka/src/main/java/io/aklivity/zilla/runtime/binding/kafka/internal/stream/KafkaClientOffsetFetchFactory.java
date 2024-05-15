@@ -943,7 +943,7 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
         private void doApplicationData(
             long traceId,
             long authorization,
-            Flyweight extension)
+            KafkaDataExFW extension)
         {
             final int reserved = replyPad;
 

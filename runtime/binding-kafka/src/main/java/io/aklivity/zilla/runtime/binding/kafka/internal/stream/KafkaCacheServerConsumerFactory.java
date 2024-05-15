@@ -537,7 +537,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
         private final long authorization;
         private final ArrayList<KafkaCacheServerConsumerStream> streams;
         private final Map<String, String> members;
-        private final ObjectHashSet<String> tempMembers;
+        private final ObjectHashSet<String> memberIds;
         private final Object2ObjectHashMap<String, IntHashSet> partitionsByTopic;
         private final Object2ObjectHashMap<String, List<TopicPartition>> consumers;
         private final Object2ObjectHashMap<String, TopicConsumer> assignments;
@@ -582,7 +582,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
             this.groupId = groupId;
             this.timeout = timeout;
             this.streams = new ArrayList<>();
-            this.tempMembers = new ObjectHashSet<>();
+            this.memberIds = new ObjectHashSet<>();
             this.members = new LinkedHashMap<>();
             this.partitionsByTopic = new Object2ObjectHashMap<>();
             this.consumers = new Object2ObjectHashMap<>();
@@ -889,7 +889,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
                 memberId = kafkaGroupFlushEx.memberId().asString();
 
                 partitionsByTopic.clear();
-                tempMembers.clear();
+                memberIds.clear();
 
                 kafkaGroupFlushEx.members().forEach(m ->
                 {
@@ -900,7 +900,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
 
                     final String mId = m.id().asString();
                     members.putIfAbsent(mId, consumerId);
-                    tempMembers.add(mId);
+                    memberIds.add(mId);
 
                     groupMetadata.topics().forEach(mt ->
                     {
@@ -911,7 +911,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
                 });
             }
 
-            members.entrySet().removeIf(m -> !tempMembers.contains(m.getKey()));
+            members.entrySet().removeIf(m -> !memberIds.contains(m.getKey()));
 
             doPartitionAssignment(traceId, authorization);
         }
