@@ -158,10 +158,7 @@ public final class OpenapiBindingConfig
         composites.forEach((k, v) ->
         {
             List<BindingConfig> http = v.bindings.stream().filter(b -> b.type.equals("http")).collect(toList());
-            http.stream()
-                .map(b -> b.routes)
-                .flatMap(List::stream)
-                .forEach(r -> resolvedIds.put(k, r.id));
+            http.forEach(b -> resolvedIds.put(k, b.id));
             http.stream()
                 .map(b -> NamespacedId.namespaceId(b.id))
                 .forEach(n ->
