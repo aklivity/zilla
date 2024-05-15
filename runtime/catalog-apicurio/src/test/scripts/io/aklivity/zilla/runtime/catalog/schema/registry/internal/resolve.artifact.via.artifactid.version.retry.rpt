@@ -39,3 +39,41 @@ write '{'
       '}'
 
 write close
+
+accepted
+connected
+
+read http:method "GET"
+read http:version "HTTP/1.1"
+read closed
+
+write http:status "500" "Internal Server Error"
+write http:header "content-type" "application/json"
+write http:content-length
+
+write close
+
+accepted
+connected
+
+read http:method "GET"
+read http:version "HTTP/1.1"
+read closed
+
+write http:status "200" "OK"
+write http:header "content-type" "application/json"
+write http:content-length
+
+write '{'
+        '\"contentId\": 1,'
+        '\"createdBy\": \"user1\",'
+        '\"createdOn\": \"2019-05-17T12:00:00Z\",'
+        '\"description\": \"The description of the artifact\",'
+        '\"globalId\": 2,'
+        '\"groupId\": \"groupId\",'
+        '\"id\": \"artifactId\",'
+        '\"type\":\"ASYNCAPI\",'
+        '\"version\": 0'
+      '}'
+
+write close
