@@ -64,6 +64,12 @@ public class StdoutExporterContext implements ExporterContext
         return context.supplyQName(namespacedId);
     }
 
+    public String supplyLocalName(
+            long namespacedId)
+    {
+        return context.supplyLocalName(namespacedId);
+    }
+
     public EventFormatter supplyEventFormatter()
     {
         return context.supplyEventFormatter();

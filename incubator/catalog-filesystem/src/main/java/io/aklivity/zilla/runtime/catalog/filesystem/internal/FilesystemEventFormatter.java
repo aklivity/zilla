@@ -25,8 +25,6 @@ import io.aklivity.zilla.runtime.engine.event.EventFormatterSpi;
 
 public final class FilesystemEventFormatter implements EventFormatterSpi
 {
-    private static final String FILE_NOT_FOUND = "FILE_NOT_FOUND %s";
-
     private final EventFW eventRO = new EventFW();
     private final FilesystemEventExFW schemaRegistryEventExRO = new FilesystemEventExFW();
 
@@ -49,7 +47,7 @@ public final class FilesystemEventFormatter implements EventFormatterSpi
         case FILE_NOT_FOUND:
         {
             FilesystemFileNotFoundExFW ex = extension.fileNotFound();
-            result = String.format(FILE_NOT_FOUND, asString(ex.location()));
+            result = String.format("%s", asString(ex.location()));
             break;
         }
         }

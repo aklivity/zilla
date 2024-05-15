@@ -76,10 +76,11 @@ public class EventReader
         eventJson.add(TIME_UNIX_NANO, nanos);
         eventJson.add(OBSERVED_TIME_UNIX_NANO, nanos);
         String qname = context.supplyQName(event.namespacedId());
+        String eventName = context.supplyLocalName(event.id()).replace('.', '_').toUpperCase();
         String extension = formatter.format(msgTypeId, buffer, index, length);
+        addStringAttribute("event.name", eventName);
         addBody(qname, extension);
         eventAttributesJson = Json.createArrayBuilder();
-        addStringAttribute("event.name", context.supplyLocalName(event.id()));
         eventJson.add(ATTRIBUTES, eventAttributesJson);
         eventsJson.add(eventJson);
     }
