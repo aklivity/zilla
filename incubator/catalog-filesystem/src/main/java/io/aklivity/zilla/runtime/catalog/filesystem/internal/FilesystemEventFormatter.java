@@ -39,7 +39,7 @@ public final class FilesystemEventFormatter implements EventFormatterSpi
         int length)
     {
         final EventFW event = eventRO.wrap(buffer, index, index + length);
-        final FilesystemEventExFW extension = schemaRegistryEventExRO
+        final FilesystemEventExFW extension = filesystemEventExRO
             .wrap(event.extension().buffer(), event.extension().offset(), event.extension().limit());
         String result = null;
         switch (extension.kind())

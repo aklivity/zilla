@@ -62,7 +62,7 @@ public class StdoutEventsStream
     {
         final EventFW event = eventRO.wrap(buffer, index, index + length);
         String qname = context.supplyQName(event.namespacedId());
-        String eventName = context.supplyLocalName(event.id()).replace('.', '_').toUpperCase();
+        String eventName = context.supplyEventName(event.id());
         String extension = formatter.format(msgTypeId, buffer, index, length);
         out.format(FORMAT, qname, asDateTime(event.timestamp()), eventName, extension);
     }
