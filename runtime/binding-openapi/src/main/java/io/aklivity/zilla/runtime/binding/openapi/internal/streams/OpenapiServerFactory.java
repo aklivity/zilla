@@ -383,21 +383,21 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
 
         private void doHttpBegin(
             long traceId,
-            long replySeq,
-            long replyAck,
-            int replyMax,
+            long sequence,
+            long acknowledge,
+            int maximum,
             OctetsFW extension)
         {
             state = OpenapiState.openingReply(state);
 
-            doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doBegin(sender, originId, routedId, replyId, sequence, acknowledge, maximum,
                 traceId, authorization, affinity, extension);
         }
 
         private void doHttpData(
-            long replySeq,
-            long replyAck,
-            int replyMax,
+            long sequence,
+            long acknowledge,
+            int maximum,
             long traceId,
             int flag,
             int reserved,
@@ -405,33 +405,33 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
             OctetsFW payload,
             Flyweight extension)
         {
-            doData(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doData(sender, originId, routedId, replyId, sequence, acknowledge, maximum,
                     traceId, authorization, replyBudgetId, flag, reserved, payload, extension);
         }
 
         private void doHttpFlush(
             long traceId,
             long replyBudgetId,
-            long replySeq,
-            long replyAck,
-            int replyMax,
+            long sequence,
+            long acknowledge,
+            int maximum,
             int reserved,
             OctetsFW extension)
         {
-            doFlush(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doFlush(sender, originId, routedId, replyId, sequence, acknowledge, maximum,
                 traceId, authorization, replyBudgetId, reserved, extension);
         }
 
         private void doHttpEnd(
-            long replySeq,
-            long replyAck,
-            int replyMax,
+            long sequence,
+            long acknowledge,
+            int maximum,
             long traceId,
             OctetsFW extension)
         {
             if (OpenapiState.replyOpening(state) && !OpenapiState.replyClosed(state))
             {
-                doEnd(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doEnd(sender, originId, routedId, replyId, sequence, acknowledge, maximum,
                     traceId, authorization, extension);
             }
 
@@ -439,14 +439,14 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
         }
 
         private void doHttpAbort(
-            long replySeq,
-            long replyAck,
-            int replyMax,
+            long sequence,
+            long acknowledge,
+            int maximum,
             long traceId)
         {
             if (OpenapiState.replyOpening(state) && !OpenapiState.replyClosed(state))
             {
-                doAbort(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doAbort(sender, originId, routedId, replyId, sequence, acknowledge, maximum,
                     traceId, authorization, EMPTY_OCTETS);
             }
 
@@ -454,30 +454,30 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
         }
 
         private void doHttpReset(
-            long initialSeq,
-            long initialAck,
-            int initialMax,
+            long sequence,
+            long acknowledge,
+            int maximum,
             long traceId)
         {
             if (!OpenapiState.initialClosed(state))
             {
                 state = OpenapiState.closeInitial(state);
 
-                doReset(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doReset(sender, originId, routedId, initialId, sequence, acknowledge, maximum,
                     traceId, authorization, EMPTY_OCTETS);
             }
         }
 
         private void doHttpWindow(
-            long initialSeq,
-            long initialAck,
-            int initialMax,
+            long sequence,
+            long acknowledge,
+            int maximum,
             long authorization,
             long traceId,
             long budgetId,
             int padding)
         {
-            doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            doWindow(sender, originId, routedId, initialId, sequence, acknowledge, maximum,
                 traceId, authorization, budgetId, padding);
         }
     }
@@ -673,9 +673,9 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
         }
 
         private void doOpenapiBegin(
-            long initialSeq,
-            long initialAck,
-            int initialMax,
+            long sequence,
+            long acknowledge,
+            int maximum,
             long traceId,
             long affinity,
             OctetsFW extension)
@@ -692,16 +692,16 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
                     .extension(extension)
                     .build();
 
-                this.receiver = newStream(this::onOpenapiMessage, originId, routedId, initialId, initialSeq,
-                    initialAck, initialMax, traceId, authorization, affinity, openapiBeginEx);
+                this.receiver = newStream(this::onOpenapiMessage, originId, routedId, initialId, sequence,
+                    acknowledge, maximum, traceId, authorization, affinity, openapiBeginEx);
                 state = OpenapiState.openingInitial(state);
             }
         }
 
         private void doOpenapiData(
-            long initialSeq,
-            long initialAck,
-            int initialMax,
+            long sequence,
+            long acknowledge,
+            int maximum,
             long traceId,
             long authorization,
             long budgetId,
@@ -710,37 +710,37 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
             OctetsFW payload,
             Flyweight extension)
         {
-            doData(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            doData(receiver, originId, routedId, initialId, sequence, acknowledge, maximum,
                 traceId, authorization, budgetId, flags, reserved, payload, extension);
         }
 
         private void doOpenapiFlush(
-            long initialSeq,
-            long initialAck,
-            int initialMax,
+            long sequence,
+            long acknowledge,
+            int maximum,
             long traceId,
             long initialBud,
             int reserved,
             OctetsFW extension)
         {
-            doFlush(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            doFlush(receiver, originId, routedId, initialId, sequence, acknowledge, maximum,
                 traceId, authorization, initialBud, reserved, extension);
 
-            initialSeq += reserved;
+            sequence += reserved;
 
-            assert initialSeq <= initialAck + initialMax;
+            assert sequence <= acknowledge + maximum;
         }
 
         private void doOpenapiEnd(
-            long initialSeq,
-            long initialAck,
-            int initialMax,
+            long sequence,
+            long acknowledge,
+            int maximum,
             long traceId,
             OctetsFW extension)
         {
             if (!OpenapiState.initialClosed(state))
             {
-                doEnd(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doEnd(receiver, originId, routedId, initialId, sequence, acknowledge, maximum,
                     traceId, authorization, extension);
 
                 state = OpenapiState.closeInitial(state);
@@ -748,15 +748,15 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
         }
 
         private void doOpenapiAbort(
-            long initialSeq,
-            long initialAck,
-            int initialMax,
+            long sequence,
+            long acknowledge,
+            int maximum,
             long traceId,
             OctetsFW extension)
         {
             if (!OpenapiState.initialClosed(state))
             {
-                doAbort(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doAbort(receiver, originId, routedId, initialId, sequence, acknowledge, maximum,
                     traceId, authorization, extension);
 
                 state = OpenapiState.closeInitial(state);
@@ -764,14 +764,14 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
         }
 
         private void doOpenapiReset(
-            long replySeq,
-            long replyAck,
-            int replyMax,
+            long sequence,
+            long acknowledge,
+            int maximum,
             long traceId)
         {
             if (!OpenapiState.replyClosed(state))
             {
-                doReset(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doReset(receiver, originId, routedId, replyId, sequence, acknowledge, maximum,
                     traceId, authorization, EMPTY_OCTETS);
 
                 state = OpenapiState.closeReply(state);
@@ -779,15 +779,15 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
         }
 
         private void doOpenapiWindow(
-            long replySeq,
-            long replyAck,
-            int replyMax,
+            long sequence,
+            long acknowledge,
+            int maximum,
             long traceId,
             long authorization,
             long budgetId,
             int padding)
         {
-            doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doWindow(receiver, originId, routedId, replyId, sequence, acknowledge, maximum,
                 traceId, authorization, budgetId, padding);
         }
     }
