@@ -57,6 +57,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ExtensionFW
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaDataExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaOffsetFetchBeginExFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaOffsetFetchDataExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaResetExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ProxyBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ResetFW;
@@ -710,6 +711,8 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
             {
                 client.decodeableResponseBytes -= error.sizeof();
                 assert client.decodeableResponseBytes >= 0;
+
+                client.onDecodeEmptyOffsetFetchResponse(traceId);
 
                 client.decoder = decodeOffsetFetchResponse;
                 client.nextResponseId++;
@@ -1723,6 +1726,20 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
                                 .leaderEpoch(tp.leaderEpoch)
                                 .metadata(tp.metadata)
                             ))))
+                    .build();
+
+                delegate.doApplicationData(traceId, authorization, kafkaDataEx);
+            }
+        }
+
+        private void onDecodeEmptyOffsetFetchResponse(
+            long traceId)
+        {
+            if (topicPartitions.isEmpty())
+            {
+                final KafkaDataExFW kafkaDataEx = kafkaDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                    .typeId(kafkaTypeId)
+                    .offsetFetch(KafkaOffsetFetchDataExFW.Builder::build)
                     .build();
 
                 delegate.doApplicationData(traceId, authorization, kafkaDataEx);
