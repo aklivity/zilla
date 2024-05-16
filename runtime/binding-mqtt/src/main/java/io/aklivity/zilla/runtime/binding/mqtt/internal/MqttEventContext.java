@@ -51,7 +51,7 @@ public class MqttEventContext
         this.clock = context.clock();
     }
 
-    public void clientConnected(
+    public void onClientConnected(
         long traceId,
         long bindingId,
         GuardHandler guard,

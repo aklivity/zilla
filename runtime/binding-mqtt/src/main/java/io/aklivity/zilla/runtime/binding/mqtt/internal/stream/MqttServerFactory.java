@@ -481,7 +481,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final MqttValidator validator;
     private final CharsetDecoder utf8Decoder;
     private final Function<ModelConfig, ValidatorHandler> supplyValidator;
-    private final MqttEventContext event;
+    private final MqttEventContext events;
 
     private MqttQoS publishQosMax;
 
@@ -531,7 +531,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         this.decodePacketTypeByVersion.put(MQTT_PROTOCOL_VERSION_4, this::decodePacketTypeV4);
         this.decodePacketTypeByVersion.put(MQTT_PROTOCOL_VERSION_5, this::decodePacketTypeV5);
         this.supplyValidator = context::supplyValidator;
-        this.event = new MqttEventContext(context);
+        this.events = new MqttEventContext(context);
     }
 
     @Override
@@ -4452,8 +4452,9 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             if (reasonCode == SUCCESS)
             {
-                event.clientConnected(traceId, routedId, guard, authorization, clientId.asString());
+                events.onClientConnected(traceId, routedId, guard, authorization, clientId.asString());
             }
+
             switch (version)
             {
             case 4:
