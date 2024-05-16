@@ -14,16 +14,39 @@
  */
 package io.aklivity.zilla.runtime.catalog.apicurio.internal;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 public class CachedArtifactId
 {
+    public static final int ID_PLACEHOLDER = -1;
+    public static final CachedArtifactId IN_PROGRESS = new CachedArtifactId(Long.MAX_VALUE, ID_PLACEHOLDER,
+        new AtomicInteger(), Long.MAX_VALUE);
+
     public long timestamp;
     public int id;
+    public final AtomicInteger retryAttempts;
+    public final long retryAfter;
 
     public CachedArtifactId(
         long timestamp,
-        int id)
+        int id,
+        AtomicInteger retryAttempts,
+        long retryAfter)
     {
         this.timestamp = timestamp;
         this.id = id;
+        this.retryAttempts = retryAttempts;
+        this.retryAfter = retryAfter;
+    }
+
+    public boolean expired(
+        long maxAgeMillis)
+    {
+        return System.currentTimeMillis() - this.timestamp > maxAgeMillis;
+    }
+
+    public boolean retry()
+    {
+        return System.currentTimeMillis() - this.timestamp > this.retryAfter;
     }
 }

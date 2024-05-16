@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.catalog.apicurio.internal;
 
+import static io.aklivity.zilla.runtime.catalog.apicurio.internal.CachedArtifactId.IN_PROGRESS;
 import static io.aklivity.zilla.runtime.catalog.apicurio.internal.config.ApicurioOptionsConfigBuilder.CONTENT_ID;
 import static io.aklivity.zilla.runtime.catalog.apicurio.internal.config.ApicurioOptionsConfigBuilder.LEGACY_ID_ENCODING;
 import static org.agrona.BitUtil.SIZE_OF_BYTE;
@@ -27,6 +28,9 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.ByteOrder;
 import java.text.MessageFormat;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.CRC32C;
 
 import jakarta.json.Json;
@@ -53,6 +57,8 @@ public class ApicurioCatalogHandler implements CatalogHandler
     private static final String VERSION_LATEST = "latest";
     private static final int MAX_PADDING_LENGTH = SIZE_OF_BYTE + SIZE_OF_LONG;
     private static final byte MAGIC_BYTE = 0x0;
+    private static final long RESET_RETRY_DELAY_MS_DEFAULT = 0L;
+    private static final long RETRY_INITIAL_DELAY_MS_DEFAULT = 1000L;
 
     private final ApicurioPrefixFW.Builder prefixRW = new ApicurioPrefixFW.Builder()
         .wrap(new UnsafeBuffer(new byte[5]), 0, 5);
@@ -61,7 +67,7 @@ public class ApicurioCatalogHandler implements CatalogHandler
     private final String baseUrl;
     private final CRC32C crc32c;
     private final Int2ObjectCache<String> artifacts;
-    private final Int2ObjectCache<CachedArtifactId> schemaIds;
+    private final Int2ObjectCache<CachedArtifactId> artifactIds;
     private final long maxAgeMillis;
     private final ApicurioEventContext event;
     private final long catalogId;
@@ -70,17 +76,28 @@ public class ApicurioCatalogHandler implements CatalogHandler
     private final IdEncoder encodeId;
     private final int idSize;
     private final String artifactPath;
+    private final ConcurrentMap<Integer, CompletableFuture<CachedArtifact>> cachedArtifacts;
+    private final ConcurrentMap<Integer, CompletableFuture<CachedArtifactId>> cachedArtifactIds;
+
 
     public ApicurioCatalogHandler(
         ApicurioOptionsConfig config,
         EngineContext context,
         long catalogId)
     {
+        this(config, context, catalogId, new ApicurioCache());
+    }
+    public ApicurioCatalogHandler(
+        ApicurioOptionsConfig config,
+        EngineContext context,
+        long catalogId,
+        ApicurioCache cache)
+    {
         this.baseUrl = config.url;
         this.client = HttpClient.newHttpClient();
         this.crc32c = new CRC32C();
         this.artifacts = new Int2ObjectCache<>(1, 1024, i -> {});
-        this.schemaIds = new Int2ObjectCache<>(1, 1024, i -> {});
+        this.artifactIds = new Int2ObjectCache<>(1, 1024, i -> {});
         this.maxAgeMillis = config.maxAge.toMillis();
         this.groupId = config.groupId;
         this.useId = config.useId;
@@ -89,23 +106,83 @@ public class ApicurioCatalogHandler implements CatalogHandler
         this.artifactPath = useId.equals(CONTENT_ID) ?  ARTIFACT_BY_CONTENT_ID_PATH : ARTIFACT_BY_GLOBAL_ID_PATH;
         this.event = new ApicurioEventContext(context);
         this.catalogId = catalogId;
+        this.cachedArtifacts = cache.artifacts;
+        this.cachedArtifactIds = cache.artifactIds;
     }
 
     @Override
     public String resolve(
-        int schemaId)
+        int artifactId)
     {
-        String artifact;
-        if (artifacts.containsKey(schemaId))
+        String artifact = null;
+        if (artifactId != NO_SCHEMA_ID)
         {
-            artifact = artifacts.get(schemaId);
-        }
-        else
-        {
-            artifact = sendHttpRequest(MessageFormat.format(artifactPath, schemaId));
-            if (artifact != null)
+            if (artifacts.containsKey(artifactId))
             {
-                artifacts.put(schemaId, artifact);
+                artifact = artifacts.get(artifactId);
+            }
+            else
+            {
+                AtomicInteger retryAttempts = new AtomicInteger();
+                CompletableFuture<CachedArtifact> newFuture = new CompletableFuture<>();
+                CompletableFuture<CachedArtifact> existing = cachedArtifacts.get(artifactId);
+                if (existing != null && existing.isDone())
+                {
+                    try
+                    {
+                        CachedArtifact cachedArtifact = existing.get();
+                        if (cachedArtifact != null)
+                        {
+                            retryAttempts = cachedArtifact.retryAttempts;
+                        }
+                    }
+                    catch (Throwable ex)
+                    {
+                        existing.completeExceptionally(ex);
+                    }
+                }
+                CompletableFuture<CachedArtifact> future = cachedArtifacts.merge(artifactId, newFuture, (v1, v2) ->
+                    v1.getNow(CachedArtifact.IN_PROGRESS).artifact == null ? v2 : v1);
+                if (future == newFuture)
+                {
+                    try
+                    {
+                        artifact = sendHttpRequest(MessageFormat.format(artifactPath, artifactId));
+                        if (artifact == null)
+                        {
+                            if (retryAttempts.getAndIncrement() == 0)
+                            {
+                                event.onUnretrievableArtifactId(catalogId, artifactId);
+                            }
+                            newFuture.complete(new CachedArtifact(null, retryAttempts));
+                        }
+                        else
+                        {
+                            if (retryAttempts.getAndSet(0) > 0)
+                            {
+                                event.onRetrievableArtifactId(catalogId, artifactId);
+                            }
+                            newFuture.complete(new CachedArtifact(artifact, retryAttempts));
+                        }
+                    }
+                    catch (Throwable ex)
+                    {
+                        newFuture.completeExceptionally(ex);
+                    }
+                }
+                assert future != null;
+                try
+                {
+                    artifact = future.get().artifact;
+                    if (artifact != null)
+                    {
+                        artifacts.put(artifactId, artifact);
+                    }
+                }
+                catch (Throwable ex)
+                {
+                    future.completeExceptionally(ex);
+                }
             }
         }
         return artifact;
@@ -116,27 +193,105 @@ public class ApicurioCatalogHandler implements CatalogHandler
         String artifact,
         String version)
     {
-        int schemaId;
+        int artifactId = NO_SCHEMA_ID;
 
-        int checkSum = generateCRC32C(artifact, version);
-        if (schemaIds.containsKey(checkSum) &&
-            (System.currentTimeMillis() - schemaIds.get(checkSum).timestamp) < maxAgeMillis)
+        int artifactKey = generateCRC32C(artifact, version);
+        if (artifactIds.containsKey(artifactKey) && !artifactIds.get(artifactKey).expired(maxAgeMillis))
         {
-            schemaId = schemaIds.get(checkSum).id;
+            artifactId = artifactIds.get(artifactKey).id;
         }
         else
         {
-            String path = VERSION_LATEST.equals(version) ? MessageFormat.format(ARTIFACT_META_PATH, groupId, artifact) :
-                MessageFormat.format(ARTIFACT_VERSION_PATH, groupId, artifact, version);
-
-            String response = sendHttpRequest(path);
-            schemaId = response != null ? resolveId(response) : NO_SCHEMA_ID;
-            if (schemaId != NO_SCHEMA_ID)
+            CachedArtifactId cachedArtifactId = null;
+            AtomicInteger retryAttempts = new AtomicInteger();
+            long retryAfter = RESET_RETRY_DELAY_MS_DEFAULT;
+            CompletableFuture<CachedArtifactId> newFuture = new CompletableFuture<>();
+            CompletableFuture<CachedArtifactId> existing = cachedArtifactIds.get(artifactKey);
+            if (existing != null && existing.isDone())
             {
-                schemaIds.put(checkSum, new CachedArtifactId(System.currentTimeMillis(), schemaId));
+                try
+                {
+                    cachedArtifactId = existing.get();
+                    if (cachedArtifactId != null)
+                    {
+                        retryAttempts = cachedArtifactId.retryAttempts;
+                    }
+                }
+                catch (Throwable ex)
+                {
+                    existing.completeExceptionally(ex);
+                }
+            }
+            CompletableFuture<CachedArtifactId> future = cachedArtifactIds.merge(artifactKey, newFuture, (v1, v2) ->
+                v1.getNow(IN_PROGRESS).retry() &&
+                    (v1.getNow(IN_PROGRESS).id == NO_SCHEMA_ID || v1.getNow(IN_PROGRESS).expired(maxAgeMillis)) ? v2 : v1);
+            if (future == newFuture)
+            {
+                try
+                {
+                    String path = VERSION_LATEST.equals(version) ? MessageFormat.format(ARTIFACT_META_PATH, groupId, artifact) :
+                        MessageFormat.format(ARTIFACT_VERSION_PATH, groupId, artifact, version);
+
+                    String response = sendHttpRequest(path);
+                    if (response == null)
+                    {
+                        if (retryAttempts.getAndIncrement() == 0)
+                        {
+                            retryAfter = RETRY_INITIAL_DELAY_MS_DEFAULT;
+                            event.onUnretrievableArtifactSubjectVersion(catalogId, artifact, version);
+                            if (cachedArtifactId != null && cachedArtifactId.id != NO_SCHEMA_ID)
+                            {
+                                event.onUnretrievableArtifactSubjectVersionStaleArtifact(catalogId,
+                                    artifact, version, cachedArtifactId.id);
+                            }
+                        }
+
+                        if (cachedArtifactId != null)
+                        {
+                            if (cachedArtifactId.retryAfter != RESET_RETRY_DELAY_MS_DEFAULT)
+                            {
+                                retryAfter = Math.min(cachedArtifactId.retryAfter << 1, maxAgeMillis);
+                            }
+                            newFuture.complete(new CachedArtifactId(cachedArtifactId.timestamp, cachedArtifactId.id,
+                                retryAttempts, retryAfter));
+                        }
+                        else
+                        {
+                            newFuture.complete(new CachedArtifactId(System.currentTimeMillis(), NO_SCHEMA_ID,
+                                retryAttempts, retryAfter));
+                        }
+                    }
+                    else if (response != null)
+                    {
+                        if (retryAttempts.getAndSet(0) > 0)
+                        {
+                            event.onRetrievableArtifactSubjectVersion(catalogId, artifact, version);
+                        }
+                        newFuture.complete(new CachedArtifactId(System.currentTimeMillis(), resolveId(response),
+                            retryAttempts, retryAfter));
+                    }
+                }
+                catch (Throwable ex)
+                {
+                    newFuture.completeExceptionally(ex);
+                }
+            }
+            assert future != null;
+            try
+            {
+                cachedArtifactId = future.get();
+                artifactId = cachedArtifactId.id;
+                if (artifactId != NO_SCHEMA_ID)
+                {
+                    artifactIds.put(artifactKey, cachedArtifactId);
+                }
+            }
+            catch (Throwable ex)
+            {
+                future.completeExceptionally(ex);
             }
         }
-        return schemaId;
+        return artifactId;
     }
 
     private String sendHttpRequest(
@@ -148,22 +303,17 @@ public class ApicurioCatalogHandler implements CatalogHandler
                 .build();
         // TODO: introduce interrupt/timeout for request to apicurio
 
+        String responseBody;
         try
         {
             HttpResponse<String> httpResponse = client.send(httpRequest, HttpResponse.BodyHandlers.ofString());
-            boolean success = httpResponse.statusCode() == 200;
-            String responseBody = success ? httpResponse.body() : null;
-            if (!success)
-            {
-                event.remoteAccessRejected(catalogId, httpRequest, httpResponse.statusCode());
-            }
-            return responseBody;
+            responseBody = httpResponse.statusCode() == 200 ? httpResponse.body() : null;
         }
         catch (Exception ex)
         {
-            event.remoteAccessRejected(catalogId, httpRequest, 0);
+            responseBody = null;
         }
-        return null;
+        return responseBody;
     }
 
     @Override
