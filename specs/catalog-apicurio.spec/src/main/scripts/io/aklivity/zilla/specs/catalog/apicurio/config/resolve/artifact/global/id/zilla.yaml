@@ -32,5 +32,16 @@ bindings:
       assertions:
         catalog:
           catalog0:
-            - schema: "asyncapi: 3.0.0\ninfo:\n  title: Zilla MQTT Proxy\n  version: 1.0.0\n  license:\n    name: Aklivity Community License\nservers:\n  plain:\n    host: mqtt://localhost:7183\n    protocol: mqtt\ndefaultContentType: application/json"
+            - schema: |-
+                asyncapi: 3.0.0
+                info:
+                  title: Zilla MQTT Proxy
+                  version: 1.0.0
+                  license:
+                    name: Aklivity Community License
+                servers:
+                  plain:
+                    host: mqtt://localhost:7183
+                    protocol: mqtt
+                defaultContentType: application/json
     exit: app0
