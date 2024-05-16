@@ -78,9 +78,9 @@ public class EventReader
         String qname = context.supplyQName(event.namespacedId());
         String eventName = context.supplyEventName(event.id());
         String extension = formatter.format(msgTypeId, buffer, index, length);
+        eventAttributesJson = Json.createArrayBuilder();
         addStringAttribute("event.name", eventName);
         addBody(qname, extension);
-        eventAttributesJson = Json.createArrayBuilder();
         eventJson.add(ATTRIBUTES, eventAttributesJson);
         eventsJson.add(eventJson);
     }
