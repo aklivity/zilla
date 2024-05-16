@@ -144,6 +144,8 @@
         <configuration>
           <excludes>
             <exclude>src/main/scripts/io/aklivity/zilla/specs/command/dump/binding/filesystem/config/files/**/*</exclude>
+            <exclude>**/keys</exclude>
+            <exclude>**/trust</exclude>
           </excludes>
         </configuration>
       </plugin>

@@ -1,0 +1,727 @@
+Frame 1: 198 bytes on wire (1584 bits), 198 bytes captured (1584 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::1, Dst: fe80::
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1, Ack: 1, Len: 124
+Zilla Frame
+    Frame Type ID: 0x40000003
+    Frame Type: SIGNAL
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 0
+    Offset: 0x00000000
+    Origin ID: 0x0000000000000000
+    Routed ID: 0x0000000000000000
+    Stream ID: 0x0000000000000000
+    Direction: 
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000000
+    Trace ID: 0x0000000000000001
+    Authorization: 0x0000000000000000
+    Cancel ID: 0xffffffffffffffff
+    Signal ID: 0x00000001
+    Context ID: 0x00000000
+    Payload
+        Length: -1
+
+Frame 2: 211 bytes on wire (1688 bits), 211 bytes captured (1688 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::1:3f00:0:0:2, Dst: fe80::1:3f00:0:0:3
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 1, Ack: 1, Len: 137
+Zilla Frame
+    Frame Type ID: 0x40000002
+    Frame Type: WINDOW
+    Protocol Type ID: 0x99f321bc
+    Protocol Type: tls
+    Worker: 1
+    Offset: 0x00000000
+    Origin ID: 0x0000000100000017
+    Origin Namespace: test
+    Origin Binding: net0
+    Routed ID: 0x0000000100000017
+    Routed Namespace: test
+    Routed Binding: net0
+    Stream ID: 0x3f00000000000003
+    Initial ID: 0x3f00000000000003
+    Reply ID: 0x3f00000000000002
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 65536
+    Timestamp: 0x0000000000000000
+    Trace ID: 0x8000000000000001
+    Authorization: 0x0000000000000000
+    Budget ID: 0x0000000000000000
+    Padding: 0
+    Minimum: 0
+    Capabilities: 0x00
+    Progress: 0
+    Progress/Maximum: 0/65536
+
+Frame 3: 202 bytes on wire (1616 bits), 202 bytes captured (1616 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::3f00:0:0:2, Dst: fe80::3f00:0:0:3
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 0, Ack: 1, Len: 128
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x99f321bc
+    Protocol Type: tls
+    Worker: 0
+    Offset: 0x00000060
+    Origin ID: 0x0000000100000017
+    Origin Namespace: test
+    Origin Binding: net0
+    Routed ID: 0x0000000100000017
+    Routed Namespace: test
+    Routed Binding: net0
+    Stream ID: 0x3f00000000000003
+    Initial ID: 0x3f00000000000003
+    Reply ID: 0x3f00000000000002
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000000
+    Trace ID: 0x8000000000000001
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+
+Frame 4: 202 bytes on wire (1616 bits), 202 bytes captured (1616 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::1:3f00:0:0:3, Dst: fe80::1:3f00:0:0:2
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1, Ack: 138, Len: 128
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x99f321bc
+    Protocol Type: tls
+    Worker: 1
+    Offset: 0x00000060
+    Origin ID: 0x0000000100000017
+    Origin Namespace: test
+    Origin Binding: net0
+    Routed ID: 0x0000000100000017
+    Routed Namespace: test
+    Routed Binding: net0
+    Stream ID: 0x3f00000000000002
+    Initial ID: 0x3f00000000000003
+    Reply ID: 0x3f00000000000002
+    Direction: REP
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000000
+    Trace ID: 0x8000000000000001
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+
+Frame 5: 211 bytes on wire (1688 bits), 211 bytes captured (1688 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::3f00:0:0:3, Dst: fe80::3f00:0:0:2
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1, Ack: 128, Len: 137
+Zilla Frame
+    Frame Type ID: 0x40000002
+    Frame Type: WINDOW
+    Protocol Type ID: 0x99f321bc
+    Protocol Type: tls
+    Worker: 0
+    Offset: 0x000000b8
+    Origin ID: 0x0000000100000017
+    Origin Namespace: test
+    Origin Binding: net0
+    Routed ID: 0x0000000100000017
+    Routed Namespace: test
+    Routed Binding: net0
+    Stream ID: 0x3f00000000000002
+    Initial ID: 0x3f00000000000003
+    Reply ID: 0x3f00000000000002
+    Direction: REP
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 65536
+    Timestamp: 0x0000000000000000
+    Trace ID: 0x8000000000000002
+    Authorization: 0x0000000000000000
+    Budget ID: 0x0000000000000000
+    Padding: 0
+    Minimum: 0
+    Capabilities: 0x00
+    Progress: 0
+    Progress/Maximum: 0/65536
+
+Frame 6: 211 bytes on wire (1688 bits), 211 bytes captured (1688 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::1:3f00:0:0:2, Dst: fe80::1:3f00:0:0:3
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 138, Ack: 129, Len: 137
+Zilla Frame
+    Frame Type ID: 0x40000002
+    Frame Type: WINDOW
+    Protocol Type ID: 0x99f321bc
+    Protocol Type: tls
+    Worker: 1
+    Offset: 0x000000b8
+    Origin ID: 0x0000000100000017
+    Origin Namespace: test
+    Origin Binding: net0
+    Routed ID: 0x0000000100000017
+    Routed Namespace: test
+    Routed Binding: net0
+    Stream ID: 0x3f00000000000003
+    Initial ID: 0x3f00000000000003
+    Reply ID: 0x3f00000000000002
+    Direction: INI
+    Sequence: 482
+    Acknowledge: 482
+    Maximum: 65536
+    Timestamp: 0x0000000000000000
+    Trace ID: 0x8000000000000003
+    Authorization: 0x0000000000000000
+    Budget ID: 0x0000000000000000
+    Padding: 0
+    Minimum: 0
+    Capabilities: 0x00
+    Progress: 0
+    Progress/Maximum: 0/65536
+
+Frame 7: 693 bytes on wire (5544 bits), 693 bytes captured (5544 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::3f00:0:0:2, Dst: fe80::3f00:0:0:3
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 128, Ack: 138, Len: 619
+Zilla Frame
+    Frame Type ID: 0x00000002
+    Frame Type: DATA
+    Protocol Type ID: 0x99f321bc
+    Protocol Type: tls
+    Worker: 0
+    Offset: 0x00000118
+    Origin ID: 0x0000000100000017
+    Origin Namespace: test
+    Origin Binding: net0
+    Routed ID: 0x0000000100000017
+    Routed Namespace: test
+    Routed Binding: net0
+    Stream ID: 0x3f00000000000003
+    Initial ID: 0x3f00000000000003
+    Reply ID: 0x3f00000000000002
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 65536
+    Timestamp: 0x0000000000000000
+    Trace ID: 0x8000000000000003
+    Authorization: 0x0000000000000000
+    Flags: 0x03
+        .... ...1 = FIN: Set (1)
+        .... ..1. = INIT: Set (1)
+        .... .0.. = INCOMPLETE: Not set (0)
+        .... 0... = SKIP: Not set (0)
+    Budget ID: 0x0000000000000000
+    Reserved: 482
+    Progress: 482
+    Progress/Maximum: 482/65536
+    Payload
+        Length: 482
+        Payload
+Transport Layer Security
+
+Frame 8: 338 bytes on wire (2704 bits), 338 bytes captured (2704 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::1:3f00:0:0:3, Dst: fe80::1:3f00:0:0:2
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 129, Ack: 275, Len: 264
+Zilla Frame
+    Frame Type ID: 0x00000002
+    Frame Type: DATA
+    Protocol Type ID: 0x99f321bc
+    Protocol Type: tls
+    Worker: 1
+    Offset: 0x00000118
+    Origin ID: 0x0000000100000017
+    Origin Namespace: test
+    Origin Binding: net0
+    Routed ID: 0x0000000100000017
+    Routed Namespace: test
+    Routed Binding: net0
+    Stream ID: 0x3f00000000000002
+    Initial ID: 0x3f00000000000003
+    Reply ID: 0x3f00000000000002
+    Direction: REP
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 65536
+    Timestamp: 0x0000000000000000
+    Trace ID: 0x0000000000000000
+    Authorization: 0x0000000000000000
+    Flags: 0x03
+        .... ...1 = FIN: Set (1)
+        .... ..1. = INIT: Set (1)
+        .... .0.. = INCOMPLETE: Not set (0)
+        .... 0... = SKIP: Not set (0)
+    Budget ID: 0x0000000000000000
+    Reserved: 127
+    Progress: 127
+    Progress/Maximum: 127/65536
+    Payload
+        Length: 127
+        Payload
+Transport Layer Security
+
+Frame 9: 214 bytes on wire (1712 bits), 214 bytes captured (1712 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::3f00:0:0:3, Dst: fe80::3f00:0:0:2
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 138, Ack: 747, Len: 140
+Zilla Frame
+    Frame Type ID: 0x40000003
+    Frame Type: SIGNAL
+    Protocol Type ID: 0x99f321bc
+    Protocol Type: tls
+    Worker: 0
+    Offset: 0x00000358
+    Origin ID: 0x0000000100000017
+    Origin Namespace: test
+    Origin Binding: net0
+    Routed ID: 0x0000000100000017
+    Routed Namespace: test
+    Routed Binding: net0
+    Stream ID: 0x3f00000000000002
+    Initial ID: 0x3f00000000000003
+    Reply ID: 0x3f00000000000002
+    Direction: REP
+    Sequence: -9223372036854775805
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000000
+    Trace ID: 0x0000000000000000
+    Authorization: 0x0000000000000000
+    Cancel ID: 0x8000000000000003
+    Signal ID: 0x00000001
+    Context ID: 0x00000000
+    Payload
+        Length: -1
+
+Frame 10: 217 bytes on wire (1736 bits), 217 bytes captured (1736 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::1:3f00:0:0:3, Dst: fe80::1:3f00:0:0:2
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 393, Ack: 275, Len: 143
+Zilla Frame
+    Frame Type ID: 0x00000002
+    Frame Type: DATA
+    Protocol Type ID: 0x99f321bc
+    Protocol Type: tls
+    Worker: 1
+    Offset: 0x000001f8
+    Origin ID: 0x0000000100000017
+    Origin Namespace: test
+    Origin Binding: net0
+    Routed ID: 0x0000000100000017
+    Routed Namespace: test
+    Routed Binding: net0
+    Stream ID: 0x3f00000000000002
+    Initial ID: 0x3f00000000000003
+    Reply ID: 0x3f00000000000002
+    Direction: REP
+    Sequence: 127
+    Acknowledge: 0
+    Maximum: 65536
+    Timestamp: 0x0000000000000000
+    Trace ID: 0x0000000000000000
+    Authorization: 0x0000000000000000
+    Flags: 0x03
+        .... ...1 = FIN: Set (1)
+        .... ..1. = INIT: Set (1)
+        .... .0.. = INCOMPLETE: Not set (0)
+        .... 0... = SKIP: Not set (0)
+    Budget ID: 0x0000000000000000
+    Reserved: 6
+    Progress: 133
+    Progress/Maximum: 133/65536
+    Payload
+        Length: 6
+        Payload
+Transport Layer Security
+
+Frame 11: 211 bytes on wire (1688 bits), 211 bytes captured (1688 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::3f00:0:0:3, Dst: fe80::3f00:0:0:2
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 278, Ack: 747, Len: 137
+Zilla Frame
+    Frame Type ID: 0x40000002
+    Frame Type: WINDOW
+    Protocol Type ID: 0x99f321bc
+    Protocol Type: tls
+    Worker: 0
+    Offset: 0x000003b8
+    Origin ID: 0x0000000100000017
+    Origin Namespace: test
+    Origin Binding: net0
+    Routed ID: 0x0000000100000017
+    Routed Namespace: test
+    Routed Binding: net0
+    Stream ID: 0x3f00000000000002
+    Initial ID: 0x3f00000000000003
+    Reply ID: 0x3f00000000000002
+    Direction: REP
+    Sequence: 127
+    Acknowledge: 127
+    Maximum: 65536
+    Timestamp: 0x0000000000000000
+    Trace ID: 0x8000000000000004
+    Authorization: 0x0000000000000000
+    Budget ID: 0x0000000000000000
+    Padding: 0
+    Minimum: 0
+    Capabilities: 0x00
+    Progress: 0
+    Progress/Maximum: 0/65536
+
+Frame 12: 2429 bytes on wire (19432 bits), 2429 bytes captured (19432 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::1:3f00:0:0:3, Dst: fe80::1:3f00:0:0:2
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 536, Ack: 275, Len: 2355
+Zilla Frame
+    Frame Type ID: 0x00000002
+    Frame Type: DATA
+    Protocol Type ID: 0x99f321bc
+    Protocol Type: tls
+    Worker: 1
+    Offset: 0x00000260
+    Origin ID: 0x0000000100000017
+    Origin Namespace: test
+    Origin Binding: net0
+    Routed ID: 0x0000000100000017
+    Routed Namespace: test
+    Routed Binding: net0
+    Stream ID: 0x3f00000000000002
+    Initial ID: 0x3f00000000000003
+    Reply ID: 0x3f00000000000002
+    Direction: REP
+    Sequence: 133
+    Acknowledge: 0
+    Maximum: 65536
+    Timestamp: 0x0000000000000000
+    Trace ID: 0x0000000000000000
+    Authorization: 0x0000000000000000
+    Flags: 0x03
+        .... ...1 = FIN: Set (1)
+        .... ..1. = INIT: Set (1)
+        .... .0.. = INCOMPLETE: Not set (0)
+        .... 0... = SKIP: Not set (0)
+    Budget ID: 0x0000000000000000
+    Reserved: 2218
+    Progress: 2351
+    Progress/Maximum: 2351/65536
+    Payload
+        Length: 2218
+        Payload
+Transport Layer Security
+
+Frame 13: 211 bytes on wire (1688 bits), 211 bytes captured (1688 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::3f00:0:0:3, Dst: fe80::3f00:0:0:2
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 415, Ack: 747, Len: 137
+Zilla Frame
+    Frame Type ID: 0x40000002
+    Frame Type: WINDOW
+    Protocol Type ID: 0x99f321bc
+    Protocol Type: tls
+    Worker: 0
+    Offset: 0x00000418
+    Origin ID: 0x0000000100000017
+    Origin Namespace: test
+    Origin Binding: net0
+    Routed ID: 0x0000000100000017
+    Routed Namespace: test
+    Routed Binding: net0
+    Stream ID: 0x3f00000000000002
+    Initial ID: 0x3f00000000000003
+    Reply ID: 0x3f00000000000002
+    Direction: REP
+    Sequence: 133
+    Acknowledge: 133
+    Maximum: 65536
+    Timestamp: 0x0000000000000000
+    Trace ID: 0x8000000000000005
+    Authorization: 0x0000000000000000
+    Budget ID: 0x0000000000000000
+    Padding: 0
+    Minimum: 0
+    Capabilities: 0x00
+    Progress: 0
+    Progress/Maximum: 0/65536
+
+Frame 14: 211 bytes on wire (1688 bits), 211 bytes captured (1688 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::1:3f00:0:0:2, Dst: fe80::1:3f00:0:0:3
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 275, Ack: 2891, Len: 137
+Zilla Frame
+    Frame Type ID: 0x40000002
+    Frame Type: WINDOW
+    Protocol Type ID: 0x99f321bc
+    Protocol Type: tls
+    Worker: 1
+    Offset: 0x00000b68
+    Origin ID: 0x0000000100000017
+    Origin Namespace: test
+    Origin Binding: net0
+    Routed ID: 0x0000000100000017
+    Routed Namespace: test
+    Routed Binding: net0
+    Stream ID: 0x3f00000000000003
+    Initial ID: 0x3f00000000000003
+    Reply ID: 0x3f00000000000002
+    Direction: INI
+    Sequence: 488
+    Acknowledge: 488
+    Maximum: 65536
+    Timestamp: 0x0000000000000000
+    Trace ID: 0x8000000000000007
+    Authorization: 0x0000000000000000
+    Budget ID: 0x0000000000000000
+    Padding: 0
+    Minimum: 0
+    Capabilities: 0x00
+    Progress: 0
+    Progress/Maximum: 0/65536
+
+Frame 15: 211 bytes on wire (1688 bits), 211 bytes captured (1688 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::3f00:0:0:3, Dst: fe80::3f00:0:0:2
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 552, Ack: 747, Len: 137
+Zilla Frame
+    Frame Type ID: 0x40000002
+    Frame Type: WINDOW
+    Protocol Type ID: 0x99f321bc
+    Protocol Type: tls
+    Worker: 0
+    Offset: 0x00000478
+    Origin ID: 0x0000000100000017
+    Origin Namespace: test
+    Origin Binding: net0
+    Routed ID: 0x0000000100000017
+    Routed Namespace: test
+    Routed Binding: net0
+    Stream ID: 0x3f00000000000002
+    Initial ID: 0x3f00000000000003
+    Reply ID: 0x3f00000000000002
+    Direction: REP
+    Sequence: 2351
+    Acknowledge: 2351
+    Maximum: 65536
+    Timestamp: 0x0000000000000000
+    Trace ID: 0x8000000000000006
+    Authorization: 0x0000000000000000
+    Budget ID: 0x0000000000000000
+    Padding: 0
+    Minimum: 0
+    Capabilities: 0x00
+    Progress: 0
+    Progress/Maximum: 0/65536
+
+Frame 16: 262 bytes on wire (2096 bits), 262 bytes captured (2096 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::1:3f:0:0:2, Dst: fe80::1:3f:0:0:3
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 0, Ack: 1, Len: 188
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 1
+    Offset: 0x00000bc8
+    Origin ID: 0x0000000100000017
+    Origin Namespace: test
+    Origin Binding: net0
+    Routed ID: 0x0000000100000002
+    Routed Namespace: test
+    Routed Binding: app0
+    Stream ID: 0x003f000000000003
+    Initial ID: 0x003f000000000003
+    Reply ID: 0x003f000000000002
+    Direction: INI
+    Sequence: 578
+    Acknowledge: 578
+    Maximum: 0
+    Timestamp: 0x0000000000000000
+    Trace ID: 0x8000000000000008
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+    Extension: proxy
+        Stream Type ID: 0x50a8ce8d
+        Stream Type: proxy
+        Address: NONE
+            Family: NONE (4)
+        Info (3 items)
+            Length: 51
+            Size: 3
+        Info: AUTHORITY: localhost
+            Type: AUTHORITY (0x02)
+            Length: 9
+            Value: localhost
+        Info: SECURE: VERSION: TLSv1.3
+            Type: SECURE (0x20)
+            Secure Type: VERSION (0x21)
+            Length: 7
+            Value: TLSv1.3
+        Info: SECURE: CIPHER: TLS_AES_256_GCM_SHA384
+            Type: SECURE (0x20)
+            Secure Type: CIPHER (0x23)
+            Length: 22
+            Value: TLS_AES_256_GCM_SHA384
+
+Frame 17: 217 bytes on wire (1736 bits), 217 bytes captured (1736 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::3f00:0:0:2, Dst: fe80::3f00:0:0:3
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 747, Ack: 689, Len: 143
+Zilla Frame
+    Frame Type ID: 0x00000002
+    Frame Type: DATA
+    Protocol Type ID: 0x99f321bc
+    Protocol Type: tls
+    Worker: 0
+    Offset: 0x000004d8
+    Origin ID: 0x0000000100000017
+    Origin Namespace: test
+    Origin Binding: net0
+    Routed ID: 0x0000000100000017
+    Routed Namespace: test
+    Routed Binding: net0
+    Stream ID: 0x3f00000000000003
+    Initial ID: 0x3f00000000000003
+    Reply ID: 0x3f00000000000002
+    Direction: INI
+    Sequence: 482
+    Acknowledge: 482
+    Maximum: 65536
+    Timestamp: 0x0000000000000000
+    Trace ID: 0x8000000000000007
+    Authorization: 0x0000000000000000
+    Flags: 0x03
+        .... ...1 = FIN: Set (1)
+        .... ..1. = INIT: Set (1)
+        .... .0.. = INCOMPLETE: Not set (0)
+        .... 0... = SKIP: Not set (0)
+    Budget ID: 0x0000000000000000
+    Reserved: 6
+    Progress: 6
+    Progress/Maximum: 6/65536
+    Payload
+        Length: 6
+        Payload
+Transport Layer Security
+
+Frame 18: 211 bytes on wire (1688 bits), 211 bytes captured (1688 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::1:3f:0:0:3, Dst: fe80::1:3f:0:0:2
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1, Ack: 188, Len: 137
+Zilla Frame
+    Frame Type ID: 0x40000002
+    Frame Type: WINDOW
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
+    Worker: 1
+    Offset: 0x00000c58
+    Origin ID: 0x0000000100000017
+    Origin Namespace: test
+    Origin Binding: net0
+    Routed ID: 0x0000000100000002
+    Routed Namespace: test
+    Routed Binding: app0
+    Stream ID: 0x003f000000000002
+    Initial ID: 0x003f000000000003
+    Reply ID: 0x003f000000000002
+    Direction: REP
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 65536
+    Timestamp: 0x0000000000000000
+    Trace ID: 0x8000000000000008
+    Authorization: 0x0000000000000000
+    Budget ID: 0x0000000000000000
+    Padding: 1124
+    Minimum: 0
+    Capabilities: 0x00
+    Progress: 0
+    Progress/Maximum: 0/65536
+
+Frame 19: 301 bytes on wire (2408 bits), 301 bytes captured (2408 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::3f00:0:0:2, Dst: fe80::3f00:0:0:3
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 890, Ack: 689, Len: 227
+Zilla Frame
+    Frame Type ID: 0x00000002
+    Frame Type: DATA
+    Protocol Type ID: 0x99f321bc
+    Protocol Type: tls
+    Worker: 0
+    Offset: 0x00000540
+    Origin ID: 0x0000000100000017
+    Origin Namespace: test
+    Origin Binding: net0
+    Routed ID: 0x0000000100000017
+    Routed Namespace: test
+    Routed Binding: net0
+    Stream ID: 0x3f00000000000003
+    Initial ID: 0x3f00000000000003
+    Reply ID: 0x3f00000000000002
+    Direction: INI
+    Sequence: 488
+    Acknowledge: 482
+    Maximum: 65536
+    Timestamp: 0x0000000000000000
+    Trace ID: 0x8000000000000008
+    Authorization: 0x0000000000000000
+    Flags: 0x03
+        .... ...1 = FIN: Set (1)
+        .... ..1. = INIT: Set (1)
+        .... .0.. = INCOMPLETE: Not set (0)
+        .... 0... = SKIP: Not set (0)
+    Budget ID: 0x0000000000000000
+    Reserved: 90
+    Progress: 96
+    Progress/Maximum: 96/65536
+    Payload
+        Length: 90
+        Payload
+Transport Layer Security
+
+Frame 20: 2345 bytes on wire (18760 bits), 2345 bytes captured (18760 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::1:3f00:0:0:3, Dst: fe80::1:3f00:0:0:2
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 2891, Ack: 412, Len: 2271
+Zilla Frame
+    Frame Type ID: 0x00000002
+    Frame Type: DATA
+    Protocol Type ID: 0x99f321bc
+    Protocol Type: tls
+    Worker: 1
+    Offset: 0x00000cb8
+    Origin ID: 0x0000000100000017
+    Origin Namespace: test
+    Origin Binding: net0
+    Routed ID: 0x0000000100000017
+    Routed Namespace: test
+    Routed Binding: net0
+    Stream ID: 0x3f00000000000002
+    Initial ID: 0x3f00000000000003
+    Reply ID: 0x3f00000000000002
+    Direction: REP
+    Sequence: 2351
+    Acknowledge: 2351
+    Maximum: 65536
+    Timestamp: 0x0000000000000000
+    Trace ID: 0x8000000000000008
+    Authorization: 0x0000000000000000
+    Flags: 0x03
+        .... ...1 = FIN: Set (1)
+        .... ..1. = INIT: Set (1)
+        .... .0.. = INCOMPLETE: Not set (0)
+        .... 0... = SKIP: Not set (0)
+    Budget ID: 0x0000000000000000
+    Reserved: 2134
+    Progress: 2134
+    Progress/Maximum: 2134/65536
+    Payload
+        Length: 2134
+        Payload
+Transport Layer Security

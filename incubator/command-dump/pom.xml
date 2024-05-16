@@ -192,6 +192,24 @@
       <scope>test</scope>
     </dependency>
     <dependency>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>binding-tls</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>binding-tls.spec</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>vault-filesystem</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>org.testcontainers</groupId>
       <artifactId>testcontainers</artifactId>
       <version>1.19.7</version>
@@ -221,6 +239,8 @@
         <configuration>
           <excludes>
             <exclude>src/test/resources/io/aklivity/zilla/runtime/command/dump/internal/*.txt</exclude>
+            <exclude>**/keys</exclude>
+            <exclude>**/trust</exclude>
           </excludes>
         </configuration>
       </plugin>
