@@ -848,7 +848,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
 
                 final KafkaCachePartition.Node head = partition.head();
                 final KafkaCachePartition.Node nextHead =
-                        partition.newHeadIfNecessary(partitionOffset, key, valueLength, headersSizeMax);
+                        partition.newHeadIfNecessary(partitionOffset, key, valueLength, headersSizeMax, retentionMillisMax);
 
                 final long nextOffset = partition.nextOffset(defaultOffset);
                 assert partitionOffset >= 0 && partitionOffset >= nextOffset

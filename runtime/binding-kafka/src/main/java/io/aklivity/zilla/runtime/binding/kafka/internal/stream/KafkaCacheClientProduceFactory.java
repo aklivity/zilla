@@ -703,7 +703,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                     break init;
                 }
 
-                stream.segment = partition.newHeadIfNecessary(partitionOffset, key, valueLength, headersSizeMax);
+                stream.segment = partition.newHeadIfNecessary(partitionOffset, key, valueLength, headersSizeMax, Long.MAX_VALUE);
 
                 if (stream.segment != null)
                 {
@@ -782,7 +782,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             final long traceId = flush.traceId();
             final int reserved = flush.reserved();
 
-            stream.segment = partition.newHeadIfNecessary(partitionOffset, EMPTY_KEY, 0, 0);
+            stream.segment = partition.newHeadIfNecessary(partitionOffset, EMPTY_KEY, 0, 0, Long.MAX_VALUE);
 
             int error = NO_ERROR;
             if (stream.segment != null)
