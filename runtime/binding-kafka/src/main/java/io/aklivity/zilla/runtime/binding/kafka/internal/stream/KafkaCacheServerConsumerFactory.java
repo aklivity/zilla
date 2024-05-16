@@ -17,7 +17,9 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
@@ -26,6 +28,7 @@ import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.IntHashSet;
 import org.agrona.collections.Object2ObjectHashMap;
+import org.agrona.collections.ObjectHashSet;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
@@ -533,7 +536,8 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
         private final long routedId;
         private final long authorization;
         private final ArrayList<KafkaCacheServerConsumerStream> streams;
-        private final Object2ObjectHashMap<String, String> members;
+        private final Map<String, String> members;
+        private final ObjectHashSet<String> memberIds;
         private final Object2ObjectHashMap<String, IntHashSet> partitionsByTopic;
         private final Object2ObjectHashMap<String, List<TopicPartition>> consumers;
         private final Object2ObjectHashMap<String, TopicConsumer> assignments;
@@ -578,7 +582,8 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
             this.groupId = groupId;
             this.timeout = timeout;
             this.streams = new ArrayList<>();
-            this.members = new Object2ObjectHashMap<>();
+            this.memberIds = new ObjectHashSet<>();
+            this.members = new LinkedHashMap<>();
             this.partitionsByTopic = new Object2ObjectHashMap<>();
             this.consumers = new Object2ObjectHashMap<>();
             this.assignments = new Object2ObjectHashMap<>();
@@ -589,8 +594,6 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
             KafkaCacheServerConsumerStream stream)
         {
             streams.add(stream);
-
-            assert !streams.isEmpty();
 
             doConsumerInitialBegin(traceId, stream);
 
@@ -886,7 +889,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
                 memberId = kafkaGroupFlushEx.memberId().asString();
 
                 partitionsByTopic.clear();
-                members.clear();
+                memberIds.clear();
 
                 kafkaGroupFlushEx.members().forEach(m ->
                 {
@@ -896,7 +899,8 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
                     final String consumerId = kafkaGroupMemberMetadataRO.consumerId().asString();
 
                     final String mId = m.id().asString();
-                    members.put(mId, consumerId);
+                    members.putIfAbsent(mId, consumerId);
+                    memberIds.add(mId);
 
                     groupMetadata.topics().forEach(mt ->
                     {
@@ -906,6 +910,8 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
                     });
                 });
             }
+
+            members.entrySet().removeIf(m -> !memberIds.contains(m.getKey()));
 
             doPartitionAssignment(traceId, authorization);
         }
@@ -940,6 +946,12 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
                     streams.stream().filter(s -> s.topic.equals(ta.topic().asString())).findFirst().get();
                 IntHashSet partitions = new IntHashSet();
                 List<TopicPartition> topicConsumers = new ArrayList<>();
+
+                if (KafkaConfiguration.DEBUG_CONSUMER)
+                {
+                    System.out.printf("Subscription: MemberId - %s\n", memberId);
+                    ta.partitions().forEach(np -> System.out.printf("%s\n", np));
+                }
 
                 stream.doConsumerReplyData(traceId, flags, replyPad, EMPTY_OCTETS,
                     ex -> ex.set((b, o, l) -> kafkaDataExRW.wrap(b, o, l)
@@ -1089,7 +1101,6 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
                     .wrap(writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity());
 
                 this.consumers.forEach((k, v) ->
-                {
                     assignmentBuilder.item(ma -> ma
                         .memberId(k)
                         .assignments(ta -> v.forEach(tp -> ta.item(i -> i
@@ -1101,11 +1112,18 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
                                         u.item(ud -> ud
                                             .consumerId(at.consumerId)
                                             .partitions(pt -> at.partitions.forEach(up ->
-                                                pt.item(pi -> pi.partitionId(up))))))))
-                        ))));
-                });
+                                                pt.item(pi -> pi.partitionId(up)))))))))))));
 
                 Array32FW<MemberAssignmentFW> assignment = assignmentBuilder.build();
+
+                if (KafkaConfiguration.DEBUG_CONSUMER)
+                {
+                    assignment.forEach(c ->
+                    {
+                        System.out.printf("Assignment: MemberId - %s\n", c.memberId());
+                        c.assignments().forEach(a -> a.partitions().forEach(System.out::println));
+                    });
+                }
 
                 doConsumerInitialData(traceId, authorization, initialBud, assignment.sizeof(), 3,
                     assignment.buffer(), assignment.offset(), assignment.sizeof(), EMPTY_OCTETS);
