@@ -41,6 +41,7 @@ public class MqttKafkaConfiguration extends Configuration
     public static final BooleanPropertyDef BOOTSTRAP_AVAILABLE;
     public static final IntPropertyDef BOOTSTRAP_STREAM_RECONNECT_DELAY;
     public static final IntPropertyDef PUBLISH_QOS_MAX;
+    public static final PropertyDef<String> KAFKA_GROUP_ID_PREFIX;
 
     static
     {
@@ -60,6 +61,7 @@ public class MqttKafkaConfiguration extends Configuration
         BOOTSTRAP_AVAILABLE = config.property("bootstrap.available", true);
         BOOTSTRAP_STREAM_RECONNECT_DELAY = config.property("bootstrap.stream.reconnect", 2);
         PUBLISH_QOS_MAX = config.property("publish.qos.max", 2);
+        KAFKA_GROUP_ID_PREFIX = config.property("group.id.prefix.format", "zilla:%s-%s");
         MQTT_KAFKA_CONFIG = config;
     }
 
@@ -122,6 +124,11 @@ public class MqttKafkaConfiguration extends Configuration
     public MqttQoS publishQosMax()
     {
         return MqttQoS.valueOf(PUBLISH_QOS_MAX.getAsInt(this));
+    }
+
+    public String groupIdPrefixFormat()
+    {
+        return KAFKA_GROUP_ID_PREFIX.get(this);
     }
 
 

@@ -75,7 +75,7 @@ public class MqttKafkaProxyFactory implements MqttKafkaStreamFactory
         MqttKafkaBindingConfig kafkaBinding = new MqttKafkaBindingConfig(binding);
         bindings.put(binding.id, kafkaBinding);
 
-        factories.values().forEach(streamFactory -> streamFactory.onAttached(binding.id));
+        factories.values().forEach(streamFactory -> streamFactory.onAttached(binding.id, binding.name));
     }
 
     @Override
