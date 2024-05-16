@@ -67,6 +67,16 @@ public class ConnectionIT
     }
 
     @Test
+    @Configuration("server.log.event.yaml")
+    @Specification({
+        "${net}/connect.successful/client",
+        "${app}/session.connect/server"})
+    public void shouldConnectAndLog() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.credentials.username.yaml")
     @Specification({
         "${net}/connect.username.authentication.successful/client",
