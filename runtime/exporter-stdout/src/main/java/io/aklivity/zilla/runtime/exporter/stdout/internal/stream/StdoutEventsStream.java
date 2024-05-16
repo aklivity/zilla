@@ -29,8 +29,8 @@ import io.aklivity.zilla.runtime.exporter.stdout.internal.types.event.EventFW;
 
 public class StdoutEventsStream
 {
-    // {zilla namespace}:{component name} [dd/MMM/yyyy:HH:mm:ss Z] {event name} - {event body}\n
-    private static final String FORMAT = "%s [%s] %s - %s%n";
+    // {zilla namespace}:{component name} [dd/MMM/yyyy:HH:mm:ss Z] {event name} {event body}\n
+    private static final String FORMAT = "%s [%s] %s %s%n";
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd/MMM/yyyy:HH:mm:ss Z");
 
     private final StdoutExporterContext context;

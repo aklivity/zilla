@@ -25,7 +25,7 @@ telemetry:
           - qname: test.net0
             id: binding.http.request.accepted
             name: BINDING_HTTP_REQUEST_ACCEPTED
-            message: http GET localhost:8080 /
+            message: "- http GET localhost:8080 /"
 bindings:
   net0:
     type: http
