@@ -23,7 +23,8 @@ telemetry:
         events:
           - qname: test.net0
             id: model.protobuf.validation.failed
-            message: "VALIDATION_FAILED Cannot find field: date in message example"
+            name: MODEL_PROTOBUF_VALIDATION_FAILED
+            message: "Cannot find field: date in message example"
 catalogs:
   test0:
     type: test

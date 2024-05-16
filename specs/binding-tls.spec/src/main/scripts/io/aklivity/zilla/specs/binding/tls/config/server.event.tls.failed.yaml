@@ -24,7 +24,8 @@ telemetry:
                 events:
                     - qname: test.net0
                       id: binding.tls.tls.failed
-                      message: TLS_FAILED
+                      name: BINDING_TLS_TLS_FAILED
+                      message: ""
 vaults:
     server:
         type: filesystem

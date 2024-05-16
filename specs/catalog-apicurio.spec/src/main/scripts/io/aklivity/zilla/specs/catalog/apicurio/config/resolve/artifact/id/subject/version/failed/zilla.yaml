@@ -22,6 +22,9 @@ telemetry:
       options:
         events:
           - qname: test.catalog0
+            id: catalog.apicurio.remote.access.rejected
+            name: CATALOG_APICURIO_REMOTE_ACCESS_REJECTED
+            message: GET http://localhost:8081/apis/registry/v2/ids/globalIds/1 0
             id: catalog.apicurio.unretrievable.artifact.subject.version
             message: UNRETRIEVABLE_ARTIFACT artifactId latest
 catalogs:

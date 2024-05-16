@@ -25,8 +25,6 @@ import io.aklivity.zilla.runtime.model.json.internal.types.event.JsonModelValida
 
 public final class JsonModelEventFormatter implements EventFormatterSpi
 {
-    private static final String VALIDATION_FAILED = "VALIDATION_FAILED %s";
-
     private final EventFW eventRO = new EventFW();
     private final JsonModelEventExFW jsonModelEventExFW = new JsonModelEventExFW();
 
@@ -49,7 +47,7 @@ public final class JsonModelEventFormatter implements EventFormatterSpi
         case VALIDATION_FAILED:
         {
             JsonModelValidationFailedExFW ex = extension.validationFailed();
-            result = String.format(VALIDATION_FAILED, asString(ex.error()));
+            result = String.format("%s", asString(ex.error()));
             break;
         }
         }

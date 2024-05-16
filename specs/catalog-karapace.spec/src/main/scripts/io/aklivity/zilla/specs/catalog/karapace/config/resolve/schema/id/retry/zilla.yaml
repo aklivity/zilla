@@ -23,10 +23,12 @@ telemetry:
         events:
           - qname: test.catalog0
             id: catalog.karapace.unretrievable.schema.id
-            message: UNRETRIEVABLE_SCHEMA_ID 9
+            name: CATALOG_KARAPACE_UNRETRIEVABLE_SCHEMA_ID
+            message: 9
           - qname: test.catalog0
             id: catalog.karapace.retrievable.schema.id
-            message: RETRIEVED_SCHEMA_ID 9
+            name: CATALOG_KARAPACE_RETRIEVED_SCHEMA_ID
+            message: 9
 catalogs:
   catalog0:
     type: karapace

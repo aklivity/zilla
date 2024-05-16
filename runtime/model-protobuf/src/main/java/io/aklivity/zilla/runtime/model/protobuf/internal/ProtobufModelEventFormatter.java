@@ -25,8 +25,6 @@ import io.aklivity.zilla.runtime.model.protobuf.internal.types.event.ProtobufMod
 
 public final class ProtobufModelEventFormatter implements EventFormatterSpi
 {
-    private static final String VALIDATION_FAILED = "VALIDATION_FAILED %s";
-
     private final EventFW eventRO = new EventFW();
     private final ProtobufModelEventExFW protobufModelEventExFW = new ProtobufModelEventExFW();
 
@@ -49,7 +47,7 @@ public final class ProtobufModelEventFormatter implements EventFormatterSpi
         case VALIDATION_FAILED:
         {
             ProtobufModelValidationFailedExFW ex = extension.validationFailed();
-            result = String.format(VALIDATION_FAILED, asString(ex.error()));
+            result = String.format("%s", asString(ex.error()));
             break;
         }
         }

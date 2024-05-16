@@ -29,13 +29,6 @@ import io.aklivity.zilla.runtime.engine.event.EventFormatterSpi;
 
 public final class KarapaceEventFormatter implements EventFormatterSpi
 {
-    private static final String UNRETRIEVABLE_SCHEMA_SUBJECT_VERSION = "UNRETRIEVABLE_SCHEMA %s %s";
-    private static final String UNRETRIEVABLE_SCHEMA_SUBJECT_VERSION_STALE_SCHEMA =
-        "UNRETRIEVABLE_SCHEMA %s %s, USING_STALE_SCHEMA %d";
-    private static final String UNRETRIEVABLE_SCHEMA_ID = "UNRETRIEVABLE_SCHEMA_ID %d";
-    private static final String RETRIEVED_SCHEMA_SUBJECT_VERSION = "RETRIEVED_SCHEMA_SUBJECT_VERSION %s %s";
-    private static final String RETRIEVED_SCHEMA_ID = "RETRIEVED_SCHEMA_ID %d";
-
     private final EventFW eventRO = new EventFW();
     private final KarapaceEventExFW karapaceEventExRO = new KarapaceEventExFW();
 
@@ -58,33 +51,33 @@ public final class KarapaceEventFormatter implements EventFormatterSpi
         case UNRETRIEVABLE_SCHEMA_SUBJECT_VERSION:
         {
             KarapaceUnretrievableSchemaSubjectVersionExFW ex = extension.unretrievableSchemaSubjectVersion();
-            result = String.format(UNRETRIEVABLE_SCHEMA_SUBJECT_VERSION, asString(ex.subject()), asString(ex.version()));
+            result = String.format("%s %s", asString(ex.subject()), asString(ex.version()));
             break;
         }
         case UNRETRIEVABLE_SCHEMA_SUBJECT_VERSION_STALE_SCHEMA:
         {
             KarapaceUnretrievableSchemaSubjectVersionStaleSchemaExFW ex = extension
                 .unretrievableSchemaSubjectVersionStaleSchema();
-            result = String.format(UNRETRIEVABLE_SCHEMA_SUBJECT_VERSION_STALE_SCHEMA, asString(ex.subject()),
+            result = String.format("%s %s, using stale schema: %d", asString(ex.subject()),
                 asString(ex.version()), ex.schemaId());
             break;
         }
         case UNRETRIEVABLE_SCHEMA_ID:
         {
             KarapaceUnretrievableSchemaIdExFW ex = extension.unretrievableSchemaId();
-            result = String.format(UNRETRIEVABLE_SCHEMA_ID, ex.schemaId());
+            result = String.format("%d", ex.schemaId());
             break;
         }
         case RETRIEVED_SCHEMA_SUBJECT_VERSION:
         {
             KarapaceRetrievableSchemaSubjectVersionExFW ex = extension.retrievableSchemaSubjectVersion();
-            result = String.format(RETRIEVED_SCHEMA_SUBJECT_VERSION, asString(ex.subject()), asString(ex.version()));
+            result = String.format("%s %s", asString(ex.subject()), asString(ex.version()));
             break;
         }
         case RETRIEVED_SCHEMA_ID:
         {
             KarapaceRetrievableSchemaIdExFW ex = extension.retrievableSchemaId();
-            result = String.format(RETRIEVED_SCHEMA_ID, ex.schemaId());
+            result = String.format("%d", ex.schemaId());
             break;
         }
         }

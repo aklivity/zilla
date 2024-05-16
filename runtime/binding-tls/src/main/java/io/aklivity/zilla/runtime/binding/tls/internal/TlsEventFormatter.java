@@ -24,12 +24,6 @@ import io.aklivity.zilla.runtime.engine.event.EventFormatterSpi;
 
 public final class TlsEventFormatter implements EventFormatterSpi
 {
-    private static final String TLS_FAILED_FORMAT = "TLS_FAILED";
-    private static final String PROTOCOL_REJECTED_FORMAT = "PROTOCOL_REJECTED";
-    private static final String KEY_REJECTED_FORMAT = "KEY_REJECTED";
-    private static final String PEER_NOT_VERIFIED_FORMAT = "PEER_NOT_VERIFIED";
-    private static final String HANDSHAKE_FAILED_FORMAT = "HANDSHAKE_FAILED";
-
     private final EventFW eventRO = new EventFW();
     private final TlsEventExFW tlsEventExRO = new TlsEventExFW();
 
@@ -51,27 +45,27 @@ public final class TlsEventFormatter implements EventFormatterSpi
         {
         case TLS_FAILED:
         {
-            result = TLS_FAILED_FORMAT;
+            result = "";
             break;
         }
         case TLS_PROTOCOL_REJECTED:
         {
-            result = PROTOCOL_REJECTED_FORMAT;
+            result = "";
             break;
         }
         case TLS_KEY_REJECTED:
         {
-            result = KEY_REJECTED_FORMAT;
+            result = "";
             break;
         }
         case TLS_PEER_NOT_VERIFIED:
         {
-            result = PEER_NOT_VERIFIED_FORMAT;
+            result = "";
             break;
         }
         case TLS_HANDSHAKE_FAILED:
         {
-            result = HANDSHAKE_FAILED_FORMAT;
+            result = "";
             break;
         }
         }

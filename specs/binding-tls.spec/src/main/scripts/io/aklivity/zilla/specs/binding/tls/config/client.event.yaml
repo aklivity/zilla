@@ -24,7 +24,8 @@ telemetry:
                 events:
                     - qname: test.app0
                       id: binding.tls.handshake.failed
-                      message: HANDSHAKE_FAILED
+                      name: HANDSHAKE_FAILED
+                      message: ""
 vaults:
     client:
         type: filesystem

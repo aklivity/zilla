@@ -23,7 +23,8 @@ telemetry:
         events:
           - qname: test.net0
             id: model.core.validation.failed
-            message: VALIDATION_FAILED string
+            name: MODEL_CORE_VALIDATION_FAILED
+            message: string
 bindings:
   net0:
     kind: server

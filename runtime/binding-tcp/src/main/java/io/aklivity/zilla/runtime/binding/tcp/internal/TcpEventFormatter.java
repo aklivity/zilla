@@ -26,8 +26,6 @@ import io.aklivity.zilla.runtime.engine.event.EventFormatterSpi;
 
 public final class TcpEventFormatter implements EventFormatterSpi
 {
-    private static final String DNS_FAILED_FORMAT = "DNS_FAILED %s";
-
     private final EventFW eventRO = new EventFW();
     private final TcpEventExFW tcpEventExRO = new TcpEventExFW();
 
@@ -50,7 +48,7 @@ public final class TcpEventFormatter implements EventFormatterSpi
         case DNS_FAILED:
         {
             final TcpDnsFailedExFW ex = extension.dnsFailed();
-            result = String.format(DNS_FAILED_FORMAT, asString(ex.address()));
+            result = String.format("%s", asString(ex.address()));
             break;
         }
         }

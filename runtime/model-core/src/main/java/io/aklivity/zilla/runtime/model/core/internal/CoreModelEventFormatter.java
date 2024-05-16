@@ -25,8 +25,6 @@ import io.aklivity.zilla.runtime.model.core.internal.types.event.EventFW;
 
 public final class CoreModelEventFormatter implements EventFormatterSpi
 {
-    private static final String VALIDATION_FAILED = "VALIDATION_FAILED %s";
-
     private final EventFW eventRO = new EventFW();
     private final CoreModelEventExFW coreModelEventExFW = new CoreModelEventExFW();
 
@@ -49,7 +47,7 @@ public final class CoreModelEventFormatter implements EventFormatterSpi
         case VALIDATION_FAILED:
         {
             CoreModelValidationFailedExFW ex = extension.validationFailed();
-            result = String.format(VALIDATION_FAILED, asString(ex.error()));
+            result = String.format("%s", asString(ex.error()));
             break;
         }
         }
