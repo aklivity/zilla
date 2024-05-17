@@ -14,15 +14,25 @@
  */
 package io.aklivity.zilla.runtime.command.dump.internal.test;
 
+import static java.nio.ByteOrder.nativeOrder;
+import static java.nio.file.StandardOpenOption.CREATE;
+import static java.nio.file.StandardOpenOption.CREATE_NEW;
+import static java.nio.file.StandardOpenOption.TRUNCATE_EXISTING;
+import static java.nio.file.StandardOpenOption.WRITE;
 import static org.agrona.LangUtil.rethrowUnchecked;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 
 import java.net.URL;
+import java.nio.ByteBuffer;
+import java.nio.channels.ByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.agrona.BitUtil;
 import org.junit.rules.TestRule;
@@ -30,11 +40,13 @@ import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 import org.testcontainers.containers.Container;
 
+import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
 public final class DumpRule implements TestRule
 {
     private static final Path ENGINE_PATH = Path.of("target/zilla-itests");
+    //private static final LabelManager labelManager = new LabelManager(ENGINE_PATH);
     private static final Path BINDINGS_PATH = ENGINE_PATH.resolve("bindings");
     private static final Path LABELS_PATH = ENGINE_PATH.resolve("labels");
     private static final Path PCAP_PATH = ENGINE_PATH.resolve("actual.pcap");
@@ -43,8 +55,10 @@ public final class DumpRule implements TestRule
     private static final TsharkRunner TSHARK = new TsharkRunner();
 
     // TODO: Ati
-    private byte[] bindings;
+    //private byte[] bindings;
+    private String bindings;
     private String[] labels;
+    private Map<String, Integer> labelMap;
     private String configurationRoot;
 
     @Override
@@ -82,9 +96,10 @@ public final class DumpRule implements TestRule
             @Override
             public void evaluate() throws Throwable
             {
-                base.evaluate();
+                // TODO: create my own label file here with the necessary labels
                 writeLabels();
                 writeBindings(configURL);
+                base.evaluate();
                 DUMP.createPcap(PCAP_PATH);
                 Container.ExecResult result = TSHARK.createTxt(PCAP_PATH);
                 Files.writeString(TXT_PATH, result.getStdout());
@@ -103,36 +118,84 @@ public final class DumpRule implements TestRule
     }
 
     // TODO: Ati
-    public DumpRule addLabels(
+    public DumpRule labels(
         String... labels)
     {
         this.labels = labels;
+        this.labelMap = new HashMap<>();
+        for (int i = 0; i < labels.length; i++)
+        {
+            labelMap.put(labels[i], i + 1);
+        }
+        labelMap.put("0", 0);
         return this;
     }
+    /*public DumpRule additionalLabels(
+        String additionalLabels)
+    {
+        this.additionalLabels = additionalLabels;
+        return this;
+    }*/
 
     // TODO: Ati
     public DumpRule bindings(
-        String hex)
+        String bindings)
     {
-        this.bindings = BitUtil.fromHex(hex.replaceAll(" ", ""));
+        //this.bindings = BitUtil.fromHex(hex.replaceAll(" ", ""));
+        this.bindings = bindings;
         return this;
     }
 
     // TODO: Ati
     private void writeLabels() throws Exception
     {
-        String allLabels = String.join("\n", labels) + "\n";
-        byte[] allLabels0 = allLabels.getBytes();
-        Files.write(LABELS_PATH, allLabels0, StandardOpenOption.APPEND);
+        String join = String.join("\n", labels) + "\n";
+        byte[] bytes = join.getBytes();
+        //String allLabels = labels.replace(" ", "\n") + "\n";
+        //byte[] allLabels0 = allLabels.getBytes();
+        System.out.println("!!!");
+        System.out.println(new java.io.File(".").getCanonicalPath());
+        System.out.println(LABELS_PATH);
+        Files.createDirectories(ENGINE_PATH);
+        Files.write(LABELS_PATH, bytes, CREATE, TRUNCATE_EXISTING);
     }
+    /*private void addLabels()
+    {
+        Arrays.stream(additionalLabels.split("\\s+")).forEach(labels::supplyLabelId);
+    }*/
 
     // TODO: Ati
     private void writeBindings(
         URL configURL) throws Exception
     {
-        String config = Files.readString(Path.of(configURL.toURI()));
-        assert config != null;
-        Files.createDirectories(ENGINE_PATH);
-        Files.write(BINDINGS_PATH, bindings, StandardOpenOption.CREATE);
+        //String config = Files.readString(Path.of(configURL.toURI()));
+        //assert config != null;
+        System.out.println("!!!");
+        System.out.println(new java.io.File(".").getCanonicalPath());
+        //Files.createDirectories(ENGINE_PATH);
+        String[] elements = bindings.split("\\s+");
+        StringBuilder sb = new StringBuilder();
+        long[] longs = new long[elements.length];
+        for (int i = 0; i < elements.length; i++)
+        {
+            String[] parts = elements[i].split("\\.");
+            //int namespaceId = "0".equals(parts[0]) ? 0 : labelManager.supplyLabelId(parts[0]);
+            //int localId = "0".equals(parts[1]) ? 0 : labelManager.supplyLabelId(parts[1]);
+            int namespaceId = labelMap.get(parts[0]);
+            int localId = labelMap.get(parts[1]);
+            longs[i] = NamespacedId.id(namespaceId, localId);
+        }
+        //Files.write(BINDINGS_PATH, b, CREATE, TRUNCATE_EXISTING);
+        try (ByteChannel channel = Files.newByteChannel(BINDINGS_PATH, CREATE, WRITE))
+        {
+            ByteBuffer byteBuf = ByteBuffer.wrap(new byte[longs.length * Long.BYTES]).order(nativeOrder());
+            byteBuf.clear();
+            for (int i = 0; i < longs.length; i++)
+            {
+                byteBuf.putLong(longs[i]);
+            }
+            byteBuf.flip();
+            channel.write(byteBuf);
+        }
     }
 }

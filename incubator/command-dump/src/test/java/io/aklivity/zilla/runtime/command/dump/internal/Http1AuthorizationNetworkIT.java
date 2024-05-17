@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.command.dump.internal;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -25,6 +26,7 @@ import org.junit.rules.Timeout;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 
+import io.aklivity.zilla.runtime.command.dump.internal.test.Clean;
 import io.aklivity.zilla.runtime.command.dump.internal.test.DumpRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
@@ -37,11 +39,23 @@ public class Http1AuthorizationNetworkIT
 
     private final DumpRule dump = new DumpRule()
         .addConfigurationRoot("io/aklivity/zilla/runtime/command/dump/binding/http/config/v1.1")
-        .addLabels("http", "server") // 4, 5
-        .bindings("02000000 01000000  04000000 01000000  05000000 01000000  00000000 01000000  04000000 01000000");
+        .labels("test", "net0", "proxy", "http", "server")
+        //.additionalLabels("http server")
+        //.bindings("02000000 01000000  04000000 01000000  05000000 01000000  00000000 01000000  04000000 01000000");
+        //05000000010000000300000001000000070000000100000000000000010000000300000001000000
+        .bindings("test.net0 test.http test.server test.0 test.http");
+
+    private final Clean clean = new Clean();
 
     @Rule
     public final TestRule chain = outerRule(dump).around(k3po).around(timeout);
+    //public final TestRule chain = outerRule(k3po).around(timeout);
+
+//    @BeforeClass
+//    public static void init()
+//    {
+//        Clean.clean("target/zilla-itests");
+//    }
 
     @Test
     @Configuration("server.authorization.credentials.yaml")
