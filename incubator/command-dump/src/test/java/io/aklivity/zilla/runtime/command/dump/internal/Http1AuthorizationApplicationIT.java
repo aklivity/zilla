@@ -14,14 +14,9 @@
  */
 package io.aklivity.zilla.runtime.command.dump.internal;
 
-import io.aklivity.zilla.runtime.command.dump.internal.test.Clean;
-import io.aklivity.zilla.runtime.command.dump.internal.test.DumpRule;
-import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -29,7 +24,9 @@ import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
-import org.testcontainers.shaded.org.checkerframework.checker.units.qual.C;
+
+import io.aklivity.zilla.runtime.command.dump.internal.test.DumpRule;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
 public class Http1AuthorizationApplicationIT
 {
@@ -39,17 +36,8 @@ public class Http1AuthorizationApplicationIT
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
     private final DumpRule dump = new DumpRule()
-        .addConfigurationRoot("io/aklivity/zilla/runtime/command/dump/binding/http/config/v1.1")
-        .labels("test", "app0", "http", "server") // TODO
-        //.labels("test app0 http server")
-        //.additionalLabels("server")
-
-        //           02000000 01000000  03000000 01000000  04000000 01000000  00000000 01000000  01000000  01000000
-        //.bindings("02000000 01000000  03000000 01000000  04000000 01000000  00000000 01000000  03000000 01000000");
-        //.bindings("app0 test  http test  server test  0 test  http test");
-        .bindings("test.app0 test.http test.server test.0 test.http");
-
-    private final Clean clean = new Clean();
+        .labels("test", "app0", "http", "server")
+        .bindings("test.app0", "test.http", "test.server", "test.0", "test.http");
 
     @Rule
     public final TestRule chain = outerRule(dump).around(k3po).around(timeout);
@@ -62,9 +50,6 @@ public class Http1AuthorizationApplicationIT
     })
     public void shouldChallengeCredentialsHeader() throws Exception
     {
-        System.out.println("shouldChallengeCredentialsHeader");
-        //Clean.clean();
-        //k3po.start();
         k3po.finish();
     }
 }
