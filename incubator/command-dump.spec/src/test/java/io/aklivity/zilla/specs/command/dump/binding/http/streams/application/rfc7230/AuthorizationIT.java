@@ -28,7 +28,7 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 public class AuthorizationIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/http/streams/application/rfc7230/authorization");
+        .addScriptRoot("app", "io/aklivity/zilla/specs/command/dump/binding/http/streams/application/rfc7230/authorization");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 

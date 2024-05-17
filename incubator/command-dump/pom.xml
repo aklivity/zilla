@@ -31,12 +31,12 @@
   </properties>
 
   <dependencies>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>command-dump.spec</artifactId>
-      <version>${project.version}</version>
-      <scope>provided</scope>
-    </dependency>
+<!--    <dependency>-->
+<!--      <groupId>${project.groupId}</groupId>-->
+<!--      <artifactId>command-dump.spec</artifactId>-->
+<!--      <version>${project.version}</version>-->
+<!--      <scope>provided</scope>-->
+<!--    </dependency>-->
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>engine.spec</artifactId>
@@ -83,132 +83,132 @@
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>io.aklivity.zilla</groupId>
-      <artifactId>binding-http</artifactId>
-      <version>${project.version}</version>
-      <scope>test</scope>
-    </dependency>
+<!--    <dependency>-->
+<!--      <groupId>io.aklivity.zilla</groupId>-->
+<!--      <artifactId>binding-http</artifactId>-->
+<!--      <version>${project.version}</version>-->
+<!--      <scope>test</scope>-->
+<!--    </dependency>-->
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>binding-http.spec</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>io.aklivity.zilla</groupId>
-      <artifactId>binding-grpc</artifactId>
-      <version>${project.version}</version>
-      <scope>test</scope>
-    </dependency>
+<!--    <dependency>-->
+<!--      <groupId>io.aklivity.zilla</groupId>-->
+<!--      <artifactId>binding-grpc</artifactId>-->
+<!--      <version>${project.version}</version>-->
+<!--      <scope>test</scope>-->
+<!--    </dependency>-->
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>binding-grpc.spec</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>io.aklivity.zilla</groupId>
-      <artifactId>binding-sse</artifactId>
-      <version>${project.version}</version>
-      <scope>test</scope>
-    </dependency>
+<!--    <dependency>-->
+<!--      <groupId>io.aklivity.zilla</groupId>-->
+<!--      <artifactId>binding-sse</artifactId>-->
+<!--      <version>${project.version}</version>-->
+<!--      <scope>test</scope>-->
+<!--    </dependency>-->
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>binding-sse.spec</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>io.aklivity.zilla</groupId>
-      <artifactId>binding-ws</artifactId>
-      <version>${project.version}</version>
-      <scope>test</scope>
-    </dependency>
+<!--    <dependency>-->
+<!--      <groupId>io.aklivity.zilla</groupId>-->
+<!--      <artifactId>binding-ws</artifactId>-->
+<!--      <version>${project.version}</version>-->
+<!--      <scope>test</scope>-->
+<!--    </dependency>-->
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>binding-ws.spec</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>io.aklivity.zilla</groupId>
-      <artifactId>binding-filesystem</artifactId>
-      <version>${project.version}</version>
-      <scope>test</scope>
-    </dependency>
+<!--    <dependency>-->
+<!--      <groupId>io.aklivity.zilla</groupId>-->
+<!--      <artifactId>binding-filesystem</artifactId>-->
+<!--      <version>${project.version}</version>-->
+<!--      <scope>test</scope>-->
+<!--    </dependency>-->
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>binding-filesystem.spec</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>io.aklivity.zilla</groupId>
-      <artifactId>binding-mqtt</artifactId>
-      <version>${project.version}</version>
-      <scope>test</scope>
-    </dependency>
+<!--    <dependency>-->
+<!--      <groupId>io.aklivity.zilla</groupId>-->
+<!--      <artifactId>binding-mqtt</artifactId>-->
+<!--      <version>${project.version}</version>-->
+<!--      <scope>test</scope>-->
+<!--    </dependency>-->
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>binding-mqtt.spec</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>io.aklivity.zilla</groupId>
-      <artifactId>binding-kafka</artifactId>
-      <version>${project.version}</version>
-      <scope>test</scope>
-    </dependency>
+<!--    <dependency>-->
+<!--      <groupId>io.aklivity.zilla</groupId>-->
+<!--      <artifactId>binding-kafka</artifactId>-->
+<!--      <version>${project.version}</version>-->
+<!--      <scope>test</scope>-->
+<!--    </dependency>-->
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>binding-kafka.spec</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>io.aklivity.zilla</groupId>
-      <artifactId>binding-proxy</artifactId>
-      <version>${project.version}</version>
-      <scope>test</scope>
-    </dependency>
+<!--    <dependency>-->
+<!--      <groupId>io.aklivity.zilla</groupId>-->
+<!--      <artifactId>binding-proxy</artifactId>-->
+<!--      <version>${project.version}</version>-->
+<!--      <scope>test</scope>-->
+<!--    </dependency>-->
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>binding-proxy.spec</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>io.aklivity.zilla</groupId>
-      <artifactId>binding-amqp</artifactId>
-      <version>${project.version}</version>
-      <scope>test</scope>
-    </dependency>
+<!--    <dependency>-->
+<!--      <groupId>io.aklivity.zilla</groupId>-->
+<!--      <artifactId>binding-amqp</artifactId>-->
+<!--      <version>${project.version}</version>-->
+<!--      <scope>test</scope>-->
+<!--    </dependency>-->
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>binding-amqp.spec</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>io.aklivity.zilla</groupId>
-      <artifactId>binding-tls</artifactId>
-      <version>${project.version}</version>
-      <scope>test</scope>
-    </dependency>
+<!--    <dependency>-->
+<!--      <groupId>io.aklivity.zilla</groupId>-->
+<!--      <artifactId>binding-tls</artifactId>-->
+<!--      <version>${project.version}</version>-->
+<!--      <scope>test</scope>-->
+<!--    </dependency>-->
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>binding-tls.spec</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>io.aklivity.zilla</groupId>
-      <artifactId>vault-filesystem</artifactId>
-      <version>${project.version}</version>
-      <scope>test</scope>
-    </dependency>
+<!--    <dependency>-->
+<!--      <groupId>io.aklivity.zilla</groupId>-->
+<!--      <artifactId>vault-filesystem</artifactId>-->
+<!--      <version>${project.version}</version>-->
+<!--      <scope>test</scope>-->
+<!--    </dependency>-->
     <dependency>
       <groupId>org.testcontainers</groupId>
       <artifactId>testcontainers</artifactId>
@@ -238,7 +238,8 @@
         <artifactId>license-maven-plugin</artifactId>
         <configuration>
           <excludes>
-            <exclude>src/test/resources/io/aklivity/zilla/runtime/command/dump/internal/*.txt</exclude>
+            <exclude>src/main/scripts/io/aklivity/zilla/runtime/command/dump/binding/filesystem/config/files/**/*</exclude>
+            <exclude>src/test/resources/io/aklivity/zilla/runtime/command/dump/internal/**/*.txt</exclude>
             <exclude>**/keys</exclude>
             <exclude>**/trust</exclude>
           </excludes>
@@ -247,34 +248,34 @@
       <plugin>
         <artifactId>maven-checkstyle-plugin</artifactId>
       </plugin>
-      <plugin>
-        <artifactId>maven-dependency-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>extract-files</id>
-            <phase>process-resources</phase>
-            <goals>
-              <goal>unpack</goal>
-            </goals>
-            <configuration>
-              <artifactItems>
-                <artifactItem>
-                  <groupId>${project.groupId}</groupId>
-                  <artifactId>command-dump.spec</artifactId>
-                  <fileMappers>
-                    <org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
-                      <pattern>^\Qio/aklivity/zilla/specs/command/dump/binding/filesystem/config/files\E</pattern>
-                      <replacement>files</replacement>
-                    </org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
-                  </fileMappers>
-                </artifactItem>
-              </artifactItems>
-              <includes>io/aklivity/zilla/specs/command/dump/binding/filesystem/config/files/**/*</includes>
-              <outputDirectory>${project.build.directory}</outputDirectory>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
+<!--      <plugin>-->
+<!--        <artifactId>maven-dependency-plugin</artifactId>-->
+<!--        <executions>-->
+<!--          <execution>-->
+<!--            <id>extract-files</id>-->
+<!--            <phase>process-resources</phase>-->
+<!--            <goals>-->
+<!--              <goal>unpack</goal>-->
+<!--            </goals>-->
+<!--            <configuration>-->
+<!--              <artifactItems>-->
+<!--                <artifactItem>-->
+<!--                  <groupId>${project.groupId}</groupId>-->
+<!--                  <artifactId>command-dump.spec</artifactId>-->
+<!--                  <fileMappers>-->
+<!--                    <org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>-->
+<!--                      <pattern>^\Qio/aklivity/zilla/specs/command/dump/binding/filesystem/config/files\E</pattern>-->
+<!--                      <replacement>files</replacement>-->
+<!--                    </org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>-->
+<!--                  </fileMappers>-->
+<!--                </artifactItem>-->
+<!--              </artifactItems>-->
+<!--              <includes>io/aklivity/zilla/specs/command/dump/binding/filesystem/config/files/**/*</includes>-->
+<!--              <outputDirectory>${project.build.directory}</outputDirectory>-->
+<!--            </configuration>-->
+<!--          </execution>-->
+<!--        </executions>-->
+<!--      </plugin>-->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
@@ -366,6 +367,9 @@
         <includes>
           <include>**/zilla.lua</include>
         </includes>
+      </resource>
+      <resource>
+        <directory>src/main/scripts</directory>
       </resource>
     </resources>
   </build>

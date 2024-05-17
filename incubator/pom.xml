@@ -26,7 +26,6 @@
 
     <module>command-log</module>
     <module>command-dump</module>
-    <module>command-dump.spec</module>
     <module>command-tune</module>
   </modules>
 
