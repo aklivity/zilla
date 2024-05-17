@@ -848,7 +848,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
 
                 final KafkaCachePartition.Node head = partition.head();
                 final KafkaCachePartition.Node nextHead =
-                        partition.newHeadIfNecessary(partitionOffset, key, valueLength, headersSizeMax, retentionMillisMax);
+                        partition.newHeadIfNecessary(partitionOffset, key, valueLength, headersSizeMax);
 
                 final long nextOffset = partition.nextOffset(defaultOffset);
                 assert partitionOffset >= 0 && partitionOffset >= nextOffset
@@ -866,14 +866,14 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
 
                     final long retainAt = partition.retainAt(nextHead.segment());
                     this.retainId = doServerFanoutInitialSignalAt(retainAt, traceId, SIGNAL_SEGMENT_RETAIN);
+                }
 
-                    if (deleteId == NO_CANCEL_ID &&
-                        partition.cleanupPolicy().delete() &&
-                        !nextHead.previous().sentinel())
-                    {
-                        final long deleteAt = partition.deleteAt(nextHead.previous().segment(), retentionMillisMax);
-                        this.deleteId = doServerFanoutInitialSignalAt(deleteAt, traceId, SIGNAL_SEGMENT_DELETE);
-                    }
+                if (deleteId == NO_CANCEL_ID &&
+                    partition.cleanupPolicy().delete() &&
+                    head.segment() != null)
+                {
+                    final long deleteAt = partition.deleteAt(head.segment(), retentionMillisMax);
+                    this.deleteId = doServerFanoutInitialSignalAt(deleteAt, traceId, SIGNAL_SEGMENT_DELETE);
                 }
 
                 final int entryFlags = (flags & FLAGS_SKIP) != 0x00 ? CACHE_ENTRY_FLAGS_ABORTED : 0x00;
@@ -1187,15 +1187,16 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
             final long now = currentTimeMillis();
 
             Node segmentNode = partition.sentinel().next();
-            while (segmentNode != partition.head() &&
-                    partition.deleteAt(segmentNode.segment(), retentionMillisMax) <= now)
+            while (segmentNode.segment() != null &&
+                partition.deleteAt(segmentNode.segment(), retentionMillisMax) <= now)
             {
                 segmentNode.remove();
                 segmentNode = segmentNode.next();
             }
+
             assert segmentNode != null;
 
-            if (segmentNode != partition.head())
+            if (segmentNode != partition.sentinel())
             {
                 final long deleteAt = partition.deleteAt(segmentNode.segment(), retentionMillisMax);
                 this.deleteId = doServerFanoutInitialSignalAt(deleteAt, traceId, SIGNAL_SEGMENT_DELETE);

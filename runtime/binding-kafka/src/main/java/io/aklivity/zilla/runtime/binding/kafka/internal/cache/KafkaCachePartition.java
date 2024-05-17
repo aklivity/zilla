@@ -288,12 +288,11 @@ public final class KafkaCachePartition
         long offset,
         KafkaKeyFW key,
         int valueLength,
-        int headersSizeMax,
-        long retentionMillisMax)
+        int headersSizeMax)
     {
         Node head = sentinel.previous;
 
-        if (head == sentinel || deleteAt(head.segment, retentionMillisMax) <= System.currentTimeMillis())
+        if (head == sentinel)
         {
             head = append(offset);
         }
