@@ -2663,7 +2663,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                     m.topic(topic);
                     if (qos >= MqttQoS.AT_LEAST_ONCE.value())
                     {
-                        m.groupId(String.format("%s-%s", groupIdPrefix, clientId));
+                        m.groupId(String.format("%s-%s", groupIdPrefix, clientId.asString()));
                     }
                     m.partitionsItem(p ->
                         p.partitionId(offsetType.value())
