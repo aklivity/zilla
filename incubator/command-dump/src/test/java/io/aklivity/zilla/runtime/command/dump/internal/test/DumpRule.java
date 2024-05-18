@@ -114,7 +114,7 @@ public final class DumpRule implements TestRule
 
     private void writeLabels() throws Exception
     {
-        if (labels.length > 0)
+        if (labels != null)
         {
             String allLabels = String.join("\n", labels) + "\n";
             Files.write(LABELS_PATH, allLabels.getBytes(), CREATE, TRUNCATE_EXISTING);
@@ -123,24 +123,27 @@ public final class DumpRule implements TestRule
 
     private void writeBindings() throws Exception
     {
-        long[] records = new long[bindings.length];
-        for (int i = 0; i < bindings.length; i++)
+        if (labels != null && bindings != null)
         {
-            String[] parts = bindings[i].split("\\.");
-            int namespaceId = lookupLabel.get(parts[0]);
-            int localId = lookupLabel.get(parts[1]);
-            records[i] = NamespacedId.id(namespaceId, localId);
-        }
-        try (ByteChannel channel = Files.newByteChannel(BINDINGS_PATH, CREATE, WRITE))
-        {
-            ByteBuffer byteBuf = ByteBuffer.wrap(new byte[records.length * Long.BYTES]).order(nativeOrder());
-            byteBuf.clear();
-            for (long record : records)
+            long[] records = new long[bindings.length];
+            for (int i = 0; i < bindings.length; i++)
             {
-                byteBuf.putLong(record);
+                String[] parts = bindings[i].split("\\.");
+                int namespaceId = lookupLabel.get(parts[0]);
+                int localId = lookupLabel.get(parts[1]);
+                records[i] = NamespacedId.id(namespaceId, localId);
             }
-            byteBuf.flip();
-            channel.write(byteBuf);
+            try (ByteChannel channel = Files.newByteChannel(BINDINGS_PATH, CREATE, WRITE))
+            {
+                ByteBuffer byteBuf = ByteBuffer.wrap(new byte[records.length * Long.BYTES]).order(nativeOrder());
+                byteBuf.clear();
+                for (long record : records)
+                {
+                    byteBuf.putLong(record);
+                }
+                byteBuf.flip();
+                channel.write(byteBuf);
+            }
         }
     }
 }
