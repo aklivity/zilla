@@ -36,7 +36,7 @@ public class KafkaInitProducerIdApplicationIT
 
     private final DumpRule dump = new DumpRule()
         .labels("test", "app0", "kafka", "server")
-        .bindings("test.app0", "test.kafka", "test.server", "test.0", "test.kafka");
+        .bindings("test.app0", "test.kafka", "test.server", "test.0", "test.0");
 
     @Rule
     public final TestRule chain = outerRule(dump).around(k3po).around(timeout);

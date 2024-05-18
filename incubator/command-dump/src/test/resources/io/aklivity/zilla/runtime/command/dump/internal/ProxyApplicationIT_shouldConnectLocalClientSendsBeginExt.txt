@@ -5,8 +5,8 @@ Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 0, Ack: 1, Len:
 Zilla Frame
     Frame Type ID: 0x00000001
     Frame Type: BEGIN
-    Protocol Type ID: 0x8dcea850
-    Protocol Type: proxy
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
     Worker: 0
     Offset: 0x00000000
     Origin ID: 0x0000000100000002
@@ -47,8 +47,8 @@ Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 154, Ack: 1, Le
 Zilla Frame
     Frame Type ID: 0x40000002
     Frame Type: WINDOW
-    Protocol Type ID: 0x8dcea850
-    Protocol Type: proxy
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
     Worker: 0
     Offset: 0x00000070
     Origin ID: 0x0000000100000002

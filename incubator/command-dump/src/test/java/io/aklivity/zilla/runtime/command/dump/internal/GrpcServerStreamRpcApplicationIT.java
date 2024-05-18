@@ -36,7 +36,7 @@ public class GrpcServerStreamRpcApplicationIT
 
     private final DumpRule dump = new DumpRule()
         .labels("test", "app0", "grpc", "server")
-        .bindings("test.app0", "test.grpc", "test.server", "test.0", "test.grpc");
+        .bindings("test.app0", "test.grpc", "test.server", "test.0", "test.0");
 
     @Rule
     public final TestRule chain = outerRule(dump).around(k3po).around(timeout);

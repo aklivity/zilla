@@ -5,8 +5,8 @@ Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 0, Ack: 1, Len:
 Zilla Frame
     Frame Type ID: 0x00000001
     Frame Type: BEGIN
-    Protocol Type ID: 0x084b20e1
-    Protocol Type: kafka
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
     Worker: 0
     Offset: 0x00000000
     Origin ID: 0x0000000100000002
@@ -47,8 +47,8 @@ Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 163, Ack: 1, Le
 Zilla Frame
     Frame Type ID: 0x40000002
     Frame Type: WINDOW
-    Protocol Type ID: 0x084b20e1
-    Protocol Type: kafka
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
     Worker: 0
     Offset: 0x00000078
     Origin ID: 0x0000000100000002
@@ -81,8 +81,8 @@ Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1, Ack: 300, Le
 Zilla Frame
     Frame Type ID: 0x00000001
     Frame Type: BEGIN
-    Protocol Type ID: 0x084b20e1
-    Protocol Type: kafka
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
     Worker: 0
     Offset: 0x000000d8
     Origin ID: 0x0000000100000002
@@ -123,8 +123,8 @@ Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 164, Ack: 300, 
 Zilla Frame
     Frame Type ID: 0x40000002
     Frame Type: WINDOW
-    Protocol Type ID: 0x084b20e1
-    Protocol Type: kafka
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
     Worker: 0
     Offset: 0x00000150
     Origin ID: 0x0000000100000002
@@ -157,8 +157,8 @@ Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 301, Ack: 300, 
 Zilla Frame
     Frame Type ID: 0x00000002
     Frame Type: DATA
-    Protocol Type ID: 0x084b20e1
-    Protocol Type: kafka
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
     Worker: 0
     Offset: 0x000001b0
     Origin ID: 0x0000000100000002
@@ -210,8 +210,8 @@ Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 476, Ack: 300, 
 Zilla Frame
     Frame Type ID: 0x40000002
     Frame Type: WINDOW
-    Protocol Type ID: 0x084b20e1
-    Protocol Type: kafka
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
     Worker: 0
     Offset: 0x00000238
     Origin ID: 0x0000000100000002

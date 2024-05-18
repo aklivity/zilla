@@ -5,8 +5,8 @@ Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 0, Ack: 1, Len:
 Zilla Frame
     Frame Type ID: 0x00000001
     Frame Type: BEGIN
-    Protocol Type ID: 0xd0d41a76
-    Protocol Type: mqtt
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
     Worker: 0
     Offset: 0x00000000
     Origin ID: 0x0000000100000002
@@ -53,8 +53,8 @@ Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1, Ack: 156, Le
 Zilla Frame
     Frame Type ID: 0x00000001
     Frame Type: BEGIN
-    Protocol Type ID: 0xd0d41a76
-    Protocol Type: mqtt
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
     Worker: 0
     Offset: 0x00000070
     Origin ID: 0x0000000100000002
@@ -101,8 +101,8 @@ Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 156, Ack: 157, 
 Zilla Frame
     Frame Type ID: 0x40000002
     Frame Type: WINDOW
-    Protocol Type ID: 0xd0d41a76
-    Protocol Type: mqtt
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
     Worker: 0
     Offset: 0x000000e0
     Origin ID: 0x0000000100000002
@@ -135,8 +135,8 @@ Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 157, Ack: 293, 
 Zilla Frame
     Frame Type ID: 0x40000002
     Frame Type: WINDOW
-    Protocol Type ID: 0xd0d41a76
-    Protocol Type: mqtt
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
     Worker: 0
     Offset: 0x00000140
     Origin ID: 0x0000000100000002
@@ -169,8 +169,8 @@ Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 294, Ack: 293, 
 Zilla Frame
     Frame Type ID: 0x00000002
     Frame Type: DATA
-    Protocol Type ID: 0xd0d41a76
-    Protocol Type: mqtt
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
     Worker: 0
     Offset: 0x000001a0
     Origin ID: 0x0000000100000002
@@ -208,8 +208,8 @@ Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 431, Ack: 293, 
 Zilla Frame
     Frame Type ID: 0x40000002
     Frame Type: WINDOW
-    Protocol Type ID: 0xd0d41a76
-    Protocol Type: mqtt
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
     Worker: 0
     Offset: 0x00000200
     Origin ID: 0x0000000100000002
@@ -242,8 +242,8 @@ Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 293, Ack: 568, 
 Zilla Frame
     Frame Type ID: 0x00000002
     Frame Type: DATA
-    Protocol Type ID: 0xd0d41a76
-    Protocol Type: mqtt
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
     Worker: 0
     Offset: 0x00000260
     Origin ID: 0x0000000100000002
@@ -280,11 +280,6 @@ Zilla Frame
         Kind: SESSION (2)
         Deferred: 0
         Data Kind: STATE (0x00)
-MQ Telemetry Transport Protocol, Reserved
-MQ Telemetry Transport Protocol, Publish Release
-[BoundError Unreassembled Packet: MQTT]
-Lua Error: /home/tshark/.local/lib/wireshark/plugins/zilla.lua:896: Dissector_call: Malformed frame
-Lua Traceback
 
 Frame 8: 211 bytes on wire (1688 bits), 211 bytes captured (1688 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
@@ -293,8 +288,8 @@ Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 468, Ack: 568, 
 Zilla Frame
     Frame Type ID: 0x40000002
     Frame Type: WINDOW
-    Protocol Type ID: 0xd0d41a76
-    Protocol Type: mqtt
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
     Worker: 0
     Offset: 0x000002e8
     Origin ID: 0x0000000100000002
@@ -327,8 +322,8 @@ Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 568, Ack: 605, 
 Zilla Frame
     Frame Type ID: 0x00000002
     Frame Type: DATA
-    Protocol Type ID: 0xd0d41a76
-    Protocol Type: mqtt
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
     Worker: 0
     Offset: 0x00000348
     Origin ID: 0x0000000100000002
@@ -359,11 +354,6 @@ Zilla Frame
     Payload
         Length: 28
         Payload
-MQ Telemetry Transport Protocol, Reserved
-MQ Telemetry Transport Protocol, Publish Release
-[BoundError Unreassembled Packet: MQTT]
-Lua Error: /home/tshark/.local/lib/wireshark/plugins/zilla.lua:896: Dissector_call: Malformed frame
-Lua Traceback
 
 Frame 10: 211 bytes on wire (1688 bits), 211 bytes captured (1688 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
@@ -372,8 +362,8 @@ Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 733, Ack: 605, 
 Zilla Frame
     Frame Type ID: 0x40000002
     Frame Type: WINDOW
-    Protocol Type ID: 0xd0d41a76
-    Protocol Type: mqtt
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
     Worker: 0
     Offset: 0x000003c8
     Origin ID: 0x0000000100000002
@@ -406,8 +396,8 @@ Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 0, Ack: 1, Len:
 Zilla Frame
     Frame Type ID: 0x00000001
     Frame Type: BEGIN
-    Protocol Type ID: 0xd0d41a76
-    Protocol Type: mqtt
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
     Worker: 0
     Offset: 0x00000428
     Origin ID: 0x0000000100000002
@@ -458,8 +448,8 @@ Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1, Ack: 169, Le
 Zilla Frame
     Frame Type ID: 0x00000001
     Frame Type: BEGIN
-    Protocol Type ID: 0xd0d41a76
-    Protocol Type: mqtt
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
     Worker: 0
     Offset: 0x000004a8
     Origin ID: 0x0000000100000002
@@ -487,8 +477,8 @@ Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 169, Ack: 129, 
 Zilla Frame
     Frame Type ID: 0x40000002
     Frame Type: WINDOW
-    Protocol Type ID: 0xd0d41a76
-    Protocol Type: mqtt
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
     Worker: 0
     Offset: 0x00000500
     Origin ID: 0x0000000100000002
@@ -521,8 +511,8 @@ Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 129, Ack: 306, 
 Zilla Frame
     Frame Type ID: 0x40000002
     Frame Type: WINDOW
-    Protocol Type ID: 0xd0d41a76
-    Protocol Type: mqtt
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
     Worker: 0
     Offset: 0x00000560
     Origin ID: 0x0000000100000002
@@ -555,8 +545,8 @@ Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 266, Ack: 306, 
 Zilla Frame
     Frame Type ID: 0x00000002
     Frame Type: DATA
-    Protocol Type ID: 0xd0d41a76
-    Protocol Type: mqtt
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
     Worker: 0
     Offset: 0x000005c0
     Origin ID: 0x0000000100000002
@@ -618,7 +608,6 @@ Zilla Frame
         Properties (0 items)
             Length: 4
             Size: 0
-MQ Telemetry Transport Protocol, Publish Release
 
 Frame 16: 211 bytes on wire (1688 bits), 211 bytes captured (1688 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
@@ -627,8 +616,8 @@ Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 465, Ack: 306, 
 Zilla Frame
     Frame Type ID: 0x40000002
     Frame Type: WINDOW
-    Protocol Type ID: 0xd0d41a76
-    Protocol Type: mqtt
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
     Worker: 0
     Offset: 0x00000660
     Origin ID: 0x0000000100000002

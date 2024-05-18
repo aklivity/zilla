@@ -36,7 +36,7 @@ public class Http2AuthorizationApplicationIT
 
     private final DumpRule dump = new DumpRule()
         .labels("test", "app0", "http", "server")
-        .bindings("test.app0", "test.http", "test.server", "test.0", "test.http");
+        .bindings("test.app0", "test.http", "test.server", "test.0", "test.0");
 
     @Rule
     public final TestRule chain = outerRule(dump).around(k3po).around(timeout);

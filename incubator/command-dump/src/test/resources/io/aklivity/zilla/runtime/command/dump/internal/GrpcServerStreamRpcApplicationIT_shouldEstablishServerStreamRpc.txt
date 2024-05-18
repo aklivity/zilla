@@ -5,8 +5,8 @@ Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 0, Ack: 1, Len:
 Zilla Frame
     Frame Type ID: 0x00000001
     Frame Type: BEGIN
-    Protocol Type ID: 0xf9c7583a
-    Protocol Type: grpc
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
     Worker: 0
     Offset: 0x00000000
     Origin ID: 0x0000000100000002
@@ -60,8 +60,8 @@ Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 214, Ack: 1, Le
 Zilla Frame
     Frame Type ID: 0x40000002
     Frame Type: WINDOW
-    Protocol Type ID: 0xf9c7583a
-    Protocol Type: grpc
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
     Worker: 0
     Offset: 0x000000b0
     Origin ID: 0x0000000100000002
@@ -94,8 +94,8 @@ Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 351, Ack: 1, Le
 Zilla Frame
     Frame Type ID: 0x00000002
     Frame Type: DATA
-    Protocol Type ID: 0xf9c7583a
-    Protocol Type: grpc
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
     Worker: 0
     Offset: 0x00000110
     Origin ID: 0x0000000100000002
@@ -134,8 +134,8 @@ Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 501, Ack: 1, Le
 Zilla Frame
     Frame Type ID: 0x00000003
     Frame Type: END
-    Protocol Type ID: 0xf9c7583a
-    Protocol Type: grpc
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
     Worker: 0
     Offset: 0x00000180
     Origin ID: 0x0000000100000002
@@ -162,8 +162,8 @@ Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 621, Ack: 1, Le
 Zilla Frame
     Frame Type ID: 0x40000002
     Frame Type: WINDOW
-    Protocol Type ID: 0xf9c7583a
-    Protocol Type: grpc
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
     Worker: 0
     Offset: 0x000001d0
     Origin ID: 0x0000000100000002
@@ -196,8 +196,8 @@ Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1, Ack: 758, Le
 Zilla Frame
     Frame Type ID: 0x00000001
     Frame Type: BEGIN
-    Protocol Type ID: 0xf9c7583a
-    Protocol Type: grpc
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
     Worker: 0
     Offset: 0x00000230
     Origin ID: 0x0000000100000002
@@ -225,8 +225,8 @@ Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 129, Ack: 758, 
 Zilla Frame
     Frame Type ID: 0x40000002
     Frame Type: WINDOW
-    Protocol Type ID: 0xf9c7583a
-    Protocol Type: grpc
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
     Worker: 0
     Offset: 0x00000288
     Origin ID: 0x0000000100000002
@@ -259,8 +259,8 @@ Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 266, Ack: 758, 
 Zilla Frame
     Frame Type ID: 0x00000002
     Frame Type: DATA
-    Protocol Type ID: 0xf9c7583a
-    Protocol Type: grpc
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
     Worker: 0
     Offset: 0x000002e8
     Origin ID: 0x0000000100000002
@@ -299,8 +299,8 @@ Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 417, Ack: 758, 
 Zilla Frame
     Frame Type ID: 0x40000002
     Frame Type: WINDOW
-    Protocol Type ID: 0xf9c7583a
-    Protocol Type: grpc
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
     Worker: 0
     Offset: 0x00000358
     Origin ID: 0x0000000100000002
@@ -333,8 +333,8 @@ Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 554, Ack: 758, 
 Zilla Frame
     Frame Type ID: 0x00000002
     Frame Type: DATA
-    Protocol Type ID: 0xf9c7583a
-    Protocol Type: grpc
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
     Worker: 0
     Offset: 0x000003b8
     Origin ID: 0x0000000100000002
@@ -373,8 +373,8 @@ Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 705, Ack: 758, 
 Zilla Frame
     Frame Type ID: 0x00000003
     Frame Type: END
-    Protocol Type ID: 0xf9c7583a
-    Protocol Type: grpc
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
     Worker: 0
     Offset: 0x00000428
     Origin ID: 0x0000000100000002
@@ -401,8 +401,8 @@ Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 825, Ack: 758, 
 Zilla Frame
     Frame Type ID: 0x40000002
     Frame Type: WINDOW
-    Protocol Type ID: 0xf9c7583a
-    Protocol Type: grpc
+    Protocol Type ID: 0x00000000
+    Protocol Type: 
     Worker: 0
     Offset: 0x00000478
     Origin ID: 0x0000000100000002

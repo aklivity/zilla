@@ -36,7 +36,7 @@ public class MqttSubscribeApplicationIT
 
     private final DumpRule dump = new DumpRule()
         .labels("test", "app0", "mqtt", "server")
-        .bindings("test.app0", "test.mqtt", "test.server", "test.0", "test.mqtt");
+        .bindings("test.app0", "test.mqtt", "test.server", "test.0", "test.0");
 
     @Rule
     public final TestRule chain = outerRule(dump).around(k3po).around(timeout);

@@ -36,7 +36,7 @@ public class ProxyApplicationIT
 
     private final DumpRule dump = new DumpRule()
         .labels("test", "app0", "proxy", "server")
-        .bindings("test.app0", "test.proxy", "test.server", "test.0", "test.proxy");
+        .bindings("test.app0", "test.proxy", "test.server", "test.0", "test.0");
 
     @Rule
     public final TestRule chain = outerRule(dump).around(k3po).around(timeout);
