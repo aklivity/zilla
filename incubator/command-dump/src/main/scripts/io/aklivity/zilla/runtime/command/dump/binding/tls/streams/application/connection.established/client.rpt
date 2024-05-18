@@ -16,6 +16,8 @@
 property authorization 0L
 
 connect "zilla://streams/app0"
+  option zilla:ephemeral "test"
+  option zilla:timestamps "false"
   option zilla:authorization ${authorization}
   option zilla:window 65536
   option zilla:transmission "duplex"
