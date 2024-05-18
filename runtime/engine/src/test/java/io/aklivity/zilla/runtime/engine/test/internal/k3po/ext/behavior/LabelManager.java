@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.FileTime;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -43,6 +44,7 @@ public final class LabelManager
     private final Path labelsPath;
 
     private long sizeInBytes;
+    private FileTime lastModifiedTime;
 
     public LabelManager(
         Path directory)
@@ -52,6 +54,7 @@ public final class LabelManager
 
         this.labelsPath = directory.resolve("labels");
         this.sizeInBytes = -1L;
+        this.lastModifiedTime = null;
     }
 
     public int supplyLabelId(
@@ -96,10 +99,11 @@ public final class LabelManager
             if (!Files.exists(labelsPath))
             {
                 this.sizeInBytes = -1L;
+                this.lastModifiedTime = null;
             }
 
-            //if (this.sizeInBytes == -1L || this.sizeInBytes != Files.size(labelsPath))
-            if (true)
+            if (this.sizeInBytes == -1L || this.sizeInBytes != Files.size(labelsPath) ||
+                this.lastModifiedTime == null || this.lastModifiedTime.compareTo(Files.getLastModifiedTime(labelsPath)) != 0)
             {
                 Files.createDirectories(labelsPath.getParent());
                 try (FileChannel channel = FileChannel.open(labelsPath, CREATE, READ, WRITE))
@@ -116,6 +120,7 @@ public final class LabelManager
                         }
 
                         this.sizeInBytes = channel.position();
+                        this.lastModifiedTime = Files.getLastModifiedTime(labelsPath);
                     }
                 }
             }
