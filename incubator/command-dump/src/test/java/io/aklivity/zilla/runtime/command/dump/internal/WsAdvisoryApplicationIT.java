@@ -48,5 +48,6 @@ public class WsAdvisoryApplicationIT
     public void shouldReceiveClientSentChallenge() throws Exception
     {
         k3po.finish();
+        dump.snapshot();
     }
 }

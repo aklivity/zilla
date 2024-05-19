@@ -50,5 +50,6 @@ public class TlsNetworkIT
     public void shouldEstablishConnection() throws Exception
     {
         k3po.finish();
+        dump.snapshot();
     }
 }

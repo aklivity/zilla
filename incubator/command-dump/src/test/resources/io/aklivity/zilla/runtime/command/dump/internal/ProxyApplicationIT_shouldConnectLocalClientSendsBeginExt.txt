@@ -73,3 +73,4 @@ Zilla Frame
     Capabilities: 0x00
     Progress: 0
     Progress/Maximum: 0/8192
+

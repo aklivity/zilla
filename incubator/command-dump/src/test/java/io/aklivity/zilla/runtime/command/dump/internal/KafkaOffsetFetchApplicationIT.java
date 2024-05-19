@@ -48,5 +48,6 @@ public class KafkaOffsetFetchApplicationIT
     public void shouldFetchTopicOffsetInfo() throws Exception
     {
         k3po.finish();
+        dump.snapshot();
     }
 }

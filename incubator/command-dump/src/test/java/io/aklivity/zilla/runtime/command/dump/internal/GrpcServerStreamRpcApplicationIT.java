@@ -49,5 +49,6 @@ public class GrpcServerStreamRpcApplicationIT
     public void shouldEstablishServerStreamRpc() throws Exception
     {
         k3po.finish();
+        dump.snapshot();
     }
 }

@@ -49,5 +49,6 @@ public class Http2AuthorizationNetworkIT
     public void shouldChallengeCredentialsHeader() throws Exception
     {
         k3po.finish();
+        dump.snapshot();
     }
 }

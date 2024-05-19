@@ -49,5 +49,6 @@ public class FileSystemApplicationIT
     public void shouldReadFileExtensionOnly() throws Exception
     {
         k3po.finish();
+        dump.snapshot();
     }
 }

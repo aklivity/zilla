@@ -48,5 +48,6 @@ public class KafkaMergedApplicationIT
     public void shouldFetchMergedFilterSync() throws Exception
     {
         k3po.finish();
+        dump.snapshot();
     }
 }
