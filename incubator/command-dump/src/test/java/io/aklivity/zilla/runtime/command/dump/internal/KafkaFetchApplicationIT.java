@@ -48,6 +48,5 @@ public class KafkaFetchApplicationIT
     public void shouldRequestPartitionOffset() throws Exception
     {
         k3po.finish();
-        dump.snapshot();
     }
 }

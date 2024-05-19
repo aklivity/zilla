@@ -48,6 +48,5 @@ public class AmqpLinkNetworkIT
     public void shouldExchangeAttachAsReceiver() throws Exception
     {
         k3po.finish();
-        dump.snapshot();
     }
 }

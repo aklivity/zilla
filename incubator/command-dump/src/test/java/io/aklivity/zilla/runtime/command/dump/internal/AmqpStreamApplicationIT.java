@@ -49,6 +49,5 @@ public class AmqpStreamApplicationIT
     public void shouldConnectAsReceiverOnly() throws Exception
     {
         k3po.finish();
-        dump.snapshot();
     }
 }

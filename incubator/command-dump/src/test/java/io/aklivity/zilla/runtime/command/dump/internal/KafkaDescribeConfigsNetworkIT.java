@@ -48,6 +48,5 @@ public class KafkaDescribeConfigsNetworkIT
     public void shouldReceiveTopicConfigInfo() throws Exception
     {
         k3po.finish();
-        dump.snapshot();
     }
 }

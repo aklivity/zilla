@@ -48,7 +48,6 @@ public class SseDataApplicationIT
     public void shouldReceiveNonEmptyData() throws Exception
     {
         k3po.finish();
-        dump.snapshot();
     }
 
 }

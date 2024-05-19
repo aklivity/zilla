@@ -48,6 +48,5 @@ public class MqttPublishApplicationIT
     public void shouldSendOneMessage() throws Exception
     {
         k3po.finish();
-        dump.snapshot();
     }
 }

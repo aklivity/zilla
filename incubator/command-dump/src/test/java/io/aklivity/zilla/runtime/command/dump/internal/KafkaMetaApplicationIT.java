@@ -48,6 +48,5 @@ public class KafkaMetaApplicationIT
     public void shouldReceiveTopicPartitionInfo() throws Exception
     {
         k3po.finish();
-        dump.snapshot();
     }
 }

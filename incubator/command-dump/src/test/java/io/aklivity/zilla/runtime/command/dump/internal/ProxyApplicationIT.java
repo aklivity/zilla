@@ -48,6 +48,5 @@ public class ProxyApplicationIT
     public void shouldConnectLocalClientSendsBeginExt() throws Exception
     {
         k3po.finish();
-        dump.snapshot();
     }
 }

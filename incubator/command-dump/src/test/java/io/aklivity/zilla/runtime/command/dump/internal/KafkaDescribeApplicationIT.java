@@ -48,6 +48,5 @@ public class KafkaDescribeApplicationIT
     public void shouldReceiveTopicConfigInfo() throws Exception
     {
         k3po.finish();
-        dump.snapshot();
     }
 }

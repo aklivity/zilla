@@ -48,6 +48,5 @@ public class KafkaInitProducerIdApplicationIT
     public void shouldGenerateNewProducerId() throws Exception
     {
         k3po.finish();
-        dump.snapshot();
     }
 }

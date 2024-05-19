@@ -48,6 +48,5 @@ public class MqttSubscribeApplicationIT
     public void shouldReceiveOneMessage() throws Exception
     {
         k3po.finish();
-        dump.snapshot();
     }
 }

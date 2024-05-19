@@ -48,6 +48,5 @@ public class KafkaProduceApplicationIT
     public void shouldSendMessageValueWithProducerId() throws Exception
     {
         k3po.finish();
-        dump.snapshot();
     }
 }

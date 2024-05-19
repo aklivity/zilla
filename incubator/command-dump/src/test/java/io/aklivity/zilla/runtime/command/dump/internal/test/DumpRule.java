@@ -15,7 +15,6 @@
 package io.aklivity.zilla.runtime.command.dump.internal.test;
 
 import static java.nio.ByteOrder.nativeOrder;
-import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 import static java.nio.file.StandardOpenOption.CREATE;
 import static java.nio.file.StandardOpenOption.TRUNCATE_EXISTING;
 import static java.nio.file.StandardOpenOption.WRITE;
@@ -82,7 +81,6 @@ public final class DumpRule implements TestRule
                 writeLabels();
                 writeBindings();
                 base.evaluate();
-                copy("data63.snapshot", "data63");
                 DUMP.createPcap(PCAP_PATH);
                 Container.ExecResult result = TSHARK.createTxt(PCAP_PATH);
                 Files.writeString(TXT_PATH, result.getStdout());
@@ -111,11 +109,6 @@ public final class DumpRule implements TestRule
     {
         this.bindings = bindings;
         return this;
-    }
-
-    public void snapshot()
-    {
-        copy("data63", "data63.snapshot");
     }
 
     private void writeLabels() throws Exception
@@ -150,20 +143,6 @@ public final class DumpRule implements TestRule
                 byteBuf.flip();
                 channel.write(byteBuf);
             }
-        }
-    }
-
-    private void copy(
-        String file1,
-        String file2)
-    {
-        try
-        {
-            Files.copy(ENGINE_PATH.resolve(file1), ENGINE_PATH.resolve(file2), REPLACE_EXISTING);
-        }
-        catch (Exception ex)
-        {
-            rethrowUnchecked(ex);
         }
     }
 }

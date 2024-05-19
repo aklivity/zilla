@@ -48,6 +48,5 @@ public class KafkaOffsetCommitApplicationIT
     public void shouldUpdateTopicPartitionOffset() throws Exception
     {
         k3po.finish();
-        dump.snapshot();
     }
 }
