@@ -29,6 +29,7 @@ import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.Zill
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_TRANSMISSION;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_UPDATE;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_WINDOW;
+import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_WRITE_CLOSED;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.util.Conversions.convertToByte;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.util.Conversions.convertToInt;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.util.Conversions.convertToLong;
@@ -50,12 +51,14 @@ public class DefaultZillaServerChannelConfig extends DefaultServerChannelConfig 
     private long affinity;
     private byte capabilities;
     private boolean timestamps;
+    private boolean writeClosed;
 
     public DefaultZillaServerChannelConfig()
     {
         super();
         setBufferFactory(NATIVE_BUFFER_FACTORY);
         setTimestamps(true);
+        setWriteClosed(true);
     }
 
     @Override
@@ -206,6 +209,19 @@ public class DefaultZillaServerChannelConfig extends DefaultServerChannelConfig 
     }
 
     @Override
+    public void setWriteClosed(
+        boolean writeClosed)
+    {
+        this.writeClosed = writeClosed;
+    }
+
+    @Override
+    public boolean hasWriteClosed()
+    {
+        return writeClosed;
+    }
+
+    @Override
     protected boolean setOption0(
         String key,
         Object value)
@@ -258,6 +274,10 @@ public class DefaultZillaServerChannelConfig extends DefaultServerChannelConfig 
         else if (OPTION_TIMESTAMPS.getName().equals(key))
         {
             setTimestamps(Boolean.parseBoolean(Objects.toString(value, "false")));
+        }
+        else if (OPTION_WRITE_CLOSED.getName().equals(key))
+        {
+            setWriteClosed(Boolean.parseBoolean(Objects.toString(value, "false")));
         }
         else
         {

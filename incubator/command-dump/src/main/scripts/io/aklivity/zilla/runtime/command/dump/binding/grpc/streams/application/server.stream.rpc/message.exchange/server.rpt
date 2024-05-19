@@ -15,6 +15,7 @@
 
 accept "zilla://streams/app0"
        option zilla:timestamps "false"
+       option zilla:writeClosed "false"
        option zilla:window 8192
        option zilla:transmission "half-duplex"
 accepted

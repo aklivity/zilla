@@ -16,6 +16,7 @@
 connect "zilla://streams/app0"
     option zilla:ephemeral "test"
     option zilla:timestamps "false"
+    option zilla:writeClosed "false"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
 
@@ -48,6 +49,7 @@ connect await ROUTED_BROKER_CLIENT
         "zilla://streams/app0"
     option zilla:ephemeral "test"
     option zilla:timestamps "false"
+    option zilla:writeClosed "false"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
     option zilla:affinity 0xb1

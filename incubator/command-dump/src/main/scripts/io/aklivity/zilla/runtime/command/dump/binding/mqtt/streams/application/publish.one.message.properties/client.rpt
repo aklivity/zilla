@@ -16,6 +16,7 @@
 connect "zilla://streams/app0"
          option zilla:ephemeral "test"
          option zilla:timestamps "false"
+         option zilla:writeClosed "false"
          option zilla:window 8192
          option zilla:transmission "duplex"
 
@@ -49,6 +50,7 @@ connect await RECEIVED_SESSION_STATE
         "zilla://streams/app0"
          option zilla:ephemeral "test"
          option zilla:timestamps "false"
+         option zilla:writeClosed "false"
          option zilla:window 8192
          option zilla:transmission "duplex"
 

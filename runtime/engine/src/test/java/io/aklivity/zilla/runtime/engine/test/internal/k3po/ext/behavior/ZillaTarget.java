@@ -947,7 +947,8 @@ final class ZillaTarget implements AutoCloseable
         int offset,
         int length)
     {
-        return !channel.engine.serverClosed().get() && streamsBuffer.write(msgTypeId, buffer, offset, length);
+        boolean shouldWrite = channel.getConfig().hasWriteClosed() || !channel.engine.serverClosed().get();
+        return shouldWrite && streamsBuffer.write(msgTypeId, buffer, offset, length);
     }
 
     private final class Throttle

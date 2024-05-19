@@ -210,6 +210,16 @@ public class DuplexIT
 
     @Test
     @Specification({
+        "write.closed.false/client",
+        "write.closed.false/server"
+    })
+    public void shouldConnectWithoutWriteClosed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "client.sent.data/client",
         "client.sent.data/server"
     })
