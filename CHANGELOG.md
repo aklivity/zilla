@@ -1,5 +1,40 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.79...HEAD)
+
+**Breaking changes:**
+
+- Remove `zilla generate` command [\#960](https://github.com/aklivity/zilla/issues/960)
+- Report unused properties based on binding definition [\#808](https://github.com/aklivity/zilla/issues/808)
+
+**Implemented enhancements:**
+
+- Update the Zilla issue Bug Report template with debugging info collection instructions [\#991](https://github.com/aklivity/zilla/issues/991)
+- Support multiple specs in `openapi-asyncapi` binding [\#964](https://github.com/aklivity/zilla/issues/964)
+- Integrate JMH into `tls` binding [\#961](https://github.com/aklivity/zilla/issues/961)
+- Enhance validation for `openapi` and `asyncapi` bindings [\#950](https://github.com/aklivity/zilla/issues/950)
+- Support multiple specs in `openapi` binding [\#949](https://github.com/aklivity/zilla/issues/949)
+- Support multiple specs in `asyncapi` binding [\#948](https://github.com/aklivity/zilla/issues/948)
+- Support `asyncapi` `mqtt` streetlights mapping to `kafka` streetlights [\#947](https://github.com/aklivity/zilla/issues/947)
+- Support `mqtt` access log [\#945](https://github.com/aklivity/zilla/issues/945)
+- Support `mqtt` client binding authorization [\#940](https://github.com/aklivity/zilla/issues/940)
+- Resiliently handle `apicurio` catalog unreachable [\#938](https://github.com/aklivity/zilla/issues/938)
+- Resiliently handle `karapace` catalog unreachable [\#937](https://github.com/aklivity/zilla/issues/937)
+- Support local `zilla` installation on MacOS via `homebrew` [\#680](https://github.com/aklivity/zilla/issues/680)
+
+**Fixed bugs:**
+
+- Zilla crashes with `IllegalArgumentException` when an Avro payload is fetched as `json` [\#1025](https://github.com/aklivity/zilla/issues/1025)
+- MQTT-Kafka qos2: increasing tracked producer sequence number without publishing to Kafka [\#1014](https://github.com/aklivity/zilla/issues/1014)
+- OTLP `logs` signal doesn't show up in OpenTelemetry Demo [\#1006](https://github.com/aklivity/zilla/issues/1006)
+- Flow control issue in openapi binding [\#1004](https://github.com/aklivity/zilla/issues/1004)
+- `mqtt` connecting with longer client id fails [\#1003](https://github.com/aklivity/zilla/issues/1003)
+- Running zilla with the `kafka-grpc` binding in a cluster with multiple instances results in each instance delivering a message to the configured `remote_server` [\#882](https://github.com/aklivity/zilla/issues/882)
+- Using the `grpc.kafka.proxy` example setup, Zilla will periodically not deliver the message to the gRPC service defined in the `kafka-grpc` binding [\#881](https://github.com/aklivity/zilla/issues/881)
+- Flaky kafka-grpc test [\#768](https://github.com/aklivity/zilla/issues/768)
+
 ## [0.9.79](https://github.com/aklivity/zilla/tree/0.9.79) (2024-04-22)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.78...0.9.79)
