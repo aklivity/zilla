@@ -23,13 +23,16 @@ telemetry:
         events:
           - qname: test.catalog0
             id: catalog.apicurio.unretrievable.artifact.subject.version
-            message: UNRETRIEVABLE_ARTIFACT artifactId latest
+            name: CATALOG_APICURIO_UNRETRIEVABLE_ARTIFACT_SUBJECT_VERSION
+            message: artifactId latest
           - qname: test.catalog0
             id: catalog.apicurio.unretrievable.artifact.subject.version.stale.artifact
-            message: UNRETRIEVABLE_ARTIFACT artifactId latest, USING_STALE_ARTIFACT 1
+            name: UNRETRIEVABLE_ARTIFACT_SUBJECT_VERSION_STALE_ARTIFACT
+            message: artifactId (latest) | stale artifactId (1)
           - qname: test.catalog0
             id: catalog.apicurio.retrievable.artifact.subject.version
-            message: RETRIEVED_ARTIFACT_SUBJECT_VERSION artifactId latest
+            name: CATALOG_APICURIO_RETRIEVED_ARTIFACT_SUBJECT_VERSION
+            message: artifactId latest
 catalogs:
   catalog0:
     type: apicurio

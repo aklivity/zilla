@@ -24,7 +24,8 @@ telemetry:
                 events:
                     - qname: test.net0
                       id: binding.mqtt.client.connected
-                      message: CLIENT_CONNECTED - client
+                      name: BINDING_MQTT_CLIENT_CONNECTED
+                      message: "- client"
 bindings:
     net0:
         type: mqtt

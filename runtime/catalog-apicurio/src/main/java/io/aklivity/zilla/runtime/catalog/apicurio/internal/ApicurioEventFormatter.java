@@ -29,13 +29,6 @@ import io.aklivity.zilla.runtime.engine.event.EventFormatterSpi;
 
 public final class ApicurioEventFormatter implements EventFormatterSpi
 {
-    private static final String UNRETRIEVABLE_ARTIFACT_SUBJECT_VERSION = "UNRETRIEVABLE_ARTIFACT %s %s";
-    private static final String UNRETRIEVABLE_ARTIFACT_SUBJECT_VERSION_STALE_ARTIFACT =
-        "UNRETRIEVABLE_ARTIFACT %s %s, USING_STALE_ARTIFACT %d";
-    private static final String UNRETRIEVABLE_ARTIFACT_ID = "UNRETRIEVABLE_ARTIFACT_ID %d";
-    private static final String RETRIEVED_ARTIFACT_SUBJECT_VERSION = "RETRIEVED_ARTIFACT_SUBJECT_VERSION %s %s";
-    private static final String RETRIEVED_ARTIFACT_ID = "RETRIEVED_ARTIFACT_ID %d";
-
     private final EventFW eventRO = new EventFW();
     private final ApicurioEventExFW schemaRegistryEventExRO = new ApicurioEventExFW();
 
@@ -58,27 +51,27 @@ public final class ApicurioEventFormatter implements EventFormatterSpi
         case UNRETRIEVABLE_ARTIFACT_SUBJECT_VERSION:
         {
             ApicurioUnretrievableArtifactSubjectVersionExFW ex = extension.unretrievableArtifactSubjectVersion();
-            result = String.format(UNRETRIEVABLE_ARTIFACT_SUBJECT_VERSION, asString(ex.subject()), asString(ex.version()));
+            result = String.format("%s %s", asString(ex.subject()), asString(ex.version()));
             break;
         }
         case UNRETRIEVABLE_ARTIFACT_SUBJECT_VERSION_STALE_ARTIFACT:
         {
             ApicurioUnretrievableArtifactSubjectVersionStaleArtifactExFW ex = extension
                 .unretrievableArtifactSubjectVersionStaleArtifact();
-            result = String.format(UNRETRIEVABLE_ARTIFACT_SUBJECT_VERSION_STALE_ARTIFACT, asString(ex.subject()),
+            result = String.format("%s (%s) |  stale artifactId (%d)", asString(ex.subject()),
                 asString(ex.version()), ex.artifactId());
             break;
         }
         case UNRETRIEVABLE_ARTIFACT_ID:
         {
             ApicurioUnretrievableArtifactIdExFW ex = extension.unretrievableArtifactId();
-            result = String.format(UNRETRIEVABLE_ARTIFACT_ID, ex.artifactId());
+            result = String.format("%d", ex.artifactId());
             break;
         }
         case RETRIEVED_ARTIFACT_SUBJECT_VERSION:
         {
             ApicurioRetrievableArtifactSubjectVersionExFW ex = extension.retrievableArtifactSubjectVersion();
-            result = String.format(RETRIEVED_ARTIFACT_SUBJECT_VERSION, asString(ex.subject()), asString(ex.version()));
+            result = String.format("%s %s", asString(ex.subject()), asString(ex.version()));
             break;
         }
         case RETRIEVED_ARTIFACT_ID:

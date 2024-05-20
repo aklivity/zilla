@@ -26,8 +26,6 @@ import io.aklivity.zilla.runtime.engine.event.EventFormatterSpi;
 
 public final class MqttEventFormatter implements EventFormatterSpi
 {
-    private static final String CLIENT_CONNECTED_FORMAT = "CLIENT_CONNECTED %s %s";
-
     private final EventFW eventRO = new EventFW();
     private final MqttEventExFW mqttEventExRO = new MqttEventExFW();
 
@@ -50,7 +48,7 @@ public final class MqttEventFormatter implements EventFormatterSpi
         case CLIENT_CONNECTED:
         {
             MqttClientConnectedExFW ex = extension.clientConnected();
-            result = String.format(CLIENT_CONNECTED_FORMAT, identity(ex.identity()), asString(ex.clientId()));
+            result = String.format("%s %s", identity(ex.identity()), asString(ex.clientId()));
             break;
         }
         }
