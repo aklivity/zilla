@@ -1341,7 +1341,7 @@ public final class KafkaMergedFactory implements BindingHandler
             describeStream.doDescribeInitialAbortIfNecessary(traceId);
             metaStream.doMetaInitialAbortIfNecessary(traceId);
             fetchStreams.forEach(f -> f.onMergedInitialAbort(traceId));
-            produceStreams.forEach(f -> f.doProduceInitialEndIfNecessary(traceId));
+            produceStreams.forEach(f -> f.doProduceInitialAbortIfNecessary(traceId));
 
             if (consumerStream != null)
             {

@@ -18,14 +18,23 @@ import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.catalog.apicurio.internal.types.StringFW;
 import io.aklivity.zilla.runtime.catalog.apicurio.internal.types.event.ApicurioEventExFW;
-import io.aklivity.zilla.runtime.catalog.apicurio.internal.types.event.ApicurioRemoteAccessRejectedExFW;
+import io.aklivity.zilla.runtime.catalog.apicurio.internal.types.event.ApicurioRetrievableArtifactIdExFW;
+import io.aklivity.zilla.runtime.catalog.apicurio.internal.types.event.ApicurioRetrievableArtifactSubjectVersionExFW;
+import io.aklivity.zilla.runtime.catalog.apicurio.internal.types.event.ApicurioUnretrievableArtifactIdExFW;
+import io.aklivity.zilla.runtime.catalog.apicurio.internal.types.event.ApicurioUnretrievableArtifactSubjectVersionExFW;
+import io.aklivity.zilla.runtime.catalog.apicurio.internal.types.event.ApicurioUnretrievableArtifactSubjectVersionStaleArtifactExFW;
 import io.aklivity.zilla.runtime.catalog.apicurio.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.event.EventFormatterSpi;
 
 public final class ApicurioEventFormatter implements EventFormatterSpi
 {
-    private static final String REMOTE_ACCESS_REJECTED = "REMOTE_ACCESS_REJECTED %s %s %d";
+    private static final String UNRETRIEVABLE_ARTIFACT_SUBJECT_VERSION = "UNRETRIEVABLE_ARTIFACT %s %s";
+    private static final String UNRETRIEVABLE_ARTIFACT_SUBJECT_VERSION_STALE_ARTIFACT =
+        "UNRETRIEVABLE_ARTIFACT %s %s, USING_STALE_ARTIFACT %d";
+    private static final String UNRETRIEVABLE_ARTIFACT_ID = "UNRETRIEVABLE_ARTIFACT_ID %d";
+    private static final String RETRIEVED_ARTIFACT_SUBJECT_VERSION = "RETRIEVED_ARTIFACT_SUBJECT_VERSION %s %s";
+    private static final String RETRIEVED_ARTIFACT_ID = "RETRIEVED_ARTIFACT_ID %d";
 
     private final EventFW eventRO = new EventFW();
     private final ApicurioEventExFW schemaRegistryEventExRO = new ApicurioEventExFW();
@@ -46,11 +55,36 @@ public final class ApicurioEventFormatter implements EventFormatterSpi
         String result = null;
         switch (extension.kind())
         {
-        case REMOTE_ACCESS_REJECTED:
+        case UNRETRIEVABLE_ARTIFACT_SUBJECT_VERSION:
         {
-            ApicurioRemoteAccessRejectedExFW ex = extension.remoteAccessRejected();
-            result = String.format(REMOTE_ACCESS_REJECTED, asString(ex.method()), asString(ex.url()),
-                ex.status());
+            ApicurioUnretrievableArtifactSubjectVersionExFW ex = extension.unretrievableArtifactSubjectVersion();
+            result = String.format(UNRETRIEVABLE_ARTIFACT_SUBJECT_VERSION, asString(ex.subject()), asString(ex.version()));
+            break;
+        }
+        case UNRETRIEVABLE_ARTIFACT_SUBJECT_VERSION_STALE_ARTIFACT:
+        {
+            ApicurioUnretrievableArtifactSubjectVersionStaleArtifactExFW ex = extension
+                .unretrievableArtifactSubjectVersionStaleArtifact();
+            result = String.format(UNRETRIEVABLE_ARTIFACT_SUBJECT_VERSION_STALE_ARTIFACT, asString(ex.subject()),
+                asString(ex.version()), ex.artifactId());
+            break;
+        }
+        case UNRETRIEVABLE_ARTIFACT_ID:
+        {
+            ApicurioUnretrievableArtifactIdExFW ex = extension.unretrievableArtifactId();
+            result = String.format(UNRETRIEVABLE_ARTIFACT_ID, ex.artifactId());
+            break;
+        }
+        case RETRIEVED_ARTIFACT_SUBJECT_VERSION:
+        {
+            ApicurioRetrievableArtifactSubjectVersionExFW ex = extension.retrievableArtifactSubjectVersion();
+            result = String.format(RETRIEVED_ARTIFACT_SUBJECT_VERSION, asString(ex.subject()), asString(ex.version()));
+            break;
+        }
+        case RETRIEVED_ARTIFACT_ID:
+        {
+            ApicurioRetrievableArtifactIdExFW ex = extension.retrievableArtifactId();
+            result = String.format(RETRIEVED_ARTIFACT_ID, ex.artifactId());
             break;
         }
         }

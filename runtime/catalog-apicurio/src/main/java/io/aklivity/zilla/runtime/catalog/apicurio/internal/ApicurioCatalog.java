@@ -15,6 +15,8 @@
 package io.aklivity.zilla.runtime.catalog.apicurio.internal;
 
 import java.net.URL;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -25,9 +27,12 @@ public class ApicurioCatalog implements Catalog
 {
     public static final String NAME = "apicurio";
 
+    private final ConcurrentMap<Long, ApicurioCache> cache;
+
     public ApicurioCatalog(
         Configuration config)
     {
+        this.cache = new ConcurrentHashMap<>();
     }
 
     @Override
@@ -40,7 +45,7 @@ public class ApicurioCatalog implements Catalog
     public CatalogContext supply(
         EngineContext context)
     {
-        return new ApicurioCatalogContext(context);
+        return new ApicurioCatalogContext(context, cache);
     }
 
     @Override
