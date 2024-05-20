@@ -50,6 +50,10 @@ public abstract class AvroModelHandler
     private static final InputStream EMPTY_INPUT_STREAM = new ByteArrayInputStream(new byte[0]);
     private static final OutputStream EMPTY_OUTPUT_STREAM = new ByteArrayOutputStream(0);
     private static final int JSON_FIELD_STRUCTURE_LENGTH = "\"\":\"\",".length();
+    private static final int JSON_FIELD_UNION_LENGTH = "\"\":{\"DATA_TYPE\":\"\"},".length();
+    private static final int COMMA_LENGTH = ",".length();
+    private static final int JSON_FIELD_ARRAY_LENGTH = "\"\":[]," .length() + COMMA_LENGTH * 100;
+    private static final int JSON_FIELD_MAP_LENGTH = "\"\":{},".length();
 
     protected final SchemaConfig catalog;
     protected final CatalogHandler handler;
@@ -207,15 +211,40 @@ public abstract class AvroModelHandler
         if (schema != null)
         {
             padding = 2;
-            for (Schema.Field field : schema.getFields())
+            if (schema.getType().equals(Schema.Type.RECORD))
             {
-                if (field.schema().getType().equals(Schema.Type.RECORD))
+                for (Schema.Field field : schema.getFields())
                 {
-                    padding += calculatePadding(field.schema());
-                }
-                else
-                {
-                    padding += field.name().getBytes().length + JSON_FIELD_STRUCTURE_LENGTH;
+                    switch (field.schema().getType())
+                    {
+                    case RECORD:
+                    {
+                        padding += calculatePadding(field.schema());
+                        break;
+                    }
+                    case UNION:
+                    {
+                        padding += field.name().getBytes().length + JSON_FIELD_UNION_LENGTH;
+                        break;
+                    }
+                    case MAP:
+                    {
+                        padding += field.name().getBytes().length + JSON_FIELD_MAP_LENGTH +
+                            calculatePadding(field.schema().getValueType());
+                        break;
+                    }
+                    case ARRAY:
+                    {
+                        padding += field.name().getBytes().length + JSON_FIELD_ARRAY_LENGTH +
+                            calculatePadding(field.schema().getElementType());
+                        break;
+                    }
+                    default:
+                    {
+                        padding += field.name().getBytes().length + JSON_FIELD_STRUCTURE_LENGTH;
+                        break;
+                    }
+                    }
                 }
             }
         }

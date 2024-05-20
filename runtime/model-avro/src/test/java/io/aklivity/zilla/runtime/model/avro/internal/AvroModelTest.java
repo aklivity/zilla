@@ -39,6 +39,16 @@ public class AvroModelTest
             "{\"name\":\"status\",\"type\":\"string\"}]," +
             "\"name\":\"Event\",\"namespace\":\"io.aklivity.example\",\"type\":\"record\"}";
 
+    private static final String COMPLEX_SCHEMA = "{\"type\":\"record\",\"name\":\"example\",\"namespace\":\"com.example\"," +
+        "\"fields\":[{\"name\":\"name\",\"type\":\"string\"},{\"name\":\"preferences\",\"" +
+        "type\":{\"type\":\"map\",\"values\":\"string\"}},{\"name\":\"attributes\",\"" +
+        "type\":{\"type\":\"map\",\"values\":{\"type\":\"record\",\"name\":\"Attribute\"," +
+        "\"fields\":[{\"name\":\"value\",\"type\":\"string\"},{\"name\":\"timestamp\",\"type\":\"long\"}]}}}," +
+        "{\"name\":\"addresses\",\"type\":{\"type\":\"array\",\"items\":{\"type\":\"record\",\"name\":\"Address\"," +
+        "\"fields\":[{\"name\":\"street\",\"type\":\"string\"},{\"name\":\"city\",\"type\":\"string\"}," +
+        "{\"name\":\"state\",\"type\":\"string\"},{\"name\":\"zip\",\"type\":\"string\"}]}}}," +
+        "{\"name\":\"source\",\"type\":[\"null\",\"string\"],\"default\":null}]}";
+
     private final AvroModelConfig avroConfig = AvroModelConfig.builder()
             .catalog()
                 .name("test0")
@@ -205,7 +215,7 @@ public class AvroModelTest
     {
         TestCatalogOptionsConfig testCatalogOptionsConfig = TestCatalogOptionsConfig.builder()
             .id(9)
-            .schema(SCHEMA)
+            .schema(COMPLEX_SCHEMA)
             .build();
         CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test", testCatalogOptionsConfig);
         when(context.supplyCatalog(catalogConfig.id)).thenReturn(new TestCatalogHandler(testCatalogOptionsConfig));
@@ -228,7 +238,7 @@ public class AvroModelTest
             0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
         data.wrap(bytes, 0, bytes.length);
 
-        assertEquals(22, converter.padding(data, 0, data.capacity()));
+        assertEquals(260, converter.padding(data, 0, data.capacity()));
 
     }
 }
