@@ -104,7 +104,6 @@ final class ZillaTarget implements AutoCloseable
     private final LongConsumer unregisterThrottle;
     private final MutableDirectBuffer writeBuffer;
     private final LongObjectBiConsumer<ZillaCorrelation> correlateNew;
-    private final LongSupplier supplyTimestamp;
     private final LongSupplier supplyTraceId;
 
     ZillaTarget(
@@ -115,7 +114,6 @@ final class ZillaTarget implements AutoCloseable
         LongObjectBiConsumer<MessageHandler> registerThrottle,
         LongConsumer unregisterThrottle,
         LongObjectBiConsumer<ZillaCorrelation> correlateNew,
-        LongSupplier supplyTimestamp,
         LongSupplier supplyTraceId)
     {
         this.scopeIndex = scopeIndex;
@@ -127,7 +125,6 @@ final class ZillaTarget implements AutoCloseable
         this.registerThrottle = registerThrottle;
         this.unregisterThrottle = unregisterThrottle;
         this.correlateNew = correlateNew;
-        this.supplyTimestamp = supplyTimestamp;
         this.supplyTraceId = supplyTraceId;
     }
 
@@ -154,6 +151,7 @@ final class ZillaTarget implements AutoCloseable
         int maximum)
     {
         final WindowFW window = windowRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                .originId(0L)
                 .routedId(0L)
                 .streamId(0L)
                 .sequence(0L)
@@ -172,6 +170,7 @@ final class ZillaTarget implements AutoCloseable
         long budgetId)
     {
         final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                .originId(0L)
                 .routedId(0L)
                 .streamId(0L)
                 .sequence(0L)
@@ -268,7 +267,7 @@ final class ZillaTarget implements AutoCloseable
                 .sequence(sequence)
                 .acknowledge(acknowledge)
                 .maximum(maximum)
-                .timestamp(supplyTimestamp.getAsLong())
+                .timestamp(client.timestamp())
                 .traceId(supplyTraceId.getAsLong())
                 .authorization(authorization)
                 .affinity(affinity)
@@ -332,14 +331,14 @@ final class ZillaTarget implements AutoCloseable
     }
 
     public void doConnectAbort(
-        ZillaClientChannel clientChannel)
+        ZillaClientChannel client)
     {
-        final long originId = clientChannel.originId();
-        final long routedId = clientChannel.routedId();
-        final long initialId = clientChannel.targetId();
-        final long sequence = clientChannel.targetSeq();
-        final long acknowledge = clientChannel.targetAck();
-        final int maximum = clientChannel.targetMax();
+        final long originId = client.originId();
+        final long routedId = client.routedId();
+        final long initialId = client.targetId();
+        final long sequence = client.targetSeq();
+        final long acknowledge = client.targetAck();
+        final int maximum = client.targetMax();
 
         final AbortFW abort = abortRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
@@ -348,7 +347,7 @@ final class ZillaTarget implements AutoCloseable
                 .sequence(sequence)
                 .acknowledge(acknowledge)
                 .maximum(maximum)
-                .timestamp(supplyTimestamp.getAsLong())
+                .timestamp(client.timestamp())
                 .traceId(supplyTraceId.getAsLong())
                 .build();
 
@@ -388,7 +387,7 @@ final class ZillaTarget implements AutoCloseable
                 .sequence(sequence)
                 .acknowledge(acknowledge)
                 .maximum(maximum)
-                .timestamp(supplyTimestamp.getAsLong())
+                .timestamp(channel.timestamp())
                 .traceId(supplyTraceId.getAsLong())
                 .affinity(affinity)
                 .extension(p -> p.set(beginExtCopy))
@@ -493,7 +492,7 @@ final class ZillaTarget implements AutoCloseable
                 .sequence(sequence)
                 .acknowledge(acknowledge)
                 .maximum(maximum)
-                .timestamp(supplyTimestamp.getAsLong())
+                .timestamp(channel.timestamp())
                 .traceId(supplyTraceId.getAsLong())
                 .authorization(authorization)
                 .budgetId(budgetId)
@@ -533,7 +532,7 @@ final class ZillaTarget implements AutoCloseable
                 .sequence(sequence)
                 .acknowledge(acknowledge)
                 .maximum(maximum)
-                .timestamp(supplyTimestamp.getAsLong())
+                .timestamp(channel.timestamp())
                 .traceId(supplyTraceId.getAsLong())
                 .authorization(authorization)
                 .extension(p -> p.set(abortExtCopy))
@@ -583,7 +582,7 @@ final class ZillaTarget implements AutoCloseable
                 .sequence(sequence)
                 .acknowledge(acknowledge)
                 .maximum(maximum)
-                .timestamp(supplyTimestamp.getAsLong())
+                .timestamp(channel.timestamp())
                 .traceId(supplyTraceId.getAsLong())
                 .authorization(authorization)
                 .extension(p -> p.set(endExtCopy))
@@ -629,7 +628,7 @@ final class ZillaTarget implements AutoCloseable
                 .sequence(sequence)
                 .acknowledge(acknowledge)
                 .maximum(channel.targetMax())
-                .timestamp(supplyTimestamp.getAsLong())
+                .timestamp(channel.timestamp())
                 .traceId(supplyTraceId.getAsLong())
                 .authorization(channel.targetAuth())
                 .extension(p -> p.set(endExtCopy))
@@ -765,7 +764,7 @@ final class ZillaTarget implements AutoCloseable
                     .sequence(sequence)
                     .acknowledge(acknowledge)
                     .maximum(maximum)
-                    .timestamp(supplyTimestamp.getAsLong())
+                    .timestamp(channel.timestamp())
                     .traceId(supplyTraceId.getAsLong())
                     .authorization(authorization)
                     .flags(flags)
@@ -837,7 +836,7 @@ final class ZillaTarget implements AutoCloseable
                 .sequence(sequence)
                 .acknowledge(acknowledge)
                 .maximum(maximum)
-                .timestamp(supplyTimestamp.getAsLong())
+                .timestamp(channel.timestamp())
                 .traceId(supplyTraceId.getAsLong())
                 .budgetId(budgetId)
                 .padding(padding)
@@ -878,7 +877,6 @@ final class ZillaTarget implements AutoCloseable
                 .sequence(sequence)
                 .acknowledge(acknowledge)
                 .maximum(maximum)
-                .timestamp(supplyTimestamp.getAsLong())
                 .traceId(traceId)
                 .build();
 
@@ -906,7 +904,7 @@ final class ZillaTarget implements AutoCloseable
                 .sequence(sequence)
                 .acknowledge(acknowledge)
                 .maximum(maximum)
-                .timestamp(supplyTimestamp.getAsLong())
+                .timestamp(channel.timestamp())
                 .traceId(traceId)
                 .extension(p -> p.set(extensionCopy))
                 .build();
@@ -915,6 +913,7 @@ final class ZillaTarget implements AutoCloseable
     }
 
     void doChallenge(
+        final ZillaChannel channel,
         final long originId,
         final long routedId,
         final long streamId,
@@ -933,7 +932,7 @@ final class ZillaTarget implements AutoCloseable
                 .sequence(sequence)
                 .acknowledge(acknowledge)
                 .maximum(maximum)
-                .timestamp(supplyTimestamp.getAsLong())
+                .timestamp(channel.timestamp())
                 .traceId(traceId)
                 .extension(p -> p.set(extensionCopy))
                 .build();
@@ -1126,7 +1125,7 @@ final class ZillaTarget implements AutoCloseable
                         .sequence(sequence)
                         .acknowledge(acknowledge)
                         .maximum(maximum)
-                        .timestamp(supplyTimestamp.getAsLong())
+                        .timestamp(channel.timestamp())
                         .traceId(supplyTraceId.getAsLong())
                         .build();
 

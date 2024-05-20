@@ -51,7 +51,8 @@ public final class MqttBindingConfig
     public final KindConfig kind;
     public final MqttOptionsConfig options;
     public final List<MqttRouteConfig> routes;
-    public final Function<String, String> credentials;
+    public final Function<String, String> resolveCredentials;
+    public final Function<String, String> injectCredentials;
     public final Map<Matcher, TopicValidator> topics;
     public final List<MqttVersion> versions;
     public final ToLongFunction<String> resolveId;
@@ -67,8 +68,10 @@ public final class MqttBindingConfig
         this.routes = binding.routes.stream().map(MqttRouteConfig::new).collect(toList());
         this.options = (MqttOptionsConfig) binding.options;
         this.resolveId = binding.resolveId;
-        this.credentials = options != null && options.authorization != null ?
+        this.resolveCredentials = options != null && options.authorization != null ?
             asAccessor(options.authorization.credentials) : DEFAULT_CREDENTIALS;
+        this.injectCredentials = options != null && options.authorization != null ?
+            asInjector(options.authorization.credentials) : DEFAULT_CREDENTIALS;
         this.topics = new HashMap<>();
         if (options != null && options.topics != null)
         {
@@ -175,9 +178,14 @@ public final class MqttBindingConfig
         return config;
     }
 
-    public Function<String, String> credentials()
+    public Function<String, String> resolveCredentials()
     {
-        return credentials;
+        return resolveCredentials;
+    }
+
+    public Function<String, String> injectCredentials()
+    {
+        return injectCredentials;
     }
 
     public MqttConnectProperty authField()
@@ -215,7 +223,7 @@ public final class MqttBindingConfig
                 Pattern.compile(config.pattern.replace("{credentials}", "(?<credentials>[^\\s]+)"))
                     .matcher("");
 
-            accessor = orElseIfNull(accessor, connect ->
+            accessor = connect ->
             {
                 String result = null;
                 if (connect != null && connectMatch.reset(connect).matches())
@@ -223,21 +231,34 @@ public final class MqttBindingConfig
                     result = connectMatch.group("credentials");
                 }
                 return result;
-            });
+            };
         }
 
         return accessor;
     }
 
-    private static Function<String, String> orElseIfNull(
-        Function<String, String> first,
-        Function<String, String> second)
+    private Function<String, String> asInjector(
+        MqttCredentialsConfig credentials)
     {
-        return x ->
+        Function<String, String> injector = DEFAULT_CREDENTIALS;
+        List<MqttPatternConfig> connectPatterns = credentials.connect;
+
+        if (connectPatterns != null && !connectPatterns.isEmpty())
         {
-            String result = first.apply(x);
-            return result != null ? result : second.apply(x);
-        };
+            MqttPatternConfig config = connectPatterns.get(0);
+
+            injector = connect ->
+            {
+                String result = null;
+                if (connect != null)
+                {
+                    result = config.pattern.replace("{credentials}", connect);
+                }
+                return result;
+            };
+        }
+
+        return injector;
     }
 
     private static class TopicValidator

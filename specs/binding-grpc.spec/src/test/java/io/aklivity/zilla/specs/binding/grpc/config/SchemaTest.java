@@ -31,6 +31,7 @@ public class SchemaTest
     public final ConfigSchemaRule schema = new ConfigSchemaRule()
         .schemaPatch("io/aklivity/zilla/specs/binding/grpc/schema/grpc.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/guard/test.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/specs/engine/schema/catalog/test.schema.patch.json")
         .configurationRoot("io/aklivity/zilla/specs/binding/grpc/config");
 
     @Test
@@ -45,6 +46,38 @@ public class SchemaTest
     public void shouldValidateClient()
     {
         JsonObject config = schema.validate("client.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateClientWhen()
+    {
+        JsonObject config = schema.validate("client.when.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateServerWhenBinaryMetadata()
+    {
+        JsonObject config = schema.validate("server.when.binary.metadata.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateClientWhenBinaryMetadata()
+    {
+        JsonObject config = schema.validate("client.when.binary.metadata.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateServerWhenCatalog()
+    {
+        JsonObject config = schema.validate("server.when.catalog.yaml");
 
         assertThat(config, not(nullValue()));
     }

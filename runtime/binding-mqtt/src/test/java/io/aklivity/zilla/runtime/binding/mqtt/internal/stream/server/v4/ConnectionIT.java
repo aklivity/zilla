@@ -69,6 +69,16 @@ public class ConnectionIT
     }
 
     @Test
+    @Configuration("server.log.event.yaml")
+    @Specification({
+        "${net}/connect.successful/client",
+        "${app}/session.connect/server"})
+    public void shouldConnectAndLog() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.credentials.username.yaml")
     @Specification({
         "${net}/connect.username.authentication.successful/client",
@@ -122,6 +132,15 @@ public class ConnectionIT
     @Specification({
         "${net}/connect.reject.missing.client.id/client"})
     public void shouldRejectMissingClientId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/connect.reject.exceeding.max.client.id/client"})
+    public void shouldRejectExceedingClientIdMax() throws Exception
     {
         k3po.finish();
     }

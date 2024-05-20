@@ -32,42 +32,6 @@
                         "enum": [ "client", "server" ]
                     },
                     "vault": false,
-                    "options":
-                    {
-                        "properties":
-                        {
-                            "defaults":
-                            {
-                                "title": "Defaults",
-                                "type": "object",
-                                "additoinalProperties": "false",
-                                "properties":
-                                {
-                                    "protocol":
-                                    {
-                                        "title": "Subprotocol",
-                                        "type": "string"
-                                    },
-                                    "scheme":
-                                    {
-                                        "title": "Scheme",
-                                        "type": "string"
-                                    },
-                                    "authority":
-                                    {
-                                        "title": "Authority",
-                                        "type": "string"
-                                    },
-                                    "path":
-                                    {
-                                        "title": "Path",
-                                        "type": "string"
-                                    }
-                                }
-                            }
-                        },
-                        "additionalProperties": false
-                    },
                     "routes":
                     {
                         "items":
@@ -101,7 +65,7 @@
                                                 "type": "string"
                                             }
                                         },
-                                        "additoinalProperties": "false"
+                                        "additionalProperties": false
                                     }
                                 },
                                 "with": false
@@ -122,6 +86,64 @@
                         [
                             "routes"
                         ]
+                    }
+                ],
+                "oneOf":
+                [
+                    {
+                        "properties":
+                        {
+                            "kind":
+                            {
+                                "const": "client"
+                            },
+                            "options":
+                            {
+                                "properties":
+                                {
+                                    "defaults":
+                                    {
+                                        "title": "Defaults",
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "properties":
+                                        {
+                                            "protocol":
+                                            {
+                                                "title": "Subprotocol",
+                                                "type": "string"
+                                            },
+                                            "scheme":
+                                            {
+                                                "title": "Scheme",
+                                                "type": "string"
+                                            },
+                                            "authority":
+                                            {
+                                                "title": "Authority",
+                                                "type": "string"
+                                            },
+                                            "path":
+                                            {
+                                                "title": "Path",
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                },
+                                "additionalProperties": false
+                            }
+                        }
+                    },
+                    {
+                        "properties":
+                        {
+                            "kind":
+                            {
+                                "const": "server"
+                            },
+                            "options": false
+                        }
                     }
                 ]
             }

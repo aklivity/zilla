@@ -31,6 +31,9 @@
 package io.aklivity.zilla.runtime.engine.internal.concurent;
 
 import static org.agrona.BitUtil.align;
+import static org.agrona.concurrent.ControlledMessageHandler.Action.ABORT;
+import static org.agrona.concurrent.ControlledMessageHandler.Action.BREAK;
+import static org.agrona.concurrent.ControlledMessageHandler.Action.COMMIT;
 import static org.agrona.concurrent.ringbuffer.RecordDescriptor.ALIGNMENT;
 import static org.agrona.concurrent.ringbuffer.RecordDescriptor.HEADER_LENGTH;
 import static org.agrona.concurrent.ringbuffer.RecordDescriptor.checkTypeId;
@@ -48,6 +51,7 @@ import static org.agrona.concurrent.ringbuffer.RingBufferDescriptor.checkCapacit
 import org.agrona.DirectBuffer;
 import org.agrona.UnsafeAccess;
 import org.agrona.concurrent.AtomicBuffer;
+import org.agrona.concurrent.ControlledMessageHandler;
 import org.agrona.concurrent.MessageHandler;
 import org.agrona.concurrent.ringbuffer.RingBuffer;
 import org.agrona.concurrent.ringbuffer.RingBufferDescriptor;
@@ -58,14 +62,9 @@ import org.agrona.concurrent.ringbuffer.RingBufferDescriptor;
 public class ManyToOneRingBuffer implements RingBuffer
 {
     /**
-     * Record type is padding to prevent fragmentation in the buffer.
+     * Minimal required capacity of the ring buffer excluding {@link RingBufferDescriptor#TRAILER_LENGTH}.
      */
-    public static final int PADDING_MSG_TYPE_ID = -1;
-
-    /**
-     * Buffer has insufficient capacity to record a message.
-     */
-    private static final int INSUFFICIENT_CAPACITY = -2;
+    public static final int MIN_CAPACITY = HEADER_LENGTH;
 
     private final int capacity;
     private final int maxMsgLength;
@@ -88,7 +87,7 @@ public class ManyToOneRingBuffer implements RingBuffer
     public ManyToOneRingBuffer(final AtomicBuffer buffer)
     {
         this.buffer = buffer;
-        checkCapacity(buffer.capacity());
+        checkCapacity(buffer.capacity(), MIN_CAPACITY);
         capacity = buffer.capacity() - TRAILER_LENGTH;
 
         buffer.verifyAlignment();
@@ -125,14 +124,63 @@ public class ManyToOneRingBuffer implements RingBuffer
 
         if (INSUFFICIENT_CAPACITY != recordIndex)
         {
-            buffer.putInt(typeOffset(recordIndex), msgTypeId);
             buffer.putBytes(encodedMsgOffset(recordIndex), srcBuffer, srcIndex, length);
+            buffer.putInt(typeOffset(recordIndex), msgTypeId);
             buffer.putIntOrdered(lengthOffset(recordIndex), recordLength);
 
             isSuccessful = true;
         }
 
         return isSuccessful;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public int tryClaim(final int msgTypeId, final int length)
+    {
+        checkTypeId(msgTypeId);
+        checkMsgLength(length);
+
+        final AtomicBuffer buffer = this.buffer;
+        final int recordLength = length + HEADER_LENGTH;
+        final int recordIndex = claimCapacity(buffer, recordLength);
+
+        if (INSUFFICIENT_CAPACITY == recordIndex)
+        {
+            return recordIndex;
+        }
+
+        buffer.putIntOrdered(lengthOffset(recordIndex), -recordLength);
+        UnsafeAccess.UNSAFE.storeFence();
+        buffer.putInt(typeOffset(recordIndex), msgTypeId);
+
+        return encodedMsgOffset(recordIndex);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public void commit(final int index)
+    {
+        final int recordIndex = computeRecordIndex(index);
+        final AtomicBuffer buffer = this.buffer;
+        final int recordLength = verifyClaimedSpaceNotReleased(buffer, recordIndex);
+
+        buffer.putIntOrdered(lengthOffset(recordIndex), -recordLength);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public void abort(final int index)
+    {
+        final int recordIndex = computeRecordIndex(index);
+        final AtomicBuffer buffer = this.buffer;
+        final int recordLength = verifyClaimedSpaceNotReleased(buffer, recordIndex);
+
+        buffer.putInt(typeOffset(recordIndex), PADDING_MSG_TYPE_ID);
+        buffer.putIntOrdered(lengthOffset(recordIndex), -recordLength);
     }
 
     /**
@@ -184,6 +232,82 @@ public class ManyToOneRingBuffer implements RingBuffer
         finally
         {
             if (bytesRead != 0)
+            {
+                buffer.putLongOrdered(headPositionIndex, head + bytesRead);
+            }
+        }
+
+        return messagesRead;
+    }
+
+    public int controlledRead(final ControlledMessageHandler handler)
+    {
+        return controlledRead(handler, Integer.MAX_VALUE);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public int controlledRead(final ControlledMessageHandler handler, final int messageCountLimit)
+    {
+        int messagesRead = 0;
+
+        final AtomicBuffer buffer = this.buffer;
+        final int headPositionIndex = this.headPositionIndex;
+        long head = buffer.getLong(headPositionIndex);
+
+        final int capacity = this.capacity;
+        int headIndex = (int)head & (capacity - 1);
+        final int maxBlockLength = capacity - headIndex;
+        int bytesRead = 0;
+
+        try
+        {
+            while (bytesRead < maxBlockLength && messagesRead < messageCountLimit)
+            {
+                final int recordIndex = headIndex + bytesRead;
+                final int recordLength = buffer.getIntVolatile(lengthOffset(recordIndex));
+                if (recordLength <= 0)
+                {
+                    break;
+                }
+
+                final int alignedLength = align(recordLength, ALIGNMENT);
+                bytesRead += alignedLength;
+
+                final int messageTypeId = buffer.getInt(typeOffset(recordIndex));
+                if (PADDING_MSG_TYPE_ID == messageTypeId)
+                {
+                    continue;
+                }
+
+                final ControlledMessageHandler.Action action = handler.onMessage(
+                    messageTypeId, buffer, recordIndex + HEADER_LENGTH, recordLength - HEADER_LENGTH);
+
+                if (ABORT == action)
+                {
+                    bytesRead -= alignedLength;
+                    break;
+                }
+
+                ++messagesRead;
+
+                if (BREAK == action)
+                {
+                    break;
+                }
+                if (COMMIT == action)
+                {
+                    buffer.putLongOrdered(headPositionIndex, head + bytesRead);
+                    headIndex += bytesRead;
+                    head += bytesRead;
+                    bytesRead = 0;
+                }
+            }
+        }
+        finally
+        {
+            if (bytesRead > 0)
             {
                 buffer.putLongOrdered(headPositionIndex, head + bytesRead);
             }
@@ -253,6 +377,9 @@ public class ManyToOneRingBuffer implements RingBuffer
      */
     public int size()
     {
+        final AtomicBuffer buffer = this.buffer;
+        final int headPositionIndex = this.headPositionIndex;
+        final int tailPositionIndex = this.tailPositionIndex;
         long headBefore;
         long tail;
         long headAfter = buffer.getLongVolatile(headPositionIndex);
@@ -265,7 +392,17 @@ public class ManyToOneRingBuffer implements RingBuffer
         }
         while (headAfter != headBefore);
 
-        return (int)(tail - headAfter);
+        final long size = tail - headAfter;
+        if (size < 0)
+        {
+            return 0;
+        }
+        else if (size > capacity)
+        {
+            return capacity;
+        }
+
+        return (int)size;
     }
 
     /**
@@ -321,54 +458,6 @@ public class ManyToOneRingBuffer implements RingBuffer
         return unblocked;
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public int tryClaim(final int msgTypeId, final int length)
-    {
-        checkTypeId(msgTypeId);
-        checkMsgLength(length);
-
-        final AtomicBuffer buffer = this.buffer;
-        final int recordLength = length + HEADER_LENGTH;
-        final int recordIndex = claimCapacity(buffer, recordLength);
-
-        if (INSUFFICIENT_CAPACITY == recordIndex)
-        {
-            return recordIndex;
-        }
-
-        buffer.putIntOrdered(lengthOffset(recordIndex), -recordLength);
-        UnsafeAccess.UNSAFE.storeFence();
-        buffer.putInt(typeOffset(recordIndex), msgTypeId);
-
-        return encodedMsgOffset(recordIndex);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public void commit(final int index)
-    {
-        final int recordIndex = computeRecordIndex(index);
-        final AtomicBuffer buffer = this.buffer;
-        final int recordLength = verifyClaimedSpaceNotReleased(buffer, recordIndex);
-
-        buffer.putIntOrdered(lengthOffset(recordIndex), -recordLength);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public void abort(final int index)
-    {
-        final int recordIndex = computeRecordIndex(index);
-        final AtomicBuffer buffer = this.buffer;
-        final int recordLength = verifyClaimedSpaceNotReleased(buffer, recordIndex);
-
-        buffer.putInt(typeOffset(recordIndex), PADDING_MSG_TYPE_ID);
-        buffer.putIntOrdered(lengthOffset(recordIndex), -recordLength);
-    }
     private static boolean scanBackToConfirmStillZeroed(final AtomicBuffer buffer, final int from, final int limit)
     {
         int i = from - ALIGNMENT;
@@ -389,7 +478,11 @@ public class ManyToOneRingBuffer implements RingBuffer
 
     private void checkMsgLength(final int length)
     {
-        if (length > maxMsgLength)
+        if (length < 0)
+        {
+            throw new IllegalArgumentException("invalid message length=" + length);
+        }
+        else if (length > maxMsgLength)
         {
             throw new IllegalArgumentException(String.format(
                 "encoded message exceeds maxMsgLength of %d, length=%d", maxMsgLength, length));

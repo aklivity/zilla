@@ -855,7 +855,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         {
             this.originId = originId;
             this.routedId = route.id;
-            this.topic = route.messages;
+            this.topic = route.with.resolveMessages();
             this.serverRef = serverRef;
             this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
@@ -1118,7 +1118,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         {
             this.originId = originId;
             this.routedId = route.id;
-            this.topic = route.messages;
+            this.topic = route.with.resolveMessages();
             this.topicKey = System.identityHashCode(topic.asString().intern());
             this.routeConfig = route;
             this.mqtt = mqtt;
@@ -2072,7 +2072,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                                 if (((filters >> i) & 1) == 1)
                                 {
                                     long subscriptionId = mqtt.retainedSubscriptionIds.get(i);
-                                    if (mqtt.retainAsPublished.getOrDefault(subscriptionId, false))
+                                    if (mqtt.retainAsPublished.getOrDefault(subscriptionId, Boolean.FALSE))
                                     {
                                         flag |= RETAIN_FLAG;
                                     }

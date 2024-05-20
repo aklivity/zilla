@@ -57,6 +57,16 @@ public class FileSystemIT
 
     @Test
     @Specification({
+        "${app}/read.file.payload.empty/client",
+        "${app}/read.file.payload.empty/server",
+    })
+    public void shouldReadFilePayloadEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/read.file.payload/client",
         "${app}/read.file.payload/server",
     })

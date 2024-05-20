@@ -28,6 +28,7 @@ import java.util.function.LongFunction;
 import java.util.function.ToLongFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.agrona.AsciiSequenceView;
 import org.agrona.DirectBuffer;
@@ -47,6 +48,7 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.HttpBeginExFW;
+import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiServerView;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
@@ -119,29 +121,44 @@ public final class OpenapiBindingConfig
         BindingConfig binding)
     {
         List<OpenapiSchemaConfig> configs = convertToOpenapi(options.openapis);
-        configs.forEach(c ->
+
+        final Map<Integer, OpenapiNamespaceConfig> namespaceConfigs = new HashMap<>();
+        for (OpenapiSchemaConfig config : configs)
         {
-            Openapi openapi = c.openapi;
-            final NamespaceConfig composite = namespaceGenerator.generate(binding, openapi);
+            Openapi openapi = config.openapi;
+            final List<OpenapiServerView> servers =
+                namespaceGenerator.filterOpenapiServers(openapi.servers, options.openapis.stream()
+                    .flatMap(o -> o.servers.stream())
+                    .collect(Collectors.toList()));
+
+            servers.stream().collect(Collectors.groupingBy(OpenapiServerView::getPort)).forEach((k, v) ->
+                namespaceConfigs.computeIfAbsent(k, s -> new OpenapiNamespaceConfig()).addSpecForNamespace(v, config, openapi));
+        }
+
+        for (OpenapiNamespaceConfig namespaceConfig : namespaceConfigs.values())
+        {
+            final NamespaceConfig composite = namespaceGenerator.generate(binding, namespaceConfig);
             composite.readURL = binding.readURL;
             attach.accept(composite);
-            composites.put(c.schemaId, composite);
-            openapi.paths.forEach((k, v) ->
+            namespaceConfig.configs.forEach(c ->
             {
-                String regex = k.replaceAll("\\{[^/]+}", "[^/]+");
-                regex = "^" + regex + "$";
-                Pattern pattern = Pattern.compile(regex);
-                paths.put(pattern.matcher(""), v);
+                composites.put(c.schemaId, composite);
+                namespaceConfig.openapis.forEach(o ->
+                    o.paths.forEach((k, v) ->
+                    {
+                        String regex = k.replaceAll("\\{[^/]+}", "[^/]+");
+                        regex = "^" + regex + "$";
+                        Pattern pattern = Pattern.compile(regex);
+                        paths.put(pattern.matcher(""), v);
+                    })
+                );
             });
-        });
+        }
 
         composites.forEach((k, v) ->
         {
             List<BindingConfig> http = v.bindings.stream().filter(b -> b.type.equals("http")).collect(toList());
-            http.stream()
-                .map(b -> b.routes)
-                .flatMap(List::stream)
-                .forEach(r -> resolvedIds.put(k, r.id));
+            http.forEach(b -> resolvedIds.put(k, b.id));
             http.stream()
                 .map(b -> NamespacedId.namespaceId(b.id))
                 .forEach(n ->

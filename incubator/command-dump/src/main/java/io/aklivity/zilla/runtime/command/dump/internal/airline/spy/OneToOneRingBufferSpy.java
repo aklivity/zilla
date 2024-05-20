@@ -42,7 +42,7 @@ public class OneToOneRingBufferSpy implements RingBufferSpy
         final AtomicBuffer buffer)
     {
         this.buffer = buffer;
-        checkCapacity(buffer.capacity());
+        checkCapacity(buffer.capacity(), 0);
         capacity = buffer.capacity() - TRAILER_LENGTH;
 
         buffer.verifyAlignment();

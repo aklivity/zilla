@@ -70,4 +70,26 @@ public class AsyncapiIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.multi.protocol.yaml")
+    @Specification({
+        "${mqtt}/publish.and.subscribe/client",
+        "${asyncapi}/mqtt/publish.and.subscribe/server"
+    })
+    public void shouldPublishAndSubscribeMultipleSpec() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.multi.protocol.yaml")
+    @Specification({
+        "${http}/create.pet/client",
+        "${asyncapi}/http/create.pet/server"
+    })
+    public void shouldCreatePetMultipleSpec() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -37,11 +37,26 @@ public class SchemaTest
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/model/test.schema.patch.json")
         .configurationRoot("io/aklivity/zilla/specs/binding/mqtt/config");
 
-    @Ignore("TODO")
     @Test
     public void shouldValidateClient()
     {
         JsonObject config = schema.validate("client.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateClientWithUsernameAuthorization()
+    {
+        JsonObject config = schema.validate("client.credentials.username.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateClientWithPasswordAuthorization()
+    {
+        JsonObject config = schema.validate("client.credentials.password.yaml");
 
         assertThat(config, not(nullValue()));
     }

@@ -19,6 +19,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Function;
 
+import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
@@ -28,8 +29,9 @@ public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, T
 
     private String mode;
     private TestAuthorizationConfig authorization;
-    private List<String> catalogs;
+    private List<CatalogedConfig> catalogs;
     private List<TestBindingOptionsConfig.Event> events;
+    private List<TestBindingOptionsConfig.CatalogAssertions> catalogAssertions;
 
     TestBindingOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
@@ -52,13 +54,9 @@ public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, T
     }
 
     public TestBindingOptionsConfigBuilder<T> catalog(
-        String catalog)
+        List<CatalogedConfig> catalogs)
     {
-        if (this.catalogs == null)
-        {
-            this.catalogs = new LinkedList<>();
-        }
-        this.catalogs.add(catalog);
+        this.catalogs = catalogs;
         return this;
     }
 
@@ -82,9 +80,21 @@ public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, T
         return this;
     }
 
+    public TestBindingOptionsConfigBuilder<T> catalogAssertions(
+        String name,
+        List<TestBindingOptionsConfig.CatalogAssertion> assertions)
+    {
+        if (this.catalogAssertions == null)
+        {
+            this.catalogAssertions = new LinkedList<>();
+        }
+        this.catalogAssertions.add(new TestBindingOptionsConfig.CatalogAssertions(name, assertions));
+        return this;
+    }
+
     @Override
     public T build()
     {
-        return mapper.apply(new TestBindingOptionsConfig(mode, authorization, catalogs, events));
+        return mapper.apply(new TestBindingOptionsConfig(mode, authorization, catalogs, events, catalogAssertions));
     }
 }

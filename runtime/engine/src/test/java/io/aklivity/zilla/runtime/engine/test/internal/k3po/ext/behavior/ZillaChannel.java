@@ -213,6 +213,11 @@ public abstract class ZillaChannel extends AbstractChannel<ZillaChannelConfig>
         return String.format("%s [sourceId=%d, targetId=%d]", description, sourceId, targetId);
     }
 
+    public long timestamp()
+    {
+        return getConfig().hasTimestamps() ? System.nanoTime() : 0L;
+    }
+
     public void acknowledgeBytes(
         int reserved)
     {

@@ -7,7 +7,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>io.aklivity.zilla</groupId>
   <artifactId>zilla</artifactId>
-  <version>0.9.79</version>
+  <version>0.9.80</version>
   <packaging>pom</packaging>
   <name>zilla</name>
   <url>https://github.com/aklivity/zilla</url>
@@ -45,9 +45,9 @@
     <checkstyle.config.location>io/aklivity/zilla/conf/checkstyle/configuration.xml</checkstyle.config.location>
     <checkstyle.suppressions.location>io/aklivity/zilla/conf/checkstyle/suppressions.xml</checkstyle.suppressions.location>
     <antlr4.version>4.13.0</antlr4.version>
-    <agrona.version>1.6.0</agrona.version>
+    <agrona.version>1.21.1</agrona.version>
     <slf4j.version>1.7.36</slf4j.version>
-    <junit.version>5.10.1</junit.version>
+    <junit.version>5.10.2</junit.version>
     <byteman.version>4.0.22</byteman.version>
     <jmock.version>2.6.0</jmock.version>
     <mockito.version>5.8.0</mockito.version>

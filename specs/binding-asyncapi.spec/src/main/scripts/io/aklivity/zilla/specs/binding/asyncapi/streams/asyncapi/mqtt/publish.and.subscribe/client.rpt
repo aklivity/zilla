@@ -42,9 +42,11 @@ read zilla:begin.ext ${asyncapi:matchBeginEx()
 connected
 
 read zilla:data.empty
+read notify RECEIVED_SESSION_STATE
 
 
-connect "zilla://streams/asyncapi0"
+connect await RECEIVED_SESSION_STATE
+        "zilla://streams/asyncapi0"
         option zilla:window 8192
         option zilla:transmission "duplex"
 
@@ -75,9 +77,11 @@ write zilla:data.ext ${mqtt:dataEx()
                              .build()}
 write "asyncapiMessage"
 write flush
+write notify DATA_PUBLISHED
 
 
-connect "zilla://streams/asyncapi0"
+connect await DATA_PUBLISHED
+        "zilla://streams/asyncapi0"
         option zilla:window 8192
         option zilla:transmission "duplex"
 

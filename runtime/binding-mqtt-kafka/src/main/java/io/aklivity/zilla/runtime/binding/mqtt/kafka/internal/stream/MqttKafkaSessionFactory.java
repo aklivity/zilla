@@ -72,6 +72,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttExpirySig
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttPayloadFormat;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttPayloadFormatFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttPublishFlags;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttQoS;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSessionFlags;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSessionSignalFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSessionStateFW;
@@ -262,6 +263,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private final Int2ObjectHashMap<String16FW> qosLevels;
     private final Long2ObjectHashMap<MqttKafkaPublishMetadata> clientMetadata;
     private final KafkaOffsetMetadataHelper offsetMetadataHelper;
+    private final MqttQoS publishQosMax;
 
     private String serverRef;
     private int reconnectAttempt;
@@ -303,6 +305,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         this.sessionExpiryIds = new Object2LongHashMap<>(-1);
         this.instanceId = instanceId;
         this.reconnectDelay = config.willStreamReconnectDelay();
+        this.publishQosMax = config.publishQosMax();
         this.qosLevels = new Int2ObjectHashMap<>();
         this.qosLevels.put(0, new String16FW("0"));
         this.qosLevels.put(1, new String16FW("1"));
@@ -336,8 +339,10 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         {
             final long resolvedId = resolved.id;
             final String16FW sessionTopic = binding.sessionsTopic();
+
+            final MqttQoS publishQosMax = MqttQoS.valueOf(Math.min(binding.publishQosMax().value(), this.publishQosMax.value()));
             final MqttSessionProxy proxy = new MqttSessionProxy(mqtt, originId, routedId, initialId, resolvedId,
-                binding.id, sessionTopic);
+                binding.id, sessionTopic, publishQosMax);
             newStream = proxy::onMqttMessage;
         }
 
@@ -391,8 +396,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         private final List<KafkaOffsetFetchStream> offsetFetches;
         private final List<KafkaTopicPartition> initializablePartitions;
         private final Long2LongHashMap leaderEpochs;
-        private final IntArrayQueue unackedPacketIds;
 
+        private IntArrayQueue unackedPacketIds;
         private String lifetimeId;
         private KafkaSessionStream session;
         private KafkaGroupStream group;
@@ -424,11 +429,12 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         private String willId;
         private int delay;
         private boolean redirect;
-        private int publishQosMax;
+        private int publishQosMax = -1;
         private int unfetchedKafkaTopics;
         private MqttKafkaPublishMetadata metadata;
-        private final Set<String16FW> messagesTopics;
         private final String16FW retainedTopic;
+
+        private Set<String16FW> messagesTopics;
         private long producerId;
         private short producerEpoch;
 
@@ -439,7 +445,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             long initialId,
             long resolvedId,
             long bindingId,
-            String16FW sessionsTopic)
+            String16FW sessionsTopic,
+            MqttQoS publishQosMax)
         {
             this.mqtt = mqtt;
             this.originId = originId;
@@ -457,10 +464,14 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             final MqttKafkaBindingConfig binding = supplyBinding.apply(bindingId);
             final String16FW messagesTopic = binding.messagesTopic();
             this.retainedTopic = binding.retainedTopic();
-            this.messagesTopics = binding.routes.stream().map(r -> r.messages).collect(Collectors.toSet());
-            this.messagesTopics.add(messagesTopic);
-            this.unfetchedKafkaTopics = messagesTopics.size() + 1;
-            this.unackedPacketIds = new IntArrayQueue();
+            this.publishQosMax = publishQosMax.value();
+            if (publishQosMax == MqttQoS.EXACTLY_ONCE)
+            {
+                this.messagesTopics = binding.routes.stream().map(r -> r.with.resolveMessages()).collect(Collectors.toSet());
+                this.messagesTopics.add(messagesTopic);
+                this.unfetchedKafkaTopics = messagesTopics.size() + 1;
+                this.unackedPacketIds = new IntArrayQueue();
+            }
         }
 
         private void onMqttMessage(
@@ -534,7 +545,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             sessionExpiryMillis = (int) SECONDS.toMillis(mqttSessionBeginEx.expiry());
             sessionFlags = mqttSessionBeginEx.flags();
             redirect = hasRedirectCapability(mqttSessionBeginEx.capabilities());
-            publishQosMax = mqttSessionBeginEx.publishQosMax();
+            publishQosMax = publishQosMax == -1 ? mqttSessionBeginEx.publishQosMax() : publishQosMax;
 
             if (!isSetWillFlag(sessionFlags) || isSetCleanStart(sessionFlags))
             {
@@ -1137,6 +1148,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                         .flags(sessionFlags)
                         .expiry((int) TimeUnit.MILLISECONDS.toSeconds(sessionExpiryMillis))
                         .subscribeQosMax(MQTT_KAFKA_MAX_QOS)
+                        .publishQosMax(publishQosMax)
                         .capabilities(MQTT_KAFKA_CAPABILITIES)
                         .clientId(clientId))
                     .build();
@@ -1199,7 +1211,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             Array32FW<KafkaTopicPartitionOffsetFW> partitions,
             KafkaOffsetFetchStream kafkaOffsetFetchStream)
         {
-            boolean initProducer = !partitions.anyMatch(p -> p.metadata().length() > 0);
+            boolean initProducer = isSetCleanStart(sessionFlags) || !partitions.anyMatch(p -> p.metadata().length() > 0);
 
             partitions.forEach(partition ->
             {
@@ -1290,7 +1302,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 initializablePartitions.forEach(kp ->
                 {
                     final long partitionKey = partitionKey(kp.topic, kp.partitionId);
-                    final KafkaOffsetMetadata metadata = new KafkaOffsetMetadata(producerId, producerEpoch);
+                    final KafkaOffsetMetadata metadata = new KafkaOffsetMetadata(kp.topic, producerId, producerEpoch);
                     this.metadata.offsets.put(partitionKey, metadata);
                     Flyweight initialOffsetCommit = kafkaDataExRW
                         .wrap(extBuffer, 0, extBuffer.capacity())
@@ -1431,7 +1443,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                         .flags(sessionFlags)
                         .expiry((int) TimeUnit.MILLISECONDS.toSeconds(sessionExpiryMillis))
                         .subscribeQosMax(MQTT_KAFKA_MAX_QOS)
-                        .publishQosMax(MQTT_KAFKA_MAX_QOS)
+                        .publishQosMax(publishQosMax)
                         .capabilities(MQTT_KAFKA_CAPABILITIES)
                         .clientId(clientId);
 
@@ -2914,6 +2926,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                         .flags(delegate.sessionFlags)
                         .expiry((int) TimeUnit.MILLISECONDS.toSeconds(delegate.sessionExpiryMillis))
                         .subscribeQosMax(MQTT_KAFKA_MAX_QOS)
+                        .publishQosMax(delegate.publishQosMax)
                         .capabilities(MQTT_KAFKA_CAPABILITIES)
                         .clientId(delegate.clientId))
                     .build();

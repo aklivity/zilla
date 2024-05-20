@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.catalog.apicurio.internal;
 
+import java.util.concurrent.ConcurrentMap;
+
 import io.aklivity.zilla.runtime.catalog.apicurio.internal.config.ApicurioOptionsConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
@@ -23,17 +25,22 @@ import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
 public class ApicurioCatalogContext implements CatalogContext
 {
     private final EngineContext context;
+    private final ConcurrentMap<Long, ApicurioCache> cachesById;
 
     public ApicurioCatalogContext(
-        EngineContext context)
+        EngineContext context,
+        ConcurrentMap<Long, ApicurioCache> cachesById)
     {
         this.context = context;
+        this.cachesById = cachesById;
     }
 
     @Override
     public CatalogHandler attach(
         CatalogConfig catalog)
     {
-        return new ApicurioCatalogHandler(ApicurioOptionsConfig.class.cast(catalog.options), context, catalog.id);
+        ApicurioCache cache = cachesById.computeIfAbsent(catalog.id, id -> new ApicurioCache());
+        return new ApicurioCatalogHandler(ApicurioOptionsConfig.class.cast(catalog.options), context,
+            catalog.id, cache);
     }
 }

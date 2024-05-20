@@ -46,6 +46,12 @@ public class SchemaTest
         assertThat(config, not(nullValue()));
     }
 
+    @Test(expected = JsonException.class)
+    public void shouldValidateServerBindingWithEntry()
+    {
+        schema.validate("server.binding.with.entry.yaml");
+    }
+
     @Test
     public void shouldValidateServerBindingWithRoutesAndNoExit()
     {

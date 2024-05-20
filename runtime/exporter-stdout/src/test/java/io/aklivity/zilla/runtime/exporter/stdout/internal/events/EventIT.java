@@ -55,8 +55,8 @@ public class EventIT
     @Test
     @Configuration("server.event.yaml")
     @Specification({
-        "${net}/event/client",
-        "${app}/event/server"
+        "${net}/handshake/client",
+        "${app}/handshake/server"
     })
     @Configure(name = STDOUT_OUTPUT_NAME,
         value = "io.aklivity.zilla.runtime.exporter.stdout.internal.events.StdoutOutputRule.OUT")

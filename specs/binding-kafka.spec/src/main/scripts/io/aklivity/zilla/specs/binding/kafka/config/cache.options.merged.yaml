@@ -20,9 +20,6 @@ bindings:
   app0:
     type: kafka
     kind: cache_client
-    options:
-      merged:
-        - test
     routes:
       - exit: cache0
         when:

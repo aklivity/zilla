@@ -19,6 +19,9 @@ property networkConnectWindow 8192
 property newRequestId ${kafka:newRequestId()}
 property produceWaitMax 500
 
+property deltaMillis 0L
+property newTimestamp ${kafka:timestamp() + deltaMillis}
+
 connect "zilla://streams/net0"
   option zilla:window ${networkConnectWindow}
   option zilla:transmission "duplex"
@@ -98,7 +101,7 @@ write 140                               # size
       83                                # length
       -1
       [0x02]
-      0x4e8723aa
+      0x0460c54e9
       0s
       0                                 # last offset delta
       ${newTimestamp}                   # first timestamp
@@ -148,7 +151,7 @@ write 140                               # size
       83                                # length
       -1
       [0x02]
-      0x4e8723aa
+      0x026cd6cf
       0s
       0                                 # last offset delta
       ${newTimestamp}                   # first timestamp

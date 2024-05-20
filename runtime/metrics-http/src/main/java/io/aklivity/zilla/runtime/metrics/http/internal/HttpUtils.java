@@ -63,7 +63,8 @@ final class HttpUtils
         {
             DirectBuffer buffer = contentLength.value().value();
             assert buffer != null;
-            return buffer.parseLongAscii(0, buffer.capacity());
+            int capacity = buffer.capacity();
+            return capacity == 0 ? 0L : buffer.parseLongAscii(0, capacity);
         }
         else
         {
