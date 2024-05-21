@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
@@ -264,10 +265,14 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private final Long2ObjectHashMap<MqttKafkaPublishMetadata> clientMetadata;
     private final KafkaOffsetMetadataHelper offsetMetadataHelper;
     private final MqttQoS publishQosMax;
+    private final String groupIdPrefixFormat;
+    private final Function<Long, String> supplyNamespace;
+    private final Function<Long, String> supplyLocalName;
 
     private String serverRef;
     private int reconnectAttempt;
     private int nextContextId;
+    private String groupIdPrefix;
 
     public MqttKafkaSessionFactory(
         MqttKafkaConfiguration config,
@@ -312,6 +317,9 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         this.qosLevels.put(2, new String16FW("2"));
         this.clientMetadata = clientMetadata;
         this.offsetMetadataHelper = new KafkaOffsetMetadataHelper(new UnsafeBuffer(new byte[context.writeBuffer().capacity()]));
+        this.groupIdPrefixFormat = config.groupIdPrefixFormat();
+        this.supplyNamespace = context::supplyNamespace;
+        this.supplyLocalName = context::supplyLocalName;
     }
 
     @Override
@@ -355,6 +363,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     {
         MqttKafkaBindingConfig binding = supplyBinding.apply(bindingId);
         this.serverRef = binding.options.serverRef;
+        this.groupIdPrefix =
+            String.format(groupIdPrefixFormat, supplyNamespace.apply(bindingId), supplyLocalName.apply(bindingId));
 
         if (willAvailable && coreIndex == 0)
         {
@@ -1185,7 +1195,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 {
                     this.memberId = memberId;
                     this.generationId = generationId;
-                    final String groupId = String.format("%s-%s", clientId.asString(), GROUPID_SESSION_SUFFIX);
+                    final String groupId = String.format("%s-%s-%s", groupIdPrefix, clientId.asString(), GROUPID_SESSION_SUFFIX);
                     this.metadata.group = new KafkaGroup(groupInstanceId, groupId,
                         memberId, groupHost, groupPort, generationId);
                     openMetaStreams(traceId, authorization);
@@ -5431,7 +5441,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     {
         final int timeout = sessionExpiryMs == 0 ? Integer.MAX_VALUE : sessionExpiryMs;
 
-        final String groupId = String.format("%s-%s", clientId.asString(), GROUPID_SESSION_SUFFIX);
+        final String groupId = String.format("%s-%s-%s", groupIdPrefix, clientId.asString(), GROUPID_SESSION_SUFFIX);
 
         final KafkaBeginExFW kafkaBeginEx =
             kafkaBeginExRW.wrap(writeBuffer, BeginFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
@@ -5518,7 +5528,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         String topic,
         Array32FW<KafkaPartitionFW> partitions)
     {
-        final String groupId = String.format("%s-%s", clientId.asString(), GROUPID_SESSION_SUFFIX);
+        final String groupId = String.format("%s-%s-%s", groupIdPrefix, clientId.asString(), GROUPID_SESSION_SUFFIX);
 
         final KafkaBeginExFW kafkaBeginEx =
             kafkaBeginExRW.wrap(writeBuffer, BeginFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
@@ -5610,7 +5620,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         String host,
         int port)
     {
-        final String groupId = String.format("%s-%s", clientId.asString(), GROUPID_SESSION_SUFFIX);
+        final String groupId = String.format("%s-%s-%s", groupIdPrefix, clientId.asString(), GROUPID_SESSION_SUFFIX);
 
         final KafkaBeginExFW kafkaBeginEx =
             kafkaBeginExRW.wrap(writeBuffer, BeginFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
