@@ -1211,7 +1211,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             Array32FW<KafkaTopicPartitionOffsetFW> partitions,
             KafkaOffsetFetchStream kafkaOffsetFetchStream)
         {
-            boolean initProducer = !partitions.anyMatch(p -> p.metadata().length() > 0);
+            boolean initProducer = isSetCleanStart(sessionFlags) || !partitions.anyMatch(p -> p.metadata().length() > 0);
 
             partitions.forEach(partition ->
             {

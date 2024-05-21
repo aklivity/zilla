@@ -39,30 +39,3 @@ write '{'
       '}'
 
 write close
-
-accept "http://localhost:8080/apis/registry/v2/ids/globalIds/1"
-
-accepted
-connected
-
-read http:method "GET"
-read http:version "HTTP/1.1"
-read closed
-
-write http:status "200" "OK"
-write http:header "content-type" "application/json"
-write http:content-length
-
-write 'asyncapi: 3.0.0\n'
-      'info:\n'
-      '  title: Zilla MQTT Proxy\n'
-      '  version: 1.0.0\n'
-      '  license:\n'
-      '    name: Aklivity Community License\n'
-      'servers:\n'
-      '  plain:\n'
-      '    host: mqtt://localhost:7183\n'
-      '    protocol: mqtt\n'
-      'defaultContentType: application/json';
-
-write close

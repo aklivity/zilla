@@ -1341,7 +1341,7 @@ public final class KafkaMergedFactory implements BindingHandler
             describeStream.doDescribeInitialAbortIfNecessary(traceId);
             metaStream.doMetaInitialAbortIfNecessary(traceId);
             fetchStreams.forEach(f -> f.onMergedInitialAbort(traceId));
-            produceStreams.forEach(f -> f.doProduceInitialEndIfNecessary(traceId));
+            produceStreams.forEach(f -> f.doProduceInitialAbortIfNecessary(traceId));
 
             if (consumerStream != null)
             {
@@ -2010,6 +2010,8 @@ public final class KafkaMergedFactory implements BindingHandler
             long traceId,
             Array32FW<KafkaTopicPartitionOffsetFW> partitions)
         {
+            offsetsByPartitionId.clear();
+
             partitions.forEach(p -> offsetsByPartitionId.put(p.partitionId(),
                 new KafkaPartitionOffset(
                     topic,
@@ -2020,6 +2022,17 @@ public final class KafkaMergedFactory implements BindingHandler
                     p.metadata().asString())));
 
             doFetchPartitionsIfNecessary(traceId);
+
+            fetchStreams.removeIf(f ->
+            {
+                boolean missing = !leadersByAssignedId.containsKey(f.partitionId);
+                if (missing)
+                {
+                    f.doFetchInitialEndIfNecessary(traceId);
+                    f.doFetchReplyResetIfNecessary(traceId);
+                }
+                return missing;
+            });
         }
 
         private void doFetchPartitionOffsets(
@@ -2027,6 +2040,7 @@ public final class KafkaMergedFactory implements BindingHandler
         {
             if (hasFetchCapability(capabilities))
             {
+                offsetFetchStream.resetStreamIfNecessary(traceId);
                 offsetFetchStream.doOffsetFetchInitialBeginIfNecessary(traceId);
             }
         }
@@ -3190,7 +3204,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doOffsetFetchInitialBeginIfNecessary(
             long traceId)
         {
-            if (!KafkaState.initialOpening(state))
+            if (!KafkaState.initialOpening(state) || KafkaState.closed(state))
             {
                 doOffsetFetchInitialBegin(traceId);
             }
@@ -3199,6 +3213,11 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doOffsetFetchInitialBegin(
             long traceId)
         {
+            if (KafkaState.closed(state))
+            {
+                state = 0;
+            }
+
             assert state == 0;
 
             state = KafkaState.openingInitial(state);
@@ -3332,7 +3351,8 @@ public final class KafkaMergedFactory implements BindingHandler
                 final Array32FW<KafkaTopicPartitionOffsetFW> partitions = kafkaOffsetFetchDataEx.partitions();
                 merged.onTopicOffsetFetchDataChanged(traceId, partitions);
 
-                doOffsetFetchReplyWindow(traceId, 0, replyMax);
+                doOffsetFetchInitialEndIfNecessary(traceId);
+                doOffsetFetchReplyResetIfNecessary(traceId);
             }
         }
 
@@ -3423,6 +3443,16 @@ public final class KafkaMergedFactory implements BindingHandler
 
             doReset(receiver, merged.routedId, merged.resolvedId, replyId, replySeq, replyAck, replyMax,
                 traceId, merged.authorization, EMPTY_EXTENSION);
+        }
+
+        private void resetStreamIfNecessary(
+            long traceId)
+        {
+            if (KafkaState.initialOpening(state))
+            {
+                doOffsetFetchInitialAbortIfNecessary(traceId);
+                doOffsetFetchReplyResetIfNecessary(traceId);
+            }
         }
     }
 

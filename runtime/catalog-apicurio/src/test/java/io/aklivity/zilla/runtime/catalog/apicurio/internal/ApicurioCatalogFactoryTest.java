@@ -54,7 +54,7 @@ public class ApicurioCatalogFactoryTest
             .idEncoding("legacy")
             .maxAge(Duration.ofSeconds(100))
             .build();
-        CatalogConfig options = new CatalogConfig("test", "catalog0", "schema-registry", catalogConfig);
+        CatalogConfig options = new CatalogConfig("test", "catalog0", "apicurio", catalogConfig);
         CatalogHandler handler = context.attach(options);
 
         assertThat(handler, instanceOf(ApicurioCatalogHandler.class));

@@ -15,9 +15,6 @@
 package io.aklivity.zilla.runtime.catalog.apicurio.internal;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.rules.RuleChain.outerRule;
 import static org.mockito.Mockito.mock;
@@ -39,16 +36,27 @@ import io.aklivity.zilla.runtime.catalog.apicurio.internal.config.ApicurioOption
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
+import io.aklivity.zilla.runtime.engine.test.EngineRule;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
 public class ApicurioIT
 {
     private final K3poRule k3po = new K3poRule()
+        .addScriptRoot("net", "io/aklivity/zilla/specs/engine/streams/network")
+        .addScriptRoot("app", "io/aklivity/zilla/specs/engine/streams/application")
         .addScriptRoot("local", "io/aklivity/zilla/runtime/catalog/schema/registry/internal");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
+    private final EngineRule engine = new EngineRule()
+        .directory("target/zilla-itests")
+        .countersBufferCapacity(4096)
+        .configurationRoot("io/aklivity/zilla/specs/catalog/apicurio/config")
+        .external("app0")
+        .clean();
+
     @Rule
-    public final TestRule chain = outerRule(k3po).around(timeout);
+    public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     private ApicurioOptionsConfig config;
     private EngineContext context = mock(EngineContext.class);
@@ -64,151 +72,91 @@ public class ApicurioIT
     }
 
     @Test
+    @Configuration("resolve/artifact/global/id/zilla.yaml")
     @Specification({
+        "${net}/handshake/client",
+        "${app}/handshake/server",
         "${local}/resolve.artifact.via.global.id" })
     public void shouldResolveArtifactViaGlobalId() throws Exception
     {
-        String expected = "asyncapi: 3.0.0\n" +
-            "info:\n" +
-            "  title: Zilla MQTT Proxy\n" +
-            "  version: 1.0.0\n" +
-            "  license:\n" +
-            "    name: Aklivity Community License\n" +
-            "servers:\n" +
-            "  plain:\n" +
-            "    host: mqtt://localhost:7183\n" +
-            "    protocol: mqtt\n" +
-            "defaultContentType: application/json";
-
-        ApicurioCatalogHandler catalog = new ApicurioCatalogHandler(config, context, 0L);
-
-        String artifact = catalog.resolve(1);
-
         k3po.finish();
-
-        assertThat(artifact, not(nullValue()));
-        assertEquals(expected, artifact);
     }
 
     @Test
+    @Configuration("resolve/artifact/id/subject/version/zilla.yaml")
     @Specification({
+        "${net}/handshake/client",
+        "${app}/handshake/server",
         "${local}/resolve.artifact.via.artifactid.version" })
-    public void shouldResolveArtifactViaArtifactIdVersion() throws Exception
+    public void shouldResolveArtifactIdViaSubjectAndVersion() throws Exception
     {
-        String expected = "asyncapi: 3.0.0\n" +
-            "info:\n" +
-            "  title: Zilla MQTT Proxy\n" +
-            "  version: 1.0.0\n" +
-            "  license:\n" +
-            "    name: Aklivity Community License\n" +
-            "servers:\n" +
-            "  plain:\n" +
-            "    host: mqtt://localhost:7183\n" +
-            "    protocol: mqtt\n" +
-            "defaultContentType: application/json";
-
-        ApicurioCatalogHandler catalog = new ApicurioCatalogHandler(config, context, 0L);
-
-        int globalId = catalog.resolve("artifactId", "0");
-
-        String artifact = catalog.resolve(globalId);
-
         k3po.finish();
-
-        assertEquals(globalId, 1);
-        assertThat(artifact, not(nullValue()));
-        assertEquals(expected, artifact);
     }
 
     @Test
+    @Configuration("resolve/artifact/id/subject/version/latest/zilla.yaml")
     @Specification({
+        "${net}/handshake/client",
+        "${app}/handshake/server",
         "${local}/resolve.artifact.latest.version" })
-    public void shouldResolveArtifactLatestVersion() throws Exception
+    public void shouldResolveArtifactIdViaSubjectAndLatestVersion() throws Exception
     {
-        String expected = "asyncapi: 3.0.0\n" +
-            "info:\n" +
-            "  title: Zilla MQTT Proxy\n" +
-            "  version: 1.0.0\n" +
-            "  license:\n" +
-            "    name: Aklivity Community License\n" +
-            "servers:\n" +
-            "  plain:\n" +
-            "    host: mqtt://localhost:7183\n" +
-            "    protocol: mqtt\n" +
-            "defaultContentType: application/json";
-
-        ApicurioCatalogHandler catalog = new ApicurioCatalogHandler(config, context, 0L);
-
-        int globalId = catalog.resolve("artifactId", "latest");
-
-        String artifact = catalog.resolve(globalId);
-
         k3po.finish();
-
-        assertEquals(globalId, 1);
-        assertThat(artifact, not(nullValue()));
-        assertEquals(expected, artifact);
     }
 
     @Test
+    @Configuration("resolve/artifact/global/id/cache/zilla.yaml")
     @Specification({
+        "${net}/handshake/client",
+        "${app}/handshake/server",
         "${local}/resolve.artifact.via.global.id" })
     public void shouldResolveArtifactViaGlobalIdFromCache() throws Exception
     {
-        String expected = "asyncapi: 3.0.0\n" +
-            "info:\n" +
-            "  title: Zilla MQTT Proxy\n" +
-            "  version: 1.0.0\n" +
-            "  license:\n" +
-            "    name: Aklivity Community License\n" +
-            "servers:\n" +
-            "  plain:\n" +
-            "    host: mqtt://localhost:7183\n" +
-            "    protocol: mqtt\n" +
-            "defaultContentType: application/json";
-
-        ApicurioCatalogHandler catalog = new ApicurioCatalogHandler(config, context, 0L);
-
-        catalog.resolve(1);
-
         k3po.finish();
-
-        String artifact = catalog.resolve(1);
-
-        assertThat(artifact, not(nullValue()));
-        assertEquals(expected, artifact);
     }
 
     @Test
+    @Configuration("resolve/artifact/id/subject/version/cache/zilla.yaml")
     @Specification({
+        "${net}/handshake/client",
+        "${app}/handshake/server",
         "${local}/resolve.artifact.via.artifactid.version" })
-    public void shouldResolveArtifactViaArtifactIdVersionFromCache() throws Exception
+    public void shouldResolveArtifactIdViaSubjectAndVersionFromCache() throws Exception
     {
-        String expected = "asyncapi: 3.0.0\n" +
-            "info:\n" +
-            "  title: Zilla MQTT Proxy\n" +
-            "  version: 1.0.0\n" +
-            "  license:\n" +
-            "    name: Aklivity Community License\n" +
-            "servers:\n" +
-            "  plain:\n" +
-            "    host: mqtt://localhost:7183\n" +
-            "    protocol: mqtt\n" +
-            "defaultContentType: application/json";
-
-        ApicurioCatalogHandler catalog = new ApicurioCatalogHandler(config, context, 0L);
-
-        catalog.resolve(catalog.resolve("artifactId", "0"));
-
         k3po.finish();
+    }
 
-        int globalId = catalog.resolve("artifactId", "0");
+    @Test
+    @Configuration("resolve/artifact/global/id/retry/zilla.yaml")
+    @Specification({
+        "${net}/handshake/client",
+        "${app}/handshake/server",
+        "${local}/resolve.artifact.via.global.id.retry" })
+    public void shouldResolveArtifactViaGlobalIdRetry() throws Exception
+    {
+        k3po.finish();
+    }
 
-        String artifact = catalog.resolve(globalId);
+    @Test
+    @Configuration("resolve/artifact/id/subject/version/retry/zilla.yaml")
+    @Specification({
+        "${net}/handshake/client",
+        "${app}/handshake/server",
+        "${local}/resolve.artifact.via.artifactid.version.retry" })
+    public void shouldResolveArtifactIdViaSubjectAndVersionFromCacheAndRetry() throws Exception
+    {
+        k3po.finish();
+    }
 
-        assertEquals(1, globalId);
-        assertThat(artifact, not(nullValue()));
-        assertEquals(expected, artifact);
+    @Test
+    @Configuration("resolve/artifact/id/subject/version/failed/zilla.yaml")
+    @Specification({
+        "${net}/handshake/client",
+        "${app}/handshake/server",
+        "${local}/resolve.artifact.via.artifactid.version.failed" })
+    public void shouldResolveArtifactIdViaSubjectAndVersionFailed() throws Exception
+    {
+        k3po.finish();
     }
 
     @Test

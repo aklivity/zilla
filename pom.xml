@@ -47,7 +47,7 @@
     <antlr4.version>4.13.0</antlr4.version>
     <agrona.version>1.21.1</agrona.version>
     <slf4j.version>1.7.36</slf4j.version>
-    <junit.version>5.10.1</junit.version>
+    <junit.version>5.10.2</junit.version>
     <byteman.version>4.0.22</byteman.version>
     <jmock.version>2.6.0</jmock.version>
     <mockito.version>5.8.0</mockito.version>

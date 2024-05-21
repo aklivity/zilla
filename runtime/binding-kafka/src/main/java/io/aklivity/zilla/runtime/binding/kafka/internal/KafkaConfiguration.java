@@ -37,6 +37,7 @@ public class KafkaConfiguration extends Configuration
 {
     public static final boolean DEBUG = Boolean.getBoolean("zilla.binding.kafka.debug");
     public static final boolean DEBUG_PRODUCE = DEBUG || Boolean.getBoolean("zilla.binding.kafka.debug.produce");
+    public static final boolean DEBUG_CONSUMER = DEBUG || Boolean.getBoolean("zilla.binding.kafka.debug.consumer");
 
     public static final String KAFKA_CLIENT_ID_DEFAULT = "zilla";
 

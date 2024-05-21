@@ -112,6 +112,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttPatternConfig.MqttConnectProperty;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttBinding;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttEventContext;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttValidator;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttBindingConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttRouteConfig;
@@ -480,6 +481,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final MqttValidator validator;
     private final CharsetDecoder utf8Decoder;
     private final Function<ModelConfig, ValidatorHandler> supplyValidator;
+    private final MqttEventContext events;
 
     private MqttQoS publishQosMax;
 
@@ -529,6 +531,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         this.decodePacketTypeByVersion.put(MQTT_PROTOCOL_VERSION_4, this::decodePacketTypeV4);
         this.decodePacketTypeByVersion.put(MQTT_PROTOCOL_VERSION_5, this::decodePacketTypeV5);
         this.supplyValidator = context::supplyValidator;
+        this.events = new MqttEventContext(context);
     }
 
     @Override
@@ -4447,6 +4450,10 @@ public final class MqttServerFactory implements MqttStreamFactory
             String16FW reason,
             int version)
         {
+            if (reasonCode == SUCCESS)
+            {
+                events.onClientConnected(traceId, routedId, guard, authorization, clientId.asString());
+            }
 
             switch (version)
             {
@@ -5362,7 +5369,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                                 List<Subscription> newSubscriptions = newState.stream()
                                     .filter(s -> !currentSubscriptions.contains(s))
                                     .collect(Collectors.toList());
-                                if (subscribePacketIds.containsKey(newSubscriptions.get(0).id))
+                                if (!newSubscriptions.isEmpty() &&
+                                    subscribePacketIds.containsKey(newSubscriptions.get(0).id))
                                 {
                                     int packetId = subscribePacketIds.get(newSubscriptions.get(0).id);
                                     newSubscriptions.forEach(sub -> subscribePacketIds.remove(sub.id));
