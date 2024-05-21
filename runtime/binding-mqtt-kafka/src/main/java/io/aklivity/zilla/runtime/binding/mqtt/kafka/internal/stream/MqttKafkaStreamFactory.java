@@ -30,8 +30,7 @@ public interface MqttKafkaStreamFactory extends BindingHandler
     }
 
     default void onAttached(
-        long bindingId,
-        String bindingName)
+        long bindingId)
     {
     }
 

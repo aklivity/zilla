@@ -267,6 +267,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private final MqttQoS publishQosMax;
     private final String groupIdPrefixFormat;
     private final Function<Long, String> supplyNamespace;
+    private final Function<Long, String> supplyLocalName;
 
     private String serverRef;
     private int reconnectAttempt;
@@ -318,6 +319,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         this.offsetMetadataHelper = new KafkaOffsetMetadataHelper(new UnsafeBuffer(new byte[context.writeBuffer().capacity()]));
         this.groupIdPrefixFormat = config.groupIdPrefixFormat();
         this.supplyNamespace = context::supplyNamespace;
+        this.supplyLocalName = context::supplyLocalName;
     }
 
     @Override
@@ -357,12 +359,12 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
     @Override
     public void onAttached(
-        long bindingId,
-        String bindingName)
+        long bindingId)
     {
         MqttKafkaBindingConfig binding = supplyBinding.apply(bindingId);
         this.serverRef = binding.options.serverRef;
-        this.groupIdPrefix = String.format(groupIdPrefixFormat, supplyNamespace.apply(bindingId), bindingName);
+        this.groupIdPrefix =
+            String.format(groupIdPrefixFormat, supplyNamespace.apply(bindingId), supplyLocalName.apply(bindingId));
 
         if (willAvailable && coreIndex == 0)
         {

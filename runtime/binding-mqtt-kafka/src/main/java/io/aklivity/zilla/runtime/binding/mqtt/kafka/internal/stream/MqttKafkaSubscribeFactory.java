@@ -179,6 +179,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
     private final Object2IntHashMap<String> qosLevels;
     private final String groupIdPrefixFormat;
     private final Function<Long, String> supplyNamespace;
+    private final Function<Long, String> supplyLocalName;
 
     private int reconnectAttempt;
     private String groupIdPrefix;
@@ -216,12 +217,12 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         this.qosLevels.put("2", 2);
         this.groupIdPrefixFormat = config.groupIdPrefixFormat();
         this.supplyNamespace = context::supplyNamespace;
+        this.supplyLocalName = context::supplyLocalName;
     }
 
     @Override
     public void onAttached(
-        long bindingId,
-        String bindingName)
+        long bindingId)
     {
         if (bootstrapAvailable)
         {
@@ -238,7 +239,8 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         this.qosNames.put(0, new String16FW("0"));
         this.qosNames.put(1, new String16FW("1"));
         this.qosNames.put(2, new String16FW("2"));
-        this.groupIdPrefix = String.format(groupIdPrefixFormat, supplyNamespace.apply(bindingId), bindingName);
+        this.groupIdPrefix =
+            String.format(groupIdPrefixFormat, supplyNamespace.apply(bindingId), supplyLocalName.apply(bindingId));
     }
 
     @Override
