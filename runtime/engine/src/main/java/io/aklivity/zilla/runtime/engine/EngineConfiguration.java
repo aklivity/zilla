@@ -320,7 +320,12 @@ public class EngineConfiguration extends Configuration
         URL configURL = null;
         try
         {
-            configURL = URI.create(url).toURL();
+            URI uri = URI.create(url);
+            if (uri.getScheme() == null)
+            {
+                uri = URI.create(String.format("file:%s", url));
+            }
+            configURL = uri.toURL();
         }
         catch (MalformedURLException ex)
         {
