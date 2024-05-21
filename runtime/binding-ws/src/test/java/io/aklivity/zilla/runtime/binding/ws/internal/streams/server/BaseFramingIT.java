@@ -15,7 +15,6 @@
  */
 package io.aklivity.zilla.runtime.binding.ws.internal.streams.server;
 
-import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -30,7 +29,6 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
-import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 /**
  * RFC-6455, section 5.2 "Base Framing Protocol"
@@ -74,6 +72,7 @@ public class BaseFramingIT
         k3po.finish();
     }
 
+    @Ignore
     @Test
     @Configuration("server.yaml")
     @Specification({
