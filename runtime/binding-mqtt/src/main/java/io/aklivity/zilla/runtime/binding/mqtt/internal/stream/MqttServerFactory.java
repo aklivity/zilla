@@ -5369,7 +5369,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                                 List<Subscription> newSubscriptions = newState.stream()
                                     .filter(s -> !currentSubscriptions.contains(s))
                                     .collect(Collectors.toList());
-                                if (subscribePacketIds.containsKey(newSubscriptions.get(0).id))
+                                if (!newSubscriptions.isEmpty() &&
+                                    subscribePacketIds.containsKey(newSubscriptions.get(0).id))
                                 {
                                     int packetId = subscribePacketIds.get(newSubscriptions.get(0).id);
                                     newSubscriptions.forEach(sub -> subscribePacketIds.remove(sub.id));
