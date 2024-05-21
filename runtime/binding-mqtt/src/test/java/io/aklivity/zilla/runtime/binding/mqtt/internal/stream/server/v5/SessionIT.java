@@ -87,6 +87,16 @@ public class SessionIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/session.subscribe/client",
+        "${app}/session.subscribe.invalid.state/server"})
+    public void shouldSubscribeInvalidSessionState() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/session.subscribe.multiple.isolated/client",
         "${app}/session.subscribe.multiple.isolated/server"})
     public void shouldSubscribeMultipleSaveSubscriptionsInSession() throws Exception
