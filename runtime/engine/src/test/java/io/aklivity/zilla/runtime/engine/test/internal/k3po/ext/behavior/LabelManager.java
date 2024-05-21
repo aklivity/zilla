@@ -43,7 +43,6 @@ public final class LabelManager
     private final Map<String, Integer> labelIds;
     private final Path labelsPath;
 
-    private long sizeInBytes;
     private FileTime lastModifiedTime;
 
     public LabelManager(
@@ -53,7 +52,6 @@ public final class LabelManager
         this.labelIds = new ConcurrentHashMap<>();
 
         this.labelsPath = directory.resolve("labels");
-        this.sizeInBytes = -1L;
         this.lastModifiedTime = null;
     }
 
@@ -98,12 +96,10 @@ public final class LabelManager
         {
             if (!Files.exists(labelsPath))
             {
-                this.sizeInBytes = -1L;
                 this.lastModifiedTime = null;
             }
 
-            if (this.sizeInBytes == -1L || this.sizeInBytes != Files.size(labelsPath) ||
-                this.lastModifiedTime == null || this.lastModifiedTime.compareTo(Files.getLastModifiedTime(labelsPath)) != 0)
+            if (this.lastModifiedTime == null || this.lastModifiedTime.compareTo(Files.getLastModifiedTime(labelsPath)) != 0)
             {
                 Files.createDirectories(labelsPath.getParent());
                 try (FileChannel channel = FileChannel.open(labelsPath, CREATE, READ, WRITE))
@@ -119,7 +115,6 @@ public final class LabelManager
                             labelIds.put(label, labels.size());
                         }
 
-                        this.sizeInBytes = channel.position();
                         this.lastModifiedTime = Files.getLastModifiedTime(labelsPath);
                     }
                 }
