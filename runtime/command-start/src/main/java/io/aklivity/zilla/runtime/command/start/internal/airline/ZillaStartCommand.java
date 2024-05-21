@@ -19,6 +19,7 @@ import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_CONFIG
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DIRECTORY;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_VERBOSE;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKERS;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ZILLA_DIRECTORY_PROPERTY;
 import static java.lang.Runtime.getRuntime;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
@@ -45,7 +46,8 @@ import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 @Command(name = "start", description = "Start engine")
 public final class ZillaStartCommand extends ZillaCommand
 {
-    private static final String OPTION_PROPERTIES_PATH_DEFAULT = ".zilla/zilla.properties";
+    private static final String OPTION_PROPERTIES_PATH_DEFAULT = "%s/.zilla/zilla.properties";
+    private static final String ZILLA_ENGINE_PATH_DEFAULT = "%s/.zilla/engine";
 
     private final CountDownLatch stop = new CountDownLatch(1);
     private final CountDownLatch stopped = new CountDownLatch(1);
@@ -83,9 +85,10 @@ public final class ZillaStartCommand extends ZillaCommand
     {
         Runtime runtime = getRuntime();
         Properties props = new Properties();
-        props.setProperty(ENGINE_DIRECTORY.name(), ".zilla/engine");
+        String directory = System.getProperty(ZILLA_DIRECTORY_PROPERTY, ".");
+        props.setProperty(ENGINE_DIRECTORY.name(), String.format(ZILLA_ENGINE_PATH_DEFAULT, directory));
 
-        Path path = Paths.get(propertiesPath != null ? propertiesPath : OPTION_PROPERTIES_PATH_DEFAULT);
+        Path path = Paths.get(propertiesPath != null ? propertiesPath : String.format(OPTION_PROPERTIES_PATH_DEFAULT, directory));
         if (Files.exists(path) || propertiesPath != null)
         {
             try
