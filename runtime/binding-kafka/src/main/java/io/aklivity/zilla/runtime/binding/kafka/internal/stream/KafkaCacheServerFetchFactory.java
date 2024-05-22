@@ -871,8 +871,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 if (deleteId == NO_CANCEL_ID &&
                     partition.cleanupPolicy().delete())
                 {
-                    final long deleteAt = partition.deleteAt(head.segment() != null ? head.segment() : nextHead.segment(),
-                        retentionMillisMax);
+                    final long deleteAt = partition.deleteAt(nextHead.segment(), retentionMillisMax);
                     this.deleteId = doServerFanoutInitialSignalAt(deleteAt, traceId, SIGNAL_SEGMENT_DELETE);
                 }
 
@@ -1187,7 +1186,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
             final long now = currentTimeMillis();
 
             Node segmentNode = partition.sentinel().next();
-            while (segmentNode.segment() != null &&
+            while (!segmentNode.sentinel() &&
                 partition.deleteAt(segmentNode.segment(), retentionMillisMax) <= now)
             {
                 segmentNode.remove();
