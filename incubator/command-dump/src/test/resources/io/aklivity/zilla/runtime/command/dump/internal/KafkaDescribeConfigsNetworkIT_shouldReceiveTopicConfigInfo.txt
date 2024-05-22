@@ -1,0 +1,332 @@
+Frame 1: 202 bytes on wire (1616 bits), 202 bytes captured (1616 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::3f3f:0:0:2, Dst: fe80::3f3f:0:0:3
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 0, Ack: 1, Len: 128
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x084b20e1
+    Protocol Type: kafka
+    Worker: 0
+    Offset: 0x00000000
+    Origin ID: 0x0000000100000002
+    Origin Namespace: test
+    Origin Binding: net0
+    Routed ID: 0x0000000100000002
+    Routed Namespace: test
+    Routed Binding: net0
+    Stream ID: 0x3f3f000000000003
+    Initial ID: 0x3f3f000000000003
+    Reply ID: 0x3f3f000000000002
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000000
+    Trace ID: 0x8000000000000001
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+
+Frame 2: 202 bytes on wire (1616 bits), 202 bytes captured (1616 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::3f3f:0:0:3, Dst: fe80::3f3f:0:0:2
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 1, Ack: 128, Len: 128
+Zilla Frame
+    Frame Type ID: 0x00000001
+    Frame Type: BEGIN
+    Protocol Type ID: 0x084b20e1
+    Protocol Type: kafka
+    Worker: 0
+    Offset: 0x00000058
+    Origin ID: 0x0000000100000002
+    Origin Namespace: test
+    Origin Binding: net0
+    Routed ID: 0x0000000100000002
+    Routed Namespace: test
+    Routed Binding: net0
+    Stream ID: 0x3f3f000000000002
+    Initial ID: 0x3f3f000000000003
+    Reply ID: 0x3f3f000000000002
+    Direction: REP
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 0
+    Timestamp: 0x0000000000000000
+    Trace ID: 0x8000000000000002
+    Authorization: 0x0000000000000000
+    Affinity: 0x0000000000000000
+
+Frame 3: 211 bytes on wire (1688 bits), 211 bytes captured (1688 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::3f3f:0:0:2, Dst: fe80::3f3f:0:0:3
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 128, Ack: 129, Len: 137
+Zilla Frame
+    Frame Type ID: 0x40000002
+    Frame Type: WINDOW
+    Protocol Type ID: 0x084b20e1
+    Protocol Type: kafka
+    Worker: 0
+    Offset: 0x000000b0
+    Origin ID: 0x0000000100000002
+    Origin Namespace: test
+    Origin Binding: net0
+    Routed ID: 0x0000000100000002
+    Routed Namespace: test
+    Routed Binding: net0
+    Stream ID: 0x3f3f000000000003
+    Initial ID: 0x3f3f000000000003
+    Reply ID: 0x3f3f000000000002
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 8192
+    Timestamp: 0x0000000000000000
+    Trace ID: 0x8000000000000003
+    Authorization: 0x0000000000000000
+    Budget ID: 0x0000000000000000
+    Padding: 0
+    Minimum: 0
+    Capabilities: 0x00
+    Progress: 0
+    Progress/Maximum: 0/8192
+
+Frame 4: 211 bytes on wire (1688 bits), 211 bytes captured (1688 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::3f3f:0:0:3, Dst: fe80::3f3f:0:0:2
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 129, Ack: 265, Len: 137
+Zilla Frame
+    Frame Type ID: 0x40000002
+    Frame Type: WINDOW
+    Protocol Type ID: 0x084b20e1
+    Protocol Type: kafka
+    Worker: 0
+    Offset: 0x00000110
+    Origin ID: 0x0000000100000002
+    Origin Namespace: test
+    Origin Binding: net0
+    Routed ID: 0x0000000100000002
+    Routed Namespace: test
+    Routed Binding: net0
+    Stream ID: 0x3f3f000000000002
+    Initial ID: 0x3f3f000000000003
+    Reply ID: 0x3f3f000000000002
+    Direction: REP
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 8192
+    Timestamp: 0x0000000000000000
+    Trace ID: 0x8000000000000004
+    Authorization: 0x0000000000000000
+    Budget ID: 0x0000000000000000
+    Padding: 0
+    Minimum: 0
+    Capabilities: 0x00
+    Progress: 0
+    Progress/Maximum: 0/8192
+
+Frame 5: 261 bytes on wire (2088 bits), 261 bytes captured (2088 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::3f3f:0:0:2, Dst: fe80::3f3f:0:0:3
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 265, Ack: 266, Len: 187
+Zilla Frame
+    Frame Type ID: 0x00000002
+    Frame Type: DATA
+    Protocol Type ID: 0x084b20e1
+    Protocol Type: kafka
+    Worker: 0
+    Offset: 0x00000170
+    Origin ID: 0x0000000100000002
+    Origin Namespace: test
+    Origin Binding: net0
+    Routed ID: 0x0000000100000002
+    Routed Namespace: test
+    Routed Binding: net0
+    Stream ID: 0x3f3f000000000003
+    Initial ID: 0x3f3f000000000003
+    Reply ID: 0x3f3f000000000002
+    Direction: INI
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 8192
+    Timestamp: 0x0000000000000000
+    Trace ID: 0x8000000000000005
+    Authorization: 0x0000000000000000
+    Flags: 0x03
+        .... ...1 = FIN: Set (1)
+        .... ..1. = INIT: Set (1)
+        .... .0.. = INCOMPLETE: Not set (0)
+        .... 0... = SKIP: Not set (0)
+    Budget ID: 0x0000000000000000
+    Reserved: 50
+    Progress: 50
+    Progress/Maximum: 50/8192
+    Payload
+        Length: 50
+        Payload
+Kafka (DescribeConfigs v0 Request)
+
+Frame 6: 211 bytes on wire (1688 bits), 211 bytes captured (1688 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::3f3f:0:0:2, Dst: fe80::3f3f:0:0:3
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 452, Ack: 266, Len: 137
+Zilla Frame
+    Frame Type ID: 0x40000002
+    Frame Type: WINDOW
+    Protocol Type ID: 0x084b20e1
+    Protocol Type: kafka
+    Worker: 0
+    Offset: 0x00000200
+    Origin ID: 0x0000000100000002
+    Origin Namespace: test
+    Origin Binding: net0
+    Routed ID: 0x0000000100000002
+    Routed Namespace: test
+    Routed Binding: net0
+    Stream ID: 0x3f3f000000000003
+    Initial ID: 0x3f3f000000000003
+    Reply ID: 0x3f3f000000000002
+    Direction: INI
+    Sequence: 50
+    Acknowledge: 50
+    Maximum: 8192
+    Timestamp: 0x0000000000000000
+    Trace ID: 0x8000000000000006
+    Authorization: 0x0000000000000000
+    Budget ID: 0x0000000000000000
+    Padding: 0
+    Minimum: 0
+    Capabilities: 0x00
+    Progress: 0
+    Progress/Maximum: 0/8192
+
+Frame 7: 270 bytes on wire (2160 bits), 270 bytes captured (2160 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::3f3f:0:0:3, Dst: fe80::3f3f:0:0:2
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 266, Ack: 589, Len: 196
+Zilla Frame
+    Frame Type ID: 0x00000002
+    Frame Type: DATA
+    Protocol Type ID: 0x084b20e1
+    Protocol Type: kafka
+    Worker: 0
+    Offset: 0x00000260
+    Origin ID: 0x0000000100000002
+    Origin Namespace: test
+    Origin Binding: net0
+    Routed ID: 0x0000000100000002
+    Routed Namespace: test
+    Routed Binding: net0
+    Stream ID: 0x3f3f000000000002
+    Initial ID: 0x3f3f000000000003
+    Reply ID: 0x3f3f000000000002
+    Direction: REP
+    Sequence: 0
+    Acknowledge: 0
+    Maximum: 8192
+    Timestamp: 0x0000000000000000
+    Trace ID: 0x8000000000000007
+    Authorization: 0x0000000000000000
+    Flags: 0x03
+        .... ...1 = FIN: Set (1)
+        .... ..1. = INIT: Set (1)
+        .... .0.. = INCOMPLETE: Not set (0)
+        .... 0... = SKIP: Not set (0)
+    Budget ID: 0x0000000000000000
+    Reserved: 59
+    Progress: 59
+    Progress/Maximum: 59/8192
+    Payload
+        Length: 59
+        Payload
+Kafka (DescribeConfigs v0 Response)
+
+Frame 8: 211 bytes on wire (1688 bits), 211 bytes captured (1688 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::3f3f:0:0:3, Dst: fe80::3f3f:0:0:2
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 462, Ack: 589, Len: 137
+Zilla Frame
+    Frame Type ID: 0x40000002
+    Frame Type: WINDOW
+    Protocol Type ID: 0x084b20e1
+    Protocol Type: kafka
+    Worker: 0
+    Offset: 0x000002f8
+    Origin ID: 0x0000000100000002
+    Origin Namespace: test
+    Origin Binding: net0
+    Routed ID: 0x0000000100000002
+    Routed Namespace: test
+    Routed Binding: net0
+    Stream ID: 0x3f3f000000000002
+    Initial ID: 0x3f3f000000000003
+    Reply ID: 0x3f3f000000000002
+    Direction: REP
+    Sequence: 59
+    Acknowledge: 59
+    Maximum: 8192
+    Timestamp: 0x0000000000000000
+    Trace ID: 0x8000000000000008
+    Authorization: 0x0000000000000000
+    Budget ID: 0x0000000000000000
+    Padding: 0
+    Minimum: 0
+    Capabilities: 0x00
+    Progress: 0
+    Progress/Maximum: 0/8192
+
+Frame 9: 194 bytes on wire (1552 bits), 194 bytes captured (1552 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::3f3f:0:0:2, Dst: fe80::3f3f:0:0:3
+Transmission Control Protocol, Src Port: 0, Dst Port: 7114, Seq: 589, Ack: 599, Len: 120
+Zilla Frame
+    Frame Type ID: 0x00000003
+    Frame Type: END
+    Protocol Type ID: 0x084b20e1
+    Protocol Type: kafka
+    Worker: 0
+    Offset: 0x00000358
+    Origin ID: 0x0000000100000002
+    Origin Namespace: test
+    Origin Binding: net0
+    Routed ID: 0x0000000100000002
+    Routed Namespace: test
+    Routed Binding: net0
+    Stream ID: 0x3f3f000000000003
+    Initial ID: 0x3f3f000000000003
+    Reply ID: 0x3f3f000000000002
+    Direction: INI
+    Sequence: 50
+    Acknowledge: 50
+    Maximum: 8192
+    Timestamp: 0x0000000000000000
+    Trace ID: 0x8000000000000009
+    Authorization: 0x0000000000000000
+
+Frame 10: 194 bytes on wire (1552 bits), 194 bytes captured (1552 bits)
+Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
+Internet Protocol Version 6, Src: fe80::3f3f:0:0:3, Dst: fe80::3f3f:0:0:2
+Transmission Control Protocol, Src Port: 7114, Dst Port: 0, Seq: 599, Ack: 709, Len: 120
+Zilla Frame
+    Frame Type ID: 0x00000003
+    Frame Type: END
+    Protocol Type ID: 0x084b20e1
+    Protocol Type: kafka
+    Worker: 0
+    Offset: 0x000003a8
+    Origin ID: 0x0000000100000002
+    Origin Namespace: test
+    Origin Binding: net0
+    Routed ID: 0x0000000100000002
+    Routed Namespace: test
+    Routed Binding: net0
+    Stream ID: 0x3f3f000000000002
+    Initial ID: 0x3f3f000000000003
+    Reply ID: 0x3f3f000000000002
+    Direction: REP
+    Sequence: 59
+    Acknowledge: 59
+    Maximum: 8192
+    Timestamp: 0x0000000000000000
+    Trace ID: 0x800000000000000a
+    Authorization: 0x0000000000000000
+
