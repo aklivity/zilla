@@ -3172,7 +3172,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 final long resolvedId = resolved.id;
 
                 stream = publishes.computeIfAbsent(topicKey, s ->
-                    new MqttPublishStream(routedId, resolvedId, topic, qos, binding.supplyModelConfig(topic)));
+                    new MqttPublishStream(routedId, resolvedId, topic, topicKey, binding.supplyModelConfig(topic)));
                 stream.doPublishBegin(traceId, affinity, qos);
             }
             else
@@ -5669,7 +5669,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 long originId,
                 long routedId,
                 String topic,
-                int qos,
+                long topicKey,
                 ModelConfig config)
             {
                 this.originId = originId;
@@ -5677,7 +5677,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 this.initialId = supplyInitialId.applyAsLong(routedId);
                 this.replyId = supplyReplyId.applyAsLong(initialId);
                 this.topic = topic;
-                this.topicKey = topicKey(topic, qos);
+                this.topicKey = topicKey;
                 this.contentType = config != null ? supplyValidator.apply(config) : null;
             }
 
@@ -5884,7 +5884,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     debitorIndex = debitor.acquire(budgetId, initialId, MqttServer.this::decodeNetwork);
                 }
 
-                if (MqttState.initialClosing(state))
+                if (MqttState.initialClosing(state) && publishPayloadBytes == 0)
                 {
                     doPublishAppEnd(traceId);
                 }
@@ -6061,7 +6061,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             private void doPublishAppEnd(
                 long traceId)
             {
-                if (!MqttState.initialClosed(state))
+                if (!MqttState.initialClosed(state) && publishPayloadBytes == 0)
                 {
                     doCancelPublishExpiration();
                     publishes.remove(topicKey);
