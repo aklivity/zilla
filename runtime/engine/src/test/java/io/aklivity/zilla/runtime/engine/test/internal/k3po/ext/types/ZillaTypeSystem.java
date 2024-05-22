@@ -46,7 +46,6 @@ public final class ZillaTypeSystem implements TypeSystemSpi
     public static final TypeInfo<Long> OPTION_AFFINITY = new TypeInfo<>("affinity", Long.class);
     public static final TypeInfo<Byte> OPTION_CAPABILITIES = new TypeInfo<>("capabilities", Byte.class);
     public static final TypeInfo<String> OPTION_TIMESTAMPS = new TypeInfo<>("timestamps", String.class);
-    public static final TypeInfo<String> OPTION_WRITE_CLOSED = new TypeInfo<>("writeClosed", String.class);
     public static final TypeInfo<Integer> OPTION_FLAGS = new TypeInfo<>("flags", Integer.class);
     public static final TypeInfo<Integer> OPTION_ACK = new TypeInfo<>("ack", Integer.class);
 
@@ -96,7 +95,6 @@ public final class ZillaTypeSystem implements TypeSystemSpi
         acceptOptions.add(OPTION_ALIGNMENT);
         acceptOptions.add(OPTION_CAPABILITIES);
         acceptOptions.add(OPTION_TIMESTAMPS);
-        acceptOptions.add(OPTION_WRITE_CLOSED);
         this.acceptOptions = unmodifiableSet(acceptOptions);
 
         Set<TypeInfo<?>> connectOptions = new LinkedHashSet<>();
@@ -116,7 +114,6 @@ public final class ZillaTypeSystem implements TypeSystemSpi
         connectOptions.add(OPTION_AFFINITY);
         connectOptions.add(OPTION_CAPABILITIES);
         connectOptions.add(OPTION_TIMESTAMPS);
-        connectOptions.add(OPTION_WRITE_CLOSED);
         this.connectOptions = unmodifiableSet(connectOptions);
 
         Set<TypeInfo<?>> readOptions = new LinkedHashSet<>();

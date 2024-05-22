@@ -393,7 +393,7 @@ final class ZillaTarget implements AutoCloseable
                 .extension(p -> p.set(beginExtCopy))
                 .build();
 
-        write(channel, begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
+        streamsBuffer.write(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
 
         beginExt.skipBytes(writableExtBytes);
         beginExt.discardReadBytes();
@@ -499,7 +499,7 @@ final class ZillaTarget implements AutoCloseable
                 .extension(ex -> ex.set(writeExtCopy))
                 .build();
 
-        write(channel, flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
+        streamsBuffer.write(flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
 
         writeExt.skipBytes(writableExtBytes);
         writeExt.discardReadBytes();
@@ -538,7 +538,7 @@ final class ZillaTarget implements AutoCloseable
                 .extension(p -> p.set(abortExtCopy))
                 .build();
 
-        write(channel, abort.typeId(), abort.buffer(), abort.offset(), abort.sizeof());
+        streamsBuffer.write(abort.typeId(), abort.buffer(), abort.offset(), abort.sizeof());
 
         abortExt.skipBytes(writableExtBytes);
         abortExt.discardReadBytes();
@@ -588,7 +588,7 @@ final class ZillaTarget implements AutoCloseable
                 .extension(p -> p.set(endExtCopy))
                 .build();
 
-        write(channel, end.typeId(), end.buffer(), end.offset(), end.sizeof());
+        streamsBuffer.write(end.typeId(), end.buffer(), end.offset(), end.sizeof());
 
         endExt.skipBytes(writableExtBytes);
         endExt.discardReadBytes();
@@ -634,7 +634,7 @@ final class ZillaTarget implements AutoCloseable
                 .extension(p -> p.set(endExtCopy))
                 .build();
 
-        write(channel, end.typeId(), end.buffer(), end.offset(), end.sizeof());
+        streamsBuffer.write(end.typeId(), end.buffer(), end.offset(), end.sizeof());
 
         endExt.skipBytes(writableExtBytes);
         endExt.discardReadBytes();
@@ -774,7 +774,7 @@ final class ZillaTarget implements AutoCloseable
                     .extension(p -> p.set(writeExtCopy))
                     .build();
 
-            flushable = write(channel, data.typeId(), data.buffer(), data.offset(), data.sizeof());
+            flushable = streamsBuffer.write(data.typeId(), data.buffer(), data.offset(), data.sizeof());
 
             if (flushable)
             {
@@ -844,7 +844,7 @@ final class ZillaTarget implements AutoCloseable
                 .capabilities(capabilities)
                 .build();
 
-        write(channel, window.typeId(), window.buffer(), window.offset(), window.sizeof());
+        streamsBuffer.write(window.typeId(), window.buffer(), window.offset(), window.sizeof());
     }
 
     void doReset(
@@ -909,7 +909,7 @@ final class ZillaTarget implements AutoCloseable
                 .extension(p -> p.set(extensionCopy))
                 .build();
 
-        write(channel, reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
+        streamsBuffer.write(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
     }
 
     void doChallenge(
@@ -937,18 +937,7 @@ final class ZillaTarget implements AutoCloseable
                 .extension(p -> p.set(extensionCopy))
                 .build();
 
-        write(channel, challenge.typeId(), challenge.buffer(), challenge.offset(), challenge.sizeof());
-    }
-
-    private boolean write(
-        ZillaChannel channel,
-        int msgTypeId,
-        DirectBuffer buffer,
-        int offset,
-        int length)
-    {
-        boolean shouldWrite = channel.getConfig().hasWriteClosed() || !channel.engine.serverClosed().get();
-        return shouldWrite && streamsBuffer.write(msgTypeId, buffer, offset, length);
+        streamsBuffer.write(challenge.typeId(), challenge.buffer(), challenge.offset(), challenge.sizeof());
     }
 
     private final class Throttle

@@ -417,7 +417,6 @@ final class ZillaPartition implements AutoCloseable
             childConfig.setAlignment(serverConfig.getAlignment());
             childConfig.setCapabilities(serverConfig.getCapabilities());
             childConfig.setTimestamps(serverConfig.hasTimestamps());
-            childConfig.setWriteClosed(serverConfig.hasWriteClosed());
 
             if (childConfig.getTransmission() == SIMPLEX)
             {

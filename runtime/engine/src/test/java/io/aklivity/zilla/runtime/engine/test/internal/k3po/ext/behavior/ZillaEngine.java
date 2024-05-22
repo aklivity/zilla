@@ -62,7 +62,6 @@ public final class ZillaEngine implements Runnable, ExternalResourceReleasable
 
     private final CountDownLatch shutdownLatch = new CountDownLatch(1);
     private final AtomicBoolean shutdown = new AtomicBoolean();
-    private final AtomicBoolean serverClosed = new AtomicBoolean(false);
 
     private ZillaScope[] scopes;
     private final AtomicReference<Thread> thread;
@@ -317,11 +316,6 @@ public final class ZillaEngine implements Runnable, ExternalResourceReleasable
         return scopeIndexByBindingId.getOrDefault(bindingId, 0);
     }
 
-    AtomicBoolean serverClosed()
-    {
-        return serverClosed;
-    }
-
     private final class BindServerTask implements Runnable
     {
         private final ZillaServerChannel serverChannel;
@@ -438,7 +432,6 @@ public final class ZillaEngine implements Runnable, ExternalResourceReleasable
                 }
 
                 serverChannel.setClosed();
-                serverClosed.set(true);
             }
             catch (ChannelException ex)
             {

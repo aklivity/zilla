@@ -27,7 +27,6 @@ import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.Zill
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_TRANSMISSION;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_UPDATE;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_WINDOW;
-import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_WRITE_CLOSED;
 import static java.util.Arrays.asList;
 
 import java.net.URI;
@@ -77,7 +76,7 @@ public class ZillaChannelAddressFactory extends ChannelAddressFactorySpi
 
         Collection<TypeInfo<?>> allOptionTypes = asList(OPTION_EPHEMERAL, OPTION_REPLY_TO, OPTION_WINDOW, OPTION_BUDGET_ID,
                 OPTION_STREAM_ID, OPTION_PADDING, OPTION_UPDATE, OPTION_AUTHORIZATION, OPTION_THROTTLE,
-                OPTION_TRANSMISSION, OPTION_BYTE_ORDER, OPTION_TIMESTAMPS, OPTION_WRITE_CLOSED);
+                OPTION_TRANSMISSION, OPTION_BYTE_ORDER, OPTION_TIMESTAMPS);
         for (TypeInfo<?> optionType : allOptionTypes)
         {
             if (options != null && options.containsKey(optionType.getName()))

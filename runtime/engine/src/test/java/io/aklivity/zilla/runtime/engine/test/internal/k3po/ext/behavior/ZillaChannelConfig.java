@@ -64,8 +64,4 @@ public interface ZillaChannelConfig extends ChannelConfig
     void setTimestamps(boolean timestamps);
 
     boolean hasTimestamps();
-
-    void setWriteClosed(boolean timestamps);
-
-    boolean hasWriteClosed();
 }
