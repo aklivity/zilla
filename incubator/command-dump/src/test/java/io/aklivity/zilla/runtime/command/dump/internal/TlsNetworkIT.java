@@ -17,13 +17,6 @@ package io.aklivity.zilla.runtime.command.dump.internal;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
-import java.nio.file.Path;
-
-import org.agrona.BitUtil;
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
-import org.agrona.concurrent.ringbuffer.RingBuffer;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -34,8 +27,6 @@ import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 
 import io.aklivity.zilla.runtime.command.dump.internal.test.DumpRule;
-import io.aklivity.zilla.runtime.command.dump.internal.types.stream.DataFW;
-import io.aklivity.zilla.runtime.engine.internal.layouts.StreamsLayout;
 
 public class TlsNetworkIT
 {
