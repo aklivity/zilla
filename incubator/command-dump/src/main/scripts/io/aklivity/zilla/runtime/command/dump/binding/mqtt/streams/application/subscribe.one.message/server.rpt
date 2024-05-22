@@ -15,7 +15,6 @@
 
 accept "zilla://streams/app0"
         option zilla:timestamps "false"
-        option zilla:writeClosed "false"
         option zilla:window 8192
         option zilla:transmission "duplex"
 
@@ -63,6 +62,9 @@ write ${mqtt:session()
 write flush
 
 
+read closed
+write close
+
 accepted
 
 read zilla:begin.ext ${mqtt:matchBeginEx()
@@ -86,3 +88,6 @@ write zilla:data.ext ${mqtt:dataEx()
 
 write "message"
 write flush
+
+read closed
+write close

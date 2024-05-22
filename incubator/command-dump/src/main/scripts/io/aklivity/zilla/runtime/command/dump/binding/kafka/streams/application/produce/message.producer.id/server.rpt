@@ -17,7 +17,6 @@ property serverAddress "zilla://streams/app0"
 
 accept ${serverAddress}
     option zilla:timestamps "false"
-    option zilla:writeClosed "false"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
 
@@ -48,6 +47,9 @@ write zilla:data.ext ${kafka:dataEx()
                               .build()}
 write flush
 
+read closed
+write close
+
 accepted
 
 read zilla:begin.ext ${kafka:beginEx()
@@ -77,3 +79,6 @@ read zilla:data.ext ${kafka:matchDataEx()
                                  .build()
                              .build()}
 read "Hello, world"
+
+read closed
+write close

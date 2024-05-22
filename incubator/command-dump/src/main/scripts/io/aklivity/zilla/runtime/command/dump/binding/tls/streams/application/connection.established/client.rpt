@@ -18,7 +18,6 @@ property authorization 0L
 connect "zilla://streams/app0"
   option zilla:ephemeral "test"
   option zilla:timestamps "false"
-  option zilla:writeClosed "false"
   option zilla:authorization ${authorization}
   option zilla:window 65536
   option zilla:transmission "duplex"
@@ -33,3 +32,6 @@ write zilla:begin.ext ${proxy:beginEx()
                                .build()}
 
 connected
+
+write close
+read closed

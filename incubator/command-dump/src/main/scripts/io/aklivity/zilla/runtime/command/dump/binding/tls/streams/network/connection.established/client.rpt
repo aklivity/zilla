@@ -21,8 +21,10 @@ connect "tls://localhost:9090"
   option tls:trustStorePassword "generated"
   option zilla:ephemeral "test"
   option zilla:timestamps "false"
-  option zilla:writeClosed "false"
   option zilla:authorization ${authorization}
   option zilla:window 65536
   option zilla:transmission "duplex"
 connected
+
+write close
+read closed

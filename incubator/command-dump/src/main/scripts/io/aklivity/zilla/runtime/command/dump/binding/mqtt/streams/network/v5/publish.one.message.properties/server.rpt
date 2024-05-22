@@ -15,7 +15,6 @@
 
 accept "zilla://streams/net0"
   option zilla:timestamps "false"
-  option zilla:writeClosed "false"
   option zilla:window 8192
   option zilla:transmission "duplex"
   option zilla:byteorder "network"
@@ -47,3 +46,5 @@ read  [0x30 0x39]                    # PUBLISH
       [0x09 0x00 0x04] "info"        # correlation data
       "message"                      # payload
 
+read closed
+write close

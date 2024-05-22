@@ -16,7 +16,6 @@
 connect "zilla://streams/net0"
   option zilla:ephemeral "test"
   option zilla:timestamps "false"
-  option zilla:writeClosed "false"
   option zilla:window 8192
   option zilla:transmission "duplex"
 
@@ -112,3 +111,6 @@ write [0x00 0x00 0x00 0x1c]                                      # size = 28
       [0x70 0x00 0x00 0x07 0xff]                                 # incoming-window = 2047
       [0x52 0x01]                                                # next-outgoing-id = 1
       [0x70 0x7f 0xff 0xff 0xff]                                 # outgoing-window = 2147483647
+
+write close
+read closed

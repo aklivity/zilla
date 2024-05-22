@@ -16,7 +16,6 @@
 connect "zilla://streams/net0"
         option zilla:ephemeral "test"
         option zilla:timestamps "false"
-        option zilla:writeClosed "false"
         option zilla:window 40000
         option zilla:transmission "duplex"
 connected
@@ -102,3 +101,6 @@ read [0x00 0x00 0x04]                                      # length = 4
      [0x00]                                                # no flags
      [0x00 0x00 0x00 0x01]                                 # stream_id = 1
      [0x00 0x00 0x00 0x00]                                 # NO_ERROR
+
+write close
+read closed

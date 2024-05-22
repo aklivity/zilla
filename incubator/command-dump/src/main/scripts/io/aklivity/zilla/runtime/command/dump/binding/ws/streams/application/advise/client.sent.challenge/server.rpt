@@ -15,7 +15,6 @@
 
 accept "zilla://streams/app0"
     option zilla:timestamps "false"
-    option zilla:writeClosed "false"
     option zilla:window 8192
     option zilla:transmission "duplex"
 accepted
@@ -31,3 +30,6 @@ read zilla:begin.ext ${ws:beginEx()
 connected
 
 write advised zilla:challenge
+
+read closed
+write close

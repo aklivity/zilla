@@ -23,7 +23,6 @@ property partitionBytesMax 8192
 connect "zilla://streams/net0"
   option zilla:ephemeral "test"
   option zilla:timestamps "false"
-  option zilla:writeClosed "false"
   option zilla:window ${networkConnectWindow}
   option zilla:transmission "duplex"
   option zilla:byteorder "network"
@@ -55,3 +54,6 @@ read 55                                 # size
         [0x00]                              # not read only
         [0x00]                              # not default
         [0x00]                              # not sensitive
+
+write close
+read closed

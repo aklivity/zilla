@@ -16,7 +16,6 @@
 connect "zilla://streams/app0"
     option zilla:ephemeral "test"
     option zilla:timestamps "false"
-    option zilla:writeClosed "false"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
 
@@ -40,3 +39,6 @@ read zilla:data.ext ${kafka:dataEx()
                                 .build()
                              .build()}
 read zilla:data.empty
+
+write close
+read closed

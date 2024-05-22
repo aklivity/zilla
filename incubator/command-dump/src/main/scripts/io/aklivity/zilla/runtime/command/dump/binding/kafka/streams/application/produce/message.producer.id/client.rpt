@@ -19,7 +19,6 @@ property newTimestamp ${kafka:timestamp() + deltaMillis}
 connect "zilla://streams/app0"
     option zilla:ephemeral "test"
     option zilla:timestamps "false"
-    option zilla:writeClosed "false"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
 
@@ -46,13 +45,14 @@ read zilla:data.ext ${kafka:dataEx()
                                  .build()
                              .build()}
 
+write close
+
 read notify ROUTED_BROKER_CLIENT
 
 connect await ROUTED_BROKER_CLIENT
         "zilla://streams/app0"
     option zilla:ephemeral "test"
     option zilla:timestamps "false"
-    option zilla:writeClosed "false"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
     option zilla:affinity 0xb1
@@ -86,3 +86,6 @@ write zilla:data.ext ${kafka:dataEx()
                               .build()}
 write "Hello, world"
 write flush
+
+write close
+read closed

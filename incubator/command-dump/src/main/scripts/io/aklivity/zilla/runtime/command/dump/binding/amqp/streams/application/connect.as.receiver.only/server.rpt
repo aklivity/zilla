@@ -15,7 +15,6 @@
 
 accept "zilla://streams/app0"
   option zilla:timestamps "false"
-  option zilla:writeClosed "false"
   option zilla:window 8192
   option zilla:transmission "duplex"
 
@@ -37,3 +36,6 @@ write zilla:begin.ext ${amqp:beginEx()
                               .receiverSettleMode("FIRST")
                               .build()}
 connected
+
+read closed
+write close
