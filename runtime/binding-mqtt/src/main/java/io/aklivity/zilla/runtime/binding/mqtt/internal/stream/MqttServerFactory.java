@@ -5884,7 +5884,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     debitorIndex = debitor.acquire(budgetId, initialId, MqttServer.this::decodeNetwork);
                 }
 
-                if (MqttState.initialClosing(state) && publishPayloadBytes == 0)
+                if (MqttState.initialClosing(state))
                 {
                     doPublishAppEnd(traceId);
                 }
