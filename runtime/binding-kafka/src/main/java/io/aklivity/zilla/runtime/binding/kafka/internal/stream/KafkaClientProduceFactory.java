@@ -1963,7 +1963,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
                         final int encodeSlotBytePosition = encodeSlotByteBuffer.position();
                         final int partialValueSize = encodeableRecordBytesDeferred > 0 ? 0 : 0;
-                        final int newPosition = encodeSlotBytePosition + encodeOffsetProgress + crcLimit;
+                        final int newPosition = encodeSlotBytePosition + crcLimit;
                         encodeSlotByteBuffer.position(newPosition);
                         encodeSlotByteBuffer.limit(newPosition + crcChecksumValueSize - partialValueSize);
 
