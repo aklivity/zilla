@@ -77,3 +77,5 @@ read zilla:data.ext ${mqtt:matchDataEx()
                             .build()}
 
 read "test"
+
+read aborted

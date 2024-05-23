@@ -47,3 +47,9 @@ write [0x30 0x11]                    # PUBLISH
       [0x00]                         # properties
 write "test"                         # payload
 
+read  [0xe0 0x02]                    # DISCONNECT
+      [0x8e]                         # session taken over
+      [0x00]                         # properties = none
+
+read closed
+write close

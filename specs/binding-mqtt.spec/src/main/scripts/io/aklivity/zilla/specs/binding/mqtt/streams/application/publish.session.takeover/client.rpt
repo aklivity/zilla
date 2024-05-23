@@ -77,3 +77,5 @@ write zilla:data.ext ${mqtt:dataEx()
                              .build()}
 
 write "test"
+
+write abort
