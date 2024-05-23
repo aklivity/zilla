@@ -52,4 +52,13 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/metrics.with.metrics.attributes/client",
+        "${app}/metrics.with.metrics.attributes/server" })
+    public void shouldPostMetricsWithMetricsAttributes() throws Exception
+    {
+        k3po.finish();
+    }
 }
