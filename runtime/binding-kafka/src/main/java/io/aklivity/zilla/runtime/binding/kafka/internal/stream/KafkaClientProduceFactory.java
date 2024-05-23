@@ -1645,6 +1645,9 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                     encodeableRecordBatchTimestamp = timestamp;
                 }
 
+                encodeableRecordBatchTimestampMax = Math.max(encodeableRecordBatchTimestamp, encodeableRecordTimestamp);
+                encodeableAckMode = maxAckMode(encodeableAckMode, ackMode);
+
                 final MutableDirectBuffer encodeBuffer = writeBuffer;
                 final int encodeLimit = writeBuffer.capacity();
                 int encodeProgress = 0;
@@ -1738,9 +1741,6 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                     encodeSlotBuffer.putBytes(encodeSlotMaxLimit, headers.buffer(), headers.offset(),
                         flushableRecordHeadersBytes);
                 }
-
-                encodeableRecordBatchTimestampMax = Math.max(encodeableRecordBatchTimestamp, encodeableRecordTimestamp);
-                encodeableAckMode = maxAckMode(encodeableAckMode, ackMode);
             }
 
             private void doEncodeRecordCont(
@@ -1902,13 +1902,10 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
                 encodeProgress = topicRequest.limit();
 
-                final int recordBatchLength = FIELD_OFFSET_RECORD_COUNT - FIELD_OFFSET_LENGTH + encodeableRecordBatchBytes;
-                final int recordSetLength = FIELD_OFFSET_LENGTH + BitUtil.SIZE_OF_INT + recordBatchLength;
-
                 final ProducePartitionRequestFW partitionRequest =
                         partitionRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
                         .partitionId(partitionId)
-                        .recordSetLength(recordSetLength)
+                        .recordSetLength(encodeableRecordBatchBytes)
                         .build();
 
                 encodeProgress = partitionRequest.limit();
@@ -1919,6 +1916,11 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 final int requestId = nextRequestId++;
                 final int requestSize = encodeSizeOf - FIELD_OFFSET_API_KEY + encodeableRecordBatchBytes;
 
+                assert flushableRequestBytes == 0;
+                flushableRequestBytes = requestSize + FIELD_OFFSET_API_KEY;
+                encodeableRecordBatchBytes = 0;
+                encodeableRecordBatchTimestamp = TIMESTAMP_NONE;
+
                 requestHeaderRW.wrap(encodeBuffer, requestHeader.offset(), requestHeader.limit())
                         .length(requestSize)
                         .apiKey(requestHeader.apiKey())
@@ -1927,7 +1929,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                         .clientId(requestHeader.clientId())
                         .build();
 
-                updateChecksum();
+                encodeCrc();
 
                 assert encodeSlot != NO_SLOT;
                 final MutableDirectBuffer encodeSlotBuffer = encodePool.buffer(encodeSlot);
@@ -1936,51 +1938,50 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 assert encodeSlotOffset >= 0;
                 encodeSlotBuffer.putBytes(encodeSlotOffset, encodeBuffer, encodeOffset, encodeSizeOf);
 
-
                 doNetworkData(traceId, budgetId, EMPTY_BUFFER, 0, 0);
 
                 decoder = decodeProduceResponse;
             }
 
-            private void updateChecksum()
+            private void encodeCrc()
             {
+                final MutableDirectBuffer encodeBuffer = writeBuffer;
                 final MutableDirectBuffer encodeSlotBuffer = encodePool.buffer(encodeSlot);
                 final ByteBuffer encodeSlotByteBuffer = encodePool.byteBuffer(encodeSlot);
 
-                final int maxLimit = encodeSlotBuffer.capacity();
-                int encodeOffsetProgress = encodeSlotOffset;
+                final int encodeLimit = encodeSlotLimit;
+                int encodeProgress = encodeSlotOffset;
 
-                recordBatch:
-                while (encodeOffsetProgress < maxLimit)
+                while (encodeProgress < encodeLimit)
                 {
-                    RecordBatchFW recordBatch = recordBatchRO.tryWrap(encodeSlotBuffer, encodeOffsetProgress, maxLimit);
-                    if (recordBatch != null)
+                    final RecordBatchFW recordBatch = recordBatchRO.wrap(encodeSlotBuffer, encodeProgress, encodeLimit);
+
+                    final int recordBatchLimit = recordBatch.offset() +
+                        RecordBatchFW.FIELD_OFFSET_LEADER_EPOCH +
+                        recordBatch.length();
+
+                    final int crcOffset = recordBatch.offset() + RecordBatchFW.FIELD_OFFSET_CRC;
+                    final int crcDataOffset = recordBatch.offset() + RecordBatchFW.FIELD_OFFSET_ATTRIBUTES;
+                    final int crcDataLimit = recordBatchLimit <= encodeLimit ? recordBatchLimit : recordBatch.limit();
+
+                    final int encodePosition = encodeSlotByteBuffer.position();
+                    encodeSlotByteBuffer.position(encodePosition + crcDataOffset);
+                    encodeSlotByteBuffer.limit(encodePosition + crcDataLimit);
+
+                    final CRC32C crc = crc32c;
+                    crc.reset();
+                    crc.update(encodeSlotByteBuffer);
+
+                    long checksum = crc.getValue();
+
+                    if (crcDataLimit == recordBatch.limit())
                     {
-                        final int crcOffset = encodeOffsetProgress + RecordBatchFW.FIELD_OFFSET_CRC;
-                        final int crcLimit = encodeOffsetProgress + RecordBatchFW.FIELD_OFFSET_ATTRIBUTES;
-                        final int crcChecksumValueSize =
-                            recordBatch.sizeof() - RecordBatchFW.FIELD_OFFSET_ATTRIBUTES + recordBatch.length();
-
-                        final int encodeSlotBytePosition = encodeSlotByteBuffer.position();
-                        final int partialValueSize = encodeableRecordBytesDeferred > 0 ? 0 : 0;
-                        final int newPosition = encodeSlotBytePosition + crcLimit;
-                        encodeSlotByteBuffer.position(newPosition);
-                        encodeSlotByteBuffer.limit(newPosition + crcChecksumValueSize - partialValueSize);
-
-                        final CRC32C crc = crc32c;
-                        crc.reset();
-                        crc.update(encodeSlotByteBuffer);
-
-                        long checksum = crc.getValue();
-
-                        encodeSlotBuffer.putInt(encodeOffsetProgress + crcOffset, (int) checksum, BIG_ENDIAN);
-
-                        encodeOffsetProgress += recordBatch.sizeof() + recordBatch.length();
+                        checksum = computeChecksum(encodeBuffer, encodeLimit, encodeProgress, encodeSlotBuffer, checksum);
                     }
-                    else
-                    {
-                        break recordBatch;
-                    }
+
+                    encodeSlotBuffer.putInt(crcOffset, (int) checksum, BIG_ENDIAN);
+
+                    encodeProgress += recordBatchLimit;
                 }
             }
 
