@@ -1648,7 +1648,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 final int crcOffset = RecordBatchFW.FIELD_OFFSET_CRC;
                 final int crcLimit = RecordBatchFW.FIELD_OFFSET_ATTRIBUTES;
 
-                final int recordSetLengthOffset = RecordBatchFW.FIELD_OFFSET_LENGTH;
+                final int recordBatchLengthOffset = RecordBatchFW.FIELD_OFFSET_LENGTH;
 
                 final short attributes = encodeableRecordBatchTimestampMax == 0L
                         ? RECORD_BATCH_ATTRIBUTES_NO_TIMESTAMP
@@ -1672,29 +1672,25 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
                 encodeProgress = recordBatch.limit();
 
-                final int recordBatchOffset = encodeProgress;
-
-                assert encodeProgress <= PRODUCE_REQUEST_RECORDS_OFFSET_MAX;
-
                 final int headersCount = headers.fieldCount();
-                final RecordTrailerFW recordTrailer = recordTrailerRW.wrap(encodeBuffer, 0, encodeLimit)
+                final RecordTrailerFW recordTrailer = recordTrailerRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
                                                                      .headerCount(headersCount)
                                                                      .build();
-                final int recordTrailerSize = recordTrailer.limit();
+                final int recordTrailerSize = recordTrailer.sizeof();
 
                 final int timestampDelta = (int) (timestamp - encodeableRecordBatchTimestamp);
                 RecordHeaderFW recordHeader = recordHeaderRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
                         .length(Integer.MAX_VALUE)
                         .attributes(RECORD_ATTRIBUTES_NONE)
                         .timestampDelta(timestampDelta)
-                        .offsetDelta(1)
+                        .offsetDelta(0)
                         .keyLength(key.length())
                         .key(key.value())
                         .valueLength(value != null ? value.sizeof() + encodeableRecordBytesDeferred : -1)
                         .build();
 
                 final int valueSize = value != null ? value.sizeof() : 0;
-                final int recordHeaderSize = recordHeader.limit();
+                final int recordHeaderSize = recordHeader.sizeof();
                 final int headerSize = headers.items().capacity();
                 final int recordSize = recordHeaderSize + valueSize + encodeableRecordBytesDeferred + recordTrailerSize +
                             headerSize - RECORD_LENGTH_MAX;
@@ -1704,21 +1700,21 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                                              .length(recordSize)
                                              .attributes(RECORD_ATTRIBUTES_NONE)
                                              .timestampDelta(timestampDelta)
-                                             .offsetDelta(1)
+                                             .offsetDelta(0)
                                              .keyLength(key.length())
                                              .key(key.value())
                                              .valueLength(valueLength)
                                              .build();
 
-                final int newRecordSize = recordHeader.limit();
+                final int newRecordSize = recordHeader.sizeof();
                 encodeProgress += newRecordSize;
                 encodeableRecordBytes += newRecordSize + valueSize + encodeableRecordBytesDeferred +
                         recordTrailerSize + headerSize;
 
                 final int recordBatchLength = FIELD_OFFSET_RECORD_COUNT - FIELD_OFFSET_LENGTH + encodeableRecordBytes;
-                final int recordSetLength = FIELD_OFFSET_LENGTH + BitUtil.SIZE_OF_INT + recordBatchLength - recordBatchOffset;
+                //final int recordSetLength = FIELD_OFFSET_LENGTH + BitUtil.SIZE_OF_INT + recordBatchLength - recordBatchOffset;
 
-                encodeBuffer.putInt(recordSetLengthOffset, recordSetLength, BIG_ENDIAN);
+                encodeBuffer.putInt(recordBatchLengthOffset, recordBatchLength, BIG_ENDIAN);
 
                 if (encodeSlot == NO_SLOT)
                 {
@@ -1731,6 +1727,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 final MutableDirectBuffer encodeSlotBuffer = encodePool.buffer(encodeSlot);
 
                 encodeSlotBuffer.putBytes(encodeSlotLimit, encodeBuffer, 0, encodeProgress);
+
                 encodeSlotLimit += encodeProgress;
 
                 if (headersCount > 0)
@@ -1742,16 +1739,17 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                         flushableRecordHeadersBytes);
                 }
 
-                encodeableRecordBatchTimestampMax = Math.max(encodeableRecordBatchTimestamp, encodeableRecordTimestamp);
-                encodeableAckMode = maxAckMode(encodeableAckMode, ackMode);
-
                 final CRC32C crc = crc32c;
                 crc.reset();
                 crc.update(encodeBuffer.byteArray(), crcLimit, encodeProgress);
-
                 long checksum = crc.getValue();
+
                 checksum = computeChecksum(encodeBuffer, encodeLimit, encodeProgress, encodeSlotBuffer, checksum);
+
                 encodeSlotBuffer.putInt(encodeSlotOffset + crcOffset, (int) checksum, BIG_ENDIAN);
+
+                encodeableRecordBatchTimestampMax = Math.max(encodeableRecordBatchTimestamp, encodeableRecordTimestamp);
+                encodeableAckMode = maxAckMode(encodeableAckMode, ackMode);
             }
 
             private void doEncodeRecordCont(
