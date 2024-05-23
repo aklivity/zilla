@@ -32,7 +32,6 @@ import java.util.function.Consumer;
 import java.util.function.LongFunction;
 import java.util.zip.CRC32C;
 
-import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.LongLongConsumer;
@@ -148,8 +147,6 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
     private final RecordTrailerFW.Builder recordTrailerRW = new RecordTrailerFW.Builder();
 
     private final RecordBatchFW recordBatchRO = new RecordBatchFW();
-    private final RecordHeaderFW recordHeaderRO = new RecordHeaderFW();
-    private final RecordTrailerFW recordTrailerRO = new RecordTrailerFW();
     private final ResponseHeaderFW responseHeaderRO = new ResponseHeaderFW();
     private final ProduceResponseFW produceResponseRO = new ProduceResponseFW();
     private final ProduceTopicResponseFW produceTopicResponseRO = new ProduceTopicResponseFW();
