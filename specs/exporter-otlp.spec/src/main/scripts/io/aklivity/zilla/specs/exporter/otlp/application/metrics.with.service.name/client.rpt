@@ -19,7 +19,7 @@ connected
 write http:method "POST"
 write http:version "HTTP/1.1"
 write http:header "Host" "localhost:4318"
-write http:header "Content-Length" "887"
+write http:header "Content-Length" "942"
 write
 '{'
     '"resourceMetrics":['
@@ -30,6 +30,12 @@ write
                         '"key":"service.namespace",'
                         '"value":{'
                             '"stringValue":"example"'
+                        '}'
+                    '},'
+                    '{'
+                        '"key":"service.name",'
+                        '"value":{'
+                            '"stringValue":"zilla"'
                         '}'
                     '}'
                 ']'

@@ -18,9 +18,6 @@ name: test
 telemetry:
     attributes:
         service.namespace: example
-    metricsAttributes:
-        namespace: $NAMESPACE
-        binding: $BINDING
         service.name: zilla
     metrics:
         - test.counter
