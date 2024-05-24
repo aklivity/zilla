@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>incubator</artifactId>
-    <version>0.9.80</version>
+    <version>0.9.81</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -45,14 +45,30 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
+      <artifactId>engine</artifactId>
+      <type>test-jar</type>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
       <artifactId>command</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>io.aklivity.zilla</groupId>
-      <artifactId>binding-proxy.spec</artifactId>
-      <version>${project.version}</version>
+      <groupId>org.kaazing</groupId>
+      <artifactId>k3po.junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.kaazing</groupId>
+      <artifactId>k3po.lang</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -99,25 +115,26 @@
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
+      <artifactId>binding-proxy.spec</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
       <artifactId>binding-amqp.spec</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.junit.jupiter</groupId>
-      <artifactId>junit-jupiter-engine</artifactId>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>binding-tls.spec</artifactId>
+      <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.testcontainers</groupId>
       <artifactId>testcontainers</artifactId>
-      <version>1.19.3</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.testcontainers</groupId>
-      <artifactId>junit-jupiter</artifactId>
-      <version>1.19.3</version>
+      <version>1.19.7</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -143,9 +160,9 @@
         <artifactId>license-maven-plugin</artifactId>
         <configuration>
           <excludes>
-            <exclude>src/test/resources/io/aklivity/zilla/runtime/command/dump/internal/airline/*.pcap</exclude>
-            <exclude>src/test/resources/io/aklivity/zilla/runtime/command/dump/internal/airline/*.txt</exclude>
-            <exclude>src/test/resources/io/aklivity/zilla/runtime/command/dump/internal/airline/engine/*</exclude>
+            <exclude>src/test/resources/io/aklivity/zilla/runtime/command/dump/internal/*.txt</exclude>
+            <exclude>**/keys</exclude>
+            <exclude>**/trust</exclude>
           </excludes>
         </configuration>
       </plugin>
@@ -163,6 +180,23 @@
       <plugin>
         <groupId>org.moditect</groupId>
         <artifactId>moditect-maven-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>org.kaazing</groupId>
+        <artifactId>k3po-maven-plugin</artifactId>
+        <dependencies>
+          <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>engine</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+          </dependency>
+          <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>engine</artifactId>
+            <version>${project.version}</version>
+          </dependency>
+        </dependencies>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -226,6 +260,9 @@
         <includes>
           <include>**/zilla.lua</include>
         </includes>
+      </resource>
+      <resource>
+        <directory>src/main/scripts</directory>
       </resource>
     </resources>
   </build>

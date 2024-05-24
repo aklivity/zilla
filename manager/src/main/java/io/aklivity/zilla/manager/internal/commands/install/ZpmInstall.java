@@ -749,9 +749,10 @@ public final class ZpmInstall extends ZpmCommand
                 "if [ -n \"$ZILLA_INCUBATOR_ENABLED\" ]; then",
                 "JAVA_OPTIONS=\"$JAVA_OPTIONS -Dzilla.incubator.enabled=$ZILLA_INCUBATOR_ENABLED\"",
                 "fi",
-                "cd \"${0%/*}\"",
+                "ZILLA_DIRECTORY=\"${0%/*}\"",
+                "JAVA_OPTIONS=\"$JAVA_OPTIONS -Dzilla.directory=$ZILLA_DIRECTORY\"",
                 String.format(String.join(" ", Arrays.asList(
-                    "exec %s/bin/java",
+                    "exec $ZILLA_DIRECTORY/%s/bin/java",
                     "--add-opens java.base/sun.nio.ch=org.agrona.core",
                     "$JAVA_OPTIONS",
                     "-m io.aklivity.zilla.runtime.command/io.aklivity.zilla.runtime.command.internal.ZillaMain \"$@\"")),

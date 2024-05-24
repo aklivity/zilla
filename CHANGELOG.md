@@ -2,7 +2,23 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.79...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.80...HEAD)
+
+**Implemented enhancements:**
+
+- Improve Starting Zilla with the CLI [\#1016](https://github.com/aklivity/zilla/issues/1016)
+- Generate `zilla dump` packet captures in timestamp order including across workers [\#959](https://github.com/aklivity/zilla/issues/959)
+- Split protocol testing into separate ITs for `zilla dump` command [\#958](https://github.com/aklivity/zilla/issues/958)
+- Add zilla context to MQTT consumer groups [\#886](https://github.com/aklivity/zilla/issues/886)
+
+**Fixed bugs:**
+
+- Telemetry attribute service.name doesn't get sent correctly [\#1007](https://github.com/aklivity/zilla/issues/1007)
+- Streampay `zilla` instance crashes while trying to access  `https://localhost:9090` [\#975](https://github.com/aklivity/zilla/issues/975)
+
+## [0.9.80](https://github.com/aklivity/zilla/tree/0.9.80) (2024-05-20)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.79...0.9.80)
 
 **Breaking changes:**
 
@@ -23,6 +39,7 @@
 - Resiliently handle `apicurio` catalog unreachable [\#938](https://github.com/aklivity/zilla/issues/938)
 - Resiliently handle `karapace` catalog unreachable [\#937](https://github.com/aklivity/zilla/issues/937)
 - Support local `zilla` installation on MacOS via `homebrew` [\#680](https://github.com/aklivity/zilla/issues/680)
+- Update bug report template [\#820](https://github.com/aklivity/zilla/pull/820) ([vordimous](https://github.com/vordimous))
 
 **Fixed bugs:**
 
@@ -34,6 +51,46 @@
 - Running zilla with the `kafka-grpc` binding in a cluster with multiple instances results in each instance delivering a message to the configured `remote_server` [\#882](https://github.com/aklivity/zilla/issues/882)
 - Using the `grpc.kafka.proxy` example setup, Zilla will periodically not deliver the message to the gRPC service defined in the `kafka-grpc` binding [\#881](https://github.com/aklivity/zilla/issues/881)
 - Flaky kafka-grpc test [\#768](https://github.com/aklivity/zilla/issues/768)
+
+**Merged pull requests:**
+
+- Handle & calculate complex schema padding [\#1038](https://github.com/aklivity/zilla/pull/1038) ([aDaemonThread](https://github.com/aDaemonThread))
+- Fix typo to send abort on abort instead of end [\#1036](https://github.com/aklivity/zilla/pull/1036) ([akrambek](https://github.com/akrambek))
+- Bump junit.version from 5.10.1 to 5.10.2 [\#1032](https://github.com/aklivity/zilla/pull/1032) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Honor MQTT clean start at QoS2 produce [\#1031](https://github.com/aklivity/zilla/pull/1031) ([bmaidics](https://github.com/bmaidics))
+- Use flyweight fields instead of class fields for control [\#1030](https://github.com/aklivity/zilla/pull/1030) ([akrambek](https://github.com/akrambek))
+- catalog:apicurio - unify caching across workers to maximize cache hits [\#1027](https://github.com/aklivity/zilla/pull/1027) ([aDaemonThread](https://github.com/aDaemonThread))
+- Use binding id instead of route Id for resolved Id [\#1026](https://github.com/aklivity/zilla/pull/1026) ([akrambek](https://github.com/akrambek))
+- MQTT clients access log implementation [\#1023](https://github.com/aklivity/zilla/pull/1023) ([aDaemonThread](https://github.com/aDaemonThread))
+- Unsubscribe on partition reassignment [\#1021](https://github.com/aklivity/zilla/pull/1021) ([akrambek](https://github.com/akrambek))
+- Bump commons-cli:commons-cli from 1.6.0 to 1.7.0 [\#1020](https://github.com/aklivity/zilla/pull/1020) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Increase mqtt client id limit to 256 [\#1015](https://github.com/aklivity/zilla/pull/1015) ([bmaidics](https://github.com/bmaidics))
+- Generate correct crc32c value for the messages with different produceId [\#1011](https://github.com/aklivity/zilla/pull/1011) ([akrambek](https://github.com/akrambek))
+- Remove generate command [\#1010](https://github.com/aklivity/zilla/pull/1010) ([attilakreiner](https://github.com/attilakreiner))
+- Support configuration of timestamps in zilla transport for k3po [\#1009](https://github.com/aklivity/zilla/pull/1009) ([jfallows](https://github.com/jfallows))
+- Support multiple specs in openapi-asyncapi binding [\#1008](https://github.com/aklivity/zilla/pull/1008) ([bmaidics](https://github.com/bmaidics))
+- Support multiple specs in openapi binding [\#1005](https://github.com/aklivity/zilla/pull/1005) ([bmaidics](https://github.com/bmaidics))
+- Fix secure http detection in OpenAPI [\#1002](https://github.com/aklivity/zilla/pull/1002) ([bmaidics](https://github.com/bmaidics))
+- Enhancing validation for openapi and asyncapi bindings [\#1001](https://github.com/aklivity/zilla/pull/1001) ([aDaemonThread](https://github.com/aDaemonThread))
+- Support asyncapi mqtt streetlights mapping to kafka streetlights [\#997](https://github.com/aklivity/zilla/pull/997) ([bmaidics](https://github.com/bmaidics))
+- Bump ubuntu from jammy-20240416 to jammy-20240427 in /cloud/docker-image/src/main/docker [\#996](https://github.com/aklivity/zilla/pull/996) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump org.bitbucket.b\_c:jose4j from 0.9.3 to 0.9.6 [\#995](https://github.com/aklivity/zilla/pull/995) ([dependabot[bot]](https://github.com/apps/dependabot))
+- MQTT Websocket bugfix [\#993](https://github.com/aklivity/zilla/pull/993) ([bmaidics](https://github.com/bmaidics))
+- Add MQTT client authentication [\#992](https://github.com/aklivity/zilla/pull/992) ([bmaidics](https://github.com/bmaidics))
+- `tls`  `client/server/echo` handshake benchmark  [\#990](https://github.com/aklivity/zilla/pull/990) ([akrambek](https://github.com/akrambek))
+- Bump ubuntu from jammy-20240111 to jammy-20240416 in /cloud/docker-image/src/main/docker [\#987](https://github.com/aklivity/zilla/pull/987) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump alpine from 3.19.0 to 3.19.1 in /cloud/docker-image/src/main/docker [\#986](https://github.com/aklivity/zilla/pull/986) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Update Java build matrix [\#983](https://github.com/aklivity/zilla/pull/983) ([jfallows](https://github.com/jfallows))
+- Support multiple specs in asyncapi binding [\#982](https://github.com/aklivity/zilla/pull/982) ([bmaidics](https://github.com/bmaidics))
+- Remove event script in favor of handshake script [\#981](https://github.com/aklivity/zilla/pull/981) ([attilakreiner](https://github.com/attilakreiner))
+- `echo` `server` handshake benchmark [\#980](https://github.com/aklivity/zilla/pull/980) ([akrambek](https://github.com/akrambek))
+- MqttKafka publish intern fix [\#979](https://github.com/aklivity/zilla/pull/979) ([bmaidics](https://github.com/bmaidics))
+- Fix multiple exporters issue [\#978](https://github.com/aklivity/zilla/pull/978) ([attilakreiner](https://github.com/attilakreiner))
+- unify caching across workers to maximize cache hits [\#977](https://github.com/aklivity/zilla/pull/977) ([aDaemonThread](https://github.com/aDaemonThread))
+- Support reading empty file payload [\#976](https://github.com/aklivity/zilla/pull/976) ([jfallows](https://github.com/jfallows))
+- Use format to construct get openapi operation for async rquest [\#967](https://github.com/aklivity/zilla/pull/967) ([akrambek](https://github.com/akrambek))
+- binding config schema validation for unused properties [\#929](https://github.com/aklivity/zilla/pull/929) ([aDaemonThread](https://github.com/aDaemonThread))
+- Bump org.agrona:agrona from 1.6.0 to 1.21.1 [\#890](https://github.com/aklivity/zilla/pull/890) ([dependabot[bot]](https://github.com/apps/dependabot))
 
 ## [0.9.79](https://github.com/aklivity/zilla/tree/0.9.79) (2024-04-22)
 

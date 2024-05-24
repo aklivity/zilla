@@ -19,6 +19,7 @@ import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_CONFIG
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DIRECTORY;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_VERBOSE;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKERS;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ZILLA_DIRECTORY_PROPERTY;
 import static java.lang.Runtime.getRuntime;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
@@ -45,14 +46,15 @@ import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 @Command(name = "start", description = "Start engine")
 public final class ZillaStartCommand extends ZillaCommand
 {
-    private static final String OPTION_PROPERTIES_PATH_DEFAULT = ".zilla/zilla.properties";
+    private static final String ZILLA_DIRECTORY = System.getProperty(ZILLA_DIRECTORY_PROPERTY, ".");
+    private static final String OPTION_PROPERTIES_PATH_DEFAULT = String.format("%s/.zilla/zilla.properties", ZILLA_DIRECTORY);
+    private static final String ZILLA_ENGINE_PATH_DEFAULT = String.format("%s/.zilla/engine", ZILLA_DIRECTORY);
 
     private final CountDownLatch stop = new CountDownLatch(1);
     private final CountDownLatch stopped = new CountDownLatch(1);
 
     @Option(name = {"-c", "--config"},
-        description = "Configuration location",
-        hidden = true)
+        description = "Configuration location")
     public URI configURI;
 
     @Option(name = {"-v", "--verbose"},
@@ -64,18 +66,15 @@ public final class ZillaStartCommand extends ZillaCommand
     public int workers = -1;
 
     @Option(name = {"-P", "--property"},
-        description = "Property name=value",
-        hidden = true)
+        description = "Property name=value")
     public List<String> properties;
 
     @Option(name = {"-p", "--properties"},
-        description = "Path to properties",
-        hidden = true)
+        description = "Path to properties")
     public String propertiesPath;
 
-    @Option(name = "-e",
-        description = "Show exception traces",
-        hidden = true)
+    @Option(name = {"-e", "--exception-traces"},
+        description = "Show exception traces")
     public boolean exceptions;
 
     @Override
@@ -83,7 +82,7 @@ public final class ZillaStartCommand extends ZillaCommand
     {
         Runtime runtime = getRuntime();
         Properties props = new Properties();
-        props.setProperty(ENGINE_DIRECTORY.name(), ".zilla/engine");
+        props.setProperty(ENGINE_DIRECTORY.name(), ZILLA_ENGINE_PATH_DEFAULT);
 
         Path path = Paths.get(propertiesPath != null ? propertiesPath : OPTION_PROPERTIES_PATH_DEFAULT);
         if (Files.exists(path) || propertiesPath != null)

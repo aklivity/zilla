@@ -55,7 +55,7 @@ accepted
 read zilla:begin.ext ${kafka:matchBeginEx()
                                .typeId(zilla:id("kafka"))
                                .group()
-                                   .groupId("client-session")
+                                   .groupId("zilla:test-mqtt0-client-session")
                                    .protocol("highlander")
                                    .timeout(1000)
                                    .build()
