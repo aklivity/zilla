@@ -866,14 +866,13 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
 
                     final long retainAt = partition.retainAt(nextHead.segment());
                     this.retainId = doServerFanoutInitialSignalAt(retainAt, traceId, SIGNAL_SEGMENT_RETAIN);
+                }
 
-                    if (deleteId == NO_CANCEL_ID &&
-                        partition.cleanupPolicy().delete() &&
-                        !nextHead.previous().sentinel())
-                    {
-                        final long deleteAt = partition.deleteAt(nextHead.previous().segment(), retentionMillisMax);
-                        this.deleteId = doServerFanoutInitialSignalAt(deleteAt, traceId, SIGNAL_SEGMENT_DELETE);
-                    }
+                if (deleteId == NO_CANCEL_ID &&
+                    partition.cleanupPolicy().delete())
+                {
+                    final long deleteAt = partition.deleteAt(nextHead.segment(), retentionMillisMax);
+                    this.deleteId = doServerFanoutInitialSignalAt(deleteAt, traceId, SIGNAL_SEGMENT_DELETE);
                 }
 
                 final int entryFlags = (flags & FLAGS_SKIP) != 0x00 ? CACHE_ENTRY_FLAGS_ABORTED : 0x00;
@@ -1187,15 +1186,16 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
             final long now = currentTimeMillis();
 
             Node segmentNode = partition.sentinel().next();
-            while (segmentNode != partition.head() &&
-                    partition.deleteAt(segmentNode.segment(), retentionMillisMax) <= now)
+            while (!segmentNode.sentinel() &&
+                partition.deleteAt(segmentNode.segment(), retentionMillisMax) <= now)
             {
                 segmentNode.remove();
                 segmentNode = segmentNode.next();
             }
+
             assert segmentNode != null;
 
-            if (segmentNode != partition.head())
+            if (segmentNode != partition.sentinel())
             {
                 final long deleteAt = partition.deleteAt(segmentNode.segment(), retentionMillisMax);
                 this.deleteId = doServerFanoutInitialSignalAt(deleteAt, traceId, SIGNAL_SEGMENT_DELETE);

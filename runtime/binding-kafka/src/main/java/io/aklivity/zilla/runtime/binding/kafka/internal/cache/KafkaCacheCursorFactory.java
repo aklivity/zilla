@@ -126,23 +126,26 @@ public final class KafkaCacheCursorFactory
             this.latestOffset = latestOffset;
 
             assert !segmentNode.sentinel();
-            KafkaCacheSegment newSegment = null;
-            while (newSegment == null)
+            if (segmentNode.segment() != null)
             {
-                newSegment = segmentNode.segment().acquire();
-                if (newSegment == null)
+                KafkaCacheSegment newSegment = null;
+                while (newSegment == null)
                 {
-                    segmentNode = segmentNode.next();
+                    newSegment = segmentNode.segment().acquire();
+                    if (newSegment == null)
+                    {
+                        segmentNode = segmentNode.next();
+                    }
                 }
+                this.segmentNode = segmentNode;
+                this.segment = newSegment;
+
+                assert this.segmentNode != null;
+                assert this.segment != null;
+
+                final int position = condition.reset(segment, offset, latestOffset, POSITION_UNSET);
+                this.position = position == RETRY_SEGMENT_VALUE || position == NEXT_SEGMENT_VALUE ? 0 : position;
             }
-            this.segmentNode = segmentNode;
-            this.segment = newSegment;
-
-            assert this.segmentNode != null;
-            assert this.segment != null;
-
-            final int position = condition.reset(segment, offset, latestOffset, POSITION_UNSET);
-            this.position = position == RETRY_SEGMENT_VALUE || position == NEXT_SEGMENT_VALUE ? 0 : position;
         }
 
         public KafkaCacheEntryFW next(
@@ -151,7 +154,7 @@ public final class KafkaCacheCursorFactory
             KafkaCacheEntryFW nextEntry = null;
 
             next:
-            while (nextEntry == null)
+            while (segmentNode != null && nextEntry == null)
             {
                 final int positionNext = condition.next(position);
                 if (positionNext == RETRY_SEGMENT_VALUE)
@@ -345,30 +348,33 @@ public final class KafkaCacheCursorFactory
             assert segmentNode != null;
             assert segment != null;
 
-            KafkaCacheSegment newSegment = segmentNode.segment();
-            if (segment != newSegment)
+            if (segmentNode != null)
             {
-                segment.release();
-
-                Node newSegmentNode = segmentNode;
-                newSegment = newSegment.acquire();
-                while (newSegment == null)
+                KafkaCacheSegment newSegment = segmentNode.segment();
+                if (segment != newSegment)
                 {
-                    newSegment = newSegmentNode.segment().acquire();
-                    if (newSegment == null)
+                    segment.release();
+
+                    Node newSegmentNode = segmentNode;
+                    newSegment = newSegment.acquire();
+                    while (newSegment == null)
                     {
-                        newSegmentNode = newSegmentNode.next();
+                        newSegment = newSegmentNode.segment().acquire();
+                        if (newSegment == null)
+                        {
+                            newSegmentNode = newSegmentNode.next();
+                        }
                     }
+                    this.segmentNode = newSegmentNode;
+                    this.segment = newSegment;
+
+                    assert segmentNode != null;
+                    assert !segmentNode.sentinel();
+                    assert segment != null;
+
+                    final int position = condition.reset(segment, offset, latestOffset, POSITION_UNSET);
+                    this.position = position == RETRY_SEGMENT_VALUE || position == NEXT_SEGMENT_VALUE ? 0 : position;
                 }
-                this.segmentNode = newSegmentNode;
-                this.segment = newSegment;
-
-                assert segmentNode != null;
-                assert !segmentNode.sentinel();
-                assert segment != null;
-
-                final int position = condition.reset(segment, offset, latestOffset, POSITION_UNSET);
-                this.position = position == RETRY_SEGMENT_VALUE || position == NEXT_SEGMENT_VALUE ? 0 : position;
             }
         }
 
