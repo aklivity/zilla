@@ -1944,23 +1944,24 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
             {
                 final MutableDirectBuffer encodeBuffer = writeBuffer;
                 final MutableDirectBuffer encodeSlotBuffer = encodePool.buffer(encodeSlot);
-                final ByteBuffer encodeSlotByteBuffer = encodePool.byteBuffer(encodeSlot);
 
                 final int encodeLimit = encodeSlotLimit;
                 int encodeProgress = encodeSlotOffset;
+                int recordBatchCount = 0;
 
                 while (encodeProgress < encodeLimit)
                 {
+                    recordBatchCount++;
                     final RecordBatchFW recordBatch = recordBatchRO.wrap(encodeSlotBuffer, encodeProgress, encodeLimit);
 
-                    final int recordBatchLimit = recordBatch.offset() +
-                        RecordBatchFW.FIELD_OFFSET_LEADER_EPOCH +
-                        recordBatch.length();
+                    final int recordBatchLength = RecordBatchFW.FIELD_OFFSET_LEADER_EPOCH + recordBatch.length();
+                    final int recordBatchLimit = recordBatch.offset() + recordBatchLength;
 
                     final int crcOffset = recordBatch.offset() + RecordBatchFW.FIELD_OFFSET_CRC;
                     final int crcDataOffset = recordBatch.offset() + RecordBatchFW.FIELD_OFFSET_ATTRIBUTES;
                     final int crcDataLimit = recordBatchLimit <= encodeLimit ? recordBatchLimit : recordBatch.limit();
 
+                    final ByteBuffer encodeSlotByteBuffer = encodePool.byteBuffer(encodeSlot);
                     final int encodePosition = encodeSlotByteBuffer.position();
                     encodeSlotByteBuffer.position(encodePosition + crcDataOffset);
                     encodeSlotByteBuffer.limit(encodePosition + crcDataLimit);
@@ -1978,7 +1979,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
                     encodeSlotBuffer.putInt(crcOffset, (int) checksum, BIG_ENDIAN);
 
-                    encodeProgress += recordBatchLimit;
+                    encodeProgress += recordBatchLength;
                 }
             }
 
