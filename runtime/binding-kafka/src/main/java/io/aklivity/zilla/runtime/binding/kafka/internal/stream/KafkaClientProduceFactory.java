@@ -1947,11 +1947,9 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
                 final int encodeLimit = encodeSlotLimit;
                 int encodeProgress = encodeSlotOffset;
-                int recordBatchCount = 0;
 
                 while (encodeProgress < encodeLimit)
                 {
-                    recordBatchCount++;
                     final RecordBatchFW recordBatch = recordBatchRO.wrap(encodeSlotBuffer, encodeProgress, encodeLimit);
 
                     final int recordBatchLength = RecordBatchFW.FIELD_OFFSET_LEADER_EPOCH + recordBatch.length();
