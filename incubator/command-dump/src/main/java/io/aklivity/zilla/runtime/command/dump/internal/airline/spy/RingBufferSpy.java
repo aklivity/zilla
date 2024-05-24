@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.command.dump.internal.airline.spy;
 
 import org.agrona.DirectBuffer;
 
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.binding.function.MessagePredicate;
 
 public interface RingBufferSpy
@@ -31,6 +32,7 @@ public interface RingBufferSpy
 
     int spy(MessagePredicate handler);
     int spy(MessagePredicate handler, int messageCountLimit);
+    int peek(MessageConsumer handler);
 
     long producerPosition();
     long consumerPosition();
