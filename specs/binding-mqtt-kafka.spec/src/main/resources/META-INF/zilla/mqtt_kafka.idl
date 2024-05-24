@@ -30,4 +30,22 @@ scope mqtt_kafka
          int8 length;
          int16[length] packetIds = null;
     }
+
+    scope event
+    {
+        enum MqttKafkaEventType (uint8)
+        {
+            RESET_MQTT_CONNECTION (1)
+        }
+
+        struct MqttKafkaResetMqttConnectionEx extends core::stream::Extension
+        {
+            string16 reason;
+        }
+
+        union MqttKafkaEventEx switch (MqttKafkaEventType)
+        {
+            case RESET_MQTT_CONNECTION: MqttKafkaResetMqttConnectionEx resetMqttConnection;
+        }
+    }
 }

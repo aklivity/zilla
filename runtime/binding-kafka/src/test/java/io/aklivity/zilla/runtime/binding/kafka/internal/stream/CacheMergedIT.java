@@ -80,6 +80,16 @@ public class CacheMergedIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("cache.options.merged.yaml")
+    @Specification({
+        "${app}/merged.produce.and.fetch.get.cleanup.policy/client",
+        "${app}/unmerged.produce.and.fetch.get.cleanup.policy/server"})
+    public void shouldProduceAndFetchMergedGetCompaction() throws Exception
+    {
+        k3po.finish();
+    }
+
     @Ignore("requires k3po parallel reads")
     @Test
     @Configuration("cache.options.merged.yaml")

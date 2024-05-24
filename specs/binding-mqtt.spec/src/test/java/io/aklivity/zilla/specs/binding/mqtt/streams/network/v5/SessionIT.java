@@ -194,6 +194,15 @@ public class SessionIT
 
     @Test
     @Specification({
+        "${net}/session.reject.non.compacted.sessions.topic/client",
+        "${net}/session.reject.non.compacted.sessions.topic/server"})
+    public void shouldRejectSessionNonCompactedSessionsTopic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/session.invalid.session.timeout.after.connack/client",
         "${net}/session.invalid.session.timeout.after.connack/server"})
     public void shouldPropagateMqttReasonCodeAndStringAfterConnack() throws Exception
