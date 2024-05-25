@@ -1930,6 +1930,8 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
                 assert flushableRequestBytes == 0;
                 flushableRequestBytes = requestSize + FIELD_OFFSET_API_KEY;
+                encodedAckMode = encodeableAckMode;
+                encodeableAckMode = KafkaAckMode.NONE;
 
                 requestHeaderRW.wrap(encodeBuffer, requestHeader.offset(), requestHeader.limit())
                         .length(requestSize)
