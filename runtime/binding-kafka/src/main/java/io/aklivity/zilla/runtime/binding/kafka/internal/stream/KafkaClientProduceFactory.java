@@ -1224,7 +1224,6 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
             private long encodeSlotTraceId;
 
             private int flushableRecordHeadersBytes;
-            private int encodeableRecordBatchBytes;
             private int encodeableRecordBytesDeferred;
             private int encodeableRecordBatchSlotOffset;
             private int flushableRequestBytes;
@@ -1676,7 +1675,6 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
                     encodeableRecordBatchSlotOffset = encodeSlotLimit;
                     encodeSlotLimit = encodeableRecordBatch.limit();
-                    encodeableRecordBatchBytes += encodeableRecordBatch.sizeof();
                 }
 
                 assert encodeableRecordBatch != null;
@@ -1721,7 +1719,6 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
                 int newRecordSize = newRecordHeaderSize + valueSize + encodeableRecordBytesDeferred +
                     recordTrailerSize + headerSize;
-                encodeableRecordBatchBytes += newRecordSize;
 
                 final int recordBatchLength = encodeableRecordBatch.length();
                 final long maxTimestamp = Math.max(encodeableRecordBatch.maxTimestamp(), timestamp);
@@ -1933,7 +1930,6 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
                 assert flushableRequestBytes == 0;
                 flushableRequestBytes = requestSize + FIELD_OFFSET_API_KEY;
-                encodeableRecordBatchBytes -= recordBatchLength;
 
                 requestHeaderRW.wrap(encodeBuffer, requestHeader.offset(), requestHeader.limit())
                         .length(requestSize)
