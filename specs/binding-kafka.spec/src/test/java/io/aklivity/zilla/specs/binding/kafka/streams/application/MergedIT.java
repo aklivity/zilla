@@ -497,6 +497,18 @@ public class MergedIT
 
     @Test
     @Specification({
+        "${app}/unmerged.fetch.message.values.live/client",
+        "${app}/unmerged.fetch.message.values.live/server"})
+    public void shouldFetchUnmergedMessageValuesLive() throws Exception
+    {
+        k3po.start();
+        k3po.awaitBarrier("CHANGING_PARTITION_COUNT");
+        k3po.notifyBarrier("CHANGED_PARTITION_COUNT");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/unmerged.fetch.partition.offsets.latest/client",
         "${app}/unmerged.fetch.partition.offsets.latest/server"})
     public void shouldFetchUnmergedPartitionOffsetsLatest() throws Exception

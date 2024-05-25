@@ -45,7 +45,6 @@ public class BootstrapIT
         k3po.finish();
     }
 
-
     @Test
     @Specification({
         "${app}/group.fetch.message.value/client",

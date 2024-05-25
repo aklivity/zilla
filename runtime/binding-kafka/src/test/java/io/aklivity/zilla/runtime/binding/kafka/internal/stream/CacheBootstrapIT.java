@@ -73,6 +73,23 @@ public class CacheBootstrapIT
     }
 
     @Test
+    @Configuration("cache.options.bootstrap.live.yaml")
+    @Specification({
+        "${app}/unmerged.fetch.message.values.live/server"})
+    public void shouldReceiveMergedMessageValuesLive() throws Exception
+    {
+        Thread.sleep(500);
+        k3po.start();
+        k3po.awaitBarrier("CHANGING_PARTITION_COUNT");
+        Thread.sleep(200); // allow A1, B1, A2, B2 to be merged
+        k3po.notifyBarrier("CHANGED_PARTITION_COUNT");
+        k3po.awaitBarrier("SENT_MESSAGE_A2");
+        k3po.awaitBarrier("SENT_MESSAGE_B2");
+        k3po.awaitBarrier("SENT_MESSAGE_C2");
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("cache.yaml")
     @Specification({
         "${net}/group.fetch.message.value/client",
