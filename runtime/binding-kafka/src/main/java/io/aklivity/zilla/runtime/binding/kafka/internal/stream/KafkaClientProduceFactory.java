@@ -560,7 +560,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
         client.encodeableRecordBytesDeferred = deferred;
         client.valueCompleteSize = valueCompleteSize;
 
-        client.doEncodeRecordInit(traceId, timestamp, ackMode, key, payload, headers, producerId, producerEpoch, sequence);
+        client.doEncodeRecordInit(traceId, timestamp, producerId, producerEpoch, sequence, ackMode, key, payload, headers);
         if (client.encodeSlot != NO_SLOT)
         {
             client.flusher = flushRecordContFin;
@@ -1625,13 +1625,13 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
             private void doEncodeRecordInit(
                 long traceId,
                 long timestamp,
+                long producerId,
+                short producerEpoch,
+                int sequence,
                 KafkaAckMode ackMode,
                 KafkaKeyFW key,
                 OctetsFW value,
-                Array32FW<KafkaHeaderFW> headers,
-                long producerId,
-                short producerEpoch,
-                int sequence)
+                Array32FW<KafkaHeaderFW> headers)
             {
                 encodeableAckMode = maxAckMode(encodeableAckMode, ackMode);
 
