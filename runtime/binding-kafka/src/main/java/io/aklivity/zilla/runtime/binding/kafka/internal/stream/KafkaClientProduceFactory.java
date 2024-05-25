@@ -91,10 +91,12 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
     private static final int FLAGS_FIN = 0x01;
     private static final int FLAGS_INIT = 0x02;
 
+    private static final long RECORD_BATCH_PRODUCER_ID_NONE = -1;
+    private static final int RECORD_BATCH_BASE_SEQUENCE_NONE = -1;
     private static final byte RECORD_BATCH_MAGIC = 2;
+    private static final byte RECORD_ATTRIBUTES_NONE = 0;
     private static final short RECORD_BATCH_ATTRIBUTES_NONE = 0;
     private static final short RECORD_BATCH_ATTRIBUTES_NO_TIMESTAMP = 0x08;
-    private static final byte RECORD_ATTRIBUTES_NONE = 0;
 
     private static final String TRANSACTION_ID_NONE = null;
 
@@ -1681,6 +1683,8 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                     encodeSlotLimit = encodeableRecordBatchSlotOffset;
                     encodeableRecordBatchBytes -= latestRecordBatch.sizeof();
                 }
+
+                sequence = producerId == RECORD_BATCH_PRODUCER_ID_NONE ? RECORD_BATCH_BASE_SEQUENCE_NONE : sequence;
 
                 final int oldEncodeSlotLimit = encodeSlotLimit;
 

@@ -105,7 +105,7 @@ write 144                               # size
       ${newTimestamp}                   # last timestamp
       -1L
       -1s
-      0
+      -1
       2                                 # records
       ${kafka:varint(18)}
       [0x00]
