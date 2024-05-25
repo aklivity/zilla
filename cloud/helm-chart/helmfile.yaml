@@ -1,0 +1,8 @@
+releases:
+- name: zilla
+  namespace: default
+  chart: oci://ghcr.io/aklivity/charts/zilla
+  version: 0.9.81
+  values:
+    - zilla.yaml: '{{ readFile "zilla.yaml" }}'
+    
