@@ -101,7 +101,7 @@ read 144
      ${timestamp}                       # last timestamp
      -1L
      -1s
-     -1
+     0
      2                                  # records
      ${kafka:varint(18)}
      [0x00]
