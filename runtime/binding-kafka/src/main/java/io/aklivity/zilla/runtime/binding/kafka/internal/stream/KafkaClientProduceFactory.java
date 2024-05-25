@@ -1666,9 +1666,11 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 final int maxLimit = encodePool.slotCapacity();
                 final MutableDirectBuffer encodeSlotBuffer = encodePool.buffer(encodeSlot);
 
-                RecordBatchFW latestRecordBatch = recordBatchRO.wrap(encodeSlotBuffer, encodeableRecordBatchSlotOffset, maxLimit);
+                final RecordBatchFW latestRecordBatch = recordBatchRO.tryWrap(
+                    encodeSlotBuffer, encodeableRecordBatchSlotOffset, encodeSlotLimit);
 
-                if (latestRecordBatch.producerId() == producerId &&
+                if (latestRecordBatch != null &&
+                    latestRecordBatch.producerId() == producerId &&
                     latestRecordBatch.producerEpoch() == producerEpoch &&
                     latestRecordBatch.baseSequence() <= sequence)
                 {
