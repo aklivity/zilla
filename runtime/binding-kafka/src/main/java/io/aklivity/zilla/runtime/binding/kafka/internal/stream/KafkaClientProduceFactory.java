@@ -1654,7 +1654,6 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                     encodeableRecordBatchSlotOffset = encodeSlotLimit;
                 }
 
-                final int oldEncodeSlotLimit = encodeableRecordBatchSlotOffset;
                 short attributes = encodeableRecordBatchTimestampMax == 0L
                         ? RECORD_BATCH_ATTRIBUTES_NO_TIMESTAMP
                         : RECORD_BATCH_ATTRIBUTES_NONE;
@@ -1682,6 +1681,8 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                     encodeSlotLimit = encodeableRecordBatchSlotOffset;
                     encodeableRecordBatchBytes -= latestRecordBatch.sizeof();
                 }
+
+                final int oldEncodeSlotLimit = encodeSlotLimit;
 
                 final RecordBatchFW recordBatch = recordBatchRW.wrap(encodeSlotBuffer, encodeSlotLimit, maxLimit)
                         .baseOffset(0)
