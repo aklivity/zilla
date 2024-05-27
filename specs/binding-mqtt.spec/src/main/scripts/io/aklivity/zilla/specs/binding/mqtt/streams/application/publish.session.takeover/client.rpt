@@ -70,12 +70,4 @@ write zilla:data.ext ${mqtt:dataEx()
 
 write "message1"
 
-write zilla:data.ext ${mqtt:dataEx()
-                             .typeId(zilla:id("mqtt"))
-                             .publish()
-                                .build()
-                             .build()}
-
-write "test"
-
-write abort
+write close
