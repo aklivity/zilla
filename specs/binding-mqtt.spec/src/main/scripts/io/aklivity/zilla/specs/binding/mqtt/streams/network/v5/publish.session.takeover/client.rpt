@@ -40,7 +40,6 @@ write [0x30 0x15]                    # PUBLISH
       [0x00]                         # properties
       "message1"                     # payload
 
-read notify SENT_FIRST_MESSAGE
 write await SENT_CLOSE
 write [0x30 0x11]                    # PUBLISH
       [0x00 0x0a] "sensor/one"       # topic name

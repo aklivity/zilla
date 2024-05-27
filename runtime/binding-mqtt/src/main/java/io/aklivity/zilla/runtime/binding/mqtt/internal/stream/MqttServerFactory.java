@@ -1492,7 +1492,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         int reasonCode = SUCCESS;
 
         decode:
-        if (length >= 0)
+        if (length >= 0 && !MqttState.replyClosed(server.state))
         {
             MqttServer.MqttPublishStream publisher = server.publishes.get(server.decodePublisherKey);
 
@@ -6061,7 +6061,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             private void doPublishAppEnd(
                 long traceId)
             {
-                if (!MqttState.initialClosed(state) && publishPayloadBytes == 0)
+                if (!MqttState.initialClosed(state))
                 {
                     doCancelPublishExpiration();
                     publishes.remove(topicKey);

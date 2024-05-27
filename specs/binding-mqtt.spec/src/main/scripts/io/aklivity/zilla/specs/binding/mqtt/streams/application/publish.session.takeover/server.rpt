@@ -45,7 +45,7 @@ connected
 write zilla:data.empty
 write flush
 
-write await SENT_FIRST_MESSAGE
+write await RECEIVED_FIRST_MESSAGE
 write close
 write notify SENT_CLOSE
 
@@ -69,13 +69,6 @@ read zilla:data.ext ${mqtt:matchDataEx()
                             .build()}
 
 read "message1"
+read notify RECEIVED_FIRST_MESSAGE
 
-read zilla:data.ext ${mqtt:matchDataEx()
-                            .typeId(zilla:id("mqtt"))
-                            .publish()
-                                .build()
-                            .build()}
-
-read "test"
-
-read aborted
+read closed
