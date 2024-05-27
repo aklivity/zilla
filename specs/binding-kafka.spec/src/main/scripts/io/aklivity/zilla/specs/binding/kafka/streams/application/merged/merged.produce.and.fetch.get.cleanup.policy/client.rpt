@@ -16,7 +16,7 @@
 
 connect "zilla://streams/app0"
     option zilla:window 16
-    option zilla:transmission "half-duplex"
+    option zilla:transmission "duplex"
 
 write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
@@ -27,6 +27,15 @@ write zilla:begin.ext ${kafka:beginEx()
                                    .filter()
                                        .header("header1", "value1")
                                        .build()
+                                   .build()
+                               .build()}
+
+read zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .merged()
+                                    .capabilities("PRODUCE_AND_FETCH")
+                                    .topic("test")
+                                    .config("cleanup.policy", "compact")
                                    .build()
                                .build()}
 
