@@ -1492,7 +1492,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         int reasonCode = SUCCESS;
 
         decode:
-        if (length >= 0 && !MqttState.replyClosed(server.state))
+        if (length >= 0)
         {
             MqttServer.MqttPublishStream publisher = server.publishes.get(server.decodePublisherKey);
 
@@ -4890,6 +4890,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 session.cleanupEnd(traceId);
             }
+            decoder = decodeIgnoreAll;
         }
 
         private void cleanupBudgetCreditor()
