@@ -69,6 +69,16 @@ public class PublishIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/publish.session.takeover/client",
+        "${app}/publish.session.takeover/server"})
+    public void shouldPublishAfterSessionTakeover() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/publish.one.message.disconnect/client",
         "${app}/publish.one.message.properties/server"})
     public void shouldPublishOneMessageAndDisconnect() throws Exception
