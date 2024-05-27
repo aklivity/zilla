@@ -44,6 +44,7 @@ public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapt
     private static final String ID_NAME = "id";
     private static final String SCHEMA_NAME = "schema";
     private static final String DELAY_NAME = "delay";
+    private static final String RESOLVE_NAME = "resolve";
 
     private final SchemaConfigAdapter schema = new SchemaConfigAdapter();
 
@@ -175,7 +176,8 @@ public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapt
                             catalogAssertions.add(new TestBindingOptionsConfig.CatalogAssertion(
                                 c.containsKey(ID_NAME) ? c.getInt(ID_NAME) : 0,
                                 c.containsKey(SCHEMA_NAME) ? !c.isNull(SCHEMA_NAME) ? c.getString(SCHEMA_NAME) : null : null,
-                                c.containsKey(DELAY_NAME) ? c.getJsonNumber(DELAY_NAME).longValue() : 0L));
+                                c.containsKey(DELAY_NAME) ? c.getJsonNumber(DELAY_NAME).longValue() : 0L,
+                                c.containsKey(RESOLVE_NAME) ? c.getBoolean(RESOLVE_NAME) : false));
                         }
                         testOptions.catalogAssertions(catalogName, catalogAssertions);
                     }

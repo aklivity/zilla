@@ -275,6 +275,18 @@ final class TestBindingFactory implements BindingHandler
                             {
                                 doInitialReset(traceId);
                             }
+                            if (assertion.resolve)
+                            {
+                                String schema = handler.resolve(id);
+                                if (assertion.schema == null && schema != null)
+                                {
+                                    doInitialReset(traceId);
+                                }
+                                else if (assertion.schema != null && !assertion.schema.equals(schema))
+                                {
+                                    doInitialReset(traceId);
+                                }
+                            }
                         }
                         else
                         {

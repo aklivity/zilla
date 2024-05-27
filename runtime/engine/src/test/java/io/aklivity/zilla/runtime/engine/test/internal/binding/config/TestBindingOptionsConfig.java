@@ -87,15 +87,18 @@ public final class TestBindingOptionsConfig extends OptionsConfig
         public final int id;
         public final String schema;
         public final long delay;
+        public final boolean resolve;
 
         public CatalogAssertion(
             int id,
             String schema,
-            long delay)
+            long delay,
+            boolean resolve)
         {
             this.id = id;
             this.schema = schema;
             this.delay = delay;
+            this.resolve = resolve;
         }
     }
 }
