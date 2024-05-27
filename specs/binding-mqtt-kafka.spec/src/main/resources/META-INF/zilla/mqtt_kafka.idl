@@ -35,7 +35,7 @@ scope mqtt_kafka
     {
         enum MqttKafkaEventType (uint8)
         {
-            RESET_MQTT_CONNECTION (1)
+            NON_COMPACT_SESSIONS_TOPIC (1)
         }
 
         struct MqttKafkaResetMqttConnectionEx extends core::stream::Extension
@@ -45,7 +45,7 @@ scope mqtt_kafka
 
         union MqttKafkaEventEx switch (MqttKafkaEventType)
         {
-            case RESET_MQTT_CONNECTION: MqttKafkaResetMqttConnectionEx resetMqttConnection;
+            case NON_COMPACT_SESSIONS_TOPIC: MqttKafkaResetMqttConnectionEx nonCompactSessionsTopic;
         }
     }
 }

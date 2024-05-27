@@ -25,7 +25,7 @@ import io.aklivity.zilla.runtime.engine.event.EventFormatterSpi;
 
 public final class MqttKafkaEventFormatter implements EventFormatterSpi
 {
-    private static final String MQTT_CONNECTION_RESET_FORMAT = "MQTT CONNECTION RESET - %s";
+    private static final String NON_COMPACT_SESSIONS_TOPIC_FORMAT = "NON COMPACT SESSIONS TOPIC - %s";
 
     private final EventFW eventRO = new EventFW();
     private final MqttKafkaEventExFW mqttKafkaEventExRO = new MqttKafkaEventExFW();
@@ -46,10 +46,10 @@ public final class MqttKafkaEventFormatter implements EventFormatterSpi
         String result = null;
         switch (extension.kind())
         {
-        case RESET_MQTT_CONNECTION:
+        case NON_COMPACT_SESSIONS_TOPIC:
         {
-            MqttKafkaResetMqttConnectionExFW ex = extension.resetMqttConnection();
-            result = String.format(MQTT_CONNECTION_RESET_FORMAT, asString(ex.reason()));
+            MqttKafkaResetMqttConnectionExFW ex = extension.nonCompactSessionsTopic();
+            result = String.format(NON_COMPACT_SESSIONS_TOPIC_FORMAT, asString(ex.reason()));
             break;
         }
         }

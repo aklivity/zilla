@@ -30,4 +30,13 @@ write zilla:begin.ext ${kafka:beginEx()
                                    .build()
                                .build()}
 
+read zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .merged()
+                                    .capabilities("PRODUCE_AND_FETCH")
+                                    .topic("test")
+                                    .config("cleanup.policy", "compact")
+                                   .build()
+                               .build()}
+
 connected

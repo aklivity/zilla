@@ -40,6 +40,5 @@ connected
 read zilla:reset.ext ${mqtt:resetEx()
                            .typeId(zilla:id("mqtt"))
                            .reasonCode(131)
-                           .reason("Sessions Kafka topic in non-compacted")
                            .build()}
 write aborted

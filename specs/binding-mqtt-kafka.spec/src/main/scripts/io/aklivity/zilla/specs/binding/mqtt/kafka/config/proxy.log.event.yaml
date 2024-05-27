@@ -22,8 +22,8 @@ telemetry:
       options:
         events:
           - qname: test.kafka0
-            id: binding.mqtt.kafka.reset.mqtt.connection
-            message: MQTT CONNECTION RESET - Sessions Kafka topic in non-compacted
+            id: binding.mqtt.kafka.non.compact.sessions.topic
+            message: NON COMPACT SESSIONS TOPIC - Sessions Kafka topic in non-compacted
 bindings:
   mqtt0:
     type: mqtt-kafka

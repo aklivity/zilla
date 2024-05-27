@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal;
 
-import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.event.MqttKafkaEventType.RESET_MQTT_CONNECTION;
+import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.event.MqttKafkaEventType.NON_COMPACT_SESSIONS_TOPIC;
 
 import java.nio.ByteBuffer;
 import java.time.Clock;
@@ -37,7 +37,7 @@ public class MqttKafkaEventContext
     private final EventFW.Builder eventRW = new EventFW.Builder();
     private final MqttKafkaEventExFW.Builder mqttKafkaEventExRW = new MqttKafkaEventExFW.Builder();
     private final int mqttTypeId;
-    private final int resetMqttConnectionEventId;
+    private final int nonCompactSessionsTopicEventId;
     private final MessageConsumer eventWriter;
     private final Clock clock;
 
@@ -45,7 +45,7 @@ public class MqttKafkaEventContext
         EngineContext context)
     {
         this.mqttTypeId = context.supplyTypeId(MqttKafkaBinding.NAME);
-        this.resetMqttConnectionEventId = context.supplyEventId("binding.mqtt.kafka.reset.mqtt.connection");
+        this.nonCompactSessionsTopicEventId = context.supplyEventId("binding.mqtt.kafka.non.compact.sessions.topic");
         this.eventWriter = context.supplyEventWriter();
         this.clock = context.clock();
     }
@@ -57,13 +57,13 @@ public class MqttKafkaEventContext
     {
         MqttKafkaEventExFW extension = mqttKafkaEventExRW
             .wrap(extensionBuffer, 0, extensionBuffer.capacity())
-            .resetMqttConnection(e -> e
-                .typeId(RESET_MQTT_CONNECTION.value())
+            .nonCompactSessionsTopic(e -> e
+                .typeId(NON_COMPACT_SESSIONS_TOPIC.value())
                 .reason(reason))
             .build();
         EventFW event = eventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
-            .id(resetMqttConnectionEventId)
+            .id(nonCompactSessionsTopicEventId)
             .timestamp(clock.millis())
             .traceId(traceId)
             .namespacedId(bindingId)

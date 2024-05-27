@@ -171,8 +171,11 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     public static final int MQTT_IMPLEMENTATION_SPECIFIC_ERROR = 0x83;
     public static final String MQTT_INVALID_SESSION_TIMEOUT_REASON = "Invalid session expiry interval";
     public static final String16FW MQTT_NON_COMPACT_SESSIONS_TOPIC = new String16FW("Sessions Kafka topic in non-compacted");
-    private static final String16FW CONFIG_NAME_CLEANUP_POLICY = new String16FW("cleanup.policy");
-    private static final String16FW COMPACT_CLEANUP_POLICY = new String16FW("compact");
+    private static final KafkaConfigFW CONFIG_COMPACT_CLEANUP_POLICY = new KafkaConfigFW.Builder()
+        .wrap(new UnsafeBuffer(new byte[25]), 0, 25)
+        .name("cleanup.policy")
+        .value("compact")
+        .build();
 
     static
     {
@@ -3456,15 +3459,13 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                     final KafkaMergedBeginExFW kafkaMergedBeginEx = kafkaBeginEx.merged();
 
                     final KafkaConfigFW cleanupPolicyConfig =
-                        kafkaMergedBeginEx.configs().matchFirst(c -> c.name().equals(CONFIG_NAME_CLEANUP_POLICY));
-                    final String16FW cleanupPolicy = cleanupPolicyConfig != null ? cleanupPolicyConfig.value() : null;
+                        kafkaMergedBeginEx.configs().matchFirst(c -> c.equals(CONFIG_COMPACT_CLEANUP_POLICY));
 
-                    if (cleanupPolicy == null || !cleanupPolicy.equals(COMPACT_CLEANUP_POLICY))
+                    if (cleanupPolicyConfig == null)
                     {
                         Flyweight mqttResetEx = mqttSessionResetExRW.wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())
                             .typeId(mqttTypeId)
                             .reasonCode(MQTT_IMPLEMENTATION_SPECIFIC_ERROR)
-                            .reason(MQTT_NON_COMPACT_SESSIONS_TOPIC)
                             .build();
                         delegate.doMqttWindow(authorization, traceId, 0, 0, 0);
                         delegate.doMqttReset(traceId, mqttResetEx);

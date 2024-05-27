@@ -1035,7 +1035,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private final KafkaIsolation isolation;
         private final KafkaDeltaType deltaType;
         private final KafkaAckMode ackMode;
-        private final Object2ObjectHashMap<String, String> configs;
+        private final Object2ObjectHashMap<String16FW, String> configs;
 
         private KafkaOffsetType maximumOffset;
         private List<KafkaMergedFilter> filters;
@@ -1663,8 +1663,13 @@ public final class KafkaMergedFactory implements BindingHandler
                             .latestOffset(v)
                             .metadata(metadataRW.length() > 0 ? metadataRW.toString() : null));
                 });
-                builder.configsItem(c -> c.name(CONFIG_NAME_CLEANUP_POLICY)
-                    .value(configs.get(CONFIG_NAME_CLEANUP_POLICY.asString())));
+                String cleanupPolicy = configs.get(CONFIG_NAME_CLEANUP_POLICY);
+                if (cleanupPolicy != null)
+                {
+                    builder.configsItem(c ->
+                        c.name(CONFIG_NAME_CLEANUP_POLICY)
+                            .value(cleanupPolicy));
+                }
             };
         }
 
@@ -1674,8 +1679,13 @@ public final class KafkaMergedFactory implements BindingHandler
             {
                 builder.capabilities(c -> c.set(PRODUCE_ONLY)).topic(topic);
                 leadersByPartitionId.intForEach((k, v) -> builder.partitionsItem(i -> i.partitionId(k)));
-                builder.configsItem(c -> c.name(CONFIG_NAME_CLEANUP_POLICY)
-                    .value(configs.get(CONFIG_NAME_CLEANUP_POLICY.asString())));
+                String cleanupPolicy = configs.get(CONFIG_NAME_CLEANUP_POLICY);
+                if (cleanupPolicy != null)
+                {
+                    builder.configsItem(c ->
+                        c.name(CONFIG_NAME_CLEANUP_POLICY)
+                            .value(cleanupPolicy));
+                }
             };
         }
 
@@ -1684,9 +1694,14 @@ public final class KafkaMergedFactory implements BindingHandler
             return builder ->
             {
                 builder.capabilities(c -> c.set(PRODUCE_AND_FETCH))
-                    .topic(topic)
-                    .configsItem(c -> c.name(CONFIG_NAME_CLEANUP_POLICY)
-                        .value(configs.get(CONFIG_NAME_CLEANUP_POLICY.asString())));
+                    .topic(topic);
+                String cleanupPolicy = configs.get(CONFIG_NAME_CLEANUP_POLICY);
+                if (cleanupPolicy != null)
+                {
+                    builder.configsItem(c ->
+                        c.name(CONFIG_NAME_CLEANUP_POLICY)
+                            .value(cleanupPolicy));
+                }
             };
         }
 
@@ -1971,7 +1986,13 @@ public final class KafkaMergedFactory implements BindingHandler
             long traceId,
             ArrayFW<KafkaConfigFW> configs)
         {
-            configs.forEach(c -> this.configs.put(c.name().asString(), c.value().asString()));
+            configs.forEach(c ->
+            {
+                if (c.name().equals(CONFIG_NAME_CLEANUP_POLICY))
+                {
+                    this.configs.put(CONFIG_NAME_CLEANUP_POLICY, c.value().asString());
+                }
+            });
             metaStream.doMetaInitialBeginIfNecessary(traceId);
         }
 
