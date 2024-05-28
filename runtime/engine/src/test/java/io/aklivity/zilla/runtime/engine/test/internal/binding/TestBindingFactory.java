@@ -15,8 +15,11 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.binding;
 
+import static io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfigAdapter.DEFAULT_ASSERTION_SCHEMA;
+
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
@@ -275,7 +278,7 @@ final class TestBindingFactory implements BindingHandler
                             {
                                 doInitialReset(traceId);
                             }
-                            if (assertion.resolve)
+                            if (!Objects.equals(DEFAULT_ASSERTION_SCHEMA, assertion.schema))
                             {
                                 String schema = handler.resolve(id);
                                 if (assertion.schema == null && schema != null)

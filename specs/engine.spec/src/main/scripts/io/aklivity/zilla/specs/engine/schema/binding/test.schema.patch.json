@@ -83,10 +83,6 @@
                                                     "delay":
                                                     {
                                                         "type": "number"
-                                                    },
-                                                    "resolve":
-                                                    {
-                                                        "type": "boolean"
                                                     }
                                                 }
                                             }
