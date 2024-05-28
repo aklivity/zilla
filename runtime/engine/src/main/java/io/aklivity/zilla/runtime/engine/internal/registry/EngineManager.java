@@ -430,7 +430,7 @@ public class EngineManager
             this.matchName = NamespaceAdapter.PATTERN_NAME.matcher("");
         }
 
-        private long resolve(
+        private synchronized long resolve(
             String name)
         {
             long id = 0L;
