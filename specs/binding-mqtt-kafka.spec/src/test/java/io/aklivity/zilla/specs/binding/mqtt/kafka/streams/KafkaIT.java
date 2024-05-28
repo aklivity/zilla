@@ -640,6 +640,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/session.reject.non.compacted.sessions.topic/client",
+        "${kafka}/session.reject.non.compacted.sessions.topic/server"})
+    public void shouldRejectSessionNonCompactedSessionsTopic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/session.subscribe.via.session.state/client",
         "${kafka}/session.subscribe.via.session.state/server"})
     public void shouldReceiveMessageSubscribedViaSessionState() throws Exception

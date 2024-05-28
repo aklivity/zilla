@@ -2391,6 +2391,11 @@ function handle_kafka_begin_merged_extension(buffer, offset, ext_subtree)
     local ack_mode = kafka_ext_ack_modes[slice_ack_mode_id:le_int()]
     ext_subtree:add_le(fields.kafka_ext_ack_mode_id, slice_ack_mode_id)
     ext_subtree:add(fields.kafka_ext_ack_mode, ack_mode)
+    -- configs
+    local configs_offset = ack_mode_offset + ack_mode_length
+    local configs_length = resolve_length_of_array(buffer, configs_offset)
+    dissect_and_add_kafka_config_struct_array(buffer, configs_offset, ext_subtree, fields.kafka_ext_config_array_length,
+        fields.kafka_ext_config_array_size)
 end
 
 function handle_kafka_begin_init_producer_id_extension(buffer, offset, ext_subtree)
