@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config;
 
+import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttQoS.AT_LEAST_ONCE;
 import static java.util.stream.Collectors.toList;
 
 import java.util.ArrayList;
@@ -99,7 +100,7 @@ public class MqttKafkaBindingConfig
     public MqttQoS publishQosMax()
     {
         return routes.stream().noneMatch(r -> r.with != null && r.with.containsParams()) ?
-            MqttQoS.EXACTLY_ONCE : MqttQoS.AT_LEAST_ONCE;
+            options.publish.qosMax : AT_LEAST_ONCE;
     }
 
     public String16FW messagesTopic()
