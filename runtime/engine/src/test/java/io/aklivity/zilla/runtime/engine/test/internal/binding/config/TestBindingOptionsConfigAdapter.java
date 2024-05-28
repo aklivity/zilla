@@ -33,6 +33,8 @@ import io.aklivity.zilla.runtime.engine.config.SchemaConfigAdapter;
 
 public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapterSpi
 {
+    public static final String DEFAULT_ASSERTION_SCHEMA = new String();
+
     private static final String MODE_NAME = "mode";
     private static final String CATALOG_NAME = "catalog";
     private static final String AUTHORIZATION_NAME = "authorization";
@@ -174,7 +176,8 @@ public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapt
                             JsonObject c = assertion.asJsonObject();
                             catalogAssertions.add(new TestBindingOptionsConfig.CatalogAssertion(
                                 c.containsKey(ID_NAME) ? c.getInt(ID_NAME) : 0,
-                                c.containsKey(SCHEMA_NAME) ? !c.isNull(SCHEMA_NAME) ? c.getString(SCHEMA_NAME) : null : null,
+                                c.containsKey(SCHEMA_NAME) ? !c.isNull(SCHEMA_NAME) ? c.getString(SCHEMA_NAME)
+                                    : null : DEFAULT_ASSERTION_SCHEMA,
                                 c.containsKey(DELAY_NAME) ? c.getJsonNumber(DELAY_NAME).longValue() : 0L));
                         }
                         testOptions.catalogAssertions(catalogName, catalogAssertions);
