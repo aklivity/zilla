@@ -87,6 +87,16 @@ public class SessionIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/session.subscribe/client",
+        "${app}/session.subscribe.invalid.state/server"})
+    public void shouldSubscribeInvalidSessionState() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/session.subscribe.multiple.isolated/client",
         "${app}/session.subscribe.multiple.isolated/server"})
     public void shouldSubscribeMultipleSaveSubscriptionsInSession() throws Exception
@@ -262,6 +272,16 @@ public class SessionIT
         "${net}/session.subscribe.publish.routing/client",
         "${app}/session.subscribe.publish.routing/server"})
     public void shouldSubscribeAndPublishToNonDefaultRoute() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/session.reject.non.compacted.sessions.topic/client",
+        "${app}/session.reject.non.compacted.sessions.topic/server"})
+    public void shouldRejectSessionNonCompactedSessionsTopic() throws Exception
     {
         k3po.finish();
     }

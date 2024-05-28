@@ -2,7 +2,18 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.80...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.81...HEAD)
+
+**Fixed bugs:**
+
+- Zilla crashes with `IllegalArgumentException: cannot accept missingValue` when using `defaultOffset: live` [\#1051](https://github.com/aklivity/zilla/issues/1051)
+- Zilla crashes on mqtt cli -T option [\#1039](https://github.com/aklivity/zilla/issues/1039)
+- Running `emqtt_bench` both `sub` and `pub` triggers an exception [\#1000](https://github.com/aklivity/zilla/issues/1000)
+- `http-kafka` will `fetch` messages that have been deleted by a retention policy [\#897](https://github.com/aklivity/zilla/issues/897)
+
+## [0.9.81](https://github.com/aklivity/zilla/tree/0.9.81) (2024-05-24)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.80...0.9.81)
 
 **Implemented enhancements:**
 
@@ -15,6 +26,15 @@
 
 - Telemetry attribute service.name doesn't get sent correctly [\#1007](https://github.com/aklivity/zilla/issues/1007)
 - Streampay `zilla` instance crashes while trying to access  `https://localhost:9090` [\#975](https://github.com/aklivity/zilla/issues/975)
+
+**Merged pull requests:**
+
+- Add service.name attribute to metrics [\#1048](https://github.com/aklivity/zilla/pull/1048) ([attilakreiner](https://github.com/attilakreiner))
+- Starting Zilla with the CLI improvement [\#1042](https://github.com/aklivity/zilla/pull/1042) ([aDaemonThread](https://github.com/aDaemonThread))
+- Sort frames by timestamp in dump command [\#1041](https://github.com/aklivity/zilla/pull/1041) ([attilakreiner](https://github.com/attilakreiner))
+- Ensure new mqtt subscriptions are not empty [\#1040](https://github.com/aklivity/zilla/pull/1040) ([jfallows](https://github.com/jfallows))
+- Add zilla context to MQTT consumer groups [\#1035](https://github.com/aklivity/zilla/pull/1035) ([bmaidics](https://github.com/bmaidics))
+- Split protocol testing into separate ITs for zilla dump command [\#989](https://github.com/aklivity/zilla/pull/989) ([attilakreiner](https://github.com/attilakreiner))
 
 ## [0.9.80](https://github.com/aklivity/zilla/tree/0.9.80) (2024-05-20)
 

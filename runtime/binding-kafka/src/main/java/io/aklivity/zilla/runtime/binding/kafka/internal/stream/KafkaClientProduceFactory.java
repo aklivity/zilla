@@ -32,7 +32,6 @@ import java.util.function.Consumer;
 import java.util.function.LongFunction;
 import java.util.zip.CRC32C;
 
-import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.LongLongConsumer;
@@ -92,14 +91,12 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
     private static final int FLAGS_FIN = 0x01;
     private static final int FLAGS_INIT = 0x02;
 
+    private static final long RECORD_BATCH_PRODUCER_ID_NONE = -1;
+    private static final int RECORD_BATCH_BASE_SEQUENCE_NONE = -1;
     private static final byte RECORD_BATCH_MAGIC = 2;
+    private static final byte RECORD_ATTRIBUTES_NONE = 0;
     private static final short RECORD_BATCH_ATTRIBUTES_NONE = 0;
     private static final short RECORD_BATCH_ATTRIBUTES_NO_TIMESTAMP = 0x08;
-    private static final long RECORD_BATCH_PRODUCER_ID_NONE = -1;
-    private static final short RECORD_BATCH_PRODUCER_EPOCH_NONE = -1;
-    private static final int RECORD_BATCH_BASE_SEQUENCE_NONE = -1;
-    private static final int RECORD_SEQUENCE_NONE = -1;
-    private static final byte RECORD_ATTRIBUTES_NONE = 0;
 
     private static final String TRANSACTION_ID_NONE = null;
 
@@ -151,6 +148,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
     private final RecordHeaderFW.Builder recordHeaderRW = new RecordHeaderFW.Builder();
     private final RecordTrailerFW.Builder recordTrailerRW = new RecordTrailerFW.Builder();
 
+    private final RecordBatchFW recordBatchRO = new RecordBatchFW();
     private final ResponseHeaderFW responseHeaderRO = new ResponseHeaderFW();
     private final ProduceResponseFW produceResponseRO = new ProduceResponseFW();
     private final ProduceTopicResponseFW produceTopicResponseRO = new ProduceTopicResponseFW();
@@ -253,7 +251,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
             final KafkaBindingConfig binding = supplyBinding.apply(routedId);
             final KafkaRouteConfig resolved = binding != null ? binding.resolve(authorization, topicName) : null;
 
-            if (resolved != null && kafkaBeginEx != null)
+            if (resolved != null)
             {
                 final long resolvedId = resolved.id;
                 final int partitionId = kafkaProduceBeginEx.partition().partitionId();
@@ -553,10 +551,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
         final int maxEncodeableBytes = client.encodeSlotLimit + client.valueCompleteSize + produceRecordFramingSize;
 
         if (client.encodeSlot != NO_SLOT &&
-            (maxEncodeableBytes > encodePool.slotCapacity() ||
-                client.producerId != producerId ||
-                client.producerEpoch != producerEpoch ||
-                sequence <= client.sequence && sequence != RECORD_BATCH_BASE_SEQUENCE_NONE))
+            maxEncodeableBytes > encodePool.slotCapacity())
         {
             client.doEncodeRequestIfNecessary(traceId, budgetId);
         }
@@ -565,16 +560,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
         client.encodeableRecordBytesDeferred = deferred;
         client.valueCompleteSize = valueCompleteSize;
 
-        if (client.producerId == RECORD_BATCH_PRODUCER_ID_NONE)
-        {
-            client.baseSequence = sequence;
-        }
-
-        client.producerId = producerId;
-        client.producerEpoch = producerEpoch;
-        client.sequence = sequence;
-
-        client.doEncodeRecordInit(traceId, timestamp, ackMode, key, payload, headers);
+        client.doEncodeRecordInit(traceId, timestamp, producerId, producerEpoch, sequence, ackMode, key, payload, headers);
         if (client.encodeSlot != NO_SLOT)
         {
             client.flusher = flushRecordContFin;
@@ -1237,14 +1223,9 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
             private int encodeSlotLimit;
             private long encodeSlotTraceId;
 
-            private long encodeableRecordBatchTimestamp;
-            private long encodeableRecordBatchTimestampMax;
-            private long encodeableRecordTimestamp;
             private int flushableRecordHeadersBytes;
-            private int encodeableRecordCount;
-            private int encodeableRecordBytes;
             private int encodeableRecordBytesDeferred;
-            private int encodeableRecordValueBytes;
+            private int encodeableRecordBatchSlotOffset;
             private int flushableRequestBytes;
 
             private int decodeSlot = NO_SLOT;
@@ -1264,11 +1245,6 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
             private LongLongConsumer encoder;
             private boolean flushable;
 
-            private long producerId = RECORD_BATCH_PRODUCER_ID_NONE;
-            private short producerEpoch = RECORD_BATCH_PRODUCER_EPOCH_NONE;
-            private int baseSequence = RECORD_BATCH_BASE_SEQUENCE_NONE;
-            private int sequence = RECORD_SEQUENCE_NONE;
-
             KafkaProduceClient(
                 KafkaProduceStream stream,
                 long resolvedId,
@@ -1282,8 +1258,6 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 this.topic = requireNonNull(topic);
                 this.partitionId = partitionId;
                 this.flusher = flushRecord;
-                this.encodeableRecordBatchTimestamp = TIMESTAMP_NONE;
-                this.encodeableRecordBatchTimestampMax = TIMESTAMP_NONE;
                 this.encodeableAckMode = KafkaAckMode.NONE;
 
                 this.flushable = sasl == null;
@@ -1651,88 +1625,126 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
             private void doEncodeRecordInit(
                 long traceId,
                 long timestamp,
+                long producerId,
+                short producerEpoch,
+                int sequence,
                 KafkaAckMode ackMode,
                 KafkaKeyFW key,
                 OctetsFW value,
                 Array32FW<KafkaHeaderFW> headers)
             {
-                encodeableRecordTimestamp = timestamp;
-                if (encodeableRecordBatchTimestamp == TIMESTAMP_NONE)
-                {
-                    encodeableRecordBatchTimestamp = timestamp;
-                }
-
-                final MutableDirectBuffer encodeBuffer = writeBuffer;
-                final int encodeLimit = writeBuffer.capacity();
-                int encodeProgress = 0;
-
-                final int headersCount = headers.fieldCount();
-                final RecordTrailerFW recordTrailer = recordTrailerRW.wrap(encodeBuffer, 0, encodeLimit)
-                                                                     .headerCount(headersCount)
-                                                                     .build();
-                final int recordTrailerSize = recordTrailer.limit();
-
-                final int timestampDelta = (int) (timestamp - encodeableRecordBatchTimestamp);
-                RecordHeaderFW recordHeader = recordHeaderRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
-                        .length(Integer.MAX_VALUE)
-                        .attributes(RECORD_ATTRIBUTES_NONE)
-                        .timestampDelta(timestampDelta)
-                        .offsetDelta(encodeableRecordCount)
-                        .keyLength(key.length())
-                        .key(key.value())
-                        .valueLength(value != null ? value.sizeof() + encodeableRecordBytesDeferred : -1)
-                        .build();
-
-                final int valueSize = value != null ? value.sizeof() : 0;
-                final int recordHeaderSize = recordHeader.limit();
-                final int headerSize = headers.items().capacity();
-                final int recordSize = recordHeaderSize + valueSize + encodeableRecordBytesDeferred + recordTrailerSize +
-                            headerSize - RECORD_LENGTH_MAX;
-                final int valueLength = value != null ? value.sizeof() + encodeableRecordBytesDeferred : -1;
-
-                recordHeader = recordHeaderRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
-                                             .length(recordSize)
-                                             .attributes(RECORD_ATTRIBUTES_NONE)
-                                             .timestampDelta(timestampDelta)
-                                             .offsetDelta(encodeableRecordCount)
-                                             .keyLength(key.length())
-                                             .key(key.value())
-                                             .valueLength(valueLength)
-                                             .build();
-
-                final int newRecordSize = recordHeader.limit();
-                encodeProgress += newRecordSize;
-                encodeableRecordBytes += newRecordSize + valueSize + encodeableRecordBytesDeferred +
-                        recordTrailerSize + headerSize;
+                encodeableAckMode = maxAckMode(encodeableAckMode, ackMode);
 
                 if (encodeSlot == NO_SLOT)
                 {
                     encodeSlot = encodePool.acquire(initialId);
                     encodeSlotOffset = PRODUCE_REQUEST_RECORDS_OFFSET_MAX;
                     encodeSlotLimit = encodeSlotOffset;
+                    encodeableRecordBatchSlotOffset = encodeSlotLimit;
                 }
 
-                if (encodeSlot != NO_SLOT)
+                assert encodeSlot != NO_SLOT;
+                final int maxLimit = encodePool.slotCapacity();
+                final MutableDirectBuffer encodeSlotBuffer = encodePool.buffer(encodeSlot);
+
+                RecordBatchFW encodeableRecordBatch = recordBatchRO.tryWrap(
+                    encodeSlotBuffer, encodeableRecordBatchSlotOffset, encodeSlotLimit);
+
+                if (encodeableRecordBatch == null ||
+                    encodeableRecordBatch.producerId() != producerId ||
+                    encodeableRecordBatch.producerEpoch() != producerEpoch ||
+                    encodeableRecordBatch.baseSequence() >= sequence)
                 {
-                    final MutableDirectBuffer encodeSlotBuffer = encodePool.buffer(encodeSlot);
+                    encodeableRecordBatch = recordBatchRW.wrap(encodeSlotBuffer, encodeSlotLimit, maxLimit)
+                        .baseOffset(0)
+                        .length(FIELD_OFFSET_RECORD_COUNT - FIELD_OFFSET_LENGTH)
+                        .leaderEpoch(-1)
+                        .magic(RECORD_BATCH_MAGIC)
+                        .crc(0)
+                        .attributes(RECORD_BATCH_ATTRIBUTES_NONE)
+                        .lastOffsetDelta(0)
+                        .firstTimestamp(timestamp)
+                        .maxTimestamp(TIMESTAMP_NONE)
+                        .producerId(producerId)
+                        .producerEpoch(producerEpoch)
+                        .baseSequence(producerId == RECORD_BATCH_PRODUCER_ID_NONE
+                            ? RECORD_BATCH_BASE_SEQUENCE_NONE
+                            : sequence)
+                        .recordCount(0)
+                        .build();
 
-                    encodeSlotBuffer.putBytes(encodeSlotLimit, encodeBuffer, 0, encodeProgress);
-                    encodeSlotLimit += encodeProgress;
-                    encodeableRecordValueBytes = 0;
+                    encodeableRecordBatchSlotOffset = encodeSlotLimit;
+                    encodeSlotLimit = encodeableRecordBatch.limit();
+                }
 
-                    if (headersCount > 0)
-                    {
-                        flushableRecordHeadersBytes = headers.sizeof();
+                assert encodeableRecordBatch != null;
 
-                        final int encodeSlotMaxLimit = encodePool.slotCapacity() - flushableRecordHeadersBytes;
-                        encodeSlotBuffer.putBytes(encodeSlotMaxLimit, headers.buffer(), headers.offset(),
-                            flushableRecordHeadersBytes);
-                    }
+                final int offsetDelta = encodeableRecordBatch.recordCount();
+                final int headersCount = headers.fieldCount();
+                final RecordTrailerFW recordTrailer = recordTrailerRW.wrap(encodeSlotBuffer, encodeSlotLimit, maxLimit)
+                                                                     .headerCount(headersCount)
+                                                                     .build();
+                final int recordTrailerSize = recordTrailer.sizeof();
 
-                    encodeableRecordBatchTimestampMax = Math.max(encodeableRecordBatchTimestamp, encodeableRecordTimestamp);
+                final int timestampDelta = (int) (timestamp - encodeableRecordBatch.firstTimestamp());
+                RecordHeaderFW recordHeader = recordHeaderRW.wrap(encodeSlotBuffer, encodeSlotLimit, maxLimit)
+                        .length(Integer.MAX_VALUE)
+                        .attributes(RECORD_ATTRIBUTES_NONE)
+                        .timestampDelta(timestampDelta)
+                        .offsetDelta(offsetDelta)
+                        .keyLength(key.length())
+                        .key(key.value())
+                        .valueLength(value != null ? value.sizeof() + encodeableRecordBytesDeferred : -1)
+                        .build();
 
-                    encodeableRecordCount++;
-                    encodeableAckMode = maxAckMode(encodeableAckMode, ackMode);
+                final int valueSize = value != null ? value.sizeof() : 0;
+                final int recordHeaderSize = recordHeader.sizeof();
+                final int headerSize = headers.items().capacity();
+                final int recordSize = recordHeaderSize + valueSize + encodeableRecordBytesDeferred + recordTrailerSize +
+                            headerSize - RECORD_LENGTH_MAX;
+                final int valueLength = value != null ? value.sizeof() + encodeableRecordBytesDeferred : -1;
+
+                recordHeader = recordHeaderRW.wrap(encodeSlotBuffer, encodeSlotLimit, maxLimit)
+                                             .length(recordSize)
+                                             .attributes(RECORD_ATTRIBUTES_NONE)
+                                             .timestampDelta(timestampDelta)
+                                             .offsetDelta(offsetDelta)
+                                             .keyLength(key.length())
+                                             .key(key.value())
+                                             .valueLength(valueLength)
+                                             .build();
+
+                final int newRecordHeaderSize = recordHeader.sizeof();
+                encodeSlotLimit += newRecordHeaderSize;
+
+                int newRecordSize = newRecordHeaderSize + valueSize + encodeableRecordBytesDeferred +
+                    recordTrailerSize + headerSize;
+
+                final int recordBatchLength = encodeableRecordBatch.length();
+                final long maxTimestamp = Math.max(encodeableRecordBatch.maxTimestamp(), timestamp);
+                final short attributes = maxTimestamp == 0L
+                    ? RECORD_BATCH_ATTRIBUTES_NO_TIMESTAMP
+                    : RECORD_BATCH_ATTRIBUTES_NONE;
+                final int recordCount = encodeableRecordBatch.recordCount();
+
+                encodeSlotBuffer.putInt(encodeableRecordBatchSlotOffset + RecordBatchFW.FIELD_OFFSET_LENGTH,
+                      recordBatchLength + newRecordSize, BIG_ENDIAN);
+                encodeSlotBuffer.putShort(encodeableRecordBatchSlotOffset + RecordBatchFW.FIELD_OFFSET_ATTRIBUTES,
+                    attributes, BIG_ENDIAN);
+                encodeSlotBuffer.putInt(encodeableRecordBatchSlotOffset + RecordBatchFW.FIELD_OFFSET_LAST_OFFSET_DELTA,
+                    recordCount, BIG_ENDIAN);
+                encodeSlotBuffer.putLong(encodeableRecordBatchSlotOffset + RecordBatchFW.FIELD_OFFSET_MAX_TIMESTAMP,
+                     maxTimestamp, BIG_ENDIAN);
+                encodeSlotBuffer.putInt(encodeableRecordBatchSlotOffset + RecordBatchFW.FIELD_OFFSET_RECORD_COUNT,
+                    recordCount + 1, BIG_ENDIAN);
+
+                if (headersCount > 0)
+                {
+                    flushableRecordHeadersBytes = headers.sizeof();
+
+                    final int encodeSlotMaxLimit = encodePool.slotCapacity() - flushableRecordHeadersBytes;
+                    encodeSlotBuffer.putBytes(encodeSlotMaxLimit, headers.buffer(), headers.offset(),
+                        flushableRecordHeadersBytes);
                 }
             }
 
@@ -1758,7 +1770,6 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
                     encodeSlotBuffer.putBytes(encodeSlotLimit,  value.buffer(), value.offset(), length);
                     encodeSlotLimit += length;
-                    encodeableRecordValueBytes += length;
 
                     if ((flags & FLAGS_FIN) == 0)
                     {
@@ -1863,6 +1874,11 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 final int encodeOffset = 0;
                 final int encodeLimit = encodeBuffer.capacity();
 
+                if (KafkaConfiguration.DEBUG)
+                {
+                    System.out.format("[client] %s[%d] PRODUCE\n", topic, partitionId);
+                }
+
                 int encodeProgress = encodeOffset;
 
                 final RequestHeaderFW requestHeader = requestHeaderRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
@@ -1891,50 +1907,31 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
                 encodeProgress = topicRequest.limit();
 
-                final int recordBatchLength = FIELD_OFFSET_RECORD_COUNT - FIELD_OFFSET_LENGTH + encodeableRecordBytes;
-                final int recordSetLength = FIELD_OFFSET_LENGTH + BitUtil.SIZE_OF_INT + recordBatchLength;
+                assert encodeSlot != NO_SLOT;
+                final MutableDirectBuffer encodeSlotBuffer = encodePool.buffer(encodeSlot);
+
+                final RecordBatchFW recordBatch = recordBatchRO.wrap(encodeSlotBuffer, encodeSlotOffset, encodeSlotLimit);
+                final int recordBatchLength = RecordBatchFW.FIELD_OFFSET_LEADER_EPOCH + recordBatch.length();
 
                 final ProducePartitionRequestFW partitionRequest =
                         partitionRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
                         .partitionId(partitionId)
-                        .recordSetLength(recordSetLength)
+                        .recordSetLength(recordBatchLength)
                         .build();
 
                 encodeProgress = partitionRequest.limit();
-
-                final int crcOffset = encodeProgress - encodeOffset + RecordBatchFW.FIELD_OFFSET_CRC;
-                final int crcLimit = encodeProgress - encodeOffset + RecordBatchFW.FIELD_OFFSET_ATTRIBUTES;
-
-                final short attributes = encodeableRecordBatchTimestampMax == 0L
-                        ? RECORD_BATCH_ATTRIBUTES_NO_TIMESTAMP
-                        : RECORD_BATCH_ATTRIBUTES_NONE;
-
-                final int baseSequence = client.producerId == RECORD_BATCH_PRODUCER_ID_NONE ? RECORD_BATCH_BASE_SEQUENCE_NONE :
-                        client.baseSequence;
-
-                final RecordBatchFW recordBatch = recordBatchRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
-                        .baseOffset(0)
-                        .length(recordBatchLength)
-                        .leaderEpoch(-1)
-                        .magic(RECORD_BATCH_MAGIC)
-                        .crc(0)
-                        .attributes(attributes)
-                        .lastOffsetDelta(encodeableRecordCount - 1)
-                        .firstTimestamp(encodeableRecordBatchTimestamp)
-                        .maxTimestamp(encodeableRecordBatchTimestampMax)
-                        .producerId(client.producerId)
-                        .producerEpoch(client.producerEpoch)
-                        .baseSequence(baseSequence)
-                        .recordCount(encodeableRecordCount)
-                        .build();
-
-                encodeProgress = recordBatch.limit();
 
                 assert encodeProgress <= PRODUCE_REQUEST_RECORDS_OFFSET_MAX;
 
                 final int encodeSizeOf = encodeProgress - encodeOffset;
                 final int requestId = nextRequestId++;
-                final int requestSize = encodeSizeOf - FIELD_OFFSET_API_KEY + encodeableRecordBytes;
+
+                final int requestSize = encodeSizeOf - FIELD_OFFSET_API_KEY + recordBatchLength;
+
+                assert flushableRequestBytes == 0;
+                flushableRequestBytes = requestSize + FIELD_OFFSET_API_KEY;
+                encodedAckMode = encodeableAckMode;
+                encodeableAckMode = KafkaAckMode.NONE;
 
                 requestHeaderRW.wrap(encodeBuffer, requestHeader.offset(), requestHeader.limit())
                         .length(requestSize)
@@ -1944,49 +1941,56 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                         .clientId(requestHeader.clientId())
                         .build();
 
-                if (KafkaConfiguration.DEBUG)
-                {
-                    System.out.format("[client] %s[%d] PRODUCE\n", topic, partitionId);
-                }
-
-                assert flushableRequestBytes == 0;
-                flushableRequestBytes = encodeSizeOf + encodeableRecordBytes;
-                encodeableRecordCount = 0;
-                encodeableRecordBytes = 0;
-                encodeableRecordBatchTimestamp = TIMESTAMP_NONE;
-                encodedAckMode = encodeableAckMode;
-                encodeableAckMode = KafkaAckMode.NONE;
-                client.producerId = RECORD_BATCH_PRODUCER_ID_NONE;
-                client.producerEpoch = RECORD_BATCH_PRODUCER_EPOCH_NONE;
-                client.baseSequence = RECORD_BATCH_BASE_SEQUENCE_NONE;
-                client.sequence = RECORD_SEQUENCE_NONE;
-
-                assert encodeSlot != NO_SLOT;
-                final MutableDirectBuffer encodeSlotBuffer = encodePool.buffer(encodeSlot);
+                encodeCrc();
 
                 encodeSlotOffset -= encodeSizeOf;
                 assert encodeSlotOffset >= 0;
                 encodeSlotBuffer.putBytes(encodeSlotOffset, encodeBuffer, encodeOffset, encodeSizeOf);
 
-                final ByteBuffer encodeSlotByteBuffer = encodePool.byteBuffer(encodeSlot);
-                final int encodeSlotBytePosition = encodeSlotByteBuffer.position();
-                final int partialValueSize = encodeableRecordBytesDeferred > 0 ? encodeableRecordValueBytes : 0;
-                encodeSlotByteBuffer.limit(encodeSlotBytePosition + encodeSlotLimit - partialValueSize);
-                encodeSlotByteBuffer.position(encodeSlotBytePosition + encodeSlotOffset + crcLimit);
-
-                final CRC32C crc = crc32c;
-                crc.reset();
-                crc.update(encodeSlotByteBuffer);
-
-                long checksum = crc.getValue();
-                if (encodeableRecordBytesDeferred > 0)
-                {
-                    checksum = computeChecksum(encodeBuffer, encodeLimit, encodeProgress, encodeSlotBuffer, checksum);
-                }
-                encodeSlotBuffer.putInt(encodeSlotOffset + crcOffset, (int) checksum, BIG_ENDIAN);
                 doNetworkData(traceId, budgetId, EMPTY_BUFFER, 0, 0);
 
                 decoder = decodeProduceResponse;
+            }
+
+            private void encodeCrc()
+            {
+                final MutableDirectBuffer encodeBuffer = writeBuffer;
+                final MutableDirectBuffer encodeSlotBuffer = encodePool.buffer(encodeSlot);
+
+                final int encodeLimit = encodeSlotLimit;
+                int encodeProgress = encodeSlotOffset;
+
+                while (encodeProgress < encodeLimit)
+                {
+                    final RecordBatchFW recordBatch = recordBatchRO.wrap(encodeSlotBuffer, encodeProgress, encodeLimit);
+
+                    final int recordBatchLength = RecordBatchFW.FIELD_OFFSET_LEADER_EPOCH + recordBatch.length();
+                    final int recordBatchLimit = recordBatch.offset() + recordBatchLength;
+
+                    final int crcOffset = recordBatch.offset() + RecordBatchFW.FIELD_OFFSET_CRC;
+                    final int crcDataOffset = recordBatch.offset() + RecordBatchFW.FIELD_OFFSET_ATTRIBUTES;
+                    final int crcDataLimit = recordBatchLimit <= encodeLimit ? recordBatchLimit : recordBatch.limit();
+
+                    final ByteBuffer encodeSlotByteBuffer = encodePool.byteBuffer(encodeSlot);
+                    final int encodePosition = encodeSlotByteBuffer.position();
+                    encodeSlotByteBuffer.position(encodePosition + crcDataOffset);
+                    encodeSlotByteBuffer.limit(encodePosition + crcDataLimit);
+
+                    final CRC32C crc = crc32c;
+                    crc.reset();
+                    crc.update(encodeSlotByteBuffer);
+
+                    long checksum = crc.getValue();
+
+                    if (crcDataLimit == recordBatch.limit())
+                    {
+                        checksum = computeChecksum(encodeBuffer, encodeLimit, encodeProgress, encodeSlotBuffer, checksum);
+                    }
+
+                    encodeSlotBuffer.putInt(crcOffset, (int) checksum, BIG_ENDIAN);
+
+                    encodeProgress += recordBatchLength;
+                }
             }
 
             private long computeChecksum(
