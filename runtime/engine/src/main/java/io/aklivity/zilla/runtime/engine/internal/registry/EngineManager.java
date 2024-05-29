@@ -421,31 +421,33 @@ public class EngineManager
     private final class NameResolver
     {
         private final int namespaceId;
-        private final Matcher matchName;
+        private final ThreadLocal<Matcher> matchName;
 
         private NameResolver(
             int namespaceId)
         {
             this.namespaceId = namespaceId;
-            this.matchName = NamespaceAdapter.PATTERN_NAME.matcher("");
+            this.matchName = new ThreadLocal<>();
         }
 
-        private synchronized long resolve(
+        private long resolve(
             String name)
         {
             long id = 0L;
-
-            if (name != null && matchName.reset(name).matches())
+            if (name != null)
             {
-                String ns = matchName.group("namespace");
-                String n = matchName.group("name");
+                matchName.set(NamespaceAdapter.PATTERN_NAME.matcher(name));
+                if (matchName.get().matches())
+                {
+                    String ns = matchName.get().group("namespace");
+                    String n = matchName.get().group("name");
 
-                int nsid = ns != null ? supplyId.applyAsInt(ns) : namespaceId;
-                int nid = supplyId.applyAsInt(n);
+                    int nsid = ns != null ? supplyId.applyAsInt(ns) : namespaceId;
+                    int nid = supplyId.applyAsInt(n);
 
-                id = NamespacedId.id(nsid, nid);
+                    id = NamespacedId.id(nsid, nid);
+                }
             }
-
             return id;
         }
 
