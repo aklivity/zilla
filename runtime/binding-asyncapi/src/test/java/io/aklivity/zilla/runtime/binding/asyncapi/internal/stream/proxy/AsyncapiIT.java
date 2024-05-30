@@ -57,4 +57,26 @@ public class AsyncapiIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.http.kafka.yaml")
+    @Specification({
+        "${asyncapi}/proxy.mqtt.create.pet/client",
+        "${asyncapi}/proxy.kafka.create.pet/server"
+    })
+    public void shouldCreatePet() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy-async.yaml")
+    @Specification({
+        "${asyncapi}/async.verify.customer/client",
+        "${asyncapi}/async.verify.customer/server"
+    })
+    public void shouldVerifyCustomerAsync() throws Exception
+    {
+        k3po.finish();
+    }
 }

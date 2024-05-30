@@ -224,7 +224,8 @@ public final class AsyncapiBindingConfig
                         Object2ObjectHashMap::new));
 
         namespaceGenerator.init(binding);
-        final NamespaceConfig composite = namespaceGenerator.generateProxy(binding, asyncapis, schemaIdsByApiId::get);
+        final List<String> labels = configs.stream().map(c -> c.apiLabel).collect(toList());
+        final NamespaceConfig composite = namespaceGenerator.generateProxy(binding, asyncapis, schemaIdsByApiId::get, labels);
         composite.readURL = binding.readURL;
         attach.accept(composite);
         updateNamespace(configs, composite, new ArrayList<>(asyncapis.values()));

@@ -92,7 +92,8 @@ public abstract class AsyncapiNamespaceGenerator
     public NamespaceConfig generateProxy(
         BindingConfig binding,
         Map<String, Asyncapi> asyncapis,
-        ToLongFunction<String> resolveApiId)
+        ToLongFunction<String> resolveApiId,
+        List<String> labels)
     {
         return null;
     }

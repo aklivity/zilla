@@ -81,6 +81,12 @@
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
+      <artifactId>binding-http-kafka</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
       <artifactId>binding-tls</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
@@ -153,6 +159,13 @@
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>binding-mqtt-kafka</artifactId>
+      <type>test-jar</type>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>binding-http-kafka</artifactId>
       <type>test-jar</type>
       <version>${project.version}</version>
       <scope>test</scope>

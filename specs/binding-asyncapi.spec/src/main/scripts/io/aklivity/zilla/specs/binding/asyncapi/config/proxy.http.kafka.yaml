@@ -1,0 +1,231 @@
+#
+# Copyright 2021-2023 Aklivity Inc.
+#
+# Aklivity licenses this file to you under the Apache License,
+# version 2.0 (the "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+
+---
+name: test
+catalogs:
+  catalog0:
+    type: test
+    options:
+      subject: petstore
+      schema: |
+        asyncapi: 3.0.0
+        info:
+          title: AsyncAPI Petstore
+          license:
+            name: MIT
+          version: 1.0.0
+        servers:
+          plain:
+            host: localhost:8080
+            protocol: http
+            protocolVersion: '2.0'
+        defaultContentType: application/json
+        
+        channels:
+          pets:
+            address: /pets
+            messages:
+              pet:
+                $ref: '#/components/messages/pet'
+          showPetById:
+            address: /pets/{id}
+            messages:
+              pet:
+                $ref: '#/components/messages/pet'
+        
+        operations:
+          createPet:
+            action: send
+            bindings:
+              http:
+                method: POST
+            channel:
+              $ref: '#/channels/pets'
+          listPets:
+            action: receive
+            bindings:
+              http:
+                method: GET
+            channel:
+              $ref: '#/channels/pets'
+          getPets:
+            action: receive
+            bindings:
+              http:
+                method: GET
+                query:
+                  type: object
+                  properties:
+                    limit:
+                      type: number
+            channel:
+              $ref: '#/channels/showPetById'
+        
+        components:
+          schemas:
+            petPayload:
+              type: object
+              properties:
+                id:
+                  type: integer
+                  minimum: 0
+                  description: Pet id.
+                name:
+                  type: string
+                  description: Pet name.
+                tag:
+                  type: string
+                  description: Tag.
+          messages:
+            pet:
+              name: Pet
+              title: Pet
+              summary: >-
+                Inform about Pet.
+              contentType: application/json
+              payload:
+                $ref: '#/components/schemas/petPayload'
+
+  catalog1:
+    type: test
+    options:
+      subject: sensor
+      schema: |
+        asyncapi: 3.0.0
+        info:
+          title: Petstore Kafka API
+          version: 1.0.0
+        defaultContentType: application/json
+        servers:
+          host-connections:
+            host: 'localhost:9092'
+            protocol: kafka-secure
+            description: Test broker
+            tags:
+              - name: 'kind:remote'
+                description: This server is a remote server. Not exposed by the application.
+              - name: 'visibility:private'
+                description: This resource is private and only available to certain users.
+        channels:
+          customers:
+            address: "petstore-customers"
+            messages:
+              customer:
+                $ref: "#/components/messages/customer"
+              empty:
+                $ref: "#/components/messages/empty"
+            description: The topic on which pet values may be produced and consumed.
+          verifiedCustomers:
+            address: "petstore-verified-customers"
+            messages:
+              customer:
+                $ref: "#/components/messages/customer"
+              empty:
+                $ref: "#/components/messages/empty"
+            description: The topic on which pet values may be produced and consumed.
+        operations:
+          createCustomer:
+            action: send
+            channel:
+              $ref: "#/channels/customers"
+            reply:
+              channel:
+                $ref: "#/channels/verifiedCustomers"
+            summary: >-
+              Add a pet.
+            messages:
+              - $ref: "#/channels/customers/messages/customer"
+        components:
+          correlationIds:
+            customerVerifyCorrelationId:
+              description: >
+                This correlation ID is used for message tracing and messages
+                correlation. This correlation ID is generated at runtime based on the
+                `VERIFY_ID` and sent to the RESPONSE message.
+              location: $message.header#/VERIFY_ID
+          messages:
+            empty:
+              name: EmptyMessage
+              payload:
+                type: "null"
+            customer:
+              name: Customer
+              title: Customer
+              summary: Information about a Customer.
+              contentType: application/json
+              payload:
+                $ref: "#/components/schemas/Customer"
+          schemas:
+            Customer:
+              type: object
+              properties:
+                id:
+                  type: integer
+                  format: int64
+                  example: 100000
+                username:
+                  type: string
+                  example: fehguy
+                status:
+                  type: string
+                  description: Verification Status
+                  example: approved
+                  enum:
+                    - pending
+                    - approved
+                    - denied
+                address:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/Address"
+            Address:
+              type: object
+              properties:
+                street:
+                  type: string
+                  example: 437 Lytton
+                city:
+                  type: string
+                  example: Palo Alto
+                state:
+                  type: string
+                  example: CA
+                zip:
+                  type: string
+                  example: "94301"
+bindings:
+  asyncapi_proxy0:
+    type: asyncapi
+    kind: proxy
+    options:
+      specs:
+        http_api:
+          catalog:
+            catalog0:
+              subject: petstore
+              version: latest
+        kafka_api:
+          catalog:
+            catalog1:
+              subject: petstore
+              version: latest
+    routes:
+      - when:
+          - api-id: http_api
+        exit: asyncapi_kafka0
+        with:
+          api-id: kafka_api
