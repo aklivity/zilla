@@ -77,7 +77,7 @@ public final class ApicurioEventFormatter implements EventFormatterSpi
         case RETRIEVED_ARTIFACT_ID:
         {
             ApicurioRetrievableArtifactIdExFW ex = extension.retrievableArtifactId();
-            result = String.format(RETRIEVED_ARTIFACT_ID, ex.artifactId());
+            result = String.format("$d", ex.artifactId());
             break;
         }
         }

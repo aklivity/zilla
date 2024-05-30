@@ -24,7 +24,7 @@ telemetry:
           - qname: test.net0
             id: model.json.validation.failed
             name: MODEL_JSON_VALIDATION_FAILED
-            message: [1,10][/id] The value must be of string type, but actual type is integer.
+            message: "[1,10][/id] The value must be of string type, but actual type is integer."
 catalogs:
   test0:
     type: test
