@@ -170,7 +170,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     public static final int MQTT_NOT_AUTHORIZED = 0x87;
     public static final int MQTT_IMPLEMENTATION_SPECIFIC_ERROR = 0x83;
     public static final String MQTT_INVALID_SESSION_TIMEOUT_REASON = "Invalid session expiry interval";
-    public static final String16FW MQTT_NON_COMPACT_SESSIONS_TOPIC = new String16FW("Sessions Kafka topic in non-compacted");
+    public static final String16FW MQTT_NON_COMPACT_SESSIONS_TOPIC = new String16FW("The Sessions Kafka topic is non-compacted");
     private static final KafkaConfigFW CONFIG_COMPACT_CLEANUP_POLICY = new KafkaConfigFW.Builder()
         .wrap(new UnsafeBuffer(new byte[25]), 0, 25)
         .name("cleanup.policy")
