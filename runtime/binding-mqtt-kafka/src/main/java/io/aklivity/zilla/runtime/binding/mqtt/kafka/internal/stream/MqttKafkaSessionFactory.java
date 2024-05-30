@@ -53,6 +53,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaRouteConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.InstanceId;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaEventContext;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaHeaderHelper;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaPublishMetadata.KafkaGroup;
@@ -63,6 +64,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaAckMode;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaCapabilities;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaConfigFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaEvaluation;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaHeaderFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaKeyFW;
@@ -94,6 +96,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaF
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaGroupBeginExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaGroupFlushExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaInitProducerIdBeginExFW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaMergedBeginExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaMergedDataExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaMergedFlushExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaMetaDataExFW;
@@ -167,6 +170,12 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     public static final int MQTT_NOT_AUTHORIZED = 0x87;
     public static final int MQTT_IMPLEMENTATION_SPECIFIC_ERROR = 0x83;
     public static final String MQTT_INVALID_SESSION_TIMEOUT_REASON = "Invalid session expiry interval";
+    public static final String16FW MQTT_NON_COMPACT_SESSIONS_TOPIC = new String16FW("Sessions Kafka topic in non-compacted");
+    private static final KafkaConfigFW CONFIG_COMPACT_CLEANUP_POLICY = new KafkaConfigFW.Builder()
+        .wrap(new UnsafeBuffer(new byte[25]), 0, 25)
+        .name("cleanup.policy")
+        .value("compact")
+        .build();
 
     static
     {
@@ -268,6 +277,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private final String groupIdPrefixFormat;
     private final Function<Long, String> supplyNamespace;
     private final Function<Long, String> supplyLocalName;
+    private final MqttKafkaEventContext events;
 
     private String serverRef;
     private int reconnectAttempt;
@@ -320,6 +330,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         this.groupIdPrefixFormat = config.groupIdPrefixFormat();
         this.supplyNamespace = context::supplyNamespace;
         this.supplyLocalName = context::supplyLocalName;
+        this.events = new MqttKafkaEventContext(context);
     }
 
     @Override
@@ -2907,7 +2918,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             }
         }
 
-        private void onKafkaBegin(
+        protected void onKafkaBegin(
             BeginFW begin)
         {
             final long sequence = begin.sequence();
@@ -3156,7 +3167,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             }
         }
 
-        private void doKafkaAbort(
+        protected void doKafkaAbort(
             long traceId,
             long authorization)
         {
@@ -3413,6 +3424,59 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             MqttSessionProxy delegate)
         {
             super(originId, routedId, delegate);
+        }
+
+        @Override
+        protected void onKafkaBegin(
+            BeginFW begin)
+        {
+            final long sequence = begin.sequence();
+            final long acknowledge = begin.acknowledge();
+            final int maximum = begin.maximum();
+            final long traceId = begin.traceId();
+            final long authorization = begin.authorization();
+            final long affinity = begin.affinity();
+            final OctetsFW extension = begin.extension();
+
+            assert acknowledge <= sequence;
+            assert sequence >= replySeq;
+            assert acknowledge >= replyAck;
+
+            replySeq = sequence;
+            replyAck = acknowledge;
+            replyMax = maximum;
+            state = MqttKafkaState.openingReply(state);
+
+            assert replyAck <= replySeq;
+
+            final KafkaBeginExFW kafkaBeginEx = extension.get(kafkaBeginExRO::tryWrap);
+
+            onKafkaBegin:
+            {
+                if (kafkaBeginEx != null)
+                {
+                    assert kafkaBeginEx.kind() == KafkaBeginExFW.KIND_MERGED;
+                    final KafkaMergedBeginExFW kafkaMergedBeginEx = kafkaBeginEx.merged();
+
+                    final KafkaConfigFW cleanupPolicyConfig =
+                        kafkaMergedBeginEx.configs().matchFirst(c -> c.equals(CONFIG_COMPACT_CLEANUP_POLICY));
+
+                    if (cleanupPolicyConfig == null)
+                    {
+                        Flyweight mqttResetEx = mqttSessionResetExRW.wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())
+                            .typeId(mqttTypeId)
+                            .reasonCode(MQTT_IMPLEMENTATION_SPECIFIC_ERROR)
+                            .build();
+                        delegate.doMqttWindow(authorization, traceId, 0, 0, 0);
+                        delegate.doMqttReset(traceId, mqttResetEx);
+                        events.onMqttConnectionReset(traceId, routedId, MQTT_NON_COMPACT_SESSIONS_TOPIC);
+                        doKafkaAbort(traceId, authorization);
+                        break onKafkaBegin;
+                    }
+                }
+
+                super.onKafkaBegin(begin);
+            }
         }
 
         @Override

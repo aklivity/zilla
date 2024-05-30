@@ -243,6 +243,7 @@ scope kafka
             KafkaIsolation isolation = READ_COMMITTED;
             KafkaDeltaType deltaType = NONE;
             KafkaAckMode ackMode = IN_SYNC_REPLICAS;
+            KafkaConfig[] configs;
         }
 
         union KafkaMergedDataEx switch (uint8)

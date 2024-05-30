@@ -190,6 +190,16 @@ public class SessionIT
     }
 
     @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/session.reject.non.compacted.sessions.topic/client",
+        "${app}/session.reject.non.compacted.sessions.topic/server"})
+    public void shouldRejectSessionNonCompactedSessionsTopic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.route.non.default.yaml")
     @Specification({
         "${net}/session.subscribe.publish.routing/client",
