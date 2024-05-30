@@ -80,6 +80,27 @@
                                 {
                                     "type": "string"
                                 }
+                            },
+                            "publish":
+                            {
+                                "title": "Publish",
+                                "type": "object",
+                                "properties":
+                                {
+                                    "qosMax":
+                                    {
+                                        "title": "Maximum QoS",
+                                        "type": "string",
+                                        "enum": [ "at_most_once", "at_least_once", "exactly_once" ],
+                                        "default": "exactly_once"
+                                    },
+                                    "additionalProperties": false
+                                },
+                                "required":
+                                [
+                                    "qosMax"
+                                ],
+                                "additionalProperties": false
                             }
                         },
                         "required":

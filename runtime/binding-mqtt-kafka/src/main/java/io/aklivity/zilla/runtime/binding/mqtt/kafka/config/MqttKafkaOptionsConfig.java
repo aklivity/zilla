@@ -24,6 +24,7 @@ public class MqttKafkaOptionsConfig extends OptionsConfig
     public final MqttKafkaTopicsConfig topics;
     public final String serverRef;
     public final List<String> clients;
+    public final MqttKafkaPublishConfig publish;
 
     public static MqttKafkaOptionsConfigBuilder<MqttKafkaOptionsConfig> builder()
     {
@@ -39,10 +40,12 @@ public class MqttKafkaOptionsConfig extends OptionsConfig
     MqttKafkaOptionsConfig(
         MqttKafkaTopicsConfig topics,
         String serverRef,
-        List<String> clients)
+        List<String> clients,
+        MqttKafkaPublishConfig publish)
     {
         this.topics = topics;
         this.serverRef = serverRef;
         this.clients = clients;
+        this.publish = publish;
     }
 }

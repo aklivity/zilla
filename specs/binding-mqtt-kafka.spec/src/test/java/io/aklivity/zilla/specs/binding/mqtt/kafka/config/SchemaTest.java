@@ -50,6 +50,14 @@ public class SchemaTest
     }
 
     @Test
+    public void shouldValidateProxyWithPublishQosMax()
+    {
+        JsonObject config = schema.validate("proxy.publish.qos.max.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
     public void shouldValidateProxyWhenPublishTopicWithMessages()
     {
         JsonObject config = schema.validate("proxy.when.publish.topic.with.messages.yaml");
