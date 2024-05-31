@@ -31,6 +31,7 @@ import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.function.LongFunction;
 import java.util.function.LongPredicate;
+import java.util.function.Predicate;
 import java.util.function.ToIntFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -129,19 +130,26 @@ public class EngineManager
             if (newConfig != null)
             {
                 final EngineConfig oldConfig = current;
-                unregister(oldConfig);
+                EngineConfig newConfig0 = newConfig;
+                Predicate<String> identical = name ->
+                {
+                    String hash1 = oldConfig == null ? null : oldConfig.hash(name);
+                    String hash2 = newConfig0.hash(name);
+                    return hash1 != null && hash1.equals(hash2);
+                };
+                unregister(oldConfig, identical);
 
                 try
                 {
                     current = newConfig;
-                    register(newConfig);
+                    register(newConfig, identical);
                 }
                 catch (Exception ex)
                 {
                     context.onError(ex);
 
                     current = oldConfig;
-                    register(oldConfig);
+                    register(oldConfig, identical);
 
                     rethrowUnchecked(ex);
                 }
@@ -370,13 +378,17 @@ public class EngineManager
     }
 
     private void register(
-        EngineConfig config)
+        EngineConfig config,
+        Predicate<String> identical)
     {
         if (config != null)
         {
             for (NamespaceConfig namespace : config.namespaces)
             {
-                register(namespace);
+                if (!identical.test(namespace.name))
+                {
+                    register(namespace);
+                }
             }
         }
 
@@ -384,13 +396,17 @@ public class EngineManager
     }
 
     private void unregister(
-        EngineConfig config)
+        EngineConfig config,
+        Predicate<String> identical)
     {
         if (config != null)
         {
             for (NamespaceConfig namespace : config.namespaces)
             {
-                unregister(namespace);
+                if (!identical.test(namespace.name))
+                {
+                    unregister(namespace);
+                }
             }
         }
 
