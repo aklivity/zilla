@@ -1,0 +1,15 @@
+helmDefaults:
+  wait: true
+  createNamespace: true
+
+releases:
+- name: zilla
+  namespace: zilla
+  chart: oci://ghcr.io/aklivity/charts/zilla
+  version: ^0.9.0
+  set:
+    # single value loaded from a local file, translates to --set-file zilla\\.yaml=zilla.yaml
+    # as described in: https://artifacthub.io/packages/helm/zilla/zilla#configuration
+    - name: "zilla\\.yaml"
+      file: zilla.yaml
+    
