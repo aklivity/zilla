@@ -14,5 +14,5 @@
 # under the License.
 #
 
-connect "tcp://127.0.0.1:8080"
+connect "tcp://127.0.0.1:12345"
 connected

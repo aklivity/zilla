@@ -14,5 +14,5 @@
 # under the License.
 #
 
-connect "tcp://localhost:8080"
+connect "tcp://localhost:12345"
 connected

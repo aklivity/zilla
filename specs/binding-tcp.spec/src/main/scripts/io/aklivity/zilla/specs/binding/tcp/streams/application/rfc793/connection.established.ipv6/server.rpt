@@ -26,7 +26,7 @@ read zilla:begin.ext ${proxy:matchBeginEx()
                               .addressInet6()
                                 .protocol("stream")
                                 .destination("::1")
-                                .destinationPort(8080)
+                                .destinationPort(12345)
                                 .build()
                               .build()}
 

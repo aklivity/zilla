@@ -152,7 +152,7 @@ public class ServerIT
 
         try (SocketChannel channel = SocketChannel.open())
         {
-            channel.connect(new InetSocketAddress("127.0.0.1", 8080));
+            channel.connect(new InetSocketAddress("127.0.0.1", 12345));
             channel.write(UTF_8.encode("client data"));
             channel.shutdownOutput();
 
@@ -172,7 +172,7 @@ public class ServerIT
 
         try (SocketChannel channel = SocketChannel.open())
         {
-            channel.connect(new InetSocketAddress("127.0.0.1", 8080));
+            channel.connect(new InetSocketAddress("127.0.0.1", 12345));
             channel.shutdownOutput();
 
             ByteBuffer buf = ByteBuffer.allocate(256);
@@ -214,7 +214,7 @@ public class ServerIT
         "${app}/connection.established/server",
         "${net}/connection.established/client"
     })
-    @ScriptProperty("address \"tcp://0.0.0.0:8080\"")
+    @ScriptProperty("address \"tcp://0.0.0.0:12345\"")
     public void shouldEstablishConnectionToAddressAnyIPv4() throws Exception
     {
         k3po.finish();
@@ -227,7 +227,7 @@ public class ServerIT
         "${app}/connection.established.ipv6/server",
         "${net}/connection.established/client"
     })
-    @ScriptProperty("address \"tcp://[::0]:8080\"")
+    @ScriptProperty("address \"tcp://[::0]:12345\"")
     public void shouldEstablishConnectionToAddressAnyIPv6() throws Exception
     {
         k3po.finish();
@@ -244,7 +244,7 @@ public class ServerIT
 
         try (SocketChannel channel = SocketChannel.open())
         {
-            channel.connect(new InetSocketAddress("127.0.0.1", 8080));
+            channel.connect(new InetSocketAddress("127.0.0.1", 12345));
 
             ByteBuffer buf = ByteBuffer.allocate(256);
             try
@@ -289,7 +289,7 @@ public class ServerIT
     {
         k3po.start();
 
-        try (Socket socket = new Socket("127.0.0.1", 8080))
+        try (Socket socket = new Socket("127.0.0.1", 12345))
         {
             socket.shutdownInput();
             Thread.sleep(500);
@@ -332,7 +332,7 @@ public class ServerIT
 
         try (SocketChannel channel = SocketChannel.open())
         {
-            channel.connect(new InetSocketAddress("127.0.0.1", 8080));
+            channel.connect(new InetSocketAddress("127.0.0.1", 12345));
 
             ByteBuffer buf = ByteBuffer.allocate(256);
             channel.read(buf);
@@ -361,7 +361,7 @@ public class ServerIT
 
         try (SocketChannel channel = SocketChannel.open())
         {
-            channel.connect(new InetSocketAddress("127.0.0.1", 8080));
+            channel.connect(new InetSocketAddress("127.0.0.1", 12345));
 
             ByteBuffer buf = ByteBuffer.allocate(256);
             int len = channel.read(buf);
@@ -385,13 +385,13 @@ public class ServerIT
         k3po.start();
 
         SocketChannel channel1 = SocketChannel.open();
-        channel1.connect(new InetSocketAddress("127.0.0.1", 8080));
+        channel1.connect(new InetSocketAddress("127.0.0.1", 12345));
 
         SocketChannel channel2 = SocketChannel.open();
-        channel2.connect(new InetSocketAddress("127.0.0.1", 8080));
+        channel2.connect(new InetSocketAddress("127.0.0.1", 12345));
 
         SocketChannel channel3 = SocketChannel.open();
-        channel3.connect(new InetSocketAddress("127.0.0.1", 8080));
+        channel3.connect(new InetSocketAddress("127.0.0.1", 12345));
 
         k3po.awaitBarrier("CONNECTION_ACCEPTED_1");
         k3po.awaitBarrier("CONNECTION_ACCEPTED_2");
@@ -400,7 +400,7 @@ public class ServerIT
         SocketChannel channel4 = SocketChannel.open();
         try
         {
-            channel4.connect(new InetSocketAddress("127.0.0.1", 8080));
+            channel4.connect(new InetSocketAddress("127.0.0.1", 12345));
             fail("4th connect shouldn't succeed as max.connections = 3");
         }
         catch (IOException ioe)
@@ -417,7 +417,7 @@ public class ServerIT
         Thread.sleep(200);
 
         SocketChannel channel5 = SocketChannel.open();
-        channel5.connect(new InetSocketAddress("127.0.0.1", 8080));
+        channel5.connect(new InetSocketAddress("127.0.0.1", 12345));
         k3po.awaitBarrier("CONNECTION_ACCEPTED_4");
 
         channel2.close();
