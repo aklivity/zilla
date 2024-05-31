@@ -199,7 +199,8 @@ public final class AsyncapiBindingConfig
             NamespaceConfig v = entry.getValue();
             List<BindingConfig> bindings = v.bindings.stream()
                 .filter(b -> b.type.equals("mqtt") || b.type.equals("http") ||
-                    b.type.equals("kafka") && b.kind == CACHE_CLIENT || b.type.equals("mqtt-kafka"))
+                    b.type.equals("kafka") && b.kind == CACHE_CLIENT || b.type.equals("mqtt-kafka") ||
+                    b.type.equals("http-kafka"))
                 .collect(toList());
             extractResolveId(k, bindings);
             extractNamespace(k, bindings);

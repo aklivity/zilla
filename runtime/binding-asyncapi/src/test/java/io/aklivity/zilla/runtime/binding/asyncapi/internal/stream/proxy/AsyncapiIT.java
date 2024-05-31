@@ -61,7 +61,7 @@ public class AsyncapiIT
     @Test
     @Configuration("proxy.http.kafka.yaml")
     @Specification({
-        "${asyncapi}/proxy.mqtt.create.pet/client",
+        "${asyncapi}/proxy.http.create.pet/client",
         "${asyncapi}/proxy.kafka.create.pet/server"
     })
     public void shouldCreatePet() throws Exception
@@ -70,10 +70,10 @@ public class AsyncapiIT
     }
 
     @Test
-    @Configuration("proxy-async.yaml")
+    @Configuration("proxy.http.kafka.async.yaml")
     @Specification({
-        "${asyncapi}/async.verify.customer/client",
-        "${asyncapi}/async.verify.customer/server"
+        "${asyncapi}/proxy.http.async.verify.customer/client",
+        "${asyncapi}/proxy.kafka.async.verify.customer/server"
     })
     public void shouldVerifyCustomerAsync() throws Exception
     {

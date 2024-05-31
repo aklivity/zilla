@@ -47,7 +47,7 @@ public class AsyncapiHttpKafkaProxy extends AsyncapiProxy
 {
     private static final String CORRELATION_ID = "\\{correlationId\\}";
     private static final String PARAMETERS = "\\{(?!correlationId)(\\w+)\\}";
-    private static final String HEADER_LOCATION = "\".*/([^/]+)$\"";
+    private static final String HEADER_LOCATION = "([^/]+)$";
     private static final String ASYNCAPI_KAFKA_PROTOCOL_NAME = "kafka";
     private static final String ASYNCAPI_HTTP_PROTOCOL_NAME = "http";
     private static final String ASYNCAPI_SEND_ACTION_NAME = "send";
@@ -64,7 +64,7 @@ public class AsyncapiHttpKafkaProxy extends AsyncapiProxy
         String qname,
         Map<String, Asyncapi> asyncapis)
     {
-        super("mqtt-kafka", qname, asyncapis);
+        super("http-kafka", qname, asyncapis);
     }
 
     @Override
@@ -75,8 +75,6 @@ public class AsyncapiHttpKafkaProxy extends AsyncapiProxy
         inject:
         for (AsyncapiRouteConfig route : routes)
         {
-            final RouteConfigBuilder<BindingConfigBuilder<C>> routeBuilder = binding.route();
-
             final Asyncapi kafkaAsyncapi = asyncapis.get(route.with.apiId);
 
             final AsyncapiOperation withOperation = kafkaAsyncapi.operations.get(route.with.operationId);
@@ -94,19 +92,68 @@ public class AsyncapiHttpKafkaProxy extends AsyncapiProxy
                 String method = whenOperation.bindings.get("http").method;
                 final List<String> paramNames = findParams(path);
 
+                AsyncapiChannelView httpChannel = AsyncapiChannelView.of(httpAsyncapi.channels, whenOperation.channel);
+
+                boolean async = httpChannel.messages().values()
+                    .stream().anyMatch(asyncapiMessage ->
+                    {
+                        AsyncapiMessageView message = AsyncapiMessageView.of(httpAsyncapi.components.messages, asyncapiMessage);
+                        return message.correlationId() != null;
+                    });
+
+                if (async)
+                {
+                    for (AsyncapiOperation operation : httpAsyncapi.operations.values())
+                    {
+                        AsyncapiChannelView channelView = AsyncapiChannelView.of(httpAsyncapi.channels, operation.channel);
+                        if (parameters.reset(channelView.address()).find())
+                        {
+                            AsyncapiReply reply = withOperation.reply;
+                            if (reply != null)
+                            {
+                                final RouteConfigBuilder<BindingConfigBuilder<C>> asyncRouteBuilder = binding.route();
+                                binding = addAsyncOperation(asyncRouteBuilder, httpAsyncapi, kafkaAsyncapi, operation,
+                                    withOperation);
+                            }
+                        }
+                    }
+                }
+
+                final RouteConfigBuilder<BindingConfigBuilder<C>> routeBuilder = binding.route();
                 routeBuilder
                     .exit(qname)
                     .when(HttpKafkaConditionConfig::builder)
-                    .method(method)
-                    .path(path)
-                    .build()
+                        .method(method)
+                        .path(path)
+                        .build()
                     .inject(r -> injectHttpKafkaRouteWith(r, httpAsyncapi, kafkaAsyncapi, whenOperation,
-                        withOperation, paramNames))
-                    .build();
+                        withOperation, paramNames));
+                binding = routeBuilder.build();
             }
-            binding = routeBuilder.build();
         }
         return binding;
+    }
+
+    private <C> BindingConfigBuilder<C>  addAsyncOperation(
+        RouteConfigBuilder<BindingConfigBuilder<C>> routeBuilder,
+        Asyncapi httpAsyncapi,
+        Asyncapi kafkaAsyncapi,
+        AsyncapiOperation httpOperation,
+        AsyncapiOperation kafkaOperation)
+    {
+        final AsyncapiChannelView channel = AsyncapiChannelView.of(httpAsyncapi.channels, httpOperation.channel);
+        String path = channel.address();
+        String method = httpOperation.bindings.get("http").method;
+        final List<String> paramNames = findParams(path);
+        return routeBuilder
+            .exit(qname)
+            .when(HttpKafkaConditionConfig::builder)
+                .method(method)
+                .path(path)
+                .build()
+            .inject(r -> injectAsyncProduceHttpKafkaRouteWith(r, httpAsyncapi, kafkaAsyncapi, httpOperation,
+                kafkaOperation, paramNames))
+            .build();
     }
 
     @Override
@@ -159,6 +206,28 @@ public class AsyncapiHttpKafkaProxy extends AsyncapiProxy
             break;
         }
 
+        route.with(newWith.build());
+
+        return route;
+    }
+
+    private <C> RouteConfigBuilder<C> injectAsyncProduceHttpKafkaRouteWith(
+        RouteConfigBuilder<C> route,
+        Asyncapi httpAsyncapi,
+        Asyncapi kafkaAsyncapi,
+        AsyncapiOperation httpOperation,
+        AsyncapiOperation kafkaOperation,
+        List<String> paramNames)
+    {
+        final HttpKafkaWithConfigBuilder<HttpKafkaWithConfig> newWith = HttpKafkaWithConfig.builder();
+        final AsyncapiChannelView channel = AsyncapiChannelView.of(kafkaAsyncapi.channels, kafkaOperation.channel);
+        final String topic = channel.address();
+
+        newWith.produce(HttpKafkaWithProduceConfig.builder()
+            .topic(topic)
+            .inject(w -> injectHttpKafkaRouteProduceWith(w, httpOperation, kafkaOperation, httpAsyncapi,
+                kafkaAsyncapi.channels, paramNames))
+            .build());
         route.with(newWith.build());
 
         return route;
@@ -217,16 +286,22 @@ public class AsyncapiHttpKafkaProxy extends AsyncapiProxy
             .forEach(asyncapiMessage ->
             {
                 AsyncapiMessageView message = AsyncapiMessageView.of(httpAsyncapi.components.messages, asyncapiMessage);
-                AsyncapiCorrelationIdView correlationId =
-                    AsyncapiCorrelationIdView.of(httpAsyncapi.components.correlationIds, message.correlationId());
-                String headerName = headerLocation.reset(correlationId.location()).group(1);
-                String location = asyncapiMessage.headers.properties.get(headerName).format;
-                location = location.replaceAll(CORRELATION_ID, "\\${correlationId}");
-                location = location.replaceAll(PARAMETERS, "\\${params.$1}");
-                produce.async(HttpKafkaWithProduceAsyncHeaderConfig.builder()
-                    .name("location")
-                    .value(location)
-                    .build());
+                if (message.correlationId() != null)
+                {
+                    AsyncapiCorrelationIdView correlationId =
+                        AsyncapiCorrelationIdView.of(httpAsyncapi.components.correlationIds, message.correlationId());
+                    if (headerLocation.reset(correlationId.location()).find())
+                    {
+                        String headerName = headerLocation.group(1);
+                        String location = message.headers().properties.get(headerName).format;
+                        location = location.replaceAll(CORRELATION_ID, "\\${correlationId}");
+                        location = location.replaceAll(PARAMETERS, "\\${params.$1}");
+                        produce.async(HttpKafkaWithProduceAsyncHeaderConfig.builder()
+                            .name("location")
+                            .value(location)
+                            .build());
+                    }
+                }
             });
 
         AsyncapiReply reply = kafkaOperation.reply;

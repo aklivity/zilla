@@ -14,14 +14,12 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.view;
 
-import java.util.List;
 import java.util.Map;
 
 import jakarta.json.bind.annotation.JsonbPropertyOrder;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiCorrelationId;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiItem;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiSchema;
+
 @JsonbPropertyOrder({
     "type",
     "items",
