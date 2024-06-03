@@ -45,27 +45,27 @@ public final class TlsEventFormatter implements EventFormatterSpi
         {
         case TLS_FAILED:
         {
-            result = "";
+            result = "There was a generic error detected by an SSL subsystem.";
             break;
         }
         case TLS_PROTOCOL_REJECTED:
         {
-            result = "";
+            result = "There was an error in the operation of the SSL protocol.";
             break;
         }
         case TLS_KEY_REJECTED:
         {
-            result = "";
+            result = "Bad SSL key due to misconfiguration of the server or client SSL certificate and private key.";
             break;
         }
         case TLS_PEER_NOT_VERIFIED:
         {
-            result = "";
+            result = "The peer's identity was not able to identify itself.";
             break;
         }
         case TLS_HANDSHAKE_FAILED:
         {
-            result = "";
+            result = "The client and server could not negotiate the desired level of security.";
             break;
         }
         }

@@ -25,7 +25,7 @@ telemetry:
                     - qname: test.net0
                       id: binding.tls.tls.failed
                       name: BINDING_TLS_TLS_FAILED
-                      message: ""
+                      message: There was a generic error detected by an SSL subsystem.
 vaults:
     server:
         type: filesystem
