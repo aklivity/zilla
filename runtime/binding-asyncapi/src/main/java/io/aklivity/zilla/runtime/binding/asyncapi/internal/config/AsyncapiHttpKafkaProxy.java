@@ -53,10 +53,8 @@ public class AsyncapiHttpKafkaProxy extends AsyncapiProxy
     private static final String ASYNCAPI_SEND_ACTION_NAME = "send";
     private static final String ASYNCAPI_RECEIVE_ACTION_NAME = "receive";
     private static final Pattern PARAMETER_PATTERN = Pattern.compile("\\{([^}]+)\\}");
-    private static final Pattern CORRELATION_PATTERN = Pattern.compile(CORRELATION_ID);
     private static final Pattern HEADER_LOCATION_PATTERN = Pattern.compile(HEADER_LOCATION);
 
-    private final Matcher correlation = CORRELATION_PATTERN.matcher("");
     private final Matcher parameters = PARAMETER_PATTERN.matcher("");
     private final Matcher headerLocation = HEADER_LOCATION_PATTERN.matcher("");
 
