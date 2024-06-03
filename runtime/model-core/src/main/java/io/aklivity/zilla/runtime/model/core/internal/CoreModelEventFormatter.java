@@ -47,7 +47,10 @@ public final class CoreModelEventFormatter implements EventFormatterSpi
         case VALIDATION_FAILED:
         {
             CoreModelValidationFailedExFW ex = extension.validationFailed();
-            result = String.format("%s", asString(ex.error()));
+            result = String.format(
+                    "A message payload failed validation. A field was not the expected type (%s).",
+                    asString(ex.error())
+            );
             break;
         }
         }

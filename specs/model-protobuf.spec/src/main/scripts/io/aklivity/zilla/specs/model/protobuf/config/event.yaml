@@ -24,7 +24,7 @@ telemetry:
           - qname: test.net0
             id: model.protobuf.validation.failed
             name: MODEL_PROTOBUF_VALIDATION_FAILED
-            message: "Cannot find field: date in message example"
+            message: "A message payload failed validation. Cannot find field: date in message example."
 catalogs:
   test0:
     type: test

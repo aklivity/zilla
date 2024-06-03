@@ -47,7 +47,7 @@ public final class ProtobufModelEventFormatter implements EventFormatterSpi
         case VALIDATION_FAILED:
         {
             ProtobufModelValidationFailedExFW ex = extension.validationFailed();
-            result = String.format("%s", asString(ex.error()));
+            result = String.format("A message payload failed validation. %s.", asString(ex.error()));
             break;
         }
         }

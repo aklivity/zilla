@@ -47,7 +47,7 @@ public final class JsonModelEventFormatter implements EventFormatterSpi
         case VALIDATION_FAILED:
         {
             JsonModelValidationFailedExFW ex = extension.validationFailed();
-            result = String.format("%s", asString(ex.error()));
+            result = String.format("A message payload failed validation. %s.", asString(ex.error()));
             break;
         }
         }
