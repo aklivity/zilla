@@ -47,7 +47,9 @@ public final class MqttKafkaEventFormatter implements EventFormatterSpi
         case NON_COMPACT_SESSIONS_TOPIC:
         {
             MqttKafkaResetMqttConnectionExFW ex = extension.nonCompactSessionsTopic();
-            result = String.format("%s", asString(ex.reason()));
+            result = String.format(
+                    "The MQTT sessions Kafka topic is not log compacted. Update the cleanup policy to enable log compaction."
+            );
             break;
         }
         }

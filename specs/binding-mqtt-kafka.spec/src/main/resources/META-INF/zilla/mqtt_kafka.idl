@@ -40,7 +40,6 @@ scope mqtt_kafka
 
         struct MqttKafkaResetMqttConnectionEx extends core::stream::Extension
         {
-            string16 reason;
         }
 
         union MqttKafkaEventEx switch (MqttKafkaEventType)
