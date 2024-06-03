@@ -25,7 +25,7 @@ telemetry:
           - qname: test.app0
             id: binding.tcp.dns.failed
             name: BINDING_TCP_DNS_FAILED
-            message: localhost
+            message: Unable to resolve host dns for address (localhost).
 bindings:
   app0:
     type: tcp

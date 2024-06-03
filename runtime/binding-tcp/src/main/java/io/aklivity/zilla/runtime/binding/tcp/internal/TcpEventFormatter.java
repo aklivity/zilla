@@ -48,7 +48,7 @@ public final class TcpEventFormatter implements EventFormatterSpi
         case DNS_FAILED:
         {
             final TcpDnsFailedExFW ex = extension.dnsFailed();
-            result = String.format("%s", asString(ex.address()));
+            result = String.format("Unable to resolve host dns for address (%s).", asString(ex.address()));
             break;
         }
         }
