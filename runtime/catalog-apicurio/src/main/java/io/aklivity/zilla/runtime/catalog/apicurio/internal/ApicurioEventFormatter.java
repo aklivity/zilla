@@ -18,8 +18,8 @@ import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.catalog.apicurio.internal.types.StringFW;
 import io.aklivity.zilla.runtime.catalog.apicurio.internal.types.event.ApicurioEventExFW;
-import io.aklivity.zilla.runtime.catalog.apicurio.internal.types.event.ApicurioRetrievableArtifactIdExFW;
-import io.aklivity.zilla.runtime.catalog.apicurio.internal.types.event.ApicurioRetrievableArtifactSubjectVersionExFW;
+import io.aklivity.zilla.runtime.catalog.apicurio.internal.types.event.ApicurioRetrievedArtifactIdExFW;
+import io.aklivity.zilla.runtime.catalog.apicurio.internal.types.event.ApicurioRetrievedArtifactSubjectVersionExFW;
 import io.aklivity.zilla.runtime.catalog.apicurio.internal.types.event.ApicurioUnretrievableArtifactIdExFW;
 import io.aklivity.zilla.runtime.catalog.apicurio.internal.types.event.ApicurioUnretrievableArtifactSubjectVersionExFW;
 import io.aklivity.zilla.runtime.catalog.apicurio.internal.types.event.ApicurioUnretrievableArtifactSubjectVersionStaleArtifactExFW;
@@ -78,7 +78,7 @@ public final class ApicurioEventFormatter implements EventFormatterSpi
         }
         case RETRIEVED_ARTIFACT_SUBJECT_VERSION:
         {
-            ApicurioRetrievableArtifactSubjectVersionExFW ex = extension.retrievableArtifactSubjectVersion();
+            ApicurioRetrievedArtifactSubjectVersionExFW ex = extension.retrievedArtifactSubjectVersion();
             result = String.format("Successfully fetched artifact for subject %s with version %s.",
                     asString(ex.subject()),
                     asString(ex.version())
@@ -87,7 +87,7 @@ public final class ApicurioEventFormatter implements EventFormatterSpi
         }
         case RETRIEVED_ARTIFACT_ID:
         {
-            ApicurioRetrievableArtifactIdExFW ex = extension.retrievableArtifactId();
+            ApicurioRetrievedArtifactIdExFW ex = extension.retrievedArtifactId();
             result = String.format("Successfully fetched artifact id %d.", ex.artifactId());
             break;
         }

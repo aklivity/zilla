@@ -43,13 +43,13 @@ scope karapace
             int32 schemaId;
         }
 
-        struct KarapaceRetrievableSchemaSubjectVersionEx extends core::stream::Extension
+        struct KarapaceRetrievedSchemaSubjectVersionEx extends core::stream::Extension
         {
             string8 subject;
             string8 version;
         }
 
-        struct KarapaceRetrievableSchemaIdEx extends core::stream::Extension
+        struct KarapaceRetrievedSchemaIdEx extends core::stream::Extension
         {
             int32 schemaId;
         }
@@ -59,8 +59,8 @@ scope karapace
             case UNRETRIEVABLE_SCHEMA_SUBJECT_VERSION: KarapaceUnretrievableSchemaSubjectVersionEx unretrievableSchemaSubjectVersion;
             case UNRETRIEVABLE_SCHEMA_SUBJECT_VERSION_STALE_SCHEMA: KarapaceUnretrievableSchemaSubjectVersionStaleSchemaEx unretrievableSchemaSubjectVersionStaleSchema;
             case UNRETRIEVABLE_SCHEMA_ID: KarapaceUnretrievableSchemaIdEx unretrievableSchemaId;
-            case RETRIEVED_SCHEMA_SUBJECT_VERSION: KarapaceRetrievableSchemaSubjectVersionEx retrievableSchemaSubjectVersion;
-            case RETRIEVED_SCHEMA_ID: KarapaceRetrievableSchemaIdEx retrievableSchemaId;
+            case RETRIEVED_SCHEMA_SUBJECT_VERSION: KarapaceRetrievedSchemaSubjectVersionEx retrievedSchemaSubjectVersion;
+            case RETRIEVED_SCHEMA_ID: KarapaceRetrievedSchemaIdEx retrievedSchemaId;
         }
     }
 }

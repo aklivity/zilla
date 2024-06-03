@@ -23,8 +23,8 @@ telemetry:
         events:
           - qname: test.catalog0
             id: catalog.karapace.unretrievable.schema.subject.version
-            name: CATALOG_KARAPACE_UNRETRIEVABLE_SCHEMA
-            message: items-snapshots-value latest
+            name: CATALOG_KARAPACE_UNRETRIEVABLE_SCHEMA_SUBJECT_VERSION
+            message: Unable to fetch schema for subject items-snapshots-value with version latest.
 catalogs:
   catalog0:
     type: karapace

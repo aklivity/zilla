@@ -44,7 +44,7 @@ public class KarapaceEventContext
     private final int staleSchemaID;
     private final int unretrievableSchemaId;
     private final int retrievableSchemaSubjectVersionId;
-    private final int retrievableSchemaId;
+    private final int retrievedSchemaId;
     private final MessageConsumer eventWriter;
     private final Clock clock;
 
@@ -55,8 +55,8 @@ public class KarapaceEventContext
         this.unretrievableSchemaSubjectVersionId = context.supplyEventId("catalog.karapace.unretrievable.schema.subject.version");
         this.staleSchemaID = context.supplyEventId("catalog.karapace.unretrievable.schema.subject.version.stale.schema");
         this.unretrievableSchemaId = context.supplyEventId("catalog.karapace.unretrievable.schema.id");
-        this.retrievableSchemaSubjectVersionId = context.supplyEventId("catalog.karapace.retrievable.schema.subject.version");
-        this.retrievableSchemaId = context.supplyEventId("catalog.karapace.retrievable.schema.id");
+        this.retrievableSchemaSubjectVersionId = context.supplyEventId("catalog.karapace.retrieved.schema.subject.version");
+        this.retrievedSchemaId = context.supplyEventId("catalog.karapace.retrieved.schema.id");
         this.eventWriter = context.supplyEventWriter();
         this.clock = context.clock();
     }
@@ -140,7 +140,7 @@ public class KarapaceEventContext
     {
         KarapaceEventExFW extension = karapaceEventExRW
             .wrap(extensionBuffer, 0, extensionBuffer.capacity())
-            .retrievableSchemaSubjectVersion(e -> e
+            .retrievedSchemaSubjectVersion(e -> e
                 .typeId(RETRIEVED_SCHEMA_SUBJECT_VERSION.value())
                 .subject(subject)
                 .version(version)
@@ -163,14 +163,14 @@ public class KarapaceEventContext
     {
         KarapaceEventExFW extension = karapaceEventExRW
             .wrap(extensionBuffer, 0, extensionBuffer.capacity())
-            .retrievableSchemaId(e -> e
+            .retrievedSchemaId(e -> e
                 .typeId(RETRIEVED_SCHEMA_ID.value())
                 .schemaId(schemaId)
             )
             .build();
         EventFW event = eventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
-            .id(retrievableSchemaId)
+            .id(retrievedSchemaId)
             .timestamp(clock.millis())
             .traceId(0L)
             .namespacedId(catalogId)

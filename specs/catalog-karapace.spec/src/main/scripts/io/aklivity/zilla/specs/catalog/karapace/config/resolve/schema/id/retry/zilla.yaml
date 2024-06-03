@@ -24,11 +24,11 @@ telemetry:
           - qname: test.catalog0
             id: catalog.karapace.unretrievable.schema.id
             name: CATALOG_KARAPACE_UNRETRIEVABLE_SCHEMA_ID
-            message: 9
+            message: Unable to fetch schema id 9.
           - qname: test.catalog0
-            id: catalog.karapace.retrievable.schema.id
+            id: catalog.karapace.retrieved.schema.id
             name: CATALOG_KARAPACE_RETRIEVED_SCHEMA_ID
-            message: 9
+            message: Successfully fetched schema id 9.
 catalogs:
   catalog0:
     type: karapace

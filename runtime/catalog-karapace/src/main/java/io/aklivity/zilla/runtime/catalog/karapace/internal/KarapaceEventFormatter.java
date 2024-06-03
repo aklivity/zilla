@@ -51,33 +51,44 @@ public final class KarapaceEventFormatter implements EventFormatterSpi
         case UNRETRIEVABLE_SCHEMA_SUBJECT_VERSION:
         {
             KarapaceUnretrievableSchemaSubjectVersionExFW ex = extension.unretrievableSchemaSubjectVersion();
-            result = String.format("%s %s", asString(ex.subject()), asString(ex.version()));
+            result = String.format(
+                    "Unable to fetch schema for subject %s with version %s.",
+                    asString(ex.subject()),
+                    asString(ex.version())
+            );
             break;
         }
         case UNRETRIEVABLE_SCHEMA_SUBJECT_VERSION_STALE_SCHEMA:
         {
             KarapaceUnretrievableSchemaSubjectVersionStaleSchemaExFW ex = extension
                 .unretrievableSchemaSubjectVersionStaleSchema();
-            result = String.format("%s %s, using stale schema: %d", asString(ex.subject()),
-                asString(ex.version()), ex.schemaId());
+            result = String.format(
+                    "Unable to fetch schema for subject %s with version %s; using stale schema with id %d.",
+                    asString(ex.subject()),
+                    asString(ex.version()),
+                    ex.schemaId()
+            );
             break;
         }
         case UNRETRIEVABLE_SCHEMA_ID:
         {
             KarapaceUnretrievableSchemaIdExFW ex = extension.unretrievableSchemaId();
-            result = String.format("%d", ex.schemaId());
+            result = String.format("Unable to fetch schema id %d.", ex.schemaId());
             break;
         }
         case RETRIEVED_SCHEMA_SUBJECT_VERSION:
         {
-            KarapaceRetrievableSchemaSubjectVersionExFW ex = extension.retrievableSchemaSubjectVersion();
-            result = String.format("%s %s", asString(ex.subject()), asString(ex.version()));
+            KarapaceRetrievableSchemaSubjectVersionExFW ex = extension.retrievedSchemaSubjectVersion();
+            result = String.format("Successfully fetched schema for subject %s with version %s.",
+                    asString(ex.subject()),
+                    asString(ex.version())
+            );
             break;
         }
         case RETRIEVED_SCHEMA_ID:
         {
-            KarapaceRetrievableSchemaIdExFW ex = extension.retrievableSchemaId();
-            result = String.format("%d", ex.schemaId());
+            KarapaceRetrievableSchemaIdExFW ex = extension.retrievedSchemaId();
+            result = String.format("Successfully fetched schema id %d.", ex.schemaId());
             break;
         }
         }
