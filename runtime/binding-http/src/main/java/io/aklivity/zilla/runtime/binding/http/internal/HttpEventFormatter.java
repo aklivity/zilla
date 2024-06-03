@@ -48,7 +48,7 @@ public final class HttpEventFormatter implements EventFormatterSpi
         case REQUEST_ACCEPTED:
         {
             HttpRequestAcceptedExFW ex = extension.requestAccepted();
-            result = String.format("%s %s %s %s %s", identity(ex.identity()), asString(ex.scheme()), asString(ex.method()),
+            result = String.format("%s %s %s://%s%s", identity(ex.identity()), asString(ex.method()), asString(ex.scheme()),
                 asString(ex.authority()), asString(ex.path()));
             break;
         }

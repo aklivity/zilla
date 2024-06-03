@@ -49,7 +49,7 @@ public final class KafkaEventFormatter implements EventFormatterSpi
         case AUTHORIZATION_FAILED:
         {
             KafkaAuthorizationFailedExFW ex = extension.authorizationFailed();
-            result = String.format("%s", identity(ex.identity()));
+            result = String.format("Unable to authenticate client with identity (%s).", asString(ex.identity()));
             break;
         }
         case API_VERSION_REJECTED:
@@ -61,10 +61,10 @@ public final class KafkaEventFormatter implements EventFormatterSpi
         return result;
     }
 
-    private static String identity(
-        StringFW identity)
+    private static String asString(
+            StringFW stringFW)
     {
-        int length = identity.length();
-        return length <= 0 ? "-" : identity.asString();
+        String s = stringFW.asString();
+        return s == null ? "" : s;
     }
 }
