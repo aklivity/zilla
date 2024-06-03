@@ -210,8 +210,6 @@ bindings:
     routes:
       - when:
           - api-id: http_api
-            operation-id: createPets
         exit: asyncapi_kafka0
         with:
           api-id: kafka_api
-          operation-id: createPets

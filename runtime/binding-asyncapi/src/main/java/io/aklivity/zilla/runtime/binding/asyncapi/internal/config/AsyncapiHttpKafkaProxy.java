@@ -75,8 +75,6 @@ public class AsyncapiHttpKafkaProxy extends AsyncapiProxy
         {
             final Asyncapi kafkaAsyncapi = asyncapis.get(route.with.apiId);
 
-            final AsyncapiOperation withOperation = kafkaAsyncapi.operations.get(route.with.operationId);
-
             for (AsyncapiConditionConfig condition : route.when)
             {
                 final Asyncapi httpAsyncapi = asyncapis.get(condition.apiId);
@@ -85,50 +83,79 @@ public class AsyncapiHttpKafkaProxy extends AsyncapiProxy
                     break inject;
                 }
                 final AsyncapiOperation whenOperation = httpAsyncapi.operations.get(condition.operationId);
-                final AsyncapiChannelView channel = AsyncapiChannelView.of(httpAsyncapi.channels, whenOperation.channel);
-                String path = channel.address();
-                String method = whenOperation.bindings.get("http").method;
-                final List<String> paramNames = findParams(path);
-
-                AsyncapiChannelView httpChannel = AsyncapiChannelView.of(httpAsyncapi.channels, whenOperation.channel);
-
-                boolean async = httpChannel.messages().values()
-                    .stream().anyMatch(asyncapiMessage ->
-                    {
-                        AsyncapiMessageView message = AsyncapiMessageView.of(httpAsyncapi.components.messages, asyncapiMessage);
-                        return message.correlationId() != null;
-                    });
-
-                if (async)
+                if (whenOperation == null)
                 {
-                    for (AsyncapiOperation operation : httpAsyncapi.operations.values())
+                    for (Map.Entry<String, AsyncapiOperation> e : httpAsyncapi.operations.entrySet())
                     {
-                        AsyncapiChannelView channelView = AsyncapiChannelView.of(httpAsyncapi.channels, operation.channel);
-                        if (parameters.reset(channelView.address()).find())
+                        AsyncapiOperation withOperation = route.with.operationId != null ?
+                            kafkaAsyncapi.operations.get(route.with.operationId) : kafkaAsyncapi.operations.get(e.getKey());
+                        if (withOperation != null)
                         {
-                            AsyncapiReply reply = withOperation.reply;
-                            if (reply != null)
-                            {
-                                final RouteConfigBuilder<BindingConfigBuilder<C>> asyncRouteBuilder = binding.route();
-                                binding = addAsyncOperation(asyncRouteBuilder, httpAsyncapi, kafkaAsyncapi, operation,
-                                    withOperation);
-                            }
+                            binding = addHttpKafkaRoute(binding, kafkaAsyncapi, httpAsyncapi, e.getValue(), withOperation);
                         }
                     }
                 }
-
-                final RouteConfigBuilder<BindingConfigBuilder<C>> routeBuilder = binding.route();
-                routeBuilder
-                    .exit(qname)
-                    .when(HttpKafkaConditionConfig::builder)
-                        .method(method)
-                        .path(path)
-                        .build()
-                    .inject(r -> injectHttpKafkaRouteWith(r, httpAsyncapi, kafkaAsyncapi, whenOperation,
-                        withOperation, paramNames));
-                binding = routeBuilder.build();
+                else
+                {
+                    AsyncapiOperation withOperation = kafkaAsyncapi.operations.get(route.with.operationId);
+                    binding = addHttpKafkaRoute(binding, kafkaAsyncapi, httpAsyncapi, whenOperation, withOperation);
+                }
             }
         }
+        return binding;
+    }
+
+    private <C> BindingConfigBuilder<C> addHttpKafkaRoute(
+        BindingConfigBuilder<C> binding,
+        Asyncapi kafkaAsyncapi,
+        Asyncapi httpAsyncapi,
+        AsyncapiOperation whenOperation,
+        AsyncapiOperation withOperation)
+    {
+
+        final AsyncapiChannelView channel = AsyncapiChannelView.of(httpAsyncapi.channels, whenOperation.channel);
+        String path = channel.address();
+        String method = whenOperation.bindings.get("http").method;
+        final List<String> paramNames = findParams(path);
+
+        AsyncapiChannelView httpChannel = AsyncapiChannelView.of(httpAsyncapi.channels, whenOperation.channel);
+
+        boolean async = httpChannel.messages().values()
+            .stream().anyMatch(asyncapiMessage ->
+            {
+                AsyncapiMessageView message =
+                    AsyncapiMessageView.of(httpAsyncapi.components.messages, asyncapiMessage);
+                return message.correlationId() != null;
+            });
+
+        if (async)
+        {
+            for (AsyncapiOperation operation : httpAsyncapi.operations.values())
+            {
+                AsyncapiChannelView channelView = AsyncapiChannelView.of(httpAsyncapi.channels, operation.channel);
+                if (parameters.reset(channelView.address()).find())
+                {
+                    AsyncapiReply reply = withOperation.reply;
+                    if (reply != null)
+                    {
+                        final RouteConfigBuilder<BindingConfigBuilder<C>> asyncRouteBuilder = binding.route();
+                        binding = addAsyncOperation(asyncRouteBuilder, httpAsyncapi, kafkaAsyncapi, operation,
+                            withOperation);
+                    }
+                }
+            }
+        }
+
+        final RouteConfigBuilder<BindingConfigBuilder<C>> routeBuilder = binding.route();
+        routeBuilder
+            .exit(qname)
+            .when(HttpKafkaConditionConfig::builder)
+                .method(method)
+                .path(path)
+                .build()
+            .inject(r -> injectHttpKafkaRouteWith(r, httpAsyncapi, kafkaAsyncapi, whenOperation,
+                withOperation, paramNames));
+        binding = routeBuilder.build();
         return binding;
     }
 
