@@ -26,6 +26,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaConditionCon
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaConditionKind;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaWithConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttQoS;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
 
@@ -118,6 +119,9 @@ public class AsyncapiMqttKafkaProxy extends AsyncapiProxy
                     .messages(messages)
                     .retained(retained)
                 .build()
+                .publish()
+                    .qosMax(MqttQoS.EXACTLY_ONCE.name().toLowerCase())
+                    .build()
                 .clients(Collections.emptyList())
             .build();
     }
