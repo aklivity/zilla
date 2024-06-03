@@ -52,13 +52,15 @@ public class JwtEventContext
     public void authorizationFailed(
         long traceId,
         long bindingId,
-        String identity)
+        String identity,
+        String reason)
     {
         JwtEventExFW extension = jwtEventExRW
             .wrap(extensionBuffer, 0, extensionBuffer.capacity())
             .authorizationFailed(e -> e
                 .typeId(AUTHORIZATION_FAILED.value())
                 .identity(identity)
+                .reason(reason)
             )
             .build();
         EventFW event = eventRW

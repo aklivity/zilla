@@ -24,7 +24,7 @@ telemetry:
           - qname: test.net0
             id: guard.jwt.authorization.failed
             name: GUARD_JWT_AUTHORIZATION_FAILED
-            message: No active session found for token identity (user).
+            message: JWT token authorization failed for identity (user). Token is expired.
 guards:
   jwt0:
     type: jwt

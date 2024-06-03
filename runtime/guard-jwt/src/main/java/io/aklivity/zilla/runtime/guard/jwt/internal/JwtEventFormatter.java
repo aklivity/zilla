@@ -47,17 +47,20 @@ public final class JwtEventFormatter implements EventFormatterSpi
         case AUTHORIZATION_FAILED:
         {
             JwtAuthorizationFailedExFW ex = extension.authorizationFailed();
-            result = String.format("No active session found for token identity (%s).", identity(ex.identity()));
+            result = String.format("JWT token authorization failed for identity (%s). %s",
+                    asString(ex.identity()),
+                    asString(ex.reason())
+            );
             break;
         }
         }
         return result;
     }
 
-    private static String identity(
-        StringFW identity)
+    private static String asString(
+            StringFW stringFW)
     {
-        int length = identity.length();
-        return length <= 0 ? "-" : identity.asString();
+        String s = stringFW.asString();
+        return s == null ? "" : s;
     }
 }
