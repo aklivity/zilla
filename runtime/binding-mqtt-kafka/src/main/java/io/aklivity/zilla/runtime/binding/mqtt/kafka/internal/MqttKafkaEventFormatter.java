@@ -19,7 +19,7 @@ import org.agrona.DirectBuffer;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.event.MqttKafkaEventExFW;
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.event.MqttKafkaResetMqttConnectionExFW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.event.MqttKafkaNonCompactSessionsTopicExFW;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.event.EventFormatterSpi;
 
@@ -46,9 +46,10 @@ public final class MqttKafkaEventFormatter implements EventFormatterSpi
         {
         case NON_COMPACT_SESSIONS_TOPIC:
         {
-            MqttKafkaResetMqttConnectionExFW ex = extension.nonCompactSessionsTopic();
+            MqttKafkaNonCompactSessionsTopicExFW ex = extension.nonCompactSessionsTopic();
             result = String.format(
-                    "The MQTT sessions Kafka topic is not log compacted. Update the cleanup policy to enable log compaction."
+                    "The sessions topic (%s) is not log compacted. Update the cleanup policy to enable log compaction.",
+                    asString(ex.topic())
             );
             break;
         }

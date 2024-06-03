@@ -3468,7 +3468,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                             .build();
                         delegate.doMqttWindow(authorization, traceId, 0, 0, 0);
                         delegate.doMqttReset(traceId, mqttResetEx);
-                        events.onMqttConnectionReset(traceId, routedId);
+                        events.onMqttConnectionReset(traceId, routedId, delegate.sessionsTopic);
                         doKafkaAbort(traceId, authorization);
                         break onKafkaBegin;
                     }

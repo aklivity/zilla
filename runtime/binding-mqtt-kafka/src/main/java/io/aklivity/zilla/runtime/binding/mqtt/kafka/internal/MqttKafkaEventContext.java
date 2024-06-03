@@ -22,6 +22,7 @@ import java.time.Clock;
 import org.agrona.concurrent.AtomicBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.event.MqttKafkaEventExFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -51,12 +52,14 @@ public class MqttKafkaEventContext
 
     public void onMqttConnectionReset(
         long traceId,
-        long bindingId)
+        long bindingId,
+        String16FW topic)
     {
         MqttKafkaEventExFW extension = mqttKafkaEventExRW
             .wrap(extensionBuffer, 0, extensionBuffer.capacity())
             .nonCompactSessionsTopic(e -> e
-                .typeId(NON_COMPACT_SESSIONS_TOPIC.value()))
+                .typeId(NON_COMPACT_SESSIONS_TOPIC.value())
+                .topic(topic))
             .build();
         EventFW event = eventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())

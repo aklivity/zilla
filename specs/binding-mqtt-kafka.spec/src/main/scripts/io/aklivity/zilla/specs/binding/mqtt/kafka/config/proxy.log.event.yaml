@@ -24,7 +24,7 @@ telemetry:
           - qname: test.kafka0
             id: binding.mqtt.kafka.non.compact.sessions.topic
             name: BINDING_MQTT_KAFKA_NON_COMPACT_SESSIONS_TOPIC
-            message: The MQTT sessions Kafka topic is not log compacted. Update the cleanup policy to enable log compaction.
+            message: The sessions topic (mqtt-sessions) is not log compacted. Update the cleanup policy to enable log compaction.
 bindings:
   mqtt0:
     type: mqtt-kafka

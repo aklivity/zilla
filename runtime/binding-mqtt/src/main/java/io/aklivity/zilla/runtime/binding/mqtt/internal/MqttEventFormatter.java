@@ -48,7 +48,10 @@ public final class MqttEventFormatter implements EventFormatterSpi
         case CLIENT_CONNECTED:
         {
             MqttClientConnectedExFW ex = extension.clientConnected();
-            result = String.format("Session authorization (%s) was successful for client id (%s).", identity(ex.identity()), asString(ex.clientId()));
+            result = String.format("Session authorization (%s) was successful for client id (%s).",
+                    identity(ex.identity()),
+                    asString(ex.clientId())
+            );
             break;
         }
         }
