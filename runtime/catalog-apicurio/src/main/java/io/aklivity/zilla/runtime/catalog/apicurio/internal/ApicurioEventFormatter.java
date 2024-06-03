@@ -51,33 +51,44 @@ public final class ApicurioEventFormatter implements EventFormatterSpi
         case UNRETRIEVABLE_ARTIFACT_SUBJECT_VERSION:
         {
             ApicurioUnretrievableArtifactSubjectVersionExFW ex = extension.unretrievableArtifactSubjectVersion();
-            result = String.format("%s %s", asString(ex.subject()), asString(ex.version()));
+            result = String.format(
+                    "Unable to fetch artifact for subject %s with version %s.",
+                    asString(ex.subject()),
+                    asString(ex.version())
+            );
             break;
         }
         case UNRETRIEVABLE_ARTIFACT_SUBJECT_VERSION_STALE_ARTIFACT:
         {
             ApicurioUnretrievableArtifactSubjectVersionStaleArtifactExFW ex = extension
                 .unretrievableArtifactSubjectVersionStaleArtifact();
-            result = String.format("%s (%s) |  stale artifactId (%d)", asString(ex.subject()),
-                asString(ex.version()), ex.artifactId());
+            result = String.format(
+                    "Unable to fetch artifact for subject %s with version %s; using stale artifact with id %d.",
+                    asString(ex.subject()),
+                    asString(ex.version()),
+                    ex.artifactId()
+            );
             break;
         }
         case UNRETRIEVABLE_ARTIFACT_ID:
         {
             ApicurioUnretrievableArtifactIdExFW ex = extension.unretrievableArtifactId();
-            result = String.format("%d", ex.artifactId());
+            result = String.format("Unable to fetch artifact id %d.", ex.artifactId());
             break;
         }
         case RETRIEVED_ARTIFACT_SUBJECT_VERSION:
         {
             ApicurioRetrievableArtifactSubjectVersionExFW ex = extension.retrievableArtifactSubjectVersion();
-            result = String.format("%s %s", asString(ex.subject()), asString(ex.version()));
+            result = String.format("Successfully fetched artifact for subject %s with version %s.",
+                    asString(ex.subject()),
+                    asString(ex.version())
+            );
             break;
         }
         case RETRIEVED_ARTIFACT_ID:
         {
             ApicurioRetrievableArtifactIdExFW ex = extension.retrievableArtifactId();
-            result = String.format("$d", ex.artifactId());
+            result = String.format("Successfully fetched artifact id %d.", ex.artifactId());
             break;
         }
         }
