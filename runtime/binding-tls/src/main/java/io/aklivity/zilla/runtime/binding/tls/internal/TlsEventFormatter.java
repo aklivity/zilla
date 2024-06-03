@@ -60,7 +60,7 @@ public final class TlsEventFormatter implements EventFormatterSpi
         }
         case TLS_PEER_NOT_VERIFIED:
         {
-            result = "The peer's identity was not able to identify itself.";
+            result = "The peer's identity could not be verified.";
             break;
         }
         case TLS_HANDSHAKE_FAILED:
