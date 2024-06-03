@@ -47,7 +47,7 @@ public final class FilesystemEventFormatter implements EventFormatterSpi
         case FILE_NOT_FOUND:
         {
             FilesystemFileNotFoundExFW ex = extension.fileNotFound();
-            result = String.format("%s", asString(ex.location()));
+            result = String.format("Unable to find file at (%s) on the host filesystem.", asString(ex.location()));
             break;
         }
         }
