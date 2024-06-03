@@ -19,8 +19,8 @@ import org.agrona.DirectBuffer;
 import io.aklivity.zilla.runtime.catalog.karapace.internal.types.StringFW;
 import io.aklivity.zilla.runtime.catalog.karapace.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.catalog.karapace.internal.types.event.KarapaceEventExFW;
-import io.aklivity.zilla.runtime.catalog.karapace.internal.types.event.KarapaceRetrievableSchemaIdExFW;
-import io.aklivity.zilla.runtime.catalog.karapace.internal.types.event.KarapaceRetrievableSchemaSubjectVersionExFW;
+import io.aklivity.zilla.runtime.catalog.karapace.internal.types.event.KarapaceRetrievedSchemaIdExFW;
+import io.aklivity.zilla.runtime.catalog.karapace.internal.types.event.KarapaceRetrievedSchemaSubjectVersionExFW;
 import io.aklivity.zilla.runtime.catalog.karapace.internal.types.event.KarapaceUnretrievableSchemaIdExFW;
 import io.aklivity.zilla.runtime.catalog.karapace.internal.types.event.KarapaceUnretrievableSchemaSubjectVersionExFW;
 import io.aklivity.zilla.runtime.catalog.karapace.internal.types.event.KarapaceUnretrievableSchemaSubjectVersionStaleSchemaExFW;
@@ -78,7 +78,7 @@ public final class KarapaceEventFormatter implements EventFormatterSpi
         }
         case RETRIEVED_SCHEMA_SUBJECT_VERSION:
         {
-            KarapaceRetrievableSchemaSubjectVersionExFW ex = extension.retrievedSchemaSubjectVersion();
+            KarapaceRetrievedSchemaSubjectVersionExFW ex = extension.retrievedSchemaSubjectVersion();
             result = String.format("Successfully fetched schema for subject %s with version %s.",
                     asString(ex.subject()),
                     asString(ex.version())
@@ -87,7 +87,7 @@ public final class KarapaceEventFormatter implements EventFormatterSpi
         }
         case RETRIEVED_SCHEMA_ID:
         {
-            KarapaceRetrievableSchemaIdExFW ex = extension.retrievedSchemaId();
+            KarapaceRetrievedSchemaIdExFW ex = extension.retrievedSchemaId();
             result = String.format("Successfully fetched schema id %d.", ex.schemaId());
             break;
         }
