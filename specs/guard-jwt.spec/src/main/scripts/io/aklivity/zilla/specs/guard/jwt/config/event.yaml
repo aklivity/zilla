@@ -24,7 +24,7 @@ telemetry:
           - qname: test.net0
             id: guard.jwt.authorization.failed
             name: GUARD_JWT_AUTHORIZATION_FAILED
-            message: user
+            message: No active session found for token identity (user).
 guards:
   jwt0:
     type: jwt
