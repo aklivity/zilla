@@ -33,6 +33,15 @@ public class JsonReadConverterHandler extends JsonModelHandler implements Conver
     }
 
     @Override
+    public int padding(
+        DirectBuffer data,
+        int index,
+        int length)
+    {
+        return handler.decodePadding(data, index, length);
+    }
+
+    @Override
     public int convert(
         long traceId,
         long bindingId,

@@ -164,7 +164,7 @@ public class KarapaceIT
     {
         KarapaceCatalogHandler catalog = new KarapaceCatalogHandler(config, context, 0L);
 
-        assertEquals(5, catalog.encodePadding());
+        assertEquals(5, catalog.encodePadding(0));
     }
 
     @Test
