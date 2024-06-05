@@ -37,7 +37,7 @@ public class JsonWriteConverterHandler extends JsonModelHandler implements Conve
         int index,
         int length)
     {
-        return handler.encodePadding();
+        return handler.encodePadding(length);
     }
 
     @Override

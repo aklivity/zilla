@@ -54,7 +54,7 @@ public class TestConverterHandler implements ConverterHandler
         int index,
         int length)
     {
-        return handler.encodePadding();
+        return handler.encodePadding(length);
     }
 
     @Override
