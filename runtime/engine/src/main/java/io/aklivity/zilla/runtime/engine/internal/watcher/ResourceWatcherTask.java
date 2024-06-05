@@ -20,43 +20,43 @@ import static org.agrona.LangUtil.rethrowUnchecked;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.ClosedWatchServiceException;
-import java.nio.file.FileSystems;
+import java.nio.file.FileSystem;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
+import java.util.Set;
 import java.util.concurrent.Future;
-import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.engine.config.EngineConfig;
-
-public class ConfigFileWatcherTask extends WatcherTask implements ConfigWatcher
+public class ResourceWatcherTask extends WatcherTask
 {
     private final Map<WatchKey, WatchedItem> watchedItems;
     private final WatchService watchService;
-    private final BiFunction<URL, String, EngineConfig> configChangeListener;
+    private final Consumer<Set<String>> resourceChangeListener;
     private final Function<String, String> readURL;
+    private final Set<String> namespaces;
 
-    public ConfigFileWatcherTask(
-        BiFunction<URL, String, EngineConfig> configChangeListener,
+    public ResourceWatcherTask(
+        FileSystem fileSystem,
+        Consumer<Set<String>> resourceChangeListener,
         Function<String, String> readURL)
     {
-        this.configChangeListener = configChangeListener;
+        this.resourceChangeListener = resourceChangeListener;
         this.readURL = readURL;
         this.watchedItems = new IdentityHashMap<>();
+        this.namespaces = new HashSet<>();
         WatchService watchService = null;
-
         try
         {
-            watchService = FileSystems.getDefault().newWatchService();
+            watchService = fileSystem.newWatchService();
         }
-        catch (IOException ex)
+        catch (Exception ex)
         {
             rethrowUnchecked(ex);
         }
-
         this.watchService = watchService;
 
     }
@@ -90,9 +90,9 @@ public class ConfigFileWatcherTask extends WatcherTask implements ConfigWatcher
                     if (watchedItem.isReconfigureNeeded(newHash))
                     {
                         watchedItem.setHash(newHash);
-                        if (configChangeListener != null)
+                        if (resourceChangeListener != null)
                         {
-                            configChangeListener.apply(watchedItem.getURL(), newText);
+                            resourceChangeListener.accept(namespaces);
                         }
                     }
                 }
@@ -106,28 +106,26 @@ public class ConfigFileWatcherTask extends WatcherTask implements ConfigWatcher
         return null;
     }
 
-    @Override
-    public CompletableFuture<EngineConfig> watchConfig(
-        URL configURL)
+    public void watchResource(
+        URL resourceURL)
     {
-        WatchedItem watchedItem = new WatchedItem(configURL, watchService);
+        WatchedItem watchedItem = new WatchedItem(resourceURL, watchService);
         watchedItem.register();
         watchedItem.keys().forEach(k -> watchedItems.put(k, watchedItem));
-        String configText = readURL.apply(configURL.toString());
-        watchedItem.setHash(computeHash(configText));
+        String resource = readURL.apply(resourceURL.toString());
+        watchedItem.setHash(computeHash(resource));
+    }
 
-        CompletableFuture<EngineConfig> configFuture;
-        try
-        {
-            EngineConfig config = configChangeListener.apply(configURL, configText);
-            configFuture = CompletableFuture.completedFuture(config);
-        }
-        catch (Exception ex)
-        {
-            configFuture = CompletableFuture.failedFuture(ex);
-        }
+    public void addNamespace(
+        String namespace)
+    {
+        namespaces.add(namespace);
+    }
 
-        return configFuture;
+    public void removeNamespace(
+        String namespace)
+    {
+        namespaces.remove(namespace);
     }
 
     @Override

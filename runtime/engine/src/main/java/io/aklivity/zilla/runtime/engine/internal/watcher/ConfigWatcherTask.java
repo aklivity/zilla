@@ -20,46 +20,42 @@ import static org.agrona.LangUtil.rethrowUnchecked;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.ClosedWatchServiceException;
-import java.nio.file.FileSystems;
+import java.nio.file.FileSystem;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
-import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Map;
-import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
-public class ResourceFileWatcherTask extends WatcherTask implements ResourceWatcher
+import io.aklivity.zilla.runtime.engine.config.EngineConfig;
+
+public class ConfigWatcherTask extends WatcherTask
 {
     private final Map<WatchKey, WatchedItem> watchedItems;
     private final WatchService watchService;
-    private final Consumer<Set<String>> resourceChangeListener;
+    private final Function<String, EngineConfig> configChangeListener;
     private final Function<String, String> readURL;
-    private final Set<String> namespaces;
 
-    public ResourceFileWatcherTask(
-        Consumer<Set<String>> resourceChangeListener,
+    public ConfigWatcherTask(
+        FileSystem fileSystem,
+        Function<String, EngineConfig> configChangeListener,
         Function<String, String> readURL)
     {
-        this.resourceChangeListener = resourceChangeListener;
+        this.configChangeListener = configChangeListener;
         this.readURL = readURL;
         this.watchedItems = new IdentityHashMap<>();
-        this.namespaces = new HashSet<>();
         WatchService watchService = null;
-
         try
         {
-            watchService = FileSystems.getDefault().newWatchService();
+            watchService = fileSystem.newWatchService();
         }
-        catch (IOException ex)
+        catch (Exception ex)
         {
             rethrowUnchecked(ex);
         }
-
         this.watchService = watchService;
-
     }
 
     @Override
@@ -91,9 +87,9 @@ public class ResourceFileWatcherTask extends WatcherTask implements ResourceWatc
                     if (watchedItem.isReconfigureNeeded(newHash))
                     {
                         watchedItem.setHash(newHash);
-                        if (resourceChangeListener != null)
+                        if (configChangeListener != null)
                         {
-                            resourceChangeListener.accept(namespaces);
+                            configChangeListener.apply(newText);
                         }
                     }
                 }
@@ -107,29 +103,27 @@ public class ResourceFileWatcherTask extends WatcherTask implements ResourceWatc
         return null;
     }
 
-    @Override
-    public void watchResource(
-        URL resourceURL)
+    public CompletableFuture<EngineConfig> watchConfig(
+        URL configURL)
     {
-        WatchedItem watchedItem = new WatchedItem(resourceURL, watchService);
+        WatchedItem watchedItem = new WatchedItem(configURL, watchService);
         watchedItem.register();
         watchedItem.keys().forEach(k -> watchedItems.put(k, watchedItem));
-        String resource = readURL.apply(resourceURL.toString());
-        watchedItem.setHash(computeHash(resource));
-    }
+        String configText = readURL.apply(configURL.toString());
+        watchedItem.setHash(computeHash(configText));
 
-    @Override
-    public void addNamespace(
-        String namespace)
-    {
-        namespaces.add(namespace);
-    }
+        CompletableFuture<EngineConfig> configFuture;
+        try
+        {
+            EngineConfig config = configChangeListener.apply(configText);
+            configFuture = CompletableFuture.completedFuture(config);
+        }
+        catch (Exception ex)
+        {
+            configFuture = CompletableFuture.failedFuture(ex);
+        }
 
-    @Override
-    public void removeNamespace(
-        String namespace)
-    {
-        namespaces.remove(namespace);
+        return configFuture;
     }
 
     @Override

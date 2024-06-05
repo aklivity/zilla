@@ -16,21 +16,15 @@
 package io.aklivity.zilla.runtime.engine;
 
 import static io.aklivity.zilla.runtime.engine.internal.layouts.metrics.HistogramsLayout.BUCKETS;
-import static java.net.http.HttpClient.Redirect.NORMAL;
-import static java.net.http.HttpClient.Version.HTTP_2;
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.Executors.newFixedThreadPool;
 import static java.util.stream.Collectors.toList;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URISyntaxException;
+import java.net.URI;
 import java.net.URL;
-import java.net.URLConnection;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
+import java.nio.file.FileSystem;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -44,7 +38,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.function.LongConsumer;
 import java.util.function.LongSupplier;
@@ -72,9 +65,7 @@ import io.aklivity.zilla.runtime.engine.internal.layouts.EventsLayout;
 import io.aklivity.zilla.runtime.engine.internal.registry.EngineManager;
 import io.aklivity.zilla.runtime.engine.internal.registry.EngineWorker;
 import io.aklivity.zilla.runtime.engine.internal.types.event.EventFW;
-import io.aklivity.zilla.runtime.engine.internal.watcher.ConfigFileWatcherTask;
-import io.aklivity.zilla.runtime.engine.internal.watcher.ConfigHttpWatcherTask;
-import io.aklivity.zilla.runtime.engine.internal.watcher.ConfigWatcher;
+import io.aklivity.zilla.runtime.engine.internal.watcher.ConfigWatcherTask;
 import io.aklivity.zilla.runtime.engine.internal.watcher.ResourceWatchManager;
 import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
@@ -93,7 +84,7 @@ public final class Engine implements Collector, AutoCloseable
     private final AtomicInteger nextTaskId;
     private final ThreadFactory factory;
 
-    private final ConfigWatcher configWatcherTask;
+    private final ConfigWatcherTask configWatcherTask;
     private final URL configURL;
     private final List<EngineWorker> workers;
     private final boolean readonly;
@@ -213,22 +204,9 @@ public final class Engine implements Collector, AutoCloseable
             resourceWatchManager);
 
         this.configURL = config.configURL();
-        String protocol = configURL.getProtocol();
-        if ("file".equals(protocol) || "jar".equals(protocol))
-        {
-            Function<String, String> watcherReadURL = l -> readURL(configURL, l);
-            this.configWatcherTask = new ConfigFileWatcherTask(manager::reconfigure, watcherReadURL);
-            this.resourceWatchManager.initialize(manager::reloadNamespacesWithChangedResources, watcherReadURL);
-        }
-        else if ("http".equals(protocol) || "https".equals(protocol))
-        {
-            this.configWatcherTask = new ConfigHttpWatcherTask(manager::reconfigure, config.configPollIntervalSeconds());
-            // TODO: Ati - implement http
-        }
-        else
-        {
-            throw new UnsupportedOperationException();
-        }
+        FileSystem fileSystem = getFileSystem(configURL.toString());
+        this.configWatcherTask = new ConfigWatcherTask(fileSystem, manager::reconfigure, this::readURL);
+        this.resourceWatchManager.initialize(fileSystem, manager::reloadNamespacesWithChangedResources, this::readURL);
 
         this.bindings = bindings;
         this.tasks = tasks;
@@ -324,46 +302,45 @@ public final class Engine implements Collector, AutoCloseable
     }
 
     private String readURL(
-        URL configURL,
         String location)
     {
-        String output = null;
+        String result = null;
         try
         {
-            final URL fileURL = new URL(configURL, location);
-            if ("http".equals(fileURL.getProtocol()) || "https".equals(fileURL.getProtocol()))
+            URI uri = new URI(location);
+            if ("file".equals(uri.getScheme()))
             {
-                HttpClient client = HttpClient.newBuilder()
-                    .version(HTTP_2)
-                    .followRedirects(NORMAL)
-                    .build();
-
-                HttpRequest request = HttpRequest.newBuilder()
-                    .GET()
-                    .uri(fileURL.toURI())
-                    .build();
-
-                HttpResponse<String> response = client.send(
-                    request,
-                    HttpResponse.BodyHandlers.ofString());
-
-                output = response.body();
+                location = uri.getSchemeSpecificPart();
             }
-            else
-            {
-
-                URLConnection connection = fileURL.openConnection();
-                try (InputStream input = connection.getInputStream())
-                {
-                    output = new String(input.readAllBytes(), UTF_8);
-                }
-            }
+            // TODO: Ati - check this after adding hfs; this should just work fine for http
+            result = Files.readString(Path.of(location));
         }
-        catch (IOException | URISyntaxException | InterruptedException ex)
+        catch (Exception ex)
         {
-            output = "";
+            rethrowUnchecked(ex);
         }
-        return output;
+        return result;
+    }
+
+    private FileSystem getFileSystem(
+        String location)
+    {
+        FileSystem result = null;
+        try
+        {
+            URI uri = new URI(location);
+            if ("file".equals(uri.getScheme()))
+            {
+                location = uri.getSchemeSpecificPart();
+            }
+            // TODO: Ati - check this after adding hfs; this should just work fine for http
+            result = Path.of(location).getFileSystem();
+        }
+        catch (Exception ex)
+        {
+            rethrowUnchecked(ex);
+        }
+        return result;
     }
 
     private Thread newTaskThread(

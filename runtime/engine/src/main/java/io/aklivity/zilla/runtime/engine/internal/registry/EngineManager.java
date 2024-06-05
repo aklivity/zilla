@@ -25,7 +25,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.IntFunction;
@@ -83,7 +82,7 @@ public class EngineManager
     private final EngineExtContext context;
     private final EngineConfiguration config;
     private final List<EngineExtSpi> extensions;
-    private final BiFunction<URL, String, String> readURL;
+    private final Function<String, String> readURL;
     private final Resolver expressions;
     private final ResourceWatchManager resourceWatchManager;
 
@@ -102,7 +101,7 @@ public class EngineManager
         EngineExtContext context,
         EngineConfiguration config,
         List<EngineExtSpi> extensions,
-        BiFunction<URL, String, String> readURL,
+        Function<String, String> readURL,
         ResourceWatchManager resourceWatchManager)
     {
         this.schemaTypes = schemaTypes;
@@ -123,14 +122,13 @@ public class EngineManager
     }
 
     public EngineConfig reconfigure(
-        URL configURL,
         String configText)
     {
         EngineConfig newConfig = null;
 
         try
         {
-            newConfig = parse(configURL, configText);
+            newConfig = parse(configText);
             if (newConfig != null)
             {
                 final EngineConfig oldConfig = current;
@@ -199,7 +197,6 @@ public class EngineManager
     }
 
     private EngineConfig parse(
-        URL configURL,
         String configText)
     {
         EngineConfig engine = null;
@@ -213,11 +210,9 @@ public class EngineManager
 
         try
         {
-            final Function<String, String> namespaceReadURL = l -> readURL.apply(configURL, l);
-
             EngineConfigReader reader = new EngineConfigReader(
                 config,
-                new NamespaceConfigAdapterContext(namespaceReadURL),
+                new NamespaceConfigAdapterContext(readURL),
                 expressions,
                 schemaTypes,
                 logger);
@@ -231,7 +226,7 @@ public class EngineManager
 
             for (NamespaceConfig namespace : engine.namespaces)
             {
-                namespace.readURL = l -> readURL.apply(configURL, l);
+                namespace.readURL = readURL;
                 process(guards, namespace);
             }
         }

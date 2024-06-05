@@ -22,13 +22,16 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 
-public abstract class WatcherTask implements Callable<Void>
+public abstract class WatcherTask implements Callable<Void>, AutoCloseable
 {
     private final MessageDigest md5;
 
     protected final ScheduledExecutorService executor;
+
+    abstract Future<Void> submit();
 
     protected WatcherTask()
     {

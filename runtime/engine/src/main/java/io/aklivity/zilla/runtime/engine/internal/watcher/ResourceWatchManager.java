@@ -18,6 +18,7 @@ package io.aklivity.zilla.runtime.engine.internal.watcher;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.net.URL;
+import java.nio.file.FileSystem;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
@@ -29,8 +30,9 @@ import java.util.function.Function;
 public class ResourceWatchManager
 {
     private final Map<String, Set<String>> resources;
-    private final Map<String, ResourceWatcher> resourceTasks;
+    private final Map<String, ResourceWatcherTask> resourceTasks;
 
+    private FileSystem fileSystem;
     private Consumer<Set<String>> resourceChangeListener;
     private Function<String, String> readURL;
 
@@ -41,9 +43,11 @@ public class ResourceWatchManager
     }
 
     public void initialize(
+        FileSystem fileSystem,
         Consumer<Set<String>> resourceChangeListener,
         Function<String, String> readURL)
     {
+        this.fileSystem = fileSystem;
         this.resourceChangeListener = resourceChangeListener;
         this.readURL = readURL;
     }
@@ -93,7 +97,7 @@ public class ResourceWatchManager
     {
         try
         {
-            ResourceWatcher watcherTask = new ResourceFileWatcherTask(resourceChangeListener, readURL);
+            ResourceWatcherTask watcherTask = new ResourceWatcherTask(fileSystem, resourceChangeListener, readURL);
             watcherTask.addNamespace(namespace);
             watcherTask.submit();
             URL resourceURL = Path.of(resource).toUri().toURL();
