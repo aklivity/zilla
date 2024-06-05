@@ -29,6 +29,7 @@ import java.net.http.HttpResponse;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -36,6 +37,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 
 import io.aklivity.zilla.runtime.engine.config.EngineConfig;
 
@@ -50,10 +52,11 @@ public class HttpWatcherTask extends WatcherTask
     private final int pollSeconds;
 
     public HttpWatcherTask(
-        BiFunction<URL, String, EngineConfig> changeListener,
+        BiFunction<URL, String, EngineConfig> configChangeListener,
+        Consumer<Set<String>> resourceChangeListener,
         int pollSeconds)
     {
-        super(changeListener);
+        super(configChangeListener, resourceChangeListener);
         this.etags = new ConcurrentHashMap<>();
         this.configHashes = new ConcurrentHashMap<>();
         this.futures = new ConcurrentHashMap<>();
@@ -84,7 +87,7 @@ public class HttpWatcherTask extends WatcherTask
     }
 
     @Override
-    public CompletableFuture<EngineConfig> watch(
+    public CompletableFuture<EngineConfig> watchConfig(
         URL configURL)
     {
         URI configURI = toURI(configURL);
@@ -101,6 +104,13 @@ public class HttpWatcherTask extends WatcherTask
         }
 
         return configFuture;
+    }
+
+    @Override
+    public void watchResource(
+        URL resourceURL)
+    {
+        // TODO: Ati
     }
 
     @Override
@@ -175,7 +185,7 @@ public class HttpWatcherTask extends WatcherTask
             int pollIntervalSeconds = 0;
             if (statusCode == 404)
             {
-                config = changeListener.apply(configURI.toURL(), "");
+                config = configChangeListener.apply(configURI.toURL(), "");
                 pollIntervalSeconds = this.pollSeconds;
             }
             else if (statusCode >= 500 && statusCode <= 599)
@@ -193,7 +203,7 @@ public class HttpWatcherTask extends WatcherTask
                     if (!oldEtag.equals(etagOptional.get()))
                     {
                         etags.put(configURI, etagOptional.get());
-                        config = changeListener.apply(configURI.toURL(), configText);
+                        config = configChangeListener.apply(configURI.toURL(), configText);
                     }
                     else if (response.statusCode() != 304)
                     {
@@ -207,7 +217,7 @@ public class HttpWatcherTask extends WatcherTask
                     if (!Arrays.equals(configHash, newConfigHash))
                     {
                         configHashes.put(configURI, newConfigHash);
-                        config = changeListener.apply(configURI.toURL(), configText);
+                        config = configChangeListener.apply(configURI.toURL(), configText);
                     }
                     pollIntervalSeconds = this.pollSeconds;
                 }

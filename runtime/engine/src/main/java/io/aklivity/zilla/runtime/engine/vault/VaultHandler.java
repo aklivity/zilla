@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.engine.vault;
 
 import java.security.KeyStore;
+import java.util.List;
 
 public interface VaultHandler
 {
@@ -27,4 +28,9 @@ public interface VaultHandler
 
     KeyStore.PrivateKeyEntry[] keys(
         String signerRef);
+
+    default List<String> resources()
+    {
+        return List.of();
+    }
 }

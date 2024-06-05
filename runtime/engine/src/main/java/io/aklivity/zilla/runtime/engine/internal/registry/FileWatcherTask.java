@@ -25,9 +25,11 @@ import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.util.IdentityHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.EngineConfig;
@@ -39,10 +41,11 @@ public class FileWatcherTask extends WatcherTask
     private final Function<String, String> readURL;
 
     public FileWatcherTask(
-        BiFunction<URL, String, EngineConfig> changeListener,
+        BiFunction<URL, String, EngineConfig> configChangeListener,
+        Consumer<Set<String>> resourceChangeListener,
         Function<String, String> readURL)
     {
-        super(changeListener);
+        super(configChangeListener, resourceChangeListener);
         this.readURL = readURL;
         this.watchedConfigs = new IdentityHashMap<>();
         WatchService watchService = null;
@@ -89,7 +92,14 @@ public class FileWatcherTask extends WatcherTask
                     if (watchedConfig.isReconfigureNeeded(newConfigHash))
                     {
                         watchedConfig.setConfigHash(newConfigHash);
-                        changeListener.apply(watchedConfig.getURL(), newConfigText);
+                        if (configChangeListener != null)
+                        {
+                            configChangeListener.apply(watchedConfig.getURL(), newConfigText);
+                        }
+                        if (resourceChangeListener != null)
+                        {
+                            resourceChangeListener.accept(namespaces);
+                        }
                     }
                 }
             }
@@ -103,7 +113,7 @@ public class FileWatcherTask extends WatcherTask
     }
 
     @Override
-    public CompletableFuture<EngineConfig> watch(
+    public CompletableFuture<EngineConfig> watchConfig(
         URL configURL)
     {
         WatchedConfig watchedConfig = new WatchedConfig(configURL, watchService);
@@ -115,7 +125,7 @@ public class FileWatcherTask extends WatcherTask
         CompletableFuture<EngineConfig> configFuture;
         try
         {
-            EngineConfig config = changeListener.apply(configURL, configText);
+            EngineConfig config = configChangeListener.apply(configURL, configText);
             configFuture = CompletableFuture.completedFuture(config);
         }
         catch (Exception ex)
@@ -124,6 +134,17 @@ public class FileWatcherTask extends WatcherTask
         }
 
         return configFuture;
+    }
+
+    @Override
+    public void watchResource(
+        URL resourceURL)
+    {
+        WatchedConfig watchedConfig = new WatchedConfig(resourceURL, watchService);
+        watchedConfig.register();
+        watchedConfig.keys().forEach(k -> watchedConfigs.put(k, watchedConfig));
+        String resource = readURL.apply(resourceURL.toString());
+        watchedConfig.setConfigHash(computeHash(resource));
     }
 
     @Override

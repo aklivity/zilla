@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.catalog.filesystem.internal;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -35,6 +36,7 @@ public class FilesystemCatalogHandler implements CatalogHandler
     private final FilesystemEventContext event;
     private final long catalogId;
     private final Function<String, URL> resolvePath;
+    private final List<String> resources;
 
     public FilesystemCatalogHandler(
         FilesystemOptionsConfig config,
@@ -48,6 +50,11 @@ public class FilesystemCatalogHandler implements CatalogHandler
         this.resolvePath = context::resolvePath;
         this.catalogId = catalogId;
         registerSchema(config.subjects);
+        this.resources = new LinkedList<>();
+        for (FilesystemSchemaConfig subject : config.subjects)
+        {
+            resources.add(subject.path);
+        }
     }
 
     @Override
@@ -86,6 +93,12 @@ public class FilesystemCatalogHandler implements CatalogHandler
                 event.fileNotFound(catalogId, config.path);
             }
         }
+    }
+
+    @Override
+    public List<String> resources()
+    {
+        return resources;
     }
 
     private int generateCRC32C(

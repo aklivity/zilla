@@ -84,6 +84,7 @@ public class EngineManager
     private final List<EngineExtSpi> extensions;
     private final BiFunction<URL, String, String> readURL;
     private final Resolver expressions;
+    private final ResourceWatcher resourceWatcher;
 
     private EngineConfig current;
 
@@ -100,7 +101,8 @@ public class EngineManager
         EngineExtContext context,
         EngineConfiguration config,
         List<EngineExtSpi> extensions,
-        BiFunction<URL, String, String> readURL)
+        BiFunction<URL, String, String> readURL,
+        ResourceWatcher resourceWatcher)
     {
         this.schemaTypes = schemaTypes;
         this.bindingByType = bindingByType;
@@ -116,6 +118,7 @@ public class EngineManager
         this.extensions = extensions;
         this.readURL = readURL;
         this.expressions = Resolver.instantiate(config);
+        this.resourceWatcher = resourceWatcher;
     }
 
     public EngineConfig reconfigure(
@@ -169,6 +172,18 @@ public class EngineManager
         }
 
         return newConfig;
+    }
+
+    public void reloadNamespacesWithChangedResources(
+        Set<String> namespaces)
+    {
+        if (namespaces != null && !namespaces.isEmpty())
+        {
+            Set<String> namespaces0 = new HashSet<>(namespaces);
+            Predicate<String> identical = name -> !namespaces0.contains(name);
+            unregister(current, identical);
+            register(current, identical);
+        }
     }
 
     public void process(
@@ -387,6 +402,7 @@ public class EngineManager
             {
                 if (!identical.test(namespace.name))
                 {
+                    System.out.println("register: " + namespace.name); // TODO: Ati
                     register(namespace);
                 }
             }
@@ -405,7 +421,9 @@ public class EngineManager
             {
                 if (!identical.test(namespace.name))
                 {
+                    System.out.println("unregister: " + namespace.name); // TODO: Ati
                     unregister(namespace);
+                    resourceWatcher.removeNamespace(namespace.name);
                 }
             }
         }

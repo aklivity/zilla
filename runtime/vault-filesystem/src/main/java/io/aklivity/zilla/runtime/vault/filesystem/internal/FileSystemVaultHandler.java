@@ -26,6 +26,7 @@ import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
@@ -47,6 +48,7 @@ public class FileSystemVaultHandler implements VaultHandler
     private final Function<String, KeyStore.TrustedCertificateEntry> lookupTrust;
     private final Function<String, KeyStore.TrustedCertificateEntry> lookupSigner;
     private final Function<Predicate<X500Principal>, KeyStore.PrivateKeyEntry[]> lookupKeys;
+    private final List<String> resources;
 
     public FileSystemVaultHandler(
         FileSystemOptionsConfig options,
@@ -56,6 +58,15 @@ public class FileSystemVaultHandler implements VaultHandler
         lookupTrust = supplyLookupTrustedCertificateEntry(resolvePath, options.trust);
         lookupSigner = supplyLookupTrustedCertificateEntry(resolvePath, options.signers);
         lookupKeys = supplyLookupPrivateKeyEntries(resolvePath, options.keys);
+        resources = new LinkedList<>();
+        if (options.keys != null && options.keys.store != null)
+        {
+            resources.add(options.keys.store);
+        }
+        if (options.trust != null && options.trust.store != null)
+        {
+            resources.add(options.trust.store);
+        }
     }
 
     @Override
@@ -91,6 +102,12 @@ public class FileSystemVaultHandler implements VaultHandler
         }
 
         return keys;
+    }
+
+    @Override
+    public List<String> resources()
+    {
+        return resources;
     }
 
     private static Function<String, KeyStore.PrivateKeyEntry> supplyLookupPrivateKeyEntry(

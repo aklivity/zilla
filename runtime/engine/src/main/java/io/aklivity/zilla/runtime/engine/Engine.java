@@ -73,6 +73,7 @@ import io.aklivity.zilla.runtime.engine.internal.registry.EngineManager;
 import io.aklivity.zilla.runtime.engine.internal.registry.EngineWorker;
 import io.aklivity.zilla.runtime.engine.internal.registry.FileWatcherTask;
 import io.aklivity.zilla.runtime.engine.internal.registry.HttpWatcherTask;
+import io.aklivity.zilla.runtime.engine.internal.registry.ResourceWatcher;
 import io.aklivity.zilla.runtime.engine.internal.registry.WatcherTask;
 import io.aklivity.zilla.runtime.engine.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.engine.metrics.Collector;
@@ -98,6 +99,7 @@ public final class Engine implements Collector, AutoCloseable
     private final boolean readonly;
     private final EngineConfiguration config;
     private final EngineManager manager;
+    private final ResourceWatcher resourceWatcher;
 
     private Future<Void> watcherTaskRef;
 
@@ -160,13 +162,14 @@ public final class Engine implements Collector, AutoCloseable
         }
         this.tuning = tuning;
 
+        this.resourceWatcher = new ResourceWatcher();
         List<EngineWorker> workers = new ArrayList<>(workerCount);
         for (int workerIndex = 0; workerIndex < workerCount; workerIndex++)
         {
             EngineWorker worker =
                 new EngineWorker(config, tasks, labels, errorHandler, tuning::affinity, bindings, exporters,
                     guards, vaults, catalogs, models, metricGroups, this, this::supplyEventReader,
-                    eventFormatterFactory, workerIndex, readonly, this::process);
+                    eventFormatterFactory, resourceWatcher, workerIndex, readonly, this::process);
             workers.add(worker);
         }
         this.workers = workers;
@@ -206,18 +209,21 @@ public final class Engine implements Collector, AutoCloseable
             context,
             config,
             extensions,
-            this::readURL);
+            this::readURL,
+            resourceWatcher);
 
         this.configURL = config.configURL();
         String protocol = configURL.getProtocol();
         if ("file".equals(protocol) || "jar".equals(protocol))
         {
             Function<String, String> watcherReadURL = l -> readURL(configURL, l);
-            this.watcherTask = new FileWatcherTask(manager::reconfigure, watcherReadURL);
+            this.watcherTask = new FileWatcherTask(manager::reconfigure, null, watcherReadURL);
+            this.resourceWatcher.initialize(manager::reloadNamespacesWithChangedResources, watcherReadURL);
         }
         else if ("http".equals(protocol) || "https".equals(protocol))
         {
-            this.watcherTask = new HttpWatcherTask(manager::reconfigure, config.configPollIntervalSeconds());
+            this.watcherTask = new HttpWatcherTask(manager::reconfigure, manager::reloadNamespacesWithChangedResources,
+                config.configPollIntervalSeconds());
         }
         else
         {
@@ -259,7 +265,7 @@ public final class Engine implements Collector, AutoCloseable
         if (!readonly)
         {
             // ignore the config file in read-only mode; no config will be read so no namespaces, bindings, etc will be attached
-            watcherTask.watch(configURL).get();
+            watcherTask.watchConfig(configURL).get();
         }
     }
 
@@ -273,6 +279,7 @@ public final class Engine implements Collector, AutoCloseable
 
         final List<Throwable> errors = new ArrayList<>();
 
+        resourceWatcher.close();
         watcherTask.close();
         watcherTaskRef.get();
 

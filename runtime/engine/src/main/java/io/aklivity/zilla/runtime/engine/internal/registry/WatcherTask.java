@@ -22,12 +22,15 @@ import java.io.Closeable;
 import java.net.URL;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 
 import io.aklivity.zilla.runtime.engine.config.EngineConfig;
 
@@ -36,20 +39,40 @@ public abstract class WatcherTask implements Callable<Void>, Closeable
     private final MessageDigest md5;
 
     protected final ScheduledExecutorService executor;
-    protected final BiFunction<URL, String, EngineConfig> changeListener;
+    protected final BiFunction<URL, String, EngineConfig> configChangeListener;
+    protected final Consumer<Set<String>> resourceChangeListener;
+    protected final Set<String> namespaces;
 
     protected WatcherTask(
-        BiFunction<URL, String, EngineConfig> changeListener)
+        BiFunction<URL, String, EngineConfig> configChangeListener,
+        Consumer<Set<String>> resourceChangeListener)
     {
-        this.changeListener = changeListener;
+        this.configChangeListener = configChangeListener;
+        this.resourceChangeListener = resourceChangeListener;
         this.md5 = initMessageDigest("MD5");
-        this.executor  = Executors.newScheduledThreadPool(2);
+        this.executor = Executors.newScheduledThreadPool(2);
+        this.namespaces = new HashSet<>();
+    }
+
+    public void addNamespaces(
+        String namespace)
+    {
+        namespaces.add(namespace);
+    }
+
+    public void removeNamespace(
+        String namespace)
+    {
+        namespaces.remove(namespace);
     }
 
     public abstract Future<Void> submit();
 
-    public abstract CompletableFuture<EngineConfig> watch(
+    public abstract CompletableFuture<EngineConfig> watchConfig(
         URL configURL);
+
+    public abstract void watchResource(
+        URL resourceURL);
 
     protected byte[] computeHash(
         String configText)

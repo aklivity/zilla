@@ -74,6 +74,7 @@ public class NamespaceRegistry
     private final ObjectLongLongFunction<Metric.Kind, LongConsumer> supplyMetricRecorder;
     private final LongConsumer detachBinding;
     private final Collector collector;
+    private final ResourceWatcher resourceWatcher;
 
     public NamespaceRegistry(
         NamespaceConfig namespace,
@@ -89,7 +90,8 @@ public class NamespaceRegistry
         LongConsumer exporterDetached,
         ObjectLongLongFunction<Metric.Kind, LongConsumer> supplyMetricRecorder,
         LongConsumer detachBinding,
-        Collector collector)
+        Collector collector,
+        ResourceWatcher resourceWatcher)
     {
         this.namespace = namespace;
         this.bindingsByType = bindingsByType;
@@ -112,6 +114,7 @@ public class NamespaceRegistry
         this.metricsById = new Int2ObjectHashMap<>();
         this.exportersById = new Int2ObjectHashMap<>();
         this.collector = collector;
+        this.resourceWatcher = resourceWatcher;
     }
 
     public int namespaceId()
@@ -265,6 +268,7 @@ public class NamespaceRegistry
         VaultRegistry registry = new VaultRegistry(config, context);
         vaultsById.put(vaultId, registry);
         registry.attach();
+        resourceWatcher.addResources(registry.handler().resources(), config.namespace);
     }
 
     private void detachVault(
@@ -311,6 +315,7 @@ public class NamespaceRegistry
         CatalogRegistry registry = new CatalogRegistry(config, context);
         catalogsById.put(catalogId, registry);
         registry.attach();
+        resourceWatcher.addResources(registry.handler().resources(), config.namespace);
     }
 
     private void detachCatalog(

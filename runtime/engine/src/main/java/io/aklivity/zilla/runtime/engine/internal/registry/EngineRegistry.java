@@ -51,6 +51,7 @@ public class EngineRegistry
     private final LongConsumer detachBinding;
     private final Collector collector;
     private final Consumer<NamespaceConfig> process;
+    private final ResourceWatcher resourceWatcher;
 
     public EngineRegistry(
         Function<String, BindingContext> bindingsByType,
@@ -65,7 +66,8 @@ public class EngineRegistry
         ObjectLongLongFunction<Metric.Kind, LongConsumer> supplyMetricRecorder,
         LongConsumer detachBinding,
         Collector collector,
-        Consumer<NamespaceConfig> process)
+        Consumer<NamespaceConfig> process,
+        ResourceWatcher resourceWatcher)
     {
         this.bindingsByType = bindingsByType;
         this.guardsByType = guardsByType;
@@ -81,6 +83,7 @@ public class EngineRegistry
         this.detachBinding = detachBinding;
         this.collector = collector;
         this.process = process;
+        this.resourceWatcher = resourceWatcher;
     }
 
     public void process(
@@ -196,7 +199,7 @@ public class EngineRegistry
         NamespaceRegistry registry =
                 new NamespaceRegistry(namespace, bindingsByType, guardsByType, vaultsByType, catalogsByType,
                     metricsByName, exportersByType, supplyLabelId, this::resolveMetric, exporterAttached, exporterDetached,
-                    supplyMetricRecorder, detachBinding, collector);
+                    supplyMetricRecorder, detachBinding, collector, resourceWatcher);
         namespacesById.put(registry.namespaceId(), registry);
         registry.attach();
     }
