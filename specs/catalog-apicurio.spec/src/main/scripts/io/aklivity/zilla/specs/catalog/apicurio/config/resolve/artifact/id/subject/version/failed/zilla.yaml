@@ -23,7 +23,8 @@ telemetry:
         events:
           - qname: test.catalog0
             id: catalog.apicurio.unretrievable.artifact.subject.version
-            message: UNRETRIEVABLE_ARTIFACT artifactId latest
+            name: CATALOG_APICURIO_UNRETRIEVABLE_ARTIFACT_SUBJECT_VERSION
+            message: Unable to fetch artifact for subject artifactId with version latest.
 catalogs:
   catalog0:
     type: apicurio

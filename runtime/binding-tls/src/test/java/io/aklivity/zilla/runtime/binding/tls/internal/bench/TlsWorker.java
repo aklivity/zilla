@@ -332,6 +332,13 @@ public class TlsWorker implements EngineContext
     }
 
     @Override
+    public String supplyEventName(
+        int eventId)
+    {
+        return "";
+    }
+
+    @Override
     public BindingHandler streamFactory()
     {
         return this::newStream;

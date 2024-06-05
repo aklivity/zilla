@@ -52,7 +52,7 @@ read
                                 '{'
                                     '"key":"event.name",'
                                     '"value":{'
-                                        '"stringValue":"binding.test.connected"'
+                                        '"stringValue":"BINDING_TEST_CONNECTED"'
                                     '}'
                                 '}'
                             ']'

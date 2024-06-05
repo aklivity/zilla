@@ -43,13 +43,13 @@ scope apicurio
             int32 artifactId;
         }
 
-        struct ApicurioRetrievableArtifactSubjectVersionEx extends core::stream::Extension
+        struct ApicurioRetrievedArtifactSubjectVersionEx extends core::stream::Extension
         {
             string8 subject;
             string8 version;
         }
 
-        struct ApicurioRetrievableArtifactIdEx extends core::stream::Extension
+        struct ApicurioRetrievedArtifactIdEx extends core::stream::Extension
         {
             int32 artifactId;
         }
@@ -59,8 +59,8 @@ scope apicurio
             case UNRETRIEVABLE_ARTIFACT_SUBJECT_VERSION: ApicurioUnretrievableArtifactSubjectVersionEx unretrievableArtifactSubjectVersion;
             case UNRETRIEVABLE_ARTIFACT_SUBJECT_VERSION_STALE_ARTIFACT: ApicurioUnretrievableArtifactSubjectVersionStaleArtifactEx unretrievableArtifactSubjectVersionStaleArtifact;
             case UNRETRIEVABLE_ARTIFACT_ID: ApicurioUnretrievableArtifactIdEx unretrievableArtifactId;
-            case RETRIEVED_ARTIFACT_SUBJECT_VERSION: ApicurioRetrievableArtifactSubjectVersionEx retrievableArtifactSubjectVersion;
-            case RETRIEVED_ARTIFACT_ID: ApicurioRetrievableArtifactIdEx retrievableArtifactId;
+            case RETRIEVED_ARTIFACT_SUBJECT_VERSION: ApicurioRetrievedArtifactSubjectVersionEx retrievedArtifactSubjectVersion;
+            case RETRIEVED_ARTIFACT_ID: ApicurioRetrievedArtifactIdEx retrievedArtifactId;
         }
     }
 }

@@ -25,10 +25,8 @@ import io.aklivity.zilla.runtime.engine.event.EventFormatterSpi;
 
 public final class FilesystemEventFormatter implements EventFormatterSpi
 {
-    private static final String FILE_NOT_FOUND = "FILE_NOT_FOUND %s";
-
     private final EventFW eventRO = new EventFW();
-    private final FilesystemEventExFW schemaRegistryEventExRO = new FilesystemEventExFW();
+    private final FilesystemEventExFW filesystemEventExRO = new FilesystemEventExFW();
 
     FilesystemEventFormatter(
         Configuration config)
@@ -41,7 +39,7 @@ public final class FilesystemEventFormatter implements EventFormatterSpi
         int length)
     {
         final EventFW event = eventRO.wrap(buffer, index, index + length);
-        final FilesystemEventExFW extension = schemaRegistryEventExRO
+        final FilesystemEventExFW extension = filesystemEventExRO
             .wrap(event.extension().buffer(), event.extension().offset(), event.extension().limit());
         String result = null;
         switch (extension.kind())
@@ -49,7 +47,7 @@ public final class FilesystemEventFormatter implements EventFormatterSpi
         case FILE_NOT_FOUND:
         {
             FilesystemFileNotFoundExFW ex = extension.fileNotFound();
-            result = String.format(FILE_NOT_FOUND, asString(ex.location()));
+            result = String.format("Unable to find file at (%s) on the host filesystem.", asString(ex.location()));
             break;
         }
         }

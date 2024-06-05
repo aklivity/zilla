@@ -264,6 +264,13 @@ public class EchoWorker implements EngineContext
     }
 
     @Override
+    public String supplyEventName(
+        int eventId)
+    {
+        return "";
+    }
+
+    @Override
     public BindingHandler streamFactory()
     {
         return null;

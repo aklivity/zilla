@@ -224,6 +224,7 @@ public class EngineWorker implements EngineContext, Agent
     private final ScalarsLayout gaugesLayout;
     private final HistogramsLayout histogramsLayout;
     private final EventsLayout eventsLayout;
+    private final Int2ObjectHashMap<String> eventNames;
     private final Supplier<MessageReader> supplyEventReader;
     private final EventFormatterFactory eventFormatterFactory;
 
@@ -311,6 +312,7 @@ public class EngineWorker implements EngineContext, Agent
             .path(config.directory().resolve(String.format("events%d", index)))
             .capacity(config.eventsBufferCapacity())
             .build();
+        this.eventNames = new Int2ObjectHashMap<>();
 
         this.agentName = String.format("engine/data#%d", index);
         this.streamsLayout = streamsLayout;
@@ -483,6 +485,13 @@ public class EngineWorker implements EngineContext, Agent
         String name)
     {
         return labels.supplyLabelId(name);
+    }
+
+    @Override
+    public String supplyEventName(
+            int eventId)
+    {
+        return eventNames.computeIfAbsent(eventId, this::computeEventName);
     }
 
     @Override
@@ -1731,6 +1740,12 @@ public class EngineWorker implements EngineContext, Agent
     public EventFormatter supplyEventFormatter()
     {
         return eventFormatterFactory.create(config, this);
+    }
+
+    private String computeEventName(
+            int eventId)
+    {
+        return supplyLocalName(eventId).replace('.', '_').toUpperCase();
     }
 
     private MessageConsumer supplyWriter(
