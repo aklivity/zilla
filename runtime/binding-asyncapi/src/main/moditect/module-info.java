@@ -19,6 +19,7 @@ module io.aklivity.zilla.runtime.binding.asyncapi
     requires io.aklivity.zilla.runtime.engine;
     requires io.aklivity.zilla.runtime.binding.mqtt;
     requires io.aklivity.zilla.runtime.binding.http;
+    requires io.aklivity.zilla.runtime.binding.sse;
     requires io.aklivity.zilla.runtime.binding.kafka;
     requires io.aklivity.zilla.runtime.binding.mqtt.kafka;
     requires io.aklivity.zilla.runtime.binding.http.kafka;

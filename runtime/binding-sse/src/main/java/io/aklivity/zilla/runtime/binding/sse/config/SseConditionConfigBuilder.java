@@ -18,25 +18,37 @@ package io.aklivity.zilla.runtime.binding.sse.config;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
+import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 
-public final class SseConditionConfig extends ConditionConfig
+public class SseConditionConfigBuilder<T> extends ConfigBuilder<T, SseConditionConfigBuilder<T>>
 {
-    public final String path;
+    private final Function<ConditionConfig, T> mapper;
 
-    public static SseConditionConfigBuilder<SseConditionConfig> builder()
-    {
-        return new SseConditionConfigBuilder<>(SseConditionConfig.class::cast);
-    }
+    public String path;
 
-    public static <T> SseConditionConfigBuilder<T> builder(
+    SseConditionConfigBuilder(
         Function<ConditionConfig, T> mapper)
     {
-        return new SseConditionConfigBuilder<>(mapper);
+        this.mapper = mapper;
     }
 
-    public SseConditionConfig(
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Class<SseConditionConfigBuilder<T>> thisType()
+    {
+        return (Class<SseConditionConfigBuilder<T>>) getClass();
+    }
+
+
+    public SseConditionConfigBuilder<T> path(
         String path)
     {
         this.path = path;
+        return this;
+    }
+
+    public T build()
+    {
+        return mapper.apply(new SseConditionConfig(path));
     }
 }

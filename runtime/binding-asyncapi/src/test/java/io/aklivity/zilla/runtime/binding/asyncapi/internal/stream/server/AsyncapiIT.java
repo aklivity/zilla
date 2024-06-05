@@ -34,6 +34,7 @@ public class AsyncapiIT
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("mqtt", "io/aklivity/zilla/specs/binding/asyncapi/streams/mqtt")
         .addScriptRoot("http", "io/aklivity/zilla/specs/binding/asyncapi/streams/http")
+        .addScriptRoot("sse", "io/aklivity/zilla/specs/binding/asyncapi/streams/sse")
         .addScriptRoot("asyncapi", "io/aklivity/zilla/specs/binding/asyncapi/streams/asyncapi");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
@@ -67,6 +68,17 @@ public class AsyncapiIT
         "${asyncapi}/http/create.pet/server"
     })
     public void shouldCreatePet() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.sse.yaml")
+    @Specification({
+        "${sse}/data.multiple/client",
+        "${asyncapi}/sse/data.multiple/server"
+    })
+    public void shouldReceiveMultipleData() throws Exception
     {
         k3po.finish();
     }

@@ -67,7 +67,6 @@ public abstract class AsyncapiNamespaceGenerator
 
     protected Map<String, Asyncapi> asyncapis;
     protected boolean isTlsEnabled;
-    protected AsyncapiProtocol protocol;
     protected String qname;
     protected String namespace;
     protected String qvault;
@@ -104,7 +103,7 @@ public abstract class AsyncapiNamespaceGenerator
         List<Asyncapi> asyncapis,
         List<AsyncapiServerView> servers)
     {
-        Pattern pattern = Pattern.compile("(http|mqtt|kafka)");
+        Pattern pattern = Pattern.compile("(http|sse|mqtt|kafka)");
         Matcher matcher = pattern.matcher(protocolName);
         AsyncapiProtocol protocol = null;
         if (matcher.find())
@@ -113,6 +112,11 @@ public abstract class AsyncapiNamespaceGenerator
             {
             case "http":
                 protocol = new AsyncapiHttpProtocol(qname, asyncapis, options, protocolName);
+                break;
+            case "sse":
+            case "secure-sse":
+                final boolean httpServerAvailable = servers.stream().anyMatch(s -> "http".equals(s.protocol()));
+                protocol = new AsyncapiSseProtocol(qname, httpServerAvailable, asyncapis, options, protocolName);
                 break;
             case "mqtt":
                 protocol = new AsyncapiMqttProtocol(qname, asyncapis, options, protocolName, namespace);
@@ -184,6 +188,20 @@ public abstract class AsyncapiNamespaceGenerator
         int[] ports = new int[filtered.size()];
         MutableInteger index = new MutableInteger();
         filtered.forEach(s -> ports[index.value++] = s.getPort());
+        return ports;
+    }
+
+    public int[] resolvePortForServer(
+        AsyncapiServerView server,
+        boolean secure)
+    {
+        int[] ports = {};
+
+        if (server.getAsyncapiProtocol().isSecure() == secure)
+        {
+            ports = new int[] { server.getPort() };
+        }
+
         return ports;
     }
 
@@ -276,8 +294,7 @@ public abstract class AsyncapiNamespaceGenerator
 
     protected  <C> BindingConfigBuilder<C> injectMetrics(
         BindingConfigBuilder<C> binding,
-        List<MetricRefConfig> metricRefs,
-        String protocol)
+        List<MetricRefConfig> metricRefs)
     {
         List<MetricRefConfig> metrics = metricRefs.stream()
             .filter(m -> m.name.startsWith("stream."))

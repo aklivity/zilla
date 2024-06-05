@@ -63,6 +63,12 @@
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
+      <artifactId>binding-sse</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
       <artifactId>binding-kafka</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
@@ -189,7 +195,7 @@
         <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <scopeNames>core mqtt http kafka asyncapi</scopeNames>
+          <scopeNames>core mqtt http sse kafka asyncapi</scopeNames>
           <packageName>io.aklivity.zilla.runtime.binding.asyncapi.internal.types</packageName>
         </configuration>
         <executions>
@@ -224,11 +230,13 @@
               <includes>io/aklivity/zilla/specs/binding/asyncapi/schema/asyncapi.schema.patch.json,
                 io/aklivity/zilla/specs/binding/mqtt/kafka/schema/mqtt.kafka.schema.patch.json,
                 io/aklivity/zilla/specs/binding/http/schema/http.schema.patch.json,
+                io/aklivity/zilla/specs/binding/sse/schema/sse.schema.patch.json,
                 io/aklivity/zilla/specs/binding/kafka/schema/kafka.schema.patch.json,
                 io/aklivity/zilla/specs/binding/tcp/schema/tcp.schema.patch.json,
                 io/aklivity/zilla/specs/binding/tls/schema/tls.schema.patch.json,
                 io/aklivity/zilla/specs/binding/asyncapi/schema/asyncapi.2.6.0.schema.json,
-                io/aklivity/zilla/specs/binding/asyncapi/schema/asyncapi.3.0.1.schema.json
+                io/aklivity/zilla/specs/binding/asyncapi/schema/asyncapi.3.0.1.schema.json,
+                io/aklivity/zilla/specs/binding/asyncapi/schema/asyncapi.3.0.2_zilla.schema.json
               </includes>
               <outputDirectory>${project.build.directory}/classes</outputDirectory>
             </configuration>

@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.asyncapi.internal.config;
 
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.CACHE_CLIENT;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.PROXY;
+import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 import static java.util.stream.Collectors.toList;
 
 import java.util.ArrayList;
@@ -197,11 +198,32 @@ public final class AsyncapiBindingConfig
         {
             Integer k = entry.getKey();
             NamespaceConfig v = entry.getValue();
-            List<BindingConfig> bindings = v.bindings.stream()
-                .filter(b -> b.type.equals("mqtt") || b.type.equals("http") ||
-                    b.type.equals("kafka") && b.kind == CACHE_CLIENT || b.type.equals("mqtt-kafka") ||
-                    b.type.equals("http-kafka"))
-                .collect(toList());
+            List<BindingConfig> bindings;
+            boolean containsSse = v.bindings.stream().anyMatch(b -> b.type.equals("sse"));
+            if (containsSse)
+            {
+                if (binding.kind.equals(SERVER))
+                {
+                    bindings = v.bindings.stream()
+                        .filter(b -> b.type.equals("http") || b.type.equals("http-kafka") || b.type.equals("sse"))
+                        .collect(toList());
+                }
+                else
+                {
+                    bindings = v.bindings.stream()
+                        .filter(b -> b.type.equals("sse"))
+                        .collect(toList());
+                }
+            }
+            else
+            {
+                bindings = v.bindings.stream()
+                    .filter(b -> b.type.equals("mqtt") || b.type.equals("http") || b.type.equals("sse") ||
+                        b.type.equals("kafka") && b.kind == CACHE_CLIENT || b.type.equals("mqtt-kafka") ||
+                        b.type.equals("http-kafka"))
+                    .collect(toList());
+            }
+
             extractResolveId(k, bindings);
             extractNamespace(k, bindings);
         }

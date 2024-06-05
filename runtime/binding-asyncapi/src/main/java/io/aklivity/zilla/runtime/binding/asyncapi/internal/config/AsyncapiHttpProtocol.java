@@ -107,21 +107,40 @@ public class AsyncapiHttpProtocol extends AsyncapiProtocol
             for (Map.Entry<String, AsyncapiServer> entry : asyncapi.servers.entrySet())
             {
                 AsyncapiServerView server = AsyncapiServerView.of(entry.getValue());
-                for (String name : asyncapi.operations.keySet())
+                if ("http".equals(server.protocol()))
                 {
-                    AsyncapiOperation operation = asyncapi.operations.get(name);
-                    AsyncapiChannelView channel = AsyncapiChannelView.of(asyncapi.channels, operation.channel);
-                    String path = channel.address().replaceAll("\\{[^}]+\\}", "*");
-                    String method = operation.bindings.get("http").method;
-                    binding
-                        .route()
-                        .exit(qname)
-                        .when(HttpConditionConfig::builder)
-                            .header(":path", path)
-                            .header(":method", method)
-                            .build()
-                        .inject(route -> injectHttpServerRouteGuarded(route, server))
-                        .build();
+                    for (String name : asyncapi.operations.keySet())
+                    {
+                        AsyncapiOperation operation = asyncapi.operations.get(name);
+                        AsyncapiChannelView channel = AsyncapiChannelView.of(asyncapi.channels, operation.channel);
+                        String path = channel.address().replaceAll("\\{[^}]+\\}", "*");
+                        String method = operation.bindings.get("http").method;
+                        binding
+                            .route()
+                            .exit(qname)
+                            .when(HttpConditionConfig::builder)
+                                .header(":path", path)
+                                .header(":method", method)
+                                .build()
+                            .inject(route -> injectHttpServerRouteGuarded(route, server))
+                            .build();
+                    }
+                }
+                else if ("sse".equals(server.protocol()))
+                {
+                    for (String name : asyncapi.operations.keySet())
+                    {
+                        AsyncapiOperation operation = asyncapi.operations.get(name);
+                        AsyncapiChannelView channel = AsyncapiChannelView.of(asyncapi.channels, operation.channel);
+                        String path = channel.address().replaceAll("\\{[^}]+\\}", "*");
+                        binding
+                            .route()
+                            .exit("sse_server0")
+                            .when(HttpConditionConfig::builder)
+                                .header(":path", path)
+                                .build()
+                            .build();
+                    }
                 }
             }
         }
@@ -154,10 +173,11 @@ public class AsyncapiHttpProtocol extends AsyncapiProtocol
                 AsyncapiOperation operation = asyncapi.operations.get(name);
                 AsyncapiChannelView channel = AsyncapiChannelView.of(asyncapi.channels, operation.channel);
                 String path = channel.address();
-                Method method = Method.valueOf(operation.bindings.get("http").method);
-                if (channel.messages() != null && !channel.messages().isEmpty() ||
+
+                if (operation.bindings != null && channel.messages() != null && !channel.messages().isEmpty() ||
                     channel.parameters() != null && !channel.parameters().isEmpty())
                 {
+                    Method method = Method.valueOf(operation.bindings.get("http").method);
                     options
                         .request()
                             .path(path)

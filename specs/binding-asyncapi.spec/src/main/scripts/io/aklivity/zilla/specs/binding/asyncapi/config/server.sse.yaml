@@ -1,0 +1,91 @@
+#
+# Copyright 2021-2023 Aklivity Inc.
+#
+# Aklivity licenses this file to you under the Apache License,
+# version 2.0 (the "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+
+---
+name: test
+catalogs:
+  catalog0:
+    type: test
+    options:
+      id: 1
+      subject: eventstore
+      schema: |
+        asyncapi: 3.0.0
+        info:
+          title: AsyncAPI Eventstore
+          license:
+            name: MIT
+          version: 1.0.0
+        servers:
+          plain:
+            host: localhost:8080
+            protocol: sse
+        defaultContentType: application/json
+        
+        channels:
+          events:
+            address: /events
+            messages:
+              event:
+                $ref: '#/components/messages/event'
+          showEventById:
+            address: /events/{id}
+            messages:
+              event:
+                $ref: '#/components/messages/event'
+        
+        operations:
+          getEvents:
+            action: receive
+            channel:
+              $ref: '#/channels/showEventById'
+        
+        components:
+          schemas:
+            EventPayload:
+              type: object
+              properties:
+                id:
+                  type: integer
+                  minimum: 0
+                  description: Event id.
+                name:
+                  type: string
+                  description: Event name.
+                tag:
+                  type: string
+                  description: Tag.
+          messages:
+            Event:
+              name: Event
+              title: Event
+              summary: >-
+                Inform about Event.
+              contentType: application/json
+              payload:
+                $ref: '#/components/schemas/eventPayload'
+bindings:
+  composite0:
+    type: asyncapi
+    kind: server
+    options:
+      specs:
+        sse_api:
+          catalog:
+            catalog0:
+              subject: eventstore
+              version: latest
+    exit: asyncapi0

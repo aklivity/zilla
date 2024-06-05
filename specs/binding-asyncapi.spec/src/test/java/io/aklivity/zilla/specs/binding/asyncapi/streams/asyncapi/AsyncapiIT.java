@@ -58,6 +58,16 @@ public class AsyncapiIT
 
     @Test
     @Specification({
+        "${asyncapi}/sse/data.multiple/client",
+        "${asyncapi}/sse/data.multiple/server"
+    })
+    public void shouldReceiveMultipleData() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${asyncapi}/kafka/produce.message/client",
         "${asyncapi}/kafka/produce.message/server"
     })
