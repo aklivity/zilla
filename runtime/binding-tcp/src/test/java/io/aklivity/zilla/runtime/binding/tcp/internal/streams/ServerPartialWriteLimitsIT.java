@@ -105,8 +105,8 @@ public class ServerPartialWriteLimitsIT
         try (SocketChannel channel1 = SocketChannel.open();
              SocketChannel channel2 = SocketChannel.open())
         {
-            channel1.connect(new InetSocketAddress("127.0.0.1", 8080));
-            channel2.connect(new InetSocketAddress("127.0.0.1", 8080));
+            channel1.connect(new InetSocketAddress("127.0.0.1", 12345));
+            channel2.connect(new InetSocketAddress("127.0.0.1", 12345));
 
             k3po.awaitBarrier("SECOND_STREAM_RESET_RECEIVED");
             resetReceived.set(true);

@@ -77,7 +77,7 @@ public class TcpServerBM
     public void reinit() throws Exception
     {
         engine.start();
-        //routedId = controller.route(RouteKind.SERVER, "127.0.0.1:8080", "tcp#0").get();
+        //routedId = controller.route(RouteKind.SERVER, "127.0.0.1:12345", "tcp#0").get();
     }
 
     @TearDown(Level.Trial)
@@ -112,7 +112,7 @@ public class TcpServerBM
         public void init() throws Exception
         {
             channel = SocketChannel.open();
-            channel.connect(new InetSocketAddress("127.0.0.1", 8080));
+            channel.connect(new InetSocketAddress("127.0.0.1", 12345));
             channel.configureBlocking(false);
         }
 

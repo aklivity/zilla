@@ -14,7 +14,7 @@
 # under the License.
 #
 
-accept "tcp://localhost:8083"
+accept "tcp://localhost:12348"
        notify ROUTED_SERVER
 
 accepted

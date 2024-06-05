@@ -31,4 +31,4 @@ bindings:
     kind: client
     options:
       host: localhost
-      port: 8080
+      port: 12345
