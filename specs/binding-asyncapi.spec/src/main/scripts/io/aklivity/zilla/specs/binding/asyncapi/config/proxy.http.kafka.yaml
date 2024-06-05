@@ -103,7 +103,7 @@ catalogs:
   catalog1:
     type: test
     options:
-      subject: sensor
+      subject: petstore
       schema: |
         asyncapi: 3.0.0
         info:
