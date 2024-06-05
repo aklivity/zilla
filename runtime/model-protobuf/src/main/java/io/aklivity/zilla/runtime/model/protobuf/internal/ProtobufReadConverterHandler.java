@@ -64,7 +64,7 @@ public class ProtobufReadConverterHandler extends ProtobufModelHandler implement
                     ? catalog.id
                     : handler.resolve(subject, catalog.version);
             }
-            padding = supplyJsonFormatPadding(schemaId);
+            padding += supplyJsonFormatPadding(schemaId);
         }
         return padding;
     }
