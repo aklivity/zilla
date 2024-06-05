@@ -3469,6 +3469,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                         delegate.doMqttWindow(authorization, traceId, 0, 0, 0);
                         delegate.doMqttReset(traceId, mqttResetEx);
                         events.onMqttConnectionReset(traceId, routedId, delegate.sessionsTopic);
+                        doKafkaWindow(traceId, authorization, 0, 0, 0, 0, 0);
                         doKafkaAbort(traceId, authorization);
                         break onKafkaBegin;
                     }
@@ -3627,6 +3628,20 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             kafka = newKafkaStream(super::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, affinity, delegate.sessionsTopic, delegate.clientId, delegate.clientIdMigrate,
                 delegate.sessionId, server, capabilities);
+        }
+
+        private void doKafkaWindow(
+            long traceId,
+            long authorization,
+            long budgetId,
+            int capabilities,
+            long replySeq,
+            long replyAck,
+            int replyMax)
+        {
+
+            doWindow(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                traceId, authorization, budgetId, replyPad, 0, capabilities);
         }
 
         private void cancelWillSignal(

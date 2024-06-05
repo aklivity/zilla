@@ -22,4 +22,4 @@ bindings:
         kind: client
         options:
             host: ::1
-            port: 8080
+            port: 12345

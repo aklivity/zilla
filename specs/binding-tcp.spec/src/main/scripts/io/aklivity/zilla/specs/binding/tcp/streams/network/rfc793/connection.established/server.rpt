@@ -14,7 +14,7 @@
 # under the License.
 #
 
-property address "tcp://localhost:8080"
+property address "tcp://localhost:12345"
 
 accept ${address}
        notify ROUTED_SERVER

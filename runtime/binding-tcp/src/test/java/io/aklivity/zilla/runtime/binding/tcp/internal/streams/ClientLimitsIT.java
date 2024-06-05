@@ -64,7 +64,7 @@ public class ClientLimitsIT
         try (ServerSocketChannel server = ServerSocketChannel.open())
         {
             server.setOption(SO_REUSEADDR, true);
-            server.bind(new InetSocketAddress("127.0.0.1", 8080));
+            server.bind(new InetSocketAddress("127.0.0.1", 12345));
 
             k3po.start();
 

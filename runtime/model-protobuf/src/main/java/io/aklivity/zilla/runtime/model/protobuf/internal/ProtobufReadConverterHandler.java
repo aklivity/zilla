@@ -53,7 +53,7 @@ public class ProtobufReadConverterHandler extends ProtobufModelHandler implement
         int index,
         int length)
     {
-        int padding = 0;
+        int padding = handler.decodePadding(data, index, length);
         if (VIEW_JSON.equals(view))
         {
             int schemaId = handler.resolve(data, index, length);

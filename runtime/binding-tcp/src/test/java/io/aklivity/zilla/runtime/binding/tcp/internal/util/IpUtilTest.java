@@ -30,48 +30,48 @@ public final class IpUtilTest
     @Test
     public void shouldMatchAddressesSameAddressAndPort() throws Exception
     {
-        InetSocketAddress address1 = new InetSocketAddress(InetAddress.getLocalHost(), 8080);
-        InetSocketAddress address2 = new InetSocketAddress(InetAddress.getLocalHost(), 8080);
+        InetSocketAddress address1 = new InetSocketAddress(InetAddress.getLocalHost(), 12345);
+        InetSocketAddress address2 = new InetSocketAddress(InetAddress.getLocalHost(), 12345);
         assertEquals(0, IpUtil.compareAddresses(address1, address2));
     }
 
     @Test
     public void shouldMatchAddressesFirstIsAny() throws Exception
     {
-        InetSocketAddress address1 = new InetSocketAddress(8080);
-        InetSocketAddress address2 = new InetSocketAddress(InetAddress.getLocalHost(), 8080);
+        InetSocketAddress address1 = new InetSocketAddress(12345);
+        InetSocketAddress address2 = new InetSocketAddress(InetAddress.getLocalHost(), 12345);
         assertEquals(0, IpUtil.compareAddresses(address1, address2));
     }
 
     @Test
     public void shouldMatchAddressesSecondIsAny() throws Exception
     {
-        InetSocketAddress address1 = new InetSocketAddress(getLocalHost(), 8080);
-        InetSocketAddress address2 = new InetSocketAddress(8080);
+        InetSocketAddress address1 = new InetSocketAddress(getLocalHost(), 12345);
+        InetSocketAddress address2 = new InetSocketAddress(12345);
         assertEquals(0, IpUtil.compareAddresses(address1, address2));
     }
 
     @Test
     public void shouldNotMatchAddressesDifferentPort() throws Exception
     {
-        InetSocketAddress address1 = new InetSocketAddress(InetAddress.getLocalHost(), 8080);
-        InetSocketAddress address2 = new InetSocketAddress(InetAddress.getLocalHost(), 8081);
+        InetSocketAddress address1 = new InetSocketAddress(InetAddress.getLocalHost(), 12345);
+        InetSocketAddress address2 = new InetSocketAddress(InetAddress.getLocalHost(), 12346);
         assertFalse(0 == IpUtil.compareAddresses(address1, address2));
     }
 
     @Test
     public void shouldNotMatchAddressesFirstIsAnyDifferentPort() throws Exception
     {
-        InetSocketAddress address1 = new InetSocketAddress(8080);
-        InetSocketAddress address2 = new InetSocketAddress(InetAddress.getLocalHost(), 8081);
+        InetSocketAddress address1 = new InetSocketAddress(12345);
+        InetSocketAddress address2 = new InetSocketAddress(InetAddress.getLocalHost(), 12346);
         assertFalse(0 == IpUtil.compareAddresses(address1, address2));
     }
 
     @Test
     public void shouldNotMatchAddressesSecondIsAnyDifferentPort() throws Exception
     {
-        InetSocketAddress address1 = new InetSocketAddress(InetAddress.getLocalHost(), 8081);
-        InetSocketAddress address2 = new InetSocketAddress(8080);
+        InetSocketAddress address1 = new InetSocketAddress(InetAddress.getLocalHost(), 12346);
+        InetSocketAddress address2 = new InetSocketAddress(12345);
         assertFalse(0 == IpUtil.compareAddresses(address1, address2));
     }
 

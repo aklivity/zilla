@@ -101,7 +101,16 @@ public interface CatalogHandler
         return encoder.accept(traceId, bindingId, schemaId, data, index, length, next);
     }
 
-    default int encodePadding()
+    default int encodePadding(
+        int length)
+    {
+        return 0;
+    }
+
+    default int decodePadding(
+        DirectBuffer data,
+        int index,
+        int length)
     {
         return 0;
     }

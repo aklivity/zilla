@@ -105,4 +105,7 @@ write zilla:begin.ext ${kafka:beginEx()
                                 .build()
                             .build()}
 
-connect abort
+connected
+
+read aborted
+write abort

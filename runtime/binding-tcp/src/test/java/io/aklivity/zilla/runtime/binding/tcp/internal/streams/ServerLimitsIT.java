@@ -65,7 +65,7 @@ public class ServerLimitsIT
 
         try (SocketChannel channel = SocketChannel.open())
         {
-            channel.connect(new InetSocketAddress("127.0.0.1", 8080));
+            channel.connect(new InetSocketAddress("127.0.0.1", 12345));
 
             int len;
             try

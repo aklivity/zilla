@@ -164,7 +164,7 @@ public class ApicurioIT
     {
         ApicurioCatalogHandler catalog = new ApicurioCatalogHandler(config, context, 0L);
 
-        assertEquals(9, catalog.encodePadding());
+        assertEquals(9, catalog.encodePadding(0));
     }
 
     @Test
