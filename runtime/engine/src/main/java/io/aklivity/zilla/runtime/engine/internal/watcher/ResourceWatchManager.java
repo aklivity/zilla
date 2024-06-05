@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.internal.registry;
+package io.aklivity.zilla.runtime.engine.internal.watcher;
 
 import static org.agrona.LangUtil.rethrowUnchecked;
 
@@ -26,15 +26,15 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public class ResourceWatcher
+public class ResourceWatchManager
 {
     private final Map<String, Set<String>> resources;
-    private final Map<String, WatcherTask> resourceTasks;
+    private final Map<String, ResourceWatcher> resourceTasks;
 
     private Consumer<Set<String>> resourceChangeListener;
     private Function<String, String> readURL;
 
-    public ResourceWatcher()
+    public ResourceWatchManager()
     {
         this.resources = new ConcurrentHashMap<>();
         this.resourceTasks = new ConcurrentHashMap<>();
@@ -60,7 +60,7 @@ public class ResourceWatcher
                         return ConcurrentHashMap.newKeySet();
                     }
                 ).add(namespace);
-                resourceTasks.get(resource).addNamespaces(namespace);
+                resourceTasks.get(resource).addNamespace(namespace);
             }
         );
     }
@@ -93,8 +93,8 @@ public class ResourceWatcher
     {
         try
         {
-            FileWatcherTask watcherTask = new FileWatcherTask(null, resourceChangeListener, readURL);
-            watcherTask.addNamespaces(namespace);
+            ResourceWatcher watcherTask = new ResourceFileWatcherTask(resourceChangeListener, readURL);
+            watcherTask.addNamespace(namespace);
             watcherTask.submit();
             URL resourceURL = Path.of(resource).toUri().toURL();
             watcherTask.watchResource(resourceURL);

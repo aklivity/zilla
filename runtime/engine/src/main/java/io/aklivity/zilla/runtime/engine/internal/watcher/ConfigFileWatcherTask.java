@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.internal.registry;
+package io.aklivity.zilla.runtime.engine.internal.watcher;
 
 import static org.agrona.LangUtil.rethrowUnchecked;
 
@@ -25,29 +25,27 @@ import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.util.IdentityHashMap;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.function.BiFunction;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.EngineConfig;
 
-public class FileWatcherTask extends WatcherTask
+public class ConfigFileWatcherTask extends WatcherTask implements ConfigWatcher
 {
-    private final Map<WatchKey, WatchedConfig> watchedConfigs;
+    private final Map<WatchKey, WatchedItem> watchedItems;
     private final WatchService watchService;
+    private final BiFunction<URL, String, EngineConfig> configChangeListener;
     private final Function<String, String> readURL;
 
-    public FileWatcherTask(
+    public ConfigFileWatcherTask(
         BiFunction<URL, String, EngineConfig> configChangeListener,
-        Consumer<Set<String>> resourceChangeListener,
         Function<String, String> readURL)
     {
-        super(configChangeListener, resourceChangeListener);
+        this.configChangeListener = configChangeListener;
         this.readURL = readURL;
-        this.watchedConfigs = new IdentityHashMap<>();
+        this.watchedItems = new IdentityHashMap<>();
         WatchService watchService = null;
 
         try
@@ -78,27 +76,23 @@ public class FileWatcherTask extends WatcherTask
             {
                 final WatchKey key = watchService.take();
 
-                WatchedConfig watchedConfig = watchedConfigs.get(key);
+                WatchedItem watchedItem = watchedItems.get(key);
 
-                if (watchedConfig != null && watchedConfig.isWatchedKey(key))
+                if (watchedItem != null && watchedItem.isWatchedKey(key))
                 {
                     // Even if no reconfigure needed, recalculation is necessary, since symlinks might have changed.
-                    watchedConfig.keys().forEach(watchedConfigs::remove);
-                    watchedConfig.unregister();
-                    watchedConfig.register();
-                    watchedConfig.keys().forEach(k -> watchedConfigs.put(k, watchedConfig));
-                    String newConfigText = readURL.apply(watchedConfig.getURL().toString());
-                    byte[] newConfigHash = computeHash(newConfigText);
-                    if (watchedConfig.isReconfigureNeeded(newConfigHash))
+                    watchedItem.keys().forEach(watchedItems::remove);
+                    watchedItem.unregister();
+                    watchedItem.register();
+                    watchedItem.keys().forEach(k -> watchedItems.put(k, watchedItem));
+                    String newText = readURL.apply(watchedItem.getURL().toString());
+                    byte[] newHash = computeHash(newText);
+                    if (watchedItem.isReconfigureNeeded(newHash))
                     {
-                        watchedConfig.setConfigHash(newConfigHash);
+                        watchedItem.setHash(newHash);
                         if (configChangeListener != null)
                         {
-                            configChangeListener.apply(watchedConfig.getURL(), newConfigText);
-                        }
-                        if (resourceChangeListener != null)
-                        {
-                            resourceChangeListener.accept(namespaces);
+                            configChangeListener.apply(watchedItem.getURL(), newText);
                         }
                     }
                 }
@@ -116,11 +110,11 @@ public class FileWatcherTask extends WatcherTask
     public CompletableFuture<EngineConfig> watchConfig(
         URL configURL)
     {
-        WatchedConfig watchedConfig = new WatchedConfig(configURL, watchService);
-        watchedConfig.register();
-        watchedConfig.keys().forEach(k -> watchedConfigs.put(k, watchedConfig));
+        WatchedItem watchedItem = new WatchedItem(configURL, watchService);
+        watchedItem.register();
+        watchedItem.keys().forEach(k -> watchedItems.put(k, watchedItem));
         String configText = readURL.apply(configURL.toString());
-        watchedConfig.setConfigHash(computeHash(configText));
+        watchedItem.setHash(computeHash(configText));
 
         CompletableFuture<EngineConfig> configFuture;
         try
@@ -134,17 +128,6 @@ public class FileWatcherTask extends WatcherTask
         }
 
         return configFuture;
-    }
-
-    @Override
-    public void watchResource(
-        URL resourceURL)
-    {
-        WatchedConfig watchedConfig = new WatchedConfig(resourceURL, watchService);
-        watchedConfig.register();
-        watchedConfig.keys().forEach(k -> watchedConfigs.put(k, watchedConfig));
-        String resource = readURL.apply(resourceURL.toString());
-        watchedConfig.setConfigHash(computeHash(resource));
     }
 
     @Override

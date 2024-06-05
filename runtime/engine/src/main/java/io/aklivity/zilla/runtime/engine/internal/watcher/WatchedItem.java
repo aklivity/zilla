@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.internal.registry;
+package io.aklivity.zilla.runtime.engine.internal.watcher;
 
 import static java.nio.file.StandardWatchEventKinds.ENTRY_CREATE;
 import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
@@ -33,20 +33,20 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Set;
 
-public class WatchedConfig
+public class WatchedItem
 {
     private final WatchService watchService;
     private final Set<WatchKey> watchKeys;
-    private final URL configURL;
-    private byte[] configHash;
+    private final URL watchedURL;
+    private byte[] hash;
 
-    public WatchedConfig(
-        URL configURL,
+    public WatchedItem(
+        URL watchedURL,
         WatchService watchService)
     {
         this.watchService = watchService;
         this.watchKeys = new HashSet<>();
-        this.configURL = configURL;
+        this.watchedURL = watchedURL;
     }
 
     public Set<WatchKey> keys()
@@ -56,7 +56,7 @@ public class WatchedConfig
 
     public void register()
     {
-        Path configPath = Paths.get(configURL.getPath()).toAbsolutePath();
+        Path configPath = Paths.get(watchedURL.getPath()).toAbsolutePath();
         try
         {
             Set<Path> watchedPaths = new HashSet<>();
@@ -123,27 +123,27 @@ public class WatchedConfig
     public boolean isReconfigureNeeded(
         byte[] newConfigHash)
     {
-        return !Arrays.equals(configHash, newConfigHash);
+        return !Arrays.equals(hash, newConfigHash);
     }
 
-    public void setConfigHash(
-        byte[] newConfigHash)
+    public void setHash(
+        byte[] newHash)
     {
-        configHash = newConfigHash;
+        hash = newHash;
     }
 
     public URL getURL()
     {
-        return configURL;
+        return watchedURL;
     }
 
     private WatchKey registerPath(
-        Path configPath)
+        Path path)
     {
         WatchKey key = null;
         try
         {
-            key = configPath.register(watchService, ENTRY_MODIFY, ENTRY_CREATE, ENTRY_DELETE);
+            key = path.register(watchService, ENTRY_MODIFY, ENTRY_CREATE, ENTRY_DELETE);
         }
         catch (IOException ex)
         {
@@ -151,19 +151,4 @@ public class WatchedConfig
         }
         return key;
     }
-
-    private Path toRealPath(
-        Path configPath)
-    {
-        try
-        {
-            configPath = configPath.toRealPath();
-        }
-        catch (IOException ex)
-        {
-            rethrowUnchecked(ex);
-        }
-        return configPath;
-    }
-
 }

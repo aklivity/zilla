@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.internal.registry;
+package io.aklivity.zilla.runtime.engine.internal.watcher;
 
 import static java.net.http.HttpClient.Redirect.NORMAL;
 import static java.net.http.HttpClient.Version.HTTP_2;
@@ -29,7 +29,6 @@ import java.net.http.HttpResponse;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -37,26 +36,25 @@ import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
-import java.util.function.Consumer;
 
 import io.aklivity.zilla.runtime.engine.config.EngineConfig;
 
-public class HttpWatcherTask extends WatcherTask
+public class ConfigHttpWatcherTask extends WatcherTask implements ConfigWatcher
 {
     private static final URI CLOSE_REQUESTED = URI.create("http://localhost:12345");
 
+    private final BiFunction<URL, String, EngineConfig> configChangeListener;
     private final Map<URI, String> etags;
     private final Map<URI, byte[]> configHashes;
     private final Map<URI, CompletableFuture<Void>> futures;
     private final BlockingQueue<URI> configQueue;
     private final int pollSeconds;
 
-    public HttpWatcherTask(
+    public ConfigHttpWatcherTask(
         BiFunction<URL, String, EngineConfig> configChangeListener,
-        Consumer<Set<String>> resourceChangeListener,
         int pollSeconds)
     {
-        super(configChangeListener, resourceChangeListener);
+        this.configChangeListener = configChangeListener;
         this.etags = new ConcurrentHashMap<>();
         this.configHashes = new ConcurrentHashMap<>();
         this.futures = new ConcurrentHashMap<>();
@@ -104,13 +102,6 @@ public class HttpWatcherTask extends WatcherTask
         }
 
         return configFuture;
-    }
-
-    @Override
-    public void watchResource(
-        URL resourceURL)
-    {
-        // TODO: Ati
     }
 
     @Override
