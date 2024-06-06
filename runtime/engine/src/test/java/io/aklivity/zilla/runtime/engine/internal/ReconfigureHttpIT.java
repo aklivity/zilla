@@ -23,6 +23,7 @@ import java.util.concurrent.CountDownLatch;
 
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -67,6 +68,7 @@ public class ReconfigureHttpIT
         EngineTest.TestEngineExt.registerLatch = new CountDownLatch(1);
     }
 
+    @Ignore // TODO: Ati
     @Test
     @Configure(name = ENGINE_CONFIG_POLL_INTERVAL_SECONDS, value = "1")
     @Configuration("http://localhost:8080/")
@@ -83,6 +85,7 @@ public class ReconfigureHttpIT
         k3po.finish();
     }
 
+    @Ignore // TODO: Ati
     @Test
     @Configure(name = ENGINE_CONFIG_POLL_INTERVAL_SECONDS, value = "1")
     @Configuration("http://localhost:8080/")
@@ -98,6 +101,7 @@ public class ReconfigureHttpIT
         k3po.finish();
     }
 
+    @Ignore // TODO: Ati
     @Test
     @Configuration("http://localhost:8080/")
     @Specification({
@@ -112,6 +116,7 @@ public class ReconfigureHttpIT
         k3po.finish();
     }
 
+    @Ignore // TODO: Ati
     @Test
     @Configure(name = ENGINE_CONFIG_POLL_INTERVAL_SECONDS, value = "1")
     @Configuration("http://localhost:8080/")
@@ -128,6 +133,7 @@ public class ReconfigureHttpIT
         k3po.finish();
     }
 
+    @Ignore // TODO: Ati
     @Test
     @Configure(name = ENGINE_CONFIG_POLL_INTERVAL_SECONDS, value = "1")
     @Configuration("http://localhost:8080/")

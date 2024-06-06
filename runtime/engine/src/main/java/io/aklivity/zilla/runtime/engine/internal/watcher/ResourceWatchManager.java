@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.engine.internal.watcher;
 
 import static org.agrona.LangUtil.rethrowUnchecked;
 
+import java.net.URI;
 import java.net.URL;
 import java.nio.file.FileSystem;
 import java.nio.file.Path;
@@ -32,6 +33,7 @@ public class ResourceWatchManager
     private final Map<String, Set<String>> resources;
     private final Map<String, ResourceWatcherTask> resourceTasks;
 
+    private URL configURL;
     private FileSystem fileSystem;
     private Consumer<Set<String>> resourceChangeListener;
     private Function<String, String> readURL;
@@ -43,11 +45,12 @@ public class ResourceWatchManager
     }
 
     public void initialize(
-        FileSystem fileSystem,
+        URL configURL,
         Consumer<Set<String>> resourceChangeListener,
         Function<String, String> readURL)
     {
-        this.fileSystem = fileSystem;
+        this.configURL = configURL;
+        this.fileSystem = resolveFileSystem(configURL);
         this.resourceChangeListener = resourceChangeListener;
         this.readURL = readURL;
     }
@@ -100,10 +103,10 @@ public class ResourceWatchManager
             ResourceWatcherTask watcherTask = new ResourceWatcherTask(fileSystem, resourceChangeListener, readURL);
             watcherTask.addNamespace(namespace);
             watcherTask.submit();
-            URL resourceURL = Path.of(resource).toUri().toURL();
+            URL resourceURL = new URL(configURL, resource);
             watcherTask.watchResource(resourceURL);
             resourceTasks.put(resource, watcherTask);
-            System.out.println("started watching resource: " + resource); // TODO: Ati
+            System.out.printf("started watching resource: %s resourceURL: %s\n", resource, resourceURL); // TODO: Ati
         }
         catch (Exception ex)
         {
@@ -145,5 +148,32 @@ public class ResourceWatchManager
                 rethrowUnchecked(ex);
             }
         });
+    }
+
+    // TODO: Ati - chk if this can be simplified
+    private static FileSystem resolveFileSystem(
+        URL url)
+    {
+        FileSystem result = null;
+        try
+        {
+            URI uri = url.toURI();
+            String location;
+            if ("file".equals(uri.getScheme()))
+            {
+                location = uri.getSchemeSpecificPart();
+            }
+            else
+            {
+                location = uri.toString();
+            }
+            // TODO: Ati - check this after adding hfs; this should just work fine for http
+            result = Path.of(location).getFileSystem();
+        }
+        catch (Exception ex)
+        {
+            rethrowUnchecked(ex);
+        }
+        return result;
     }
 }

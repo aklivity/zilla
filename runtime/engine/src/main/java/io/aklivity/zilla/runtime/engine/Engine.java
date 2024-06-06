@@ -16,14 +16,16 @@
 package io.aklivity.zilla.runtime.engine;
 
 import static io.aklivity.zilla.runtime.engine.internal.layouts.metrics.HistogramsLayout.BUCKETS;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.Executors.newFixedThreadPool;
 import static java.util.stream.Collectors.toList;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
+import java.io.InputStream;
 import java.net.URI;
 import java.net.URL;
+import java.net.URLConnection;
 import java.nio.file.FileSystem;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -204,9 +206,8 @@ public final class Engine implements Collector, AutoCloseable
             resourceWatchManager);
 
         this.configURL = config.configURL();
-        FileSystem fileSystem = getFileSystem(configURL.toString());
-        this.configWatcherTask = new ConfigWatcherTask(fileSystem, manager::reconfigure, this::readURL);
-        this.resourceWatchManager.initialize(fileSystem, manager::reloadNamespacesWithChangedResources, this::readURL);
+        this.configWatcherTask = new ConfigWatcherTask(getFileSystem(configURL), manager::reconfigure, this::readURL);
+        this.resourceWatchManager.initialize(configURL, manager::reloadNamespacesWithChangedResources, this::readURL);
 
         this.bindings = bindings;
         this.tasks = tasks;
@@ -304,34 +305,39 @@ public final class Engine implements Collector, AutoCloseable
     private String readURL(
         String location)
     {
-        String result = null;
+        String result;
         try
         {
-            URI uri = new URI(location);
-            if ("file".equals(uri.getScheme()))
+            URL url = new URL(configURL, location);
+            URLConnection connection = url.openConnection();
+            try (InputStream input = connection.getInputStream())
             {
-                location = uri.getSchemeSpecificPart();
+                result = new String(input.readAllBytes(), UTF_8);
             }
-            // TODO: Ati - check this after adding hfs; this should just work fine for http
-            result = Files.readString(Path.of(location));
         }
         catch (Exception ex)
         {
-            rethrowUnchecked(ex);
+            result = "";
         }
         return result;
     }
 
-    private FileSystem getFileSystem(
-        String location)
+    // TODO: Ati - this is a code duplication, remove this
+    private static FileSystem getFileSystem(
+        URL url)
     {
         FileSystem result = null;
         try
         {
-            URI uri = new URI(location);
+            URI uri = url.toURI();
+            String location;
             if ("file".equals(uri.getScheme()))
             {
                 location = uri.getSchemeSpecificPart();
+            }
+            else
+            {
+                location = uri.toString();
             }
             // TODO: Ati - check this after adding hfs; this should just work fine for http
             result = Path.of(location).getFileSystem();
