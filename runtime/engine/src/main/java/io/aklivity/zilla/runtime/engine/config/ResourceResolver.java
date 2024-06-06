@@ -22,11 +22,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import io.aklivity.zilla.runtime.engine.catalog.Catalog;
-import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
-import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
-import io.aklivity.zilla.runtime.engine.vault.VaultContext;
-import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
 public class ResourceResolver
 {
@@ -73,11 +69,7 @@ public class ResourceResolver
             {
                 if (FILESYSTEM.equals(catalog.type))
                 {
-                    System.out.println("fs catalog " + catalog);
-                    // TODO: Ati - this causes NPE
-                    CatalogContext context = fsCatalog.supply(null);
-                    CatalogHandler handler = context.attach(catalog);
-                    result.addAll(handler.resources());
+                    result.addAll(catalog.options.resources);
                 }
             }
         }
@@ -87,11 +79,7 @@ public class ResourceResolver
             {
                 if (FILESYSTEM.equals(vault.type))
                 {
-                    System.out.println("fs vault " + vault);
-                    // TODO: Ati - this causes NPE
-                    VaultContext context = fsVault.supply(null);
-                    VaultHandler handler = context.attach(vault);
-                    result.addAll(handler.resources());
+                    result.addAll(vault.options.resources);
                 }
             }
         }

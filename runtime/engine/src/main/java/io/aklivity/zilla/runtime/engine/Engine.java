@@ -64,7 +64,6 @@ import io.aklivity.zilla.runtime.engine.internal.layouts.EventsLayout;
 import io.aklivity.zilla.runtime.engine.internal.registry.EngineManager;
 import io.aklivity.zilla.runtime.engine.internal.registry.EngineWorker;
 import io.aklivity.zilla.runtime.engine.internal.types.event.EventFW;
-import io.aklivity.zilla.runtime.engine.internal.watcher.EngineConfigWatcher;
 import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
 import io.aklivity.zilla.runtime.engine.model.Model;
@@ -87,7 +86,6 @@ public final class Engine implements Collector, AutoCloseable
     private final boolean readonly;
     private final EngineConfiguration config;
     private final EngineManager manager;
-    private final EngineConfigWatcher watcher;
 
     Engine(
         EngineConfiguration config,
@@ -148,14 +146,13 @@ public final class Engine implements Collector, AutoCloseable
         }
         this.tuning = tuning;
 
-        this.watcher = new EngineConfigWatcher();
         List<EngineWorker> workers = new ArrayList<>(workerCount);
         for (int workerIndex = 0; workerIndex < workerCount; workerIndex++)
         {
             EngineWorker worker =
                 new EngineWorker(config, tasks, labels, errorHandler, tuning::affinity, bindings, exporters,
                     guards, vaults, catalogs, models, metricGroups, this, this::supplyEventReader,
-                    eventFormatterFactory, watcher, workerIndex, readonly, this::process);
+                    eventFormatterFactory, workerIndex, readonly, this::process);
             workers.add(worker);
         }
         this.workers = workers;
@@ -183,6 +180,7 @@ public final class Engine implements Collector, AutoCloseable
             .collect(Collectors.toMap(g -> g.name(), g -> g));
 
         ResourceResolver resources = new ResourceResolver(catalogs, vaults);
+        this.configURL = config.configURL();
         EngineManager manager = new EngineManager(
             schemaTypes,
             bindingsByType::get,
@@ -196,13 +194,9 @@ public final class Engine implements Collector, AutoCloseable
             context,
             config,
             extensions,
+            this.configURL,
             this::readURL,
-            resources,
-            watcher);
-
-        this.configURL = config.configURL();
-        this.watcher.initialize(configURL, manager::reconfigure, manager::reloadNamespacesWithChangedResources,
-            this::readURL);
+            resources);
 
         this.bindings = bindings;
         this.tasks = tasks;
@@ -235,10 +229,10 @@ public final class Engine implements Collector, AutoCloseable
             worker.doStart();
         }
 
+        // ignore the config file in read-only mode; no config will be read so no namespaces, bindings, etc. will be attached
         if (!readonly)
         {
-            // ignore the config file in read-only mode; no config will be read so no namespaces, bindings, etc will be attached
-            watcher.startWatchingConfig();
+            manager.startWatcher();
         }
     }
 
@@ -252,7 +246,7 @@ public final class Engine implements Collector, AutoCloseable
 
         final List<Throwable> errors = new ArrayList<>();
 
-        watcher.close();
+        manager.closeWatcher();
 
         for (EngineWorker worker : workers)
         {

@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.vault.filesystem.config;
 
+import java.util.LinkedList;
+import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
@@ -41,8 +43,25 @@ public final class FileSystemOptionsConfig extends OptionsConfig
         FileSystemStoreConfig trust,
         FileSystemStoreConfig signers)
     {
+        super(List.of(), resolveResources(keys, trust));
         this.keys = keys;
         this.trust = trust;
         this.signers = signers;
+    }
+
+    private static List<String> resolveResources(
+        FileSystemStoreConfig keys,
+        FileSystemStoreConfig trust)
+    {
+        List<String> resources = new LinkedList<>();
+        if (keys != null && keys.store != null)
+        {
+            resources.add(keys.store);
+        }
+        if (trust != null && trust.store != null)
+        {
+            resources.add(trust.store);
+        }
+        return resources;
     }
 }

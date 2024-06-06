@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttVersion;
+import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public class MqttOptionsConfig extends OptionsConfig
@@ -50,18 +51,24 @@ public class MqttOptionsConfig extends OptionsConfig
         List<MqttTopicConfig> topics,
         List<MqttVersion> versions)
     {
-        super(topics != null && !topics.isEmpty()
-            ? topics.stream()
-            .flatMap(topic -> Stream.concat(
-                Stream.of(topic.content),
-                    Optional.ofNullable(topic.userProperties).orElseGet(Collections::emptyList).stream()
-                    .flatMap(p -> Stream.of(p.value))
-                    .filter(Objects::nonNull))
-                .filter(Objects::nonNull))
-            .collect(Collectors.toList())
-            : emptyList());
+        super(resolveModels(topics), List.of());
         this.authorization = authorization;
         this.topics = topics;
         this.versions = versions;
+    }
+
+    private static List<ModelConfig> resolveModels(
+        List<MqttTopicConfig> topics)
+    {
+        return topics != null && !topics.isEmpty()
+            ? topics.stream()
+            .flatMap(topic -> Stream.concat(
+                    Stream.of(topic.content),
+                    Optional.ofNullable(topic.userProperties).orElseGet(Collections::emptyList).stream()
+                        .flatMap(p -> Stream.of(p.value))
+                        .filter(Objects::nonNull))
+                .filter(Objects::nonNull))
+            .collect(Collectors.toList())
+            : emptyList();
     }
 }

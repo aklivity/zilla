@@ -55,6 +55,7 @@ import io.aklivity.zilla.runtime.engine.Engine;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.internal.config.NamespaceAdapter;
 import io.aklivity.zilla.runtime.engine.internal.config.schema.UniquePropertyKeysSchema;
+import io.aklivity.zilla.runtime.engine.internal.watcher.EngineConfigWatcher;
 import io.aklivity.zilla.runtime.engine.resolver.Resolver;
 
 public final class EngineConfigReader
@@ -64,6 +65,7 @@ public final class EngineConfigReader
     private final Resolver expressions;
     private final Collection<URL> schemaTypes;
     private final ResourceResolver resources;
+    private final EngineConfigWatcher watcher;
     private final Consumer<String> logger;
     private final MessageDigest md5;
 
@@ -73,6 +75,7 @@ public final class EngineConfigReader
         Resolver expressions,
         Collection<URL> schemaTypes,
         ResourceResolver resources,
+        EngineConfigWatcher watcher,
         Consumer<String> logger)
     {
         this.config = config;
@@ -80,6 +83,7 @@ public final class EngineConfigReader
         this.expressions = expressions;
         this.schemaTypes = schemaTypes;
         this.resources = resources;
+        this.watcher = watcher;
         this.logger = logger;
         this.md5 = initMessageDigest("MD5");
     }
@@ -182,7 +186,7 @@ public final class EngineConfigReader
                 reader.skip(configsAt.get(i));
                 NamespaceConfig namespace = jsonb.fromJson(reader, NamespaceConfig.class);
                 namespace.hash = hashes.get(i);
-                System.out.println(resources.resolve(namespace)); // TODO: Ati
+                watcher.addResources(resources.resolve(namespace), namespace.name);
                 builder.namespace(namespace);
 
                 if (!errors.isEmpty())

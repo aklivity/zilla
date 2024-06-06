@@ -15,8 +15,6 @@
  */
 package io.aklivity.zilla.runtime.engine.catalog;
 
-import java.util.List;
-
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
@@ -115,10 +113,5 @@ public interface CatalogHandler
         int length)
     {
         return 0;
-    }
-
-    default List<String> resources()
-    {
-        return List.of();
     }
 }

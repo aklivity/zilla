@@ -32,31 +32,26 @@ import io.aklivity.zilla.runtime.engine.config.EngineConfig;
 
 public class EngineConfigWatcher
 {
+    private final URL configURL;
+    private final FileSystem fileSystem;
+    private final Function<String, String> readURL;
     private final Map<String, Set<String>> resources;
     private final Map<String, ResourceWatcherTask> resourceTasks;
+    private final Consumer<Set<String>> resourceChangeListener;
+    private final ConfigWatcherTask configWatcherTask;
 
-    private URL configURL;
-    private FileSystem fileSystem;
-    private Consumer<Set<String>> resourceChangeListener;
-    private Function<String, String> readURL;
-    private ConfigWatcherTask configWatcherTask;
-
-    public EngineConfigWatcher()
-    {
-        this.resources = new ConcurrentHashMap<>();
-        this.resourceTasks = new ConcurrentHashMap<>();
-    }
-
-    public void initialize(
+    public EngineConfigWatcher(
         URL configURL,
+        Function<String, String> readURL,
         Function<String, EngineConfig> configChangeListener,
-        Consumer<Set<String>> resourceChangeListener,
-        Function<String, String> readURL)
+        Consumer<Set<String>> resourceChangeListener)
     {
         this.configURL = configURL;
         this.fileSystem = resolveFileSystem(configURL);
-        this.resourceChangeListener = resourceChangeListener;
         this.readURL = readURL;
+        this.resources = new ConcurrentHashMap<>();
+        this.resourceTasks = new ConcurrentHashMap<>();
+        this.resourceChangeListener = resourceChangeListener;
         this.configWatcherTask = new ConfigWatcherTask(this.fileSystem, configChangeListener, readURL);
     }
 
@@ -170,6 +165,7 @@ public class EngineConfigWatcher
     }
 
     // TODO: Ati - chk if this can be simplified
+    // TODO: Ati - check this after adding hfs; this should just work fine for http
     private static FileSystem resolveFileSystem(
         URL url)
     {
@@ -186,7 +182,6 @@ public class EngineConfigWatcher
             {
                 location = uri.toString();
             }
-            // TODO: Ati - check this after adding hfs; this should just work fine for http
             result = Path.of(location).getFileSystem();
         }
         catch (Exception ex)

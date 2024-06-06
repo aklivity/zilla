@@ -103,9 +103,9 @@ public class EngineManager
         EngineExtContext context,
         EngineConfiguration config,
         List<EngineExtSpi> extensions,
+        URL configURL,
         Function<String, String> readURL,
-        ResourceResolver resources,
-        EngineConfigWatcher watcher)
+        ResourceResolver resources)
     {
         this.schemaTypes = schemaTypes;
         this.bindingByType = bindingByType;
@@ -122,10 +122,31 @@ public class EngineManager
         this.readURL = readURL;
         this.expressions = Resolver.instantiate(config);
         this.resources = resources;
-        this.watcher = watcher;
+        this.watcher = new EngineConfigWatcher(configURL, readURL, this::reconfigure, this::reloadNamespacesWithChangedResources);
     }
 
-    public EngineConfig reconfigure(
+    public void process(
+        NamespaceConfig namespace)
+    {
+        final List<GuardConfig> guards = current.namespaces.stream()
+            .map(n -> n.guards)
+            .flatMap(gs -> gs.stream())
+            .collect(toList());
+
+        process(guards, namespace);
+    }
+
+    public void startWatcher() throws Exception
+    {
+        watcher.startWatchingConfig();
+    }
+
+    public void closeWatcher()
+    {
+        watcher.close();
+    }
+
+    private EngineConfig reconfigure(
         String configText)
     {
         EngineConfig newConfig = null;
@@ -177,7 +198,7 @@ public class EngineManager
         return newConfig;
     }
 
-    public void reloadNamespacesWithChangedResources(
+    private void reloadNamespacesWithChangedResources(
         Set<String> namespaces)
     {
         if (namespaces != null && !namespaces.isEmpty())
@@ -187,17 +208,6 @@ public class EngineManager
             unregister(current, identical);
             register(current, identical);
         }
-    }
-
-    public void process(
-        NamespaceConfig namespace)
-    {
-        final List<GuardConfig> guards = current.namespaces.stream()
-                .map(n -> n.guards)
-                .flatMap(gs -> gs.stream())
-                .collect(toList());
-
-        process(guards, namespace);
     }
 
     private EngineConfig parse(
@@ -220,6 +230,7 @@ public class EngineManager
                 expressions,
                 schemaTypes,
                 resources,
+                watcher,
                 logger);
 
             engine = reader.read(configText);
@@ -404,6 +415,7 @@ public class EngineManager
                 if (!identical.test(namespace.name))
                 {
                     System.out.println("register: " + namespace.name); // TODO: Ati
+                    watcher.addResources(resources.resolve(namespace), namespace.name);
                     register(namespace);
                 }
             }

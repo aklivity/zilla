@@ -23,6 +23,7 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
+import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public final class KafkaOptionsConfig extends OptionsConfig
@@ -49,15 +50,21 @@ public final class KafkaOptionsConfig extends OptionsConfig
         List<KafkaServerConfig> servers,
         KafkaSaslConfig sasl)
     {
-        super(topics != null && !topics.isEmpty()
-            ? topics.stream()
-                .flatMap(t -> Stream.of(t.key, t.value))
-                .filter(Objects::nonNull)
-                .collect(toList())
-            : emptyList());
+        super(resolveModels(topics), List.of());
         this.bootstrap = bootstrap;
         this.topics = topics;
         this.servers = servers;
         this.sasl = sasl;
+    }
+
+    private static List<ModelConfig> resolveModels(
+        List<KafkaTopicConfig> topics)
+    {
+        return topics != null && !topics.isEmpty()
+            ? topics.stream()
+            .flatMap(t -> Stream.of(t.key, t.value))
+            .filter(Objects::nonNull)
+            .collect(toList())
+            : emptyList();
     }
 }

@@ -28,7 +28,6 @@ import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterContext;
 import io.aklivity.zilla.runtime.engine.guard.GuardContext;
-import io.aklivity.zilla.runtime.engine.internal.watcher.EngineConfigWatcher;
 import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
@@ -52,7 +51,6 @@ public class EngineRegistry
     private final LongConsumer detachBinding;
     private final Collector collector;
     private final Consumer<NamespaceConfig> process;
-    private final EngineConfigWatcher watcher;
 
     public EngineRegistry(
         Function<String, BindingContext> bindingsByType,
@@ -67,8 +65,7 @@ public class EngineRegistry
         ObjectLongLongFunction<Metric.Kind, LongConsumer> supplyMetricRecorder,
         LongConsumer detachBinding,
         Collector collector,
-        Consumer<NamespaceConfig> process,
-        EngineConfigWatcher watcher)
+        Consumer<NamespaceConfig> process)
     {
         this.bindingsByType = bindingsByType;
         this.guardsByType = guardsByType;
@@ -84,7 +81,6 @@ public class EngineRegistry
         this.detachBinding = detachBinding;
         this.collector = collector;
         this.process = process;
-        this.watcher = watcher;
     }
 
     public void process(
@@ -200,7 +196,7 @@ public class EngineRegistry
         NamespaceRegistry registry =
                 new NamespaceRegistry(namespace, bindingsByType, guardsByType, vaultsByType, catalogsByType,
                     metricsByName, exportersByType, supplyLabelId, this::resolveMetric, exporterAttached, exporterDetached,
-                    supplyMetricRecorder, detachBinding, collector, watcher);
+                    supplyMetricRecorder, detachBinding, collector);
         namespacesById.put(registry.namespaceId(), registry);
         registry.attach();
     }
