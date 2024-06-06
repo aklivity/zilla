@@ -63,6 +63,7 @@ public final class EngineConfigReader
     private final ConfigAdapterContext context;
     private final Resolver expressions;
     private final Collection<URL> schemaTypes;
+    private final ResourceResolver resources;
     private final Consumer<String> logger;
     private final MessageDigest md5;
 
@@ -71,12 +72,14 @@ public final class EngineConfigReader
         ConfigAdapterContext context,
         Resolver expressions,
         Collection<URL> schemaTypes,
+        ResourceResolver resources,
         Consumer<String> logger)
     {
         this.config = config;
         this.context = context;
         this.expressions = expressions;
         this.schemaTypes = schemaTypes;
+        this.resources = resources;
         this.logger = logger;
         this.md5 = initMessageDigest("MD5");
     }
@@ -179,6 +182,7 @@ public final class EngineConfigReader
                 reader.skip(configsAt.get(i));
                 NamespaceConfig namespace = jsonb.fromJson(reader, NamespaceConfig.class);
                 namespace.hash = hashes.get(i);
+                System.out.println(resources.resolve(namespace)); // TODO: Ati
                 builder.namespace(namespace);
 
                 if (!errors.isEmpty())

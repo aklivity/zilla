@@ -51,6 +51,7 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageReader;
 import io.aklivity.zilla.runtime.engine.catalog.Catalog;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
+import io.aklivity.zilla.runtime.engine.config.ResourceResolver;
 import io.aklivity.zilla.runtime.engine.event.EventFormatterFactory;
 import io.aklivity.zilla.runtime.engine.exporter.Exporter;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtContext;
@@ -181,6 +182,7 @@ public final class Engine implements Collector, AutoCloseable
         final Map<String, Guard> guardsByType = guards.stream()
             .collect(Collectors.toMap(g -> g.name(), g -> g));
 
+        ResourceResolver resources = new ResourceResolver(catalogs, vaults);
         EngineManager manager = new EngineManager(
             schemaTypes,
             bindingsByType::get,
@@ -195,6 +197,7 @@ public final class Engine implements Collector, AutoCloseable
             config,
             extensions,
             this::readURL,
+            resources,
             watcher);
 
         this.configURL = config.configURL();
