@@ -62,7 +62,7 @@ public class AvroReadConverterHandler extends AvroModelHandler implements Conver
                     schemaId = handler.resolve(subject, catalog.version);
                 }
             }
-            padding = supplyPadding(schemaId);
+            padding += supplyPadding(schemaId);
         }
         return padding;
     }
