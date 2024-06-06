@@ -62,7 +62,7 @@ import io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
 import io.aklivity.zilla.runtime.engine.guard.Guard;
 import io.aklivity.zilla.runtime.engine.internal.Tuning;
 import io.aklivity.zilla.runtime.engine.internal.config.NamespaceAdapter;
-import io.aklivity.zilla.runtime.engine.internal.watcher.ResourceWatchManager;
+import io.aklivity.zilla.runtime.engine.internal.watcher.EngineConfigWatcher;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 import io.aklivity.zilla.runtime.engine.resolver.Resolver;
 
@@ -84,7 +84,7 @@ public class EngineManager
     private final List<EngineExtSpi> extensions;
     private final Function<String, String> readURL;
     private final Resolver expressions;
-    private final ResourceWatchManager resourceWatchManager;
+    private final EngineConfigWatcher watcher;
 
     private EngineConfig current;
 
@@ -102,7 +102,7 @@ public class EngineManager
         EngineConfiguration config,
         List<EngineExtSpi> extensions,
         Function<String, String> readURL,
-        ResourceWatchManager resourceWatchManager)
+        EngineConfigWatcher watcher)
     {
         this.schemaTypes = schemaTypes;
         this.bindingByType = bindingByType;
@@ -118,7 +118,7 @@ public class EngineManager
         this.extensions = extensions;
         this.readURL = readURL;
         this.expressions = Resolver.instantiate(config);
-        this.resourceWatchManager = resourceWatchManager;
+        this.watcher = watcher;
     }
 
     public EngineConfig reconfigure(
@@ -419,7 +419,7 @@ public class EngineManager
                 {
                     System.out.println("unregister: " + namespace.name); // TODO: Ati
                     unregister(namespace);
-                    resourceWatchManager.removeNamespace(namespace.name);
+                    watcher.removeNamespace(namespace.name);
                 }
             }
         }

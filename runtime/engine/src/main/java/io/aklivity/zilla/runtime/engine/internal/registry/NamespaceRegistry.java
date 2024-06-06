@@ -44,7 +44,7 @@ import io.aklivity.zilla.runtime.engine.config.VaultConfig;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterContext;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
 import io.aklivity.zilla.runtime.engine.guard.GuardContext;
-import io.aklivity.zilla.runtime.engine.internal.watcher.ResourceWatchManager;
+import io.aklivity.zilla.runtime.engine.internal.watcher.EngineConfigWatcher;
 import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
@@ -75,7 +75,7 @@ public class NamespaceRegistry
     private final ObjectLongLongFunction<Metric.Kind, LongConsumer> supplyMetricRecorder;
     private final LongConsumer detachBinding;
     private final Collector collector;
-    private final ResourceWatchManager resourceWatchManager;
+    private final EngineConfigWatcher watcher;
 
     public NamespaceRegistry(
         NamespaceConfig namespace,
@@ -92,7 +92,7 @@ public class NamespaceRegistry
         ObjectLongLongFunction<Metric.Kind, LongConsumer> supplyMetricRecorder,
         LongConsumer detachBinding,
         Collector collector,
-        ResourceWatchManager resourceWatchManager)
+        EngineConfigWatcher watcher)
     {
         this.namespace = namespace;
         this.bindingsByType = bindingsByType;
@@ -115,7 +115,7 @@ public class NamespaceRegistry
         this.metricsById = new Int2ObjectHashMap<>();
         this.exportersById = new Int2ObjectHashMap<>();
         this.collector = collector;
-        this.resourceWatchManager = resourceWatchManager;
+        this.watcher = watcher;
     }
 
     public int namespaceId()
@@ -269,7 +269,7 @@ public class NamespaceRegistry
         VaultRegistry registry = new VaultRegistry(config, context);
         vaultsById.put(vaultId, registry);
         registry.attach();
-        resourceWatchManager.addResources(registry.handler().resources(), config.namespace);
+        watcher.addResources(registry.handler().resources(), config.namespace);
     }
 
     private void detachVault(
@@ -316,7 +316,7 @@ public class NamespaceRegistry
         CatalogRegistry registry = new CatalogRegistry(config, context);
         catalogsById.put(catalogId, registry);
         registry.attach();
-        resourceWatchManager.addResources(registry.handler().resources(), config.namespace);
+        watcher.addResources(registry.handler().resources(), config.namespace);
     }
 
     private void detachCatalog(

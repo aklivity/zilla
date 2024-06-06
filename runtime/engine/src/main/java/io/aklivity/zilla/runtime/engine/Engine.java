@@ -22,11 +22,8 @@ import static java.util.stream.Collectors.toList;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.InputStream;
-import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
-import java.nio.file.FileSystem;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -36,7 +33,6 @@ import java.util.ServiceLoader;
 import java.util.ServiceLoader.Provider;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
@@ -67,8 +63,7 @@ import io.aklivity.zilla.runtime.engine.internal.layouts.EventsLayout;
 import io.aklivity.zilla.runtime.engine.internal.registry.EngineManager;
 import io.aklivity.zilla.runtime.engine.internal.registry.EngineWorker;
 import io.aklivity.zilla.runtime.engine.internal.types.event.EventFW;
-import io.aklivity.zilla.runtime.engine.internal.watcher.ConfigWatcherTask;
-import io.aklivity.zilla.runtime.engine.internal.watcher.ResourceWatchManager;
+import io.aklivity.zilla.runtime.engine.internal.watcher.EngineConfigWatcher;
 import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
 import io.aklivity.zilla.runtime.engine.model.Model;
@@ -86,15 +81,12 @@ public final class Engine implements Collector, AutoCloseable
     private final AtomicInteger nextTaskId;
     private final ThreadFactory factory;
 
-    private final ConfigWatcherTask configWatcherTask;
     private final URL configURL;
     private final List<EngineWorker> workers;
     private final boolean readonly;
     private final EngineConfiguration config;
     private final EngineManager manager;
-    private final ResourceWatchManager resourceWatchManager;
-
-    private Future<Void> configWatcherTaskRef;
+    private final EngineConfigWatcher watcher;
 
     Engine(
         EngineConfiguration config,
@@ -155,14 +147,14 @@ public final class Engine implements Collector, AutoCloseable
         }
         this.tuning = tuning;
 
-        this.resourceWatchManager = new ResourceWatchManager();
+        this.watcher = new EngineConfigWatcher();
         List<EngineWorker> workers = new ArrayList<>(workerCount);
         for (int workerIndex = 0; workerIndex < workerCount; workerIndex++)
         {
             EngineWorker worker =
                 new EngineWorker(config, tasks, labels, errorHandler, tuning::affinity, bindings, exporters,
                     guards, vaults, catalogs, models, metricGroups, this, this::supplyEventReader,
-                    eventFormatterFactory, resourceWatchManager, workerIndex, readonly, this::process);
+                    eventFormatterFactory, watcher, workerIndex, readonly, this::process);
             workers.add(worker);
         }
         this.workers = workers;
@@ -203,11 +195,11 @@ public final class Engine implements Collector, AutoCloseable
             config,
             extensions,
             this::readURL,
-            resourceWatchManager);
+            watcher);
 
         this.configURL = config.configURL();
-        this.configWatcherTask = new ConfigWatcherTask(getFileSystem(configURL), manager::reconfigure, this::readURL);
-        this.resourceWatchManager.initialize(configURL, manager::reloadNamespacesWithChangedResources, this::readURL);
+        this.watcher.initialize(configURL, manager::reconfigure, manager::reloadNamespacesWithChangedResources,
+            this::readURL);
 
         this.bindings = bindings;
         this.tasks = tasks;
@@ -240,11 +232,10 @@ public final class Engine implements Collector, AutoCloseable
             worker.doStart();
         }
 
-        configWatcherTaskRef = configWatcherTask.submit();
         if (!readonly)
         {
             // ignore the config file in read-only mode; no config will be read so no namespaces, bindings, etc will be attached
-            configWatcherTask.watchConfig(configURL).get();
+            watcher.startWatchingConfig();
         }
     }
 
@@ -258,9 +249,7 @@ public final class Engine implements Collector, AutoCloseable
 
         final List<Throwable> errors = new ArrayList<>();
 
-        resourceWatchManager.close();
-        configWatcherTask.close();
-        configWatcherTaskRef.get();
+        watcher.close();
 
         for (EngineWorker worker : workers)
         {
@@ -318,33 +307,6 @@ public final class Engine implements Collector, AutoCloseable
         catch (Exception ex)
         {
             result = "";
-        }
-        return result;
-    }
-
-    // TODO: Ati - this is a code duplication, remove this
-    private static FileSystem getFileSystem(
-        URL url)
-    {
-        FileSystem result = null;
-        try
-        {
-            URI uri = url.toURI();
-            String location;
-            if ("file".equals(uri.getScheme()))
-            {
-                location = uri.getSchemeSpecificPart();
-            }
-            else
-            {
-                location = uri.toString();
-            }
-            // TODO: Ati - check this after adding hfs; this should just work fine for http
-            result = Path.of(location).getFileSystem();
-        }
-        catch (Exception ex)
-        {
-            rethrowUnchecked(ex);
         }
         return result;
     }

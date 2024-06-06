@@ -137,7 +137,7 @@ import io.aklivity.zilla.runtime.engine.internal.types.stream.FrameFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.WindowFW;
-import io.aklivity.zilla.runtime.engine.internal.watcher.ResourceWatchManager;
+import io.aklivity.zilla.runtime.engine.internal.watcher.EngineConfigWatcher;
 import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
@@ -254,7 +254,7 @@ public class EngineWorker implements EngineContext, Agent
         Collector collector,
         Supplier<MessageReader> supplyEventReader,
         EventFormatterFactory eventFormatterFactory,
-        ResourceWatchManager resourceWatchManager,
+        EngineConfigWatcher watcher,
         int index,
         boolean readonly,
         Consumer<NamespaceConfig> process)
@@ -429,7 +429,7 @@ public class EngineWorker implements EngineContext, Agent
         this.registry = new EngineRegistry(
                 bindingsByType::get, guardsByType::get, vaultsByType::get, catalogsByType::get, metricsByName::get,
                 exportersByType::get, labels::supplyLabelId, this::onExporterAttached, this::onExporterDetached,
-                this::supplyMetricWriter, this::detachStreams, collector, process, resourceWatchManager);
+                this::supplyMetricWriter, this::detachStreams, collector, process, watcher);
 
         this.taskQueue = new ConcurrentLinkedDeque<>();
         this.correlations = new Long2ObjectHashMap<>();

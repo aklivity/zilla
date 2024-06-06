@@ -28,7 +28,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public class ResourceWatchManager
+import io.aklivity.zilla.runtime.engine.config.EngineConfig;
+
+public class EngineConfigWatcher
 {
     private final Map<String, Set<String>> resources;
     private final Map<String, ResourceWatcherTask> resourceTasks;
@@ -37,8 +39,9 @@ public class ResourceWatchManager
     private FileSystem fileSystem;
     private Consumer<Set<String>> resourceChangeListener;
     private Function<String, String> readURL;
+    private ConfigWatcherTask configWatcherTask;
 
-    public ResourceWatchManager()
+    public EngineConfigWatcher()
     {
         this.resources = new ConcurrentHashMap<>();
         this.resourceTasks = new ConcurrentHashMap<>();
@@ -46,6 +49,7 @@ public class ResourceWatchManager
 
     public void initialize(
         URL configURL,
+        Function<String, EngineConfig> configChangeListener,
         Consumer<Set<String>> resourceChangeListener,
         Function<String, String> readURL)
     {
@@ -53,6 +57,13 @@ public class ResourceWatchManager
         this.fileSystem = resolveFileSystem(configURL);
         this.resourceChangeListener = resourceChangeListener;
         this.readURL = readURL;
+        this.configWatcherTask = new ConfigWatcherTask(this.fileSystem, configChangeListener, readURL);
+    }
+
+    public void startWatchingConfig() throws Exception
+    {
+        configWatcherTask.submit();
+        configWatcherTask.watchConfig(configURL).get();
     }
 
     public void addResources(
@@ -148,6 +159,14 @@ public class ResourceWatchManager
                 rethrowUnchecked(ex);
             }
         });
+        try
+        {
+            configWatcherTask.close();
+        }
+        catch (Exception ex)
+        {
+            rethrowUnchecked(ex);
+        }
     }
 
     // TODO: Ati - chk if this can be simplified
