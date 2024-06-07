@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.asyncapi.internal.view;
 import java.util.List;
 import java.util.Map;
 
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiCorrelationId;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiMessage;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiSchema;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiTrait;
@@ -47,6 +48,11 @@ public final class AsyncapiMessageView extends AsyncapiResolvable<AsyncapiMessag
     public List<AsyncapiTrait> traits()
     {
         return message.traits;
+    }
+
+    public AsyncapiCorrelationId correlationId()
+    {
+        return message.correlationId;
     }
 
     public static AsyncapiMessageView of(

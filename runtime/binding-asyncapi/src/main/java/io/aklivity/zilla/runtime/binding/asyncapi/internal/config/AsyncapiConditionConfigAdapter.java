@@ -42,8 +42,11 @@ public class AsyncapiConditionConfigAdapter implements ConditionConfigAdapterSpi
         JsonObjectBuilder object = Json.createObjectBuilder();
 
         object.add(API_ID_NAME, asyncapiCondition.apiId);
-        object.add(OPERATION_ID_NAME, asyncapiCondition.operationId);
 
+        if (asyncapiCondition.operationId != null)
+        {
+            object.add(OPERATION_ID_NAME, asyncapiCondition.operationId);
+        }
         return object.build();
     }
 
@@ -51,8 +54,14 @@ public class AsyncapiConditionConfigAdapter implements ConditionConfigAdapterSpi
     public ConditionConfig adaptFromJson(
         JsonObject object)
     {
-        String apiId = object.getString(API_ID_NAME);
-        String operationId = object.getString(OPERATION_ID_NAME);
+        String apiId = object.containsKey(API_ID_NAME)
+            ? object.getString(API_ID_NAME)
+            : null;
+
+        String operationId = object.containsKey(OPERATION_ID_NAME)
+            ? object.getString(OPERATION_ID_NAME)
+            : null;
+
         return new AsyncapiConditionConfig(apiId, operationId);
     }
 }
