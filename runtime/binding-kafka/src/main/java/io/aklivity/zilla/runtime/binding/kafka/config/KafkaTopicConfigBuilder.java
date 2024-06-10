@@ -16,10 +16,17 @@
 package io.aklivity.zilla.runtime.binding.kafka.config;
 
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.String32FW;
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 
@@ -31,11 +38,13 @@ public final class KafkaTopicConfigBuilder<T> extends ConfigBuilder<T, KafkaTopi
     private KafkaDeltaType deltaType;
     private ModelConfig key;
     private ModelConfig value;
+    private List<KafkaTopicHeaderType> headers;
 
     KafkaTopicConfigBuilder(
         Function<KafkaTopicConfig, T> mapper)
     {
         this.mapper = mapper;
+        this.headers = new ArrayList<>();
     }
 
     @Override
@@ -80,6 +89,18 @@ public final class KafkaTopicConfigBuilder<T> extends ConfigBuilder<T, KafkaTopi
         return this;
     }
 
+    public KafkaTopicConfigBuilder<T> header(
+        String name,
+        String path)
+    {
+        if (this.headers == null)
+        {
+            this.headers = new ArrayList<>();
+        }
+        this.headers.add(new KafkaTopicHeaderType(new String32FW(name, UTF_8), path));
+        return this;
+    }
+
     public <C extends ConfigBuilder<KafkaTopicConfigBuilder<T>, C>> C value(
         Function<Function<ModelConfig, KafkaTopicConfigBuilder<T>>, C> value)
     {
@@ -89,6 +110,6 @@ public final class KafkaTopicConfigBuilder<T> extends ConfigBuilder<T, KafkaTopi
     @Override
     public T build()
     {
-        return mapper.apply(new KafkaTopicConfig(name, defaultOffset, deltaType, key, value));
+        return mapper.apply(new KafkaTopicConfig(name, defaultOffset, deltaType, key, value, headers));
     }
 }

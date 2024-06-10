@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.engine.model;
 
 import org.agrona.DirectBuffer;
 
+import io.aklivity.zilla.runtime.engine.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 
 public interface ConverterHandler
@@ -30,6 +31,20 @@ public interface ConverterHandler
         return length;
     };
 
+    @FunctionalInterface
+    interface FieldVisitor
+    {
+        void visit(
+            DirectBuffer buffer,
+            int index,
+            int length);
+    }
+
+    default void extract(
+        String path)
+    {
+    }
+
     int convert(
         long traceId,
         long bindingId,
@@ -37,6 +52,12 @@ public interface ConverterHandler
         int index,
         int length,
         ValueConsumer next);
+
+    default void extracted(
+        String path,
+        FieldVisitor visitor)
+    {
+    }
 
     default int padding(
         DirectBuffer data,

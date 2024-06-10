@@ -14,15 +14,26 @@
  */
 package io.aklivity.zilla.runtime.model.json.internal;
 
+import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.io.StringReader;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.regex.Pattern;
 
+import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.ReadContext;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonValue;
 import jakarta.json.spi.JsonProvider;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParserFactory;
 
 import org.agrona.DirectBuffer;
+import org.agrona.ExpandableDirectByteBuffer;
 import org.agrona.collections.Int2ObjectCache;
 import org.agrona.io.DirectBufferInputStream;
+import org.agrona.io.ExpandableDirectBufferOutputStream;
 import org.leadpony.justify.api.JsonSchema;
 import org.leadpony.justify.api.JsonSchemaReader;
 import org.leadpony.justify.api.JsonValidatingException;
@@ -33,6 +44,7 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
+import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
 public abstract class JsonModelHandler
@@ -41,12 +53,16 @@ public abstract class JsonModelHandler
     protected final CatalogHandler handler;
     protected final String subject;
     protected final JsonModelEventContext event;
+    protected final Map<String, ConverterHandler.FieldVisitor> visitors;
 
     private final Int2ObjectCache<JsonSchema> schemas;
     private final Int2ObjectCache<JsonProvider> providers;
     private final JsonProvider schemaProvider;
     private final JsonValidationService service;
     private final JsonParserFactory factory;
+    private final ExpandableDirectBufferOutputStream expandable;
+
+    private ObjectOutputStream out;
     private DirectBufferInputStream in;
 
     public JsonModelHandler(
@@ -66,6 +82,16 @@ public abstract class JsonModelHandler
         this.providers = new Int2ObjectCache<>(1, 1024, i -> {});
         this.in = new DirectBufferInputStream();
         this.event = new JsonModelEventContext(context);
+        this.visitors = new HashMap<>();
+        this.expandable = new ExpandableDirectBufferOutputStream(new ExpandableDirectByteBuffer());
+        try
+        {
+            this.out = new ObjectOutputStream(expandable);
+        }
+        catch (IOException ex)
+        {
+
+        }
     }
 
     protected final boolean validate(
@@ -84,7 +110,28 @@ public abstract class JsonModelHandler
             if (status)
             {
                 in.wrap(buffer, index, length);
-                provider.createReader(in).readValue();
+                JsonValue value = provider.createReader(in).readValue();
+                ReadContext context = JsonPath.parse(value);
+                for (Map.Entry<String, ConverterHandler.FieldVisitor> entry : visitors.entrySet())
+                {
+                    ConverterHandler.FieldVisitor visitor = entry.getValue();
+                    Object extracted = context.read(entry.getKey());
+                    if (extracted != null)
+                    {
+                        expandable.wrap(expandable.buffer());
+                        try
+                        {
+                            out.reset();
+                            out.writeObject(extracted);
+                            out.flush();
+                            visitor.visit(expandable.buffer(), 0, expandable.position());
+                        }
+                        catch (IOException ex)
+                        {
+                        }
+                    }
+
+                }
             }
         }
         catch (JsonValidatingException ex)
@@ -133,4 +180,6 @@ public abstract class JsonModelHandler
         }
         return provider;
     }
+
+
 }

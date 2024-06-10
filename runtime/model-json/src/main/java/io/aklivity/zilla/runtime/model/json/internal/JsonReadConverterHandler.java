@@ -17,6 +17,8 @@ package io.aklivity.zilla.runtime.model.json.internal;
 import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
 
 import org.agrona.DirectBuffer;
+import org.agrona.ExpandableDirectByteBuffer;
+import org.agrona.MutableDirectBuffer;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
@@ -42,6 +44,18 @@ public class JsonReadConverterHandler extends JsonModelHandler implements Conver
     }
 
     @Override
+    public void extract(
+        String path)
+    {
+        final FieldVisitor visitor = (buffer, index, length) ->
+        {
+            MutableDirectBuffer extracted = new ExpandableDirectByteBuffer();
+            extracted.wrap(buffer, index, length);
+        };
+        visitors.put(path, visitor);
+    }
+
+    @Override
     public int convert(
         long traceId,
         long bindingId,
@@ -51,6 +65,17 @@ public class JsonReadConverterHandler extends JsonModelHandler implements Conver
         ValueConsumer next)
     {
         return handler.decode(traceId, bindingId, data, index, length, next, this::decodePayload);
+    }
+
+    @Override
+    public void extracted(
+        String path,
+        FieldVisitor visitor)
+    {
+        if (visitors.containsKey(path))
+        {
+            FieldVisitor extracted = visitors.get(path);
+        }
     }
 
     private int decodePayload(

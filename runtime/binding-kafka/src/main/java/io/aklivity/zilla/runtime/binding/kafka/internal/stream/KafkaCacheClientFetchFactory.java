@@ -1256,6 +1256,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             final int entryFlags = nextEntry.flags();
             final KafkaKeyFW key = nextEntry.key();
             final ArrayFW<KafkaHeaderFW> headers = nextEntry.headers();
+            final ArrayFW<KafkaHeaderFW> trailers = nextEntry.trailers();
             final long ancestor = nextEntry.ancestor();
             final OctetsFW value = nextEntry.value();
             final int remaining = value != null ? value.sizeof() - messageOffset : 0;
@@ -1323,11 +1324,11 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                 switch (flags & ~FLAG_SKIP)
                 {
                 case FLAG_INIT | FLAG_FIN:
-                    doClientReplyDataFull(traceId, timestamp, ownerId, filters, key, headers, deltaType, ancestor, fragment,
+                    doClientReplyDataFull(traceId, timestamp, ownerId, filters, key, headers, trailers, deltaType, ancestor, fragment,
                                           reserved, flags, partitionId, partitionOffset, stableOffset, latestOffset);
                     break;
                 case FLAG_INIT:
-                    doClientReplyDataInit(traceId, headers, deferred, timestamp, ownerId, filters, key, deltaType,
+                    doClientReplyDataInit(traceId, headers, trailers, deferred, timestamp, ownerId, filters, key, deltaType,
                                           ancestor, fragment, reserved, length, flags, partitionId, partitionOffset,
                                           stableOffset, latestOffset);
                     break;
@@ -1335,7 +1336,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                     doClientReplyDataNone(traceId, fragment, reserved, length, flags);
                     break;
                 case FLAG_FIN:
-                    doClientReplyDataFin(traceId, headers, deltaType, ancestor, fragment,
+                    doClientReplyDataFin(traceId, headers, trailers, deltaType, ancestor, fragment,
                                          reserved, length, flags, partitionId, partitionOffset, stableOffset, latestOffset);
                     break;
                 }
@@ -1365,6 +1366,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             long filters,
             KafkaKeyFW key,
             ArrayFW<KafkaHeaderFW> headers,
+            ArrayFW<KafkaHeaderFW> trailers,
             KafkaDeltaType deltaType,
             long ancestorOffset,
             OctetsFW value,
@@ -1390,10 +1392,17 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                                                 .value(key.value()))
                                      .delta(d -> d.type(t -> t.set(deltaType))
                                                               .ancestorOffset(ancestorOffset))
-                                     .headers(hs -> headers.forEach(h -> hs.item(i -> i.nameLen(h.nameLen())
-                                                                                       .name(h.name())
-                                                                                       .valueLen(h.valueLen())
-                                                                                       .value(h.value())))))
+                                     .headers(hs ->
+                                     {
+                                         headers.forEach(h -> hs.item(i -> i.nameLen(h.nameLen())
+                                             .name(h.name())
+                                             .valueLen(h.valueLen())
+                                             .value(h.value())));
+                                         trailers.forEach(t -> hs.item(i -> i.nameLen(t.nameLen())
+                                             .name(t.name())
+                                             .valueLen(t.valueLen())
+                                             .value(t.value())));
+                                     }))
                         .build()
                         .sizeof()));
 
@@ -1405,6 +1414,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
         private void doClientReplyDataInit(
             long traceId,
             ArrayFW<KafkaHeaderFW> headers,
+            ArrayFW<KafkaHeaderFW> trailers,
             int deferred,
             long timestamp,
             long producerId,
@@ -1437,10 +1447,17 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                                                 .value(key.value()))
                                      .delta(d -> d.type(t -> t.set(deltaType))
                                                   .ancestorOffset(ancestorOffset))
-                                     .headers(hs -> headers.forEach(h -> hs.item(i -> i.nameLen(h.nameLen())
-                                        .name(h.name())
-                                        .valueLen(h.valueLen())
-                                        .value(h.value())))))
+                                     .headers(hs ->
+                                     {
+                                         headers.forEach(h -> hs.item(i -> i.nameLen(h.nameLen())
+                                             .name(h.name())
+                                             .valueLen(h.valueLen())
+                                             .value(h.value())));
+                                         trailers.forEach(t -> hs.item(i -> i.nameLen(t.nameLen())
+                                             .name(t.name())
+                                             .valueLen(t.valueLen())
+                                             .value(t.value())));
+                                     }))
                         .build()
                         .sizeof()));
 
@@ -1467,6 +1484,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
         private void doClientReplyDataFin(
             long traceId,
             ArrayFW<KafkaHeaderFW> headers,
+            ArrayFW<KafkaHeaderFW> trailers,
             KafkaDeltaType deltaType,
             long ancestorOffset,
             OctetsFW fragment,
@@ -1488,10 +1506,17 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                                                       .latestOffset(latestOffset))
                                      .delta(d -> d.type(t -> t.set(deltaType))
                                                   .ancestorOffset(ancestorOffset))
-                                     .headers(hs -> headers.forEach(h -> hs.item(i -> i.nameLen(h.nameLen())
-                                                                                       .name(h.name())
-                                                                                       .valueLen(h.valueLen())
-                                                                                       .value(h.value())))))
+                                     .headers(hs ->
+                                     {
+                                         headers.forEach(h -> hs.item(i -> i.nameLen(h.nameLen())
+                                             .name(h.name())
+                                             .valueLen(h.valueLen())
+                                             .value(h.value())));
+                                         trailers.forEach(t -> hs.item(i -> i.nameLen(t.nameLen())
+                                             .name(t.name())
+                                             .valueLen(t.valueLen())
+                                             .value(t.value())));
+                                     }))
                         .build()
                         .sizeof()));
 

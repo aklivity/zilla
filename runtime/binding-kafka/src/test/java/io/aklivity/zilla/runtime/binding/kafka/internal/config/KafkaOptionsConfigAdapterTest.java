@@ -213,4 +213,56 @@ public class KafkaOptionsConfigAdapterTest
                 "\"servers\":[\"localhost:9092\"]," +
                 "\"sasl\":{\"mechanism\":\"plain\",\"username\":\"username\",\"password\":\"password\"}}"));
     }
+
+    @Test
+    public void shouldReadHeadersOptions()
+    {
+        String text =
+            "{" +
+                "\"bootstrap\":" +
+                "[" +
+                    "\"test\"" +
+                "]," +
+                "\"topics\":" +
+                "[" +
+                    "{" +
+                    "\"name\": \"test\"," +
+                    "\"headers\":" +
+                    "[" +
+                        "{" +
+                        "\"correlation-id\": \"$.correlation-id\"" +
+                        "}" +
+                    "]" +
+                    "}" +
+                "]" +
+            "}";
+
+        KafkaOptionsConfig options = jsonb.fromJson(text, KafkaOptionsConfig.class);
+
+        assertThat(options, not(nullValue()));
+        assertThat(options.bootstrap, equalTo(singletonList("test")));
+        assertThat(options.topics, equalTo(singletonList(KafkaTopicConfig.builder()
+            .name("test")
+            .header("correlation-id", "$.correlation-id")
+            .build())));
+    }
+
+    @Test
+    public void shouldWriteHeadersOptions()
+    {
+        KafkaOptionsConfig options = KafkaOptionsConfig.builder()
+            .bootstrap(singletonList("test"))
+            .topics(singletonList(KafkaTopicConfig.builder()
+                .name("test")
+                .header("correlation-id", "$.correlation-id")
+                .value(TestModelConfig.builder().length(0).build())
+                .build()))
+            .build();
+
+        String text = jsonb.toJson(options);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo("{\"bootstrap\":[\"test\"]," +
+            "\"topics\":[{\"name\":\"test\",\"value\":\"test\",\"headers\":[{\"correlation-id\":\"$.correlation-id\"}]}]}"));
+    }
 }

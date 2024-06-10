@@ -18,6 +18,8 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.config;
 import static jakarta.json.JsonValue.ValueType.OBJECT;
 
 import jakarta.json.Json;
+import jakarta.json.JsonArray;
+import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
@@ -25,6 +27,7 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfigBuilder;
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicHeaderType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.engine.config.ModelConfigAdapter;
@@ -37,6 +40,7 @@ public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicCon
     private static final String EVENT_KEY = "key";
     private static final String EVENT_VALUE = "value";
     private static final String SUBJECT = "subject";
+    private static final String HEADERS_NAME = "headers";
 
     private final ModelConfigAdapter converter = new ModelConfigAdapter();
 
@@ -71,6 +75,18 @@ public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicCon
             converter.adaptType(topic.value.model);
 
             object.add(EVENT_VALUE, converter.adaptToJson(topic.value));
+        }
+
+        if (topic.headers != null && !topic.headers.isEmpty())
+        {
+            JsonArrayBuilder headers = Json.createArrayBuilder();
+            for (KafkaTopicHeaderType header : topic.headers)
+            {
+                JsonObjectBuilder headerJson = Json.createObjectBuilder();
+                headerJson.add(header.name.asString(), header.path);
+                headers.add(headerJson);
+            }
+            object.add(HEADERS_NAME, headers);
         }
 
         return object.build();
@@ -121,6 +137,20 @@ public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicCon
             valueObject.add(SUBJECT, name + "-value");
 
             topicBuilder.value(converter.adaptFromJson(valueObject.build()));
+        }
+
+        JsonArray headers = object.containsKey(HEADERS_NAME) ? object.getJsonArray(HEADERS_NAME) : null;
+
+        if (headers != null & !headers.isEmpty())
+        {
+            for (JsonValue header: headers)
+            {
+                JsonObject headerJson = header.asJsonObject();
+                for (String headerName: headerJson.keySet())
+                {
+                    topicBuilder.header(headerName, headerJson.getString(headerName));
+                }
+            }
         }
 
         return topicBuilder.build();
