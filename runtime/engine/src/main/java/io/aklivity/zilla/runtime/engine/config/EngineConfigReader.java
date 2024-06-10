@@ -64,7 +64,6 @@ public final class EngineConfigReader
     private final ConfigAdapterContext context;
     private final Resolver expressions;
     private final Collection<URL> schemaTypes;
-    private final ResourceResolver resources;
     private final EngineConfigWatcher watcher;
     private final Consumer<String> logger;
     private final MessageDigest md5;
@@ -74,7 +73,6 @@ public final class EngineConfigReader
         ConfigAdapterContext context,
         Resolver expressions,
         Collection<URL> schemaTypes,
-        ResourceResolver resources,
         EngineConfigWatcher watcher,
         Consumer<String> logger)
     {
@@ -82,7 +80,6 @@ public final class EngineConfigReader
         this.context = context;
         this.expressions = expressions;
         this.schemaTypes = schemaTypes;
-        this.resources = resources;
         this.watcher = watcher;
         this.logger = logger;
         this.md5 = initMessageDigest("MD5");
@@ -186,7 +183,7 @@ public final class EngineConfigReader
                 reader.skip(configsAt.get(i));
                 NamespaceConfig namespace = jsonb.fromJson(reader, NamespaceConfig.class);
                 namespace.hash = hashes.get(i);
-                watcher.addResources(resources.resolve(namespace), namespace.name);
+                watcher.addResources(namespace.resources, namespace.name);
                 builder.namespace(namespace);
 
                 if (!errors.isEmpty())

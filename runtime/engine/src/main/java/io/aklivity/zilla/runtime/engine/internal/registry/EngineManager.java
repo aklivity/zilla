@@ -54,7 +54,6 @@ import io.aklivity.zilla.runtime.engine.config.MetricConfig;
 import io.aklivity.zilla.runtime.engine.config.MetricRefConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
-import io.aklivity.zilla.runtime.engine.config.ResourceResolver;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 import io.aklivity.zilla.runtime.engine.config.TelemetryRefConfig;
 import io.aklivity.zilla.runtime.engine.config.VaultConfig;
@@ -85,7 +84,6 @@ public class EngineManager
     private final List<EngineExtSpi> extensions;
     private final Function<String, String> readURL;
     private final Resolver expressions;
-    private final ResourceResolver resources;
     private final EngineConfigWatcher watcher;
 
     private EngineConfig current;
@@ -104,8 +102,7 @@ public class EngineManager
         EngineConfiguration config,
         List<EngineExtSpi> extensions,
         URL configURL,
-        Function<String, String> readURL,
-        ResourceResolver resources)
+        Function<String, String> readURL)
     {
         this.schemaTypes = schemaTypes;
         this.bindingByType = bindingByType;
@@ -121,7 +118,6 @@ public class EngineManager
         this.extensions = extensions;
         this.readURL = readURL;
         this.expressions = Resolver.instantiate(config);
-        this.resources = resources;
         this.watcher = new EngineConfigWatcher(configURL, readURL, this::reconfigure, this::reloadNamespacesWithChangedResources);
     }
 
@@ -229,7 +225,6 @@ public class EngineManager
                 new NamespaceConfigAdapterContext(readURL),
                 expressions,
                 schemaTypes,
-                resources,
                 watcher,
                 logger);
 
@@ -415,7 +410,7 @@ public class EngineManager
                 if (!identical.test(namespace.name))
                 {
                     System.out.println("register: " + namespace.name); // TODO: Ati
-                    watcher.addResources(resources.resolve(namespace), namespace.name);
+                    watcher.addResources(namespace.resources, namespace.name);
                     register(namespace);
                 }
             }

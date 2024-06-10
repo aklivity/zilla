@@ -18,11 +18,14 @@ package io.aklivity.zilla.runtime.engine.config;
 import static java.util.Objects.requireNonNull;
 import static java.util.function.Function.identity;
 
+import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Function;
 
 public class NamespaceConfig
 {
+    public static final String FILESYSTEM = "filesystem";
+
     public transient int id;
     public transient Function<String, String> readURL;
     public transient String hash;
@@ -33,6 +36,7 @@ public class NamespaceConfig
     public final List<GuardConfig> guards;
     public final List<VaultConfig> vaults;
     public final List<CatalogConfig> catalogs;
+    public final List<String> resources;
 
     public static NamespaceConfigBuilder<NamespaceConfig> builder()
     {
@@ -53,5 +57,26 @@ public class NamespaceConfig
         this.guards = requireNonNull(guards);
         this.vaults = requireNonNull(vaults);
         this.catalogs = requireNonNull(catalogs);
+        this.resources = resolveResources();
+    }
+
+    private List<String> resolveResources()
+    {
+        List<String> resources = new LinkedList<>();
+        for (CatalogConfig catalog : catalogs)
+        {
+            if (FILESYSTEM.equals(catalog.type))
+            {
+                resources.addAll(catalog.options.resources);
+            }
+        }
+        for (VaultConfig vault : vaults)
+        {
+            if (FILESYSTEM.equals(vault.type))
+            {
+                resources.addAll(vault.options.resources);
+            }
+        }
+        return resources;
     }
 }
