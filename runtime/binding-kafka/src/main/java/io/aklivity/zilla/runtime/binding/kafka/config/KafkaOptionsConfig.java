@@ -62,9 +62,9 @@ public final class KafkaOptionsConfig extends OptionsConfig
     {
         return topics != null && !topics.isEmpty()
             ? topics.stream()
-            .flatMap(t -> Stream.of(t.key, t.value))
-            .filter(Objects::nonNull)
-            .collect(toList())
+                .flatMap(t -> Stream.of(t.key, t.value))
+                .filter(Objects::nonNull)
+                .collect(toList())
             : emptyList();
     }
 }
