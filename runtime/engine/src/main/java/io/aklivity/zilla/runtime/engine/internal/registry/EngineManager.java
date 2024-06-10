@@ -136,12 +136,12 @@ public class EngineManager
         process(guards, namespace);
     }
 
-    public void startWatcher() throws Exception
+    public void start() throws Exception
     {
         watcher.startWatchingConfig();
     }
 
-    public void closeWatcher()
+    public void close()
     {
         watcher.close();
     }

@@ -232,7 +232,7 @@ public final class Engine implements Collector, AutoCloseable
         // ignore the config file in read-only mode; no config will be read so no namespaces, bindings, etc. will be attached
         if (!readonly)
         {
-            manager.startWatcher();
+            manager.start();
         }
     }
 
@@ -246,7 +246,7 @@ public final class Engine implements Collector, AutoCloseable
 
         final List<Throwable> errors = new ArrayList<>();
 
-        manager.closeWatcher();
+        manager.close();
 
         for (EngineWorker worker : workers)
         {
