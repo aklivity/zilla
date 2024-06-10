@@ -16,8 +16,8 @@
 package io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.handler;
 
 import org.jboss.netty.channel.ChannelHandlerContext;
-import org.kaazing.k3po.driver.internal.behavior.handler.command.AbstractCommandHandler;
 
+import io.aklivity.k3po.runtime.driver.internal.behavior.handler.command.AbstractCommandHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaChannel;
 
 public class WriteFlagsOptionHandler extends AbstractCommandHandler

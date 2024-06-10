@@ -121,6 +121,7 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 
+
 public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 {
     private static final byte SLASH_BYTE = (byte) '/';

@@ -35,7 +35,7 @@ public final class StdoutOutputRule implements TestRule
     static
     {
         BOS = new ByteArrayOutputStream();
-        OUT = new PrintStream(BOS);
+        OUT = new PrintStream(BOS, true);
     }
 
     private Pattern expected;

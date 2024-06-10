@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.specs.binding.amqp.internal;
 
+import static io.aklivity.k3po.runtime.lang.internal.el.ExpressionFactoryUtils.newExpressionFactory;
 import static io.aklivity.zilla.specs.binding.amqp.internal.AmqpFunctions.abortEx;
 import static io.aklivity.zilla.specs.binding.amqp.internal.AmqpFunctions.beginEx;
 import static io.aklivity.zilla.specs.binding.amqp.internal.AmqpFunctions.binary32;
@@ -55,7 +56,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.kaazing.k3po.lang.internal.el.ExpressionFactoryUtils.newExpressionFactory;
 
 import java.nio.ByteBuffer;
 
@@ -67,9 +67,9 @@ import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Before;
 import org.junit.Test;
-import org.kaazing.k3po.lang.el.BytesMatcher;
-import org.kaazing.k3po.lang.internal.el.ExpressionContext;
 
+import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
+import io.aklivity.k3po.runtime.lang.internal.el.ExpressionContext;
 import io.aklivity.zilla.specs.binding.amqp.internal.AmqpFunctions.AmqpBeginExBuilder;
 import io.aklivity.zilla.specs.binding.amqp.internal.types.AmqpPropertiesFW;
 import io.aklivity.zilla.specs.binding.amqp.internal.types.stream.AmqpAbortExFW;
