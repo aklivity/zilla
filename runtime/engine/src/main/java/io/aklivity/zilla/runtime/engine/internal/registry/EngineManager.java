@@ -225,8 +225,8 @@ public class EngineManager
                 new NamespaceConfigAdapterContext(readURL),
                 expressions,
                 schemaTypes,
-                watcher,
-                logger);
+                logger,
+                this::addResources);
 
             engine = reader.read(configText);
 
@@ -247,6 +247,12 @@ public class EngineManager
         }
 
         return engine;
+    }
+
+    private void addResources(
+        NamespaceConfig namespace)
+    {
+        watcher.addResources(namespace.resources, namespace.name);
     }
 
     private void process(

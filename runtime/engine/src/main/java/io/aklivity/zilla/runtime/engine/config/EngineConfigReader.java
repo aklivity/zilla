@@ -55,7 +55,6 @@ import io.aklivity.zilla.runtime.engine.Engine;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.internal.config.NamespaceAdapter;
 import io.aklivity.zilla.runtime.engine.internal.config.schema.UniquePropertyKeysSchema;
-import io.aklivity.zilla.runtime.engine.internal.watcher.EngineConfigWatcher;
 import io.aklivity.zilla.runtime.engine.resolver.Resolver;
 
 public final class EngineConfigReader
@@ -64,8 +63,8 @@ public final class EngineConfigReader
     private final ConfigAdapterContext context;
     private final Resolver expressions;
     private final Collection<URL> schemaTypes;
-    private final EngineConfigWatcher watcher;
     private final Consumer<String> logger;
+    private final Consumer<NamespaceConfig> addResources;
     private final MessageDigest md5;
 
     public EngineConfigReader(
@@ -73,15 +72,15 @@ public final class EngineConfigReader
         ConfigAdapterContext context,
         Resolver expressions,
         Collection<URL> schemaTypes,
-        EngineConfigWatcher watcher,
-        Consumer<String> logger)
+        Consumer<String> logger,
+        Consumer<NamespaceConfig> addResources)
     {
         this.config = config;
         this.context = context;
         this.expressions = expressions;
         this.schemaTypes = schemaTypes;
-        this.watcher = watcher;
         this.logger = logger;
+        this.addResources = addResources;
         this.md5 = initMessageDigest("MD5");
     }
 
@@ -183,7 +182,7 @@ public final class EngineConfigReader
                 reader.skip(configsAt.get(i));
                 NamespaceConfig namespace = jsonb.fromJson(reader, NamespaceConfig.class);
                 namespace.hash = hashes.get(i);
-                watcher.addResources(namespace.resources, namespace.name);
+                addResources.accept(namespace);
                 builder.namespace(namespace);
 
                 if (!errors.isEmpty())
