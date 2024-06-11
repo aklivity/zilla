@@ -36,8 +36,8 @@ import org.jboss.netty.channel.ChannelFactory;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelPipelineFactory;
-import org.kaazing.k3po.driver.internal.behavior.handler.RejectedHandler;
 
+import io.aklivity.k3po.runtime.driver.internal.behavior.handler.RejectedHandler;
 import io.aklivity.zilla.runtime.engine.internal.budget.DefaultBudgetCreditor;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.layout.StreamsLayout;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.OctetsFW;

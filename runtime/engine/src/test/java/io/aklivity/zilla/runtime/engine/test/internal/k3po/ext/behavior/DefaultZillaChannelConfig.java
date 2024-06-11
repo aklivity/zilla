@@ -36,7 +36,7 @@ import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.util.Conve
 
 import java.util.Objects;
 
-import org.kaazing.k3po.driver.internal.netty.bootstrap.channel.DefaultChannelConfig;
+import io.aklivity.k3po.runtime.driver.internal.netty.bootstrap.channel.DefaultChannelConfig;
 
 public class DefaultZillaChannelConfig extends DefaultChannelConfig implements ZillaChannelConfig
 {

@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.specs.binding.kafka.internal;
 
+import static io.aklivity.k3po.runtime.lang.internal.el.ExpressionFactoryUtils.newExpressionFactory;
 import static io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaConditionType.HEADER;
 import static io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaConditionType.HEADERS;
 import static io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaConditionType.KEY;
@@ -26,7 +27,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.kaazing.k3po.lang.internal.el.ExpressionFactoryUtils.newExpressionFactory;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -41,9 +41,9 @@ import org.agrona.collections.MutableInteger;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Before;
 import org.junit.Test;
-import org.kaazing.k3po.lang.el.BytesMatcher;
-import org.kaazing.k3po.lang.internal.el.ExpressionContext;
 
+import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
+import io.aklivity.k3po.runtime.lang.internal.el.ExpressionContext;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaAckMode;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaCapabilities;

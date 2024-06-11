@@ -15,6 +15,10 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior;
 
+import static io.aklivity.k3po.runtime.driver.internal.netty.channel.Channels.fireFlushed;
+import static io.aklivity.k3po.runtime.driver.internal.netty.channel.Channels.fireOutputAborted;
+import static io.aklivity.k3po.runtime.driver.internal.netty.channel.Channels.fireOutputAdvised;
+import static io.aklivity.k3po.runtime.driver.internal.netty.channel.Channels.fireOutputShutdown;
 import static io.aklivity.zilla.runtime.engine.internal.stream.BudgetId.budgetMask;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.NullChannelBuffer.NULL_BUFFER;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaExtensionKind.ABORT;
@@ -38,10 +42,6 @@ import static org.jboss.netty.channel.Channels.fireExceptionCaught;
 import static org.jboss.netty.channel.Channels.fireWriteComplete;
 import static org.jboss.netty.channel.Channels.future;
 import static org.jboss.netty.channel.Channels.succeededFuture;
-import static org.kaazing.k3po.driver.internal.netty.channel.Channels.fireFlushed;
-import static org.kaazing.k3po.driver.internal.netty.channel.Channels.fireOutputAborted;
-import static org.kaazing.k3po.driver.internal.netty.channel.Channels.fireOutputAdvised;
-import static org.kaazing.k3po.driver.internal.netty.channel.Channels.fireOutputShutdown;
 
 import java.nio.file.Path;
 import java.util.Deque;
@@ -60,8 +60,8 @@ import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelFutureListener;
 import org.jboss.netty.channel.DownstreamMessageEvent;
 import org.jboss.netty.channel.MessageEvent;
-import org.kaazing.k3po.driver.internal.netty.channel.CompositeChannelFuture;
 
+import io.aklivity.k3po.runtime.driver.internal.netty.channel.CompositeChannelFuture;
 import io.aklivity.zilla.runtime.engine.internal.budget.DefaultBudgetCreditor;
 import io.aklivity.zilla.runtime.engine.internal.budget.DefaultBudgetDebitor;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.layout.Layout;

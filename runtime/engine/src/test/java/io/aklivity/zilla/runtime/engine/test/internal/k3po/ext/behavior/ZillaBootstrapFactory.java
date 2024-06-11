@@ -16,10 +16,10 @@
 package io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior;
 
 import org.jboss.netty.channel.ChannelFactory;
-import org.kaazing.k3po.driver.internal.netty.bootstrap.BootstrapFactorySpi;
-import org.kaazing.k3po.driver.internal.netty.bootstrap.ClientBootstrap;
-import org.kaazing.k3po.driver.internal.netty.bootstrap.ServerBootstrap;
 
+import io.aklivity.k3po.runtime.driver.internal.netty.bootstrap.BootstrapFactorySpi;
+import io.aklivity.k3po.runtime.driver.internal.netty.bootstrap.ClientBootstrap;
+import io.aklivity.k3po.runtime.driver.internal.netty.bootstrap.ServerBootstrap;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.ZillaExtConfiguration;
 
 public class ZillaBootstrapFactory extends BootstrapFactorySpi

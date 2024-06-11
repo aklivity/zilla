@@ -52,7 +52,6 @@ import io.aklivity.zilla.runtime.binding.tls.internal.TlsEventContext;
 import io.aklivity.zilla.runtime.binding.tls.internal.config.TlsBindingConfig;
 import io.aklivity.zilla.runtime.binding.tls.internal.config.TlsRouteConfig;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.OctetsFW;
-import io.aklivity.zilla.runtime.binding.tls.internal.types.OctetsFW.Builder;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.codec.TlsRecordInfoFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.codec.TlsUnwrappedDataFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.codec.TlsUnwrappedInfoFW;
@@ -376,7 +375,7 @@ public final class TlsClientFactory implements TlsStreamFactory
         int maximum,
         long traceId,
         long authorization,
-        Consumer<Builder> extension)
+        Consumer<OctetsFW.Builder> extension)
     {
         final EndFW end = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
@@ -403,7 +402,7 @@ public final class TlsClientFactory implements TlsStreamFactory
         int maximum,
         long traceId,
         long authorization,
-        Consumer<Builder> extension)
+        Consumer<OctetsFW.Builder> extension)
     {
         final AbortFW abort = abortRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)

@@ -39,6 +39,13 @@
     </repository>
   </repositories>
 
+  <pluginRepositories>
+    <pluginRepository>
+      <id>github</id>
+      <url>https://maven.pkg.github.com/aklivity/packages/</url>
+    </pluginRepository>
+  </pluginRepositories>
+
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -54,7 +61,7 @@
     <byteman.version>4.0.22</byteman.version>
     <jmock.version>2.6.0</jmock.version>
     <mockito.version>5.8.0</mockito.version>
-    <k3po.version>3.1.0</k3po.version>
+    <k3po.version>3.2.0</k3po.version>
     <jmh.version>1.37</jmh.version>
   </properties>
 
@@ -198,18 +205,18 @@
         <version>0.1.4</version>
       </dependency>
       <dependency>
-        <groupId>org.kaazing</groupId>
-        <artifactId>k3po.driver</artifactId>
+        <groupId>io.aklivity.k3po</groupId>
+        <artifactId>driver</artifactId>
         <version>${k3po.version}</version>
       </dependency>
       <dependency>
-        <groupId>org.kaazing</groupId>
-        <artifactId>k3po.lang</artifactId>
+        <groupId>io.aklivity.k3po</groupId>
+        <artifactId>lang</artifactId>
         <version>${k3po.version}</version>
       </dependency>
       <dependency>
-        <groupId>org.kaazing</groupId>
-        <artifactId>k3po.junit</artifactId>
+        <groupId>io.aklivity.k3po</groupId>
+        <artifactId>control-junit</artifactId>
         <version>${k3po.version}</version>
       </dependency>
       <dependency>
@@ -442,7 +449,7 @@
           </executions>
         </plugin>
         <plugin>
-          <groupId>org.kaazing</groupId>
+          <groupId>io.aklivity.k3po</groupId>
           <artifactId>k3po-maven-plugin</artifactId>
           <version>${k3po.version}</version>
           <executions>
