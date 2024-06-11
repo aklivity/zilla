@@ -40,7 +40,7 @@ jobs:
       uses: actions/upload-artifact@v4
       if: failure()
       with:
-        name: zilla-build-${{ github.event.number }}
+        name: zilla-build-${{ matrix.java }}-${{ github.event.number }}
         path: |
           **/hs_err_pid*.log
           **/target/surefire-reports/
