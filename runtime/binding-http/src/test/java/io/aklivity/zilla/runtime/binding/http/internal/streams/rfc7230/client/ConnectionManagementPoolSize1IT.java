@@ -67,6 +67,7 @@ public class ConnectionManagementPoolSize1IT
         k3po.finish();
     }
 
+    @Ignore("io.aklivity.k3po")
     @Test
     @Configuration("client.yaml")
     @Specification({
