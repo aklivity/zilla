@@ -582,7 +582,6 @@ public class TcpServerFactory implements TcpStreamFactory
             final long traceId = reset.traceId();
 
             assert acknowledge <= sequence;
-            assert sequence <= initialSeq;
             assert acknowledge >= initialAck;
 
             initialAck = acknowledge;
