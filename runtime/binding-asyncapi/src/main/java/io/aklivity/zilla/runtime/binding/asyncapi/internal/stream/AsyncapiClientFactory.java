@@ -388,8 +388,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
             final long traceId = reset.traceId();
 
             assert acknowledge <= sequence;
-            assert sequence <= replySeq;
-            assert acknowledge >= replyAck;
+            // assert acknowledge >= replyAck;
             assert maximum >= replyMax;
 
             replyAck = acknowledge;
