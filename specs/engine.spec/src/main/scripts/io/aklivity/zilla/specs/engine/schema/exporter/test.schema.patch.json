@@ -48,6 +48,10 @@
                                         {
                                             "type": "string"
                                         },
+                                        "name":
+                                        {
+                                            "type": "string"
+                                        },
                                         "message":
                                         {
                                             "type": "string"

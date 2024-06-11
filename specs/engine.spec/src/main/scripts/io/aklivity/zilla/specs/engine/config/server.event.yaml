@@ -24,6 +24,7 @@ telemetry:
         events:
           - qname: test.net0
             id: binding.test.connected
+            name: BINDING_TEST_CONNECTED
             message: test event message
 bindings:
   net0:

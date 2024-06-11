@@ -25,8 +25,6 @@ import io.aklivity.zilla.runtime.guard.jwt.internal.types.event.JwtEventExFW;
 
 public final class JwtEventFormatter implements EventFormatterSpi
 {
-    private static final String AUTHORIZATION_FAILED_FORMAT = "AUTHORIZATION_FAILED %s";
-
     private final EventFW eventRO = new EventFW();
     private final JwtEventExFW jwtEventExRO = new JwtEventExFW();
 
@@ -49,17 +47,20 @@ public final class JwtEventFormatter implements EventFormatterSpi
         case AUTHORIZATION_FAILED:
         {
             JwtAuthorizationFailedExFW ex = extension.authorizationFailed();
-            result = String.format(AUTHORIZATION_FAILED_FORMAT, identity(ex.identity()));
+            result = String.format("JWT token authorization failed for identity (%s). %s",
+                    asString(ex.identity()),
+                    asString(ex.reason())
+            );
             break;
         }
         }
         return result;
     }
 
-    private static String identity(
-        StringFW identity)
+    private static String asString(
+            StringFW stringFW)
     {
-        int length = identity.length();
-        return length <= 0 ? "-" : identity.asString();
+        String s = stringFW.asString();
+        return s == null ? "" : s;
     }
 }

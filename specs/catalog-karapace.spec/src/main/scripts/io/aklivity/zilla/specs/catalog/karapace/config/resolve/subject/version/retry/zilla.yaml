@@ -23,13 +23,16 @@ telemetry:
         events:
           - qname: test.catalog0
             id: catalog.karapace.unretrievable.schema.subject.version
-            message: UNRETRIEVABLE_SCHEMA items-snapshots-value latest
+            name: CATALOG_KARAPACE_UNRETRIEVABLE_SCHEMA_SUBJECT_VERSION
+            message: Unable to fetch schema for subject items-snapshots-value with version latest.
           - qname: test.catalog0
             id: catalog.karapace.unretrievable.schema.subject.version.stale.schema
-            message: UNRETRIEVABLE_SCHEMA items-snapshots-value latest, USING_STALE_SCHEMA 9
+            name: CATALOG_KARAPACE_UNRETRIEVABLE_SCHEMA_SUBJECT_VERSION_STALE_SCHEMA
+            message: Unable to fetch schema for subject items-snapshots-value with version latest; using stale schema with id 9.
           - qname: test.catalog0
-            id: catalog.karapace.retrievable.schema.subject.version
-            message: RETRIEVED_SCHEMA_SUBJECT_VERSION items-snapshots-value latest
+            id: catalog.karapace.retrieved.schema.subject.version
+            name: CATALOG_KARAPACE_RETRIEVED_SCHEMA_SUBJECT_VERSION
+            message:  Successfully fetched schema for subject items-snapshots-value with version latest.
 catalogs:
   catalog0:
     type: karapace

@@ -25,10 +25,8 @@ import io.aklivity.zilla.runtime.model.avro.internal.types.event.EventFW;
 
 public final class AvroModelEventFormatter implements EventFormatterSpi
 {
-    private static final String VALIDATION_FAILED = "VALIDATION_FAILED %s";
-
     private final EventFW eventRO = new EventFW();
-    private final AvroModelEventExFW jsonModelEventExFW = new AvroModelEventExFW();
+    private final AvroModelEventExFW avroModelEventExFW = new AvroModelEventExFW();
 
     AvroModelEventFormatter(
         Configuration config)
@@ -41,7 +39,7 @@ public final class AvroModelEventFormatter implements EventFormatterSpi
         int length)
     {
         final EventFW event = eventRO.wrap(buffer, index, index + length);
-        final AvroModelEventExFW extension = jsonModelEventExFW
+        final AvroModelEventExFW extension = avroModelEventExFW
             .wrap(event.extension().buffer(), event.extension().offset(), event.extension().limit());
         String result = null;
         switch (extension.kind())
@@ -49,7 +47,7 @@ public final class AvroModelEventFormatter implements EventFormatterSpi
         case VALIDATION_FAILED:
         {
             AvroModelValidationFailedExFW ex = extension.validationFailed();
-            result = String.format(VALIDATION_FAILED, asString(ex.error()));
+            result = String.format("A message payload failed validation. %s.", asString(ex.error()));
             break;
         }
         }

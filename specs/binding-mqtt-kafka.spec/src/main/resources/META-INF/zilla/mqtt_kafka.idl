@@ -38,14 +38,14 @@ scope mqtt_kafka
             NON_COMPACT_SESSIONS_TOPIC (1)
         }
 
-        struct MqttKafkaResetMqttConnectionEx extends core::stream::Extension
+        struct MqttKafkaNonCompactSessionsTopicEx extends core::stream::Extension
         {
-            string16 reason;
+            string16 topic;
         }
 
         union MqttKafkaEventEx switch (MqttKafkaEventType)
         {
-            case NON_COMPACT_SESSIONS_TOPIC: MqttKafkaResetMqttConnectionEx nonCompactSessionsTopic;
+            case NON_COMPACT_SESSIONS_TOPIC: MqttKafkaNonCompactSessionsTopicEx nonCompactSessionsTopic;
         }
     }
 }

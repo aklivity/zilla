@@ -53,13 +53,13 @@ public class MqttKafkaEventContext
     public void onMqttConnectionReset(
         long traceId,
         long bindingId,
-        String16FW reason)
+        String16FW topic)
     {
         MqttKafkaEventExFW extension = mqttKafkaEventExRW
             .wrap(extensionBuffer, 0, extensionBuffer.capacity())
             .nonCompactSessionsTopic(e -> e
                 .typeId(NON_COMPACT_SESSIONS_TOPIC.value())
-                .reason(reason))
+                .topic(topic))
             .build();
         EventFW event = eventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
