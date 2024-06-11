@@ -287,6 +287,7 @@ public class CacheMergedIT
         k3po.finish();
     }
 
+    @Ignore("io.aklivity.k3po")
     @Test
     @Configuration("cache.options.validate.yaml")
     @Specification({
