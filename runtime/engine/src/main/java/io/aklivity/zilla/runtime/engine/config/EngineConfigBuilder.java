@@ -15,16 +15,13 @@
  */
 package io.aklivity.zilla.runtime.engine.config;
 
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Function;
 
 public final class EngineConfigBuilder<T> extends ConfigBuilder<T, EngineConfigBuilder<T>>
 {
     private final Function<EngineConfig, T> mapper;
-    private final Map<String, String> hashes;
 
     private List<NamespaceConfig> namespaces;
 
@@ -32,7 +29,6 @@ public final class EngineConfigBuilder<T> extends ConfigBuilder<T, EngineConfigB
         Function<EngineConfig, T> mapper)
     {
         this.mapper = mapper;
-        this.hashes = new HashMap<>();
     }
 
     @Override
@@ -54,15 +50,7 @@ public final class EngineConfigBuilder<T> extends ConfigBuilder<T, EngineConfigB
         {
             namespaces = new LinkedList<>();
         }
-        if (!hashes.containsKey(namespace.name))
-        {
-            namespaces.add(namespace);
-            hashes.put(namespace.name, namespace.hash);
-        }
-        else
-        {
-            System.out.printf("Warning: duplicate namespace ignored: %s%n", namespace.name);
-        }
+        namespaces.add(namespace);
         return this;
     }
 
@@ -80,6 +68,6 @@ public final class EngineConfigBuilder<T> extends ConfigBuilder<T, EngineConfigB
             namespaces = new LinkedList<>();
         }
 
-        return mapper.apply(new EngineConfig(namespaces, hashes));
+        return mapper.apply(new EngineConfig(namespaces));
     }
 }

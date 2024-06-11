@@ -28,7 +28,6 @@ public class NamespaceConfig
 
     public transient int id;
     public transient Function<String, String> readURL;
-    public transient String hash;
 
     public final String name;
     public final TelemetryConfig telemetry;

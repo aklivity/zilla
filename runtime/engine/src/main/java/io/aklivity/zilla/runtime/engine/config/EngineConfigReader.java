@@ -25,10 +25,6 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
@@ -44,7 +40,6 @@ import jakarta.json.bind.JsonbConfig;
 import jakarta.json.spi.JsonProvider;
 import jakarta.json.stream.JsonParser;
 
-import org.agrona.BitUtil;
 import org.agrona.collections.IntArrayList;
 import org.leadpony.justify.api.JsonSchema;
 import org.leadpony.justify.api.JsonSchemaReader;
@@ -65,7 +60,6 @@ public final class EngineConfigReader
     private final Collection<URL> schemaTypes;
     private final Consumer<String> logger;
     private final Consumer<NamespaceConfig> addResources;
-    private final MessageDigest md5;
 
     public EngineConfigReader(
         EngineConfiguration config,
@@ -81,7 +75,6 @@ public final class EngineConfigReader
         this.schemaTypes = schemaTypes;
         this.logger = logger;
         this.addResources = addResources;
-        this.md5 = initMessageDigest("MD5");
     }
 
     public EngineConfig read(
@@ -157,16 +150,6 @@ public final class EngineConfigReader
                 }
             }
 
-            List<String> hashes = new ArrayList<>();
-            for (int i = 0; i < configsAt.size(); i++)
-            {
-                int start = configsAt.get(i);
-                int end = i < configsAt.size() - 1 ? configsAt.get(i + 1) : readable.length();
-                byte[] bytes = readable.substring(start, end).stripTrailing().getBytes(StandardCharsets.UTF_8);
-                String hash = calculateHash(bytes, 0, bytes.length);
-                hashes.add(hash);
-            }
-
             JsonbConfig config = new JsonbConfig()
                 .withAdapters(new NamespaceAdapter(context));
             Jsonb jsonb = JsonbBuilder.newBuilder()
@@ -176,12 +159,11 @@ public final class EngineConfigReader
 
             Reader reader = new StringReader(readable);
             EngineConfigBuilder<EngineConfig> builder = EngineConfig.builder();
-            for (int i = 0; i < configsAt.size(); i++)
+            for (int configAt : configsAt)
             {
                 reader.reset();
-                reader.skip(configsAt.get(i));
+                reader.skip(configAt);
                 NamespaceConfig namespace = jsonb.fromJson(reader, NamespaceConfig.class);
-                namespace.hash = hashes.get(i);
                 addResources.accept(namespace);
                 builder.namespace(namespace);
 
@@ -283,31 +265,5 @@ public final class EngineConfigReader
 
         return valid;
 
-    }
-
-    private String calculateHash(
-        byte[] input,
-        int offset,
-        int length)
-    {
-        md5.reset();
-        md5.update(input, offset, length);
-        byte[] hash = md5.digest();
-        return BitUtil.toHex(hash);
-    }
-
-    private static MessageDigest initMessageDigest(
-        String algorithm)
-    {
-        MessageDigest messageDigest = null;
-        try
-        {
-            messageDigest = MessageDigest.getInstance(algorithm);
-        }
-        catch (NoSuchAlgorithmException ex)
-        {
-            rethrowUnchecked(ex);
-        }
-        return messageDigest;
     }
 }

@@ -19,12 +19,9 @@ import static java.util.Objects.requireNonNull;
 import static java.util.function.Function.identity;
 
 import java.util.List;
-import java.util.Map;
 
 public class EngineConfig
 {
-    private final Map<String, String> hashes;
-
     public final List<NamespaceConfig> namespaces;
 
     public static EngineConfigBuilder<EngineConfig> builder()
@@ -33,16 +30,8 @@ public class EngineConfig
     }
 
     EngineConfig(
-        List<NamespaceConfig> namespaces,
-        Map<String, String> hashes)
+        List<NamespaceConfig> namespaces)
     {
         this.namespaces = requireNonNull(namespaces);
-        this.hashes = requireNonNull(hashes);
-    }
-
-    public String hash(
-        String name)
-    {
-        return hashes.get(name);
     }
 }

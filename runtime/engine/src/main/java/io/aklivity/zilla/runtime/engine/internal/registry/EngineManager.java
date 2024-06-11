@@ -30,7 +30,6 @@ import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.function.LongFunction;
 import java.util.function.LongPredicate;
-import java.util.function.Predicate;
 import java.util.function.ToIntFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -118,7 +117,7 @@ public class EngineManager
         this.extensions = extensions;
         this.readURL = readURL;
         this.expressions = Resolver.instantiate(config);
-        this.watcher = new EngineConfigWatcher(configURL, readURL, this::reconfigure, this::reloadNamespacesWithChangedResources);
+        this.watcher = new EngineConfigWatcher(configURL, readURL, this::reconfigure, this::reconfigure);
     }
 
     public void process(
@@ -153,26 +152,19 @@ public class EngineManager
             if (newConfig != null)
             {
                 final EngineConfig oldConfig = current;
-                EngineConfig newConfig0 = newConfig;
-                Predicate<String> identical = name ->
-                {
-                    String hash1 = oldConfig == null ? null : oldConfig.hash(name);
-                    String hash2 = newConfig0.hash(name);
-                    return hash1 != null && hash1.equals(hash2);
-                };
-                unregister(oldConfig, identical);
+                unregister(oldConfig);
 
                 try
                 {
                     current = newConfig;
-                    register(newConfig, identical);
+                    register(newConfig);
                 }
                 catch (Exception ex)
                 {
                     context.onError(ex);
 
                     current = oldConfig;
-                    register(oldConfig, identical);
+                    register(oldConfig);
 
                     rethrowUnchecked(ex);
                 }
@@ -194,16 +186,11 @@ public class EngineManager
         return newConfig;
     }
 
-    private void reloadNamespacesWithChangedResources(
+    private void reconfigure(
         Set<String> namespaces)
     {
-        if (namespaces != null && !namespaces.isEmpty())
-        {
-            Set<String> namespaces0 = new HashSet<>(namespaces);
-            Predicate<String> identical = name -> !namespaces0.contains(name);
-            unregister(current, identical);
-            register(current, identical);
-        }
+        unregister(current);
+        register(current);
     }
 
     private EngineConfig parse(
@@ -406,19 +393,15 @@ public class EngineManager
     }
 
     private void register(
-        EngineConfig config,
-        Predicate<String> identical)
+        EngineConfig config)
     {
         if (config != null)
         {
             for (NamespaceConfig namespace : config.namespaces)
             {
-                if (!identical.test(namespace.name))
-                {
-                    System.out.println("register: " + namespace.name); // TODO: Ati
-                    watcher.addResources(namespace.resources, namespace.name);
-                    register(namespace);
-                }
+                System.out.println("register: " + namespace.name); // TODO: Ati
+                watcher.addResources(namespace.resources, namespace.name);
+                register(namespace);
             }
         }
 
@@ -426,19 +409,15 @@ public class EngineManager
     }
 
     private void unregister(
-        EngineConfig config,
-        Predicate<String> identical)
+        EngineConfig config)
     {
         if (config != null)
         {
             for (NamespaceConfig namespace : config.namespaces)
             {
-                if (!identical.test(namespace.name))
-                {
-                    System.out.println("unregister: " + namespace.name); // TODO: Ati
-                    unregister(namespace);
-                    watcher.removeNamespace(namespace.name);
-                }
+                System.out.println("unregister: " + namespace.name); // TODO: Ati
+                unregister(namespace);
+                watcher.removeNamespace(namespace.name);
             }
         }
 
