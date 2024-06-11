@@ -16,22 +16,29 @@ package io.aklivity.zilla.runtime.model.json.internal;
 
 import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import org.agrona.DirectBuffer;
-import org.agrona.ExpandableDirectByteBuffer;
-import org.agrona.MutableDirectBuffer;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
+import io.aklivity.zilla.runtime.model.json.internal.types.OctetsFW;
 
 public class JsonReadConverterHandler extends JsonModelHandler implements ConverterHandler
 {
+    private static final String PATH = "^\\$\\.([A-Za-z_][A-Za-z0-9_]*)$";
+
+    private final Pattern pattern;
+
     public JsonReadConverterHandler(
         JsonModelConfig config,
         EngineContext context)
     {
         super(config, context);
+        this.pattern = Pattern.compile(PATH);
     }
 
     @Override
@@ -47,12 +54,11 @@ public class JsonReadConverterHandler extends JsonModelHandler implements Conver
     public void extract(
         String path)
     {
-        final FieldVisitor visitor = (buffer, index, length) ->
+        Matcher matcher = pattern.matcher(path);
+        if (matcher.matches())
         {
-            MutableDirectBuffer extracted = new ExpandableDirectByteBuffer();
-            extracted.wrap(buffer, index, length);
-        };
-        visitors.put(path, visitor);
+            extracted.put(matcher.group(1), new OctetsFW());
+        }
     }
 
     @Override
@@ -72,9 +78,14 @@ public class JsonReadConverterHandler extends JsonModelHandler implements Conver
         String path,
         FieldVisitor visitor)
     {
-        if (visitors.containsKey(path))
+        Matcher matcher = pattern.matcher(path);
+        if (matcher.matches())
         {
-            FieldVisitor extracted = visitors.get(path);
+            OctetsFW value = extracted.get(matcher.group(1));
+            if (value != null && value.sizeof() != 0)
+            {
+                visitor.visit(value.buffer(), value.offset(), value.sizeof());
+            }
         }
     }
 

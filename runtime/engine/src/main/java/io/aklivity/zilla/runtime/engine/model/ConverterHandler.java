@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.engine.model;
 
 import org.agrona.DirectBuffer;
 
-import io.aklivity.zilla.runtime.engine.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 
 public interface ConverterHandler

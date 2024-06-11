@@ -1324,8 +1324,8 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                 switch (flags & ~FLAG_SKIP)
                 {
                 case FLAG_INIT | FLAG_FIN:
-                    doClientReplyDataFull(traceId, timestamp, ownerId, filters, key, headers, trailers, deltaType, ancestor, fragment,
-                                          reserved, flags, partitionId, partitionOffset, stableOffset, latestOffset);
+                    doClientReplyDataFull(traceId, timestamp, ownerId, filters, key, headers, trailers, deltaType, ancestor,
+                                          fragment, reserved, flags, partitionId, partitionOffset, stableOffset, latestOffset);
                     break;
                 case FLAG_INIT:
                     doClientReplyDataInit(traceId, headers, trailers, deferred, timestamp, ownerId, filters, key, deltaType,

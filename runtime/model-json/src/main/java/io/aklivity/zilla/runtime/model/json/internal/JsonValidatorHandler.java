@@ -15,7 +15,6 @@
 package io.aklivity.zilla.runtime.model.json.internal;
 
 import jakarta.json.spi.JsonProvider;
-import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParsingException;
 
 import org.agrona.DirectBuffer;
@@ -32,7 +31,6 @@ public class JsonValidatorHandler extends JsonModelHandler implements ValidatorH
     private final DirectBufferInputStream in;
     private final ExpandableDirectByteBuffer buffer;
 
-    private JsonParser parser;
     private int progress;
 
     public JsonValidatorHandler(

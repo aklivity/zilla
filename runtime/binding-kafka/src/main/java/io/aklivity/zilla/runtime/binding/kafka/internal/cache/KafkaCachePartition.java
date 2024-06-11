@@ -40,7 +40,6 @@ import static org.agrona.BitUtil.SIZE_OF_INT;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -76,7 +75,6 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaHeaderFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaKeyFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.String32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Varint32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheDeltaFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW;
@@ -575,13 +573,14 @@ public final class KafkaCachePartition
                             context.supplyLocalName(bindingId), topic, id, offset);
                     }
                 }
-                else if (!headerTypes.isEmpty())
+                else if (headerTypes != null && !headerTypes.isEmpty())
                 {
                     Array32FW.Builder<KafkaHeaderFW.Builder, KafkaHeaderFW> builder =
                         trailersRW.wrap(trailersRW.buffer(), 0, trailersRW.limit());
                     for (KafkaTopicHeaderType header : headerTypes)
                     {
-                        builder.item(h -> {
+                        builder.item(h ->
+                        {
                             h.name(header.name.value(), 0, header.name.length());
                             convertValue.extracted(header.path, h::value);
                         });

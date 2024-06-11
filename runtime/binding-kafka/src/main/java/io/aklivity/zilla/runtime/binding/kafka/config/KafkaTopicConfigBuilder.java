@@ -15,12 +15,9 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.config;
 
-
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Function;
 

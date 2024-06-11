@@ -907,8 +907,8 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 assert partitionId == partition.id();
                 assert partitionOffset >= this.partitionOffset;
 
-                partition.writeEntryFinish(headers, deltaType, context, traceId, routedId, flags, partitionOffset, entryMark, valueMark,
-                    convertValue, verbose, headerTypes);
+                partition.writeEntryFinish(headers, deltaType, context, traceId, routedId, flags, partitionOffset,
+                    entryMark, valueMark, convertValue, verbose, headerTypes);
 
                 this.partitionOffset = partitionOffset;
                 this.stableOffset = stableOffset;
