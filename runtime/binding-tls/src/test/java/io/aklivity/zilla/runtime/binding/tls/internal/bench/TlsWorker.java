@@ -18,12 +18,10 @@ package io.aklivity.zilla.runtime.binding.tls.internal.bench;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.isInitial;
 import static java.lang.ThreadLocal.withInitial;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.net.InetAddress;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.nio.channels.SelectableChannel;
+import java.nio.file.Path;
 import java.time.Clock;
 import java.util.function.IntConsumer;
 import java.util.function.LongSupplier;
@@ -85,7 +83,7 @@ public class TlsWorker implements EngineContext
     private final BindingFactory factory;
     private final VaultFactory vaultFactory;
     private final Configuration config;
-    private final URL configURL;
+    private final Path configPath;
 
     private final TlsSignaler signaler;
 
@@ -105,7 +103,7 @@ public class TlsWorker implements EngineContext
                 .readonly(false)
                 .build()
                 .bufferPool();
-        this.configURL = config.configURL();
+        this.configPath = config.configPath();
 
         this.signaler = new TlsSignaler();
 
@@ -387,19 +385,10 @@ public class TlsWorker implements EngineContext
     }
 
     @Override
-    public URL resolvePath(
-        String path)
+    public Path resolvePath(
+        String location)
     {
-        URL resolved = null;
-        try
-        {
-            resolved = new URL(configURL, path);
-        }
-        catch (MalformedURLException ex)
-        {
-            rethrowUnchecked(ex);
-        }
-        return resolved;
+        return configPath.resolveSibling(location);
     }
 
     @Override

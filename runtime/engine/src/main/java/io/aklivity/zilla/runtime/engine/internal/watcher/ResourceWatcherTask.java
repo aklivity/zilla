@@ -18,9 +18,9 @@ package io.aklivity.zilla.runtime.engine.internal.watcher;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.IOException;
-import java.net.URL;
 import java.nio.file.ClosedWatchServiceException;
 import java.nio.file.FileSystem;
+import java.nio.file.Path;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.util.HashSet;
@@ -36,26 +36,29 @@ public class ResourceWatcherTask extends WatcherTask
     private final Map<WatchKey, WatchedItem> watchedItems;
     private final WatchService watchService;
     private final Consumer<Set<String>> resourceChangeListener;
-    private final Function<String, String> readURL;
+    private final Function<Path, String> readPath;
     private final Set<String> namespaces;
 
     public ResourceWatcherTask(
         FileSystem fileSystem,
         Consumer<Set<String>> resourceChangeListener,
-        Function<String, String> readURL)
+        Function<Path, String> readPath)
     {
         this.resourceChangeListener = resourceChangeListener;
-        this.readURL = readURL;
+        this.readPath = readPath;
         this.watchedItems = new IdentityHashMap<>();
         this.namespaces = new HashSet<>();
         WatchService watchService = null;
-        try
+        if (!"jar".equals(fileSystem.provider().getScheme())) // we can't watch in jar fs
         {
-            watchService = fileSystem.newWatchService();
-        }
-        catch (Exception ex)
-        {
-            rethrowUnchecked(ex);
+            try
+            {
+                watchService = fileSystem.newWatchService();
+            }
+            catch (Exception ex)
+            {
+                rethrowUnchecked(ex);
+            }
         }
         this.watchService = watchService;
 
@@ -70,49 +73,51 @@ public class ResourceWatcherTask extends WatcherTask
     @Override
     public Void call()
     {
-        while (true)
+        if (watchService != null)
         {
-            try
+            while (true)
             {
-                final WatchKey key = watchService.take();
-
-                WatchedItem watchedItem = watchedItems.get(key);
-
-                if (watchedItem != null && watchedItem.isWatchedKey(key))
+                try
                 {
-                    // Even if no reconfigure needed, recalculation is necessary, since symlinks might have changed.
-                    watchedItem.keys().forEach(watchedItems::remove);
-                    watchedItem.unregister();
-                    watchedItem.register();
-                    watchedItem.keys().forEach(k -> watchedItems.put(k, watchedItem));
-                    String newText = readURL.apply(watchedItem.getURL().toString());
-                    byte[] newHash = computeHash(newText);
-                    if (watchedItem.isReconfigureNeeded(newHash))
+                    final WatchKey key = watchService.take();
+
+                    WatchedItem watchedItem = watchedItems.get(key);
+
+                    if (watchedItem != null && watchedItem.isWatchedKey(key))
                     {
-                        watchedItem.setHash(newHash);
-                        if (resourceChangeListener != null)
+                        // Even if no reconfigure needed, recalculation is necessary, since symlinks might have changed.
+                        watchedItem.keys().forEach(watchedItems::remove);
+                        watchedItem.unregister();
+                        watchedItem.register();
+                        watchedItem.keys().forEach(k -> watchedItems.put(k, watchedItem));
+                        String newText = readPath.apply(watchedItem.getPath());
+                        byte[] newHash = computeHash(newText);
+                        if (watchedItem.isReconfigureNeeded(newHash))
                         {
-                            resourceChangeListener.accept(namespaces);
+                            watchedItem.setHash(newHash);
+                            if (resourceChangeListener != null)
+                            {
+                                resourceChangeListener.accept(namespaces);
+                            }
                         }
                     }
                 }
-            }
-            catch (InterruptedException | ClosedWatchServiceException ex)
-            {
-                break;
+                catch (InterruptedException | ClosedWatchServiceException ex)
+                {
+                    break;
+                }
             }
         }
-
         return null;
     }
 
     public void watchResource(
-        URL resourceURL)
+        Path resourcePath)
     {
-        WatchedItem watchedItem = new WatchedItem(resourceURL, watchService);
+        WatchedItem watchedItem = new WatchedItem(resourcePath, watchService);
         watchedItem.register();
         watchedItem.keys().forEach(k -> watchedItems.put(k, watchedItem));
-        String resource = readURL.apply(resourceURL.toString());
+        String resource = readPath.apply(resourcePath);
         watchedItem.setHash(computeHash(resource));
     }
 
@@ -131,6 +136,9 @@ public class ResourceWatcherTask extends WatcherTask
     @Override
     public void close() throws IOException
     {
-        watchService.close();
+        if (watchService != null)
+        {
+            watchService.close();
+        }
     }
 }

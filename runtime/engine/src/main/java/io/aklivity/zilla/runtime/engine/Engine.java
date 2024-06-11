@@ -16,14 +16,13 @@
 package io.aklivity.zilla.runtime.engine;
 
 import static io.aklivity.zilla.runtime.engine.internal.layouts.metrics.HistogramsLayout.BUCKETS;
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.Executors.newFixedThreadPool;
 import static java.util.stream.Collectors.toList;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
-import java.io.InputStream;
 import java.net.URL;
-import java.net.URLConnection;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -80,7 +79,7 @@ public final class Engine implements Collector, AutoCloseable
     private final AtomicInteger nextTaskId;
     private final ThreadFactory factory;
 
-    private final URL configURL;
+    private final Path configPath;
     private final List<EngineWorker> workers;
     private final boolean readonly;
     private final EngineConfiguration config;
@@ -149,7 +148,7 @@ public final class Engine implements Collector, AutoCloseable
         for (int workerIndex = 0; workerIndex < workerCount; workerIndex++)
         {
             EngineWorker worker =
-                new EngineWorker(config, tasks, labels, errorHandler, tuning::affinity, bindings, exporters,
+                new EngineWorker(config, tasks, labels, errorHandler, tuning::affinity, this::resolvePath, bindings, exporters,
                     guards, vaults, catalogs, models, metricGroups, this, this::supplyEventReader,
                     eventFormatterFactory, workerIndex, readonly, this::process);
             workers.add(worker);
@@ -178,7 +177,7 @@ public final class Engine implements Collector, AutoCloseable
         final Map<String, Guard> guardsByType = guards.stream()
             .collect(Collectors.toMap(g -> g.name(), g -> g));
 
-        this.configURL = config.configURL();
+        this.configPath = config.configPath();
         EngineManager manager = new EngineManager(
             schemaTypes,
             bindingsByType::get,
@@ -192,8 +191,9 @@ public final class Engine implements Collector, AutoCloseable
             context,
             config,
             extensions,
-            this.configURL,
-            this::readURL);
+            this.configPath,
+            this::readPath,
+            this::readLocation);
 
         this.bindings = bindings;
         this.tasks = tasks;
@@ -285,24 +285,31 @@ public final class Engine implements Collector, AutoCloseable
         return new EngineBuilder();
     }
 
-    private String readURL(
-        String location)
+    private String readPath(
+        Path path)
     {
         String result;
         try
         {
-            URL url = new URL(configURL, location);
-            URLConnection connection = url.openConnection();
-            try (InputStream input = connection.getInputStream())
-            {
-                result = new String(input.readAllBytes(), UTF_8);
-            }
+            result = Files.readString(path);
         }
         catch (Exception ex)
         {
             result = "";
         }
         return result;
+    }
+
+    public Path resolvePath(
+        String location)
+    {
+        return configPath.resolveSibling(location);
+    }
+
+    private String readLocation(
+        String location)
+    {
+        return readPath(resolvePath(location));
     }
 
     private Thread newTaskThread(

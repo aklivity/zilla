@@ -17,8 +17,6 @@ package io.aklivity.zilla.runtime.engine.internal.watcher;
 
 import static org.agrona.LangUtil.rethrowUnchecked;
 
-import java.net.URI;
-import java.net.URL;
 import java.nio.file.FileSystem;
 import java.nio.file.Path;
 import java.util.Map;
@@ -32,33 +30,33 @@ import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 
 public class EngineConfigWatcher
 {
-    private final URL configURL;
+    private final Path configPath;
     private final FileSystem fileSystem;
-    private final Function<String, String> readURL;
+    private final Function<Path, String> readPath;
     private final Map<String, Set<String>> resources;
     private final Map<String, ResourceWatcherTask> resourceTasks;
     private final Consumer<Set<String>> resourceChangeListener;
     private final ConfigWatcherTask configWatcherTask;
 
     public EngineConfigWatcher(
-        URL configURL,
-        Function<String, String> readURL,
+        Path configPath,
+        Function<Path, String> readPath,
         Function<String, EngineConfig> configChangeListener,
         Consumer<Set<String>> resourceChangeListener)
     {
-        this.configURL = configURL;
-        this.fileSystem = resolveFileSystem(configURL);
-        this.readURL = readURL;
+        this.configPath = configPath;
+        this.fileSystem = configPath.getFileSystem();
+        this.readPath = readPath;
         this.resources = new ConcurrentHashMap<>();
         this.resourceTasks = new ConcurrentHashMap<>();
         this.resourceChangeListener = resourceChangeListener;
-        this.configWatcherTask = new ConfigWatcherTask(this.fileSystem, configChangeListener, readURL);
+        this.configWatcherTask = new ConfigWatcherTask(this.fileSystem, configChangeListener, readPath);
     }
 
     public void startWatchingConfig() throws Exception
     {
         configWatcherTask.submit();
-        configWatcherTask.watchConfig(configURL).get();
+        configWatcherTask.watchConfig(configPath).get();
     }
 
     public void addResources(
@@ -105,13 +103,13 @@ public class EngineConfigWatcher
     {
         try
         {
-            ResourceWatcherTask watcherTask = new ResourceWatcherTask(fileSystem, resourceChangeListener, readURL);
+            ResourceWatcherTask watcherTask = new ResourceWatcherTask(fileSystem, resourceChangeListener, readPath);
             watcherTask.addNamespace(namespace);
             watcherTask.submit();
-            URL resourceURL = new URL(configURL, resource);
-            watcherTask.watchResource(resourceURL);
+            Path resourcePath = configPath.resolveSibling(resource);
+            watcherTask.watchResource(resourcePath);
             resourceTasks.put(resource, watcherTask);
-            System.out.printf("started watching resource: %s resourceURL: %s\n", resource, resourceURL); // TODO: Ati
+            System.out.printf("started watching resource: %s resourcePath: %s\n", resource, resourcePath); // TODO: Ati
         }
         catch (Exception ex)
         {
@@ -161,32 +159,5 @@ public class EngineConfigWatcher
         {
             rethrowUnchecked(ex);
         }
-    }
-
-    // TODO: Ati - chk if this can be simplified
-    // TODO: Ati - check this after adding hfs; this should just work fine for http
-    private static FileSystem resolveFileSystem(
-        URL url)
-    {
-        FileSystem result = null;
-        try
-        {
-            URI uri = url.toURI();
-            String location;
-            if ("file".equals(uri.getScheme()))
-            {
-                location = uri.getSchemeSpecificPart();
-            }
-            else
-            {
-                location = uri.toString();
-            }
-            result = Path.of(location).getFileSystem();
-        }
-        catch (Exception ex)
-        {
-            rethrowUnchecked(ex);
-        }
-        return result;
     }
 }

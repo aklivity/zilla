@@ -18,6 +18,7 @@ package io.aklivity.zilla.runtime.engine;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -144,6 +145,34 @@ public class EngineConfiguration extends Configuration
     public URL configURL()
     {
         return ENGINE_CONFIG_URL.get(this);
+    }
+
+    public Path configPath()
+    {
+        Path configPath = null;
+        try
+        {
+            URI configUri = configURL().toURI();
+            if ("file".equals(configUri.getScheme()) && !Path.of(configUri.getSchemeSpecificPart()).isAbsolute())
+            {
+                // this works for relative file e.g. file:zilla.yaml
+                Path basePath = Path.of("").toAbsolutePath();
+                configPath = basePath.resolve(configUri.getSchemeSpecificPart());
+            }
+            else
+            {
+                // this works for absolute file e.g. file:/path/dir/zilla.yaml
+                // this works for http e.g. http://localhost:7115/zilla.yaml
+                // this works for jar e.g. jar:file:/path/engine.jar!/package/zilla.yaml
+                // (the jar filesystem is opened and closed by EngineRule)
+                configPath = Path.of(configUri);
+            }
+        }
+        catch (Exception ex)
+        {
+            rethrowUnchecked(ex);
+        }
+        return configPath;
     }
 
     public int configPollIntervalSeconds()

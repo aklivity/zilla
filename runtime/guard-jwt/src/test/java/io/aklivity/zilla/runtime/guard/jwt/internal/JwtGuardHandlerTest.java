@@ -27,6 +27,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.nio.file.Path;
 import java.security.KeyPair;
 import java.time.Clock;
 import java.time.Duration;
@@ -46,7 +47,7 @@ import io.aklivity.zilla.runtime.guard.jwt.config.JwtOptionsConfig;
 
 public class JwtGuardHandlerTest
 {
-    private static final Function<String, String> READ_KEYS_URL = url -> "{}";
+    private static final Function<Path, String> READ_KEYS_URL = url -> "{}";
 
     private EngineContext context;
 

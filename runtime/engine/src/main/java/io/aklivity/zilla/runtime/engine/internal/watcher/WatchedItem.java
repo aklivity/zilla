@@ -21,10 +21,8 @@ import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.IOException;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.util.Arrays;
@@ -37,16 +35,16 @@ public class WatchedItem
 {
     private final WatchService watchService;
     private final Set<WatchKey> watchKeys;
-    private final URL watchedURL;
+    private final Path watchedPath;
     private byte[] hash;
 
     public WatchedItem(
-        URL watchedURL,
+        Path watchedPath,
         WatchService watchService)
     {
         this.watchService = watchService;
         this.watchKeys = new HashSet<>();
-        this.watchedURL = watchedURL;
+        this.watchedPath = watchedPath;
     }
 
     public Set<WatchKey> keys()
@@ -56,55 +54,73 @@ public class WatchedItem
 
     public void register()
     {
-        Path configPath = Paths.get(watchedURL.getPath()).toAbsolutePath();
         try
         {
-            Set<Path> watchedPaths = new HashSet<>();
-
-            Deque<Path> observablePaths = new LinkedList<>();
-            observablePaths.addLast(configPath);
-
-            while (!observablePaths.isEmpty())
+            String scheme = watchedPath.getFileSystem().provider().getScheme();
+            if ("file".equals(scheme))
             {
-                Path observablePath = observablePaths.removeFirst();
-
-                if (watchedPaths.add(observablePath))
-                {
-                    if (Files.isSymbolicLink(observablePath))
-                    {
-                        Path targetPath = Files.readSymbolicLink(observablePath);
-                        targetPath = configPath.resolveSibling(targetPath).normalize();
-                        observablePaths.addLast(targetPath);
-                    }
-
-                    for (Path ancestorPath = observablePath.getParent();
-                         ancestorPath != null;
-                         ancestorPath = ancestorPath.getParent())
-                    {
-                        if (Files.isSymbolicLink(ancestorPath))
-                        {
-                            if (watchedPaths.add(ancestorPath))
-                            {
-                                Path targetPath = Files.readSymbolicLink(ancestorPath);
-                                observablePaths.addLast(ancestorPath.resolve(targetPath).normalize());
-                            }
-                        }
-                    }
-                }
+                registerFilePath();
             }
-
-            for (Path watchedPath : watchedPaths)
+            else if ("http".equals(scheme))
             {
-                if (Files.exists(watchedPath.getParent()))
-                {
-                    WatchKey key = registerPath(watchedPath.getParent());
-                    watchKeys.add(key);
-                }
+                watchKeys.add(watchedPath.register(watchService));
             }
         }
         catch (IOException ex)
         {
             rethrowUnchecked(ex);
+        }
+    }
+
+    private void registerFilePath() throws IOException
+    {
+        Set<Path> watchedPaths = new HashSet<>();
+        Deque<Path> observablePaths = new LinkedList<>();
+        observablePaths.addLast(watchedPath);
+
+        while (!observablePaths.isEmpty())
+        {
+            Path observablePath = observablePaths.removeFirst();
+
+            if (watchedPaths.add(observablePath))
+            {
+                if (Files.isSymbolicLink(observablePath))
+                {
+                    Path targetPath = Files.readSymbolicLink(observablePath);
+                    targetPath = watchedPath.resolveSibling(targetPath).normalize();
+                    observablePaths.addLast(targetPath);
+                }
+
+                for (Path ancestorPath = observablePath.getParent();
+                     ancestorPath != null;
+                     ancestorPath = ancestorPath.getParent())
+                {
+                    if (Files.isSymbolicLink(ancestorPath))
+                    {
+                        if (watchedPaths.add(ancestorPath))
+                        {
+                            Path targetPath = Files.readSymbolicLink(ancestorPath);
+                            observablePaths.addLast(ancestorPath.resolve(targetPath).normalize());
+                        }
+                    }
+                }
+            }
+        }
+        for (Path watchedPath : watchedPaths)
+        {
+            if (Files.exists(watchedPath.getParent()))
+            {
+                WatchKey key = null;
+                try
+                {
+                    key = watchedPath.getParent().register(watchService, ENTRY_MODIFY, ENTRY_CREATE, ENTRY_DELETE);
+                }
+                catch (IOException ex)
+                {
+                    rethrowUnchecked(ex);
+                }
+                watchKeys.add(key);
+            }
         }
     }
 
@@ -132,23 +148,8 @@ public class WatchedItem
         hash = newHash;
     }
 
-    public URL getURL()
+    public Path getPath()
     {
-        return watchedURL;
-    }
-
-    private WatchKey registerPath(
-        Path path)
-    {
-        WatchKey key = null;
-        try
-        {
-            key = path.register(watchService, ENTRY_MODIFY, ENTRY_CREATE, ENTRY_DELETE);
-        }
-        catch (IOException ex)
-        {
-            rethrowUnchecked(ex);
-        }
-        return key;
+        return watchedPath;
     }
 }

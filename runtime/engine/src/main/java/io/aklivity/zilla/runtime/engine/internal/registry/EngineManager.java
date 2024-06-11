@@ -19,6 +19,7 @@ import static java.util.stream.Collectors.toList;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.net.URL;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
@@ -81,7 +82,8 @@ public class EngineManager
     private final EngineExtContext context;
     private final EngineConfiguration config;
     private final List<EngineExtSpi> extensions;
-    private final Function<String, String> readURL;
+    private final Function<Path, String> readPath;
+    private final Function<String, String> readLocation;
     private final Resolver expressions;
     private final EngineConfigWatcher watcher;
 
@@ -100,8 +102,9 @@ public class EngineManager
         EngineExtContext context,
         EngineConfiguration config,
         List<EngineExtSpi> extensions,
-        URL configURL,
-        Function<String, String> readURL)
+        Path configPath,
+        Function<Path, String> readPath,
+        Function<String, String> readLocation)
     {
         this.schemaTypes = schemaTypes;
         this.bindingByType = bindingByType;
@@ -115,9 +118,10 @@ public class EngineManager
         this.context = context;
         this.config = config;
         this.extensions = extensions;
-        this.readURL = readURL;
+        this.readPath = readPath;
+        this.readLocation = readLocation;
         this.expressions = Resolver.instantiate(config);
-        this.watcher = new EngineConfigWatcher(configURL, readURL, this::reconfigure, this::reconfigure);
+        this.watcher = new EngineConfigWatcher(configPath, readPath, this::reconfigure, this::reconfigure);
     }
 
     public void process(
@@ -209,7 +213,7 @@ public class EngineManager
         {
             EngineConfigReader reader = new EngineConfigReader(
                 config,
-                new NamespaceConfigAdapterContext(readURL),
+                new NamespaceConfigAdapterContext(readLocation),
                 expressions,
                 schemaTypes,
                 logger,
@@ -224,7 +228,7 @@ public class EngineManager
 
             for (NamespaceConfig namespace : engine.namespaces)
             {
-                namespace.readURL = readURL;
+                namespace.readLocation = readLocation;
                 process(guards, namespace);
             }
         }
@@ -246,7 +250,8 @@ public class EngineManager
         List<GuardConfig> guards,
         NamespaceConfig namespace)
     {
-        assert namespace.readURL != null;
+        assert readPath != null;
+        assert namespace.readLocation != null;
 
         namespace.id = supplyId.applyAsInt(namespace.name);
 
@@ -255,7 +260,7 @@ public class EngineManager
         for (GuardConfig guard : namespace.guards)
         {
             guard.id = resolver.resolve(guard.name);
-            guard.readURL = namespace.readURL;
+            guard.readPath = readPath;
         }
 
         for (VaultConfig vault : namespace.vaults)
@@ -287,7 +292,7 @@ public class EngineManager
             binding.id = resolver.resolve(binding.name);
             binding.entryId = resolver.resolve(binding.entry);
             binding.resolveId = resolver::resolve;
-            binding.readURL = namespace.readURL;
+            binding.readLocation = namespace.readLocation;
 
             binding.typeId = supplyId.applyAsInt(binding.type);
             binding.kindId = supplyId.applyAsInt(binding.kind.name().toLowerCase());
@@ -486,19 +491,19 @@ public class EngineManager
 
     private static final class NamespaceConfigAdapterContext implements ConfigAdapterContext
     {
-        private final Function<String, String> readURL;
+        private final Function<String, String> readLocation;
 
         NamespaceConfigAdapterContext(
-            Function<String, String> readURL)
+            Function<String, String> readLocation)
         {
-            this.readURL = readURL;
+            this.readLocation = readLocation;
         }
 
         @Override
-        public String readURL(
+        public String readLocation(
             String location)
         {
-            return readURL.apply(location);
+            return readLocation.apply(location);
         }
     }
 }

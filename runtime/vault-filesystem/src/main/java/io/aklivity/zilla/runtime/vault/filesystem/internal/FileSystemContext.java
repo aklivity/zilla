@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.vault.filesystem.internal;
 
-import java.net.URL;
+import java.nio.file.Path;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
@@ -26,7 +26,7 @@ import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig
 
 final class FileSystemContext implements VaultContext
 {
-    private final Function<String, URL> resolvePath;
+    private final Function<String, Path> resolvePath;
 
     FileSystemContext(
         Configuration config,

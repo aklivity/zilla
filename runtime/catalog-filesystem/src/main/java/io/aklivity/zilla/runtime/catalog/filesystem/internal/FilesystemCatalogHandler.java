@@ -15,7 +15,8 @@
 package io.aklivity.zilla.runtime.catalog.filesystem.internal;
 
 import java.io.InputStream;
-import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,7 +35,7 @@ public class FilesystemCatalogHandler implements CatalogHandler
     private final CRC32C crc32c;
     private final FilesystemEventContext event;
     private final long catalogId;
-    private final Function<String, URL> resolvePath;
+    private final Function<String, Path> resolvePath;
 
     public FilesystemCatalogHandler(
         FilesystemOptionsConfig config,
@@ -72,8 +73,8 @@ public class FilesystemCatalogHandler implements CatalogHandler
         {
             try
             {
-                URL storeURL = resolvePath.apply(config.path);
-                try (InputStream input = storeURL.openStream())
+                Path storePath = resolvePath.apply(config.path);
+                try (InputStream input = Files.newInputStream(storePath))
                 {
                     String schema = new String(input.readAllBytes());
                     int schemaId = generateCRC32C(schema);

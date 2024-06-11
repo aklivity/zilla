@@ -18,9 +18,9 @@ package io.aklivity.zilla.runtime.engine.internal.watcher;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.IOException;
-import java.net.URL;
 import java.nio.file.ClosedWatchServiceException;
 import java.nio.file.FileSystem;
+import java.nio.file.Path;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.util.IdentityHashMap;
@@ -36,24 +36,27 @@ public class ConfigWatcherTask extends WatcherTask
     private final Map<WatchKey, WatchedItem> watchedItems;
     private final WatchService watchService;
     private final Function<String, EngineConfig> configChangeListener;
-    private final Function<String, String> readURL;
+    private final Function<Path, String> readPath;
 
     public ConfigWatcherTask(
         FileSystem fileSystem,
         Function<String, EngineConfig> configChangeListener,
-        Function<String, String> readURL)
+        Function<Path, String> readPath)
     {
         this.configChangeListener = configChangeListener;
-        this.readURL = readURL;
+        this.readPath = readPath;
         this.watchedItems = new IdentityHashMap<>();
         WatchService watchService = null;
-        try
+        if (!"jar".equals(fileSystem.provider().getScheme())) // we can't watch in jar fs
         {
-            watchService = fileSystem.newWatchService();
-        }
-        catch (Exception ex)
-        {
-            rethrowUnchecked(ex);
+            try
+            {
+                watchService = fileSystem.newWatchService();
+            }
+            catch (Exception ex)
+            {
+                rethrowUnchecked(ex);
+            }
         }
         this.watchService = watchService;
     }
@@ -67,36 +70,39 @@ public class ConfigWatcherTask extends WatcherTask
     @Override
     public Void call()
     {
-        while (true)
+        if (watchService != null)
         {
-            try
+            while (true)
             {
-                final WatchKey key = watchService.take();
-
-                WatchedItem watchedItem = watchedItems.get(key);
-
-                if (watchedItem != null && watchedItem.isWatchedKey(key))
+                try
                 {
-                    // Even if no reconfigure needed, recalculation is necessary, since symlinks might have changed.
-                    watchedItem.keys().forEach(watchedItems::remove);
-                    watchedItem.unregister();
-                    watchedItem.register();
-                    watchedItem.keys().forEach(k -> watchedItems.put(k, watchedItem));
-                    String newText = readURL.apply(watchedItem.getURL().toString());
-                    byte[] newHash = computeHash(newText);
-                    if (watchedItem.isReconfigureNeeded(newHash))
+                    final WatchKey key = watchService.take();
+
+                    WatchedItem watchedItem = watchedItems.get(key);
+
+                    if (watchedItem != null && watchedItem.isWatchedKey(key))
                     {
-                        watchedItem.setHash(newHash);
-                        if (configChangeListener != null)
+                        // Even if no reconfigure needed, recalculation is necessary, since symlinks might have changed.
+                        watchedItem.keys().forEach(watchedItems::remove);
+                        watchedItem.unregister();
+                        watchedItem.register();
+                        watchedItem.keys().forEach(k -> watchedItems.put(k, watchedItem));
+                        String newText = readPath.apply(watchedItem.getPath());
+                        byte[] newHash = computeHash(newText);
+                        if (watchedItem.isReconfigureNeeded(newHash))
                         {
-                            configChangeListener.apply(newText);
+                            watchedItem.setHash(newHash);
+                            if (configChangeListener != null)
+                            {
+                                configChangeListener.apply(newText);
+                            }
                         }
                     }
                 }
-            }
-            catch (InterruptedException | ClosedWatchServiceException ex)
-            {
-                break;
+                catch (InterruptedException | ClosedWatchServiceException ex)
+                {
+                    break;
+                }
             }
         }
 
@@ -104,13 +110,17 @@ public class ConfigWatcherTask extends WatcherTask
     }
 
     public CompletableFuture<EngineConfig> watchConfig(
-        URL configURL)
+        Path configPath)
     {
-        WatchedItem watchedItem = new WatchedItem(configURL, watchService);
-        watchedItem.register();
-        watchedItem.keys().forEach(k -> watchedItems.put(k, watchedItem));
-        String configText = readURL.apply(configURL.toString());
-        watchedItem.setHash(computeHash(configText));
+        if (!"jar".equals(configPath.getFileSystem().provider().getScheme()))
+        {
+            WatchedItem watchedItem = new WatchedItem(configPath, watchService);
+            watchedItem.register();
+            watchedItem.keys().forEach(k -> watchedItems.put(k, watchedItem));
+            String configText = readPath.apply(configPath);
+            watchedItem.setHash(computeHash(configText));
+        }
+        String configText = readPath.apply(configPath);
 
         CompletableFuture<EngineConfig> configFuture;
         try
@@ -129,6 +139,9 @@ public class ConfigWatcherTask extends WatcherTask
     @Override
     public void close() throws IOException
     {
-        watchService.close();
+        if (watchService != null)
+        {
+            watchService.close();
+        }
     }
 }

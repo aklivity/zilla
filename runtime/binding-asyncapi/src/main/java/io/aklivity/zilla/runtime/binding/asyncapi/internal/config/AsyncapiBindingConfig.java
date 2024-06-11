@@ -227,7 +227,7 @@ public final class AsyncapiBindingConfig
         namespaceGenerator.init(binding);
         final List<String> labels = configs.stream().map(c -> c.apiLabel).collect(toList());
         final NamespaceConfig composite = namespaceGenerator.generateProxy(binding, asyncapis, schemaIdsByApiId::get, labels);
-        composite.readURL = binding.readURL;
+        composite.readLocation = binding.readLocation;
         attach.accept(composite);
         updateNamespace(configs, composite, new ArrayList<>(asyncapis.values()));
     }
@@ -256,7 +256,7 @@ public final class AsyncapiBindingConfig
             namespaceConfig.servers.forEach(s -> s.setAsyncapiProtocol(
                 namespaceGenerator.resolveProtocol(s.protocol(), options, namespaceConfig.asyncapis, namespaceConfig.servers)));
             final NamespaceConfig composite = namespaceGenerator.generate(binding, namespaceConfig);
-            composite.readURL = binding.readURL;
+            composite.readLocation = binding.readLocation;
             attach.accept(composite);
             updateNamespace(namespaceConfig.configs, composite, namespaceConfig.asyncapis);
         }

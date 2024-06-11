@@ -31,11 +31,14 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.function.LongConsumer;
 import java.util.function.LongSupplier;
@@ -265,6 +268,7 @@ public final class EngineRule implements TestRule
     {
         Class<?> testClass = description.getTestClass();
         final String testMethod = description.getMethodName().replaceAll("\\[.*\\]", "");
+        URI jarUri = null;
         try
         {
             Configure[] configures = testClass
@@ -286,6 +290,13 @@ public final class EngineRule implements TestRule
                     String resourceName = String.format("%s/%s", configurationRoot, config.value());
                     URL configURL = testClass.getClassLoader().getResource(resourceName);
                     configure(ENGINE_CONFIG_URL, configURL);
+                    if ("jar".equals(configURL.getProtocol()))
+                    {
+                        String jarLocation = Path.of(
+                            configURL.toString().replace("jar:file:", "").split("!")[0]
+                        ).toUri().toString();
+                        jarUri = new URI("jar", jarLocation, null);
+                    }
                 }
                 else
                 {
@@ -303,6 +314,7 @@ public final class EngineRule implements TestRule
         }
 
         boolean allowErrors = exceptions.test(testMethod);
+        URI jarUri0 = jarUri;
 
         return new Statement()
         {
@@ -318,6 +330,13 @@ public final class EngineRule implements TestRule
                     errors.add(ex);
                     baseThread.interrupt();
                 };
+
+                FileSystem fs = null;
+                if (jarUri0 != null)
+                {
+                    fs = FileSystems.newFileSystem(jarUri0, Map.of());
+                }
+
                 engine = builder.config(config)
                                 .errorHandler(errorHandler)
                                 .build();
@@ -347,6 +366,10 @@ public final class EngineRule implements TestRule
                         if (!allowErrors)
                         {
                             assertEmpty(errors);
+                        }
+                        if (fs != null)
+                        {
+                            fs.close();
                         }
                     }
                 }

@@ -138,7 +138,7 @@ public final class OpenapiBindingConfig
         for (OpenapiNamespaceConfig namespaceConfig : namespaceConfigs.values())
         {
             final NamespaceConfig composite = namespaceGenerator.generate(binding, namespaceConfig);
-            composite.readURL = binding.readURL;
+            composite.readLocation = binding.readLocation;
             attach.accept(composite);
             namespaceConfig.configs.forEach(c ->
             {

@@ -16,6 +16,9 @@ package io.aklivity.zilla.runtime.guard.jwt.internal;
 
 import static org.agrona.LangUtil.rethrowUnchecked;
 
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
@@ -66,7 +69,7 @@ public class JwtGuardHandler implements GuardHandler
         JwtOptionsConfig options,
         EngineContext context,
         LongSupplier supplyAuthorizedId,
-        Function<String, String> readURL)
+        Function<Path, String> readPath)
     {
         this.issuer = options.issuer;
         this.audience = options.audience;
@@ -81,7 +84,15 @@ public class JwtGuardHandler implements GuardHandler
                     .withConfig(config)
                     .build();
 
-            String keysText = readURL.apply(options.keysURL.get());
+            String keysText = null;
+            try
+            {
+                keysText = readPath.apply(Path.of(new URI(options.keysURL.get())));
+            }
+            catch (URISyntaxException ex)
+            {
+                rethrowUnchecked(ex);
+            }
             JwtKeySetConfig jwks = jsonb.fromJson(keysText, JwtKeySetConfig.class);
             keysConfig = jwks.keys;
         }
