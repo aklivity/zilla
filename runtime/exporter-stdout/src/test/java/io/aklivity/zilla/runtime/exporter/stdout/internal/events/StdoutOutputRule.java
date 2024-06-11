@@ -35,7 +35,7 @@ public final class StdoutOutputRule implements TestRule
     static
     {
         BOS = new ByteArrayOutputStream();
-        OUT = new PrintStream(BOS, true);
+        OUT = new PrintStream(BOS);
     }
 
     private Pattern expected;
@@ -52,6 +52,7 @@ public final class StdoutOutputRule implements TestRule
             {
                 BOS.reset();
                 base.evaluate();
+                OUT.flush();
                 assertThat(BOS.toString(StandardCharsets.UTF_8), matchesPattern(expected));
             }
         };
