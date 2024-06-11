@@ -21,7 +21,6 @@ import java.net.URI;
 import java.net.URL;
 import java.nio.file.FileSystem;
 import java.nio.file.Path;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -29,6 +28,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.EngineConfig;
+import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 
 public class EngineConfigWatcher
 {
@@ -62,18 +62,17 @@ public class EngineConfigWatcher
     }
 
     public void addResources(
-        List<String> additionalResources,
-        String namespace)
+        NamespaceConfig namespace)
     {
-        additionalResources.forEach(resource ->
+        namespace.resources.forEach(resource ->
             {
                 resources.computeIfAbsent(resource, i ->
                     {
-                        startWatchingResource(resource, namespace);
+                        startWatchingResource(resource, namespace.name);
                         return ConcurrentHashMap.newKeySet();
                     }
-                ).add(namespace);
-                resourceTasks.get(resource).addNamespace(namespace);
+                ).add(namespace.name);
+                resourceTasks.get(resource).addNamespace(namespace.name);
             }
         );
     }

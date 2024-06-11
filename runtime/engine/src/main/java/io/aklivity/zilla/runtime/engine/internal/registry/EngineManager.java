@@ -239,7 +239,7 @@ public class EngineManager
     private void addResources(
         NamespaceConfig namespace)
     {
-        watcher.addResources(namespace.resources, namespace.name);
+        watcher.addResources(namespace);
     }
 
     private void process(
@@ -400,7 +400,7 @@ public class EngineManager
             for (NamespaceConfig namespace : config.namespaces)
             {
                 System.out.println("register: " + namespace.name); // TODO: Ati
-                watcher.addResources(namespace.resources, namespace.name);
+                watcher.addResources(namespace);
                 register(namespace);
             }
         }
