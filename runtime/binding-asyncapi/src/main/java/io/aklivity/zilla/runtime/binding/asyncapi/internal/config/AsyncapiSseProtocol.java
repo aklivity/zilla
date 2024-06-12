@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.config;
 
+import static io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiNamespaceGenerator.APPLICATION_JSON;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 
@@ -22,31 +23,22 @@ import java.util.Map;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiChannel;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiMessage;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiOperation;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiChannelView;
 import io.aklivity.zilla.runtime.binding.sse.config.SseConditionConfig;
+import io.aklivity.zilla.runtime.binding.sse.config.SseOptionsConfig;
+import io.aklivity.zilla.runtime.binding.sse.config.SseOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.MetricRefConfig;
-import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
-import io.aklivity.zilla.runtime.model.core.config.DoubleModelConfig;
-import io.aklivity.zilla.runtime.model.core.config.FloatModelConfig;
-import io.aklivity.zilla.runtime.model.core.config.Int32ModelConfig;
-import io.aklivity.zilla.runtime.model.core.config.Int64ModelConfig;
+import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
 public class AsyncapiSseProtocol extends AsyncapiProtocol
 {
     private static final String SCHEME = "sse";
     private static final String SECURE_PROTOCOL = "secure-sse";
-
-    protected static final Map<String, ModelConfig> MODELS = Map.of(
-        "integer", Int32ModelConfig.builder().build(),
-        "integer:int32", Int32ModelConfig.builder().build(),
-        "integer:int64", Int64ModelConfig.builder().build(),
-        "number", FloatModelConfig.builder().build(),
-        "number:float", FloatModelConfig.builder().build(),
-        "number:double", DoubleModelConfig.builder().build()
-    );
 
     private final boolean httpServerAvailable;
     private final AsyncapiOptionsConfig options;
@@ -89,6 +81,10 @@ public class AsyncapiSseProtocol extends AsyncapiProtocol
     public <C> BindingConfigBuilder<C> injectProtocolServerOptions(
         BindingConfigBuilder<C> binding)
     {
+        binding
+            .options(SseOptionsConfig::builder)
+            .inject(this::injectSsePathsOptions)
+            .build();
         return binding;
     }
 
@@ -141,4 +137,31 @@ public class AsyncapiSseProtocol extends AsyncapiProtocol
         return protocol.equals(SECURE_PROTOCOL);
     }
 
+
+    private <C> SseOptionsConfigBuilder<C> injectSsePathsOptions(
+        SseOptionsConfigBuilder<C> options)
+    {
+        for (Asyncapi asyncapi : asyncapis)
+        {
+            for (Map.Entry<String, AsyncapiChannel> channelEntry : asyncapi.channels.entrySet())
+            {
+                String path = channelEntry.getValue().address.replaceAll("\\{[^}]+\\}", "*");
+                Map<String, AsyncapiMessage> messages = channelEntry.getValue().messages;
+                if (hasJsonContentType(asyncapi))
+                {
+                    options
+                        .path()
+                        .path(path)
+                        .content(JsonModelConfig::builder)
+                            .catalog()
+                                .name(INLINE_CATALOG_NAME)
+                                .inject(cataloged -> injectJsonSchemas(cataloged, asyncapi, messages, APPLICATION_JSON))
+                                .build()
+                            .build()
+                        .build();
+                }
+            }
+        }
+        return options;
+    }
 }

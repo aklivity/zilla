@@ -85,6 +85,7 @@ public class AsyncapiClientNamespaceGenerator extends AsyncapiNamespaceGenerator
             final String scheme = protocol.scheme;
             final String exit = "sse".equals(scheme) ? "http_client0" : isTlsEnabled ? "tls_client0" : "tcp_client0";
             namespace = namespace
+                .inject(n -> protocol.injectProtocolClientCache(n, metricRefs))
                 .binding()
                     .name(String.format("%s_client0", scheme))
                     .type(scheme)

@@ -55,7 +55,7 @@ catalogs:
         
         components:
           schemas:
-            EventPayload:
+            eventPayload:
               type: object
               properties:
                 id:
@@ -69,7 +69,7 @@ catalogs:
                   type: string
                   description: Tag.
           messages:
-            Event:
+            event:
               name: Event
               title: Event
               summary: >-

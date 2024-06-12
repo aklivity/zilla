@@ -34,7 +34,7 @@ public final class SseConditionConfig extends ConditionConfig
         return new SseConditionConfigBuilder<>(mapper);
     }
 
-    public SseConditionConfig(
+    SseConditionConfig(
         String path)
     {
         this.path = path;
