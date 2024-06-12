@@ -118,6 +118,7 @@ public abstract class JsonModelHandler
                             if (valueBytes != null)
                             {
                                 int offset = (int) parser.getLocation().getStreamOffset() - DOUBLE_QUOTE_LENGTH;
+                                offset += index;
                                 int valLength = parser.getString().getBytes(UTF_8).length;
                                 valueBytes.wrap(in.buffer(), offset - valLength, offset);
                                 valueBytes = null;
