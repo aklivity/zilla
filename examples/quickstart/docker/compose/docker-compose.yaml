@@ -11,8 +11,7 @@ services:
       - 7183:7183
       - 7190:7190
     environment:
-      KAFKA_HOST: ${KAFKA_HOST}
-      KAFKA_PORT: ${KAFKA_PORT}
+      KAFKA_BOOTSTRAP_SERVER: ${KAFKA_BOOTSTRAP_SERVER}
       ROUTE_GUIDE_SERVER_HOST: route-guide-server
       ROUTE_GUIDE_SERVER_PORT: 50051
     volumes:

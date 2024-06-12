@@ -5,7 +5,6 @@ ZILLA_VERSION="${ZILLA_VERSION:-^0.9.0}"
 NAMESPACE="${NAMESPACE:-zilla-mqtt-kafka-asyncapi-proxy}"
 export KAFKA_BROKER="${KAFKA_BROKER:-kafka}"
 export KAFKA_BOOTSTRAP_SERVER="${KAFKA_BOOTSTRAP_SERVER:-host.docker.internal:9092}"
-export KAFKA_PORT="${KAFKA_PORT:-9092}"
 INIT_KAFKA="${INIT_KAFKA:-true}"
 ZILLA_CHART="${ZILLA_CHART:-oci://ghcr.io/aklivity/charts/zilla}"
 
@@ -13,7 +12,7 @@ ZILLA_CHART="${ZILLA_CHART:-oci://ghcr.io/aklivity/charts/zilla}"
 echo "==== Installing $ZILLA_CHART to $NAMESPACE with $KAFKA_BROKER($KAFKA_BOOTSTRAP_SERVER) ===="
 helm upgrade --install zilla $ZILLA_CHART --version $ZILLA_VERSION --namespace $NAMESPACE --create-namespace --wait \
     --values values.yaml \
-    --set extraEnv[1].value="\"$KAFKA_HOST\"",extraEnv[2].value="\"$KAFKA_PORT\"" \
+    --set env.KAFKA_BOOTSTRAP_SERVER="$KAFKA_BOOTSTRAP_SERVER" \
     --set-file zilla\\.yaml=../../zilla.yaml \
     --set-file configMaps.specs.data.mqtt-asyncapi\\.yaml=../../specs/mqtt-asyncapi.yaml \
     --set-file configMaps.specs.data.kafka-asyncapi\\.yaml=../../specs/kafka-asyncapi.yaml

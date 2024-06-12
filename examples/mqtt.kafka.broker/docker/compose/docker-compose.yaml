@@ -12,8 +12,7 @@ services:
       - 7883:7883
     environment:
       KEYSTORE_PASSWORD: generated
-      KAFKA_HOST: ${KAFKA_HOST}
-      KAFKA_PORT: ${KAFKA_PORT}
+      KAFKA_BOOTSTRAP_SERVER: ${KAFKA_BOOTSTRAP_SERVER}
     volumes:
       - ../../zilla.yaml:/etc/zilla/zilla.yaml
       - ../../tls:/etc/zilla/tls

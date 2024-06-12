@@ -133,10 +133,10 @@ elif [[ $INIT_KAFKA == true ]]; then
     export NAMESPACE="zilla-${KAFKA_FOLDER//./-}"
     if [[ $USE_HELM == true ]]; then
         cd "$WORKDIR"/"$KAFKA_FOLDER"/"$HELM_FOLDER"
-        KAFKA_BOOTSTRAP_SERVER="$KAFKA_BROKER.$NAMESPACE.svc.cluster.local:9092"
+        export KAFKA_BOOTSTRAP_SERVER="$KAFKA_BROKER.$NAMESPACE.svc.cluster.local:9092"
     else
         cd "$WORKDIR"/"$KAFKA_FOLDER"/"$COMPOSE_FOLDER"
-        KAFKA_BOOTSTRAP_SERVER="host.docker.internal:9092"
+        export KAFKA_BOOTSTRAP_SERVER="host.docker.internal:9092"
     fi
     chmod u+x teardown.sh
     KAKFA_TEARDOWN_SCRIPT="NAMESPACE=$NAMESPACE $(pwd)/teardown.sh"

@@ -1,10 +1,5 @@
-extraEnv:
-  - name: KEYSTORE_PASSWORD
-    value: generated
-  - name: KAFKA_HOST
-    value: ""
-  - name: KAFKA_PORT
-    value: ""
+env:
+  KEYSTORE_PASSWORD: generated
 
 livenessProbePort: 7183
 readinessProbePort: 7183

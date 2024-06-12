@@ -5,7 +5,6 @@ NAMESPACE="${NAMESPACE:-zilla-mqtt-kafka-asyncapi-proxy}"
 export ZILLA_VERSION="${ZILLA_VERSION:-latest}"
 export KAFKA_BROKER="${KAFKA_BROKER:-kafka}"
 export KAFKA_BOOTSTRAP_SERVER="${KAFKA_BOOTSTRAP_SERVER:-host.docker.internal:9092}"
-export KAFKA_PORT="${KAFKA_PORT:-9092}"
 INIT_KAFKA="${INIT_KAFKA:-true}"
 
 # Start or restart Zilla
