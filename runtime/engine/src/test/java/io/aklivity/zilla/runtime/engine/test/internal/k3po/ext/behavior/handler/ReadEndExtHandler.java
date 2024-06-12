@@ -18,8 +18,9 @@ package io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.handler
 import java.util.EnumSet;
 
 import org.jboss.netty.channel.ChannelHandlerContext;
-import org.kaazing.k3po.driver.internal.behavior.handler.codec.ChannelDecoder;
-import org.kaazing.k3po.driver.internal.netty.channel.ShutdownInputEvent;
+
+import io.aklivity.k3po.runtime.driver.internal.behavior.handler.codec.ChannelDecoder;
+import io.aklivity.k3po.runtime.driver.internal.netty.channel.ShutdownInputEvent;
 
 public class ReadEndExtHandler extends AbstractReadExtHandler
 {

@@ -34,9 +34,10 @@ import java.util.Collection;
 import java.util.Map;
 
 import org.jboss.netty.channel.ChannelException;
-import org.kaazing.k3po.driver.internal.netty.channel.ChannelAddress;
-import org.kaazing.k3po.driver.internal.netty.channel.ChannelAddressFactorySpi;
-import org.kaazing.k3po.lang.types.TypeInfo;
+
+import io.aklivity.k3po.runtime.driver.internal.netty.channel.ChannelAddress;
+import io.aklivity.k3po.runtime.driver.internal.netty.channel.ChannelAddressFactorySpi;
+import io.aklivity.k3po.runtime.lang.types.TypeInfo;
 
 public class ZillaChannelAddressFactory extends ChannelAddressFactorySpi
 {

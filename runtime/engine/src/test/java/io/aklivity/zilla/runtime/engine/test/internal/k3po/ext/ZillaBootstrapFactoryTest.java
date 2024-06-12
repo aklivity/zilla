@@ -18,9 +18,10 @@ package io.aklivity.zilla.runtime.engine.test.internal.k3po.ext;
 import static org.junit.Assert.assertNotNull;
 
 import org.junit.Test;
-import org.kaazing.k3po.driver.internal.netty.bootstrap.BootstrapFactory;
-import org.kaazing.k3po.driver.internal.netty.bootstrap.ClientBootstrap;
-import org.kaazing.k3po.driver.internal.netty.bootstrap.ServerBootstrap;
+
+import io.aklivity.k3po.runtime.driver.internal.netty.bootstrap.BootstrapFactory;
+import io.aklivity.k3po.runtime.driver.internal.netty.bootstrap.ClientBootstrap;
+import io.aklivity.k3po.runtime.driver.internal.netty.bootstrap.ServerBootstrap;
 
 public class ZillaBootstrapFactoryTest
 {

@@ -20,7 +20,8 @@ import static org.jboss.netty.channel.Channels.fireChannelOpen;
 import org.jboss.netty.channel.ChannelFactory;
 import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelSink;
-import org.kaazing.k3po.driver.internal.netty.channel.ChannelAddress;
+
+import io.aklivity.k3po.runtime.driver.internal.netty.channel.ChannelAddress;
 
 public final class ZillaClientChannel extends ZillaChannel
 {

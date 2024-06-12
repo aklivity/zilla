@@ -15,11 +15,11 @@
  */
 package io.aklivity.zilla.specs.binding.sse.internal;
 
+import static io.aklivity.k3po.runtime.lang.internal.el.ExpressionFactoryUtils.newExpressionFactory;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
-import static org.kaazing.k3po.lang.internal.el.ExpressionFactoryUtils.newExpressionFactory;
 
 import java.nio.ByteBuffer;
 
@@ -31,9 +31,9 @@ import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Before;
 import org.junit.Test;
-import org.kaazing.k3po.lang.el.BytesMatcher;
-import org.kaazing.k3po.lang.internal.el.ExpressionContext;
 
+import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
+import io.aklivity.k3po.runtime.lang.internal.el.ExpressionContext;
 import io.aklivity.zilla.specs.binding.sse.internal.types.stream.SseBeginExFW;
 import io.aklivity.zilla.specs.binding.sse.internal.types.stream.SseDataExFW;
 import io.aklivity.zilla.specs.binding.sse.internal.types.stream.SseEndExFW;

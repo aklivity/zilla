@@ -18,9 +18,9 @@ package io.aklivity.zilla.runtime.binding.tls.internal;
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.binding.tls.internal.types.event.EventFW;
-import io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsEventExFW;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.event.EventFormatterSpi;
+import io.aklivity.zilla.specs.binding.tls.internal.types.event.TlsEventExFW;
 
 public final class TlsEventFormatter implements EventFormatterSpi
 {

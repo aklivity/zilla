@@ -19,7 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.net.URI;
 
-import org.kaazing.k3po.driver.internal.netty.channel.ChannelAddress;
+import io.aklivity.k3po.runtime.driver.internal.netty.channel.ChannelAddress;
 
 public final class ZillaChannelAddress extends ChannelAddress
 {

@@ -23,10 +23,10 @@ import java.util.List;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.Channel;
-import org.kaazing.k3po.driver.internal.behavior.handler.codec.ChannelDecoder;
-import org.kaazing.k3po.driver.internal.behavior.handler.codec.MessageDecoder;
-import org.kaazing.k3po.lang.types.StructuredTypeInfo;
 
+import io.aklivity.k3po.runtime.driver.internal.behavior.handler.codec.ChannelDecoder;
+import io.aklivity.k3po.runtime.driver.internal.behavior.handler.codec.MessageDecoder;
+import io.aklivity.k3po.runtime.lang.types.StructuredTypeInfo;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaChannel;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaExtensionKind;
 
