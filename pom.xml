@@ -34,15 +34,15 @@
 
   <repositories>
     <repository>
-      <id>github</id>
-      <url>https://maven.pkg.github.com/aklivity/packages/</url>
+      <id>aklivity</id>
+      <url>https://maven.packages.aklivity.io/</url>
     </repository>
   </repositories>
 
   <pluginRepositories>
     <pluginRepository>
-      <id>github</id>
-      <url>https://maven.pkg.github.com/aklivity/packages/</url>
+      <id>aklivity</id>
+      <url>https://maven.packages.aklivity.io/</url>
     </pluginRepository>
   </pluginRepositories>
 
