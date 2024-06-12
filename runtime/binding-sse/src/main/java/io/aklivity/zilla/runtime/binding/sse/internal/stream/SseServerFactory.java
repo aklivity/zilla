@@ -1049,7 +1049,7 @@ public final class SseServerFactory implements SseStreamFactory
                         timestamp = supplyTimestamp.applyAsLong(sseDataEx);
                     }
 
-                    if (contentType == null || validContent(traceId, contentType, payload))
+                    if (contentType == null || payload != null && validContent(traceId, contentType, payload))
                     {
                         doEncodeEvent(traceId, authorization, budgetId, reserved, flags, payload, id, type, timestamp);
                     }
