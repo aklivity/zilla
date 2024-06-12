@@ -18,6 +18,7 @@ import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.COUNTER;
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Unit.COUNT;
 
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -43,6 +44,7 @@ public class OtlpMetricsSerializer
 {
     private static final String SCOPE_NAME = "OtlpMetricsSerializer";
     private static final String SCOPE_VERSION = "1.0.0";
+    private static final String SERVICE_NAME = "service.name";
     // CUMULATIVE is an AggregationTemporality for a metric aggregator which reports changes since a fixed start time.
     private static final int CUMULATIVE = 2;
     private static final Map<String, String> SERVER_METRIC_NAMES = Map.of(
@@ -66,6 +68,7 @@ public class OtlpMetricsSerializer
     private final LongFunction<KindConfig> resolveKind;
     private final Function<String, Metric> resolveMetric;
     private final OtlpMetricsDescriptor descriptor;
+    private final AttributeConfig serviceNameAttribute;
 
     public OtlpMetricsSerializer(
         List<MetricRecord> records,
@@ -78,6 +81,7 @@ public class OtlpMetricsSerializer
         this.resolveMetric = resolveMetric;
         this.resolveKind = resolveKind;
         this.descriptor = new OtlpMetricsDescriptor();
+        this.serviceNameAttribute = resolveServiceNameAttribute();
     }
 
     public String serializeAll()
@@ -87,6 +91,24 @@ public class OtlpMetricsSerializer
         JsonArrayBuilder metricsArray = Json.createArrayBuilder();
         records.forEach(metric -> metricsArray.add(serialize(metric)));
         return createJson(attributesArray, metricsArray);
+    }
+
+    private AttributeConfig resolveServiceNameAttribute()
+    {
+        String serviceName = null;
+        for (AttributeConfig attribute : attributes)
+        {
+            if (SERVICE_NAME.equals(attribute.name))
+            {
+                serviceName = attribute.value;
+                break;
+            }
+        }
+        return serviceName == null ? null :
+            AttributeConfig.builder()
+                .name(SERVICE_NAME)
+                .value(serviceName)
+                .build();
     }
 
     private JsonObject serialize(
@@ -140,16 +162,22 @@ public class OtlpMetricsSerializer
     private JsonArrayBuilder attributes(
         MetricRecord record)
     {
-        return attributesToJson(List.of(
-            AttributeConfig.builder()
-                .name("namespace")
-                .value(record.namespace())
-                .build(),
-            AttributeConfig.builder()
-                .name("binding")
-                .value(record.binding())
-                .build()
-        ));
+        List<AttributeConfig> attributes = new LinkedList<>();
+        attributes.add(AttributeConfig.builder()
+            .name("namespace")
+            .value(record.namespace())
+            .build()
+        );
+        attributes.add(AttributeConfig.builder()
+            .name("binding")
+            .value(record.binding())
+            .build()
+        );
+        if (serviceNameAttribute != null)
+        {
+            attributes.add(serviceNameAttribute);
+        }
+        return attributesToJson(attributes);
     }
 
     private JsonArrayBuilder attributesToJson(

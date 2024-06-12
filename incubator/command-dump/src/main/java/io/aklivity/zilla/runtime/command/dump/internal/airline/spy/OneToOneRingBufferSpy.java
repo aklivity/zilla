@@ -30,6 +30,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.AtomicBuffer;
 
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.binding.function.MessagePredicate;
 
 public class OneToOneRingBufferSpy implements RingBufferSpy
@@ -145,5 +146,27 @@ public class OneToOneRingBufferSpy implements RingBufferSpy
         }
 
         return messagesRead;
+    }
+
+    @Override
+    public int peek(
+        final MessageConsumer handler)
+    {
+        final AtomicBuffer buffer = this.buffer;
+        final long head = spyPosition.get();
+        final int capacity = this.capacity;
+        final int headIndex = (int)head & (capacity - 1);
+        final int recordLength = buffer.getIntVolatile(lengthOffset(headIndex));
+        int messagesPeeked = 0;
+        if (recordLength > 0)
+        {
+            final int messageTypeId = buffer.getInt(typeOffset(headIndex));
+            if (PADDING_MSG_TYPE_ID != messageTypeId)
+            {
+                handler.accept(messageTypeId, buffer, headIndex + HEADER_LENGTH, recordLength - HEADER_LENGTH);
+                messagesPeeked = 1;
+            }
+        }
+        return messagesPeeked;
     }
 }

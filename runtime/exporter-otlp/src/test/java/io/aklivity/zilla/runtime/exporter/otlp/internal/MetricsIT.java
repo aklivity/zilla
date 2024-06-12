@@ -25,9 +25,10 @@ import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
-import org.kaazing.k3po.junit.annotation.Specification;
-import org.kaazing.k3po.junit.rules.K3poRule;
 
+import io.aklivity.k3po.runtime.junit.annotation.Specification;
+import io.aklivity.k3po.runtime.junit.rules.K3poRule;
+import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
@@ -57,16 +58,44 @@ public class MetricsIT
     public void shouldPostMetricsToOtlpCollector() throws Exception
     {
         // GIVEN
+        writeMetrics();
+
+        // WHEN
+        // the exporter publishes the metric data to the collector in json format
+
+        // THEN
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("metrics.with.service.name.yaml")
+    @Specification({
+        "metrics.with.service.name/server"
+    })
+    public void shouldPostMetricsWithServiceNameToOtlpCollector() throws Exception
+    {
+        // GIVEN
+        writeMetrics();
+
+        // WHEN
+        // the exporter publishes the metric data to the collector in json format
+
+        // THEN
+        k3po.finish();
+    }
+
+    private void writeMetrics()
+    {
         int namespaceId = engine.supplyLabelId("test");
         int bindingId = engine.supplyLabelId("net0");
         int counterId = engine.supplyLabelId("test.counter");
         int gaugeId = engine.supplyLabelId("test.gauge");
         int histogramId = engine.supplyLabelId("test.histogram");
 
-        long nsBindingId = namespacedId(namespaceId, bindingId);
-        long nsCounterId = namespacedId(namespaceId, counterId);
-        long nsGaugeId = namespacedId(namespaceId, gaugeId);
-        long nsHistogramId = namespacedId(namespaceId, histogramId);
+        long nsBindingId = NamespacedId.id(namespaceId, bindingId);
+        long nsCounterId = NamespacedId.id(namespaceId, counterId);
+        long nsGaugeId = NamespacedId.id(namespaceId, gaugeId);
+        long nsHistogramId = NamespacedId.id(namespaceId, histogramId);
 
         LongConsumer counterWriter0 = engine.counterWriter(nsBindingId, nsCounterId, 0);
         LongConsumer counterWriter1 = engine.counterWriter(nsBindingId, nsCounterId, 1);
@@ -93,18 +122,5 @@ public class MetricsIT
         histogramWriter1.accept(17L);
         histogramWriter2.accept(18L);
         // 1 value goes to bucket #0 and 2 values go to bucket #4
-
-        // WHEN
-        // the exporter publishes the metric data to the collector in json format
-
-        // THEN
-        k3po.finish();
-    }
-
-    private static long namespacedId(
-        final int namespaceId,
-        final int localId)
-    {
-        return (long) namespaceId << Integer.SIZE | (long) localId << 0;
     }
 }

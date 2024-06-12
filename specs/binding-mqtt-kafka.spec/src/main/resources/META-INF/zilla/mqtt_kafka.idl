@@ -30,4 +30,22 @@ scope mqtt_kafka
          int8 length;
          int16[length] packetIds = null;
     }
+
+    scope event
+    {
+        enum MqttKafkaEventType (uint8)
+        {
+            NON_COMPACT_SESSIONS_TOPIC (1)
+        }
+
+        struct MqttKafkaNonCompactSessionsTopicEx extends core::stream::Extension
+        {
+            string16 topic;
+        }
+
+        union MqttKafkaEventEx switch (MqttKafkaEventType)
+        {
+            case NON_COMPACT_SESSIONS_TOPIC: MqttKafkaNonCompactSessionsTopicEx nonCompactSessionsTopic;
+        }
+    }
 }

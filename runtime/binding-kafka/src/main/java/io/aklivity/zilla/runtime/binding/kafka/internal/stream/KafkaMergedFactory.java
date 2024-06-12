@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaCapabilities.FETCH_ONLY;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaCapabilities.PRODUCE_AND_FETCH;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaCapabilities.PRODUCE_ONLY;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType.HISTORICAL;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType.LIVE;
@@ -39,6 +40,7 @@ import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.MutableInteger;
 import org.agrona.collections.MutableLong;
 import org.agrona.collections.MutableReference;
+import org.agrona.collections.Object2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
@@ -1033,6 +1035,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private final KafkaIsolation isolation;
         private final KafkaDeltaType deltaType;
         private final KafkaAckMode ackMode;
+        private final Object2ObjectHashMap<String16FW, String> configs;
 
         private KafkaOffsetType maximumOffset;
         private List<KafkaMergedFilter> filters;
@@ -1107,6 +1110,7 @@ public final class KafkaMergedFactory implements BindingHandler
             this.isolation = isolation;
             this.deltaType = deltaType;
             this.ackMode = ackMode;
+            this.configs = new Object2ObjectHashMap<>();
         }
 
         private void onMergedMessage(
@@ -1618,7 +1622,7 @@ public final class KafkaMergedFactory implements BindingHandler
             else
             {
                 doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, affinity, EMPTY_EXTENSION);
+                    traceId, authorization, affinity, beginExToKafka(beginExToKafkaMergedProduceAndFetch()));
             }
 
             doUnmergedFetchReplyWindowsIfNecessary(traceId);
@@ -1659,6 +1663,13 @@ public final class KafkaMergedFactory implements BindingHandler
                             .latestOffset(v)
                             .metadata(metadataRW.length() > 0 ? metadataRW.toString() : null));
                 });
+                String cleanupPolicy = configs.get(CONFIG_NAME_CLEANUP_POLICY);
+                if (cleanupPolicy != null)
+                {
+                    builder.configsItem(c ->
+                        c.name(CONFIG_NAME_CLEANUP_POLICY)
+                            .value(cleanupPolicy));
+                }
             };
         }
 
@@ -1668,6 +1679,29 @@ public final class KafkaMergedFactory implements BindingHandler
             {
                 builder.capabilities(c -> c.set(PRODUCE_ONLY)).topic(topic);
                 leadersByPartitionId.intForEach((k, v) -> builder.partitionsItem(i -> i.partitionId(k)));
+                String cleanupPolicy = configs.get(CONFIG_NAME_CLEANUP_POLICY);
+                if (cleanupPolicy != null)
+                {
+                    builder.configsItem(c ->
+                        c.name(CONFIG_NAME_CLEANUP_POLICY)
+                            .value(cleanupPolicy));
+                }
+            };
+        }
+
+        private Consumer<KafkaMergedBeginExFW.Builder> beginExToKafkaMergedProduceAndFetch()
+        {
+            return builder ->
+            {
+                builder.capabilities(c -> c.set(PRODUCE_AND_FETCH))
+                    .topic(topic);
+                String cleanupPolicy = configs.get(CONFIG_NAME_CLEANUP_POLICY);
+                if (cleanupPolicy != null)
+                {
+                    builder.configsItem(c ->
+                        c.name(CONFIG_NAME_CLEANUP_POLICY)
+                            .value(cleanupPolicy));
+                }
             };
         }
 
@@ -1952,6 +1986,13 @@ public final class KafkaMergedFactory implements BindingHandler
             long traceId,
             ArrayFW<KafkaConfigFW> configs)
         {
+            configs.forEach(c ->
+            {
+                if (c.name().equals(CONFIG_NAME_CLEANUP_POLICY))
+                {
+                    this.configs.put(CONFIG_NAME_CLEANUP_POLICY, c.value().asString());
+                }
+            });
             metaStream.doMetaInitialBeginIfNecessary(traceId);
         }
 
@@ -3604,8 +3645,7 @@ public final class KafkaMergedFactory implements BindingHandler
             state = KafkaState.closedInitial(state);
 
             final KafkaResetExFW kafkaResetEx = extension.get(kafkaResetExRO::tryWrap);
-            final int defaultError = KafkaState.replyClosed(state) ? ERROR_NOT_LEADER_FOR_PARTITION : -1;
-            final int error = kafkaResetEx != null ? kafkaResetEx.error() : defaultError;
+            final int error = kafkaResetEx != null ? kafkaResetEx.error() : -1;
 
             doFetchReplyResetIfNecessary(traceId);
 

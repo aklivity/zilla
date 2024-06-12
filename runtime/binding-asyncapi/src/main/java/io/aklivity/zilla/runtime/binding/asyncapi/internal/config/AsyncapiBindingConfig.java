@@ -199,7 +199,8 @@ public final class AsyncapiBindingConfig
             NamespaceConfig v = entry.getValue();
             List<BindingConfig> bindings = v.bindings.stream()
                 .filter(b -> b.type.equals("mqtt") || b.type.equals("http") ||
-                    b.type.equals("kafka") && b.kind == CACHE_CLIENT || b.type.equals("mqtt-kafka"))
+                    b.type.equals("kafka") && b.kind == CACHE_CLIENT || b.type.equals("mqtt-kafka") ||
+                    b.type.equals("http-kafka"))
                 .collect(toList());
             extractResolveId(k, bindings);
             extractNamespace(k, bindings);
@@ -224,7 +225,8 @@ public final class AsyncapiBindingConfig
                         Object2ObjectHashMap::new));
 
         namespaceGenerator.init(binding);
-        final NamespaceConfig composite = namespaceGenerator.generateProxy(binding, asyncapis, schemaIdsByApiId::get);
+        final List<String> labels = configs.stream().map(c -> c.apiLabel).collect(toList());
+        final NamespaceConfig composite = namespaceGenerator.generateProxy(binding, asyncapis, schemaIdsByApiId::get, labels);
         composite.readURL = binding.readURL;
         attach.accept(composite);
         updateNamespace(configs, composite, new ArrayList<>(asyncapis.values()));

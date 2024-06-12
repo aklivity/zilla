@@ -14,7 +14,7 @@
 # under the License.
 #
 
-connect "tcp://localhost:8083"
+connect "tcp://localhost:12348"
 connected
 
 closed

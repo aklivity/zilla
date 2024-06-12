@@ -44,7 +44,7 @@ public class AvroWriteConverterHandler extends AvroModelHandler implements Conve
         int index,
         int length)
     {
-        return handler.encodePadding();
+        return handler.encodePadding(length);
     }
 
     @Override

@@ -15,7 +15,6 @@
 #
 
 property deltaMillis 0L
-property newTimestamp ${kafka:timestamp() + deltaMillis}
 
 connect "zilla://streams/app0"
     option zilla:window 8192
@@ -73,7 +72,7 @@ read zilla:begin.ext ${kafka:beginEx()
 write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .produce()
-                                  .timestamp(newTimestamp)
+                                  .timestamp(1716424650323)
                                   .build()
                               .build()}
 write "Hello, world"

@@ -3172,7 +3172,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 final long resolvedId = resolved.id;
 
                 stream = publishes.computeIfAbsent(topicKey, s ->
-                    new MqttPublishStream(routedId, resolvedId, topic, qos, binding.supplyModelConfig(topic)));
+                    new MqttPublishStream(routedId, resolvedId, topic, topicKey, binding.supplyModelConfig(topic)));
                 stream.doPublishBegin(traceId, affinity, qos);
             }
             else
@@ -4890,6 +4890,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 session.cleanupEnd(traceId);
             }
+            decoder = decodeIgnoreAll;
         }
 
         private void cleanupBudgetCreditor()
@@ -5369,7 +5370,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                                 List<Subscription> newSubscriptions = newState.stream()
                                     .filter(s -> !currentSubscriptions.contains(s))
                                     .collect(Collectors.toList());
-                                if (subscribePacketIds.containsKey(newSubscriptions.get(0).id))
+                                if (!newSubscriptions.isEmpty() &&
+                                    subscribePacketIds.containsKey(newSubscriptions.get(0).id))
                                 {
                                     int packetId = subscribePacketIds.get(newSubscriptions.get(0).id);
                                     newSubscriptions.forEach(sub -> subscribePacketIds.remove(sub.id));
@@ -5668,7 +5670,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 long originId,
                 long routedId,
                 String topic,
-                int qos,
+                long topicKey,
                 ModelConfig config)
             {
                 this.originId = originId;
@@ -5676,7 +5678,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 this.initialId = supplyInitialId.applyAsLong(routedId);
                 this.replyId = supplyReplyId.applyAsLong(initialId);
                 this.topic = topic;
-                this.topicKey = topicKey(topic, qos);
+                this.topicKey = topicKey;
                 this.contentType = config != null ? supplyValidator.apply(config) : null;
             }
 

@@ -14,7 +14,7 @@
 # under the License.
 #
 
-connect "tcp://localhost:8080"
+connect "tcp://localhost:12345"
 connected
 
 write notify CLIENT_CONNECTION_ONE_ESTABLISHED
@@ -22,7 +22,7 @@ write notify CLIENT_CONNECTION_ONE_ESTABLISHED
 write "client data 1"
 
 connect await CLIENT_CONNECTION_ONE_ESTABLISHED
-        "tcp://localhost:8080"
+        "tcp://localhost:12345"
 connected
 
 write "client data 2"

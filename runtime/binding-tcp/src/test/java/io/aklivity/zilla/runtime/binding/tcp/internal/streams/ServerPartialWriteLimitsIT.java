@@ -40,9 +40,9 @@ import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 import org.junit.runner.RunWith;
-import org.kaazing.k3po.junit.annotation.Specification;
-import org.kaazing.k3po.junit.rules.K3poRule;
 
+import io.aklivity.k3po.runtime.junit.annotation.Specification;
+import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.binding.tcp.internal.SocketChannelHelper;
 import io.aklivity.zilla.runtime.binding.tcp.internal.SocketChannelHelper.HandleWriteHelper;
 import io.aklivity.zilla.runtime.binding.tcp.internal.SocketChannelHelper.OnDataHelper;
@@ -105,8 +105,8 @@ public class ServerPartialWriteLimitsIT
         try (SocketChannel channel1 = SocketChannel.open();
              SocketChannel channel2 = SocketChannel.open())
         {
-            channel1.connect(new InetSocketAddress("127.0.0.1", 8080));
-            channel2.connect(new InetSocketAddress("127.0.0.1", 8080));
+            channel1.connect(new InetSocketAddress("127.0.0.1", 12345));
+            channel2.connect(new InetSocketAddress("127.0.0.1", 12345));
 
             k3po.awaitBarrier("SECOND_STREAM_RESET_RECEIVED");
             resetReceived.set(true);

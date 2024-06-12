@@ -22,8 +22,9 @@ import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
-import org.kaazing.k3po.junit.annotation.Specification;
-import org.kaazing.k3po.junit.rules.K3poRule;
+
+import io.aklivity.k3po.runtime.junit.annotation.Specification;
+import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 
 public class MqttIT
 {
@@ -519,6 +520,15 @@ public class MqttIT
         "${mqtt}/session.subscribe/client",
         "${mqtt}/session.subscribe/server"})
     public void shouldSubscribeSaveSubscriptionsInSession() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.reject.non.compacted.sessions.topic/client",
+        "${mqtt}/session.reject.non.compacted.sessions.topic/server"})
+    public void shouldRejectSessionNonCompactedSessionsTopic() throws Exception
     {
         k3po.finish();
     }

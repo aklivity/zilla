@@ -27,9 +27,6 @@ import io.aklivity.zilla.runtime.engine.event.EventFormatterSpi;
 
 public final class KafkaEventFormatter implements EventFormatterSpi
 {
-    private static final String AUTHORIZATION_FAILED_FORMAT = "AUTHORIZATION_FAILED %s";
-    private static final String API_VERSION_REJECTED_FORMAT = "API_VERSION_REJECTED %d %d";
-
     private final EventFW eventRO = new EventFW();
     private final KafkaEventExFW kafkaEventExRO = new KafkaEventExFW();
 
@@ -52,22 +49,22 @@ public final class KafkaEventFormatter implements EventFormatterSpi
         case AUTHORIZATION_FAILED:
         {
             KafkaAuthorizationFailedExFW ex = extension.authorizationFailed();
-            result = String.format(AUTHORIZATION_FAILED_FORMAT, identity(ex.identity()));
+            result = String.format("Unable to authenticate client with identity (%s).", asString(ex.identity()));
             break;
         }
         case API_VERSION_REJECTED:
         {
             final KafkaApiVersionRejectedExFW ex = extension.apiVersionRejected();
-            result = String.format(API_VERSION_REJECTED_FORMAT, ex.apiKey(), ex.apiVersion());
+            result = String.format("%d %d", ex.apiKey(), ex.apiVersion());
         }
         }
         return result;
     }
 
-    private static String identity(
-        StringFW identity)
+    private static String asString(
+            StringFW stringFW)
     {
-        int length = identity.length();
-        return length <= 0 ? "-" : identity.asString();
+        String s = stringFW.asString();
+        return s == null ? "" : s;
     }
 }

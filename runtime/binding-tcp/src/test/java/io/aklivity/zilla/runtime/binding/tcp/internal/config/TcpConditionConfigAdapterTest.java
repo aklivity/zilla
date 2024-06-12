@@ -49,7 +49,7 @@ public class TcpConditionConfigAdapterTest
                 "{" +
                     "\"cidr\": \"127.0.0.0/24\"," +
                     "\"authority\": \"*.example.net\"," +
-                    "\"port\": 8080" +
+                    "\"port\": 12345" +
                 "}";
 
         TcpConditionConfig condition = jsonb.fromJson(text, TcpConditionConfig.class);
@@ -59,7 +59,7 @@ public class TcpConditionConfigAdapterTest
         assertThat(condition.authority, equalTo("*.example.net"));
         assertThat(condition.ports, not(nullValue()));
         assertThat(condition.ports.length, equalTo(1));
-        assertThat(condition.ports[0], equalTo(8080));
+        assertThat(condition.ports[0], equalTo(12345));
     }
 
     @Test
@@ -69,13 +69,13 @@ public class TcpConditionConfigAdapterTest
             .inject(identity())
             .cidr("127.0.0.0/24")
             .authority("*.example.net")
-            .ports(new int[] { 8080 })
+            .ports(new int[] { 12345 })
             .build();
 
         String text = jsonb.toJson(condition);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"cidr\":\"127.0.0.0/24\",\"authority\":\"*.example.net\",\"port\":8080}"));
+        assertThat(text, equalTo("{\"cidr\":\"127.0.0.0/24\",\"authority\":\"*.example.net\",\"port\":12345}"));
     }
 
     @Test
@@ -85,7 +85,7 @@ public class TcpConditionConfigAdapterTest
                 "{" +
                     "\"cidr\": \"127.0.0.0/24\"," +
                     "\"authority\": \"*.example.net\"," +
-                    "\"port\": 8080-8081" +
+                    "\"port\": 12345-12346" +
                 "}";
 
         TcpConditionConfig condition = jsonb.fromJson(text, TcpConditionConfig.class);
@@ -93,8 +93,8 @@ public class TcpConditionConfigAdapterTest
         assertThat(condition, not(nullValue()));
         assertThat(condition.ports, not(nullValue()));
         assertThat(condition.ports.length, equalTo(2));
-        assertThat(condition.ports[0], equalTo(8080));
-        assertThat(condition.ports[1], equalTo(8081));
+        assertThat(condition.ports[0], equalTo(12345));
+        assertThat(condition.ports[1], equalTo(12346));
     }
 
     @Test
@@ -104,7 +104,7 @@ public class TcpConditionConfigAdapterTest
                 "{" +
                     "\"cidr\": \"127.0.0.0/24\"," +
                     "\"authority\": \"*.example.net\"," +
-                    "\"port\": \"8080\"" +
+                    "\"port\": \"12345\"" +
                 "}";
 
         TcpConditionConfig condition = jsonb.fromJson(text, TcpConditionConfig.class);
@@ -112,6 +112,6 @@ public class TcpConditionConfigAdapterTest
         assertThat(condition, not(nullValue()));
         assertThat(condition.ports, not(nullValue()));
         assertThat(condition.ports.length, equalTo(1));
-        assertThat(condition.ports[0], equalTo(8080));
+        assertThat(condition.ports[0], equalTo(12345));
     }
 }

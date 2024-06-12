@@ -48,7 +48,7 @@ public class TcpOptionsConfigAdapterTest
         String text =
                 "{" +
                     "\"host\": \"localhost\"," +
-                    "\"port\": 8080" +
+                    "\"port\": 12345" +
                 "}";
 
         TcpOptionsConfig options = jsonb.fromJson(text, TcpOptionsConfig.class);
@@ -57,7 +57,7 @@ public class TcpOptionsConfigAdapterTest
         assertThat(options.host, equalTo("localhost"));
         assertThat(options.ports, not(nullValue()));
         assertThat(options.ports.length, equalTo(1));
-        assertThat(options.ports[0], equalTo(8080));
+        assertThat(options.ports[0], equalTo(12345));
     }
 
     @Test
@@ -66,7 +66,7 @@ public class TcpOptionsConfigAdapterTest
         String text =
                 "{" +
                     "\"host\": \"localhost\"," +
-                    "\"port\": \"8080-8081\"" +
+                    "\"port\": \"12345-12346\"" +
                 "}";
 
         TcpOptionsConfig options = jsonb.fromJson(text, TcpOptionsConfig.class);
@@ -75,8 +75,8 @@ public class TcpOptionsConfigAdapterTest
         assertThat(options.host, equalTo("localhost"));
         assertThat(options.ports, not(nullValue()));
         assertThat(options.ports.length, equalTo(2));
-        assertThat(options.ports[0], equalTo(8080));
-        assertThat(options.ports[1], equalTo(8081));
+        assertThat(options.ports[0], equalTo(12345));
+        assertThat(options.ports[1], equalTo(12346));
     }
 
     @Test
@@ -85,7 +85,7 @@ public class TcpOptionsConfigAdapterTest
         String text =
                 "{" +
                     "\"host\": \"localhost\"," +
-                    "\"port\": \"8080\"" +
+                    "\"port\": \"12345\"" +
                 "}";
 
         TcpOptionsConfig options = jsonb.fromJson(text, TcpOptionsConfig.class);
@@ -94,7 +94,7 @@ public class TcpOptionsConfigAdapterTest
         assertThat(options.host, equalTo("localhost"));
         assertThat(options.ports, not(nullValue()));
         assertThat(options.ports.length, equalTo(1));
-        assertThat(options.ports[0], equalTo(8080));
+        assertThat(options.ports[0], equalTo(12345));
     }
 
     @Test
@@ -103,13 +103,13 @@ public class TcpOptionsConfigAdapterTest
         TcpOptionsConfig options = TcpOptionsConfig.builder()
             .inject(identity())
             .host("localhost")
-            .ports(new int[] { 8080 })
+            .ports(new int[] { 12345 })
             .build();
 
         String text = jsonb.toJson(options);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"host\":\"localhost\",\"port\":8080}"));
+        assertThat(text, equalTo("{\"host\":\"localhost\",\"port\":12345}"));
     }
 
     @Test
@@ -118,7 +118,7 @@ public class TcpOptionsConfigAdapterTest
         String text =
                 "{" +
                     "\"host\": \"localhost\"," +
-                    "\"port\": 8080," +
+                    "\"port\": 12345," +
                     "\"backlog\": 1000" +
                 "}";
 
@@ -128,7 +128,7 @@ public class TcpOptionsConfigAdapterTest
         assertThat(options.host, equalTo("localhost"));
         assertThat(options.ports, not(nullValue()));
         assertThat(options.ports.length, equalTo(1));
-        assertThat(options.ports[0], equalTo(8080));
+        assertThat(options.ports[0], equalTo(12345));
         assertThat(options.backlog, equalTo(1000));
     }
 
@@ -138,13 +138,13 @@ public class TcpOptionsConfigAdapterTest
         TcpOptionsConfig options = TcpOptionsConfig.builder()
                 .inject(identity())
                 .host("localhost")
-                .ports(new int[] { 8080 })
+                .ports(new int[] { 12345 })
                 .backlog(1000)
                 .build();
 
         String text = jsonb.toJson(options);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"host\":\"localhost\",\"port\":8080,\"backlog\":1000}"));
+        assertThat(text, equalTo("{\"host\":\"localhost\",\"port\":12345,\"backlog\":1000}"));
     }
 }

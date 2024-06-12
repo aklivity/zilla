@@ -134,6 +134,9 @@ public interface EngineContext
     int supplyEventId(
         String name);
 
+    String supplyEventName(
+        int eventId);
+
     BindingHandler streamFactory();
 
     GuardHandler supplyGuard(

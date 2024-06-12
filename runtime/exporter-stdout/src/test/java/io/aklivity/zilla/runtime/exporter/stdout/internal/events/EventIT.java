@@ -25,9 +25,9 @@ import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
-import org.kaazing.k3po.junit.annotation.Specification;
-import org.kaazing.k3po.junit.rules.K3poRule;
 
+import io.aklivity.k3po.runtime.junit.annotation.Specification;
+import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
@@ -35,8 +35,8 @@ import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 public class EventIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/engine/streams/network")
-        .addScriptRoot("app", "io/aklivity/zilla/specs/engine/streams/application");
+        .addScriptRoot("net", "io/aklivity/zilla/runtime/exporter/stdout/streams/network")
+        .addScriptRoot("app", "io/aklivity/zilla/runtime/exporter/stdout/streams/application");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(5, SECONDS));
 
@@ -50,19 +50,19 @@ public class EventIT
     private final StdoutOutputRule output = new StdoutOutputRule();
 
     @Rule
-    public final TestRule chain = outerRule(output).around(engine).around(k3po).around(timeout);
+    public final TestRule chain = outerRule(engine).around(output).around(k3po).around(timeout);
 
     @Test
     @Configuration("server.event.yaml")
     @Specification({
-        "${net}/handshake/client",
-        "${app}/handshake/server"
+        "${net}/client",
+        "${app}/server"
     })
     @Configure(name = STDOUT_OUTPUT_NAME,
         value = "io.aklivity.zilla.runtime.exporter.stdout.internal.events.StdoutOutputRule.OUT")
     public void shouldLogEvents() throws Exception
     {
         k3po.finish();
-        output.expect(Pattern.compile("test.net0 \\[[^\\]]+\\] test event message\n"));
+        output.expect(Pattern.compile("test.net0 \\[[^\\]]+\\] BINDING_TEST_CONNECTED test event message\n"));
     }
 }

@@ -17,8 +17,6 @@
   <name>zilla::build::flyweight-maven-plugin</name>
 
   <properties>
-    <maven.compiler.source>9</maven.compiler.source>
-    <maven.compiler.target>9</maven.compiler.target>
     <jacoco.coverage.ratio>0.82</jacoco.coverage.ratio>
     <jacoco.missed.count>2</jacoco.missed.count>
   </properties>

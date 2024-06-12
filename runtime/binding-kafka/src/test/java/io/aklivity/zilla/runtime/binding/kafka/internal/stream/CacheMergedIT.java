@@ -29,9 +29,9 @@ import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
-import org.kaazing.k3po.junit.annotation.Specification;
-import org.kaazing.k3po.junit.rules.K3poRule;
 
+import io.aklivity.k3po.runtime.junit.annotation.Specification;
+import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfigurationTest;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
@@ -76,6 +76,16 @@ public class CacheMergedIT
         "${app}/merged.fetch.filter.header.with.compaction/client",
         "${app}/unmerged.fetch.filter.none.with.compaction/server"})
     public void shouldFetchMergedMessagesWithHeaderFilterAfterCompaction() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.options.merged.yaml")
+    @Specification({
+        "${app}/merged.produce.and.fetch.get.cleanup.policy/client",
+        "${app}/unmerged.produce.and.fetch.get.cleanup.policy/server"})
+    public void shouldProduceAndFetchMergedGetCompaction() throws Exception
     {
         k3po.finish();
     }

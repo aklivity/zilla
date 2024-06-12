@@ -31,9 +31,9 @@ import javax.el.FunctionMapper;
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
-import org.kaazing.k3po.lang.el.BytesMatcher;
-import org.kaazing.k3po.lang.internal.el.ExpressionContext;
 
+import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
+import io.aklivity.k3po.runtime.lang.internal.el.ExpressionContext;
 import io.aklivity.zilla.specs.binding.grpc.internal.types.OctetsFW;
 import io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcAbortExFW;
 import io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcBeginExFW;

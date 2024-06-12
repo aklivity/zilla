@@ -48,15 +48,18 @@ public final class TestExporterOptionsConfig extends OptionsConfig
     {
         public final String qName;
         public final String id;
+        public final String name;
         public final String message;
 
         public Event(
-            String qName,
-            String id,
-            String message)
+                String qName,
+                String id,
+                String name,
+                String message)
         {
             this.qName = qName;
             this.id = id;
+            this.name = name;
             this.message = message;
         }
     }

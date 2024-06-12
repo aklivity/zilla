@@ -415,7 +415,7 @@ public final class KafkaCacheBootstrapFactory implements BindingHandler
             this.describeStream = new KafkaBootstrapDescribeStream(this);
             this.metaStream = new KafkaBootstrapMetaStream(this);
             this.fetchStreams = new ArrayList<>();
-            this.nextOffsetsById = new Long2LongHashMap(-1L);
+            this.nextOffsetsById = new Long2LongHashMap(-3L);
             this.defaultOffset = defaultOffset;
             this.consumers = new Int2ObjectHashMap<>();
             this.leadersByPartitionId = new Int2IntHashMap(-1);

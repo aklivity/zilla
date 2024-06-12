@@ -27,9 +27,9 @@ import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
-import org.kaazing.k3po.junit.annotation.Specification;
-import org.kaazing.k3po.junit.rules.K3poRule;
 
+import io.aklivity.k3po.runtime.junit.annotation.Specification;
+import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
@@ -60,6 +60,23 @@ public class CacheBootstrapIT
     @Specification({
         "${app}/unmerged.fetch.message.values/server"})
     public void shouldReceiveMergedMessageValues() throws Exception
+    {
+        Thread.sleep(500);
+        k3po.start();
+        k3po.awaitBarrier("CHANGING_PARTITION_COUNT");
+        Thread.sleep(200); // allow A1, B1, A2, B2 to be merged
+        k3po.notifyBarrier("CHANGED_PARTITION_COUNT");
+        k3po.awaitBarrier("SENT_MESSAGE_A2");
+        k3po.awaitBarrier("SENT_MESSAGE_B2");
+        k3po.awaitBarrier("SENT_MESSAGE_C2");
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.options.bootstrap.live.yaml")
+    @Specification({
+        "${app}/unmerged.fetch.message.values.live/server"})
+    public void shouldReceiveMergedMessageValuesLive() throws Exception
     {
         Thread.sleep(500);
         k3po.start();

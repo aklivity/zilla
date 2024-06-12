@@ -15,16 +15,17 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.el;
 
+import static io.aklivity.k3po.runtime.lang.internal.el.ExpressionFactoryUtils.newExpressionFactory;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.assertNotEquals;
-import static org.kaazing.k3po.lang.internal.el.ExpressionFactoryUtils.newExpressionFactory;
 
 import javax.el.ExpressionFactory;
 import javax.el.ValueExpression;
 
 import org.junit.Test;
-import org.kaazing.k3po.lang.internal.el.ExpressionContext;
+
+import io.aklivity.k3po.runtime.lang.internal.el.ExpressionContext;
 
 public final class FunctionsTest
 {

@@ -23,8 +23,9 @@ import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
-import org.kaazing.k3po.junit.annotation.Specification;
-import org.kaazing.k3po.junit.rules.K3poRule;
+
+import io.aklivity.k3po.runtime.junit.annotation.Specification;
+import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 
 public class MergedIT
 {
@@ -497,6 +498,18 @@ public class MergedIT
 
     @Test
     @Specification({
+        "${app}/unmerged.fetch.message.values.live/client",
+        "${app}/unmerged.fetch.message.values.live/server"})
+    public void shouldFetchUnmergedMessageValuesLive() throws Exception
+    {
+        k3po.start();
+        k3po.awaitBarrier("CHANGING_PARTITION_COUNT");
+        k3po.notifyBarrier("CHANGED_PARTITION_COUNT");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/unmerged.fetch.partition.offsets.latest/client",
         "${app}/unmerged.fetch.partition.offsets.latest/server"})
     public void shouldFetchUnmergedPartitionOffsetsLatest() throws Exception
@@ -704,6 +717,16 @@ public class MergedIT
 
     @Test
     @Specification({
+        "${app}/unmerged.produce.and.fetch.get.cleanup.policy/client",
+        "${app}/unmerged.produce.and.fetch.get.cleanup.policy/server"})
+    public void shouldProduceAndFetchUnmergedGetCompaction() throws Exception
+    {
+        k3po.finish();
+    }
+
+
+    @Test
+    @Specification({
         "${app}/merged.fetch.filter.not.header/client",
         "${app}/merged.fetch.filter.not.header/server"})
     public void shouldFetchMergedMessagesWithNotHeaderFilter() throws Exception
@@ -887,6 +910,15 @@ public class MergedIT
         "${app}/unmerged.produce.message.value.partition.id/client",
         "${app}/unmerged.produce.message.value.partition.id/server"})
     public void shouldProduceUnmergedMessageValueByGettingPartitionId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/merged.produce.and.fetch.get.cleanup.policy/client",
+        "${app}/merged.produce.and.fetch.get.cleanup.policy/server"})
+    public void shouldProduceAndFetchMergedGetCompaction() throws Exception
     {
         k3po.finish();
     }

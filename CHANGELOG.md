@@ -1,5 +1,50 @@
 # Changelog
 
+## [0.9.82](https://github.com/aklivity/zilla/tree/0.9.82) (2024-05-28)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.81...0.9.82)
+
+**Fixed bugs:**
+
+- Zilla crashes with `IllegalArgumentException: cannot accept missingValue` when using `defaultOffset: live` [\#1051](https://github.com/aklivity/zilla/issues/1051)
+- Zilla crashes on mqtt cli -T option [\#1039](https://github.com/aklivity/zilla/issues/1039)
+- Running `emqtt_bench` both `sub` and `pub` triggers an exception [\#1000](https://github.com/aklivity/zilla/issues/1000)
+- `http-kafka` will `fetch` messages that have been deleted by a retention policy [\#897](https://github.com/aklivity/zilla/issues/897)
+
+**Merged pull requests:**
+
+- Update to handle catalog IT validation\(resolve schema from subject\) [\#1055](https://github.com/aklivity/zilla/pull/1055) ([aDaemonThread](https://github.com/aDaemonThread))
+- Queue as different kafka produce request if producerId or producerEpoch varies [\#1053](https://github.com/aklivity/zilla/pull/1053) ([akrambek](https://github.com/akrambek))
+- Support kafka cache bootstrap with topic default offset live [\#1052](https://github.com/aklivity/zilla/pull/1052) ([jfallows](https://github.com/jfallows))
+- Set decoder to ignoreAll after session is taken over by other MQTT client [\#1045](https://github.com/aklivity/zilla/pull/1045) ([bmaidics](https://github.com/bmaidics))
+- Add detection of non-compacted session topic [\#1044](https://github.com/aklivity/zilla/pull/1044) ([bmaidics](https://github.com/bmaidics))
+- Fix: http-kafka will fetch messages that have been deleted by a reten… [\#1033](https://github.com/aklivity/zilla/pull/1033) ([aDaemonThread](https://github.com/aDaemonThread))
+
+## [0.9.81](https://github.com/aklivity/zilla/tree/0.9.81) (2024-05-24)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.80...0.9.81)
+
+**Implemented enhancements:**
+
+- Improve Starting Zilla with the CLI [\#1016](https://github.com/aklivity/zilla/issues/1016)
+- Generate `zilla dump` packet captures in timestamp order including across workers [\#959](https://github.com/aklivity/zilla/issues/959)
+- Split protocol testing into separate ITs for `zilla dump` command [\#958](https://github.com/aklivity/zilla/issues/958)
+- Add zilla context to MQTT consumer groups [\#886](https://github.com/aklivity/zilla/issues/886)
+
+**Fixed bugs:**
+
+- Telemetry attribute service.name doesn't get sent correctly [\#1007](https://github.com/aklivity/zilla/issues/1007)
+- Streampay `zilla` instance crashes while trying to access  `https://localhost:9090` [\#975](https://github.com/aklivity/zilla/issues/975)
+
+**Merged pull requests:**
+
+- Add service.name attribute to metrics [\#1048](https://github.com/aklivity/zilla/pull/1048) ([attilakreiner](https://github.com/attilakreiner))
+- Starting Zilla with the CLI improvement [\#1042](https://github.com/aklivity/zilla/pull/1042) ([aDaemonThread](https://github.com/aDaemonThread))
+- Sort frames by timestamp in dump command [\#1041](https://github.com/aklivity/zilla/pull/1041) ([attilakreiner](https://github.com/attilakreiner))
+- Ensure new mqtt subscriptions are not empty [\#1040](https://github.com/aklivity/zilla/pull/1040) ([jfallows](https://github.com/jfallows))
+- Add zilla context to MQTT consumer groups [\#1035](https://github.com/aklivity/zilla/pull/1035) ([bmaidics](https://github.com/bmaidics))
+- Split protocol testing into separate ITs for zilla dump command [\#989](https://github.com/aklivity/zilla/pull/989) ([attilakreiner](https://github.com/attilakreiner))
+
 ## [0.9.80](https://github.com/aklivity/zilla/tree/0.9.80) (2024-05-20)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.79...0.9.80)

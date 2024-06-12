@@ -15,17 +15,17 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.handler;
 
+import static io.aklivity.k3po.runtime.driver.internal.behavior.handler.event.AbstractEventHandler.ChannelEventKind.BOUND;
+import static io.aklivity.k3po.runtime.driver.internal.behavior.handler.event.AbstractEventHandler.ChannelEventKind.CONNECTED;
+import static io.aklivity.k3po.runtime.driver.internal.behavior.handler.event.AbstractEventHandler.ChannelEventKind.INTEREST_OPS;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaTransmission.HALF_DUPLEX;
-import static org.kaazing.k3po.driver.internal.behavior.handler.event.AbstractEventHandler.ChannelEventKind.BOUND;
-import static org.kaazing.k3po.driver.internal.behavior.handler.event.AbstractEventHandler.ChannelEventKind.CONNECTED;
-import static org.kaazing.k3po.driver.internal.behavior.handler.event.AbstractEventHandler.ChannelEventKind.INTEREST_OPS;
 
 import java.util.EnumSet;
 
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.ChannelStateEvent;
-import org.kaazing.k3po.driver.internal.behavior.handler.codec.ChannelDecoder;
 
+import io.aklivity.k3po.runtime.driver.internal.behavior.handler.codec.ChannelDecoder;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaChannel;
 
 public class ReadBeginExtHandler extends AbstractReadExtHandler

@@ -14,7 +14,7 @@
 # under the License.
 #
 
-accept "tcp://[::1]:8080"
+accept "tcp://[::1]:12345"
        notify ROUTED_SERVER
 accepted
 connected

@@ -18,18 +18,12 @@ package io.aklivity.zilla.runtime.binding.tls.internal;
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.binding.tls.internal.types.event.EventFW;
-import io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsEventExFW;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.event.EventFormatterSpi;
+import io.aklivity.zilla.specs.binding.tls.internal.types.event.TlsEventExFW;
 
 public final class TlsEventFormatter implements EventFormatterSpi
 {
-    private static final String TLS_FAILED_FORMAT = "TLS_FAILED";
-    private static final String PROTOCOL_REJECTED_FORMAT = "PROTOCOL_REJECTED";
-    private static final String KEY_REJECTED_FORMAT = "KEY_REJECTED";
-    private static final String PEER_NOT_VERIFIED_FORMAT = "PEER_NOT_VERIFIED";
-    private static final String HANDSHAKE_FAILED_FORMAT = "HANDSHAKE_FAILED";
-
     private final EventFW eventRO = new EventFW();
     private final TlsEventExFW tlsEventExRO = new TlsEventExFW();
 
@@ -51,27 +45,27 @@ public final class TlsEventFormatter implements EventFormatterSpi
         {
         case TLS_FAILED:
         {
-            result = TLS_FAILED_FORMAT;
+            result = "There was a generic error detected by an SSL subsystem.";
             break;
         }
         case TLS_PROTOCOL_REJECTED:
         {
-            result = PROTOCOL_REJECTED_FORMAT;
+            result = "There was an error in the operation of the SSL protocol.";
             break;
         }
         case TLS_KEY_REJECTED:
         {
-            result = KEY_REJECTED_FORMAT;
+            result = "Bad SSL key due to misconfiguration of the server or client SSL certificate and private key.";
             break;
         }
         case TLS_PEER_NOT_VERIFIED:
         {
-            result = PEER_NOT_VERIFIED_FORMAT;
+            result = "The peer's identity could not be verified.";
             break;
         }
         case TLS_HANDSHAKE_FAILED:
         {
-            result = HANDSHAKE_FAILED_FORMAT;
+            result = "The client and server could not negotiate the desired level of security.";
             break;
         }
         }

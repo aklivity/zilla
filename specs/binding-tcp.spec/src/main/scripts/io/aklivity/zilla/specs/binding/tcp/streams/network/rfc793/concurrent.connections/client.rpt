@@ -15,7 +15,7 @@
 #
 
 # Stream 1
-connect "tcp://localhost:8080"
+connect "tcp://localhost:12345"
 connected
 write "Hello"
 read "Hello"
@@ -25,7 +25,7 @@ close
 closed
 
 # Stream 2
-connect "tcp://localhost:8080"
+connect "tcp://localhost:12345"
 connected
 write "Hello"
 read "Hello"
@@ -35,7 +35,7 @@ close
 closed
 
 # Stream 3
-connect "tcp://localhost:8080"
+connect "tcp://localhost:12345"
 connected
 write "Hello"
 read "Hello"

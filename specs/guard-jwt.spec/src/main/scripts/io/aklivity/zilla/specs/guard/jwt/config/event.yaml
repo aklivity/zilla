@@ -23,7 +23,8 @@ telemetry:
         events:
           - qname: test.net0
             id: guard.jwt.authorization.failed
-            message: AUTHORIZATION_FAILED user
+            name: GUARD_JWT_AUTHORIZATION_FAILED
+            message: JWT token authorization failed for identity (user). Token is expired.
 guards:
   jwt0:
     type: jwt
