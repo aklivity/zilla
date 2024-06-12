@@ -13,7 +13,7 @@
 # specific language governing permissions and limitations under the License.
 #
 
-FROM eclipse-temurin:21-jdk AS build
+FROM eclipse-temurin:22-jdk AS build
 
 COPY maven /root/.m2/repository
 
