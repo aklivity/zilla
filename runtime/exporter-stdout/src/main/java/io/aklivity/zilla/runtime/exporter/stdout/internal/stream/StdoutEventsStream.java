@@ -51,7 +51,7 @@ public class StdoutEventsStream
 
     public int process()
     {
-        return readEvent.read(this::handleEvent, 1);
+        return readEvent.read(this::handleEvent, Integer.MAX_VALUE);
     }
 
     private void handleEvent(
