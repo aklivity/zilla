@@ -18,21 +18,27 @@ package io.aklivity.zilla.runtime.binding.sse.internal.config;
 import static io.aklivity.zilla.runtime.binding.sse.internal.config.SseOptionsConfigAdapter.RETRY_DEFAULT;
 import static java.util.stream.Collectors.toList;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import io.aklivity.zilla.runtime.binding.sse.config.SseOptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
+import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 
 public final class SseBindingConfig
 {
-    private static final SseOptionsConfig DEFAULT_OPTIONS = new SseOptionsConfig(RETRY_DEFAULT);
+    private static final SseOptionsConfig DEFAULT_OPTIONS = SseOptionsConfig.builder().retry(RETRY_DEFAULT).build();
 
     public final long id;
     public final String name;
     public final SseOptionsConfig options;
     public final KindConfig kind;
     public final List<SseRouteConfig> routes;
+    public final Map<Matcher, ModelConfig> paths;
 
     public SseBindingConfig(
         BindingConfig binding)
@@ -42,6 +48,12 @@ public final class SseBindingConfig
         this.kind = binding.kind;
         this.options = binding.options instanceof SseOptionsConfig ? (SseOptionsConfig) binding.options : DEFAULT_OPTIONS;
         this.routes = binding.routes.stream().map(SseRouteConfig::new).collect(toList());
+        this.paths = new HashMap<>();
+        if (options.paths != null)
+        {
+            options.paths.forEach(p ->
+                paths.put(Pattern.compile(p.path).matcher(""), p.content));
+        }
     }
 
     public SseRouteConfig resolve(
@@ -52,5 +64,25 @@ public final class SseBindingConfig
             .filter(r -> r.authorized(authorization) && r.matches(path))
             .findFirst()
             .orElse(null);
+    }
+
+    public ModelConfig supplyModelConfig(
+        String path)
+    {
+        ModelConfig config = null;
+        if (paths != null)
+        {
+            for (Map.Entry<Matcher, ModelConfig> e : paths.entrySet())
+            {
+                final Matcher matcher = e.getKey();
+                matcher.reset(path);
+                if (matcher.find())
+                {
+                    config = e.getValue();
+                    break;
+                }
+            }
+        }
+        return config;
     }
 }

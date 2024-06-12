@@ -15,33 +15,26 @@
  */
 package io.aklivity.zilla.runtime.binding.sse.config;
 
-import java.util.List;
-import java.util.function.Function;
+import static java.util.function.Function.identity;
 
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
+import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 
-public final class SseOptionsConfig extends OptionsConfig
+public class SsePathConfig
 {
-    public final int retry;
-    public final List<SsePathConfig> paths;
+    public final String path;
+    public final ModelConfig content;
 
 
-    public static SseOptionsConfigBuilder<SseOptionsConfig> builder()
+    SsePathConfig(
+        String path,
+        ModelConfig content)
     {
-        return new SseOptionsConfigBuilder<>(SseOptionsConfig.class::cast);
+        this.path = path;
+        this.content = content;
     }
 
-    public static <T> SseOptionsConfigBuilder<T> builder(
-        Function<OptionsConfig, T> mapper)
+    public static SsePathConfigBuilder<SsePathConfig> builder()
     {
-        return new SseOptionsConfigBuilder<>(mapper);
-    }
-
-    SseOptionsConfig(
-        int retry,
-        List<SsePathConfig> paths)
-    {
-        this.retry = retry;
-        this.paths = paths;
+        return new SsePathConfigBuilder<>(identity());
     }
 }

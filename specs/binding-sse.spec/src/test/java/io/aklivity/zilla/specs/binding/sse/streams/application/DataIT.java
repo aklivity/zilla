@@ -74,6 +74,15 @@ public class DataIT
 
     @Test
     @Specification({
+        "${app}/validation/client",
+        "${app}/validation/server" })
+    public void shouldValidateMessages() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/fragmented.10k/client",
         "${app}/fragmented.10k/server" })
     public void shouldReceiveDataFragmented10k() throws Exception

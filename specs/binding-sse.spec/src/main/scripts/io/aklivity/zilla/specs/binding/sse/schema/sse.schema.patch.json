@@ -40,6 +40,36 @@
                             {
                                 "type": "integer",
                                 "default": 2000
+                            },
+                            "paths":
+                            {
+                                "type": "array",
+                                "items":
+                                {
+                                    "type": "object",
+                                    "properties":
+                                    {
+                                        "path":
+                                        {
+                                            "type": "string"
+                                        },
+                                        "content":
+                                        {
+                                            "$ref": "#/$defs/validator"
+                                        }
+                                    },
+                                    "anyOf":
+                                    [
+                                        {
+                                            "required":
+                                            [
+                                                "path",
+                                                "content"
+                                            ]
+                                        }
+                                    ],
+                                    "additionalProperties": false
+                                }
                             }
                         },
                         "additionalProperties": false

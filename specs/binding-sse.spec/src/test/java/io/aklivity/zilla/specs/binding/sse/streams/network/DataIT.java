@@ -72,6 +72,16 @@ public class DataIT
         k3po.finish();
     }
 
+
+    @Test
+    @Specification({
+        "${net}/validation/request",
+        "${net}/validation/response" })
+    public void shouldValidateMessages() throws Exception
+    {
+        k3po.finish();
+    }
+
     @Test
     @Specification({
         "${net}/fragmented.10k/request",

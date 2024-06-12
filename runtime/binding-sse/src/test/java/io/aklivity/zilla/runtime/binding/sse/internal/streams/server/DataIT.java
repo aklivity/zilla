@@ -79,6 +79,16 @@ public class DataIT
     }
 
     @Test
+    @Configuration("server.validator.yaml")
+    @Specification({
+        "${net}/validation/request",
+        "${app}/validation/server" })
+    public void shouldValidateMessages() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.when.yaml")
     @Specification({
         "${net}/multi.line/request",
