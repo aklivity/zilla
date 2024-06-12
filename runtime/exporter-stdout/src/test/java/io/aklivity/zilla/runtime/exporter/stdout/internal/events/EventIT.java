@@ -50,7 +50,7 @@ public class EventIT
     private final StdoutOutputRule output = new StdoutOutputRule();
 
     @Rule
-    public final TestRule chain = outerRule(output).around(engine).around(k3po).around(timeout);
+    public final TestRule chain = outerRule(engine).around(output).around(k3po).around(timeout);
 
     @Test
     @Configuration("server.event.yaml")
