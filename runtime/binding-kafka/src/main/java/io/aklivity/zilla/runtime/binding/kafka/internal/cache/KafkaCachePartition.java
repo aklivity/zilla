@@ -75,6 +75,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaHeaderFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaKeyFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.String32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Varint32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheDeltaFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW;
@@ -576,13 +577,17 @@ public final class KafkaCachePartition
                 else if (headerTypes != null && !headerTypes.isEmpty())
                 {
                     Array32FW.Builder<KafkaHeaderFW.Builder, KafkaHeaderFW> builder =
-                        trailersRW.wrap(trailersRW.buffer(), 0, trailersRW.limit());
+                        trailersRW.wrap(trailersRW.buffer(), 0, trailersRW.maxLimit());
                     for (KafkaTopicHeaderType header : headerTypes)
                     {
+                        String32FW name = header.name;
+                        String path = header.path;
                         builder.item(h ->
                         {
-                            h.name(header.name.value(), 0, header.name.length());
-                            convertValue.extracted(header.path, h::value);
+                            h.nameLen(name.length())
+                                .name(name.value(), 0, name.length())
+                                .valueLen(convertValue.extractedLength(path));
+                            convertValue.extracted(path, h::value);
                         });
                     }
                     trailers = builder.build();

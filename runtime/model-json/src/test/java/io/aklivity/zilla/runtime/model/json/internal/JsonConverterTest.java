@@ -242,12 +242,14 @@ public class JsonConverterTest
         data.wrap(bytes, 0, bytes.length);
         assertEquals(data.capacity(), converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
 
+        assertEquals(2, converter.extractedLength(statusPath));
         final ConverterHandler.FieldVisitor visitor = (buffer, index, length) ->
         {
             assertEquals("OK", buffer.getStringWithoutLengthUtf8(index, length));
         };
         converter.extracted(statusPath, visitor);
 
+        assertEquals(3, converter.extractedLength(zillaIdPath));
         final ConverterHandler.FieldVisitor zillaIdVisitor = (buffer, index, length) ->
         {
             assertEquals("321", buffer.getStringWithoutLengthUtf8(index, length));

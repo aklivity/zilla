@@ -74,6 +74,19 @@ public class JsonReadConverterHandler extends JsonModelHandler implements Conver
     }
 
     @Override
+    public int extractedLength(
+        String path)
+    {
+        OctetsFW value = null;
+        Matcher matcher = pattern.matcher(path);
+        if (matcher.matches())
+        {
+            value = extracted.get(matcher.group(1));
+        }
+        return value != null ? value.sizeof() : 0;
+    }
+
+    @Override
     public void extracted(
         String path,
         FieldVisitor visitor)

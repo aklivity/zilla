@@ -141,7 +141,7 @@ public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicCon
 
         JsonArray headers = object.containsKey(HEADERS_NAME) ? object.getJsonArray(HEADERS_NAME) : null;
 
-        if (headers != null & !headers.isEmpty())
+        if (headers != null && !headers.isEmpty())
         {
             for (JsonValue header: headers)
             {

@@ -106,30 +106,33 @@ public abstract class JsonModelHandler
                 while (parser.hasNext())
                 {
                     JsonParser.Event event = parser.next();
-                    switch (event)
+                    if (!extracted.isEmpty())
                     {
-                    case KEY_NAME:
-                        String key = parser.getString();
-                        valueBytes = extracted.get(key);
-                        break;
-                    case VALUE_STRING:
-                        if (valueBytes != null)
+                        switch (event)
                         {
-                            int offset = (int) parser.getLocation().getStreamOffset() - DOUBLE_QUOTE_LENGTH;
-                            int valLength = parser.getString().getBytes(UTF_8).length;
-                            valueBytes.wrap(in.buffer(), offset - valLength, offset);
-                            valueBytes = null;
+                        case KEY_NAME:
+                            String key = parser.getString();
+                            valueBytes = extracted.get(key);
+                            break;
+                        case VALUE_STRING:
+                            if (valueBytes != null)
+                            {
+                                int offset = (int) parser.getLocation().getStreamOffset() - DOUBLE_QUOTE_LENGTH;
+                                int valLength = parser.getString().getBytes(UTF_8).length;
+                                valueBytes.wrap(in.buffer(), offset - valLength, offset);
+                                valueBytes = null;
+                            }
+                            break;
+                        case VALUE_NUMBER:
+                            if (valueBytes != null)
+                            {
+                                int offset = (int) parser.getLocation().getStreamOffset();
+                                int valLength = parser.getString().getBytes().length;
+                                valueBytes.wrap(in.buffer(), offset - valLength, offset);
+                                valueBytes = null;
+                            }
+                            break;
                         }
-                        break;
-                    case VALUE_NUMBER:
-                        if (valueBytes != null)
-                        {
-                            int offset = (int) parser.getLocation().getStreamOffset();
-                            int valLength = parser.getString().getBytes().length;
-                            valueBytes.wrap(in.buffer(), offset - valLength, offset);
-                            valueBytes = null;
-                        }
-                        break;
                     }
                 }
             }

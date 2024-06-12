@@ -52,6 +52,12 @@ public interface ConverterHandler
         int length,
         ValueConsumer next);
 
+    default int extractedLength(
+        String path)
+    {
+        return 0;
+    }
+
     default void extracted(
         String path,
         FieldVisitor visitor)

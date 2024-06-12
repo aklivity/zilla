@@ -15,24 +15,34 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.model;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.LongFunction;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
+import io.aklivity.zilla.runtime.engine.internal.types.OctetsFW;
+import io.aklivity.zilla.runtime.engine.internal.types.String16FW;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.engine.test.internal.model.config.TestModelConfig;
 
 public class TestConverterHandler implements ConverterHandler
 {
+    private static final String PATH = "^\\$\\.([A-Za-z_][A-Za-z0-9_]*)$";
+
+    private final Pattern pattern;
     private final int length;
     private final int schemaId;
     private final boolean read;
     private final CatalogHandler handler;
     private final SchemaConfig schema;
+    private final Map<String, OctetsFW> extracted;
 
     public TestConverterHandler(
         TestModelConfig config,
@@ -46,6 +56,19 @@ public class TestConverterHandler implements ConverterHandler
         schema = cataloged != null ? cataloged.schemas.get(0) : null;
         schemaId = schema != null ? schema.id : 0;
         this.handler = cataloged != null ? supplyCatalog.apply(cataloged.id) : null;
+        this.pattern = Pattern.compile(PATH);
+        this.extracted = new HashMap<>();
+    }
+
+    @Override
+    public void extract(
+        String path)
+    {
+        Matcher matcher = pattern.matcher(path);
+        if (matcher.matches())
+        {
+            extracted.put(matcher.group(1), new OctetsFW().wrap(new String16FW("12345").value(), 0, 5));
+        }
     }
 
     @Override
@@ -72,6 +95,35 @@ public class TestConverterHandler implements ConverterHandler
             next.accept(data, index, length);
         }
         return valid ? length : -1;
+    }
+
+    @Override
+    public int extractedLength(
+        String path)
+    {
+        OctetsFW value = null;
+        Matcher matcher = pattern.matcher(path);
+        if (matcher.matches())
+        {
+            value = extracted.get(matcher.group(1));
+        }
+        return value != null ? value.sizeof() : 0;
+    }
+
+    @Override
+    public void extracted(
+        String path,
+        FieldVisitor visitor)
+    {
+        Matcher matcher = pattern.matcher(path);
+        if (matcher.matches())
+        {
+            OctetsFW value = extracted.get(matcher.group(1));
+            if (value != null && value.sizeof() != 0)
+            {
+                visitor.visit(value.buffer(), value.offset(), value.sizeof());
+            }
+        }
     }
 }
 
