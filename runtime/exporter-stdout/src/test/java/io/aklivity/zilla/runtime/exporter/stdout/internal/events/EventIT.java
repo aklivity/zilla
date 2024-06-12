@@ -35,8 +35,8 @@ import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 public class EventIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/engine/streams/network")
-        .addScriptRoot("app", "io/aklivity/zilla/specs/engine/streams/application");
+        .addScriptRoot("net", "io/aklivity/zilla/runtime/exporter/stdout/streams/network")
+        .addScriptRoot("app", "io/aklivity/zilla/runtime/exporter/stdout/streams/application");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(5, SECONDS));
 
@@ -55,8 +55,8 @@ public class EventIT
     @Test
     @Configuration("server.event.yaml")
     @Specification({
-        "${net}/handshake/client",
-        "${app}/handshake/server"
+        "${net}/client",
+        "${app}/server"
     })
     @Configure(name = STDOUT_OUTPUT_NAME,
         value = "io.aklivity.zilla.runtime.exporter.stdout.internal.events.StdoutOutputRule.OUT")

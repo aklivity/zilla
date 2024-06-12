@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.matchesPattern;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Objects;
 import java.util.regex.Pattern;
 
 import org.junit.rules.TestRule;
@@ -38,7 +39,7 @@ public final class StdoutOutputRule implements TestRule
         OUT = new PrintStream(BOS);
     }
 
-    private Pattern expected;
+    private volatile Pattern expected;
 
     @Override
     public Statement apply(
@@ -51,9 +52,19 @@ public final class StdoutOutputRule implements TestRule
             public void evaluate() throws Throwable
             {
                 BOS.reset();
+
                 base.evaluate();
-                OUT.flush();
-                assertThat(BOS.toString(StandardCharsets.UTF_8), matchesPattern(expected));
+
+                while (BOS.size() == 0)
+                {
+                    OUT.flush();
+                    Thread.onSpinWait();
+                }
+
+                final Pattern expect = Objects.requireNonNull(expected);
+                final String actual = BOS.toString(StandardCharsets.UTF_8);
+
+                assertThat(actual, matchesPattern(expect));
             }
         };
     }
