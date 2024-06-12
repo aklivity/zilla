@@ -15,8 +15,13 @@
  */
 package io.aklivity.zilla.runtime.binding.sse.config;
 
+import static java.util.Collections.emptyList;
+
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
@@ -41,6 +46,13 @@ public final class SseOptionsConfig extends OptionsConfig
         int retry,
         List<SsePathConfig> paths)
     {
+        super(paths != null && !paths.isEmpty()
+            ? paths.stream()
+            .flatMap(path ->
+                Stream.of(path.content)
+                    .filter(Objects::nonNull))
+            .collect(Collectors.toList())
+            : emptyList());
         this.retry = retry;
         this.paths = paths;
     }
