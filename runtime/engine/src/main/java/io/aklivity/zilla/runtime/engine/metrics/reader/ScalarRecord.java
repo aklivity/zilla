@@ -18,6 +18,7 @@ package io.aklivity.zilla.runtime.engine.metrics.reader;
 import static io.aklivity.zilla.runtime.engine.namespace.NamespacedId.namespaceId;
 
 import java.util.Objects;
+import java.util.function.DoubleSupplier;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 
@@ -70,6 +71,11 @@ public class ScalarRecord implements MetricRecord
     public LongSupplier valueReader()
     {
         return this.reader;
+    }
+
+    public DoubleSupplier millisecondsValueReader()
+    {
+        return () -> (double) this.valueReader().getAsLong() / 1_000_000L;
     }
 
     @Override
