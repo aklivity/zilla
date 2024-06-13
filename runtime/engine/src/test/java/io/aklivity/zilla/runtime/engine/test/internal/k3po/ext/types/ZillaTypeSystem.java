@@ -22,9 +22,9 @@ import static java.util.Collections.unmodifiableSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
-import org.kaazing.k3po.lang.types.StructuredTypeInfo;
-import org.kaazing.k3po.lang.types.TypeInfo;
-import org.kaazing.k3po.lang.types.TypeSystemSpi;
+import io.aklivity.k3po.runtime.lang.types.StructuredTypeInfo;
+import io.aklivity.k3po.runtime.lang.types.TypeInfo;
+import io.aklivity.k3po.runtime.lang.types.TypeSystemSpi;
 
 public final class ZillaTypeSystem implements TypeSystemSpi
 {

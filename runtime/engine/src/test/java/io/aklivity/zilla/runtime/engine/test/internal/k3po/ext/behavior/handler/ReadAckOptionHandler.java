@@ -19,8 +19,8 @@ import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.Channels;
-import org.kaazing.k3po.driver.internal.behavior.handler.command.AbstractCommandHandler;
 
+import io.aklivity.k3po.runtime.driver.internal.behavior.handler.command.AbstractCommandHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaChannel;
 
 public class ReadAckOptionHandler extends AbstractCommandHandler

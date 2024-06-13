@@ -20,9 +20,9 @@ import java.util.EnumSet;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.MessageEvent;
-import org.kaazing.k3po.driver.internal.behavior.ScriptProgressException;
-import org.kaazing.k3po.driver.internal.behavior.handler.event.AbstractEventHandler;
 
+import io.aklivity.k3po.runtime.driver.internal.behavior.ScriptProgressException;
+import io.aklivity.k3po.runtime.driver.internal.behavior.handler.event.AbstractEventHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaChannel;
 
 public class ReadFlagsOptionHandler extends AbstractEventHandler

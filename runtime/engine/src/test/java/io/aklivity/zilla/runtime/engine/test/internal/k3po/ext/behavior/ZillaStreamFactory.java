@@ -15,6 +15,9 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior;
 
+import static io.aklivity.k3po.runtime.driver.internal.netty.channel.Channels.fireInputAborted;
+import static io.aklivity.k3po.runtime.driver.internal.netty.channel.Channels.fireInputAdvised;
+import static io.aklivity.k3po.runtime.driver.internal.netty.channel.Channels.fireInputShutdown;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.NullChannelBuffer.NULL_BUFFER;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaExtensionKind.ABORT;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaExtensionKind.BEGIN;
@@ -28,9 +31,6 @@ import static org.jboss.netty.channel.Channels.fireChannelDisconnected;
 import static org.jboss.netty.channel.Channels.fireChannelUnbound;
 import static org.jboss.netty.channel.Channels.fireExceptionCaught;
 import static org.jboss.netty.channel.Channels.fireMessageReceived;
-import static org.kaazing.k3po.driver.internal.netty.channel.Channels.fireInputAborted;
-import static org.kaazing.k3po.driver.internal.netty.channel.Channels.fireInputAdvised;
-import static org.kaazing.k3po.driver.internal.netty.channel.Channels.fireInputShutdown;
 
 import java.util.function.LongConsumer;
 import java.util.function.LongFunction;

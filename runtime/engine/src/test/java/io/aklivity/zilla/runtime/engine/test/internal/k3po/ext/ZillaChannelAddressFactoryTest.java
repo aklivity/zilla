@@ -15,16 +15,17 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.k3po.ext;
 
+import static io.aklivity.k3po.runtime.driver.internal.netty.channel.ChannelAddressFactory.newChannelAddressFactory;
 import static org.junit.Assert.assertNotNull;
-import static org.kaazing.k3po.driver.internal.netty.channel.ChannelAddressFactory.newChannelAddressFactory;
 
 import java.net.URI;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.junit.Test;
-import org.kaazing.k3po.driver.internal.netty.channel.ChannelAddress;
-import org.kaazing.k3po.driver.internal.netty.channel.ChannelAddressFactory;
+
+import io.aklivity.k3po.runtime.driver.internal.netty.channel.ChannelAddress;
+import io.aklivity.k3po.runtime.driver.internal.netty.channel.ChannelAddressFactory;
 
 public class ZillaChannelAddressFactoryTest
 {

@@ -19,7 +19,8 @@ import java.util.EnumSet;
 
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.MessageEvent;
-import org.kaazing.k3po.driver.internal.behavior.handler.codec.ChannelDecoder;
+
+import io.aklivity.k3po.runtime.driver.internal.behavior.handler.codec.ChannelDecoder;
 
 public class ReadDataExtHandler extends AbstractReadExtHandler
 {

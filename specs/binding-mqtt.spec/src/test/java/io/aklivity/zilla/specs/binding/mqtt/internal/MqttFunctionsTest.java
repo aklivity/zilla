@@ -27,8 +27,8 @@ import java.util.Objects;
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
-import org.kaazing.k3po.lang.el.BytesMatcher;
 
+import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttPayloadFormat;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSessionSignalFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSessionSignalType;

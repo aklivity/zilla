@@ -21,10 +21,10 @@ import java.util.Objects;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
-import org.kaazing.k3po.lang.el.BytesMatcher;
-import org.kaazing.k3po.lang.el.Function;
-import org.kaazing.k3po.lang.el.spi.FunctionMapperSpi;
 
+import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
+import io.aklivity.k3po.runtime.lang.el.Function;
+import io.aklivity.k3po.runtime.lang.el.spi.FunctionMapperSpi;
 import io.aklivity.zilla.specs.binding.openapi.internal.types.OctetsFW;
 import io.aklivity.zilla.specs.binding.openapi.internal.types.stream.OpenapiBeginExFW;
 

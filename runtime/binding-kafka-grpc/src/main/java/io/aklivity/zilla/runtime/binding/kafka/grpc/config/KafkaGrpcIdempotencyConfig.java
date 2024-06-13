@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.grpc.config;
 
-
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.String8FW;
 
 public final class KafkaGrpcIdempotencyConfig

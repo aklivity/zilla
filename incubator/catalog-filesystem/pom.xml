@@ -47,13 +47,13 @@
         <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.kaazing</groupId>
-      <artifactId>k3po.junit</artifactId>
+      <groupId>io.aklivity.k3po</groupId>
+      <artifactId>control-junit</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.kaazing</groupId>
-      <artifactId>k3po.lang</artifactId>
+      <groupId>io.aklivity.k3po</groupId>
+      <artifactId>lang</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -180,7 +180,7 @@
         </configuration>
       </plugin>
       <plugin>
-        <groupId>org.kaazing</groupId>
+        <groupId>io.aklivity.k3po</groupId>
         <artifactId>k3po-maven-plugin</artifactId>
         <dependencies>
           <dependency>

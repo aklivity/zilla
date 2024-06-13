@@ -15,12 +15,12 @@
  */
 package io.aklivity.zilla.specs.binding.ws.internal;
 
+import static io.aklivity.k3po.runtime.lang.internal.el.ExpressionFactoryUtils.newExpressionFactory;
 import static io.aklivity.zilla.specs.binding.ws.internal.WsFunctions.beginEx;
 import static io.aklivity.zilla.specs.binding.ws.internal.WsFunctions.handshakeHash;
 import static io.aklivity.zilla.specs.binding.ws.internal.WsFunctions.handshakeKey;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.kaazing.k3po.lang.internal.el.ExpressionFactoryUtils.newExpressionFactory;
 
 import javax.el.ELContext;
 import javax.el.ExpressionFactory;
@@ -30,8 +30,8 @@ import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Before;
 import org.junit.Test;
-import org.kaazing.k3po.lang.internal.el.ExpressionContext;
 
+import io.aklivity.k3po.runtime.lang.internal.el.ExpressionContext;
 import io.aklivity.zilla.specs.binding.ws.internal.WsFunctions.WsBeginExHelper;
 import io.aklivity.zilla.specs.binding.ws.internal.types.stream.WsBeginExFW;
 

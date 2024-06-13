@@ -30,8 +30,8 @@
 
   <dependencies>
     <dependency>
-      <groupId>org.kaazing</groupId>
-      <artifactId>k3po.lang</artifactId>
+      <groupId>io.aklivity.k3po</groupId>
+      <artifactId>lang</artifactId>
     </dependency>
     <dependency>
       <groupId>jakarta.json</groupId>
@@ -66,8 +66,8 @@
       </exclusions>
     </dependency>
     <dependency>
-      <groupId>org.kaazing</groupId>
-      <artifactId>k3po.junit</artifactId>
+      <groupId>io.aklivity.k3po</groupId>
+      <artifactId>control-junit</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>

@@ -19,7 +19,8 @@ import static org.jboss.netty.channel.Channels.write;
 
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.ChannelHandlerContext;
-import org.kaazing.k3po.driver.internal.behavior.handler.command.AbstractCommandHandler;
+
+import io.aklivity.k3po.runtime.driver.internal.behavior.handler.command.AbstractCommandHandler;
 
 public class WriteEmptyDataHandler extends AbstractCommandHandler
 {
