@@ -281,8 +281,8 @@ public final class WsServerFactory implements WsStreamFactory
         private MutableDirectBuffer status;
         private int statusLength;
 
-        private int payloadProgress;
-        private int payloadLength;
+        private long payloadProgress;
+        private long payloadLength;
         private int maskingKey;
 
         private long initialSeq;
@@ -809,7 +809,7 @@ public final class WsServerFactory implements WsStreamFactory
         {
             // TODO: limit acceptReply bytes by acceptReply window, or RESET on overflow?
 
-            final int decodeBytes = Math.min(length, payloadLength - payloadProgress);
+            final int decodeBytes = Math.min(length, (int) Math.min(payloadLength - payloadProgress, Integer.MAX_VALUE));
 
             final OctetsFW payload = payloadRO.wrap(buffer, offset, offset + decodeBytes);
             stream.doAppData(decodeTraceId, decodeAuthorization, 0x80, maskingKey, payload);
@@ -834,7 +834,7 @@ public final class WsServerFactory implements WsStreamFactory
 
             // TODO: limit acceptReply bytes by acceptReply window, or RESET on overflow?
 
-            final int decodeBytes = Math.min(length, payloadLength - payloadProgress);
+            final int decodeBytes = Math.min(length, (int) Math.min(payloadLength - payloadProgress, Integer.MAX_VALUE));
 
             final OctetsFW payload = payloadRO.wrap(buffer, offset, offset + decodeBytes);
             stream.doAppData(decodeTraceId, decodeAuthorization, 0x81, maskingKey, payload);
@@ -857,7 +857,7 @@ public final class WsServerFactory implements WsStreamFactory
         {
             // TODO: limit acceptReply bytes by acceptReply window, or RESET on overflow?
 
-            final int decodeBytes = Math.min(length, payloadLength - payloadProgress);
+            final int decodeBytes = Math.min(length, (int) Math.min(payloadLength - payloadProgress, Integer.MAX_VALUE));
 
             final OctetsFW payload = payloadRO.wrap(buffer, offset, offset + decodeBytes);
             stream.doAppData(decodeTraceId, decodeAuthorization, 0x82, maskingKey, payload);
@@ -886,7 +886,7 @@ public final class WsServerFactory implements WsStreamFactory
             }
             else
             {
-                final int decodeBytes = Math.min(length, payloadLength - payloadProgress);
+                final int decodeBytes = Math.min(length, (int) Math.min(payloadLength - payloadProgress, Integer.MAX_VALUE));
                 payloadProgress += decodeBytes;
 
                 int remaining = Math.min(length, 2 - statusLength);
@@ -926,7 +926,7 @@ public final class WsServerFactory implements WsStreamFactory
             }
             else
             {
-                final int decodeBytes = Math.min(length, payloadLength - payloadProgress);
+                final int decodeBytes = Math.min(length, (int) Math.min(payloadLength - payloadProgress, Integer.MAX_VALUE));
 
                 payloadRO.wrap(buffer, offset, offset + decodeBytes);
 
@@ -955,7 +955,7 @@ public final class WsServerFactory implements WsStreamFactory
             }
             else
             {
-                final int decodeBytes = Math.min(length, payloadLength - payloadProgress);
+                final int decodeBytes = Math.min(length, (int) Math.min(payloadLength - payloadProgress, Integer.MAX_VALUE));
 
                 OctetsFW payload = payloadRO.wrap(buffer, offset, offset + decodeBytes);
 
