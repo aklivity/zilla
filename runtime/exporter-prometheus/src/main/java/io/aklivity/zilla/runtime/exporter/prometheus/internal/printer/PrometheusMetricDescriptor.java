@@ -72,13 +72,22 @@ public class PrometheusMetricDescriptor
         }
         else if (metric.unit() == NANOSECONDS)
         {
-            result += "_nanoseconds";
+            // we are converting nanoseconds values to milliseconds
+            result += "_milliseconds";
         }
         if (metric.kind() == COUNTER)
         {
             result += "_total";
         }
         return result;
+    }
+
+    public boolean milliseconds(
+        String internalName)
+    {
+        // we are converting nanoseconds values to milliseconds
+        Metric metric = metricResolver.apply(internalName);
+        return metric.unit() == NANOSECONDS;
     }
 
     public String description(

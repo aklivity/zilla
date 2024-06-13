@@ -15,8 +15,8 @@
  */
 package io.aklivity.zilla.runtime.engine.metrics.reader;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -39,6 +39,17 @@ public class HistogramRecordTest
         () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L,
         () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L,
         () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L
+    };
+    public static final LongSupplier[] READER_HISTOGRAM_MS = new LongSupplier[]
+    {
+        () -> 0L, () -> 1L, () -> 2L, () -> 0L, () -> 3L, () -> 0L, () -> 0L, () -> 0L,
+        () -> 0L, () -> 0L, () -> 4L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L,
+        () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L,
+        () -> 0L, () -> 4L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L,
+        () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 2L, () -> 0L, () -> 0L,
+        () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L,
+        () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L,
+        () -> 0L, () -> 3L, () -> 0L, () -> 0L, () -> 1L, () -> 0L, () -> 0L
     };
 
     @Test
@@ -73,6 +84,34 @@ public class HistogramRecordTest
         assertThat(stats[2], equalTo(5_051_808L)); // sum
         assertThat(stats[3], equalTo(100L)); // cnt
         assertThat(stats[4], equalTo(50_518L)); // avg
+    }
+
+    @Test
+    public void shouldResolveTimeInMilliseconds()
+    {
+        // GIVEN
+        LongFunction<String> labelResolver = mock(LongFunction.class);
+        long bindingId = NamespacedId.id(77, 7);
+        long metricId = NamespacedId.id(77, 8);
+        HistogramRecord histogram = new HistogramRecord(bindingId, metricId, READER_HISTOGRAM_MS, labelResolver);
+
+        // WHEN
+        histogram.update();
+        int buckets = histogram.buckets();
+        long[] value = histogram.millisecondBucketValues();
+        long[] stats = histogram.millisecondStats();
+
+        // THEN
+        assertThat(buckets, equalTo(63));
+        assertThat(value[0], equalTo(10L));
+        assertThat(value[18], equalTo(2L));
+        assertThat(value[38], equalTo(3L));
+        assertThat(value[41], equalTo(1L));
+        assertThat(stats[0], equalTo(1L)); // min
+        assertThat(stats[1], equalTo(4_398_046_511_103L)); // max
+        assertThat(stats[2], equalTo(6_047_315_001_856L)); // sum
+        assertThat(stats[3], equalTo(20L)); // cnt
+        assertThat(stats[4], equalTo(302_365_750_092L)); // avg
     }
 
     @Test
