@@ -32,7 +32,7 @@ public class SsePathConfigAdapter implements JsonbAdapter<SsePathConfig, JsonObj
     private final ModelConfigAdapter model = new ModelConfigAdapter();
 
     public JsonObject adaptToJson(
-        SsePathConfig path) // TODO: rename to something better?
+        SsePathConfig path)
     {
         JsonObjectBuilder object = Json.createObjectBuilder();
         if (path.path != null)
