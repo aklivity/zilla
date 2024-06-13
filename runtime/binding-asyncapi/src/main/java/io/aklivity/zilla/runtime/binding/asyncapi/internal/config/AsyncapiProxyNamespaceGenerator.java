@@ -104,7 +104,7 @@ public class AsyncapiProxyNamespaceGenerator extends AsyncapiNamespaceGenerator
     private AsyncapiProxy resolveProxy(
         String protocol)
     {
-        Pattern pattern = Pattern.compile("(http|mqtt)");
+        Pattern pattern = Pattern.compile("(http|mqtt|sse)");
         Matcher matcher = pattern.matcher(protocol);
         AsyncapiProxy proxy = null;
         if (matcher.find())
@@ -113,6 +113,9 @@ public class AsyncapiProxyNamespaceGenerator extends AsyncapiNamespaceGenerator
             {
             case "http":
                 proxy = new AsyncapiHttpKafkaProxy(qname, asyncapis);
+                break;
+            case "sse":
+                proxy = new AsyncapiSseKafkaProxy(qname, asyncapis);
                 break;
             case "mqtt":
                 proxy = new AsyncapiMqttKafkaProxy(qname, asyncapis);

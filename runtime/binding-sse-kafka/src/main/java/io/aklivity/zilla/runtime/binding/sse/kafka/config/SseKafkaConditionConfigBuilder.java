@@ -17,25 +17,37 @@ package io.aklivity.zilla.runtime.binding.sse.kafka.config;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
+import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 
-public final class SseKafkaConditionConfig extends ConditionConfig
+public final class SseKafkaConditionConfigBuilder<T> extends ConfigBuilder<T, SseKafkaConditionConfigBuilder<T>>
 {
-    public final String path;
+    private final Function<ConditionConfig, T> mapper;
+    private String path;
 
-    SseKafkaConditionConfig(
+    public SseKafkaConditionConfigBuilder(
+        Function<ConditionConfig, T> mapper)
+    {
+        this.mapper = mapper;
+    }
+    public SseKafkaConditionConfigBuilder<T> path(
         String path)
     {
         this.path = path;
+        return this;
     }
 
-    public static SseKafkaConditionConfigBuilder<SseKafkaConditionConfig> builder()
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Class<SseKafkaConditionConfigBuilder<T>> thisType()
     {
-        return new SseKafkaConditionConfigBuilder<>(SseKafkaConditionConfig.class::cast);
+        return (Class<SseKafkaConditionConfigBuilder<T>>) getClass();
     }
 
-    public static <T> SseKafkaConditionConfigBuilder<T> builder(
-        Function<ConditionConfig, T> mapper)
+
+    @Override
+    public T build()
     {
-        return new SseKafkaConditionConfigBuilder<>(mapper);
+        return mapper.apply(new SseKafkaConditionConfig(path));
     }
 }

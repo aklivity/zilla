@@ -14,8 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.sse.kafka.internal.stream;
 
-import static io.aklivity.zilla.runtime.binding.sse.kafka.internal.config.SseKafkaWithConfig.EVENT_ID_ETAG_ONLY;
-import static io.aklivity.zilla.runtime.binding.sse.kafka.internal.config.SseKafkaWithConfig.EVENT_ID_KEY64_AND_ETAG;
+import static io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithConfig.EVENT_ID_ETAG_ONLY;
+import static io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithConfig.EVENT_ID_KEY64_AND_ETAG;
 
 import java.util.function.LongUnaryOperator;
 

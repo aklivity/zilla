@@ -12,12 +12,14 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.sse.kafka.internal.config;
+package io.aklivity.zilla.runtime.binding.sse.kafka.config;
 
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 
+import io.aklivity.zilla.runtime.binding.sse.kafka.internal.config.SseKafkaWithFilterConfig;
 import io.aklivity.zilla.runtime.engine.config.WithConfig;
 
 public final class SseKafkaWithConfig extends WithConfig
@@ -30,7 +32,7 @@ public final class SseKafkaWithConfig extends WithConfig
     public final Optional<List<SseKafkaWithFilterConfig>> filters;
     public final String eventId;
 
-    public SseKafkaWithConfig(
+    SseKafkaWithConfig(
         String topic,
         List<SseKafkaWithFilterConfig> filters,
         String eventId)
@@ -38,5 +40,16 @@ public final class SseKafkaWithConfig extends WithConfig
         this.topic = topic;
         this.filters = Optional.ofNullable(filters);
         this.eventId = Objects.requireNonNull(eventId);
+    }
+
+    public static SseKafkaWithConfigBuilder<SseKafkaWithConfig> builder()
+    {
+        return new SseKafkaWithConfigBuilder<>(SseKafkaWithConfig.class::cast);
+    }
+
+    public static <T> SseKafkaWithConfigBuilder<T> builder(
+        Function<WithConfig, T> mapper)
+    {
+        return new SseKafkaWithConfigBuilder<>(mapper);
     }
 }

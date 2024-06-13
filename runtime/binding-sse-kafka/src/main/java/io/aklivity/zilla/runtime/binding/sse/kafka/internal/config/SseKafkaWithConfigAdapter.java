@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.sse.kafka.internal.config;
 
-import static io.aklivity.zilla.runtime.binding.sse.kafka.internal.config.SseKafkaWithConfig.EVENT_ID_DEFAULT;
+import static io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithConfig.EVENT_ID_DEFAULT;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,6 +26,7 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithConfig;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.SseKafkaBinding;
 import io.aklivity.zilla.runtime.engine.config.WithConfig;
 import io.aklivity.zilla.runtime.engine.config.WithConfigAdapterSpi;
@@ -156,6 +157,10 @@ public final class SseKafkaWithConfigAdapter implements WithConfigAdapterSpi, Js
             }
         }
 
-        return new SseKafkaWithConfig(newTopic, newFilters, newEventId);
+        return SseKafkaWithConfig.builder()
+            .topic(newTopic)
+            .filters(newFilters)
+            .eventId(newEventId)
+            .build();
     }
 }
