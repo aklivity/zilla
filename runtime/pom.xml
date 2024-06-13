@@ -40,6 +40,7 @@
     <module>binding-tls</module>
     <module>binding-ws</module>
     <module>catalog-apicurio</module>
+    <module>catalog-filesystem</module>
     <module>catalog-inline</module>
     <module>catalog-karapace</module>
     <module>common</module>
