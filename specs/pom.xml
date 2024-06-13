@@ -40,6 +40,7 @@
     <module>binding-sse-kafka.spec</module>
     <module>binding-kafka-grpc.spec</module>
     <module>catalog-apicurio.spec</module>
+    <module>catalog-filesystem.spec</module>
     <module>catalog-inline.spec</module>
     <module>catalog-karapace.spec</module>
     <module>exporter-otlp.spec</module>
