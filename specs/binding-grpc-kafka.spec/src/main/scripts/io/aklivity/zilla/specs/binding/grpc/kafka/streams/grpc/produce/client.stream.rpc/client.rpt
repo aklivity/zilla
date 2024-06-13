@@ -40,6 +40,11 @@ write flush
 
 write close
 
+read zilla:begin.ext ${grpc:matchBeginEx()
+                           .typeId(zilla:id("grpc"))
+                           .metadata("custom", "value")
+                           .build()}
+
 read ${grpc:protobuf()
            .string(1, "Hello World")
            .build()}

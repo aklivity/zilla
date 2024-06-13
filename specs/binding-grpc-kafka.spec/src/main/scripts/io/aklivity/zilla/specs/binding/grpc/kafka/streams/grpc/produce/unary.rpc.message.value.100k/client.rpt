@@ -42,6 +42,11 @@ write flush
 
 write close
 
+read zilla:begin.ext ${grpc:matchBeginEx()
+                           .typeId(zilla:id("grpc"))
+                           .metadata("custom", "value")
+                           .build()}
+
 read zilla:data.ext ${grpc:dataEx()
                               .typeId(zilla:id("grpc"))
                               .deferred(94217)
