@@ -24,9 +24,9 @@ import org.agrona.concurrent.AtomicBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.tcp.internal.types.event.EventFW;
+import io.aklivity.zilla.runtime.binding.tcp.internal.types.event.TcpEventExFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
-import io.aklivity.zilla.specs.binding.tcp.internal.types.event.TcpEventExFW;
 
 public class TcpEventContext
 {
