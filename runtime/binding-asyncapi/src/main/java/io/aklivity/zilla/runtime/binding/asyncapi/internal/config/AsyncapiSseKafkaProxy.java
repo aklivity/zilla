@@ -29,15 +29,13 @@ import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithConfig;
 import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
+import static io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithConfig.EVENT_ID_DEFAULT;
 
 public class AsyncapiSseKafkaProxy extends AsyncapiProxy
 {
     private static final String ASYNCAPI_KAFKA_PROTOCOL_NAME = "kafka";
     private static final String ASYNCAPI_SSE_PROTOCOL_NAME = "sse";
     private static final String ASYNCAPI_RECEIVE_ACTION_NAME = "receive";
-    private static final Pattern PARAMETER_PATTERN = Pattern.compile("\\{([^}]+)\\}");
-
-    private final Matcher parameters = PARAMETER_PATTERN.matcher("");
 
     protected AsyncapiSseKafkaProxy(
         String qname,
@@ -96,7 +94,6 @@ public class AsyncapiSseKafkaProxy extends AsyncapiProxy
 
         final AsyncapiChannelView channel = AsyncapiChannelView.of(sseAsyncapi.channels, whenOperation.channel);
         String path = channel.address();
-        final List<String> paramNames = findParams(path);
 
         final RouteConfigBuilder<BindingConfigBuilder<C>> routeBuilder = binding.route();
         routeBuilder
@@ -117,18 +114,6 @@ public class AsyncapiSseKafkaProxy extends AsyncapiProxy
         return binding;
     }
 
-    private List<String> findParams(
-        String item)
-    {
-        List<String> paramNames = new ArrayList<>();
-        Matcher matcher = parameters.reset(item);
-        while (matcher.find())
-        {
-            paramNames.add(parameters.group(1));
-        }
-        return paramNames;
-    }
-
     private <C> RouteConfigBuilder<C> injectSseKafkaRouteWith(
         RouteConfigBuilder<C> route,
         Asyncapi kafkaAsyncapi,
@@ -143,6 +128,7 @@ public class AsyncapiSseKafkaProxy extends AsyncapiProxy
         {
             newWith
                 .topic(topic)
+                .eventId(EVENT_ID_DEFAULT)
                 .build();
         }
 

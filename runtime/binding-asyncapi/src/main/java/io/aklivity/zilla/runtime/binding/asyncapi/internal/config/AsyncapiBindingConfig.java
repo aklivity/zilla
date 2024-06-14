@@ -220,7 +220,7 @@ public final class AsyncapiBindingConfig
                 bindings = v.bindings.stream()
                     .filter(b -> b.type.equals("mqtt") || b.type.equals("http") || b.type.equals("sse") ||
                         b.type.equals("kafka") && b.kind == CACHE_CLIENT || b.type.equals("mqtt-kafka") ||
-                        b.type.equals("http-kafka"))
+                        b.type.equals("http-kafka") || b.type.equals("sse-kafka"))
                     .collect(toList());
             }
 

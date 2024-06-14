@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.sse.kafka.internal.config;
 
-import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithConfig;
 import static com.github.npathai.hamcrestopt.OptionalMatchers.isEmpty;
 import static com.github.npathai.hamcrestopt.OptionalMatchers.isPresentAnd;
 import static com.vtence.hamcrest.jpa.HasFieldWithValue.hasField;
@@ -35,6 +34,8 @@ import jakarta.json.bind.JsonbConfig;
 
 import org.junit.Before;
 import org.junit.Test;
+
+import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithConfig;
 
 public class SseKafkaWithConfigAdapterTest
 {

@@ -38,6 +38,7 @@ public class AsyncapiProxyNamespaceGenerator extends AsyncapiNamespaceGenerator
     private static final String ASYNCAPI_KAFKA_PROTOCOL_NAME = "kafka";
     private static final String ASYNCAPI_MQTT_PROTOCOL_NAME = "mqtt";
     private static final String ASYNCAPI_HTTP_PROTOCOL_NAME = "http";
+    private static final String ASYNCAPI_SSE_PROTOCOL_NAME = "sse";
 
     public NamespaceConfig generateProxy(
         BindingConfig binding,
@@ -70,7 +71,8 @@ public class AsyncapiProxyNamespaceGenerator extends AsyncapiNamespaceGenerator
                 final Asyncapi asyncapi = asyncapis.get(condition.apiId);
                 if (asyncapi.servers.values().stream().anyMatch(s ->
                     !s.protocol.startsWith(ASYNCAPI_MQTT_PROTOCOL_NAME) &&
-                    !s.protocol.startsWith(ASYNCAPI_HTTP_PROTOCOL_NAME)))
+                    !s.protocol.startsWith(ASYNCAPI_HTTP_PROTOCOL_NAME) &&
+                    !s.protocol.startsWith(ASYNCAPI_SSE_PROTOCOL_NAME)))
                 {
                     break inject;
                 }
