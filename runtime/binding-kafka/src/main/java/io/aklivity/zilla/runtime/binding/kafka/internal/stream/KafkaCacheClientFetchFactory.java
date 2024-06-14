@@ -1394,14 +1394,8 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                                                               .ancestorOffset(ancestorOffset))
                                      .headers(hs ->
                                      {
-                                         headers.forEach(h -> hs.item(i -> i.nameLen(h.nameLen())
-                                             .name(h.name())
-                                             .valueLen(h.valueLen())
-                                             .value(h.value())));
-                                         trailers.forEach(t -> hs.item(i -> i.nameLen(t.nameLen())
-                                             .name(t.name())
-                                             .valueLen(t.valueLen())
-                                             .value(t.value())));
+                                         headers.forEach(h -> hs.item(i -> i.set(h)));
+                                         trailers.forEach(t -> hs.item(i -> i.set(t)));
                                      }))
                         .build()
                         .sizeof()));
@@ -1449,14 +1443,8 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                                                   .ancestorOffset(ancestorOffset))
                                      .headers(hs ->
                                      {
-                                         headers.forEach(h -> hs.item(i -> i.nameLen(h.nameLen())
-                                             .name(h.name())
-                                             .valueLen(h.valueLen())
-                                             .value(h.value())));
-                                         trailers.forEach(t -> hs.item(i -> i.nameLen(t.nameLen())
-                                             .name(t.name())
-                                             .valueLen(t.valueLen())
-                                             .value(t.value())));
+                                         headers.forEach(h -> hs.item(i -> i.set(h)));
+                                         trailers.forEach(t -> hs.item(i -> i.set(t)));
                                      }))
                         .build()
                         .sizeof()));
@@ -1508,14 +1496,8 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                                                   .ancestorOffset(ancestorOffset))
                                      .headers(hs ->
                                      {
-                                         headers.forEach(h -> hs.item(i -> i.nameLen(h.nameLen())
-                                             .name(h.name())
-                                             .valueLen(h.valueLen())
-                                             .value(h.value())));
-                                         trailers.forEach(t -> hs.item(i -> i.nameLen(t.nameLen())
-                                             .name(t.name())
-                                             .valueLen(t.valueLen())
-                                             .value(t.value())));
+                                         headers.forEach(h -> hs.item(i -> i.set(h)));
+                                         trailers.forEach(t -> hs.item(i -> i.set(t)));
                                      }))
                         .build()
                         .sizeof()));

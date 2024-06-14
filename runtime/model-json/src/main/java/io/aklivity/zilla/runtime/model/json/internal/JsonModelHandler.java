@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.runtime.model.json.internal;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import java.io.StringReader;
 import java.util.HashMap;
 import java.util.Map;
@@ -58,7 +56,7 @@ public abstract class JsonModelHandler
     private final JsonValidationService service;
     private final JsonParserFactory factory;
 
-    protected JsonParser parser;
+    private JsonParser parser;
     private DirectBufferInputStream in;
 
     public JsonModelHandler(
@@ -119,7 +117,7 @@ public abstract class JsonModelHandler
                             {
                                 int offset = (int) parser.getLocation().getStreamOffset() - DOUBLE_QUOTE_LENGTH;
                                 offset += index;
-                                int valLength = parser.getString().getBytes(UTF_8).length;
+                                int valLength = calculateValueLength();
                                 valueBytes.wrap(in.buffer(), offset - valLength, offset);
                                 valueBytes = null;
                             }
@@ -129,7 +127,7 @@ public abstract class JsonModelHandler
                             {
                                 int offset = (int) parser.getLocation().getStreamOffset();
                                 offset += index;
-                                int valLength = parser.getString().getBytes().length;
+                                int valLength = calculateValueLength();
                                 valueBytes.wrap(in.buffer(), offset - valLength, offset);
                                 valueBytes = null;
                             }
@@ -145,6 +143,35 @@ public abstract class JsonModelHandler
             event.validationFailure(traceId, bindingId, ex.getMessage());
         }
         return status;
+    }
+
+    private int calculateValueLength()
+    {
+        int length = 0;
+        String value = parser.getString();
+        int valLength = value.length();
+        for (int i = 0; i < valLength; i++)
+        {
+            char c = value.charAt(i);
+            if ((c & 0xFF80) == 0)
+            {
+                length += 1;
+            }
+            else if ((c & 0xF800) == 0)
+            {
+                length += 2;
+            }
+            else if (Character.isHighSurrogate(c))
+            {
+                length += 4;
+                i++;
+            }
+            else
+            {
+                length += 3;
+            }
+        }
+        return length;
     }
 
     protected JsonProvider supplyProvider(
@@ -185,6 +212,4 @@ public abstract class JsonModelHandler
         }
         return provider;
     }
-
-
 }

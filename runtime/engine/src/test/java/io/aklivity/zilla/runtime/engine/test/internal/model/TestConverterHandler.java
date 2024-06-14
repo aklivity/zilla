@@ -35,14 +35,15 @@ import io.aklivity.zilla.runtime.engine.test.internal.model.config.TestModelConf
 public class TestConverterHandler implements ConverterHandler
 {
     private static final String PATH = "^\\$\\.([A-Za-z_][A-Za-z0-9_]*)$";
+    private static final Pattern PATH_PATTERN = Pattern.compile(PATH);
 
-    private final Pattern pattern;
     private final int length;
     private final int schemaId;
     private final boolean read;
     private final CatalogHandler handler;
     private final SchemaConfig schema;
     private final Map<String, OctetsFW> extracted;
+    private final Matcher matcher;
 
     public TestConverterHandler(
         TestModelConfig config,
@@ -56,15 +57,15 @@ public class TestConverterHandler implements ConverterHandler
         schema = cataloged != null ? cataloged.schemas.get(0) : null;
         schemaId = schema != null ? schema.id : 0;
         this.handler = cataloged != null ? supplyCatalog.apply(cataloged.id) : null;
-        this.pattern = Pattern.compile(PATH);
         this.extracted = new HashMap<>();
+        this.matcher = PATH_PATTERN.matcher("");
     }
 
     @Override
     public void extract(
         String path)
     {
-        Matcher matcher = pattern.matcher(path);
+        Matcher matcher = PATH_PATTERN.matcher(path);
         if (matcher.matches())
         {
             extracted.put(matcher.group(1), new OctetsFW().wrap(new String16FW("12345").value(), 0, 5));
@@ -101,12 +102,8 @@ public class TestConverterHandler implements ConverterHandler
     public int extractedLength(
         String path)
     {
-        OctetsFW value = null;
-        Matcher matcher = pattern.matcher(path);
-        if (matcher.matches())
-        {
-            value = extracted.get(matcher.group(1));
-        }
+        matcher.reset(path).matches();
+        OctetsFW value = extracted.get(matcher.group(1));
         return value != null ? value.sizeof() : 0;
     }
 
@@ -115,14 +112,11 @@ public class TestConverterHandler implements ConverterHandler
         String path,
         FieldVisitor visitor)
     {
-        Matcher matcher = pattern.matcher(path);
-        if (matcher.matches())
+        matcher.reset(path).matches();
+        OctetsFW value = extracted.get(matcher.group(1));
+        if (value != null && value.sizeof() != 0)
         {
-            OctetsFW value = extracted.get(matcher.group(1));
-            if (value != null && value.sizeof() != 0)
-            {
-                visitor.visit(value.buffer(), value.offset(), value.sizeof());
-            }
+            visitor.visit(value.buffer(), value.offset(), value.sizeof());
         }
     }
 }
