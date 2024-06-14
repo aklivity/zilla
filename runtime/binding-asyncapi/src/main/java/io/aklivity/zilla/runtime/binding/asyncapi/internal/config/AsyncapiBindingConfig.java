@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.Consumer;
 import java.util.function.LongFunction;
@@ -44,10 +45,13 @@ import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiParser;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiSchemaConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiBinding;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.HttpBeginExFW;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.MqttBeginExFW;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.SseBeginExFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiServerView;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
@@ -57,6 +61,8 @@ import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 
 public final class AsyncapiBindingConfig
 {
+    public static final String SEND_OPERATION = "send";
+    public static final String RECEIVE_OPERATION = "receive";
     public final long id;
     public final String name;
     public final KindConfig kind;
@@ -64,13 +70,17 @@ public final class AsyncapiBindingConfig
     public final List<AsyncapiRouteConfig> routes;
 
     private final Int2ObjectHashMap<String> typesByNamespaceId;
-    private final Int2ObjectHashMap<NamespaceConfig> composites;
+    private final Int2ObjectHashMap<CompositeNamespace> composites;
     private final Long2LongHashMap apiIdsByNamespaceId;
     private final AsyncapiNamespaceGenerator namespaceGenerator;
-    private final Long2LongHashMap compositeResolvedIds;
+    private final Object2LongHashMap<String> compositeResolvedIds;
     private final Object2ObjectHashMap<Matcher, String> paths;
+    private final Object2ObjectHashMap<Matcher, String> topics;
     private final Object2LongHashMap<String> schemaIdsByApiId;
     private final Map<CharSequence, String> operationIds;
+    private final Map<String, Map<String, AsyncapiBinding>> operationBindings;
+    private final Map<CharSequence, String> receiveOperationIds;
+    private final Map<CharSequence, String> sendOperationIds;
     private final LongFunction<CatalogHandler> supplyCatalog;
     private final ToLongFunction<String> resolveId;
     private final Consumer<NamespaceConfig> attach;
@@ -97,11 +107,15 @@ public final class AsyncapiBindingConfig
         this.options = (AsyncapiOptionsConfig) binding.options;
         this.composites = new Int2ObjectHashMap<>();
         this.apiIdsByNamespaceId = new Long2LongHashMap(-1);
-        this.compositeResolvedIds = new Long2LongHashMap(-1);
+        this.compositeResolvedIds = new Object2LongHashMap<>(-1);
         this.schemaIdsByApiId = new Object2LongHashMap<>(-1);
         this.typesByNamespaceId = new Int2ObjectHashMap<>();
         this.paths = new Object2ObjectHashMap<>();
+        this.topics = new Object2ObjectHashMap<>();
         this.operationIds = new TreeMap<>(CharSequence::compare);
+        this.operationBindings = new HashMap<>();
+        this.receiveOperationIds = new TreeMap<>(CharSequence::compare);
+        this.sendOperationIds = new TreeMap<>(CharSequence::compare);
         this.helper = new HttpHeaderHelper();
         this.parser = new AsyncapiParser();
         this.attach = attachComposite;
@@ -115,16 +129,11 @@ public final class AsyncapiBindingConfig
         return typesByNamespaceId.containsKey(NamespacedId.namespaceId(originId));
     }
 
-    public String getCompositeOriginType(
-        long originId)
-    {
-        return typesByNamespaceId.get(NamespacedId.namespaceId(originId));
-    }
-
     public long resolveCompositeResolvedId(
-        long apiId)
+        long apiId,
+        String type)
     {
-        return overrideRouteId != -1 ? overrideRouteId : compositeResolvedIds.get(apiId);
+        return overrideRouteId != -1 ? overrideRouteId : compositeResolvedIds.get(apiId + type);
     }
 
     public long resolveApiId(
@@ -139,7 +148,48 @@ public final class AsyncapiBindingConfig
         return schemaIdsByApiId.get(apiId);
     }
 
-    public String resolveOperationId(
+    public String resolveMqttOperationId(
+        MqttBeginExFW mqttBeginEx)
+    {
+        String topic;
+        String operationId = null;
+
+        switch (mqttBeginEx.kind())
+        {
+        case MqttBeginExFW.KIND_PUBLISH:
+            topic = mqttBeginEx.publish().topic().asString();
+            for (Map.Entry<Matcher, String> item : paths.entrySet())
+            {
+                Matcher matcher = item.getKey();
+                matcher.reset(topic);
+                if (matcher.find())
+                {
+                    String channelName = item.getValue();
+                    operationId = sendOperationIds.get(channelName);
+                    break;
+                }
+            }
+            break;
+        case MqttBeginExFW.KIND_SUBSCRIBE:
+            topic = mqttBeginEx.subscribe().filters().matchFirst(x -> true).pattern().asString();
+            for (Map.Entry<Matcher, String> item : paths.entrySet())
+            {
+                Matcher matcher = item.getKey();
+                matcher.reset(topic);
+                if (matcher.find())
+                {
+                    String channelName = item.getValue();
+                    operationId = receiveOperationIds.get(channelName);
+                    break;
+                }
+            }
+            break;
+        }
+
+        return operationId;
+    }
+
+    public String resolveHttpOperationId(
         HttpBeginExFW httpBeginEx)
     {
         helper.visit(httpBeginEx);
@@ -150,6 +200,26 @@ public final class AsyncapiBindingConfig
         {
             Matcher matcher = item.getKey();
             matcher.reset(helper.path);
+            if (matcher.find())
+            {
+                String channelName = item.getValue();
+                operationId = operationIds.get(channelName);
+                break;
+            }
+        }
+
+        return operationId;
+    }
+
+    public String resolveSseOperationId(
+        SseBeginExFW sseBeginEx)
+    {
+        String operationId = null;
+
+        for (Map.Entry<Matcher, String> item : paths.entrySet())
+        {
+            Matcher matcher = item.getKey();
+            matcher.reset(sseBeginEx.path().asString());
             if (matcher.find())
             {
                 String channelName = item.getValue();
@@ -194,30 +264,31 @@ public final class AsyncapiBindingConfig
             attachServerClientBinding(binding, configs);
         }
 
-        for (Map.Entry<Integer, NamespaceConfig> entry : composites.entrySet())
+        for (Map.Entry<Integer, CompositeNamespace> entry : composites.entrySet())
         {
             Integer k = entry.getKey();
-            NamespaceConfig v = entry.getValue();
+            CompositeNamespace v = entry.getValue();
+            NamespaceConfig namespaceConfig = v.composite;
             List<BindingConfig> bindings;
-            boolean containsSse = v.bindings.stream().anyMatch(b -> b.type.equals("sse"));
+            boolean containsSse = namespaceConfig.bindings.stream().anyMatch(b -> b.type.equals("sse"));
             if (containsSse)
             {
                 if (binding.kind.equals(SERVER))
                 {
-                    bindings = v.bindings.stream()
+                    bindings = namespaceConfig.bindings.stream()
                         .filter(b -> b.type.equals("http") || b.type.equals("http-kafka") || b.type.equals("sse"))
                         .collect(toList());
                 }
                 else
                 {
-                    bindings = v.bindings.stream()
+                    bindings = namespaceConfig.bindings.stream()
                         .filter(b -> b.type.equals("sse"))
                         .collect(toList());
                 }
             }
             else
             {
-                bindings = v.bindings.stream()
+                bindings = namespaceConfig.bindings.stream()
                     .filter(b -> b.type.equals("mqtt") || b.type.equals("http") || b.type.equals("sse") ||
                         b.type.equals("kafka") && b.kind == CACHE_CLIENT || b.type.equals("mqtt-kafka") ||
                         b.type.equals("http-kafka") || b.type.equals("sse-kafka"))
@@ -231,7 +302,7 @@ public final class AsyncapiBindingConfig
 
     public void detach()
     {
-        composites.forEach((k, v) -> detach.accept(v));
+        composites.forEach((k, v) -> detach.accept(v.composite));
         composites.clear();
     }
 
@@ -291,7 +362,7 @@ public final class AsyncapiBindingConfig
     {
         configs.forEach(c ->
         {
-            composites.put(c.schemaId, composite);
+            composites.put(c.schemaId, new CompositeNamespace(composite, c.asyncapi.operations.keySet()));
             schemaIdsByApiId.put(c.apiLabel, c.schemaId);
         });
         asyncapis.forEach(this::extractChannels);
@@ -314,7 +385,11 @@ public final class AsyncapiBindingConfig
         int schemaId,
         List<BindingConfig> bindings)
     {
-        bindings.forEach(b -> compositeResolvedIds.put(schemaId, b.id));
+        bindings.forEach(b ->
+        {
+            String operationType = b.type.replace("-kafka", "");
+            compositeResolvedIds.put(schemaId + operationType, b.id);
+        });
     }
 
     private void extractOperations(
@@ -324,6 +399,16 @@ public final class AsyncapiBindingConfig
         {
             String[] refParts = v.channel.ref.split("/");
             operationIds.put(refParts[refParts.length - 1], k);
+            if (SEND_OPERATION.equals(v.action))
+            {
+                sendOperationIds.put(refParts[refParts.length - 1], k);
+            }
+            else if (RECEIVE_OPERATION.equals(v.action))
+            {
+                receiveOperationIds.put(refParts[refParts.length - 1], k);
+            }
+
+            operationBindings.put(k, v.bindings);
         });
     }
 
@@ -441,6 +526,20 @@ public final class AsyncapiBindingConfig
             String16FW value)
         {
             authority = authorityRO.wrap(value.buffer(), value.offset(), value.limit());
+        }
+    }
+
+    static class CompositeNamespace
+    {
+        NamespaceConfig composite;
+        Set<String> operations;
+
+        CompositeNamespace(
+            NamespaceConfig composite,
+            Set<String> operations)
+        {
+            this.composite = composite;
+            this.operations = operations;
         }
     }
 }

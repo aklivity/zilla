@@ -14,11 +14,10 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.config;
 
-import java.util.ArrayList;
+import static io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithConfig.EVENT_ID_DEFAULT;
+
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
@@ -29,7 +28,6 @@ import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithConfig;
 import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
-import static io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithConfig.EVENT_ID_DEFAULT;
 
 public class AsyncapiSseKafkaProxy extends AsyncapiProxy
 {
@@ -57,7 +55,7 @@ public class AsyncapiSseKafkaProxy extends AsyncapiProxy
             for (AsyncapiConditionConfig condition : route.when)
             {
                 final Asyncapi sseAsyncapi = asyncapis.get(condition.apiId);
-                if (sseAsyncapi.servers.values().stream().anyMatch(s -> !s.protocol.startsWith(ASYNCAPI_SSE_PROTOCOL_NAME)))
+                if (sseAsyncapi.servers.values().stream().noneMatch(s -> s.protocol.startsWith(ASYNCAPI_SSE_PROTOCOL_NAME)))
                 {
                     break inject;
                 }
@@ -92,17 +90,20 @@ public class AsyncapiSseKafkaProxy extends AsyncapiProxy
         AsyncapiOperation withOperation)
     {
 
-        final AsyncapiChannelView channel = AsyncapiChannelView.of(sseAsyncapi.channels, whenOperation.channel);
-        String path = channel.address();
+        if (whenOperation.bindings == null)
+        {
+            final AsyncapiChannelView channel = AsyncapiChannelView.of(sseAsyncapi.channels, whenOperation.channel);
+            String path = channel.address();
 
-        final RouteConfigBuilder<BindingConfigBuilder<C>> routeBuilder = binding.route();
-        routeBuilder
-            .exit(qname)
-            .when(SseKafkaConditionConfig::builder)
-                .path(path)
-                .build()
-            .inject(r -> injectSseKafkaRouteWith(r, kafkaAsyncapi, withOperation));
-        binding = routeBuilder.build();
+            final RouteConfigBuilder<BindingConfigBuilder<C>> routeBuilder = binding.route();
+            routeBuilder
+                .exit(qname)
+                    .when(SseKafkaConditionConfig::builder)
+                    .path(path)
+                    .build()
+                .inject(r -> injectSseKafkaRouteWith(r, kafkaAsyncapi, withOperation));
+            binding = routeBuilder.build();
+        }
         return binding;
     }
 

@@ -21,6 +21,7 @@ connect "zilla://streams/asyncapi0"
 write zilla:begin.ext ${asyncapi:beginEx()
                              .typeId(zilla:id("asyncapi"))
                              .apiId(1)
+                             .operationId("getEvents")
                              .extension(sse:beginEx()
                                            .typeId(zilla:id("sse"))
                                            .scheme("http")

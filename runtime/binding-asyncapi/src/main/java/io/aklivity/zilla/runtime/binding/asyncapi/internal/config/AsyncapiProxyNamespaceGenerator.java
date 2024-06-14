@@ -76,8 +76,8 @@ public class AsyncapiProxyNamespaceGenerator extends AsyncapiNamespaceGenerator
                 {
                     break inject;
                 }
-                final String conditionProtocol = asyncapi.servers.values().stream().findFirst().get().protocol;
-                routesByProtocol.computeIfAbsent(conditionProtocol, c -> new ArrayList<>()).add(route);
+                asyncapi.servers.values()
+                    .forEach(s -> routesByProtocol.computeIfAbsent(s.protocol, c -> new ArrayList<>()).add(route));
             }
         }
 
