@@ -74,9 +74,18 @@ public class DataIT
 
     @Test
     @Specification({
-        "${app}/validation/client",
-        "${app}/validation/server" })
-    public void shouldValidateMessages() throws Exception
+        "${app}/valid/client",
+        "${app}/valid/server" })
+    public void shouldReceiveValidMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/invalid/client",
+        "${app}/invalid/server" })
+    public void shouldNotReceiveInvalidMessage() throws Exception
     {
         k3po.finish();
     }

@@ -28,7 +28,7 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 public final class SseOptionsConfig extends OptionsConfig
 {
     public final int retry;
-    public final List<SsePathConfig> paths;
+    public final List<SseRequestConfig> requests;
 
 
     public static SseOptionsConfigBuilder<SseOptionsConfig> builder()
@@ -44,16 +44,16 @@ public final class SseOptionsConfig extends OptionsConfig
 
     SseOptionsConfig(
         int retry,
-        List<SsePathConfig> paths)
+        List<SseRequestConfig> requests)
     {
-        super(paths != null && !paths.isEmpty()
-            ? paths.stream()
+        super(requests != null && !requests.isEmpty()
+            ? requests.stream()
             .flatMap(path ->
                 Stream.of(path.content)
                     .filter(Objects::nonNull))
             .collect(Collectors.toList())
             : emptyList());
         this.retry = retry;
-        this.paths = paths;
+        this.requests = requests;
     }
 }

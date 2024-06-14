@@ -14,19 +14,19 @@
 # under the License.
 #
 
----
-name: test
-bindings:
-  net0:
-    type: sse
-    kind: server
-    options:
-      requests:
-        - path: /events/*
-          content:
-            model: test
-            length: 13
-    routes:
-      - exit: app0
-        when:
-          - path: /events/*
+connect "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "duplex"
+
+write zilla:begin.ext ${sse:beginEx()
+                           .typeId(zilla:id("sse"))
+                           .scheme("http")
+                           .authority("localhost:8080")
+                           .path("/events/a8b7c6d5")
+                           .lastId(null)
+                           .build()}
+
+connected
+
+read "Hello world"
+

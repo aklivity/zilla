@@ -22,13 +22,13 @@ import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 
 public class SsePathConfigBuilder<T> extends ConfigBuilder<T, SsePathConfigBuilder<T>>
 {
-    private final Function<SsePathConfig, T> mapper;
+    private final Function<SseRequestConfig, T> mapper;
 
     private String path;
     private ModelConfig content;
 
     SsePathConfigBuilder(
-        Function<SsePathConfig, T> mapper)
+        Function<SseRequestConfig, T> mapper)
     {
         this.mapper = mapper;
     }
@@ -63,6 +63,6 @@ public class SsePathConfigBuilder<T> extends ConfigBuilder<T, SsePathConfigBuild
     @Override
     public T build()
     {
-        return mapper.apply(new SsePathConfig(path, content));
+        return mapper.apply(new SseRequestConfig(path, content));
     }
 }

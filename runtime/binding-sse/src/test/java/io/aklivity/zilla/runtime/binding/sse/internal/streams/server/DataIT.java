@@ -81,9 +81,19 @@ public class DataIT
     @Test
     @Configuration("server.validator.yaml")
     @Specification({
-        "${net}/validation/request",
-        "${app}/validation/server" })
-    public void shouldValidateMessages() throws Exception
+        "${net}/valid/request",
+        "${app}/valid/server" })
+    public void shouldReceiveValidMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.validator.yaml")
+    @Specification({
+        "${net}/invalid/request",
+        "${app}/invalid/server" })
+    public void shouldNotReceiveInvalidMessage() throws Exception
     {
         k3po.finish();
     }

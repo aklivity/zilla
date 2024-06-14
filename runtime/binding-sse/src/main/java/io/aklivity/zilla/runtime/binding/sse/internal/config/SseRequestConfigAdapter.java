@@ -21,10 +21,11 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.runtime.binding.sse.config.SsePathConfig;
 import io.aklivity.zilla.runtime.binding.sse.config.SsePathConfigBuilder;
+import io.aklivity.zilla.runtime.binding.sse.config.SseRequestConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfigAdapter;
-public class SsePathConfigAdapter implements JsonbAdapter<SsePathConfig, JsonObject>
+
+public class SseRequestConfigAdapter implements JsonbAdapter<SseRequestConfig, JsonObject>
 {
     private static final String PATH_NAME = "path";
     private static final String CONTENT_NAME = "content";
@@ -32,7 +33,7 @@ public class SsePathConfigAdapter implements JsonbAdapter<SsePathConfig, JsonObj
     private final ModelConfigAdapter model = new ModelConfigAdapter();
 
     public JsonObject adaptToJson(
-        SsePathConfig path)
+        SseRequestConfig path)
     {
         JsonObjectBuilder object = Json.createObjectBuilder();
         if (path.path != null)
@@ -49,10 +50,10 @@ public class SsePathConfigAdapter implements JsonbAdapter<SsePathConfig, JsonObj
     }
 
     @Override
-    public SsePathConfig adaptFromJson(
+    public SseRequestConfig adaptFromJson(
         JsonObject object)
     {
-        SsePathConfigBuilder<SsePathConfig> builder = SsePathConfig.builder();
+        SsePathConfigBuilder<SseRequestConfig> builder = SseRequestConfig.builder();
         if (object.containsKey(PATH_NAME))
         {
             builder.path(object.getString(PATH_NAME));

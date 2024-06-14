@@ -41,7 +41,7 @@
                                 "type": "integer",
                                 "default": 2000
                             },
-                            "paths":
+                            "requests":
                             {
                                 "type": "array",
                                 "items":

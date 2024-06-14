@@ -27,7 +27,7 @@ public class SseOptionsConfigBuilder<T> extends ConfigBuilder<T, SseOptionsConfi
     private final Function<OptionsConfig, T> mapper;
 
     private int retry;
-    private List<SsePathConfig> paths;
+    private List<SseRequestConfig> requests;
 
     SseOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
@@ -50,37 +50,37 @@ public class SseOptionsConfigBuilder<T> extends ConfigBuilder<T, SseOptionsConfi
         return this;
     }
 
-    public SseOptionsConfigBuilder<T> paths(
-        List<SsePathConfig> paths)
+    public SseOptionsConfigBuilder<T> requests(
+        List<SseRequestConfig> requests)
     {
-        if (paths == null)
+        if (requests == null)
         {
-            paths = new LinkedList<>();
+            requests = new LinkedList<>();
         }
-        this.paths = paths;
+        this.requests = requests;
         return this;
     }
 
-    public SseOptionsConfigBuilder<T> path(
-        SsePathConfig path)
+    public SseOptionsConfigBuilder<T> request(
+        SseRequestConfig request)
     {
-        if (this.paths == null)
+        if (this.requests == null)
         {
-            this.paths = new LinkedList<>();
+            this.requests = new LinkedList<>();
         }
-        this.paths.add(path);
+        this.requests.add(request);
         return this;
     }
 
-    public SsePathConfigBuilder<SseOptionsConfigBuilder<T>> path()
+    public SsePathConfigBuilder<SseOptionsConfigBuilder<T>> request()
     {
-        return new SsePathConfigBuilder<>(this::path);
+        return new SsePathConfigBuilder<>(this::request);
     }
 
     @Override
     public T build()
     {
-        return mapper.apply(new SseOptionsConfig(retry, paths));
+        return mapper.apply(new SseOptionsConfig(retry, requests));
     }
 
 }

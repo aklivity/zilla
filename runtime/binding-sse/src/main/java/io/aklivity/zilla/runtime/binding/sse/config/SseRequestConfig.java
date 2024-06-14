@@ -19,13 +19,12 @@ import static java.util.function.Function.identity;
 
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 
-public class SsePathConfig
+public class SseRequestConfig
 {
     public final String path;
     public final ModelConfig content;
 
-
-    SsePathConfig(
+    SseRequestConfig(
         String path,
         ModelConfig content)
     {
@@ -33,7 +32,7 @@ public class SsePathConfig
         this.content = content;
     }
 
-    public static SsePathConfigBuilder<SsePathConfig> builder()
+    public static SsePathConfigBuilder<SseRequestConfig> builder()
     {
         return new SsePathConfigBuilder<>(identity());
     }

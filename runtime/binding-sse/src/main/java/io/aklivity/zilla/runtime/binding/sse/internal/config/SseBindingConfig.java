@@ -38,7 +38,7 @@ public final class SseBindingConfig
     public final SseOptionsConfig options;
     public final KindConfig kind;
     public final List<SseRouteConfig> routes;
-    public final Map<Matcher, ModelConfig> paths;
+    public final Map<Matcher, ModelConfig> requests;
 
     public SseBindingConfig(
         BindingConfig binding)
@@ -48,11 +48,11 @@ public final class SseBindingConfig
         this.kind = binding.kind;
         this.options = binding.options instanceof SseOptionsConfig ? (SseOptionsConfig) binding.options : DEFAULT_OPTIONS;
         this.routes = binding.routes.stream().map(SseRouteConfig::new).collect(toList());
-        this.paths = new HashMap<>();
-        if (options.paths != null)
+        this.requests = new HashMap<>();
+        if (options.requests != null)
         {
-            options.paths.forEach(p ->
-                paths.put(Pattern.compile(p.path).matcher(""), p.content));
+            options.requests.forEach(p ->
+                requests.put(Pattern.compile(p.path).matcher(""), p.content));
         }
     }
 
@@ -70,9 +70,9 @@ public final class SseBindingConfig
         String path)
     {
         ModelConfig config = null;
-        if (paths != null)
+        if (requests != null)
         {
-            for (Map.Entry<Matcher, ModelConfig> e : paths.entrySet())
+            for (Map.Entry<Matcher, ModelConfig> e : requests.entrySet())
             {
                 final Matcher matcher = e.getKey();
                 matcher.reset(path);
