@@ -65,8 +65,7 @@ public class TestConverterHandler implements ConverterHandler
     public void extract(
         String path)
     {
-        Matcher matcher = PATH_PATTERN.matcher(path);
-        if (matcher.matches())
+        if (matcher.reset(path).matches())
         {
             extracted.put(matcher.group(1), new OctetsFW().wrap(new String16FW("12345").value(), 0, 5));
         }
@@ -102,8 +101,11 @@ public class TestConverterHandler implements ConverterHandler
     public int extractedLength(
         String path)
     {
-        matcher.reset(path).matches();
-        OctetsFW value = extracted.get(matcher.group(1));
+        OctetsFW value = null;
+        if (matcher.reset(path).matches())
+        {
+            value = extracted.get(matcher.group(1));
+        }
         return value != null ? value.sizeof() : 0;
     }
 
@@ -112,11 +114,13 @@ public class TestConverterHandler implements ConverterHandler
         String path,
         FieldVisitor visitor)
     {
-        matcher.reset(path).matches();
-        OctetsFW value = extracted.get(matcher.group(1));
-        if (value != null && value.sizeof() != 0)
+        if (matcher.reset(path).matches())
         {
-            visitor.visit(value.buffer(), value.offset(), value.sizeof());
+            OctetsFW value = extracted.get(matcher.group(1));
+            if (value != null && value.sizeof() != 0)
+            {
+                visitor.visit(value.buffer(), value.offset(), value.sizeof());
+            }
         }
     }
 }

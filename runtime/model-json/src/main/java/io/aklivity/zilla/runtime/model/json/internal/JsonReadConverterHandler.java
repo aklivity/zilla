@@ -55,8 +55,10 @@ public class JsonReadConverterHandler extends JsonModelHandler implements Conver
     public void extract(
         String path)
     {
-        matcher.reset(path).matches();
-        extracted.put(matcher.group(1), new OctetsFW());
+        if (matcher.reset(path).matches())
+        {
+            extracted.put(matcher.group(1), new OctetsFW());
+        }
     }
 
     @Override
@@ -76,8 +78,7 @@ public class JsonReadConverterHandler extends JsonModelHandler implements Conver
         String path)
     {
         OctetsFW value = null;
-        Matcher matcher = PATH_PATTERN.matcher(path);
-        if (matcher.matches())
+        if (matcher.reset(path).matches())
         {
             value = extracted.get(matcher.group(1));
         }
@@ -89,11 +90,13 @@ public class JsonReadConverterHandler extends JsonModelHandler implements Conver
         String path,
         FieldVisitor visitor)
     {
-        matcher.reset(path).matches();
-        OctetsFW value = extracted.get(matcher.group(1));
-        if (value != null && value.sizeof() != 0)
+        if (matcher.reset(path).matches())
         {
-            visitor.visit(value.buffer(), value.offset(), value.sizeof());
+            OctetsFW value = extracted.get(matcher.group(1));
+            if (value != null && value.sizeof() != 0)
+            {
+                visitor.visit(value.buffer(), value.offset(), value.sizeof());
+            }
         }
     }
 
