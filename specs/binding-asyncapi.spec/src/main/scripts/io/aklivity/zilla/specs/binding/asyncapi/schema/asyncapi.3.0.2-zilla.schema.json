@@ -16,7 +16,7 @@
   "properties": {
     "asyncapi": {
       "type": "string",
-      "const": "3.0.0",
+      "const": "3.0.2-zilla",
       "description": "The AsyncAPI specification version of this document."
     },
     "id": {

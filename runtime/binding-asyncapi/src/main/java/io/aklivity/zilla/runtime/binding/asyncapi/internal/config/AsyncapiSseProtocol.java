@@ -150,7 +150,7 @@ public class AsyncapiSseProtocol extends AsyncapiProtocol
                 if (hasJsonContentType(asyncapi))
                 {
                     options
-                        .path()
+                        .request()
                         .path(path)
                         .content(JsonModelConfig::builder)
                             .catalog()

@@ -23,7 +23,7 @@ catalogs:
       id: 1
       subject: eventstore
       schema: |
-        asyncapi: 3.0.0
+        asyncapi: 3.0.2-zilla
         info:
           title: AsyncAPI Eventstore
           license:
