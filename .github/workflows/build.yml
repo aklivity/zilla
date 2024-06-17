@@ -33,11 +33,14 @@ jobs:
         restore-keys: ${{ runner.os }}-m2
     - name: Build with Maven
       run: ./mvnw -B -U -nsu -Ddocker.logStdout -Dfailsafe.skipAfterFailureCount=1 -Ddocker.verbose install jacoco:report-aggregate
+      env:
+        GITHUB_ACTOR: ${{ github.actor }}
+        GITHUB_TOKEN: ${{ github.token }}
     - name: Conditional Artifact Upload
       uses: actions/upload-artifact@v4
       if: failure()
       with:
-        name: zilla-build-${{ github.event.number }}
+        name: zilla-build-${{ matrix.java }}-${{ github.event.number }}
         path: |
           **/hs_err_pid*.log
           **/target/surefire-reports/

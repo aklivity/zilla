@@ -89,7 +89,79 @@ public class PrometheusMetricsPrinterTest
         when(descriptor.description("histogram1")).thenReturn("description for histogram1");
 
         PrometheusMetricsPrinter printer = new PrometheusMetricsPrinter(metricRecords, descriptor::kind, descriptor::name,
-            descriptor::description);
+            descriptor::description, descriptor::milliseconds);
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+        PrintStream out = new PrintStream(os);
+
+        // WHEN
+        printer.print(out);
+
+        // THEN
+        assertThat(os.toString("UTF8"), equalTo(expectedOutput));
+    }
+
+    @Test
+    public void shouldWorkWithMilliseconds() throws Exception
+    {
+        String expectedOutput =
+            "# HELP counter1_total description for counter1\n" +
+                "# TYPE counter1_total counter\n" +
+                "counter1_total{namespace=\"ns1\",binding=\"binding1\"} 42.000000\n" +
+                "\n" +
+                "# HELP gauge1 description for gauge1\n" +
+                "# TYPE gauge1 gauge\n" +
+                "gauge1{namespace=\"ns1\",binding=\"binding1\"} 77.000000\n" +
+                "\n" +
+                "# HELP histogram1 description for histogram1\n" +
+                "# TYPE histogram1 histogram\n" +
+                "histogram1_bucket{le=\"1\",namespace=\"ns1\",binding=\"binding1\"} 7\n" +
+                "histogram1_bucket{le=\"10\",namespace=\"ns1\",binding=\"binding1\"} 49\n" +
+                "histogram1_bucket{le=\"100\",namespace=\"ns1\",binding=\"binding1\"} 58\n" +
+                "histogram1_bucket{le=\"+Inf\",namespace=\"ns1\",binding=\"binding1\"} 59\n" +
+                "histogram1_sum{namespace=\"ns1\",binding=\"binding1\"} 2327\n" +
+                "histogram1_count{namespace=\"ns1\",binding=\"binding1\"} 59\n\n\n";
+
+        ScalarRecord counterRecord = mock(ScalarRecord.class);
+        when(counterRecord.namespace()).thenReturn("ns1");
+        when(counterRecord.binding()).thenReturn("binding1");
+        when(counterRecord.metric()).thenReturn("counter1");
+        when(counterRecord.millisecondsValueReader()).thenReturn(() -> 42L);
+
+        ScalarRecord gaugeRecord = mock(ScalarRecord.class);
+        when(gaugeRecord.namespace()).thenReturn("ns1");
+        when(gaugeRecord.binding()).thenReturn("binding1");
+        when(gaugeRecord.metric()).thenReturn("gauge1");
+        when(gaugeRecord.millisecondsValueReader()).thenReturn(() -> 77L);
+
+        HistogramRecord histogramRecord = mock(HistogramRecord.class);
+        when(histogramRecord.namespace()).thenReturn("ns1");
+        when(histogramRecord.binding()).thenReturn("binding1");
+        when(histogramRecord.metric()).thenReturn("histogram1");
+        when(histogramRecord.buckets()).thenReturn(4);
+        when(histogramRecord.bucketLimits()).thenReturn(new long[]{1, 10, 100, 1000});
+        when(histogramRecord.millisecondBucketValues()).thenReturn(new long[]{7, 42, 9, 1});
+        when(histogramRecord.millisecondStats()).thenReturn(new long[]{1L, 1000L, 2327L, 59L, 39L}); // min, max, sum, cnt, avg
+
+        List<MetricRecord> metricRecords = List.of(counterRecord, gaugeRecord, histogramRecord);
+
+        PrometheusMetricDescriptor descriptor = mock(PrometheusMetricDescriptor.class);
+        when(descriptor.name("counter1")).thenReturn("counter1_total");
+        when(descriptor.kind("counter1")).thenReturn("counter");
+        when(descriptor.description("counter1")).thenReturn("description for counter1");
+        when(descriptor.milliseconds("counter1")).thenReturn(true);
+
+        when(descriptor.name("gauge1")).thenReturn("gauge1");
+        when(descriptor.kind("gauge1")).thenReturn("gauge");
+        when(descriptor.description("gauge1")).thenReturn("description for gauge1");
+        when(descriptor.milliseconds("gauge1")).thenReturn(true);
+
+        when(descriptor.name("histogram1")).thenReturn("histogram1");
+        when(descriptor.kind("histogram1")).thenReturn("histogram");
+        when(descriptor.description("histogram1")).thenReturn("description for histogram1");
+        when(descriptor.milliseconds("histogram1")).thenReturn(true);
+
+        PrometheusMetricsPrinter printer = new PrometheusMetricsPrinter(metricRecords, descriptor::kind, descriptor::name,
+            descriptor::description, descriptor::milliseconds);
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         PrintStream out = new PrintStream(os);
 
@@ -105,7 +177,7 @@ public class PrometheusMetricsPrinterTest
     {
         // GIVEN
         String expectedOutput = "";
-        PrometheusMetricsPrinter printer = new PrometheusMetricsPrinter(List.of(), null, null, null);
+        PrometheusMetricsPrinter printer = new PrometheusMetricsPrinter(List.of(), null, null, null, null);
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         PrintStream out = new PrintStream(os);
 

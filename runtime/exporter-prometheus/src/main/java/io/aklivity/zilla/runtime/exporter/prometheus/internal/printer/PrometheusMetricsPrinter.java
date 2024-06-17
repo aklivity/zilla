@@ -28,17 +28,20 @@ public class PrometheusMetricsPrinter
     private final Function<String, String> supplyKind;
     private final Function<String, String> supplyName;
     private final Function<String, String> supplyDescription;
+    private final Function<String, Boolean> supplyMilliseconds;
 
     public PrometheusMetricsPrinter(
         List<MetricRecord> records,
         Function<String, String> supplyKind,
         Function<String, String> supplyName,
-        Function<String, String> supplyDescription)
+        Function<String, String> supplyDescription,
+        Function<String, Boolean> supplyMilliseconds)
     {
         this.records = records;
         this.supplyKind = supplyKind;
         this.supplyName = supplyName;
         this.supplyDescription = supplyDescription;
+        this.supplyMilliseconds = supplyMilliseconds;
     }
 
     public void print(
@@ -73,12 +76,20 @@ public class PrometheusMetricsPrinter
         String kind = supplyKind.apply(record.metric());
         String extName = supplyName.apply(record.metric());
         String description = supplyDescription.apply(record.metric());
+        boolean milliseconds = supplyMilliseconds.apply(record.metric());
         String format =
             "# HELP %s %s\n" +
             "# TYPE %s %s\n" +
             "%s{namespace=\"%s\",binding=\"%s\"} %d";
-        return String.format(format, extName, description, extName, kind, extName,
-            record.namespace(), record.binding(), record.valueReader().getAsLong());
+        String msFormat =
+            "# HELP %s %s\n" +
+            "# TYPE %s %s\n" +
+            "%s{namespace=\"%s\",binding=\"%s\"} %f";
+        return milliseconds ?
+            String.format(msFormat, extName, description, extName, kind, extName,
+                record.namespace(), record.binding(), record.millisecondsValueReader().getAsDouble()) :
+            String.format(format, extName, description, extName, kind, extName,
+                record.namespace(), record.binding(), record.valueReader().getAsLong());
     }
 
     private String formatHistogram(
@@ -89,14 +100,15 @@ public class PrometheusMetricsPrinter
         String kind = supplyKind.apply(record.metric());
         String extName = supplyName.apply(record.metric());
         String description = supplyDescription.apply(record.metric());
-        long sum = record.stats()[2];
-        long count = record.stats()[3];
+        boolean milliseconds = supplyMilliseconds.apply(record.metric());
+        long sum = milliseconds ?  record.millisecondStats()[2] : record.stats()[2];
+        long count = milliseconds ?  record.millisecondStats()[3] : record.stats()[3];
         sb.append(String.format("# HELP %s %s\n# TYPE %s %s\n", extName, description, extName, kind));
         long cumulativeValue = 0;
         for (int i = 0; i < record.buckets(); i++)
         {
             String limit = i == record.buckets() - 1 ? "+Inf" : String.valueOf(record.bucketLimits()[i]);
-            cumulativeValue += record.bucketValues()[i];
+            cumulativeValue += milliseconds ? record.millisecondBucketValues()[i] : record.bucketValues()[i];
             sb.append(String.format("%s_bucket{le=\"%s\",namespace=\"%s\",binding=\"%s\"} %d\n",
                 extName, limit, record.namespace(), record.binding(), cumulativeValue));
         }

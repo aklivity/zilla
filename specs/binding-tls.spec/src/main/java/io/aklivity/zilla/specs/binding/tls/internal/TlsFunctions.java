@@ -18,8 +18,8 @@ package io.aklivity.zilla.specs.binding.tls.internal;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
-import org.kaazing.k3po.lang.el.Function;
-import org.kaazing.k3po.lang.el.spi.FunctionMapperSpi;
+import io.aklivity.k3po.runtime.lang.el.Function;
+import io.aklivity.k3po.runtime.lang.el.spi.FunctionMapperSpi;
 
 public final class TlsFunctions
 {

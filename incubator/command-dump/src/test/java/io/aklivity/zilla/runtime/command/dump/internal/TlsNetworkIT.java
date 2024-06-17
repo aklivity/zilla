@@ -17,15 +17,14 @@ package io.aklivity.zilla.runtime.command.dump.internal;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
-import org.kaazing.k3po.junit.annotation.Specification;
-import org.kaazing.k3po.junit.rules.K3poRule;
 
+import io.aklivity.k3po.runtime.junit.annotation.Specification;
+import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.command.dump.internal.test.DumpRule;
 
 public class TlsNetworkIT
@@ -42,7 +41,6 @@ public class TlsNetworkIT
     @Rule
     public final TestRule chain = outerRule(dump).around(k3po).around(timeout);
 
-    @Ignore
     @Test
     @Specification({
         "${net}/connection.established/client",

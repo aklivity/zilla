@@ -19,13 +19,14 @@ import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelStateEvent;
 import org.jboss.netty.channel.MessageEvent;
-import org.kaazing.k3po.driver.internal.netty.bootstrap.channel.AbstractChannelSink;
-import org.kaazing.k3po.driver.internal.netty.channel.FlushEvent;
-import org.kaazing.k3po.driver.internal.netty.channel.ReadAbortEvent;
-import org.kaazing.k3po.driver.internal.netty.channel.ReadAdviseEvent;
-import org.kaazing.k3po.driver.internal.netty.channel.ShutdownOutputEvent;
-import org.kaazing.k3po.driver.internal.netty.channel.WriteAbortEvent;
-import org.kaazing.k3po.driver.internal.netty.channel.WriteAdviseEvent;
+
+import io.aklivity.k3po.runtime.driver.internal.netty.bootstrap.channel.AbstractChannelSink;
+import io.aklivity.k3po.runtime.driver.internal.netty.channel.FlushEvent;
+import io.aklivity.k3po.runtime.driver.internal.netty.channel.ReadAbortEvent;
+import io.aklivity.k3po.runtime.driver.internal.netty.channel.ReadAdviseEvent;
+import io.aklivity.k3po.runtime.driver.internal.netty.channel.ShutdownOutputEvent;
+import io.aklivity.k3po.runtime.driver.internal.netty.channel.WriteAbortEvent;
+import io.aklivity.k3po.runtime.driver.internal.netty.channel.WriteAdviseEvent;
 
 public class ZillaChildChannelSink extends AbstractChannelSink
 {

@@ -18,8 +18,7 @@ This project includes:
   Jakarta JSON Processing API under Eclipse Public License 2.0 or GNU General Public License, version 2 with the GNU Classpath Exception
   Java Unified Expression Language API under The Apache Software License, Version 2.0
   Java Unified Expression Language Implementation under The Apache Software License, Version 2.0
-  k3po/lang under The Apache Software License, Version 2.0
-  Kaazing Corporation License under The Apache Software License, Version 2.0
+  k3po::runtime::lang under The Apache Software License, Version 2.0
   org.leadpony.justify under The Apache Software License, Version 2.0
   zilla::specs::engine.spec under The Apache Software License, Version 2.0
 

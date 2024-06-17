@@ -18,7 +18,6 @@ import java.util.function.Supplier;
 
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
 
-
 public class InstanceId
 {
     private final Supplier<String> supplyInstanceId;
