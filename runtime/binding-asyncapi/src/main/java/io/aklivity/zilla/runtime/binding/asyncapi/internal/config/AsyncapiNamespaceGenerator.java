@@ -16,7 +16,7 @@ package io.aklivity.zilla.runtime.binding.asyncapi.internal.config;
 
 import static com.fasterxml.jackson.dataformat.yaml.YAMLGenerator.Feature.MINIMIZE_QUOTES;
 import static com.fasterxml.jackson.dataformat.yaml.YAMLGenerator.Feature.WRITE_DOC_START_MARKER;
-import static io.aklivity.zilla.runtime.common.feature.FeatureFilter.INCUBATOR_ENABLED;
+import static io.aklivity.zilla.runtime.common.feature.FeatureFilter.featureEnabled;
 import static java.util.stream.Collectors.toList;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
@@ -116,7 +116,7 @@ public abstract class AsyncapiNamespaceGenerator
                 break;
             case "sse":
             case "secure-sse":
-                if (INCUBATOR_ENABLED)
+                if (featureEnabled(AsyncapiSseProtocol.class))
                 {
                     final boolean httpServerAvailable = servers.stream().anyMatch(s -> "http".equals(s.protocol()));
                     protocol = new AsyncapiSseProtocol(qname, httpServerAvailable, asyncapis, options, protocolName);

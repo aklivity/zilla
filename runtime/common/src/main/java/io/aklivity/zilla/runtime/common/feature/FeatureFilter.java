@@ -25,7 +25,7 @@ public final class FeatureFilter
     {
     }
 
-    public static final boolean INCUBATOR_ENABLED = incubatorEnabled();
+    private static final boolean INCUBATOR_ENABLED = incubatorEnabled();
     private static final Predicate<Object> FEATURE_ENABLED = FeatureFilter::featureEnabled;
 
     public static <S> Iterable<S> filter(
@@ -39,6 +39,13 @@ public final class FeatureFilter
     {
         return INCUBATOR_ENABLED ||
             !feature.getClass().isAnnotationPresent(Incubating.class);
+    }
+
+    public static boolean featureEnabled(
+        Class<?> feature)
+    {
+        return INCUBATOR_ENABLED ||
+            !feature.isAnnotationPresent(Incubating.class);
     }
 
     private static boolean incubatorEnabled()
