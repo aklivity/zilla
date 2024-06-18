@@ -37,6 +37,7 @@ public class AsyncapiIT
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("mqtt", "io/aklivity/zilla/specs/binding/asyncapi/streams/mqtt")
         .addScriptRoot("http", "io/aklivity/zilla/specs/binding/asyncapi/streams/http")
+        .addScriptRoot("sse", "io/aklivity/zilla/specs/binding/asyncapi/streams/sse")
         .addScriptRoot("kafka", "io/aklivity/zilla/specs/binding/asyncapi/streams/kafka")
         .addScriptRoot("asyncapi", "io/aklivity/zilla/specs/binding/asyncapi/streams/asyncapi");
 
@@ -50,6 +51,7 @@ public class AsyncapiIT
         .external("mqtt0")
         .external("http0")
         .external("kafka0")
+        .external("sse0")
         .clean();
 
     @Rule
@@ -90,6 +92,19 @@ public class AsyncapiIT
     @Configure(name = ASYNCAPI_TARGET_ROUTE_ID_NAME, value = "4294967300")
     @ScriptProperty("serverAddress \"zilla://streams/kafka0\"")
     public void shouldProduceMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.sse.yaml")
+    @Specification({
+        "${asyncapi}/sse/data.multiple/client",
+        "${sse}/data.multiple/server"
+    })
+    @Configure(name = ASYNCAPI_TARGET_ROUTE_ID_NAME, value = "4294967301")
+    @ScriptProperty("serverAddress \"zilla://streams/sse0\"")
+    public void shouldReceiveMultipleData() throws Exception
     {
         k3po.finish();
     }

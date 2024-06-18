@@ -59,6 +59,6 @@ public final class SseConditionConfigAdapter implements ConditionConfigAdapterSp
                 ? object.getString(PATH_NAME)
                 : null;
 
-        return new SseConditionConfig(path);
+        return SseConditionConfig.builder().path(path).build();
     }
 }
