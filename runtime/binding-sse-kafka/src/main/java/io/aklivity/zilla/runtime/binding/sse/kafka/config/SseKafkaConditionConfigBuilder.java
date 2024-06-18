@@ -24,11 +24,12 @@ public final class SseKafkaConditionConfigBuilder<T> extends ConfigBuilder<T, Ss
     private final Function<ConditionConfig, T> mapper;
     private String path;
 
-    public SseKafkaConditionConfigBuilder(
+    SseKafkaConditionConfigBuilder(
         Function<ConditionConfig, T> mapper)
     {
         this.mapper = mapper;
     }
+
     public SseKafkaConditionConfigBuilder<T> path(
         String path)
     {

@@ -29,7 +29,7 @@ public final class SseKafkaWithConfigBuilder<T> extends ConfigBuilder<T, SseKafk
     public List<SseKafkaWithFilterConfig> filters;
     public String eventId;
 
-    public SseKafkaWithConfigBuilder(
+    SseKafkaWithConfigBuilder(
         Function<WithConfig, T> mapper)
     {
         this.mapper = mapper;
@@ -55,7 +55,6 @@ public final class SseKafkaWithConfigBuilder<T> extends ConfigBuilder<T, SseKafk
         this.eventId = eventId;
         return this;
     }
-
 
     @Override
     @SuppressWarnings("unchecked")

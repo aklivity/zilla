@@ -118,16 +118,19 @@ public class AsyncapiHttpProtocol extends AsyncapiProtocol
                         if (operation.bindings != null)
                         {
                             AsyncapiBinding httpBinding = operation.bindings.get("http");
-                            String method = httpBinding.method;
-                            binding
-                                .route()
-                                .exit(qname)
-                                .when(HttpConditionConfig::builder)
-                                    .header(":path", path)
-                                    .header(":method", method)
-                                    .build()
-                                .inject(route -> injectHttpServerRouteGuarded(route, server))
-                                .build();
+                            if (httpBinding != null)
+                            {
+                                String method = httpBinding.method;
+                                binding
+                                    .route()
+                                    .exit(qname)
+                                    .when(HttpConditionConfig::builder)
+                                        .header(":path", path)
+                                        .header(":method", method)
+                                        .build()
+                                    .inject(route -> injectHttpServerRouteGuarded(route, server))
+                                    .build();
+                            }
                         }
                     }
                 }
