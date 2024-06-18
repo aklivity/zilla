@@ -58,6 +58,6 @@ public final class SseKafkaConditionConfigAdapter implements ConditionConfigAdap
                 ? object.getString(PATH_NAME)
                 : null;
 
-        return new SseKafkaConditionConfig(path);
+        return SseKafkaConditionConfig.builder().path(path).build();
     }
 }

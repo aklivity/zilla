@@ -22,6 +22,7 @@ import java.util.Map;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiBinding;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiMessage;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiOperation;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiParameter;
@@ -114,16 +115,23 @@ public class AsyncapiHttpProtocol extends AsyncapiProtocol
                         AsyncapiOperation operation = asyncapi.operations.get(name);
                         AsyncapiChannelView channel = AsyncapiChannelView.of(asyncapi.channels, operation.channel);
                         String path = channel.address().replaceAll("\\{[^}]+\\}", "*");
-                        String method = operation.bindings.get("http").method;
-                        binding
-                            .route()
-                            .exit(qname)
-                            .when(HttpConditionConfig::builder)
-                                .header(":path", path)
-                                .header(":method", method)
-                                .build()
-                            .inject(route -> injectHttpServerRouteGuarded(route, server))
-                            .build();
+                        if (operation.bindings != null)
+                        {
+                            AsyncapiBinding httpBinding = operation.bindings.get("http");
+                            if (httpBinding != null)
+                            {
+                                String method = httpBinding.method;
+                                binding
+                                    .route()
+                                    .exit(qname)
+                                    .when(HttpConditionConfig::builder)
+                                        .header(":path", path)
+                                        .header(":method", method)
+                                        .build()
+                                    .inject(route -> injectHttpServerRouteGuarded(route, server))
+                                    .build();
+                            }
+                        }
                     }
                 }
                 else if ("sse".equals(server.protocol()))
@@ -131,15 +139,18 @@ public class AsyncapiHttpProtocol extends AsyncapiProtocol
                     for (String name : asyncapi.operations.keySet())
                     {
                         AsyncapiOperation operation = asyncapi.operations.get(name);
-                        AsyncapiChannelView channel = AsyncapiChannelView.of(asyncapi.channels, operation.channel);
-                        String path = channel.address().replaceAll("\\{[^}]+\\}", "*");
-                        binding
-                            .route()
-                            .exit("sse_server0")
-                            .when(HttpConditionConfig::builder)
-                                .header(":path", path)
-                                .build()
-                            .build();
+                        if (operation.bindings == null)
+                        {
+                            AsyncapiChannelView channel = AsyncapiChannelView.of(asyncapi.channels, operation.channel);
+                            String path = channel.address().replaceAll("\\{[^}]+\\}", "*");
+                            binding
+                                .route()
+                                .exit("sse_server0")
+                                .when(HttpConditionConfig::builder)
+                                    .header(":path", path)
+                                    .build()
+                                .build();
+                        }
                     }
                 }
             }

@@ -17,8 +17,8 @@ package io.aklivity.zilla.runtime.binding.sse.kafka.internal.config;
 import static com.github.npathai.hamcrestopt.OptionalMatchers.isEmpty;
 import static com.github.npathai.hamcrestopt.OptionalMatchers.isPresentAnd;
 import static com.vtence.hamcrest.jpa.HasFieldWithValue.hasField;
-import static io.aklivity.zilla.runtime.binding.sse.kafka.internal.config.SseKafkaWithConfig.EVENT_ID_DEFAULT;
-import static io.aklivity.zilla.runtime.binding.sse.kafka.internal.config.SseKafkaWithConfig.EVENT_ID_KEY64_AND_ETAG;
+import static io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithConfig.EVENT_ID_DEFAULT;
+import static io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithConfig.EVENT_ID_KEY64_AND_ETAG;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.both;
@@ -34,6 +34,8 @@ import jakarta.json.bind.JsonbConfig;
 
 import org.junit.Before;
 import org.junit.Test;
+
+import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithConfig;
 
 public class SseKafkaWithConfigAdapterTest
 {
@@ -66,7 +68,7 @@ public class SseKafkaWithConfigAdapterTest
     @Test
     public void shouldWriteWithTopic()
     {
-        SseKafkaWithConfig with = new SseKafkaWithConfig("test", null, EVENT_ID_DEFAULT);
+        SseKafkaWithConfig with = SseKafkaWithConfig.builder().topic("test").eventId(EVENT_ID_DEFAULT).build();
 
         String text = jsonb.toJson(with);
 
@@ -107,14 +109,16 @@ public class SseKafkaWithConfigAdapterTest
     @Test
     public void shouldWriteWithTopicAndFilters()
     {
-        SseKafkaWithConfig with = new SseKafkaWithConfig(
-                "test",
-                singletonList(new SseKafkaWithFilterConfig(
-                    "fixed-key",
-                    singletonList(new SseKafkaWithFilterHeaderConfig(
-                        "tag",
-                        "fixed-tag")))),
-                EVENT_ID_DEFAULT);
+        SseKafkaWithConfig with = SseKafkaWithConfig.builder()
+            .topic("test")
+            .filters(
+            singletonList(new SseKafkaWithFilterConfig(
+                "fixed-key",
+                singletonList(new SseKafkaWithFilterHeaderConfig(
+                    "tag",
+                    "fixed-tag")))))
+            .eventId(EVENT_ID_DEFAULT)
+            .build();
 
         String text = jsonb.toJson(with);
 
@@ -147,10 +151,10 @@ public class SseKafkaWithConfigAdapterTest
     @Test
     public void shouldWriteWithTopicAndEventId()
     {
-        SseKafkaWithConfig with = new SseKafkaWithConfig(
-                "test",
-                null,
-                "[\"${base64(key)}\",\"${etag}\"]");
+        SseKafkaWithConfig with = SseKafkaWithConfig.builder()
+            .topic("test")
+            .eventId("[\"${base64(key)}\",\"${etag}\"]")
+            .build();
 
         String text = jsonb.toJson(with);
 

@@ -38,6 +38,7 @@ public class AsyncapiProxyNamespaceGenerator extends AsyncapiNamespaceGenerator
     private static final String ASYNCAPI_KAFKA_PROTOCOL_NAME = "kafka";
     private static final String ASYNCAPI_MQTT_PROTOCOL_NAME = "mqtt";
     private static final String ASYNCAPI_HTTP_PROTOCOL_NAME = "http";
+    private static final String ASYNCAPI_SSE_PROTOCOL_NAME = "sse";
 
     public NamespaceConfig generateProxy(
         BindingConfig binding,
@@ -70,12 +71,13 @@ public class AsyncapiProxyNamespaceGenerator extends AsyncapiNamespaceGenerator
                 final Asyncapi asyncapi = asyncapis.get(condition.apiId);
                 if (asyncapi.servers.values().stream().anyMatch(s ->
                     !s.protocol.startsWith(ASYNCAPI_MQTT_PROTOCOL_NAME) &&
-                    !s.protocol.startsWith(ASYNCAPI_HTTP_PROTOCOL_NAME)))
+                    !s.protocol.startsWith(ASYNCAPI_HTTP_PROTOCOL_NAME) &&
+                    !s.protocol.startsWith(ASYNCAPI_SSE_PROTOCOL_NAME)))
                 {
                     break inject;
                 }
-                final String conditionProtocol = asyncapi.servers.values().stream().findFirst().get().protocol;
-                routesByProtocol.computeIfAbsent(conditionProtocol, c -> new ArrayList<>()).add(route);
+                asyncapi.servers.values()
+                    .forEach(s -> routesByProtocol.computeIfAbsent(s.protocol, c -> new ArrayList<>()).add(route));
             }
         }
 
@@ -104,7 +106,7 @@ public class AsyncapiProxyNamespaceGenerator extends AsyncapiNamespaceGenerator
     private AsyncapiProxy resolveProxy(
         String protocol)
     {
-        Pattern pattern = Pattern.compile("(http|mqtt)");
+        Pattern pattern = Pattern.compile("(http|mqtt|sse)");
         Matcher matcher = pattern.matcher(protocol);
         AsyncapiProxy proxy = null;
         if (matcher.find())
@@ -113,6 +115,9 @@ public class AsyncapiProxyNamespaceGenerator extends AsyncapiNamespaceGenerator
             {
             case "http":
                 proxy = new AsyncapiHttpKafkaProxy(qname, asyncapis);
+                break;
+            case "sse":
+                proxy = new AsyncapiSseKafkaProxy(qname, asyncapis);
                 break;
             case "mqtt":
                 proxy = new AsyncapiMqttKafkaProxy(qname, asyncapis);

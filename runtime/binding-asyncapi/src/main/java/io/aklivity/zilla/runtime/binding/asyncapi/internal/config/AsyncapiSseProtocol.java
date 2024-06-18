@@ -99,15 +99,18 @@ public class AsyncapiSseProtocol extends AsyncapiProtocol
             for (String name : asyncapi.operations.keySet())
             {
                 AsyncapiOperation operation = asyncapi.operations.get(name);
-                AsyncapiChannelView channel = AsyncapiChannelView.of(asyncapi.channels, operation.channel);
-                String path = channel.address().replaceAll("\\{[^}]+\\}", "*");
-                binding
-                    .route()
-                    .exit(qname)
-                    .when(SseConditionConfig::builder)
-                        .path(path)
-                        .build()
-                    .build();
+                if (operation.bindings == null)
+                {
+                    AsyncapiChannelView channel = AsyncapiChannelView.of(asyncapi.channels, operation.channel);
+                    String path = channel.address().replaceAll("\\{[^}]+\\}", "*");
+                    binding
+                        .route()
+                        .exit(qname)
+                        .when(SseConditionConfig::builder)
+                            .path(path)
+                            .build()
+                        .build();
+                }
             }
         }
         return binding;

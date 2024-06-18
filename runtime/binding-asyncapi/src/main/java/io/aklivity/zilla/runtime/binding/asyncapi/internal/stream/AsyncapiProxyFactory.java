@@ -39,6 +39,7 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.Asyncapi
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.EndFW;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.ExtensionFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.WindowFW;
@@ -53,6 +54,10 @@ import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
 {
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(), 0, 0);
+    private static final String MQTT_TYPE_NAME = "mqtt";
+    private static final String HTTP_TYPE_NAME = "http";
+    private static final String SSE_TYPE_NAME = "sse";
+
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
     private final EndFW endRO = new EndFW();
@@ -70,6 +75,7 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
     private final FlushFW.Builder flushRW = new FlushFW.Builder();
 
     private final AsyncapiBeginExFW asyncapiBeginExRO = new AsyncapiBeginExFW();
+    private final ExtensionFW extensionRO = new ExtensionFW();
 
     private final AsyncapiBeginExFW.Builder asyncapiBeginExRW = new AsyncapiBeginExFW.Builder();
 
@@ -88,6 +94,7 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
     private final Long2LongHashMap apiIds;
     private final AsyncapiConfiguration config;
     private final AsyncapiProxyNamespaceGenerator namespaceGenerator;
+    private final Long2ObjectHashMap<String> compositeTypes;
 
     private final int asyncapiTypeId;
 
@@ -111,6 +118,10 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
         this.bindings = new Long2ObjectHashMap<>();
         this.apiIds = new Long2LongHashMap(-1);
         this.asyncapiTypeId = context.supplyTypeId(AsyncapiBinding.NAME);
+        this.compositeTypes = new Long2ObjectHashMap<>();
+        compositeTypes.put(context.supplyTypeId(MQTT_TYPE_NAME), MQTT_TYPE_NAME);
+        compositeTypes.put(context.supplyTypeId(HTTP_TYPE_NAME), HTTP_TYPE_NAME);
+        compositeTypes.put(context.supplyTypeId(SSE_TYPE_NAME), SSE_TYPE_NAME);
     }
 
 
@@ -167,7 +178,10 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
                 final long apiId = asyncapiBeginEx.apiId();
                 final String operationId = asyncapiBeginEx.operationId().asString();
 
-                final long compositeResolvedId = binding.resolveCompositeResolvedId(apiId);
+                final ExtensionFW extensionEx = asyncapiBeginEx.extension().get(extensionRO::tryWrap);
+
+                final long compositeResolvedId = binding.resolveCompositeResolvedId(apiId,
+                    compositeTypes.get(extensionEx.typeId()));
                 apiIds.put(apiId, apiId);
 
                 if (compositeResolvedId != -1)
@@ -1467,7 +1481,6 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
                     .wrap(extBuffer, 0, extBuffer.capacity())
                     .typeId(asyncapiTypeId)
                     .apiId(apiId)
-                    .operationId((String) null)
                     .extension(extension)
                     .build();
 

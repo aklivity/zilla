@@ -14,24 +14,34 @@
 # under the License.
 #
 
-connect "zilla://streams/asyncapi0"
+connect "zilla://streams/asyncapi_proxy0"
         option zilla:window 8192
         option zilla:transmission "duplex"
 
 write zilla:begin.ext ${asyncapi:beginEx()
                              .typeId(zilla:id("asyncapi"))
-                             .apiId(1)
-                             .operationId("getEvents")
+                             .apiId(0)
+                             .operationId("receiveEvents")
                              .extension(sse:beginEx()
-                                           .typeId(zilla:id("sse"))
-                                           .scheme("http")
-                                           .authority("localhost:8080")
-                                           .path("/events/a8b7c6d5")
-                                           .lastId(null)
-                                           .build())
+                                   .typeId(zilla:id("sse"))
+                                   .scheme("http")
+                                   .authority("localhost:8080")
+                                   .path("/events")
+                                   .lastId(null)
+                                   .build())
                              .build()}
 connected
 
+read zilla:data.ext ${sse:matchDataEx()
+                         .typeId(zilla:id("sse"))
+                         .id("AQQABAIC")
+                         .type(null)
+                         .build()}
 read "Hello, world"
 
+read zilla:data.ext ${sse:matchDataEx()
+                         .typeId(zilla:id("sse"))
+                         .id("AQQABgIC")
+                         .type(null)
+                         .build()}
 read "Hello, again"

@@ -23,6 +23,7 @@ import java.util.regex.Pattern;
 
 import org.agrona.DirectBuffer;
 
+import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithConfig;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.stream.SseKafkaIdHelper;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.KafkaOffsetFW;
