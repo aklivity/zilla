@@ -1,5 +1,5 @@
 #!/bin/bash
-set -x
+
 # GIVEN
 PORT="12345"
 INPUT="Hello, Zilla!"

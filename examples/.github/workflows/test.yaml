@@ -77,3 +77,21 @@ jobs:
         if: always()
         working-directory: http.kafka.sync
         run: ./teardown.sh
+
+  test-openapi-proxy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup
+        working-directory: openapi.proxy/docker/compose
+        run: ./setup.sh
+      - name: Execute Test
+        working-directory: openapi.proxy
+        run: |
+          set -o pipefail
+          ./test.sh | tee $GITHUB_STEP_SUMMARY
+      - name: Teardown
+        if: always()
+        working-directory: openapi.proxy/docker/compose
+        run: ./teardown.sh
