@@ -23,6 +23,7 @@ accepted
 read zilla:begin.ext ${asyncapi:matchBeginEx()
                              .typeId(zilla:id("asyncapi"))
                              .apiId(0)
+                             .operationId("sendEvents")
                              .extension(mqtt:beginEx()
                                           .typeId(zilla:id("mqtt"))
                                           .publish()

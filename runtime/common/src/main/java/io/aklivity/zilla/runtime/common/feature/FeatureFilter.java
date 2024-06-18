@@ -41,6 +41,13 @@ public final class FeatureFilter
             !feature.getClass().isAnnotationPresent(Incubating.class);
     }
 
+    public static boolean featureEnabled(
+        Class<?> feature)
+    {
+        return INCUBATOR_ENABLED ||
+            !feature.isAnnotationPresent(Incubating.class);
+    }
+
     private static boolean incubatorEnabled()
     {
         final Module module = FeatureFilter.class.getModule();

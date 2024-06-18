@@ -45,6 +45,8 @@ Zilla Frame
         Client ID: client
             Length: 6
             Client ID: client
+        Packet IDs (-1 items)
+            Size: -1
 
 Frame 2: 230 bytes on wire (1840 bits), 230 bytes captured (1840 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
@@ -93,6 +95,8 @@ Zilla Frame
         Client ID: client
             Length: 6
             Client ID: client
+        Packet IDs (-1 items)
+            Size: -1
 
 Frame 3: 211 bytes on wire (1688 bits), 211 bytes captured (1688 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)

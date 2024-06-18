@@ -57,7 +57,7 @@ public class SseKafkaConditionConfigAdapterTest
     @Test
     public void shouldWriteCondition()
     {
-        SseKafkaConditionConfig condition = new SseKafkaConditionConfig("/test");
+        SseKafkaConditionConfig condition = SseKafkaConditionConfig.builder().path("/test").build();
 
         String text = jsonb.toJson(condition);
 

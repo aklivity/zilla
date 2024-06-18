@@ -31,6 +31,7 @@ public class SchemaTest
     @Rule
     public final ConfigSchemaRule schema = new ConfigSchemaRule()
         .schemaPatch("io/aklivity/zilla/specs/binding/sse/schema/sse.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/specs/engine/schema/model/test.schema.patch.json")
         .configurationRoot("io/aklivity/zilla/specs/binding/sse/config");
 
     @Test
@@ -45,6 +46,14 @@ public class SchemaTest
     public void shouldValidateServerWhen()
     {
         JsonObject config = schema.validate("server.when.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateServerWithValidator()
+    {
+        JsonObject config = schema.validate("server.validator.yaml");
 
         assertThat(config, not(nullValue()));
     }
