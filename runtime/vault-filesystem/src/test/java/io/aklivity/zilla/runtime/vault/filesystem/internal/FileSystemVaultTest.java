@@ -15,12 +15,12 @@
  */
 package io.aklivity.zilla.runtime.vault.filesystem.internal;
 
-import static org.agrona.LangUtil.rethrowUnchecked;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
+import java.net.URI;
 import java.net.URL;
 import java.nio.file.Path;
 import java.security.KeyStore.PrivateKeyEntry;
@@ -89,15 +89,6 @@ public class FileSystemVaultTest
     {
         URL url = FileSystemVaultTest.class.getResource(resource);
         assert url != null;
-        Path path = null;
-        try
-        {
-            path = Path.of(url.toURI());
-        }
-        catch (Exception ex)
-        {
-            rethrowUnchecked(ex);
-        }
-        return path;
+        return Path.of(URI.create(url.toString()));
     }
 }

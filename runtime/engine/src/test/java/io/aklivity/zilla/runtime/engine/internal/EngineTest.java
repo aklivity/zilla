@@ -284,6 +284,7 @@ public class EngineTest
         public void onRegistered(
             EngineExtContext context)
         {
+            System.out.println("TestEngineExt onRegistered"); // TODO: Ati
             if (registerLatch != null)
             {
                 registerLatch.countDown();
