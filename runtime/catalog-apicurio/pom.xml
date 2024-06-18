@@ -22,7 +22,7 @@
   </licenses>
 
   <properties>
-    <jacoco.coverage.ratio>0.90</jacoco.coverage.ratio>
+    <jacoco.coverage.ratio>0.93</jacoco.coverage.ratio>
     <jacoco.missed.count>0</jacoco.missed.count>
   </properties>
 
