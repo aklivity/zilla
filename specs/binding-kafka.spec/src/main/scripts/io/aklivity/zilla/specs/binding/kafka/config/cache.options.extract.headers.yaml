@@ -52,7 +52,7 @@ bindings:
       topics:
         - name: test
           headers:
-            - correlation-id: $.correlationId
+            correlation-id: ${message.value.correlationId}
           value:
             model: test
             capability: read

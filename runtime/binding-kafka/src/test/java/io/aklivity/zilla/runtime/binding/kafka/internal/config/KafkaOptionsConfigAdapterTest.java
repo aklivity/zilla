@@ -22,6 +22,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertEquals;
 
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
@@ -228,11 +229,9 @@ public class KafkaOptionsConfigAdapterTest
                     "{" +
                     "\"name\": \"test\"," +
                     "\"headers\":" +
-                    "[" +
-                        "{" +
-                        "\"correlation-id\": \"$.correlation-id\"" +
-                        "}" +
-                    "]" +
+                    "{" +
+                    "\"correlation-id\": \"${message.value.correlationId}\"" +
+                    "}" +
                     "}" +
                 "]" +
             "}";
@@ -241,10 +240,8 @@ public class KafkaOptionsConfigAdapterTest
 
         assertThat(options, not(nullValue()));
         assertThat(options.bootstrap, equalTo(singletonList("test")));
-        assertThat(options.topics, equalTo(singletonList(KafkaTopicConfig.builder()
-            .name("test")
-            .header("correlation-id", "$.correlation-id")
-            .build())));
+        assertEquals(options.topics.get(0).headers.get(0).name.asString(), "correlation-id");
+        assertEquals(options.topics.get(0).headers.get(0).path, "$.correlationId");
     }
 
     @Test
@@ -254,7 +251,7 @@ public class KafkaOptionsConfigAdapterTest
             .bootstrap(singletonList("test"))
             .topics(singletonList(KafkaTopicConfig.builder()
                 .name("test")
-                .header("correlation-id", "$.correlation-id")
+                .header("correlation-id", "${message.value.correlationId}")
                 .value(TestModelConfig.builder().length(0).build())
                 .build()))
             .build();
@@ -263,6 +260,6 @@ public class KafkaOptionsConfigAdapterTest
 
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo("{\"bootstrap\":[\"test\"]," +
-            "\"topics\":[{\"name\":\"test\",\"value\":\"test\",\"headers\":[{\"correlation-id\":\"$.correlation-id\"}]}]}"));
+            "\"topics\":[{\"name\":\"test\",\"value\":\"test\",\"headers\":{\"correlation-id\":\"$.correlationId\"}}]}"));
     }
 }
