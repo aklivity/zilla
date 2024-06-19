@@ -37,10 +37,12 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.Asyncapi
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.EndFW;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.ExtensionFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.MqttBeginExFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.ResetFW;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.SseBeginExFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
@@ -54,10 +56,14 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
 {
     private static final String MQTT_TYPE_NAME = "mqtt";
     private static final String HTTP_TYPE_NAME = "http";
+    private static final String SSE_TYPE_NAME = "sse";
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(), 0, 0);
     private final BeginFW beginRO = new BeginFW();
     private final BeginFW compositeBeginRO = new BeginFW();
+    private final ExtensionFW extensionRO = new ExtensionFW();
     private final HttpBeginExFW httpBeginRO = new HttpBeginExFW();
+    private final SseBeginExFW sseBeginRO = new SseBeginExFW();
+    private final MqttBeginExFW mqttBeginRO = new MqttBeginExFW();
     private final DataFW dataRO = new DataFW();
     private final EndFW endRO = new EndFW();
     private final FlushFW flushRO = new FlushFW();
@@ -74,8 +80,6 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
     private final FlushFW.Builder flushRW = new FlushFW.Builder();
 
     private final AsyncapiBeginExFW asyncapiBeginExRO = new AsyncapiBeginExFW();
-    private final MqttBeginExFW mqttBeginExRO = new MqttBeginExFW();
-    private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
 
     private final AsyncapiBeginExFW.Builder asyncapiBeginExRW = new AsyncapiBeginExFW.Builder();
 
@@ -93,6 +97,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
     private final Long2ObjectHashMap<AsyncapiBindingConfig> bindings;
     private final int asyncapiTypeId;
     private final int mqttTypeId;
+    private final int sseTypeId;
     private final int httpTypeId;
     private final AsyncapiConfiguration config;
     private final AsyncapiServerNamespaceGenerator namespaceGenerator;
@@ -118,6 +123,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
         this.asyncapiTypeId = context.supplyTypeId(AsyncapiBinding.NAME);
         this.mqttTypeId = context.supplyTypeId(MQTT_TYPE_NAME);
         this.httpTypeId = context.supplyTypeId(HTTP_TYPE_NAME);
+        this.sseTypeId = context.supplyTypeId(SSE_TYPE_NAME);
     }
 
     @Override
@@ -177,10 +183,21 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
 
             if (route != null)
             {
-                final int compositeTypeId = supplyTypeId.apply(binding.getCompositeOriginType(originId));
+                final ExtensionFW extensionEx = begin.extension().get(extensionRO::tryWrap);
+                String operationId = null;
+                if (extensionEx.typeId() == httpTypeId)
+                {
+                    operationId = binding.resolveHttpOperationId(extension.get(httpBeginRO::tryWrap));
+                }
+                else if (extensionEx.typeId() == mqttTypeId)
+                {
+                    operationId = binding.resolveMqttOperationId(extension.get(mqttBeginRO::tryWrap));
+                }
+                else if (extensionEx.typeId() == sseTypeId)
+                {
+                    operationId = binding.resolveSseOperationId(extension.get(sseBeginRO::tryWrap));
+                }
 
-                final String operationId = compositeTypeId == httpTypeId ?
-                    binding.resolveOperationId(extension.get(httpBeginRO::tryWrap)) : null;
                 final long apiId = binding.resolveApiId(originId);
                 newStream = new CompositeStream(
                     receiver,

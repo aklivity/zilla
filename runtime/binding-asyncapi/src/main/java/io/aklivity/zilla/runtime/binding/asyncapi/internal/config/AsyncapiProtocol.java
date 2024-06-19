@@ -45,6 +45,7 @@ public abstract class AsyncapiProtocol
     protected Map<String, String> securitySchemes;
     protected boolean isJwtEnabled;
     public final String scheme;
+    public final String tcpRoute;
     public final String protocol;
 
     protected AsyncapiProtocol(
@@ -53,12 +54,38 @@ public abstract class AsyncapiProtocol
         String protocol,
         String scheme)
     {
+        this(qname, asyncapis, protocol, scheme, scheme);
+    }
+
+    protected AsyncapiProtocol(
+        String qname,
+        List<Asyncapi> asyncapis,
+        String protocol,
+        String scheme,
+        String tcpRoute)
+    {
         this.qname = qname;
         this.asyncapis = asyncapis;
         this.protocol = protocol;
         this.scheme = scheme;
+        this.tcpRoute = tcpRoute;
         this.securitySchemes = resolveSecuritySchemes();
         this.isJwtEnabled = !securitySchemes.isEmpty();
+    }
+
+    public <C> NamespaceConfigBuilder<C> injectProtocolRelatedServerBindings(
+        NamespaceConfigBuilder<C> namespace,
+        List<MetricRefConfig> metricRefs)
+    {
+        return namespace;
+    }
+
+    public <C> NamespaceConfigBuilder<C> injectProtocolRelatedClientBindings(
+        NamespaceConfigBuilder<C> namespace,
+        List<MetricRefConfig> metricRefs,
+        boolean isTlsEnabled)
+    {
+        return namespace;
     }
 
     public abstract <C>BindingConfigBuilder<C> injectProtocolServerOptions(
@@ -153,8 +180,7 @@ public abstract class AsyncapiProtocol
 
     protected <C> BindingConfigBuilder<C> injectMetrics(
         BindingConfigBuilder<C> binding,
-        List<MetricRefConfig> metricRefs,
-        String protocol)
+        List<MetricRefConfig> metricRefs)
     {
         if (metricRefs != null && !metricRefs.isEmpty())
         {

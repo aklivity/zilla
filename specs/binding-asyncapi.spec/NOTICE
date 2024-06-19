@@ -21,6 +21,7 @@ This project includes:
   zilla::specs::binding-mqtt-kafka.spec under Aklivity Community License Agreement
   zilla::specs::binding-mqtt.spec under The Apache Software License, Version 2.0
   zilla::specs::binding-proxy.spec under The Apache Software License, Version 2.0
+  zilla::specs::binding-sse.spec under The Apache Software License, Version 2.0
   zilla::specs::binding-tcp.spec under The Apache Software License, Version 2.0
   zilla::specs::binding-tls.spec under The Apache Software License, Version 2.0
   zilla::specs::engine.spec under The Apache Software License, Version 2.0

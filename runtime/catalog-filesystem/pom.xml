@@ -5,13 +5,13 @@
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>io.aklivity.zilla</groupId>
-    <artifactId>incubator</artifactId>
+    <artifactId>runtime</artifactId>
     <version>develop-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
   <artifactId>catalog-filesystem</artifactId>
-  <name>zilla::incubator::catalog-filesystem</name>
+  <name>zilla::runtime::catalog-filesystem</name>
 
   <licenses>
     <license>

@@ -73,6 +73,25 @@ public class DataIT
         k3po.finish();
     }
 
+
+    @Test
+    @Specification({
+        "${net}/valid/request",
+        "${net}/valid/response" })
+    public void shouldReceiveValidMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/invalid/request",
+        "${net}/invalid/response" })
+    public void shouldNotReceiveInvalidMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
     @Test
     @Specification({
         "${net}/fragmented.10k/request",

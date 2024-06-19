@@ -49,7 +49,7 @@ write zilla:begin.ext ${mqtt:beginEx()
                               .typeId(zilla:id("mqtt"))
                               .publish()
                                 .clientId("client")
-                                .topic("sensor/one")
+                                .topic("sensors/one")
                                 .build()
                               .build()}
 
@@ -62,7 +62,7 @@ write zilla:data.ext ${mqtt:dataEx()
                                 .expiryInterval(15)
                                 .contentType("asyncapiMessage")
                                 .format("TEXT")
-                                .responseTopic("sensor/one")
+                                .responseTopic("sensors/one")
                                 .correlation("info")
                                 .build()
                              .build()}
@@ -81,7 +81,7 @@ write zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
                                  .clientId("client")
-                                 .filter("sensor/two", 1, "AT_MOST_ONCE", "SEND_RETAINED")
+                                 .filter("sensors/two", 1, "AT_MOST_ONCE", "SEND_RETAINED")
                                  .build()
                              .build()}
 

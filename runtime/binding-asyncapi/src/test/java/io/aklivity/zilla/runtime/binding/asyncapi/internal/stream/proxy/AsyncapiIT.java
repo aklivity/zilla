@@ -79,4 +79,15 @@ public class AsyncapiIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.sse.kafka.yaml")
+    @Specification({
+        "${asyncapi}/proxy.sse.server.sent.messages/client",
+        "${asyncapi}/proxy.kafka.server.sent.messages/server"
+    })
+    public void shouldReceiveServerSentMessages() throws Exception
+    {
+        k3po.finish();
+    }
 }

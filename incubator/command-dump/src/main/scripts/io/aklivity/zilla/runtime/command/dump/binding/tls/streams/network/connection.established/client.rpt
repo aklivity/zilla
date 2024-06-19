@@ -19,6 +19,7 @@ connect "tls://localhost:9090"
   option tls:transport "zilla://streams/net0"
   option tls:trustStoreFile ${core:file('src/test/democa/client/trust')}
   option tls:trustStorePassword "generated"
+  option tls:cipherSuites "TLS_AES_256_GCM_SHA384"
   option zilla:ephemeral "test"
   option zilla:timestamps "false"
   option zilla:authorization ${authorization}
