@@ -55,8 +55,8 @@ public class EngineConfigWatcher
 
     public void startWatchingConfig() throws Exception
     {
+        configWatcherTask.watchConfig(configPath);
         configWatcherTask.submit();
-        configWatcherTask.watchConfig(configPath).get();
     }
 
     public void addResources(

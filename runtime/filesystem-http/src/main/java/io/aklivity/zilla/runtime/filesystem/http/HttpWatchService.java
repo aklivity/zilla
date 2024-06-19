@@ -102,7 +102,15 @@ public class HttpWatchService implements WatchService, Callable<Void>
             }
             String etag = etags.getOrDefault(path, "");
             System.out.println("HWS call take path " + path + " etag [" + etag + "]"); // TODO: Ati
-            sendAsync(path, etag);
+            HttpResponse<byte[]> response = send(path, etag);
+            if (response == null)
+            {
+                scheduleRequest(path, pollSeconds);
+            }
+            else
+            {
+                handleChange(response);
+            }
         }
         return null;
     }
@@ -189,7 +197,7 @@ public class HttpWatchService implements WatchService, Callable<Void>
         return watchKey;
     }
 
-    private void sendAsync(
+    private HttpResponse<byte[]> send(
         Path path,
         String etag)
     {
@@ -202,20 +210,19 @@ public class HttpWatchService implements WatchService, Callable<Void>
             requestBuilder = requestBuilder.headers("If-None-Match", etag, "Prefer", "wait=86400");
         }
 
-        System.out.println("HWS sendAsync path " + path + " etag " + etag); // TODO: Ati
-        CompletableFuture<Void> future = HTTP_CLIENT.sendAsync(requestBuilder.build(), HttpResponse.BodyHandlers.ofByteArray())
-            .thenAccept(this::handleChange)
-            .exceptionally(ex -> handleException(ex, path));
-        futures.put(path, future);
-    }
-
-    private Void handleException(
-        Throwable throwable,
-        Path path)
-    {
-        System.out.println("HWS handleException " + throwable.getMessage()); // TODO: Ati
-        scheduleRequest(path, pollSeconds);
-        return null;
+        HttpResponse<byte[]> response;
+        try
+        {
+            response = HTTP_CLIENT.send(requestBuilder.build(), HttpResponse.BodyHandlers.ofByteArray());
+            //System.out.println("HWS send response " + response); // TODO: Ati
+            //System.out.println("HWS send response.body " + new String(response.body())); // TODO: Ati
+        }
+        catch (Exception e)
+        {
+            response = null;
+            //System.out.println("HWS send exception " + e); // TODO: Ati
+        }
+        return response;
     }
 
     private void handleChange(

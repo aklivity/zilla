@@ -25,7 +25,6 @@ import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.util.IdentityHashMap;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.function.Function;
 
@@ -77,6 +76,7 @@ public class ConfigWatcherTask extends WatcherTask
                 try
                 {
                     final WatchKey key = watchService.take();
+                    System.out.println("CWT call key " + key); // TODO: Ati
 
                     WatchedItem watchedItem = watchedItems.get(key);
 
@@ -109,32 +109,24 @@ public class ConfigWatcherTask extends WatcherTask
         return null;
     }
 
-    public CompletableFuture<EngineConfig> watchConfig(
+    public void watchConfig(
         Path configPath)
     {
-        if (!"jar".equals(configPath.getFileSystem().provider().getScheme()))
+        String configText;
+        if ("jar".equals(configPath.getFileSystem().provider().getScheme()))
+        {
+            configText = readPath.apply(configPath);
+        }
+        else
         {
             WatchedItem watchedItem = new WatchedItem(configPath, watchService);
             watchedItem.register();
             watchedItem.keys().forEach(k -> watchedItems.put(k, watchedItem));
             System.out.println("CWT watchConfig readPath " + configPath); // TODO: Ati
-            String configText = readPath.apply(configPath);
+            configText = readPath.apply(configPath);
             watchedItem.setHash(computeHash(configText));
         }
-        String configText = readPath.apply(configPath);
-
-        CompletableFuture<EngineConfig> configFuture;
-        try
-        {
-            EngineConfig config = configChangeListener.apply(configText);
-            configFuture = CompletableFuture.completedFuture(config);
-        }
-        catch (Exception ex)
-        {
-            configFuture = CompletableFuture.failedFuture(ex);
-        }
-
-        return configFuture;
+        configChangeListener.apply(configText);
     }
 
     @Override
