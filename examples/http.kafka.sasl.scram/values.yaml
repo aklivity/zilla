@@ -1,10 +1,7 @@
-extraEnv:
-  - name: KEYSTORE_PASSWORD
-    value: generated
-  - name: SASL_USERNAME
-    value: user
-  - name: SASL_PASSWORD
-    value: bitnami
+env:
+  KEYSTORE_PASSWORD: generated
+  SASL_USERNAME: user
+  SASL_PASSWORD: bitnami
 
 livenessProbePort: 7114
 readinessProbePort: 7114

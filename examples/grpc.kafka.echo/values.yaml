@@ -1,8 +1,6 @@
-extraEnv:
-  - name: KEYSTORE_PASSWORD
-    value: generated
-  - name: ZILLA_INCUBATOR_ENABLED
-    value: "true"
+env:
+  KEYSTORE_PASSWORD: generated
+  ZILLA_INCUBATOR_ENABLED: "true"
 
 livenessProbePort: 7153
 readinessProbePort: 7153

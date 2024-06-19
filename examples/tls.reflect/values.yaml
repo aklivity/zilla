@@ -1,6 +1,5 @@
-extraEnv:
-  - name: KEYSTORE_PASSWORD
-    value: generated
+env:
+  KEYSTORE_PASSWORD: generated
 
 livenessProbePort: 23456
 readinessProbePort: 23456
