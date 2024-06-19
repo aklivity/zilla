@@ -794,6 +794,15 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/subscribe.qos2.version1.offset.metadata/client",
+        "${mqtt}/subscribe.qos2.version1.offset.metadata/server"})
+    public void shouldReceiveMessageQoS2WithVersion1OffsetMetadata() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/subscribe.receive.messages.mixture.qos/client",
         "${mqtt}/subscribe.receive.messages.mixture.qos/server"})
     public void shouldReceiveMessagesMixtureQos() throws Exception

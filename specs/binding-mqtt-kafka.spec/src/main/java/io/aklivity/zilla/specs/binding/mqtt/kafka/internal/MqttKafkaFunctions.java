@@ -22,7 +22,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 import io.aklivity.k3po.runtime.lang.el.Function;
 import io.aklivity.k3po.runtime.lang.el.spi.FunctionMapperSpi;
 import io.aklivity.zilla.specs.binding.mqtt.kafka.internal.types.MqttPublishOffsetMetadataFW;
-import io.aklivity.zilla.specs.binding.mqtt.kafka.internal.types.MqttSubscribeOffsetMetadataFW;
+import io.aklivity.zilla.specs.binding.mqtt.kafka.internal.types.MqttSubscribeOffsetMetadataV2FW;
 
 public final class MqttKafkaFunctions
 {
@@ -40,9 +40,9 @@ public final class MqttKafkaFunctions
 
     public static final class MqttSubscribeOffsetMetadataBuilder
     {
-        private final MqttSubscribeOffsetMetadataFW.Builder offsetMetadataRW = new MqttSubscribeOffsetMetadataFW.Builder();
+        private final MqttSubscribeOffsetMetadataV2FW.Builder offsetMetadataRW = new MqttSubscribeOffsetMetadataV2FW.Builder();
 
-        byte version = 1;
+        byte version = 2;
 
 
         private MqttSubscribeOffsetMetadataBuilder()
@@ -61,7 +61,7 @@ public final class MqttKafkaFunctions
 
         public String build()
         {
-            final MqttSubscribeOffsetMetadataFW offsetMetadata = offsetMetadataRW.build();
+            final MqttSubscribeOffsetMetadataV2FW offsetMetadata = offsetMetadataRW.build();
             return BitUtil.toHex(offsetMetadata.buffer().byteArray(), offsetMetadata.offset(), offsetMetadata.limit());
         }
     }

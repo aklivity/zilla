@@ -26,7 +26,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.specs.binding.mqtt.kafka.internal.types.MqttPublishOffsetMetadataFW;
-import io.aklivity.zilla.specs.binding.mqtt.kafka.internal.types.MqttSubscribeOffsetMetadataFW;
+import io.aklivity.zilla.specs.binding.mqtt.kafka.internal.types.MqttSubscribeOffsetMetadataV2FW;
 
 public class MqttKafkaFunctionsTest
 {
@@ -46,10 +46,10 @@ public class MqttKafkaFunctionsTest
 
         final IntArrayList metadataList = new IntArrayList();
         UnsafeBuffer buffer = new UnsafeBuffer(BitUtil.fromHex(state));
-        MqttSubscribeOffsetMetadataFW offsetMetadata = new MqttSubscribeOffsetMetadataFW().wrap(buffer, 0, buffer.capacity());
+        MqttSubscribeOffsetMetadataV2FW offsetMetadata = new MqttSubscribeOffsetMetadataV2FW().wrap(buffer, 0, buffer.capacity());
         offsetMetadata.packetIds().forEachRemaining((IntConsumer) metadataList::add);
 
-        assertEquals(1, offsetMetadata.version());
+        assertEquals(2, offsetMetadata.version());
         assertEquals(1, (int) metadataList.get(0));
         assertEquals(2, (int) metadataList.get(1));
     }

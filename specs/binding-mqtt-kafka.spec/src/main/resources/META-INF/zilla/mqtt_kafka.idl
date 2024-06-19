@@ -15,10 +15,17 @@
 
 scope mqtt_kafka
 {
-    struct MqttSubscribeOffsetMetadata
+    struct MqttSubscribeOffsetMetadataV1
     {
          uint8 version = 1;
          int8 length;
+         int16[length] packetIds = null;
+    }
+
+    struct MqttSubscribeOffsetMetadataV2
+    {
+         uint8 version = 2;
+         int16 length;
          int16[length] packetIds = null;
     }
 
