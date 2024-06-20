@@ -18,7 +18,6 @@ import static java.util.Objects.requireNonNull;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.net.URI;
-import java.net.URL;
 import java.nio.file.FileStore;
 import java.nio.file.FileSystem;
 import java.nio.file.Path;
@@ -105,7 +104,7 @@ public final class HttpFileSystem extends FileSystem
         Path result = null;
         try
         {
-            result = new HttpPath(this, new URL(path));
+            result = new HttpPath(this, URI.create(path));
         }
         catch (Exception ex)
         {

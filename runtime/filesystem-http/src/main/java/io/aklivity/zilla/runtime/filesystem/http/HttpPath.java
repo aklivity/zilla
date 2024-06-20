@@ -20,8 +20,6 @@ import static org.agrona.LangUtil.rethrowUnchecked;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.ProviderMismatchException;
@@ -34,30 +32,27 @@ import java.util.Objects;
 public class HttpPath implements Path
 {
     private final HttpFileSystem fs;
-    private final URL url;
-    //private final URI location;
+    private final URI location;
 
     HttpPath(
         HttpFileSystem fs,
-        URL url)
-    //URI location)
+        URI location)
     {
-        if (!fs.provider().getScheme().equals(url.getProtocol()))
+        if (!fs.provider().getScheme().equals(location.getScheme()))
         {
-            throw new IllegalArgumentException(String.format("invalid protocol: %s", url.getProtocol()));
+            throw new IllegalArgumentException(String.format("invalid protocol: %s", location.getScheme()));
         }
         this.fs = fs;
-        this.url = url;
+        this.location = location;
     }
 
     HttpPath()
     {
         this.fs = null;
-        this.url = null;
+        this.location = null;
     }
 
     @Override
-    //public FileSystem getFileSystem()
     public HttpFileSystem getFileSystem()
     {
         return fs;
@@ -161,7 +156,7 @@ public class HttpPath implements Path
         Path other)
     {
         return resolveSibling(other.toString());
-        //return fs.resolveSibling(this, other);
+        //return fs.resolveSibling(this, other); // TODO: Ati - this should be here
     }
 
     @Override
@@ -171,8 +166,7 @@ public class HttpPath implements Path
         Path path = null;
         try
         {
-            path = new HttpPath(fs, new URL(fs.baseUri().toURL(), other));
-            //path = new HttpPath(fs, fs.baseUri().resolve(URI.create(other))); // TODO: Ati - test
+            path = new HttpPath(fs, fs.baseUri().resolve(URI.create(other)));
             // return fs.resolveSibling(this, other); // TODO: Ati - this should be here
         }
         catch (Exception ex)
@@ -192,16 +186,7 @@ public class HttpPath implements Path
     @Override
     public URI toUri()
     {
-        URI result = null;
-        try
-        {
-            result = url.toURI();
-        }
-        catch (URISyntaxException ex)
-        {
-            rethrowUnchecked(ex);
-        }
-        return result;
+        return location;
     }
 
     @Override
@@ -262,7 +247,7 @@ public class HttpPath implements Path
     @Override
     public String toString()
     {
-        return url.toString();
+        return location.toString();
     }
 
     @Override
@@ -279,12 +264,12 @@ public class HttpPath implements Path
         }
 
         HttpPath path = (HttpPath) o;
-        return Objects.equals(url, path.url);
+        return Objects.equals(location, path.location);
     }
 
     @Override
     public int hashCode()
     {
-        return Objects.hashCode(url);
+        return Objects.hashCode(location);
     }
 }
