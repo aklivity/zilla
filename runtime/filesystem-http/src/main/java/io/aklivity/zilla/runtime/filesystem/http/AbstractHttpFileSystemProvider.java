@@ -358,7 +358,7 @@ public abstract class AbstractHttpFileSystemProvider extends FileSystemProvider
                 .build();
             System.out.println("AHFSP readBody path " + path + " request " + request); // TODO: Ati
             HttpResponse<byte[]> response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofByteArray());
-            System.out.println("AHFSP readBody response.body " + new String(response.body())); // TODO: Ati
+            //System.out.println("AHFSP readBody response.body " + new String(response.body())); // TODO: Ati
             if (response.statusCode() == HTTP_OK)
             {
                 body = response.body();

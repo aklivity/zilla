@@ -55,39 +55,6 @@ public class TestHttpFileSystem
     }
 
     @Test
-    public void testHttpSiblingPath() throws Exception
-    {
-        // GIVEN
-        String httpUrl = "http://localhost:4242/greeting/hello.txt";
-        Path path = Path.of(new URI(httpUrl));
-
-        // WHEN
-        Path sibling = path.resolveSibling(Path.of("bye.txt"));
-
-        // THEN
-        assertThat(sibling.getFileSystem().getClass().getSimpleName(), equalTo("HttpFileSystem"));
-        assertThat(sibling.getFileSystem().provider().getClass().getSimpleName(), equalTo("HttpFileSystemProvider"));
-        assertThat(sibling.toString(), equalTo("http://localhost:4242/greeting/bye.txt"));
-    }
-
-
-    @Test
-    public void testHttpsSiblingPath() throws Exception
-    {
-        // GIVEN
-        String httpUrl = "https://localhost:4242/greeting/hello.txt";
-        Path path = Path.of(new URI(httpUrl));
-
-        // WHEN
-        Path sibling = path.resolveSibling(Path.of("bye.txt"));
-
-        // THEN
-        assertThat(sibling.getFileSystem().getClass().getSimpleName(), equalTo("HttpFileSystem"));
-        assertThat(sibling.getFileSystem().provider().getClass().getSimpleName(), equalTo("HttpsFileSystemProvider"));
-        assertThat(sibling.toString(), equalTo("https://localhost:4242/greeting/bye.txt"));
-    }
-
-    @Test
     public void testHttpSiblingString() throws Exception
     {
         // GIVEN

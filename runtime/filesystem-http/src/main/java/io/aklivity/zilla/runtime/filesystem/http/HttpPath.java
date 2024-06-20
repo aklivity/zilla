@@ -15,7 +15,6 @@
 package io.aklivity.zilla.runtime.filesystem.http;
 
 import static java.util.Objects.requireNonNull;
-import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.File;
 import java.io.IOException;
@@ -155,25 +154,14 @@ public class HttpPath implements Path
     public Path resolveSibling(
         Path other)
     {
-        return resolveSibling(other.toString());
-        //return fs.resolveSibling(this, other); // TODO: Ati - this should be here
+        throw new UnsupportedOperationException("not implemented");
     }
 
     @Override
     public Path resolveSibling(
         String other)
     {
-        Path path = null;
-        try
-        {
-            path = new HttpPath(fs, fs.baseUri().resolve(URI.create(other)));
-            // return fs.resolveSibling(this, other); // TODO: Ati - this should be here
-        }
-        catch (Exception ex)
-        {
-            rethrowUnchecked(ex);
-        }
-        return path;
+        return fs.resolveSibling(other);
     }
 
     @Override

@@ -270,7 +270,7 @@ public class HttpWatchService implements WatchService, Callable<Void>
     {
         System.out.println("HWS handleChange response: " + response); // TODO: Ati
         System.out.println("HWS handleChange response.headers: " + response.headers()); // TODO: Ati
-        System.out.println("HWS handleChange response.body: " + new String(response.body())); // TODO: Ati
+        //System.out.println("HWS handleChange response.body: " + new String(response.body())); // TODO: Ati
         HttpPath path = (HttpPath) Path.of(response.request().uri());
         int statusCode = response.statusCode();
         int pollSeconds = 0;

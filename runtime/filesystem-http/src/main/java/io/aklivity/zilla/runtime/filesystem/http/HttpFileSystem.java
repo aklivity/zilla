@@ -127,18 +127,17 @@ public final class HttpFileSystem extends FileSystem
     }
 
     @Override
-    //public WatchService newWatchService()
     public HttpWatchService newWatchService()
     {
-        //return new HttpWatchService(this);
         HttpWatchService service = new HttpWatchService(this);
         service.start();
         return service;
     }
 
-    URI baseUri()
+    HttpPath resolveSibling(
+        String other)
     {
-        return this.root;
+        return new HttpPath(this, root.resolve(URI.create(other)));
     }
 
     // TODO: Ati - body should be moved from HFS to HttpPath
