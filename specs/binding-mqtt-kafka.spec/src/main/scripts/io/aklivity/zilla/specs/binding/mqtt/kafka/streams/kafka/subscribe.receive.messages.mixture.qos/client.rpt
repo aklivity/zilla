@@ -190,8 +190,10 @@ write advise zilla:flush ${kafka:flushEx()
                                 .consumer()
                                   .progress(0, 5,
                                         mqtt_kafka:subscribeMetadata()
-                                            .metadata(2)
-                                            .build())
+                                                    .v2()
+                                                        .metadata(2)
+                                                        .build()
+                                                    .build())
                                   .correlationId(2)
                                   .build()
                               .build()}
