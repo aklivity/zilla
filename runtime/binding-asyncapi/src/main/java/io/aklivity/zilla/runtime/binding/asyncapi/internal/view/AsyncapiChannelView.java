@@ -50,7 +50,7 @@ public final class AsyncapiChannelView extends AsyncapiResolvable<AsyncapiChanne
         Map<String, AsyncapiChannel> channels,
         AsyncapiChannel channel)
     {
-        super(channels, "#/channels/(\\w+)");
+        super(channels, "#/channels/(.+)");
         this.channel = channel.ref == null ? channel : resolveRef(channel.ref);
     }
 }
