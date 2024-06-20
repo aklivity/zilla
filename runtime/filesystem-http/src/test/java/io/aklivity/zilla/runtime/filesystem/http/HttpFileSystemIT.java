@@ -205,7 +205,7 @@ public class HttpFileSystemIT
         String url = "http://localhost:8080/hello.txt";
         Path path = Path.of(new URI(url));
         HttpWatchService watchService = (HttpWatchService) path.getFileSystem().newWatchService();
-        watchService.pollSeconds(1);
+        //watchService.pollSeconds(1); // TODO: Ati
         path.register(watchService);
 
         // WHEN
@@ -227,10 +227,10 @@ public class HttpFileSystemIT
         assertThat(events2.get(0).context(), equalTo(path));
     }
 
-    @Ignore // TODO: Ati
+    @Ignore
     @Test
     @Specification({
-        "${app}/watch/server",
+        "${app}/watch.read/server",
     })
     public void shouldWatchReadString() throws Exception
     {
@@ -238,7 +238,7 @@ public class HttpFileSystemIT
         String url = "http://localhost:8080/hello.txt";
         Path path = Path.of(new URI(url));
         HttpWatchService watchService = (HttpWatchService) path.getFileSystem().newWatchService();
-        watchService.pollSeconds(1);
+        //watchService.pollSeconds(1); // TODO: Ati
         path.register(watchService);
 
         // WHEN
@@ -256,7 +256,7 @@ public class HttpFileSystemIT
         assertThat(body2, equalTo("Hello Universe!"));
     }
 
-    @Ignore // TODO: Ati
+    @Ignore // TODO: Ati - flaky
     @Test
     @Specification({
         "${app}/watch.error.success/server",
@@ -267,7 +267,7 @@ public class HttpFileSystemIT
         String url = "http://localhost:8080/hello.txt";
         Path path = Path.of(new URI(url));
         HttpWatchService watchService = (HttpWatchService) path.getFileSystem().newWatchService();
-        watchService.pollSeconds(1);
+        //watchService.pollSeconds(1); // TODO: Ati
         path.register(watchService);
 
         // WHEN
@@ -300,7 +300,7 @@ public class HttpFileSystemIT
         String url = "http://localhost:8080/hello.txt";
         Path path = Path.of(new URI(url));
         HttpWatchService watchService = (HttpWatchService) path.getFileSystem().newWatchService();
-        watchService.pollSeconds(1);
+        //watchService.pollSeconds(1); // TODO: Ati
         path.register(watchService);
 
         // WHEN

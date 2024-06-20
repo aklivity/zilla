@@ -19,6 +19,7 @@ import static java.net.HttpURLConnection.HTTP_NOT_MODIFIED;
 import static java.net.HttpURLConnection.HTTP_OK;
 import static java.net.http.HttpClient.Redirect.NORMAL;
 import static java.net.http.HttpClient.Version.HTTP_2;
+import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
 import static java.util.Objects.requireNonNull;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
@@ -37,6 +38,7 @@ import java.nio.file.WatchService;
 import java.util.Iterator;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 public class HttpPath implements Path
 {
@@ -44,12 +46,17 @@ public class HttpPath implements Path
         .version(HTTP_2)
         .followRedirects(NORMAL)
         .build();
+    private static final byte[] EMPTY_BODY = new byte[0];
 
     private final HttpFileSystem fs;
     private final URI location;
 
     private byte[] body;
     private String etag;
+    private CompletableFuture<Void> future;
+    //private HttpResponse<byte[]> response;
+    private HttpWatchService.HttpWatchKey watchKey;
+    private int pollSeconds;
 
     HttpPath(
         HttpFileSystem fs,
@@ -63,6 +70,9 @@ public class HttpPath implements Path
         this.location = location;
         this.body = null;
         this.etag = null;
+        this.future = null;
+        // TODO: Ati - do Configuration for this project, too
+        this.pollSeconds = 2;
     }
 
     HttpPath()
@@ -70,6 +80,9 @@ public class HttpPath implements Path
         this.fs = null;
         this.location = null;
         this.body = null;
+        this.etag = null;
+        this.future = null;
+        this.pollSeconds = 0;
     }
 
     @Override
@@ -229,7 +242,9 @@ public class HttpPath implements Path
         {
             throw new ProviderMismatchException();
         }
-        return ((HttpWatchService) watcher).register(this, events, modifiers);
+        watchKey = ((HttpWatchService) watcher).register(this, events, modifiers);
+        watchKey.watchBody();
+        return watchKey;
     }
 
     @Override
@@ -338,5 +353,112 @@ public class HttpPath implements Path
             rethrowUnchecked(ex);
         }
         return body;
+    }
+
+    void watchBody()
+    {
+        HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
+            .GET()
+            .uri(location);
+        if (etag != null && !etag.isEmpty())
+        {
+            requestBuilder = requestBuilder.headers("If-None-Match", etag, "Prefer", "wait=86400");
+        }
+        // TODO: Ati - handle poll interval for both long polling and normal polling
+        HttpRequest request = requestBuilder.build();
+        System.out.println("HP watchBody path " + location + " request " + request + " etag " + etag); // TODO: Ati
+        //CompletableFuture<Void> future = HTTP_CLIENT.sendAsync(requestBuilder.build(), HttpResponse.BodyHandlers.ofByteArray())
+        future = HTTP_CLIENT.sendAsync(requestBuilder.build(), HttpResponse.BodyHandlers.ofByteArray())
+            .thenAccept(this::acceptResponse)
+            .exceptionally(this::handleException);
+    }
+
+    boolean isDone()
+    {
+        return future.isDone();
+    }
+
+    /*HttpResponse<byte[]> poll() throws Exception
+    {
+        future.get();
+        return response;
+    }*/
+
+    private void acceptResponse(
+        HttpResponse<byte[]> response)
+    {
+        //this.response = response;
+        System.out.println("HP acceptResponse response: " + response); // TODO: Ati
+        System.out.println("HP acceptResponse response.headers: " + response.headers()); // TODO: Ati
+        //System.out.println("HWS handleChange response.body: " + new String(response.body())); // TODO: Ati
+        HttpPath path = (HttpPath) Path.of(response.request().uri());
+        int statusCode = response.statusCode();
+        int pollSeconds = 0;
+        if (statusCode == 404)
+        {
+            body = EMPTY_BODY;
+            watchKey.addEvent(ENTRY_MODIFY, this);
+            pollSeconds = this.pollSeconds;
+        }
+        else if (statusCode >= 500 && statusCode <= 599)
+        {
+            body = null;
+            pollSeconds = this.pollSeconds;
+        }
+        else
+        {
+            //byte[] body = response.body();
+            this.body = response.body();
+            Optional<String> etagOptional = response.headers().firstValue("Etag");
+            if (etagOptional.isPresent())
+            {
+                //String oldEtag = etags.getOrDefault(path, ""); // TODO: Ati
+                String newEtag = etagOptional.get();
+                if (!newEtag.equals(etag))
+                {
+                    //etags.put(path, newEtag); // TODO: Ati
+                    etag = newEtag;
+                    watchKey.addEvent(ENTRY_MODIFY, this);
+
+                }
+                else if (response.statusCode() != 304)
+                {
+                    pollSeconds = this.pollSeconds;
+                }
+            }
+            else
+            {
+                // TODO: Ati - hash
+                //byte[] hash = hashes.get(path);
+                //byte[] newHash = computeHash(body);
+                //if (!Arrays.equals(hash, newHash))
+                {
+                    //hashes.put(path, newHash); // TODO: Ati
+                    //addEvent(ENTRY_MODIFY, path);
+                    watchKey.addEvent(ENTRY_MODIFY, this);
+                    //addEvent(path);
+                }
+                pollSeconds = this.pollSeconds;
+            }
+        }
+        //futures.remove(path);
+        //scheduleRequest(path, pollSeconds); // ???
+        try
+        {
+            Thread.sleep(pollSeconds * 1000); // TODO: Ati
+        }
+        catch (InterruptedException e)
+        {
+            throw new RuntimeException(e);
+        }
+        watchBody();
+    }
+
+    private Void handleException(
+        Throwable throwable)
+    {
+        System.out.println("HP handleException " + throwable.getMessage()); // TODO: Ati
+        //scheduleRequest(path, pollSeconds);
+        return null;
     }
 }
