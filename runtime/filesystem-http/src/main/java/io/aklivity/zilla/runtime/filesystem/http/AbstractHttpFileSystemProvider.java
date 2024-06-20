@@ -49,7 +49,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 
-public abstract class HttpBaseFileSystemProvider extends FileSystemProvider
+public abstract class AbstractHttpFileSystemProvider extends FileSystemProvider
 {
     private static final Duration TIMEOUT = Duration.ofSeconds(5);
     private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
@@ -119,6 +119,7 @@ public abstract class HttpBaseFileSystemProvider extends FileSystemProvider
         Path path,
         OpenOption... options)
     {
+        // TODO: Ati - chk if path is http/s -> cast it to HttpPath
         return new ByteArrayInputStream(resolveBody(path));
     }
 
@@ -155,6 +156,7 @@ public abstract class HttpBaseFileSystemProvider extends FileSystemProvider
         Set<? extends OpenOption> options,
         FileAttribute<?>... attrs)
     {
+        // TODO: Ati - chk if path is http/s -> cast it to HttpPath
         return new ReadOnlyByteArrayChannel(resolveBody(path));
     }
 
@@ -314,19 +316,30 @@ public abstract class HttpBaseFileSystemProvider extends FileSystemProvider
         }
     }
 
+    // TODO: Ati - this should be the new resolveBody
+    /*private byte[] resolveBody(
+        Path path)
+    //HttpPath path)
+    {
+        // TODO: Ati - this should delegate the call to HttpPath path.resolveBody()
+        return readBody(path);
+    }*/
+
+    // TODO: Ati - remove this
     private byte[] resolveBody(
         Path path)
     {
         byte[] body;
-        HttpFileSystem fileSystem = fileSystems.get(path.toUri());
+        //HttpFileSystem fileSystem = fileSystems.get(path.toUri());
+        HttpFileSystem fileSystem = (HttpFileSystem) path.getFileSystem();
         if (fileSystem != null && fileSystem.body() != null)
         {
-            System.out.println("HBFSP resolveBody fs.body"); // TODO: Ati
+            System.out.println("AHFSP resolveBody fs.body"); // TODO: Ati
             body = fileSystem.body();
         }
         else
         {
-            System.out.println("HBFSP resolveBody readBody"); // TODO: Ati
+            System.out.println("AHFSP resolveBody readBody"); // TODO: Ati
             body = readBody(path);
         }
         return body;
@@ -343,9 +356,9 @@ public abstract class HttpBaseFileSystemProvider extends FileSystemProvider
                 .uri(path.toUri())
                 .timeout(TIMEOUT)
                 .build();
-            System.out.println("HBFSP readBody path " + path + " request " + request); // TODO: Ati
+            System.out.println("AHFSP readBody path " + path + " request " + request); // TODO: Ati
             HttpResponse<byte[]> response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofByteArray());
-            System.out.println("HBFSP readBody response.body " + new String(response.body())); // TODO: Ati
+            System.out.println("AHFSP readBody response.body " + new String(response.body())); // TODO: Ati
             if (response.statusCode() == HTTP_OK)
             {
                 body = response.body();
@@ -353,7 +366,7 @@ public abstract class HttpBaseFileSystemProvider extends FileSystemProvider
         }
         catch (Exception ex)
         {
-            System.out.println("HBFSP readBody exception " + ex);  // TODO: Ati
+            System.out.println("AHFSP readBody exception " + ex);  // TODO: Ati
             rethrowUnchecked(ex);
         }
         return body;

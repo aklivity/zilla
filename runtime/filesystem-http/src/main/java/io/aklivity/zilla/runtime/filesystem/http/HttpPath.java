@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.filesystem.http;
 
-import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
 import static java.util.Objects.requireNonNull;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
@@ -23,7 +22,6 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.nio.file.FileSystem;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.ProviderMismatchException;
@@ -37,10 +35,12 @@ public class HttpPath implements Path
 {
     private final HttpFileSystem fs;
     private final URL url;
+    //private final URI location;
 
     HttpPath(
         HttpFileSystem fs,
         URL url)
+    //URI location)
     {
         if (!fs.provider().getScheme().equals(url.getProtocol()))
         {
@@ -50,8 +50,15 @@ public class HttpPath implements Path
         this.url = url;
     }
 
+    HttpPath()
+    {
+        this.fs = null;
+        this.url = null;
+    }
+
     @Override
-    public FileSystem getFileSystem()
+    //public FileSystem getFileSystem()
+    public HttpFileSystem getFileSystem()
     {
         return fs;
     }
@@ -154,6 +161,7 @@ public class HttpPath implements Path
         Path other)
     {
         return resolveSibling(other.toString());
+        //return fs.resolveSibling(this, other);
     }
 
     @Override
@@ -164,6 +172,8 @@ public class HttpPath implements Path
         try
         {
             path = new HttpPath(fs, new URL(fs.baseUri().toURL(), other));
+            //path = new HttpPath(fs, fs.baseUri().resolve(URI.create(other))); // TODO: Ati - test
+            // return fs.resolveSibling(this, other); // TODO: Ati - this should be here
         }
         catch (Exception ex)
         {
@@ -224,17 +234,6 @@ public class HttpPath implements Path
         if (!(watcher instanceof HttpWatchService))
         {
             throw new ProviderMismatchException();
-        }
-        for (WatchEvent.Kind<?> event : events)
-        {
-            if (!event.equals(ENTRY_MODIFY))
-            {
-                throw new IllegalArgumentException("Only ENTRY_MODIFY event kind is supported");
-            }
-        }
-        if (modifiers.length > 0)
-        {
-            throw new IllegalArgumentException("Modifiers are not supported");
         }
         return ((HttpWatchService) watcher).register(this, events, modifiers);
     }

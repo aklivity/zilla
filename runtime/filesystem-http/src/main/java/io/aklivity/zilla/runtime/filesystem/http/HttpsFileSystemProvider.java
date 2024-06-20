@@ -14,12 +14,12 @@
  */
 package io.aklivity.zilla.runtime.filesystem.http;
 
-public class HttpsFileSystemProvider extends HttpBaseFileSystemProvider
+public final class HttpsFileSystemProvider extends AbstractHttpFileSystemProvider
 {
-    public static final String SCHEME = "https";
+    private static final String SCHEME = "https";
 
     @Override
-    public final String getScheme()
+    public String getScheme()
     {
         return SCHEME;
     }

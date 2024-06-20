@@ -23,27 +23,26 @@ import java.nio.file.FileStore;
 import java.nio.file.FileSystem;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
-import java.nio.file.WatchService;
 import java.nio.file.attribute.UserPrincipalLookupService;
 import java.nio.file.spi.FileSystemProvider;
 import java.util.Set;
 
-public class HttpFileSystem extends FileSystem
+public final class HttpFileSystem extends FileSystem
 {
     public static final String SEPARATOR = "/";
 
-    private final HttpBaseFileSystemProvider provider;
-    private final URI uri;
+    private final AbstractHttpFileSystemProvider provider;
+    private final URI root;
 
-    private byte[] body;
+    private byte[] body; // TODO: Ati - body should be moved from HFS to HttpPath
 
     HttpFileSystem(
-        HttpBaseFileSystemProvider provider,
-        URI uri)
+        AbstractHttpFileSystemProvider provider,
+        URI root)
     {
         this.provider = provider;
-        this.uri = uri;
-        this.body = null;
+        this.root = root;
+        this.body = null; // TODO: Ati - body should be moved from HFS to HttpPath
     }
 
     @Override
@@ -55,7 +54,7 @@ public class HttpFileSystem extends FileSystem
     @Override
     public void close()
     {
-        provider.closeFileSystem(uri);
+        provider.closeFileSystem(root);
     }
 
     @Override
@@ -129,21 +128,27 @@ public class HttpFileSystem extends FileSystem
     }
 
     @Override
-    public WatchService newWatchService()
+    //public WatchService newWatchService()
+    public HttpWatchService newWatchService()
     {
-        return new HttpWatchService(this);
+        //return new HttpWatchService(this);
+        HttpWatchService service = new HttpWatchService(this);
+        service.start();
+        return service;
     }
 
     URI baseUri()
     {
-        return this.uri;
+        return this.root;
     }
 
+    // TODO: Ati - body should be moved from HFS to HttpPath
     byte[] body()
     {
         return body;
     }
 
+    // TODO: Ati - body should be moved from HFS to HttpPath
     void body(
         byte[] body)
     {
