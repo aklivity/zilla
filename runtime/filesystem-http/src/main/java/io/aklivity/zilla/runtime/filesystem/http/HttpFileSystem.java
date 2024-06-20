@@ -28,7 +28,7 @@ import java.util.Set;
 
 public final class HttpFileSystem extends FileSystem
 {
-    public static final String SEPARATOR = "/";
+    private static final String SEPARATOR = "/";
 
     private final AbstractHttpFileSystemProvider provider;
     private final URI root;

@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.filesystem.http;
 
+import static java.net.HttpURLConnection.HTTP_NOT_FOUND;
+import static java.net.HttpURLConnection.HTTP_NOT_MODIFIED;
 import static java.net.HttpURLConnection.HTTP_OK;
 import static java.net.http.HttpClient.Redirect.NORMAL;
 import static java.net.http.HttpClient.Version.HTTP_2;
@@ -34,6 +36,7 @@ import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.util.Iterator;
 import java.util.Objects;
+import java.util.Optional;
 
 public class HttpPath implements Path
 {
@@ -46,6 +49,7 @@ public class HttpPath implements Path
     private final URI location;
 
     private byte[] body;
+    private String etag;
 
     HttpPath(
         HttpFileSystem fs,
@@ -58,6 +62,7 @@ public class HttpPath implements Path
         this.fs = fs;
         this.location = location;
         this.body = null;
+        this.etag = null;
     }
 
     HttpPath()
@@ -279,30 +284,53 @@ public class HttpPath implements Path
 
     byte[] resolveBody()
     {
-        if (body == null)
+        // TODO: Ati - if we always call readBody, can this be removed?
+        System.out.println("HP resolveBody");
+        body = readBody();
+        /*if (body == null)
         {
             body = readBody();
-        }
+        }*/
         return body;
     }
 
     private byte[] readBody()
     {
-        byte[] body = new byte[0];
+        //byte[] body = new byte[0];
         try
         {
             // TODO: Ati - add etag to the header
             // TODO: Ati - check+store etag/hash
-            HttpRequest request = HttpRequest.newBuilder()
+            HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
                 .GET()
-                .uri(location)
-                .build();
-            System.out.println("HP readBody path " + location + " request " + request); // TODO: Ati
+                .uri(location);
+            if (etag != null && !etag.isEmpty())
+            {
+                //requestBuilder = requestBuilder.headers("If-None-Match", etag, "Prefer", "wait=86400");
+                // TODO: Ati - this is a sync call, I guess we don't need Prefer wait
+                requestBuilder = requestBuilder.headers("If-None-Match", etag);
+            }
+            HttpRequest request = requestBuilder.build();
+            System.out.println("HP readBody path " + location + " request " + request + " etag " + etag); // TODO: Ati
             HttpResponse<byte[]> response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofByteArray());
             //System.out.println("HP readBody response.body " + new String(response.body())); // TODO: Ati
             if (response.statusCode() == HTTP_OK)
             {
                 body = response.body();
+                Optional<String> etagOptional = response.headers().firstValue("Etag");
+                if (etagOptional.isPresent())
+                {
+                    etag = etagOptional.get();
+                }
+            }
+            else if (response.statusCode() == HTTP_NOT_FOUND)
+            {
+                body = new byte[0];
+                etag = null;
+            }
+            else if (response.statusCode() == HTTP_NOT_MODIFIED)
+            {
+                // no op
             }
         }
         catch (Exception ex)

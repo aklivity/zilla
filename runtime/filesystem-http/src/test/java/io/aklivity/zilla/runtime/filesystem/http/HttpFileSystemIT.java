@@ -41,16 +41,14 @@ import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 
 public class HttpFileSystemIT
 {
-    private static final String HELLO_BODY = "Hello World!";
-    private static final String EMPTY_BODY = "";
-
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("app", "io/aklivity/zilla/specs/filesystem/http/application");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
     @Rule
-    public final TestRule chain = outerRule(timeout).around(k3po);
+    //public final TestRule chain = outerRule(timeout).around(k3po); // TODO: Ati
+    public final TestRule chain = outerRule(k3po).around(timeout);
 
     @Test
     @Specification({
@@ -68,7 +66,49 @@ public class HttpFileSystemIT
         k3po.finish();
 
         // THEN
-        assertThat(helloBody, equalTo(HELLO_BODY));
+        assertThat(helloBody, equalTo("Hello World!"));
+    }
+
+    @Test
+    @Specification({
+        "${app}/success.etag.not.modified/server",
+    })
+    public void shouldReadStringEtagNotModified() throws Exception
+    {
+        // GIVEN
+        String helloUrl = "http://localhost:8080/hello.txt";
+        Path helloPath = Path.of(new URI(helloUrl));
+
+        // WHEN
+        k3po.start();
+        String helloBody1 = Files.readString(helloPath);
+        String helloBody2 = Files.readString(helloPath);
+        k3po.finish();
+
+        // THEN
+        assertThat(helloBody1, equalTo("Hello World!"));
+        assertThat(helloBody2, equalTo("Hello World!"));
+    }
+
+    @Test
+    @Specification({
+        "${app}/success.etag.modified/server",
+    })
+    public void shouldReadStringEtagModified() throws Exception
+    {
+        // GIVEN
+        String helloUrl = "http://localhost:8080/hello.txt";
+        Path helloPath = Path.of(new URI(helloUrl));
+
+        // WHEN
+        k3po.start();
+        String helloBody1 = Files.readString(helloPath);
+        String helloBody2 = Files.readString(helloPath);
+        k3po.finish();
+
+        // THEN
+        assertThat(helloBody1, equalTo("Hello World!"));
+        assertThat(helloBody2, equalTo("Hello Universe!"));
     }
 
     @Test
@@ -87,7 +127,28 @@ public class HttpFileSystemIT
         k3po.finish();
 
         // THEN
-        assertThat(notFoundBody, equalTo(EMPTY_BODY));
+        assertThat(notFoundBody, equalTo(""));
+    }
+
+    @Test
+    @Specification({
+        "${app}/notfound.success/server",
+    })
+    public void shouldReadStringNotFoundSuccess() throws Exception
+    {
+        // GIVEN
+        String helloUrl = "http://localhost:8080/hello.txt";
+        Path helloPath = Path.of(new URI(helloUrl));
+
+        // WHEN
+        k3po.start();
+        String helloBody1 = Files.readString(helloPath);
+        String helloBody2 = Files.readString(helloPath);
+        k3po.finish();
+
+        // THEN
+        assertThat(helloBody1, equalTo(""));
+        assertThat(helloBody2, equalTo("Hello World!"));
     }
 
     @Test
@@ -109,7 +170,7 @@ public class HttpFileSystemIT
         k3po.finish();
 
         // THEN
-        assertThat(helloBody, equalTo(HELLO_BODY));
+        assertThat(helloBody, equalTo("Hello World!"));
     }
 
     @Test
@@ -131,7 +192,7 @@ public class HttpFileSystemIT
         k3po.finish();
 
         // THEN
-        assertThat(notFoundBody, equalTo(EMPTY_BODY));
+        assertThat(notFoundBody, equalTo(""));
     }
 
     @Test

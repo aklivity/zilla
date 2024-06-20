@@ -47,12 +47,40 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/success.etag.not.modified/client",
+        "${app}/success.etag.not.modified/server" })
+    public void shouldReadStringEtagNotModified() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/success.etag.modified/client",
+        "${app}/success.etag.modified/server" })
+    public void shouldReadStringEtagModified() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/notfound/client",
         "${app}/notfound/server" })
     public void shouldReadStringNotFound() throws Exception
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/notfound.success/client",
+        "${app}/notfound.success/server" })
+    public void shouldReadStringNotFoundSuccess() throws Exception
+    {
+        k3po.finish();
+    }
+
 
     @Test
     @Specification({
