@@ -26,7 +26,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.specs.binding.mqtt.kafka.internal.types.MqttPublishOffsetMetadataFW;
-import io.aklivity.zilla.specs.binding.mqtt.kafka.internal.types.MqttSubscribeOffsetMetadataV2FW;
+import io.aklivity.zilla.specs.binding.mqtt.kafka.internal.types.MqttSubscribeOffsetMetadataFW;
 
 public class MqttKafkaFunctionsTest
 {
@@ -37,21 +37,45 @@ public class MqttKafkaFunctionsTest
         assertEquals("mqtt_kafka", mapper.getPrefixName());
     }
     @Test
-    public void shouldEncodeMqttOffsetMetadata()
+    public void shouldEncodeMqttOffsetMetadataV1()
     {
         final String state = MqttKafkaFunctions.subscribeMetadata()
-            .metadata(1)
-            .metadata(2)
+            .v1()
+                .metadata(10)
+                .metadata(14)
+                .metadata(15)
+                .build()
             .build();
 
         final IntArrayList metadataList = new IntArrayList();
         UnsafeBuffer buffer = new UnsafeBuffer(BitUtil.fromHex(state));
-        MqttSubscribeOffsetMetadataV2FW offsetMetadata = new MqttSubscribeOffsetMetadataV2FW().wrap(buffer, 0, buffer.capacity());
-        offsetMetadata.packetIds().forEachRemaining((IntConsumer) metadataList::add);
+        MqttSubscribeOffsetMetadataFW offsetMetadata = new MqttSubscribeOffsetMetadataFW().wrap(buffer, 0, buffer.capacity());
+        offsetMetadata.subscribeMetadataV1().packetIds().forEachRemaining((IntConsumer) metadataList::add);
 
-        assertEquals(2, offsetMetadata.version());
-        assertEquals(1, (int) metadataList.get(0));
-        assertEquals(2, (int) metadataList.get(1));
+        assertEquals(10, (int) metadataList.get(0));
+        assertEquals(14, (int) metadataList.get(1));
+        assertEquals(15, (int) metadataList.get(2));
+    }
+
+    @Test
+    public void shouldEncodeMqttOffsetMetadataV2()
+    {
+        final String state = MqttKafkaFunctions.subscribeMetadata()
+            .v2()
+                .metadata(10)
+                .metadata(14)
+                .metadata(15)
+                .build()
+            .build();
+
+        final IntArrayList metadataList = new IntArrayList();
+        UnsafeBuffer buffer = new UnsafeBuffer(BitUtil.fromHex(state));
+        MqttSubscribeOffsetMetadataFW offsetMetadata = new MqttSubscribeOffsetMetadataFW().wrap(buffer, 0, buffer.capacity());
+        offsetMetadata.subscribeMetadataV2().packetIds().forEachRemaining((IntConsumer) metadataList::add);
+
+        assertEquals(10, (int) metadataList.get(0));
+        assertEquals(14, (int) metadataList.get(1));
+        assertEquals(15, (int) metadataList.get(2));
     }
 
     @Test

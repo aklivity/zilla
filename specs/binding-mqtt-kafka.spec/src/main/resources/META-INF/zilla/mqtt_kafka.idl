@@ -15,18 +15,28 @@
 
 scope mqtt_kafka
 {
+    enum MqttSubscribeOffsetMetadataVersion (uint8)
+    {
+        V1 (1),
+        V2 (2)
+    }
+
     struct MqttSubscribeOffsetMetadataV1
     {
-         uint8 version = 1;
          int8 length;
          int16[length] packetIds = null;
     }
 
     struct MqttSubscribeOffsetMetadataV2
     {
-         uint8 version = 2;
          int16 length;
          int16[length] packetIds = null;
+    }
+
+    union MqttSubscribeOffsetMetadata switch (MqttSubscribeOffsetMetadataVersion)
+    {
+        case V1: MqttSubscribeOffsetMetadataV1 subscribeMetadataV1;
+        case V2: MqttSubscribeOffsetMetadataV2 subscribeMetadataV2;
     }
 
     struct MqttPublishOffsetMetadata

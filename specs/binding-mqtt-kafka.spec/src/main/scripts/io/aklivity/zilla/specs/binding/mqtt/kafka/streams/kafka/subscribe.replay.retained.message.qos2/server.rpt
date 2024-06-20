@@ -212,8 +212,10 @@ read advised zilla:flush ${kafka:matchFlushEx()
                                 .consumer()
                                   .progress(0, 3,
                                         mqtt_kafka:subscribeMetadata()
-                                            .metadata(1)
-                                            .build())
+                                                    .v2()
+                                                        .metadata(1)
+                                                        .build()
+                                                    .build())
                                   .correlationId(1)
                                   .build()
                               .build()}
