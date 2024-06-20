@@ -20,11 +20,13 @@ write http:method "GET"
 write close
 
 read http:status "404" "Not Found"
+read notify FIRST_READ
 read closed
 
 connect "http://localhost:8080/hello.txt"
 connected
 
+write await FIRST_READ
 write http:method "GET"
 write close
 
