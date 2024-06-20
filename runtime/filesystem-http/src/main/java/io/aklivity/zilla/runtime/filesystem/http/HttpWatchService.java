@@ -28,13 +28,13 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-public class HttpWatchService implements WatchService, Callable<Void>
+//public class HttpWatchService implements WatchService, Callable<Void>
+public class HttpWatchService implements WatchService
 {
     /*private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
         .version(HTTP_2)
@@ -59,7 +59,7 @@ public class HttpWatchService implements WatchService, Callable<Void>
     //private final Map<Path, CompletableFuture<Void>> futures;
     private final MessageDigest md5;
 
-    //private int pollSeconds;
+    private int pollSeconds;
     private volatile boolean closed;
 
     public HttpWatchService(
@@ -75,16 +75,16 @@ public class HttpWatchService implements WatchService, Callable<Void>
         //this.hashes = new ConcurrentHashMap<>();
         //this.futures = new ConcurrentHashMap<>();
         this.md5 = initMessageDigest("MD5");
-        //this.pollSeconds = 30;
-        //this.pollSeconds = 2;
+        this.pollSeconds = 30;
+        //this.pollSeconds = 2; // TODO: Ati
         this.closed = false;
         //executor.submit(this);
     }
 
-    public void start()
+    /*public void start()
     {
         executor.submit(this);
-    }
+    }*/
 
     //    @Override
     //    public Void call() throws Exception
@@ -112,10 +112,10 @@ public class HttpWatchService implements WatchService, Callable<Void>
     //        return null;
     //    }
 
-    @Override
+    /*@Override
     public Void call() throws Exception
     {
-        for (HttpWatchKey watchKey : watchKeys) // TODO: Ati watchKeys should be a List
+        for (HttpWatchKey watchKey : watchKeys)
         {
             HttpPath path = watchKey.watchable();
             if (path.isDone())
@@ -123,13 +123,15 @@ public class HttpWatchService implements WatchService, Callable<Void>
                 //HttpResponse<byte[]> response = path.poll();
                 //watchKey.handleChange(response);
                 //handleChange(response); // this throws Exception if error // this should be in HttpWatchKey ??
-                watchKey.watchBody();
+                //scheduleRequest(watchKey);
+                System.out.println("HWS path is done " + path);
+                //watchKey.watchBody();
                 //path.watchBody(); // scheduleRequest can be deleted // actually watchKey.watchBody() that calls path.watchBody()
                 // how to deal with poll interval
             }
         }
         return null;
-    }
+    }*/
 
     @Override
     public void close()
@@ -139,6 +141,7 @@ public class HttpWatchService implements WatchService, Callable<Void>
         //fileSystem.body(null); // TODO: Ati - body should be moved from HFS to HttpPath
         pendingKeys.clear();
         pendingKeys.offer(closeKey);
+        watchKeys.forEach(w -> w.cancel());
         //futures.values().forEach(future -> future.cancel(true));
         //pathQueue.add(CLOSE_PATH);
         watchKeys.clear();
@@ -173,11 +176,12 @@ public class HttpWatchService implements WatchService, Callable<Void>
         return key;
     }
 
-    /*public void pollSeconds(
+    // TODO: Ati
+    public void pollSeconds(
         int pollSeconds)
     {
         this.pollSeconds = pollSeconds;
-    }*/
+    }
 
     private void checkOpen()
     {
@@ -347,14 +351,6 @@ public class HttpWatchService implements WatchService, Callable<Void>
         }
     }*/
 
-    /*private void scheduleRequest___NEW(
-        //Path path,
-        HttpPath path,
-        int pollSeconds)
-    {
-
-    }*/
-
     private byte[] computeHash(
         byte[] body)
     {
@@ -414,7 +410,7 @@ public class HttpWatchService implements WatchService, Callable<Void>
         @Override
         public void cancel()
         {
-            watchKeys.remove(path);
+            watchKeys.remove(this);
             valid = false;
         }
 
@@ -454,9 +450,24 @@ public class HttpWatchService implements WatchService, Callable<Void>
             return Objects.hashCode(path);
         }
 
-        void watchBody()
+        /*void watchBody()
         {
             path.watchBody();
+        }*/
+
+        void watchBody()
+        {
+            if (valid)
+            {
+                if (path.longPolling())
+                {
+                    path.watchBody();
+                }
+                else
+                {
+                    executor.schedule(path::watchBody, pollSeconds, TimeUnit.SECONDS);
+                }
+            }
         }
 
         /*private void handleChange(

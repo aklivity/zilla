@@ -129,9 +129,10 @@ public final class HttpFileSystem extends FileSystem
     @Override
     public HttpWatchService newWatchService()
     {
-        HttpWatchService service = new HttpWatchService(this);
+        /*HttpWatchService service = new HttpWatchService(this);
         service.start();
-        return service;
+        return service;*/
+        return new HttpWatchService(this);
     }
 
     HttpPath resolveSibling(

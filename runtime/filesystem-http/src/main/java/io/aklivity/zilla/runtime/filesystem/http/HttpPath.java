@@ -56,7 +56,7 @@ public class HttpPath implements Path
     private CompletableFuture<Void> future;
     //private HttpResponse<byte[]> response;
     private HttpWatchService.HttpWatchKey watchKey;
-    private int pollSeconds;
+    private boolean longPolling;
 
     HttpPath(
         HttpFileSystem fs,
@@ -71,8 +71,7 @@ public class HttpPath implements Path
         this.body = null;
         this.etag = null;
         this.future = null;
-        // TODO: Ati - do Configuration for this project, too
-        this.pollSeconds = 2;
+        this.longPolling = true;
     }
 
     HttpPath()
@@ -82,7 +81,7 @@ public class HttpPath implements Path
         this.body = null;
         this.etag = null;
         this.future = null;
-        this.pollSeconds = 0;
+        this.longPolling = true;
     }
 
     @Override
@@ -364,18 +363,23 @@ public class HttpPath implements Path
         {
             requestBuilder = requestBuilder.headers("If-None-Match", etag, "Prefer", "wait=86400");
         }
-        // TODO: Ati - handle poll interval for both long polling and normal polling
         HttpRequest request = requestBuilder.build();
         System.out.println("HP watchBody path " + location + " request " + request + " etag " + etag); // TODO: Ati
         //CompletableFuture<Void> future = HTTP_CLIENT.sendAsync(requestBuilder.build(), HttpResponse.BodyHandlers.ofByteArray())
+        //future = HTTP_CLIENT.sendAsync(requestBuilder.build(), HttpResponse.BodyHandlers.ofByteArray())
         future = HTTP_CLIENT.sendAsync(requestBuilder.build(), HttpResponse.BodyHandlers.ofByteArray())
             .thenAccept(this::acceptResponse)
             .exceptionally(this::handleException);
     }
 
-    boolean isDone()
+    /*boolean isDone()
     {
-        return future.isDone();
+        return future == null ? false : future.isDone();
+    }*/
+
+    boolean longPolling()
+    {
+        return longPolling;
     }
 
     /*HttpResponse<byte[]> poll() throws Exception
@@ -391,19 +395,21 @@ public class HttpPath implements Path
         System.out.println("HP acceptResponse response: " + response); // TODO: Ati
         System.out.println("HP acceptResponse response.headers: " + response.headers()); // TODO: Ati
         //System.out.println("HWS handleChange response.body: " + new String(response.body())); // TODO: Ati
-        HttpPath path = (HttpPath) Path.of(response.request().uri());
+        //HttpPath path = (HttpPath) Path.of(response.request().uri());
         int statusCode = response.statusCode();
-        int pollSeconds = 0;
+        //int pollSeconds = 0;
+        //boolean longPolling = this.longPolling;
         if (statusCode == 404)
         {
             body = EMPTY_BODY;
             watchKey.addEvent(ENTRY_MODIFY, this);
-            pollSeconds = this.pollSeconds;
+            //longPolling = false; // TODO: Ati - ?
+            //pollSeconds = this.pollSeconds;
         }
         else if (statusCode >= 500 && statusCode <= 599)
         {
             body = null;
-            pollSeconds = this.pollSeconds;
+            //pollSeconds = this.pollSeconds;
         }
         else
         {
@@ -419,11 +425,11 @@ public class HttpPath implements Path
                     //etags.put(path, newEtag); // TODO: Ati
                     etag = newEtag;
                     watchKey.addEvent(ENTRY_MODIFY, this);
-
                 }
                 else if (response.statusCode() != 304)
                 {
-                    pollSeconds = this.pollSeconds;
+                    longPolling = false; // TODO: Ati
+                    //pollSeconds = this.pollSeconds;
                 }
             }
             else
@@ -438,12 +444,12 @@ public class HttpPath implements Path
                     watchKey.addEvent(ENTRY_MODIFY, this);
                     //addEvent(path);
                 }
-                pollSeconds = this.pollSeconds;
+                //pollSeconds = this.pollSeconds;
             }
         }
         //futures.remove(path);
         //scheduleRequest(path, pollSeconds); // ???
-        try
+        /*try
         {
             Thread.sleep(pollSeconds * 1000); // TODO: Ati
         }
@@ -451,7 +457,8 @@ public class HttpPath implements Path
         {
             throw new RuntimeException(e);
         }
-        watchBody();
+        watchBody();*/
+        watchKey.watchBody();
     }
 
     private Void handleException(
