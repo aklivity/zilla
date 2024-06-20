@@ -108,7 +108,8 @@ public class HttpWatchService implements WatchService, Callable<Void>
             }
             String etag = etags.getOrDefault(path, "");
             System.out.println("HWS call take path " + path + " etag [" + etag + "]"); // TODO: Ati
-            HttpResponse<byte[]> response = send(path, etag);
+            sendAsync(path, etag);
+            /*HttpResponse<byte[]> response = send(path, etag);
             if (response == null)
             {
                 scheduleRequest(path, pollSeconds);
@@ -116,7 +117,7 @@ public class HttpWatchService implements WatchService, Callable<Void>
             else
             {
                 handleChange(response); // TODO: Ati - this should receive path -> body should be stored in path
-            }
+            }*/
         }
         return null;
     }
@@ -235,8 +236,8 @@ public class HttpWatchService implements WatchService, Callable<Void>
         return watchKey;
     }
 
-    private HttpResponse<byte[]> send(
-        Path path,
+    private void sendAsync(
+        HttpPath path,
         String etag)
     {
         HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
@@ -247,19 +248,20 @@ public class HttpWatchService implements WatchService, Callable<Void>
             requestBuilder = requestBuilder.headers("If-None-Match", etag, "Prefer", "wait=86400");
         }
 
-        HttpResponse<byte[]> response;
-        try
-        {
-            response = HTTP_CLIENT.send(requestBuilder.build(), HttpResponse.BodyHandlers.ofByteArray());
-            //System.out.println("HWS send response " + response); // TODO: Ati
-            //System.out.println("HWS send response.body " + new String(response.body())); // TODO: Ati
-        }
-        catch (Exception e)
-        {
-            response = null;
-            System.out.println("HWS send exception " + e); // TODO: Ati
-        }
-        return response;
+        System.out.println("HWS sendAsync path " + path + " etag " + etag); // TODO: Ati
+        CompletableFuture<Void> future = HTTP_CLIENT.sendAsync(requestBuilder.build(), HttpResponse.BodyHandlers.ofByteArray())
+            .thenAccept(this::handleChange)
+            .exceptionally(ex -> handleException(ex, path));
+        futures.put(path, future);
+    }
+
+    private Void handleException(
+        Throwable throwable,
+        HttpPath path)
+    {
+        System.out.println("HWS handleException " + throwable.getMessage()); // TODO: Ati
+        scheduleRequest(path, pollSeconds);
+        return null;
     }
 
     private void handleChange(
