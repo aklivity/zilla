@@ -299,8 +299,6 @@ public class HttpPath implements Path
         //byte[] body = new byte[0];
         try
         {
-            // TODO: Ati - add etag to the header
-            // TODO: Ati - check+store etag/hash
             HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
                 .GET()
                 .uri(location);
@@ -318,6 +316,7 @@ public class HttpPath implements Path
             {
                 body = response.body();
                 Optional<String> etagOptional = response.headers().firstValue("Etag");
+                // TODO: Ati - calculate and store hash if there is no etag
                 if (etagOptional.isPresent())
                 {
                     etag = etagOptional.get();
@@ -335,7 +334,7 @@ public class HttpPath implements Path
         }
         catch (Exception ex)
         {
-            System.out.println("AHFSP readBody exception " + ex);  // TODO: Ati
+            System.out.println("HP readBody exception " + ex);  // TODO: Ati
             rethrowUnchecked(ex);
         }
         return body;
