@@ -33,7 +33,7 @@ public final class HttpFileSystem extends FileSystem
     private final AbstractHttpFileSystemProvider provider;
     private final URI root;
 
-    private byte[] body; // TODO: Ati - body should be moved from HFS to HttpPath
+    //private byte[] body; // TODO: Ati - body should be moved from HFS to HttpPath
 
     HttpFileSystem(
         AbstractHttpFileSystemProvider provider,
@@ -41,7 +41,7 @@ public final class HttpFileSystem extends FileSystem
     {
         this.provider = provider;
         this.root = root;
-        this.body = null; // TODO: Ati - body should be moved from HFS to HttpPath
+        //this.body = null; // TODO: Ati - body should be moved from HFS to HttpPath
     }
 
     @Override
@@ -141,15 +141,15 @@ public final class HttpFileSystem extends FileSystem
     }
 
     // TODO: Ati - body should be moved from HFS to HttpPath
-    byte[] body()
+    /*byte[] body()
     {
         return body;
-    }
+    }*/
 
     // TODO: Ati - body should be moved from HFS to HttpPath
     void body(
         byte[] body)
     {
-        this.body = body;
+        //this.body = body;
     }
 }

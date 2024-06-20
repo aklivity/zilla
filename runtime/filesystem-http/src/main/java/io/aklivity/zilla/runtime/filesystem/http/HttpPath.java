@@ -14,11 +14,18 @@
  */
 package io.aklivity.zilla.runtime.filesystem.http;
 
+import static java.net.HttpURLConnection.HTTP_OK;
+import static java.net.http.HttpClient.Redirect.NORMAL;
+import static java.net.http.HttpClient.Version.HTTP_2;
 import static java.util.Objects.requireNonNull;
+import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.ProviderMismatchException;
@@ -30,8 +37,15 @@ import java.util.Objects;
 
 public class HttpPath implements Path
 {
+    private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
+        .version(HTTP_2)
+        .followRedirects(NORMAL)
+        .build();
+
     private final HttpFileSystem fs;
     private final URI location;
+
+    private byte[] body;
 
     HttpPath(
         HttpFileSystem fs,
@@ -43,12 +57,14 @@ public class HttpPath implements Path
         }
         this.fs = fs;
         this.location = location;
+        this.body = null;
     }
 
     HttpPath()
     {
         this.fs = null;
         this.location = null;
+        this.body = null;
     }
 
     @Override
@@ -259,5 +275,41 @@ public class HttpPath implements Path
     public int hashCode()
     {
         return Objects.hashCode(location);
+    }
+
+    byte[] resolveBody()
+    {
+        if (body == null)
+        {
+            body = readBody();
+        }
+        return body;
+    }
+
+    private byte[] readBody()
+    {
+        byte[] body = new byte[0];
+        try
+        {
+            // TODO: Ati - add etag to the header
+            // TODO: Ati - check+store etag/hash
+            HttpRequest request = HttpRequest.newBuilder()
+                .GET()
+                .uri(location)
+                .build();
+            System.out.println("HP readBody path " + location + " request " + request); // TODO: Ati
+            HttpResponse<byte[]> response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofByteArray());
+            //System.out.println("HP readBody response.body " + new String(response.body())); // TODO: Ati
+            if (response.statusCode() == HTTP_OK)
+            {
+                body = response.body();
+            }
+        }
+        catch (Exception ex)
+        {
+            System.out.println("AHFSP readBody exception " + ex);  // TODO: Ati
+            rethrowUnchecked(ex);
+        }
+        return body;
     }
 }

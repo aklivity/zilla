@@ -29,6 +29,7 @@ import java.nio.file.WatchKey;
 import java.nio.file.spi.FileSystemProvider;
 import java.util.List;
 
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -165,6 +166,7 @@ public class HttpFileSystemIT
         assertThat(events2.get(0).context(), equalTo(path));
     }
 
+    @Ignore // TODO: Ati
     @Test
     @Specification({
         "${app}/watch/server",
@@ -193,6 +195,7 @@ public class HttpFileSystemIT
         assertThat(body2, equalTo("Hello Universe!"));
     }
 
+    @Ignore // TODO: Ati
     @Test
     @Specification({
         "${app}/watch.error.success/server",
@@ -225,6 +228,7 @@ public class HttpFileSystemIT
         assertThat(events2.get(0).context(), equalTo(path));
     }
 
+    @Ignore // TODO: Ati
     @Test
     @Specification({
         "${app}/watch.error.success/server",

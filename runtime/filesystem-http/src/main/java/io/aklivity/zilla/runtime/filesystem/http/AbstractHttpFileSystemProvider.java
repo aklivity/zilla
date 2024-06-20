@@ -14,18 +14,10 @@
  */
 package io.aklivity.zilla.runtime.filesystem.http;
 
-import static java.net.HttpURLConnection.HTTP_OK;
-import static java.net.http.HttpClient.Redirect.NORMAL;
-import static java.net.http.HttpClient.Version.HTTP_2;
-import static org.agrona.LangUtil.rethrowUnchecked;
-
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.nio.channels.AsynchronousFileChannel;
 import java.nio.channels.FileChannel;
 import java.nio.channels.SeekableByteChannel;
@@ -50,11 +42,6 @@ import java.util.concurrent.ExecutorService;
 
 public abstract class AbstractHttpFileSystemProvider extends FileSystemProvider
 {
-    private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
-        .version(HTTP_2)
-        .followRedirects(NORMAL)
-        .build();
-
     private final Map<URI, HttpFileSystem> fileSystems = new ConcurrentHashMap<>();
 
     @Override
@@ -117,8 +104,8 @@ public abstract class AbstractHttpFileSystemProvider extends FileSystemProvider
         Path path,
         OpenOption... options)
     {
-        // TODO: Ati - chk if path is http/s -> cast it to HttpPath
-        return new ByteArrayInputStream(resolveBody(path));
+        checkPath(path);
+        return new ByteArrayInputStream(resolveBody((HttpPath) path));
     }
 
     @Override
@@ -154,8 +141,8 @@ public abstract class AbstractHttpFileSystemProvider extends FileSystemProvider
         Set<? extends OpenOption> options,
         FileAttribute<?>... attrs)
     {
-        // TODO: Ati - chk if path is http/s -> cast it to HttpPath
-        return new ReadOnlyByteArrayChannel(resolveBody(path));
+        checkPath(path);
+        return new ReadOnlyByteArrayChannel(resolveBody((HttpPath) path));
     }
 
     @Override
@@ -314,58 +301,18 @@ public abstract class AbstractHttpFileSystemProvider extends FileSystemProvider
         }
     }
 
-    // TODO: Ati - this should be the new resolveBody
-    /*private byte[] resolveBody(
-        Path path)
-    //HttpPath path)
-    {
-        // TODO: Ati - this should delegate the call to HttpPath path.resolveBody()
-        return readBody(path);
-    }*/
-
-    // TODO: Ati - remove this
-    private byte[] resolveBody(
+    private void checkPath(
         Path path)
     {
-        byte[] body;
-        //HttpFileSystem fileSystem = fileSystems.get(path.toUri());
-        HttpFileSystem fileSystem = (HttpFileSystem) path.getFileSystem();
-        if (fileSystem != null && fileSystem.body() != null)
+        if (!path.getFileSystem().provider().getScheme().equalsIgnoreCase(getScheme()))
         {
-            System.out.println("AHFSP resolveBody fs.body"); // TODO: Ati
-            body = fileSystem.body();
+            throw new IllegalArgumentException("Scheme does not match this provider");
         }
-        else
-        {
-            System.out.println("AHFSP resolveBody readBody"); // TODO: Ati
-            body = readBody(path);
-        }
-        return body;
     }
 
-    private static byte[] readBody(
-        Path path)
+    private byte[] resolveBody(
+        HttpPath path)
     {
-        byte[] body = new byte[0];
-        try
-        {
-            HttpRequest request = HttpRequest.newBuilder()
-                .GET()
-                .uri(path.toUri())
-                .build();
-            System.out.println("AHFSP readBody path " + path + " request " + request); // TODO: Ati
-            HttpResponse<byte[]> response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofByteArray());
-            //System.out.println("AHFSP readBody response.body " + new String(response.body())); // TODO: Ati
-            if (response.statusCode() == HTTP_OK)
-            {
-                body = response.body();
-            }
-        }
-        catch (Exception ex)
-        {
-            System.out.println("AHFSP readBody exception " + ex);  // TODO: Ati
-            rethrowUnchecked(ex);
-        }
-        return body;
+        return path.resolveBody();
     }
 }
