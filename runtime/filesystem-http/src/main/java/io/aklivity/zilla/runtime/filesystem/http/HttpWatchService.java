@@ -29,7 +29,6 @@ import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -48,7 +47,6 @@ import java.util.concurrent.TimeUnit;
 
 public class HttpWatchService implements WatchService, Callable<Void>
 {
-    private static final Duration TIMEOUT = Duration.ofSeconds(5);
     private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
         .version(HTTP_2)
         .followRedirects(NORMAL)
@@ -243,8 +241,7 @@ public class HttpWatchService implements WatchService, Callable<Void>
     {
         HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
             .GET()
-            .uri(path.toUri())
-            .timeout(TIMEOUT);
+            .uri(path.toUri());
         if (etag != null && !etag.isEmpty())
         {
             requestBuilder = requestBuilder.headers("If-None-Match", etag, "Prefer", "wait=86400");

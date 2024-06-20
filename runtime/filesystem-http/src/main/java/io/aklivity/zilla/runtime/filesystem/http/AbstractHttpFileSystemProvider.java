@@ -43,7 +43,6 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileAttribute;
 import java.nio.file.attribute.FileAttributeView;
 import java.nio.file.spi.FileSystemProvider;
-import java.time.Duration;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -51,7 +50,6 @@ import java.util.concurrent.ExecutorService;
 
 public abstract class AbstractHttpFileSystemProvider extends FileSystemProvider
 {
-    private static final Duration TIMEOUT = Duration.ofSeconds(5);
     private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
         .version(HTTP_2)
         .followRedirects(NORMAL)
@@ -354,7 +352,6 @@ public abstract class AbstractHttpFileSystemProvider extends FileSystemProvider
             HttpRequest request = HttpRequest.newBuilder()
                 .GET()
                 .uri(path.toUri())
-                .timeout(TIMEOUT)
                 .build();
             System.out.println("AHFSP readBody path " + path + " request " + request); // TODO: Ati
             HttpResponse<byte[]> response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofByteArray());
