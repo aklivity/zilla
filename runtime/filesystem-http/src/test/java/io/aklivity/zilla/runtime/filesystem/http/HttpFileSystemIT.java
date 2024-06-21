@@ -203,8 +203,8 @@ public class HttpFileSystemIT
         // GIVEN
         String url = "http://localhost:8080/hello.txt";
         Path path = Path.of(new URI(url));
+        ((HttpPath) path).pollSeconds(1); // TODO: Ati
         HttpWatchService watchService = (HttpWatchService) path.getFileSystem().newWatchService();
-        watchService.pollSeconds(1); // TODO: Ati
 
         // WHEN
         k3po.start();
@@ -216,6 +216,7 @@ public class HttpFileSystemIT
         WatchKey key2 = watchService.take();
         List<WatchEvent<?>> events2 = key2.pollEvents();
         watchService.close();
+        ((HttpPath) path).shutdown();
         k3po.finish();
 
         // THEN
@@ -237,7 +238,7 @@ public class HttpFileSystemIT
         String url = "http://localhost:8080/hello.txt";
         Path path = Path.of(new URI(url));
         HttpWatchService watchService = (HttpWatchService) path.getFileSystem().newWatchService();
-        watchService.pollSeconds(1); // TODO: Ati
+        ((HttpPath) path).pollSeconds(1); // TODO: Ati
 
         // WHEN
         k3po.start();
@@ -252,6 +253,7 @@ public class HttpFileSystemIT
         k3po.notifyBarrier("SECOND_READ");
         String body2 = Files.readString(path);
         watchService.close();
+        ((HttpPath) path).shutdown();
         k3po.finish();
 
         // THEN

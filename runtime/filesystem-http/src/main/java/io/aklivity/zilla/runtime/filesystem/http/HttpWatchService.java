@@ -28,9 +28,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class HttpWatchService implements WatchService
@@ -39,22 +37,18 @@ public class HttpWatchService implements WatchService
 
     private final WatchKey closeKey = new HttpWatchKey(CLOSE_PATH);
 
-    private final ScheduledExecutorService executor;
     private final List<HttpWatchKey> watchKeys;
     private final LinkedBlockingQueue<WatchKey> pendingKeys;
     private final MessageDigest md5;
 
-    private int pollSeconds;
     private volatile boolean closed;
 
     public HttpWatchService()
     {
-        this.executor = Executors.newScheduledThreadPool(2);
+
         this.watchKeys = Collections.synchronizedList(new LinkedList<>());
         this.pendingKeys = new LinkedBlockingQueue<>();
         this.md5 = initMessageDigest("MD5");
-        // TODO: Ati - HttpFileSystemConfiguration
-        this.pollSeconds = 30;
         this.closed = false;
     }
 
@@ -96,13 +90,6 @@ public class HttpWatchService implements WatchService
         WatchKey key = pendingKeys.take();
         checkKey(key);
         return key;
-    }
-
-    // TODO: Ati - HttpFileSystemConfiguration
-    public void pollSeconds(
-        int pollSeconds)
-    {
-        this.pollSeconds = pollSeconds;
     }
 
     private void checkOpen()
@@ -147,7 +134,7 @@ public class HttpWatchService implements WatchService
         }
         System.out.printf("HWS register path: %s\n", path); // TODO: Ati
         HttpWatchKey watchKey = new HttpWatchKey(path);
-        watchKey.watchBody();
+        watchKey.watch();
         watchKeys.add(watchKey);
         return watchKey;
     }
@@ -213,6 +200,7 @@ public class HttpWatchService implements WatchService
         @Override
         public void cancel()
         {
+            System.out.println("HWK cancel"); // TODO: Ati
             watchKeys.remove(this);
             path.cancel();
             valid = false;
@@ -254,18 +242,11 @@ public class HttpWatchService implements WatchService
             return Objects.hashCode(path);
         }
 
-        void watchBody()
+        void watch()
         {
             if (valid)
             {
-                if (path.longPolling())
-                {
-                    path.watchBody();
-                }
-                else
-                {
-                    executor.schedule(path::watchBody, pollSeconds, TimeUnit.SECONDS);
-                }
+                path.watch();
             }
         }
 

@@ -21,7 +21,6 @@ import static java.net.http.HttpClient.Redirect.NORMAL;
 import static java.net.http.HttpClient.Version.HTTP_2;
 import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
 import static java.util.Objects.requireNonNull;
-import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.File;
 import java.io.IOException;
@@ -39,6 +38,9 @@ import java.util.Iterator;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class HttpPath implements Path
 {
@@ -50,9 +52,10 @@ public class HttpPath implements Path
 
     private final HttpFileSystem fs;
     private final URI location;
+    private final ScheduledExecutorService executor;
+    private int pollSeconds; // TODO: Ati - HttpFileSystemConfiguration -> final
 
     private byte[] body;
-    private boolean longPolling;
     private String etag;
     private HttpWatchService.HttpWatchKey watchKey;
     private CompletableFuture<Void> future;
@@ -65,16 +68,21 @@ public class HttpPath implements Path
         {
             throw new IllegalArgumentException(String.format("invalid protocol: %s", location.getScheme()));
         }
+        System.out.println("HP constructor location " + location); // TODO: Ati
         this.fs = fs;
         this.location = location;
-        this.longPolling = true;
+        this.executor = Executors.newScheduledThreadPool(2);
+        // TODO: Ati - HttpFileSystemConfiguration
+        //this.pollSeconds = 30;
+        this.pollSeconds = 3;
     }
 
     HttpPath()
     {
         this.fs = null;
         this.location = null;
-        this.longPolling = true;
+        this.executor = null;
+        this.pollSeconds = 0;
     }
 
     @Override
@@ -243,6 +251,7 @@ public class HttpPath implements Path
         WatchService watcher,
         WatchEvent.Kind<?>... events) throws IOException
     {
+        System.out.println("HP register"); // TODO: Ati
         return register(watcher, events, new WatchEvent.Modifier[0]);
     }
 
@@ -288,6 +297,13 @@ public class HttpPath implements Path
         return Objects.hashCode(location);
     }
 
+    // TODO: Ati - HttpFileSystemConfiguration
+    public void pollSeconds(
+        int pollSeconds)
+    {
+        this.pollSeconds = pollSeconds;
+    }
+
     byte[] readBody()
     {
         System.out.println("HP readBody"); // TODO: Ati
@@ -328,12 +344,30 @@ public class HttpPath implements Path
         catch (Exception ex)
         {
             System.out.println("HP readBody exception " + ex);  // TODO: Ati
-            rethrowUnchecked(ex);
+            body = new byte[0];
         }
         return body;
     }
 
-    void watchBody()
+    void watch()
+    {
+        scheduleWatchBody(this.pollSeconds);
+    }
+
+    private void scheduleWatchBody(
+        int pollSeconds)
+    {
+        if (pollSeconds == 0)
+        {
+            watchBody();
+        }
+        else
+        {
+            executor.schedule(this::watchBody, pollSeconds, TimeUnit.SECONDS);
+        }
+    }
+
+    private void watchBody()
     {
         HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
             .GET()
@@ -355,19 +389,17 @@ public class HttpPath implements Path
         System.out.println("HP handleResponse response: " + response); // TODO: Ati
         System.out.println("HP handleResponse response.headers: " + response.headers()); // TODO: Ati
         int statusCode = response.statusCode();
-        //int pollSeconds = 0;
+        int pollSeconds = 1;
         if (statusCode == 404)
         {
             body = EMPTY_BODY;
             watchKey.addEvent(ENTRY_MODIFY, this);
-            longPolling = false;
-            //pollSeconds = this.pollSeconds;
+            pollSeconds = this.pollSeconds;
         }
         else if (statusCode >= 500 && statusCode <= 599)
         {
             body = null;
-            longPolling = false;
-            //pollSeconds = this.pollSeconds;
+            pollSeconds = this.pollSeconds;
         }
         else
         {
@@ -384,9 +416,8 @@ public class HttpPath implements Path
                 }
                 else if (response.statusCode() != 304)
                 {
-                    this.body = response.body();
-                    longPolling = false;
-                    //pollSeconds = this.pollSeconds;
+                    body = response.body();
+                    pollSeconds = this.pollSeconds;
                 }
             }
             else
@@ -401,21 +432,25 @@ public class HttpPath implements Path
                     watchKey.addEvent(ENTRY_MODIFY, this);
                     //addEvent(path);
                 }
-                //pollSeconds = this.pollSeconds;
+                pollSeconds = this.pollSeconds;
             }
         }
-        watchKey.watchBody();
-    }
-
-    boolean longPolling()
-    {
-        return longPolling;
+        scheduleWatchBody(pollSeconds);
     }
 
     void cancel()
     {
         System.out.println("HP cancel"); // TODO: Ati
+        body = null;
+        etag = null;
         future.cancel(true);
+    }
+
+    // required for testing
+    public void shutdown()
+    {
+        System.out.println("HP shutdown"); // TODO: Ati
+        executor.shutdownNow();
     }
 
     private Void handleException(
