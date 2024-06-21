@@ -119,11 +119,11 @@ public class ConfigWatcherTask extends WatcherTask
         }
         else
         {
+            configText = readPath.apply(configPath);
             WatchedItem watchedItem = new WatchedItem(configPath, watchService);
             watchedItem.register();
             watchedItem.keys().forEach(k -> watchedItems.put(k, watchedItem));
             System.out.println("CWT watchConfig readPath " + configPath); // TODO: Ati
-            configText = readPath.apply(configPath);
             watchedItem.setHash(computeHash(configText));
         }
         configChangeListener.apply(configText);
