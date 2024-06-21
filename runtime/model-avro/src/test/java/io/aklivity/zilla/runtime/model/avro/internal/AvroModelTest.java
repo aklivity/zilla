@@ -286,10 +286,28 @@ public class AvroModelTest
         assertEquals(data.capacity(), converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
 
         assertEquals(8, converter.extractedLength(stringPath));
-        final ConverterHandler.FieldVisitor visitor = (buffer, index, length) ->
+        ConverterHandler.FieldVisitor visitor = (buffer, index, length) ->
         {
             assertEquals("positive", buffer.getStringWithoutLengthUtf8(index, length));
         };
         converter.extracted(stringPath, visitor);
+
+        ConverterHandler.FieldVisitor doubleVisitor = (buffer, index, length) ->
+        {
+            assertEquals("1.2", buffer.getStringWithoutLengthUtf8(index, length));
+        };
+        converter.extracted(doublePath, doubleVisitor);
+
+        ConverterHandler.FieldVisitor intVisitor = (buffer, index, length) ->
+        {
+            assertEquals("1", buffer.getStringWithoutLengthUtf8(index, length));
+        };
+        converter.extracted(intPath, intVisitor);
+
+        ConverterHandler.FieldVisitor floatVisitor = (buffer, index, length) ->
+        {
+            assertEquals("2.2", buffer.getStringWithoutLengthUtf8(index, length));
+        };
+        converter.extracted(floatPath, floatVisitor);
     }
 }

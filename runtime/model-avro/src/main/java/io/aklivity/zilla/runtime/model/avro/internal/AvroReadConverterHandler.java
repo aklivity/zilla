@@ -21,6 +21,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.agrona.DirectBuffer;
+import org.agrona.concurrent.UnsafeBuffer;
 import org.apache.avro.AvroRuntimeException;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericDatumReader;
@@ -38,6 +39,7 @@ public class AvroReadConverterHandler extends AvroModelHandler implements Conver
 {
     private static final String PATH = "^\\$\\.([A-Za-z_][A-Za-z0-9_]*)$";
     private static final Pattern PATH_PATTERN = Pattern.compile(PATH);
+    private static final DirectBuffer EMPTY_BUFFER = new UnsafeBuffer();
 
     private final Matcher matcher;
 
@@ -82,7 +84,7 @@ public class AvroReadConverterHandler extends AvroModelHandler implements Conver
     {
         if (matcher.reset(path).matches())
         {
-            extracted.put(matcher.group(1), new OctetsFW());
+            extracted.put(matcher.group(1), new AvroField());
         }
     }
 
@@ -95,6 +97,10 @@ public class AvroReadConverterHandler extends AvroModelHandler implements Conver
         int length,
         ValueConsumer next)
     {
+        for (AvroField field: extracted.values())
+        {
+            field.value.wrap(EMPTY_BUFFER, 0, 0);
+        }
         return handler.decode(traceId, bindingId, data, index, length, next, this::decodePayload);
     }
 
@@ -105,7 +111,7 @@ public class AvroReadConverterHandler extends AvroModelHandler implements Conver
         OctetsFW value = null;
         if (matcher.reset(path).matches())
         {
-            value = extracted.get(matcher.group(1));
+            value = extracted.get(matcher.group(1)).value;
         }
         return value != null ? value.sizeof() : 0;
     }
@@ -117,7 +123,7 @@ public class AvroReadConverterHandler extends AvroModelHandler implements Conver
     {
         if (matcher.reset(path).matches())
         {
-            OctetsFW value = extracted.get(matcher.group(1));
+            OctetsFW value = extracted.get(matcher.group(1)).value;
             if (value != null && value.sizeof() != 0)
             {
                 visitor.visit(value.buffer(), value.offset(), value.sizeof());
@@ -188,6 +194,9 @@ public class AvroReadConverterHandler extends AvroModelHandler implements Conver
                 JsonEncoder out = encoderFactory.jsonEncoder(schema, expandable);
                 writer.write(record, out);
                 out.flush();
+
+                progress = index;
+                extractFields(buffer, length, schema);
             }
         }
         catch (IOException | AvroRuntimeException ex)

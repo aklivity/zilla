@@ -27,7 +27,6 @@ import org.agrona.ExpandableDirectByteBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Int2ObjectCache;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.agrona.io.DirectBufferInputStream;
 import org.agrona.io.ExpandableDirectBufferOutputStream;
 import org.apache.avro.AvroRuntimeException;
@@ -65,7 +64,6 @@ public abstract class AvroModelHandler
     private static final int COMMA_LENGTH = ",".length();
     private static final int JSON_FIELD_ARRAY_LENGTH = "\"\":[]," .length() + COMMA_LENGTH * 100;
     private static final int JSON_FIELD_MAP_LENGTH = "\"\":{},".length();
-    private static final DirectBuffer EMPTY_BUFFER = new UnsafeBuffer();
 
     protected final SchemaConfig catalog;
     protected final CatalogHandler handler;
@@ -78,7 +76,7 @@ public abstract class AvroModelHandler
     protected final ExpandableDirectBufferOutputStream expandable;
     protected final DirectBufferInputStream in;
     protected final AvroModelEventContext event;
-    protected final Map<String, OctetsFW> extracted;
+    protected final Map<String, AvroField> extracted;
 
     private final Int2ObjectCache<Schema> schemas;
     private final Int2ObjectCache<GenericDatumReader<GenericRecord>> readers;
@@ -90,9 +88,8 @@ public abstract class AvroModelHandler
     private final AvroLongFW longRO;
     private final AvroFloatFW floatRO;
     private final AvroDoubleFW doubleRO;
-    private final MutableDirectBuffer text;
 
-    private int progress;
+    protected int progress;
 
     protected AvroModelHandler(
         AvroModelConfig config,
@@ -123,7 +120,6 @@ public abstract class AvroModelHandler
         this.longRO = new AvroLongFW();
         this.floatRO = new AvroFloatFW();
         this.doubleRO = new AvroDoubleFW();
-        this.text = new UnsafeBuffer(new byte[24]);
 
     }
 
@@ -136,10 +132,6 @@ public abstract class AvroModelHandler
         int length)
     {
         boolean status = false;
-        for (OctetsFW value: extracted.values())
-        {
-            value.wrap(EMPTY_BUFFER, 0, 0);
-        }
         try
         {
             GenericRecord record = supplyRecord(schemaId);
@@ -163,7 +155,7 @@ public abstract class AvroModelHandler
         return status;
     }
 
-    private void extractFields(
+    protected void extractFields(
         DirectBuffer buffer,
         int length,
         Schema schema)
@@ -304,7 +296,7 @@ public abstract class AvroModelHandler
         Schema schema,
         DirectBuffer data,
         int limit,
-        OctetsFW octets)
+        AvroField field)
     {
         switch (schema.getType())
         {
@@ -316,19 +308,22 @@ public abstract class AvroModelHandler
             AvroBytesFW bytes = bytesRO.wrap(data, progress, limit);
             OctetsFW value = bytes.value();
             progress = bytes.limit();
-            if (octets != null)
+            if (field != null)
             {
+                OctetsFW octets = field.value;
                 octets.wrap(value.buffer(), value.offset(), value.limit());
             }
             break;
+        case ENUM:
         case INT:
             AvroIntFW int32 = intRO.wrap(data, progress, limit);
             int intValue = int32.value();
             progress = int32.limit();
-            int length = text.putIntAscii(0, intValue);
-            if (octets != null)
+            if (field != null)
             {
-                octets.wrap(text, 0, length);
+                MutableDirectBuffer text = field.buffer;
+                int length = text.putIntAscii(0, intValue);
+                field.value.wrap(text, 0, length);
             }
             break;
         case FLOAT:
@@ -337,20 +332,22 @@ public abstract class AvroModelHandler
             DirectBuffer buffer = avroFloat.value().value();
             float floatValue = Float.intBitsToFloat(decodeNumberBytes(len, buffer));
             progress = avroFloat.limit();
-            length = text.putStringWithoutLengthAscii(0, String.valueOf(floatValue));
-            if (octets != null)
+            if (field != null)
             {
-                octets.wrap(text, 0, length);
+                MutableDirectBuffer text = field.buffer;
+                int length = text.putStringWithoutLengthAscii(0, String.valueOf(floatValue));
+                field.value.wrap(text, 0, length);
             }
             break;
         case LONG:
             AvroLongFW avroLong = longRO.wrap(data, progress, limit);
             long longValue = avroLong.value();
             progress = avroLong.limit();
-            length = text.putLongAscii(0, longValue);
-            if (octets != null)
+            if (field != null)
             {
-                octets.wrap(text, 0, length);
+                MutableDirectBuffer text = field.buffer;
+                int length = text.putLongAscii(0, longValue);
+                field.value.wrap(text, 0, length);
             }
             break;
         case DOUBLE:
@@ -365,20 +362,29 @@ public abstract class AvroModelHandler
             double doubleValue = Double.longBitsToDouble((((long) decoded) & 0xffffffffL) |
                 (((long) decodeNumberBytes(len, buffer)) << 32));
             progress = avroDouble.limit();
-            length = text.putStringWithoutLengthAscii(0, String.valueOf(doubleValue));
-            if (octets != null)
+            if (field != null)
             {
-                octets.wrap(text, 0, length);
+                MutableDirectBuffer text = field.buffer;
+                int length = text.putStringWithoutLengthAscii(0, String.valueOf(doubleValue));
+                field.value.wrap(text, 0, length);
             }
             break;
         case BOOLEAN:
             AvroBooleanFW avroBoolean = new AvroBooleanFW().wrap(data, progress, limit);
             value = avroBoolean.value();
             progress = avroBoolean.limit();
-            if (octets != null)
+            if (field != null)
             {
-                octets.wrap(value.buffer(), value.offset(), value.limit());
+                field.value.wrap(value.buffer(), value.offset(), value.limit());
             }
+            break;
+        case FIXED:
+            int fixedSize = schema.getFixedSize();
+            if (field != null)
+            {
+                field.value.wrap(data, progress, progress + fixedSize);
+            }
+            progress += fixedSize;
             break;
         }
     }
