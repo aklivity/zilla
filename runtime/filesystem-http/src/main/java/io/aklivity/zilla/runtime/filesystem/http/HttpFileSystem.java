@@ -96,8 +96,7 @@ public final class HttpFileSystem extends FileSystem
     {
         requireNonNull(first);
         requireNonNull(more);
-        String second = String.join(SEPARATOR, more);
-        String path = second.isBlank() ? first : first + SEPARATOR + second;
+        String path = more.length > 0 ? first + SEPARATOR + String.join(SEPARATOR, more) : first;
         Path result = null;
         try
         {
