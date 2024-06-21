@@ -20,6 +20,21 @@ connected
 read http:method "GET"
 read closed
 
+write await FIRST_READ
+write http:status "200" "OK"
+write http:content-length
+write http:header "Etag" "AAAAAAA"
+write "Hello World!"
+write close
+
+accepted
+connected
+
+read http:method "GET"
+read http:header "If-None-Match" "AAAAAAA"
+read http:header "Prefer" "wait=86400"
+read closed
+
 write await REGISTERED
 write http:status "200" "OK"
 write http:content-length
@@ -40,4 +55,29 @@ write http:status "200" "OK"
 write http:content-length
 write http:header "Etag" "BBBBBBB"
 write "Hello Universe!"
+write close
+
+accepted
+connected
+
+read http:method "GET"
+read http:header "If-None-Match" "BBBBBBB"
+read http:header "Prefer" "wait=86400"
+read closed
+
+write await NOT_MODIFIED
+write http:status "304" "Not changed"
+write http:content-length
+write close
+
+accepted
+connected
+
+read http:method "GET"
+read http:header "If-None-Match" "BBBBBBB"
+read closed
+
+write await SECOND_READ
+write http:status "304" "Not changed"
+write http:content-length
 write close

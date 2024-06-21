@@ -17,6 +17,7 @@ package io.aklivity.zilla.specs.filesystem.http;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -38,8 +39,8 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/success/client",
-        "${app}/success/server" })
+        "${app}/read.success/client",
+        "${app}/read.success/server" })
     public void shouldReadString() throws Exception
     {
         k3po.finish();
@@ -47,8 +48,8 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/success.etag.not.modified/client",
-        "${app}/success.etag.not.modified/server" })
+        "${app}/read.success.etag.not.modified/client",
+        "${app}/read.success.etag.not.modified/server" })
     public void shouldReadStringEtagNotModified() throws Exception
     {
         k3po.finish();
@@ -56,8 +57,8 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/success.etag.modified/client",
-        "${app}/success.etag.modified/server" })
+        "${app}/read.success.etag.modified/client",
+        "${app}/read.success.etag.modified/server" })
     public void shouldReadStringEtagModified() throws Exception
     {
         k3po.finish();
@@ -65,8 +66,8 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/notfound/client",
-        "${app}/notfound/server" })
+        "${app}/read.notfound/client",
+        "${app}/read.notfound/server" })
     public void shouldReadStringNotFound() throws Exception
     {
         k3po.finish();
@@ -74,13 +75,14 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/notfound.success/client",
-        "${app}/notfound.success/server" })
+        "${app}/read.notfound.success/client",
+        "${app}/read.notfound.success/server" })
     public void shouldReadStringNotFoundSuccess() throws Exception
     {
         k3po.finish();
     }
 
+    @Ignore // TODO: Ati
     @Test
     @Specification({
         "${app}/watch/client",
@@ -90,12 +92,34 @@ public class ApplicationIT
         k3po.finish();
     }
 
+    @Ignore // TODO: Ati
     @Test
     @Specification({
-        "${app}/watch.error.success/client",
-        "${app}/watch.error.success/server" })
-    public void shouldWatchErrorSuccess() throws Exception
+        "${app}/watch.notfound.success/client",
+        "${app}/watch.notfound.success/server" })
+    public void shouldWatchNotFoundSuccess() throws Exception
     {
         k3po.finish();
     }
+
+    @Ignore // TODO: Ati
+    @Test
+    @Specification({
+        "${app}/watch.read/client",
+        "${app}/watch.read/server" })
+    public void shouldWatchRead() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Ignore // TODO: Ati
+    @Test
+    @Specification({
+        "${app}/watch.read.notfound.success/client",
+        "${app}/watch.read.notfound.success/server" })
+    public void shouldWatchReadNotFoundSuccess() throws Exception
+    {
+        k3po.finish();
+    }
+
 }

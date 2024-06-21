@@ -52,7 +52,7 @@ public class HttpFileSystemIT
 
     @Test
     @Specification({
-        "${app}/success/server",
+        "${app}/read.success/server",
     })
     public void shouldReadString() throws Exception
     {
@@ -71,7 +71,7 @@ public class HttpFileSystemIT
 
     @Test
     @Specification({
-        "${app}/success.etag.not.modified/server",
+        "${app}/read.success.etag.not.modified/server",
     })
     public void shouldReadStringEtagNotModified() throws Exception
     {
@@ -92,7 +92,7 @@ public class HttpFileSystemIT
 
     @Test
     @Specification({
-        "${app}/success.etag.modified/server",
+        "${app}/read.success.etag.modified/server",
     })
     public void shouldReadStringEtagModified() throws Exception
     {
@@ -113,7 +113,7 @@ public class HttpFileSystemIT
 
     @Test
     @Specification({
-        "${app}/notfound/server",
+        "${app}/read.notfound/server",
     })
     public void shouldReadStringNotFound() throws Exception
     {
@@ -132,7 +132,7 @@ public class HttpFileSystemIT
 
     @Test
     @Specification({
-        "${app}/notfound.success/server",
+        "${app}/read.notfound.success/server",
     })
     public void shouldReadStringNotFoundSuccess() throws Exception
     {
@@ -153,7 +153,7 @@ public class HttpFileSystemIT
 
     @Test
     @Specification({
-        "${app}/success/server",
+        "${app}/read.success/server",
     })
     public void shouldReadInputStream() throws Exception
     {
@@ -175,7 +175,7 @@ public class HttpFileSystemIT
 
     @Test
     @Specification({
-        "${app}/notfound/server",
+        "${app}/read.notfound/server",
     })
     public void shouldReadInputStreamNotFound() throws Exception
     {
@@ -206,13 +206,14 @@ public class HttpFileSystemIT
         Path path = Path.of(new URI(url));
         HttpWatchService watchService = (HttpWatchService) path.getFileSystem().newWatchService();
         watchService.pollSeconds(1); // TODO: Ati
-        path.register(watchService);
 
         // WHEN
         k3po.start();
+        k3po.notifyBarrier("REGISTERED");
+        path.register(watchService);
         WatchKey key1 = watchService.take();
         List<WatchEvent<?>> events1 = key1.pollEvents();
-        k3po.notifyBarrier("CHANGED");
+        k3po.notifyBarrier("MODIFIED");
         WatchKey key2 = watchService.take();
         List<WatchEvent<?>> events2 = key2.pollEvents();
         watchService.close();
@@ -227,50 +228,22 @@ public class HttpFileSystemIT
         assertThat(events2.get(0).context(), equalTo(path));
     }
 
-    @Ignore
     @Test
     @Specification({
-        "${app}/watch.read/server",
+        "${app}/watch.notfound.success/server",
     })
-    public void shouldWatchReadString() throws Exception
+    public void shouldWatchNotfoundSuccess() throws Exception
     {
         // GIVEN
         String url = "http://localhost:8080/hello.txt";
         Path path = Path.of(new URI(url));
         HttpWatchService watchService = (HttpWatchService) path.getFileSystem().newWatchService();
         watchService.pollSeconds(1); // TODO: Ati
-        path.register(watchService);
 
         // WHEN
         k3po.start();
-        watchService.take();
-        k3po.notifyBarrier("CHANGED");
-        String body1 = Files.readString(path);
-        watchService.take();
-        String body2 = Files.readString(path);
-        watchService.close();
-        k3po.finish();
-
-        // THEN
-        assertThat(body1, equalTo("Hello World!"));
-        assertThat(body2, equalTo("Hello Universe!"));
-    }
-
-    @Test
-    @Specification({
-        "${app}/watch.error.success/server",
-    })
-    public void shouldWatchErrorSuccess() throws Exception
-    {
-        // GIVEN
-        String url = "http://localhost:8080/hello.txt";
-        Path path = Path.of(new URI(url));
-        HttpWatchService watchService = (HttpWatchService) path.getFileSystem().newWatchService();
-        watchService.pollSeconds(1); // TODO: Ati
+        k3po.notifyBarrier("REGISTERED");
         path.register(watchService);
-
-        // WHEN
-        k3po.start();
         WatchKey key1 = watchService.take();
         List<WatchEvent<?>> events1 = key1.pollEvents();
         k3po.notifyBarrier("FOUND");
@@ -291,9 +264,42 @@ public class HttpFileSystemIT
     @Ignore // TODO: Ati
     @Test
     @Specification({
-        "${app}/watch.error.success/server",
+        "${app}/watch.read/server",
     })
-    public void shouldWatchErrorSuccessReadString() throws Exception
+    public void shouldWatchRead() throws Exception
+    {
+        // GIVEN
+        String url = "http://localhost:8080/hello.txt";
+        Path path = Path.of(new URI(url));
+        HttpWatchService watchService = (HttpWatchService) path.getFileSystem().newWatchService();
+        watchService.pollSeconds(1); // TODO: Ati
+
+        // WHEN
+        k3po.start();
+        k3po.notifyBarrier("FIRST_READ");
+        String body1 = Files.readString(path);
+        k3po.notifyBarrier("REGISTERED");
+        path.register(watchService);
+        k3po.notifyBarrier("MODIFIED");
+        watchService.take();
+        k3po.notifyBarrier("NOT_MODIFIED");
+        watchService.take();
+        k3po.notifyBarrier("SECOND_READ");
+        String body2 = Files.readString(path);
+        watchService.close();
+        k3po.finish();
+
+        // THEN
+        assertThat(body1, equalTo("Hello World!"));
+        assertThat(body2, equalTo("Hello Universe!"));
+    }
+
+    @Ignore // TODO: Ati
+    @Test
+    @Specification({
+        "${app}/watch.read.notfound.success/server",
+    })
+    public void shouldWatchReadNotFoundSuccess() throws Exception
     {
         // GIVEN
         String url = "http://localhost:8080/hello.txt";
@@ -304,10 +310,15 @@ public class HttpFileSystemIT
 
         // WHEN
         k3po.start();
-        watchService.take();
+        k3po.notifyBarrier("FIRST_READ");
         String body1 = Files.readString(path);
+        k3po.notifyBarrier("REGISTERED");
+        path.register(watchService);
         k3po.notifyBarrier("FOUND");
         watchService.take();
+        k3po.notifyBarrier("NOT_MODIFIED");
+        watchService.take();
+        k3po.notifyBarrier("SECOND_READ");
         String body2 = Files.readString(path);
         watchService.close();
         k3po.finish();

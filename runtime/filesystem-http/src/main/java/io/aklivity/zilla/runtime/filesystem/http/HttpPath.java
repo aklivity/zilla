@@ -325,6 +325,7 @@ public class HttpPath implements Path
             HttpRequest request = requestBuilder.build();
             System.out.println("HP readBody path " + location + " request " + request + " etag " + etag); // TODO: Ati
             HttpResponse<byte[]> response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofByteArray());
+            System.out.println("HP readBody response " + response); // TODO: Ati
             //System.out.println("HP readBody response.body " + new String(response.body())); // TODO: Ati
             if (response.statusCode() == HTTP_OK)
             {
@@ -343,6 +344,7 @@ public class HttpPath implements Path
             }
             else if (response.statusCode() == HTTP_NOT_MODIFIED)
             {
+                System.out.println("HP readBody response 304 body " + new String(body));
                 // no op
             }
         }
@@ -403,18 +405,19 @@ public class HttpPath implements Path
         {
             body = EMPTY_BODY;
             watchKey.addEvent(ENTRY_MODIFY, this);
-            //longPolling = false; // TODO: Ati - ?
+            longPolling = false; // TODO: Ati - ?
             //pollSeconds = this.pollSeconds;
         }
         else if (statusCode >= 500 && statusCode <= 599)
         {
             body = null;
+            longPolling = false; // TODO: Ati - ?
             //pollSeconds = this.pollSeconds;
         }
         else
         {
             //byte[] body = response.body();
-            this.body = response.body();
+            System.out.println("HP acceptResponse body " + new String(response.body()));
             Optional<String> etagOptional = response.headers().firstValue("Etag");
             if (etagOptional.isPresent())
             {
@@ -424,10 +427,13 @@ public class HttpPath implements Path
                 {
                     //etags.put(path, newEtag); // TODO: Ati
                     etag = newEtag;
+                    this.body = response.body();
+                    //longPolling = true; // TODO: Ati
                     watchKey.addEvent(ENTRY_MODIFY, this);
                 }
                 else if (response.statusCode() != 304)
                 {
+                    this.body = response.body();
                     longPolling = false; // TODO: Ati
                     //pollSeconds = this.pollSeconds;
                 }

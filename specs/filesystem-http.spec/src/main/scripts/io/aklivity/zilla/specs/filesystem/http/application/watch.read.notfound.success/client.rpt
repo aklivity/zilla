@@ -13,31 +13,29 @@
 # specific language governing permissions and limitations under the License.
 #
 
-accept "http://localhost:8080/hello.txt"
-accepted
+connect "http://localhost:8080/hello.txt"
 connected
 
-read http:method "GET"
-read closed
-
-write await REGISTERED
-write http:status "200" "OK"
-write http:content-length
-write http:header "Etag" "AAAAAAA"
-write "Hello World!"
+write http:method "GET"
 write close
 
-accepted
+read http:status "200" "OK"
+read http:header "Etag" "AAAAAAA"
+read "Hello World!"
+read notify FIRST_READ
+read closed
+
+connect "http://localhost:8080/hello.txt"
 connected
 
-read http:method "GET"
-read http:header "If-None-Match" "AAAAAAA"
-read http:header "Prefer" "wait=86400"
-read closed
-
-write await MODIFIED
-write http:status "200" "OK"
-write http:content-length
-write http:header "Etag" "BBBBBBB"
-write "Hello Universe!"
+write await FIRST_READ
+write http:method "GET"
+write http:header "If-None-Match" "AAAAAAA"
+write http:header "Prefer" "wait=86400"
 write close
+
+read notify CHANGED
+read http:status "200" "OK"
+read http:header "Etag" "BBBBBBB"
+read "Hello Universe!"
+read closed

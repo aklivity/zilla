@@ -21,23 +21,19 @@ read http:method "GET"
 read closed
 
 write await REGISTERED
-write http:status "200" "OK"
+write http:status "404" "Not Found"
 write http:content-length
-write http:header "Etag" "AAAAAAA"
-write "Hello World!"
 write close
 
 accepted
 connected
 
 read http:method "GET"
-read http:header "If-None-Match" "AAAAAAA"
-read http:header "Prefer" "wait=86400"
 read closed
 
-write await MODIFIED
+write await FOUND
 write http:status "200" "OK"
 write http:content-length
-write http:header "Etag" "BBBBBBB"
-write "Hello Universe!"
+write http:header "Etag" "AAAAAAA"
+write "Hello World!"
 write close
