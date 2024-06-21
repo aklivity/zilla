@@ -19,23 +19,59 @@ connected
 write http:method "GET"
 write close
 
+read notify FIRST_READ
 read http:status "200" "OK"
 read http:header "Etag" "AAAAAAA"
 read "Hello World!"
-read notify FIRST_READ
 read closed
 
 connect "http://localhost:8080/hello.txt"
 connected
 
-write await FIRST_READ
 write http:method "GET"
 write http:header "If-None-Match" "AAAAAAA"
 write http:header "Prefer" "wait=86400"
 write close
 
-read notify CHANGED
+read notify REGISTERED
+read http:status "200" "OK"
+read http:header "Etag" "AAAAAAA"
+read "Hello World!"
+read closed
+
+connect "http://localhost:8080/hello.txt"
+connected
+
+write http:method "GET"
+write http:header "If-None-Match" "AAAAAAA"
+write http:header "Prefer" "wait=86400"
+write close
+
+read notify MODIFIED
 read http:status "200" "OK"
 read http:header "Etag" "BBBBBBB"
 read "Hello Universe!"
+read closed
+
+connect "http://localhost:8080/hello.txt"
+connected
+
+write http:method "GET"
+write http:header "If-None-Match" "BBBBBBB"
+write http:header "Prefer" "wait=86400"
+write close
+
+read notify NOT_MODIFIED
+read http:status "304" "Not changed"
+read closed
+
+connect "http://localhost:8080/hello.txt"
+connected
+
+write http:method "GET"
+write http:header "If-None-Match" "BBBBBBB"
+write close
+
+read notify SECOND_READ
+read http:status "304" "Not changed"
 read closed

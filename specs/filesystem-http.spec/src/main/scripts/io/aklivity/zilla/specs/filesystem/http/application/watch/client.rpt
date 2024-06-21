@@ -19,22 +19,21 @@ connected
 write http:method "GET"
 write close
 
+read notify REGISTERED
 read http:status "200" "OK"
 read http:header "Etag" "AAAAAAA"
 read "Hello World!"
-read notify FIRST_READ
 read closed
 
 connect "http://localhost:8080/hello.txt"
 connected
 
-write await FIRST_READ
 write http:method "GET"
 write http:header "If-None-Match" "AAAAAAA"
 write http:header "Prefer" "wait=86400"
 write close
 
-read notify CHANGED
+read notify MODIFIED
 read http:status "200" "OK"
 read http:header "Etag" "BBBBBBB"
 read "Hello Universe!"

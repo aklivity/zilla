@@ -383,6 +383,12 @@ public class HttpPath implements Path
         return longPolling;
     }
 
+    void cancel()
+    {
+        System.out.println("HP cancel"); // TODO: Ati
+        future.cancel(true);
+    }
+
     /*HttpResponse<byte[]> poll() throws Exception
     {
         future.get();

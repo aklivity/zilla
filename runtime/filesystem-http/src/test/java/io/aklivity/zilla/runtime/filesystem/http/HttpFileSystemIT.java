@@ -29,7 +29,6 @@ import java.nio.file.WatchKey;
 import java.nio.file.spi.FileSystemProvider;
 import java.util.List;
 
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -228,40 +227,6 @@ public class HttpFileSystemIT
         assertThat(events2.get(0).context(), equalTo(path));
     }
 
-    @Ignore // TODO: Ati
-    @Test
-    @Specification({
-        "${app}/watch.notfound.success/server",
-    })
-    public void shouldWatchNotFoundSuccess() throws Exception
-    {
-        // GIVEN
-        String url = "http://localhost:8080/hello.txt";
-        Path path = Path.of(new URI(url));
-        HttpWatchService watchService = (HttpWatchService) path.getFileSystem().newWatchService();
-        watchService.pollSeconds(1); // TODO: Ati
-
-        // WHEN
-        k3po.start();
-        k3po.notifyBarrier("REGISTERED");
-        path.register(watchService);
-        WatchKey key1 = watchService.take();
-        List<WatchEvent<?>> events1 = key1.pollEvents();
-        k3po.notifyBarrier("FOUND");
-        WatchKey key2 = watchService.take();
-        List<WatchEvent<?>> events2 = key2.pollEvents();
-        watchService.close();
-        k3po.finish();
-
-        // THEN
-        assertThat(events1.size(), equalTo(1));
-        assertThat(events1.get(0).kind(), equalTo(ENTRY_MODIFY));
-        assertThat(events1.get(0).context(), equalTo(path));
-        assertThat(events2.size(), equalTo(1));
-        assertThat(events1.get(0).kind(), equalTo(ENTRY_MODIFY));
-        assertThat(events2.get(0).context(), equalTo(path));
-    }
-
     @Test
     @Specification({
         "${app}/watch.read/server",
@@ -292,39 +257,5 @@ public class HttpFileSystemIT
         // THEN
         assertThat(body1, equalTo("Hello World!"));
         assertThat(body2, equalTo("Hello Universe!"));
-    }
-
-    @Ignore // TODO: Ati
-    @Test
-    @Specification({
-        "${app}/watch.read.notfound.success/server",
-    })
-    public void shouldWatchReadNotFoundSuccess() throws Exception
-    {
-        // GIVEN
-        String url = "http://localhost:8080/hello.txt";
-        Path path = Path.of(new URI(url));
-        HttpWatchService watchService = (HttpWatchService) path.getFileSystem().newWatchService();
-        watchService.pollSeconds(1); // TODO: Ati
-        path.register(watchService);
-
-        // WHEN
-        k3po.start();
-        k3po.notifyBarrier("FIRST_READ");
-        String body1 = Files.readString(path);
-        k3po.notifyBarrier("REGISTERED");
-        path.register(watchService);
-        k3po.notifyBarrier("FOUND");
-        watchService.take();
-        k3po.notifyBarrier("NOT_MODIFIED");
-        watchService.take();
-        k3po.notifyBarrier("SECOND_READ");
-        String body2 = Files.readString(path);
-        watchService.close();
-        k3po.finish();
-
-        // THEN
-        assertThat(body1, equalTo(""));
-        assertThat(body2, equalTo("Hello World!"));
     }
 }

@@ -407,6 +407,7 @@ public class HttpWatchService implements WatchService
         public void cancel()
         {
             watchKeys.remove(this);
+            path.cancel();
             valid = false;
         }
 
