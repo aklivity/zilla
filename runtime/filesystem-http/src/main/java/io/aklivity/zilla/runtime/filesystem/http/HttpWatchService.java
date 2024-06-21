@@ -141,7 +141,7 @@ public class HttpWatchService implements WatchService
         //fileSystem.body(null); // TODO: Ati - body should be moved from HFS to HttpPath
         pendingKeys.clear();
         pendingKeys.offer(closeKey);
-        watchKeys.forEach(w -> w.cancel());
+        watchKeys.forEach(HttpWatchKey::cancel);
         //futures.values().forEach(future -> future.cancel(true));
         //pathQueue.add(CLOSE_PATH);
         watchKeys.clear();
@@ -207,7 +207,6 @@ public class HttpWatchService implements WatchService
         pendingKeys.offer(key);
     }
 
-    //WatchKey register(
     HttpWatchKey register(
         final HttpPath path,
         WatchEvent.Kind<?>[] events,
@@ -225,12 +224,9 @@ public class HttpWatchService implements WatchService
             throw new IllegalArgumentException("Modifiers are not supported");
         }
         System.out.printf("HWS register path: %s\n", path); // TODO: Ati
-        //WatchKey watchKey = watchKeys.computeIfAbsent(path, i -> new HttpWatchKey(path));
-        //HttpWatchKey watchKey = watchKeys.computeIfAbsent(path, i -> new HttpWatchKey(path));
-        HttpWatchKey watchKey = new HttpWatchKey(path); // I moved this to HP
-        watchKeys.add(watchKey); // TODO: Ati - watchKeys should be a List
-        //pathQueue.offer(path);
-        //pathQueue.add(path);
+        HttpWatchKey watchKey = new HttpWatchKey(path);
+        watchKey.watchBody();
+        watchKeys.add(watchKey);
         return watchKey;
     }
 

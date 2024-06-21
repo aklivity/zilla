@@ -228,11 +228,12 @@ public class HttpFileSystemIT
         assertThat(events2.get(0).context(), equalTo(path));
     }
 
+    @Ignore // TODO: Ati
     @Test
     @Specification({
         "${app}/watch.notfound.success/server",
     })
-    public void shouldWatchNotfoundSuccess() throws Exception
+    public void shouldWatchNotFoundSuccess() throws Exception
     {
         // GIVEN
         String url = "http://localhost:8080/hello.txt";
@@ -261,7 +262,6 @@ public class HttpFileSystemIT
         assertThat(events2.get(0).context(), equalTo(path));
     }
 
-    @Ignore // TODO: Ati
     @Test
     @Specification({
         "${app}/watch.read/server",

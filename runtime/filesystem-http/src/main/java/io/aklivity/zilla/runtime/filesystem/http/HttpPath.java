@@ -242,7 +242,6 @@ public class HttpPath implements Path
             throw new ProviderMismatchException();
         }
         watchKey = ((HttpWatchService) watcher).register(this, events, modifiers);
-        watchKey.watchBody();
         return watchKey;
     }
 
