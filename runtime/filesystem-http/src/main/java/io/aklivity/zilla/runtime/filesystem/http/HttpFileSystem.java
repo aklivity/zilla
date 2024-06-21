@@ -33,15 +33,12 @@ public final class HttpFileSystem extends FileSystem
     private final AbstractHttpFileSystemProvider provider;
     private final URI root;
 
-    //private byte[] body; // TODO: Ati - body should be moved from HFS to HttpPath
-
     HttpFileSystem(
         AbstractHttpFileSystemProvider provider,
         URI root)
     {
         this.provider = provider;
         this.root = root;
-        //this.body = null; // TODO: Ati - body should be moved from HFS to HttpPath
     }
 
     @Override
@@ -129,28 +126,12 @@ public final class HttpFileSystem extends FileSystem
     @Override
     public HttpWatchService newWatchService()
     {
-        /*HttpWatchService service = new HttpWatchService(this);
-        service.start();
-        return service;*/
-        return new HttpWatchService(this);
+        return new HttpWatchService();
     }
 
     HttpPath resolveSibling(
         String other)
     {
         return new HttpPath(this, root.resolve(URI.create(other)));
-    }
-
-    // TODO: Ati - body should be moved from HFS to HttpPath
-    /*byte[] body()
-    {
-        return body;
-    }*/
-
-    // TODO: Ati - body should be moved from HFS to HttpPath
-    void body(
-        byte[] body)
-    {
-        //this.body = body;
     }
 }

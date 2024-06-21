@@ -52,11 +52,10 @@ public class HttpPath implements Path
     private final URI location;
 
     private byte[] body;
-    private String etag;
-    private CompletableFuture<Void> future;
-    //private HttpResponse<byte[]> response;
-    private HttpWatchService.HttpWatchKey watchKey;
     private boolean longPolling;
+    private String etag;
+    private HttpWatchService.HttpWatchKey watchKey;
+    private CompletableFuture<Void> future;
 
     HttpPath(
         HttpFileSystem fs,
@@ -68,9 +67,6 @@ public class HttpPath implements Path
         }
         this.fs = fs;
         this.location = location;
-        this.body = null;
-        this.etag = null;
-        this.future = null;
         this.longPolling = true;
     }
 
@@ -78,9 +74,6 @@ public class HttpPath implements Path
     {
         this.fs = null;
         this.location = null;
-        this.body = null;
-        this.etag = null;
-        this.future = null;
         this.longPolling = true;
     }
 
@@ -295,21 +288,9 @@ public class HttpPath implements Path
         return Objects.hashCode(location);
     }
 
-    byte[] resolveBody()
+    byte[] readBody()
     {
-        // TODO: Ati - if we always call readBody, can this be removed?
-        System.out.println("HP resolveBody");
-        body = readBody();
-        /*if (body == null)
-        {
-            body = readBody();
-        }*/
-        return body;
-    }
-
-    private byte[] readBody()
-    {
-        //byte[] body = new byte[0];
+        System.out.println("HP readBody"); // TODO: Ati
         try
         {
             HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
@@ -317,8 +298,6 @@ public class HttpPath implements Path
                 .uri(location);
             if (etag != null && !etag.isEmpty())
             {
-                //requestBuilder = requestBuilder.headers("If-None-Match", etag, "Prefer", "wait=86400");
-                // TODO: Ati - this is a sync call, I guess we don't need Prefer wait
                 requestBuilder = requestBuilder.headers("If-None-Match", etag);
             }
             HttpRequest request = requestBuilder.build();
@@ -343,7 +322,6 @@ public class HttpPath implements Path
             }
             else if (response.statusCode() == HTTP_NOT_MODIFIED)
             {
-                System.out.println("HP readBody response 304 body " + new String(body));
                 // no op
             }
         }
@@ -366,80 +344,48 @@ public class HttpPath implements Path
         }
         HttpRequest request = requestBuilder.build();
         System.out.println("HP watchBody path " + location + " request " + request + " etag " + etag); // TODO: Ati
-        //CompletableFuture<Void> future = HTTP_CLIENT.sendAsync(requestBuilder.build(), HttpResponse.BodyHandlers.ofByteArray())
-        //future = HTTP_CLIENT.sendAsync(requestBuilder.build(), HttpResponse.BodyHandlers.ofByteArray())
         future = HTTP_CLIENT.sendAsync(requestBuilder.build(), HttpResponse.BodyHandlers.ofByteArray())
-            .thenAccept(this::acceptResponse)
+            .thenAccept(this::handleResponse)
             .exceptionally(this::handleException);
     }
 
-    /*boolean isDone()
-    {
-        return future == null ? false : future.isDone();
-    }*/
-
-    boolean longPolling()
-    {
-        return longPolling;
-    }
-
-    void cancel()
-    {
-        System.out.println("HP cancel"); // TODO: Ati
-        future.cancel(true);
-    }
-
-    /*HttpResponse<byte[]> poll() throws Exception
-    {
-        future.get();
-        return response;
-    }*/
-
-    private void acceptResponse(
+    private void handleResponse(
         HttpResponse<byte[]> response)
     {
-        //this.response = response;
-        System.out.println("HP acceptResponse response: " + response); // TODO: Ati
-        System.out.println("HP acceptResponse response.headers: " + response.headers()); // TODO: Ati
-        //System.out.println("HWS handleChange response.body: " + new String(response.body())); // TODO: Ati
-        //HttpPath path = (HttpPath) Path.of(response.request().uri());
+        System.out.println("HP handleResponse response: " + response); // TODO: Ati
+        System.out.println("HP handleResponse response.headers: " + response.headers()); // TODO: Ati
         int statusCode = response.statusCode();
         //int pollSeconds = 0;
-        //boolean longPolling = this.longPolling;
         if (statusCode == 404)
         {
             body = EMPTY_BODY;
             watchKey.addEvent(ENTRY_MODIFY, this);
-            longPolling = false; // TODO: Ati - ?
+            longPolling = false;
             //pollSeconds = this.pollSeconds;
         }
         else if (statusCode >= 500 && statusCode <= 599)
         {
             body = null;
-            longPolling = false; // TODO: Ati - ?
+            longPolling = false;
             //pollSeconds = this.pollSeconds;
         }
         else
         {
-            //byte[] body = response.body();
-            System.out.println("HP acceptResponse body " + new String(response.body()));
+            System.out.println("HP handleResponse body " + new String(response.body()));
             Optional<String> etagOptional = response.headers().firstValue("Etag");
             if (etagOptional.isPresent())
             {
-                //String oldEtag = etags.getOrDefault(path, ""); // TODO: Ati
                 String newEtag = etagOptional.get();
                 if (!newEtag.equals(etag))
                 {
-                    //etags.put(path, newEtag); // TODO: Ati
                     etag = newEtag;
-                    this.body = response.body();
-                    //longPolling = true; // TODO: Ati
+                    body = response.body();
                     watchKey.addEvent(ENTRY_MODIFY, this);
                 }
                 else if (response.statusCode() != 304)
                 {
                     this.body = response.body();
-                    longPolling = false; // TODO: Ati
+                    longPolling = false;
                     //pollSeconds = this.pollSeconds;
                 }
             }
@@ -458,25 +404,24 @@ public class HttpPath implements Path
                 //pollSeconds = this.pollSeconds;
             }
         }
-        //futures.remove(path);
-        //scheduleRequest(path, pollSeconds); // ???
-        /*try
-        {
-            Thread.sleep(pollSeconds * 1000); // TODO: Ati
-        }
-        catch (InterruptedException e)
-        {
-            throw new RuntimeException(e);
-        }
-        watchBody();*/
         watchKey.watchBody();
+    }
+
+    boolean longPolling()
+    {
+        return longPolling;
+    }
+
+    void cancel()
+    {
+        System.out.println("HP cancel"); // TODO: Ati
+        future.cancel(true);
     }
 
     private Void handleException(
         Throwable throwable)
     {
         System.out.println("HP handleException " + throwable.getMessage()); // TODO: Ati
-        //scheduleRequest(path, pollSeconds);
         return null;
     }
 }

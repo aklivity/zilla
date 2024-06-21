@@ -105,7 +105,7 @@ public abstract class AbstractHttpFileSystemProvider extends FileSystemProvider
         OpenOption... options)
     {
         checkPath(path);
-        return new ByteArrayInputStream(resolveBody((HttpPath) path));
+        return new ByteArrayInputStream(readBody((HttpPath) path));
     }
 
     @Override
@@ -142,7 +142,7 @@ public abstract class AbstractHttpFileSystemProvider extends FileSystemProvider
         FileAttribute<?>... attrs)
     {
         checkPath(path);
-        return new ReadOnlyByteArrayChannel(resolveBody((HttpPath) path));
+        return new ReadOnlyByteArrayChannel(readBody((HttpPath) path));
     }
 
     @Override
@@ -310,9 +310,9 @@ public abstract class AbstractHttpFileSystemProvider extends FileSystemProvider
         }
     }
 
-    private byte[] resolveBody(
+    private byte[] readBody(
         HttpPath path)
     {
-        return path.resolveBody();
+        return path.readBody();
     }
 }

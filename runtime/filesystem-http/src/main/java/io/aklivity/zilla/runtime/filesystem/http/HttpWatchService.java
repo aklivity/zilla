@@ -33,118 +33,40 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-//public class HttpWatchService implements WatchService, Callable<Void>
 public class HttpWatchService implements WatchService
 {
-    /*private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
-        .version(HTTP_2)
-        .followRedirects(NORMAL)
-        .build();*/
-    //private static final Path CLOSE_PATH = Path.of(URI.create("http://localhost:12345"));
     private static final HttpPath CLOSE_PATH = new HttpPath();
-    private static final byte[] EMPTY_BODY = new byte[0];
 
     private final WatchKey closeKey = new HttpWatchKey(CLOSE_PATH);
 
-    //private final HttpFileSystem fileSystem; // TODO: Ati - remove this
     private final ScheduledExecutorService executor;
-    private final LinkedBlockingQueue<WatchKey> pendingKeys;
-    //private final BlockingQueue<Path> pathQueue;
-    //private final BlockingQueue<HttpPath> pathQueue;
-    //private final Map<Path, WatchKey> watchKeys;
-    //private final Map<Path, HttpWatchKey> watchKeys;
     private final List<HttpWatchKey> watchKeys;
-    //private final Map<Path, String> etags; // TODO: Ati
-    //private final Map<Path, byte[]> hashes; // TODO: Ati
-    //private final Map<Path, CompletableFuture<Void>> futures;
+    private final LinkedBlockingQueue<WatchKey> pendingKeys;
     private final MessageDigest md5;
 
     private int pollSeconds;
     private volatile boolean closed;
 
-    public HttpWatchService(
-        HttpFileSystem fileSystem) // TODO: Ati - remove this
+    public HttpWatchService()
     {
-        //this.fileSystem = fileSystem; // TODO: Ati - remove this
         this.executor = Executors.newScheduledThreadPool(2);
-        this.pendingKeys = new LinkedBlockingQueue<>();
-        //this.watchKeys = new ConcurrentHashMap<>();
         this.watchKeys = Collections.synchronizedList(new LinkedList<>());
-        //this.pathQueue = new LinkedBlockingQueue<>();
-        //this.etags = new ConcurrentHashMap<>();
-        //this.hashes = new ConcurrentHashMap<>();
-        //this.futures = new ConcurrentHashMap<>();
+        this.pendingKeys = new LinkedBlockingQueue<>();
         this.md5 = initMessageDigest("MD5");
+        // TODO: Ati - HttpFileSystemConfiguration
         this.pollSeconds = 30;
-        //this.pollSeconds = 2; // TODO: Ati
         this.closed = false;
-        //executor.submit(this);
     }
-
-    /*public void start()
-    {
-        executor.submit(this);
-    }*/
-
-    //    @Override
-    //    public Void call() throws Exception
-    //    {
-    //        while (true)
-    //        {
-    //            HttpPath path = pathQueue.take();
-    //            if (path == CLOSE_PATH)
-    //            {
-    //                break;
-    //            }
-    //            String etag = etags.getOrDefault(path, "");
-    //            System.out.println("HWS call take path " + path + " etag [" + etag + "]"); // TODO: Ati
-    //            sendAsync(path, etag);
-    //            /*HttpResponse<byte[]> response = send(path, etag);
-    //            if (response == null)
-    //            {
-    //                scheduleRequest(path, pollSeconds);
-    //            }
-    //            else
-    //            {
-    //                handleChange(response); // TODO: Ati - this should receive path -> body should be stored in path
-    //            }*/
-    //        }
-    //        return null;
-    //    }
-
-    /*@Override
-    public Void call() throws Exception
-    {
-        for (HttpWatchKey watchKey : watchKeys)
-        {
-            HttpPath path = watchKey.watchable();
-            if (path.isDone())
-            {
-                //HttpResponse<byte[]> response = path.poll();
-                //watchKey.handleChange(response);
-                //handleChange(response); // this throws Exception if error // this should be in HttpWatchKey ??
-                //scheduleRequest(watchKey);
-                System.out.println("HWS path is done " + path);
-                //watchKey.watchBody();
-                //path.watchBody(); // scheduleRequest can be deleted // actually watchKey.watchBody() that calls path.watchBody()
-                // how to deal with poll interval
-            }
-        }
-        return null;
-    }*/
 
     @Override
     public void close()
     {
         System.out.println("HWS close"); // TODO: Ati
-        closed = true;
-        //fileSystem.body(null); // TODO: Ati - body should be moved from HFS to HttpPath
+        watchKeys.forEach(HttpWatchKey::cancel);
+        watchKeys.clear();
         pendingKeys.clear();
         pendingKeys.offer(closeKey);
-        watchKeys.forEach(HttpWatchKey::cancel);
-        //futures.values().forEach(future -> future.cancel(true));
-        //pathQueue.add(CLOSE_PATH);
-        watchKeys.clear();
+        closed = true;
     }
 
     @Override
@@ -176,7 +98,7 @@ public class HttpWatchService implements WatchService
         return key;
     }
 
-    // TODO: Ati
+    // TODO: Ati - HttpFileSystemConfiguration
     public void pollSeconds(
         int pollSeconds)
     {
@@ -230,129 +152,14 @@ public class HttpWatchService implements WatchService
         return watchKey;
     }
 
-    /*private void sendAsync(
-        HttpPath path,
-        String etag)
-    {
-        HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
-            .GET()
-            .uri(path.toUri());
-        if (etag != null && !etag.isEmpty())
-        {
-            requestBuilder = requestBuilder.headers("If-None-Match", etag, "Prefer", "wait=86400");
-        }
-
-        System.out.println("HWS sendAsync path " + path + " etag " + etag); // TODO: Ati
-        CompletableFuture<Void> future = HTTP_CLIENT.sendAsync(requestBuilder.build(), HttpResponse.BodyHandlers.ofByteArray())
-            .thenAccept(this::handleChange)
-            .exceptionally(ex -> handleException(ex, path));
-        futures.put(path, future);
-    }*/
-
-    // TODO: Ati - remove this
-    /*private Void handleException(
-        Throwable throwable,
-        HttpPath path)
-    {
-        System.out.println("HWS handleException " + throwable.getMessage()); // TODO: Ati
-        //scheduleRequest(path, pollSeconds);
-        return null;
-    }*/
-
-    // TODO: Ati - this should be in HWK
-    /*private void handleChange(
-        HttpResponse<byte[]> response)
-    {
-        System.out.println("HWS handleChange response: " + response); // TODO: Ati
-        System.out.println("HWS handleChange response.headers: " + response.headers()); // TODO: Ati
-        //System.out.println("HWS handleChange response.body: " + new String(response.body())); // TODO: Ati
-        HttpPath path = (HttpPath) Path.of(response.request().uri());
-        int statusCode = response.statusCode();
-        int pollSeconds = 0;
-        if (statusCode == 404)
-        {
-            fileSystem.body(EMPTY_BODY); // TODO: Ati - body should be moved from HFS to HttpPath
-            addEvent(path);
-            pollSeconds = this.pollSeconds;
-        }
-        else if (statusCode >= 500 && statusCode <= 599)
-        {
-            fileSystem.body(null); // TODO: Ati - body should be moved from HFS to HttpPath
-            pollSeconds = this.pollSeconds;
-        }
-        else
-        {
-            byte[] body = response.body();
-            fileSystem.body(body); // TODO: Ati - body should be moved from HFS to HttpPath
-            Optional<String> etagOptional = response.headers().firstValue("Etag");
-            if (etagOptional.isPresent())
-            {
-                String oldEtag = etags.getOrDefault(path, "");
-                String newEtag = etagOptional.get();
-                if (!oldEtag.equals(newEtag))
-                {
-                    etags.put(path, newEtag);
-                    addEvent(path);
-
-                }
-                else if (response.statusCode() != 304)
-                {
-                    pollSeconds = this.pollSeconds;
-                }
-            }
-            else
-            {
-                byte[] hash = hashes.get(path);
-                byte[] newHash = computeHash(body);
-                if (!Arrays.equals(hash, newHash))
-                {
-                    hashes.put(path, newHash);
-                    addEvent(path);
-                }
-                pollSeconds = this.pollSeconds;
-            }
-        }
-        futures.remove(path);
-        scheduleRequest(path, pollSeconds);
-    }*/
-
-    // TODO: Ati - this should be in HWK
-    /*private void addEvent(
-        Path path)
-    {
-        System.out.println("HWS addEvent path " + path); // TODO: Ati
-        //HttpWatchKey key = (HttpWatchKey) watchKeys.get(path);
-        HttpWatchKey key = watchKeys.get(path);
-        if (key != null)
-        {
-            key.addEvent(ENTRY_MODIFY, path);
-            enqueueKey(key);
-        }
-    }*/
-
-    /*private void scheduleRequest(
-        //Path path,
-        HttpPath path,
-        int pollSeconds)
-    {
-        if (pollSeconds == 0)
-        {
-            System.out.println("HWS scheduleRequest 0"); // TODO: Ati
-            //pathQueue.add(path);
-        }
-        else
-        {
-            System.out.println("HWS scheduleRequest " + pollSeconds); // TODO: Ati
-            //executor.schedule(() -> pathQueue.add(path), pollSeconds, TimeUnit.SECONDS);
-        }
-    }*/
-
+    // TODO: Ati
     private byte[] computeHash(
         byte[] body)
     {
         return md5.digest(body);
     }
 
+    // TODO: Ati
     private MessageDigest initMessageDigest(
         String algorithm)
     {
@@ -447,11 +254,6 @@ public class HttpWatchService implements WatchService
             return Objects.hashCode(path);
         }
 
-        /*void watchBody()
-        {
-            path.watchBody();
-        }*/
-
         void watchBody()
         {
             if (valid)
@@ -466,65 +268,6 @@ public class HttpWatchService implements WatchService
                 }
             }
         }
-
-        /*private void handleChange(
-            HttpResponse<byte[]> response)
-        {
-            System.out.println("HWS handleChange response: " + response); // TODO: Ati
-            System.out.println("HWS handleChange response.headers: " + response.headers()); // TODO: Ati
-            //System.out.println("HWS handleChange response.body: " + new String(response.body())); // TODO: Ati
-            HttpPath path = (HttpPath) Path.of(response.request().uri());
-            int statusCode = response.statusCode();
-            int pollSeconds = 0;
-            if (statusCode == 404)
-            {
-                fileSystem.body(EMPTY_BODY); // TODO: Ati - body should be moved from HFS to HttpPath
-                addEvent(ENTRY_MODIFY, path);
-                //addEvent(path);
-                //pollSeconds = this.pollSeconds;
-            }
-            else if (statusCode >= 500 && statusCode <= 599)
-            {
-                fileSystem.body(null); // TODO: Ati - body should be moved from HFS to HttpPath
-                //pollSeconds = this.pollSeconds;
-            }
-            else
-            {
-                byte[] body = response.body();
-                fileSystem.body(body); // TODO: Ati - body should be moved from HFS to HttpPath
-                Optional<String> etagOptional = response.headers().firstValue("Etag");
-                if (etagOptional.isPresent())
-                {
-                    String oldEtag = etags.getOrDefault(path, ""); // TODO: Ati
-                    String newEtag = etagOptional.get();
-                    if (!oldEtag.equals(newEtag))
-                    {
-                        etags.put(path, newEtag); // TODO: Ati
-                        addEvent(ENTRY_MODIFY, path);
-                        //addEvent(path);
-
-                    }
-                    else if (response.statusCode() != 304)
-                    {
-                        //pollSeconds = this.pollSeconds;
-                    }
-                }
-                else
-                {
-                    byte[] hash = hashes.get(path);
-                    byte[] newHash = computeHash(body);
-                    if (!Arrays.equals(hash, newHash))
-                    {
-                        hashes.put(path, newHash); // TODO: Ati
-                        addEvent(ENTRY_MODIFY, path);
-                        //addEvent(path);
-                    }
-                    //pollSeconds = this.pollSeconds;
-                }
-            }
-            //futures.remove(path);
-            //scheduleRequest(path, pollSeconds);
-        }*/
 
         private static class Event<T> implements WatchEvent<T>
         {
