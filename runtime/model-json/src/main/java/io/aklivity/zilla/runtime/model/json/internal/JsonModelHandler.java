@@ -15,6 +15,8 @@
 package io.aklivity.zilla.runtime.model.json.internal;
 
 import java.io.StringReader;
+import java.util.HashMap;
+import java.util.Map;
 
 import jakarta.json.spi.JsonProvider;
 import jakarta.json.stream.JsonParser;
@@ -22,6 +24,7 @@ import jakarta.json.stream.JsonParserFactory;
 
 import org.agrona.DirectBuffer;
 import org.agrona.collections.Int2ObjectCache;
+import org.agrona.concurrent.UnsafeBuffer;
 import org.agrona.io.DirectBufferInputStream;
 import org.leadpony.justify.api.JsonSchema;
 import org.leadpony.justify.api.JsonSchemaReader;
@@ -34,19 +37,26 @@ import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
+import io.aklivity.zilla.runtime.model.json.internal.types.OctetsFW;
 
 public abstract class JsonModelHandler
 {
+    private static final DirectBuffer EMPTY_BUFFER = new UnsafeBuffer();
+    private static final int DOUBLE_QUOTE_LENGTH = 1;
+
     protected final SchemaConfig catalog;
     protected final CatalogHandler handler;
     protected final String subject;
     protected final JsonModelEventContext event;
+    protected final Map<String, OctetsFW> extracted;
 
     private final Int2ObjectCache<JsonSchema> schemas;
     private final Int2ObjectCache<JsonProvider> providers;
     private final JsonProvider schemaProvider;
     private final JsonValidationService service;
     private final JsonParserFactory factory;
+
+    private JsonParser parser;
     private DirectBufferInputStream in;
 
     public JsonModelHandler(
@@ -66,6 +76,7 @@ public abstract class JsonModelHandler
         this.providers = new Int2ObjectCache<>(1, 1024, i -> {});
         this.in = new DirectBufferInputStream();
         this.event = new JsonModelEventContext(context);
+        this.extracted = new HashMap<>();
     }
 
     protected final boolean validate(
@@ -83,8 +94,47 @@ public abstract class JsonModelHandler
             status &= provider != null;
             if (status)
             {
+                for (OctetsFW value: extracted.values())
+                {
+                    value.wrap(EMPTY_BUFFER, 0, 0);
+                }
                 in.wrap(buffer, index, length);
-                provider.createReader(in).readValue();
+                parser = provider.createParser(in);
+                OctetsFW valueBytes = null;
+                while (parser.hasNext())
+                {
+                    JsonParser.Event event = parser.next();
+                    if (!extracted.isEmpty())
+                    {
+                        switch (event)
+                        {
+                        case KEY_NAME:
+                            String key = parser.getString();
+                            valueBytes = extracted.get(key);
+                            break;
+                        case VALUE_STRING:
+                            if (valueBytes != null)
+                            {
+                                int offset = (int) parser.getLocation().getStreamOffset() - DOUBLE_QUOTE_LENGTH;
+                                offset += index;
+                                int valLength = calculateValueLength();
+                                valueBytes.wrap(in.buffer(), offset - valLength, offset);
+                                valueBytes = null;
+                            }
+                            break;
+                        case VALUE_NUMBER:
+                            if (valueBytes != null)
+                            {
+                                int offset = (int) parser.getLocation().getStreamOffset();
+                                offset += index;
+                                int valLength = calculateValueLength();
+                                valueBytes.wrap(in.buffer(), offset - valLength, offset);
+                                valueBytes = null;
+                            }
+                            break;
+                        }
+                    }
+                }
             }
         }
         catch (JsonValidatingException ex)
@@ -93,6 +143,35 @@ public abstract class JsonModelHandler
             event.validationFailure(traceId, bindingId, ex.getMessage());
         }
         return status;
+    }
+
+    private int calculateValueLength()
+    {
+        int length = 0;
+        String value = parser.getString();
+        int valLength = value.length();
+        for (int i = 0; i < valLength; i++)
+        {
+            char c = value.charAt(i);
+            if ((c & 0xFF80) == 0)
+            {
+                length += 1;
+            }
+            else if ((c & 0xF800) == 0)
+            {
+                length += 2;
+            }
+            else if (Character.isHighSurrogate(c))
+            {
+                length += 4;
+                i++;
+            }
+            else
+            {
+                length += 3;
+            }
+        }
+        return length;
     }
 
     protected JsonProvider supplyProvider(

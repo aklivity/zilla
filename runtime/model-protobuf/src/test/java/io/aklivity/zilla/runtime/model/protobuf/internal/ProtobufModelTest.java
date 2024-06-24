@@ -29,6 +29,7 @@ import org.junit.Test;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
+import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalogHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogOptionsConfig;
@@ -70,6 +71,27 @@ public class ProtobufModelTest
                                             "optional string date_time = 2;" +
                                         "}" +
                                     "}";
+
+    private static final String COMPLEX_SCHEMA = "syntax = \"proto3\"; " +
+                                                "package io.confluent.examples.clients.basicavro; " +
+                                                "message SimpleMessage " +
+                                                "{ " +
+                                                    "double field_double = 1; " +
+                                                    "float field_float = 2; " +
+                                                    "int64 field_int64 = 3; " +
+                                                    "uint64 field_uint64 = 4; " +
+                                                    "int32 field_int32 = 5; " +
+                                                    "fixed64 field_fixed64 = 6; " +
+                                                    "fixed32 field_fixed32 = 7; " +
+                                                    "string field_string = 8; " +
+                                                    "bytes field_bytes = 9; " +
+                                                    "uint32 field_uint32 = 10; " +
+                                                    "sfixed32 field_sfixed32 = 12; " +
+                                                    "sfixed64 field_sfixed64 = 13; " +
+                                                    "sint32 field_sint32 = 14; " +
+                                                    "sint64 field_sint64 = 15; " +
+                                                "}";
+
     private EngineContext context;
 
     @Before
@@ -351,6 +373,101 @@ public class ProtobufModelTest
         DirectBuffer data = new UnsafeBuffer();
 
         assertEquals(3, converter.padding(data, 0, data.capacity()));
+
+    }
+
+    @Test
+    public void shouldExtract()
+    {
+        TestCatalogOptionsConfig testCatalogOptionsConfig = TestCatalogOptionsConfig.builder()
+            .id(9)
+            .schema(COMPLEX_SCHEMA)
+            .build();
+        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test", testCatalogOptionsConfig);
+        when(context.supplyCatalog(catalogConfig.id)).thenReturn(new TestCatalogHandler(testCatalogOptionsConfig));
+
+        ProtobufModelConfig config = ProtobufModelConfig.builder()
+            .catalog()
+                .name("test0")
+                .schema()
+                    .strategy("topic")
+                    .version("latest")
+                    .subject("test-value")
+                    .build()
+                .build()
+            .build();
+        ProtobufReadConverterHandler converter = new ProtobufReadConverterHandler(config, context);
+
+        String stringPath = "$.field_string";
+        converter.extract(stringPath);
+
+        String floatPath = "$.field_float";
+        converter.extract(floatPath);
+
+        String int64Path = "$.field_int64";
+        converter.extract(int64Path);
+
+        String int32Path = "$.field_int32";
+        converter.extract(int32Path);
+
+        String doublePath = "$.field_double";
+        converter.extract(doublePath);
+
+        String sfixed32Path = "$.field_sfixed32";
+        converter.extract(sfixed32Path);
+
+        String sint64Path = "$.field_sint64";
+        converter.extract(sint64Path);
+
+        String fixed64Path = "$.field_fixed64";
+        converter.extract(fixed64Path);
+
+        String sint32Path = "$.field_sint32";
+        converter.extract(sint32Path);
+
+        DirectBuffer data = new UnsafeBuffer();
+
+        byte[] bytes = {0, 9, 119, -66, -97, 26, 47, -35, 94, 64, 21, 102, -26, -11, 66, 24, -107, -102, -17, 58,
+            32, -79, -47, -7, -42, 3, 40, -71, 96, 49, 21, -51, 91, 7, 0, 0, 0, 0, 61, 57, 48, 0, 0, 66, 12, 100,
+            117, 109, 109, 121, 32, 115, 116, 114, 105, 110, 103, 74, 5, 1, 2, 3, 4, 5, 80, -78, -110, 4, 101, 57,
+            48, 0, 0, 105, 21, -51, 91, 7, 0, 0, 0, 0, 112, -28, -92, 8, 120, -30, -94, -13, -83, 7};
+        data.wrap(bytes, 0, bytes.length);
+        assertEquals(data.capacity() - 1, converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
+
+        ConverterHandler.FieldVisitor visitor;
+
+        assertEquals(12, converter.extractedLength(stringPath));
+        visitor = (buffer, index, length) ->
+        {
+            assertEquals("dummy string", buffer.getStringWithoutLengthUtf8(index, length));
+        };
+        converter.extracted(stringPath, visitor);
+
+        assertEquals(7, converter.extractedLength(doublePath));
+
+        visitor = (buffer, index, length) ->
+        {
+            assertEquals("123.456", buffer.getStringWithoutLengthUtf8(index, length));
+        };
+        converter.extracted(doublePath, visitor);
+
+        visitor = (buffer, index, length) ->
+        {
+            assertEquals("12345", buffer.getStringWithoutLengthUtf8(index, length));
+        };
+        converter.extracted(int32Path, visitor);
+
+        visitor = (buffer, index, length) ->
+        {
+            assertEquals("122.95", buffer.getStringWithoutLengthUtf8(index, length));
+        };
+        converter.extracted(floatPath, visitor);
+
+        visitor = (buffer, index, length) ->
+        {
+            assertEquals("123456789", buffer.getStringWithoutLengthUtf8(index, length));
+        };
+        converter.extracted(int64Path, visitor);
 
     }
 }

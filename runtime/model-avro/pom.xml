@@ -85,7 +85,7 @@
         <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <scopeNames>core avro_model</scopeNames>
+          <scopeNames>internal core avro_model</scopeNames>
           <packageName>io.aklivity.zilla.runtime.model.avro.internal.types</packageName>
         </configuration>
         <executions>

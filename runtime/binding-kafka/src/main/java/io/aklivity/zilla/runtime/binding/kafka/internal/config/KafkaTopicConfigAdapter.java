@@ -17,14 +17,18 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.config;
 
 import static jakarta.json.JsonValue.ValueType.OBJECT;
 
+import java.util.Map;
+
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfigBuilder;
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicHeaderType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.engine.config.ModelConfigAdapter;
@@ -37,6 +41,7 @@ public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicCon
     private static final String EVENT_KEY = "key";
     private static final String EVENT_VALUE = "value";
     private static final String SUBJECT = "subject";
+    private static final String HEADERS_NAME = "headers";
 
     private final ModelConfigAdapter converter = new ModelConfigAdapter();
 
@@ -71,6 +76,16 @@ public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicCon
             converter.adaptType(topic.value.model);
 
             object.add(EVENT_VALUE, converter.adaptToJson(topic.value));
+        }
+
+        if (topic.headers != null && !topic.headers.isEmpty())
+        {
+            JsonObjectBuilder headers = Json.createObjectBuilder();
+            for (KafkaTopicHeaderType header : topic.headers)
+            {
+                headers.add(header.name.asString(), header.path);
+            }
+            object.add(HEADERS_NAME, headers);
         }
 
         return object.build();
@@ -121,6 +136,17 @@ public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicCon
             valueObject.add(SUBJECT, name + "-value");
 
             topicBuilder.value(converter.adaptFromJson(valueObject.build()));
+        }
+
+        JsonObject headers = object.containsKey(HEADERS_NAME) ? object.getJsonObject(HEADERS_NAME) : null;
+
+        if (headers != null)
+        {
+            for (Map.Entry<String, JsonValue> entry : headers.entrySet())
+            {
+                JsonString jsonString = (JsonString) entry.getValue();
+                topicBuilder.header(entry.getKey(), jsonString.getString());
+            }
         }
 
         return topicBuilder.build();
