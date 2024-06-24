@@ -436,6 +436,7 @@ local fields = {
     mqtt_ext_subscribe_qos_max = ProtoField.uint16("zilla.mqtt_ext.subscribe_qos_max", "Subscribe QoS Maximum", base.DEC),
     mqtt_ext_publish_qos_max = ProtoField.uint16("zilla.mqtt_ext.publish_qos_max", "Publish QoS Maximum", base.DEC),
     mqtt_ext_packet_size_max = ProtoField.uint32("zilla.mqtt_ext.packet_size_max", "Packet Size Maximum", base.DEC),
+    mqtt_ext_packet_ids_array_size = ProtoField.int8("zilla.mqtt_ext.packet_ids_array_size", "Size", base.DEC),
     --     capabilities
     mqtt_ext_capabilities = ProtoField.uint8("zilla.mqtt_ext.capabilities", "Capabilities", base.HEX),
     mqtt_ext_capabilities_retain = ProtoField.uint8("zilla.mqtt_ext.capabilities_retain", "RETAIN",
@@ -1755,6 +1756,29 @@ function handle_mqtt_begin_session_extension(buffer, offset, ext_subtree)
     local client_id_length, slice_client_id_length, slice_client_id_text = dissect_length_value(buffer, client_id_offset, 2)
     add_string_as_subtree(buffer(client_id_offset, client_id_length), ext_subtree, "Client ID: %s",
         slice_client_id_length, slice_client_id_text, fields.mqtt_ext_client_id_length, fields.mqtt_ext_client_id)
+    -- packet_ids
+    local packet_ids_offset = client_id_offset + client_id_length
+    local next_offset = dissect_and_add_mqtt_packet_ids(buffer, packet_ids_offset, ext_subtree)
+end
+
+function dissect_and_add_mqtt_packet_ids(buffer, offset, tree)
+    local size_length = 1
+    local slice_array_size = buffer(offset, size_length)
+    local array_size = slice_array_size:le_int();
+    local label = string.format("Packet IDs (%d items)", array_size)
+    local array_subtree = tree:add(zilla_protocol, slice_array_size, label)
+    array_subtree:add_le(fields.mqtt_ext_packet_ids_array_size, slice_array_size)
+    local item_offset = offset + size_length
+    for i = 1, array_size do
+        -- packet_id
+        local item_length = 2
+        local slice_packet_id = buffer(item_offset, item_length)
+        local label = string.format("Packet ID: 0x%04x", slice_packet_id:le_int())
+        local item_subtree = tree:add(zilla_protocol, slice_packet_id, label)
+        item_subtree:add_le(fields.mqtt_ext_packet_id, slice_packet_id)
+        item_offset = item_offset + item_length
+    end
+    return item_offset
 end
 
 function handle_mqtt_data_publish_extension(buffer, offset, ext_subtree)

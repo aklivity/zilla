@@ -15,13 +15,26 @@
  */
 package io.aklivity.zilla.runtime.binding.sse.config;
 
+import java.util.function.Function;
+
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 
 public final class SseConditionConfig extends ConditionConfig
 {
     public final String path;
 
-    public SseConditionConfig(
+    public static SseConditionConfigBuilder<SseConditionConfig> builder()
+    {
+        return new SseConditionConfigBuilder<>(SseConditionConfig.class::cast);
+    }
+
+    public static <T> SseConditionConfigBuilder<T> builder(
+        Function<ConditionConfig, T> mapper)
+    {
+        return new SseConditionConfigBuilder<>(mapper);
+    }
+
+    SseConditionConfig(
         String path)
     {
         this.path = path;

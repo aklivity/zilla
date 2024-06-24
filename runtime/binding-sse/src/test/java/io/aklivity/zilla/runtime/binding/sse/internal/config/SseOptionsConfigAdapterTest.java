@@ -58,7 +58,7 @@ public class SseOptionsConfigAdapterTest
     @Test
     public void shouldWriteOptions()
     {
-        SseOptionsConfig options = new SseOptionsConfig(3000);
+        SseOptionsConfig options = SseOptionsConfig.builder().retry(3000).build();
 
         String text = jsonb.toJson(options);
 

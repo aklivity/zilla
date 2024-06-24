@@ -21,12 +21,12 @@ import java.util.Map;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiOperation;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.MqttQoS;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiChannelView;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaConditionConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaConditionKind;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaWithConfig;
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttQoS;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
 
@@ -62,7 +62,7 @@ public class AsyncapiMqttKafkaProxy extends AsyncapiProxy
             for (AsyncapiConditionConfig condition : route.when)
             {
                 final Asyncapi mqttAsyncapi = asyncapis.get(condition.apiId);
-                if (mqttAsyncapi.servers.values().stream().anyMatch(s -> !s.protocol.startsWith(ASYNCAPI_MQTT_PROTOCOL_NAME)))
+                if (mqttAsyncapi.servers.values().stream().noneMatch(s -> s.protocol.startsWith(ASYNCAPI_MQTT_PROTOCOL_NAME)))
                 {
                     break inject;
                 }

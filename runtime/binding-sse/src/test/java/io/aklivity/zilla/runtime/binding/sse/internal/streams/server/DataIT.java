@@ -79,6 +79,26 @@ public class DataIT
     }
 
     @Test
+    @Configuration("server.validator.yaml")
+    @Specification({
+        "${net}/valid/request",
+        "${app}/valid/server" })
+    public void shouldReceiveValidMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.validator.yaml")
+    @Specification({
+        "${net}/invalid/request",
+        "${app}/invalid/server" })
+    public void shouldNotReceiveInvalidMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.when.yaml")
     @Specification({
         "${net}/multi.line/request",

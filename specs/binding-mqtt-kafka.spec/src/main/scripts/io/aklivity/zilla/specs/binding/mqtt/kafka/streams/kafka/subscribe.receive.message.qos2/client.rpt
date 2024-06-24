@@ -138,8 +138,10 @@ write advise zilla:flush ${kafka:flushEx()
                                 .consumer()
                                   .progress(0, 3,
                                         mqtt_kafka:subscribeMetadata()
+                                        .v2()
                                             .metadata(1)
-                                            .build())
+                                            .build()
+                                        .build())
                                   .correlationId(1)
                                   .build()
                               .build()}

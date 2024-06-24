@@ -14,15 +14,28 @@
  */
 package io.aklivity.zilla.runtime.binding.sse.kafka.config;
 
+import java.util.function.Function;
+
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 
 public final class SseKafkaConditionConfig extends ConditionConfig
 {
     public final String path;
 
-    public SseKafkaConditionConfig(
+    SseKafkaConditionConfig(
         String path)
     {
         this.path = path;
+    }
+
+    public static SseKafkaConditionConfigBuilder<SseKafkaConditionConfig> builder()
+    {
+        return new SseKafkaConditionConfigBuilder<>(SseKafkaConditionConfig.class::cast);
+    }
+
+    public static <T> SseKafkaConditionConfigBuilder<T> builder(
+        Function<ConditionConfig, T> mapper)
+    {
+        return new SseKafkaConditionConfigBuilder<>(mapper);
     }
 }
