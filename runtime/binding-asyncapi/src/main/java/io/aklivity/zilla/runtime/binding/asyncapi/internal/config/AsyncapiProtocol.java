@@ -23,6 +23,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiMessage;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiMessageView;
@@ -69,7 +70,8 @@ public abstract class AsyncapiProtocol
 
     public <C> NamespaceConfigBuilder<C> injectProtocolClientCache(
         NamespaceConfigBuilder<C> namespace,
-        List<MetricRefConfig> metricRefs)
+        List<MetricRefConfig> metricRefs,
+        AsyncapiOptionsConfig options)
     {
         return namespace;
     }

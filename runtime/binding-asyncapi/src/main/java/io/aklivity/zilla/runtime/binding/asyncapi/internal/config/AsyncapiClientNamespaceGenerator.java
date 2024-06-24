@@ -48,7 +48,7 @@ public class AsyncapiClientNamespaceGenerator extends AsyncapiNamespaceGenerator
                 .name(String.format("%s.%s-%s", qname, "$composite", namespace))
                 .inject(n -> this.injectNamespaceMetric(n, !metricRefs.isEmpty()))
                 .inject(n -> this.injectCatalog(n, namespaceConfig.asyncapis))
-                .inject(n -> protocol.injectProtocolClientCache(n, metricRefs))
+                .inject(n -> protocol.injectProtocolClientCache(n, metricRefs, options))
                 .binding()
                     .name(String.format("%s_client0", protocol.scheme))
                     .type(protocol.scheme)
