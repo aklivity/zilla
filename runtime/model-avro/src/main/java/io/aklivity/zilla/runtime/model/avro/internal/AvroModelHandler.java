@@ -19,9 +19,12 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.agrona.DirectBuffer;
 import org.agrona.ExpandableDirectByteBuffer;
+import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Int2ObjectCache;
 import org.agrona.io.DirectBufferInputStream;
@@ -42,6 +45,13 @@ import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 import io.aklivity.zilla.runtime.model.avro.config.AvroModelConfig;
+import io.aklivity.zilla.runtime.model.avro.internal.types.AvroBooleanFW;
+import io.aklivity.zilla.runtime.model.avro.internal.types.AvroBytesFW;
+import io.aklivity.zilla.runtime.model.avro.internal.types.AvroDoubleFW;
+import io.aklivity.zilla.runtime.model.avro.internal.types.AvroFloatFW;
+import io.aklivity.zilla.runtime.model.avro.internal.types.AvroIntFW;
+import io.aklivity.zilla.runtime.model.avro.internal.types.AvroLongFW;
+import io.aklivity.zilla.runtime.model.avro.internal.types.OctetsFW;
 
 public abstract class AvroModelHandler
 {
@@ -66,12 +76,20 @@ public abstract class AvroModelHandler
     protected final ExpandableDirectBufferOutputStream expandable;
     protected final DirectBufferInputStream in;
     protected final AvroModelEventContext event;
+    protected final Map<String, AvroField> extracted;
 
     private final Int2ObjectCache<Schema> schemas;
     private final Int2ObjectCache<GenericDatumReader<GenericRecord>> readers;
     private final Int2ObjectCache<GenericDatumWriter<GenericRecord>> writers;
     private final Int2ObjectCache<GenericRecord> records;
     private final Int2IntHashMap paddings;
+    private final AvroBytesFW bytesRO;
+    private final AvroIntFW intRO;
+    private final AvroLongFW longRO;
+    private final AvroFloatFW floatRO;
+    private final AvroDoubleFW doubleRO;
+
+    protected int progress;
 
     protected AvroModelHandler(
         AvroModelConfig config,
@@ -96,6 +114,13 @@ public abstract class AvroModelHandler
         this.expandable = new ExpandableDirectBufferOutputStream(new ExpandableDirectByteBuffer());
         this.in = new DirectBufferInputStream();
         this.event = new AvroModelEventContext(context);
+        this.extracted = new HashMap<>();
+        this.bytesRO = new AvroBytesFW();
+        this.intRO = new AvroIntFW();
+        this.longRO = new AvroLongFW();
+        this.floatRO = new AvroFloatFW();
+        this.doubleRO = new AvroDoubleFW();
+
     }
 
     protected final boolean validate(
@@ -112,17 +137,33 @@ public abstract class AvroModelHandler
             GenericRecord record = supplyRecord(schemaId);
             in.wrap(buffer, index, length);
             GenericDatumReader<GenericRecord> reader = supplyReader(schemaId);
+            Schema schema = supplySchema(schemaId);
             if (reader != null)
             {
-                reader.read(record, decoderFactory.binaryDecoder(in, decoder));
+                decoderFactory.binaryDecoder(in, decoder);
+                reader.read(record, decoder);
                 status = true;
+
             }
+            progress = index;
+            extractFields(buffer, length, schema);
         }
         catch (IOException | AvroRuntimeException ex)
         {
             event.validationFailure(traceId, bindingId, ex.getMessage());
         }
         return status;
+    }
+
+    protected void extractFields(
+        DirectBuffer buffer,
+        int length,
+        Schema schema)
+    {
+        for (Schema.Field field : schema.getFields())
+        {
+            extract(field.schema(), buffer, length, extracted.get(field.name()));
+        }
     }
 
     protected final Schema supplySchema(
@@ -249,5 +290,112 @@ public abstract class AvroModelHandler
             }
         }
         return padding;
+    }
+
+    private void extract(
+        Schema schema,
+        DirectBuffer data,
+        int limit,
+        AvroField field)
+    {
+        switch (schema.getType())
+        {
+        case RECORD:
+            extractFields(data, limit, schema);
+            break;
+        case BYTES:
+        case STRING:
+            AvroBytesFW bytes = bytesRO.wrap(data, progress, limit);
+            OctetsFW value = bytes.value();
+            progress = bytes.limit();
+            if (field != null)
+            {
+                OctetsFW octets = field.value;
+                octets.wrap(value.buffer(), value.offset(), value.limit());
+            }
+            break;
+        case ENUM:
+        case INT:
+            AvroIntFW int32 = intRO.wrap(data, progress, limit);
+            int intValue = int32.value();
+            progress = int32.limit();
+            if (field != null)
+            {
+                MutableDirectBuffer text = field.buffer;
+                int length = text.putIntAscii(0, intValue);
+                field.value.wrap(text, 0, length);
+            }
+            break;
+        case FLOAT:
+            AvroFloatFW avroFloat = floatRO.wrap(data, progress, limit);
+            int len = 0;
+            DirectBuffer buffer = avroFloat.value().value();
+            float floatValue = Float.intBitsToFloat(decodeNumberBytes(len, buffer));
+            progress = avroFloat.limit();
+            if (field != null)
+            {
+                MutableDirectBuffer text = field.buffer;
+                int length = text.putStringWithoutLengthAscii(0, String.valueOf(floatValue));
+                field.value.wrap(text, 0, length);
+            }
+            break;
+        case LONG:
+            AvroLongFW avroLong = longRO.wrap(data, progress, limit);
+            long longValue = avroLong.value();
+            progress = avroLong.limit();
+            if (field != null)
+            {
+                MutableDirectBuffer text = field.buffer;
+                int length = text.putLongAscii(0, longValue);
+                field.value.wrap(text, 0, length);
+            }
+            break;
+        case DOUBLE:
+            AvroDoubleFW avroDouble = doubleRO.wrap(data, progress, limit);
+            len = 0;
+            buffer = avroDouble.value().value();
+            int decoded = (buffer.getByte(len++) & 0xff) |
+                ((buffer.getByte(len++) & 0xff) << 8) |
+                ((buffer.getByte(len++) & 0xff) << 16) |
+                ((buffer.getByte(len++) & 0xff) << 24);
+
+            double doubleValue = Double.longBitsToDouble((((long) decoded) & 0xffffffffL) |
+                (((long) decodeNumberBytes(len, buffer)) << 32));
+            progress = avroDouble.limit();
+            if (field != null)
+            {
+                MutableDirectBuffer text = field.buffer;
+                int length = text.putStringWithoutLengthAscii(0, String.valueOf(doubleValue));
+                field.value.wrap(text, 0, length);
+            }
+            break;
+        case BOOLEAN:
+            AvroBooleanFW avroBoolean = new AvroBooleanFW().wrap(data, progress, limit);
+            value = avroBoolean.value();
+            progress = avroBoolean.limit();
+            if (field != null)
+            {
+                field.value.wrap(value.buffer(), value.offset(), value.limit());
+            }
+            break;
+        case FIXED:
+            int fixedSize = schema.getFixedSize();
+            if (field != null)
+            {
+                field.value.wrap(data, progress, progress + fixedSize);
+            }
+            progress += fixedSize;
+            break;
+        }
+    }
+
+    private static int decodeNumberBytes(
+        int len,
+        DirectBuffer buffer)
+    {
+        return (buffer.getByte(len++) & 0xff) |
+            ((buffer.getByte(len++) & 0xff) << 8) |
+            ((buffer.getByte(len++) & 0xff) << 16) |
+            ((buffer.getByte(len) & 0xff) << 24);
     }
 }

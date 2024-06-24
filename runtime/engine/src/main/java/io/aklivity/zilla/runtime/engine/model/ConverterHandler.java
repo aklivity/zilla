@@ -30,6 +30,20 @@ public interface ConverterHandler
         return length;
     };
 
+    @FunctionalInterface
+    interface FieldVisitor
+    {
+        void visit(
+            DirectBuffer buffer,
+            int index,
+            int length);
+    }
+
+    default void extract(
+        String path)
+    {
+    }
+
     int convert(
         long traceId,
         long bindingId,
@@ -37,6 +51,18 @@ public interface ConverterHandler
         int index,
         int length,
         ValueConsumer next);
+
+    default int extractedLength(
+        String path)
+    {
+        return 0;
+    }
+
+    default void extracted(
+        String path,
+        FieldVisitor visitor)
+    {
+    }
 
     default int padding(
         DirectBuffer data,

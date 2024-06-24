@@ -837,6 +837,11 @@ public final class KafkaCacheCursorFactory
                 final ArrayFW<KafkaHeaderFW> headers = cacheEntry.headers();
                 match.value = 0L;
                 headers.forEach(header -> match.value |= test(header));
+                final ArrayFW<KafkaHeaderFW> trailers = cacheEntry.trailers();
+                if (match.value == 0L && !trailers.isEmpty())
+                {
+                    trailers.forEach(trailer -> match.value |= test(trailer));
+                }
                 return match.value;
             }
         }

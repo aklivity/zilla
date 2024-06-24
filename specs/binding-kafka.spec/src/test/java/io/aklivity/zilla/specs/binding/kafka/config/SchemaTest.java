@@ -130,4 +130,12 @@ public class SchemaTest
 
         assertThat(config, not(nullValue()));
     }
+
+    @Test
+    public void shouldValidateCacheOptionsExtractHeaders()
+    {
+        JsonObject config = schema.validate("cache.options.extract.headers.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
 }

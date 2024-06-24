@@ -1254,7 +1254,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                             doServerInitialDataNone(traceId, fragment, reserved, length, flags);
                             break;
                         case FLAG_FIN:
-                            doServerInitialDataFin(traceId, headers, fragment, reserved, flags);
+                            doServerInitialDataFin(traceId, headers, trailers, fragment, reserved, flags);
                             break;
                         }
 
@@ -1311,7 +1311,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                                         .headers(hs ->
                                         {
                                             headers.forEach(h -> hs.item(i -> i.set(h)));
-                                            trailers.forEach(h -> hs.item(i -> i.set(h)));
+                                            trailers.forEach(t -> hs.item(i -> i.set(t)));
                                         }))
                            .build()
                            .sizeof()));
@@ -1347,7 +1347,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                                           .headers(hs ->
                                           {
                                               headers.forEach(h -> hs.item(i -> i.set(h)));
-                                              trailers.forEach(h -> hs.item(i -> i.set(h)));
+                                              trailers.forEach(t -> hs.item(i -> i.set(t)));
                                           }))
                            .build()
                            .sizeof()));
@@ -1366,6 +1366,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
         private void doServerInitialDataFin(
             long traceId,
             ArrayFW<KafkaHeaderFW> headers,
+            ArrayFW<KafkaHeaderFW> trailers,
             OctetsFW fragment,
             int reserved,
             int flags)
@@ -1373,10 +1374,13 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
             fan.doServerFanInitialData(traceId, flags, 0L, reserved, fragment,
                 ex -> ex.set((b, o, l) -> kafkaDataExRW.wrap(b, o, l)
                            .typeId(kafkaTypeId)
-                           .produce(f -> f.headers(hs -> headers.forEach(h -> hs.item(i -> i.nameLen(h.nameLen())
-                                                                                            .name(h.name())
-                                                                                            .valueLen(h.valueLen())
-                                                                                            .value(h.value())))))
+                           .produce(f -> f
+                               .headers(hs ->
+                               {
+                                   headers.forEach(h -> hs.item(i -> i.set(h)));
+                                   trailers.forEach(t -> hs.item(i -> i.set(t)));
+                               }
+                           ))
                            .build()
                            .sizeof()));
         }
