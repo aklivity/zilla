@@ -18,6 +18,8 @@ import java.util.List;
 import java.util.function.Supplier;
 
 import org.agrona.DirectBuffer;
+import org.agrona.ExpandableDirectByteBuffer;
+import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.grpc.kafka.config.GrpcKafkaCorrelationConfig;
@@ -31,9 +33,12 @@ import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaOffsetFW
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String16FW;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcMetadataFW;
 
 public class GrpcKafkaWithProduceResult
 {
+    public static final String META_PREFIX = "meta:";
+
     private static final KafkaOffsetFW KAFKA_OFFSET_HISTORICAL =
         new KafkaOffsetFW.Builder()
             .wrap(new UnsafeBuffer(new byte[32]), 0, 32)
@@ -50,10 +55,13 @@ public class GrpcKafkaWithProduceResult
     private final GrpcKafkaWithProduceHash hash;
     private final String16FW service;
     private final String16FW method;
+    private final Array32FW<GrpcMetadataFW> metadata;
+    private final ExpandableDirectByteBuffer buffer;
 
     GrpcKafkaWithProduceResult(
         String16FW service,
         String16FW method,
+        Array32FW<GrpcMetadataFW> metadata,
         String16FW topic,
         KafkaAckMode acks,
         Supplier<DirectBuffer> keyRef,
@@ -64,6 +72,7 @@ public class GrpcKafkaWithProduceResult
     {
         this.service = service;
         this.method = method;
+        this.metadata = metadata;
         this.overrides = overrides;
         this.replyTo = replyTo;
         this.correlation = correlation;
@@ -71,6 +80,8 @@ public class GrpcKafkaWithProduceResult
         this.acks = acks;
         this.keyRef = keyRef;
         this.hash = hash;
+        this.buffer = new ExpandableDirectByteBuffer();
+        this.buffer.putStringWithoutLengthAscii(0, META_PREFIX);
 
         hash.updateHash(correlation.service.value());
         hash.updateHash(service.value());
@@ -140,6 +151,22 @@ public class GrpcKafkaWithProduceResult
         builder.item(this::method);
         builder.item(this::replyTo);
         builder.item(this::correlationId);
+        metadata.forEach(m -> builder.item(i -> metadata(i, m)));
+    }
+
+    private void metadata(
+        KafkaHeaderFW.Builder builder,
+        GrpcMetadataFW metadata)
+    {
+        int nameLen = metadata.nameLen();
+        int nameLenWithPrefix = nameLen + 5;
+        buffer.putBytes(5, metadata.name().value(), 0, nameLen);
+
+        builder
+            .nameLen(nameLenWithPrefix)
+            .name(buffer, 0, nameLenWithPrefix)
+            .valueLen(metadata.valueLen())
+            .value(metadata.value().value(), 0, metadata.valueLen());
     }
 
     private void service(

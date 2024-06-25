@@ -169,7 +169,7 @@ public final class GrpcKafkaWithResolver
 
         String16FW replyTo = new String16FW(produce.replyTo);
 
-        return new GrpcKafkaWithProduceResult(service, method, topic, acks, keyRef, overrides, replyTo,
+        return new GrpcKafkaWithProduceResult(service, method, metadata, topic, acks, keyRef, overrides, replyTo,
             options.correlation, hash);
     }
 

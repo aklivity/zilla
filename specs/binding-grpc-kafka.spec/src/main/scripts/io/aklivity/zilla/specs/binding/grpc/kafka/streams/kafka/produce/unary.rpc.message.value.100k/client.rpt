@@ -64,6 +64,8 @@ write zilla:data.ext ${kafka:dataEx()
                                 .header("zilla:method", "EchoUnary")
                                 .header("zilla:reply-to", "responses")
                                 .header("zilla:correlation-id", "59410e57-3e0f-4b61-9328-f645a7968ac8-479f2c3fb58bc3f04bbe15440a657670")
+                                .header("meta:custom", "test")
+                                .header("meta:idempotency-key", "59410e57-3e0f-4b61-9328-f645a7968ac8")
                                 .build()
                             .build()}
 

@@ -63,6 +63,8 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .header("zilla:method", "EchoBidiStream")
                                .header("zilla:reply-to", "responses")
                                .header("zilla:correlation-id", "59410e57-3e0f-4b61-9328-f645a7968ac8-14f43bae85c2ce394c9bd81ff6fa9d77")
+                               .header("meta:custom", "test")
+                               .header("meta:idempotency-key", "59410e57-3e0f-4b61-9328-f645a7968ac8")
                                .build()
                            .build()}
 read zilla:data.null
