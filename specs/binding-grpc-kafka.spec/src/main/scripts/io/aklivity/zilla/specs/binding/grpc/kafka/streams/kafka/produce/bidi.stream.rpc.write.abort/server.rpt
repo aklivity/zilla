@@ -69,6 +69,8 @@ read zilla:data.ext ${kafka:matchDataEx()
                            .build()}
 read zilla:data.null
 
+read notify DATA_RECEIVED
+
 read aborted
 
 accepted
@@ -86,6 +88,8 @@ read zilla:begin.ext ${kafka:beginEx()
                               .build()}
 
 connected
+
+read await DATA_RECEIVED
 
 write zilla:data.ext ${kafka:dataEx()
                             .typeId(zilla:id("kafka"))
