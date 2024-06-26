@@ -43,6 +43,8 @@ read ${grpc:protobuf()
            .string(1, "Hello World1")
            .build()}
 
+read notify DATA_RECEIVED
+
 read zilla:reset.ext ${grpc:resetEx()
                             .typeId(zilla:id("grpc"))
                             .status("13")

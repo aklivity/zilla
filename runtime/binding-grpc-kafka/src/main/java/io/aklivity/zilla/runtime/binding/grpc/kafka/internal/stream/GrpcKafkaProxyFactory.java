@@ -1147,7 +1147,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             assert acknowledge <= sequence;
             assert sequence >= initialSeq;
 
-            initialSeq = sequence;
+            initialSeq = sequence + reserved;
 
             assert initialAck <= initialSeq;
 
