@@ -14,9 +14,12 @@
  */
 package io.aklivity.zilla.runtime.filesystem.http.internal;
 
+import static java.lang.System.currentTimeMillis;
 import static java.nio.file.StandardWatchEventKinds.ENTRY_CREATE;
 import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
 import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.net.http.HttpClient;
@@ -159,8 +162,10 @@ public final class HttpWatchService implements WatchService
     private void watchBody(
         HttpWatchKey watchKey)
     {
-        final long pollSeconds = pollInterval.getSeconds();
-        executor.schedule(watchKey::watchBody, pollSeconds, TimeUnit.SECONDS);
+        long elapsed = currentTimeMillis() - watchKey.lastWatchAt;
+        long delay = Math.max(SECONDS.toMillis(pollInterval.getSeconds()) - elapsed, 0L);
+
+        executor.schedule(watchKey::watchBody, delay, MILLISECONDS);
     }
 
     private void signalKey(
@@ -184,6 +189,7 @@ public final class HttpWatchService implements WatchService
 
         private volatile boolean valid;
         private volatile CompletableFuture<Void> future;
+        private long lastWatchAt;
 
         private HttpWatchKey()
         {
@@ -278,6 +284,8 @@ public final class HttpWatchService implements WatchService
             HttpClient client = path.getFileSystem().client();
             HttpRequest request = path.newWatchRequest();
 
+            this.lastWatchAt = currentTimeMillis();
+
             this.future = client.sendAsync(request, BodyHandlers.ofByteArray())
                 .thenAccept(this::success)
                 .exceptionally(this::failure);
@@ -305,6 +313,8 @@ public final class HttpWatchService implements WatchService
                 {
                     signalEvent(ENTRY_CREATE);
                 }
+
+                this.lastWatchAt = 0L;
             }
 
             watcher.watchBody(this);

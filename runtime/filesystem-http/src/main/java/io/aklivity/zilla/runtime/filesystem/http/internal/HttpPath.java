@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.filesystem.http.internal;
 
 import static java.net.HttpURLConnection.HTTP_NOT_FOUND;
 import static java.net.HttpURLConnection.HTTP_NOT_MODIFIED;
+import static java.net.HttpURLConnection.HTTP_NO_CONTENT;
 import static java.net.HttpURLConnection.HTTP_OK;
 import static java.util.Objects.requireNonNull;
 
@@ -290,11 +291,14 @@ public final class HttpPath implements Path
     void success(
         HttpResponse<byte[]> response)
     {
-        switch (response.statusCode())
+        final int status = response.statusCode();
+
+        switch (status)
         {
         case HTTP_OK:
+        case HTTP_NO_CONTENT:
             byte[] oldBody = body;
-            body = response.body();
+            body = status == HTTP_NO_CONTENT ? EMPTY_BODY : response.body();
             etag = response.headers().firstValue("Etag").orElse(null);
             if (body == null ||
                 oldBody == null ||
@@ -304,7 +308,7 @@ public final class HttpPath implements Path
             }
             break;
         case HTTP_NOT_FOUND:
-            body = HttpPath.EMPTY_BODY;
+            body = EMPTY_BODY;
             etag = null;
             changeCount++;
             break;
