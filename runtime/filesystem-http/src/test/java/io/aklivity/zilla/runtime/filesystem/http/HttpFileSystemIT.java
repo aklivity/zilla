@@ -277,23 +277,15 @@ public class HttpFileSystemIT
                 // WHEN
                 k3po.start();
 
-                k3po.notifyBarrier("FIRST_READ");
                 String body1 = Files.readString(path);
 
-                k3po.notifyBarrier("REGISTERED");
                 path.register(watcher);
 
-                k3po.notifyBarrier("MODIFIED");
                 watcher.take();
 
-                k3po.notifyBarrier("NOT_MODIFIED");
-                watcher.take();
-
-                k3po.notifyBarrier("SECOND_READ");
                 String body2 = Files.readString(path);
 
                 k3po.finish();
-
 
                 // THEN
                 assertThat(body1, equalTo("Hello World!"));

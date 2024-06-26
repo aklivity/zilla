@@ -32,6 +32,7 @@ import java.nio.file.ProviderMismatchException;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Objects;
 
@@ -292,10 +293,15 @@ public final class HttpPath implements Path
         switch (response.statusCode())
         {
         case HTTP_OK:
+            byte[] oldBody = body;
             body = response.body();
-            // TODO: Ati - calculate and store hash if there is no etag
             etag = response.headers().firstValue("Etag").orElse(null);
-            changeCount++;
+            if (body == null ||
+                oldBody == null ||
+                !Arrays.equals(body, oldBody))
+            {
+                changeCount++;
+            }
             break;
         case HTTP_NOT_FOUND:
             body = HttpPath.EMPTY_BODY;

@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.filesystem.http.internal;
 import static java.net.http.HttpClient.Redirect.NORMAL;
 import static java.net.http.HttpClient.Version.HTTP_2;
 import static java.util.Objects.requireNonNull;
-import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -26,8 +25,6 @@ import java.nio.file.FileSystem;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.attribute.UserPrincipalLookupService;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Map;
 import java.util.Set;
 
@@ -39,7 +36,6 @@ public final class HttpFileSystem extends FileSystem
     private final URI root;
     private final HttpFileSystemConfiguration config;
     private final HttpClient client;
-    private final MessageDigest md5;
 
     HttpFileSystem(
         HttpFileSystemProvider provider,
@@ -53,7 +49,6 @@ public final class HttpFileSystem extends FileSystem
             .version(HTTP_2)
             .followRedirects(NORMAL)
             .build();
-        this.md5 = initMessageDigest("MD5");
     }
 
     @Override
@@ -147,22 +142,5 @@ public final class HttpFileSystem extends FileSystem
     HttpClient client()
     {
         return client;
-    }
-
-    private static MessageDigest initMessageDigest(
-        String algorithm)
-    {
-        MessageDigest md5 = null;
-
-        try
-        {
-            md5 = MessageDigest.getInstance(algorithm);
-        }
-        catch (NoSuchAlgorithmException ex)
-        {
-            rethrowUnchecked(ex);
-        }
-
-        return md5;
     }
 }

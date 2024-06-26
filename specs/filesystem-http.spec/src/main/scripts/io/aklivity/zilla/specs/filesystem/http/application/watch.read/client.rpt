@@ -19,13 +19,15 @@ connected
 write http:method "GET"
 write close
 
-read notify FIRST_READ
 read http:status "200" "OK"
 read http:header "Etag" "AAAAAAA"
 read "Hello World!"
 read closed
+read notify CONFIG_INITIALIZED
 
-connect "http://localhost:8080/hello.txt"
+
+connect await CONFIG_INITIALIZED
+    "http://localhost:8080/hello.txt"
 connected
 
 write http:method "GET"
@@ -33,13 +35,14 @@ write http:header "If-None-Match" "AAAAAAA"
 write http:header "Prefer" "wait=86400"
 write close
 
-read notify REGISTERED
 read http:status "200" "OK"
 read http:header "Etag" "AAAAAAA"
 read "Hello World!"
 read closed
+read notify CONFIG_IDENTICAL
 
-connect "http://localhost:8080/hello.txt"
+connect await CONFIG_IDENTICAL
+    "http://localhost:8080/hello.txt"
 connected
 
 write http:method "GET"
@@ -47,13 +50,14 @@ write http:header "If-None-Match" "AAAAAAA"
 write http:header "Prefer" "wait=86400"
 write close
 
-read notify MODIFIED
 read http:status "200" "OK"
 read http:header "Etag" "BBBBBBB"
 read "Hello Universe!"
 read closed
+read notify CONFIG_MODIFIED
 
-connect "http://localhost:8080/hello.txt"
+connect await CONFIG_MODIFIED
+    "http://localhost:8080/hello.txt"
 connected
 
 write http:method "GET"
@@ -61,17 +65,14 @@ write http:header "If-None-Match" "BBBBBBB"
 write http:header "Prefer" "wait=86400"
 write close
 
-read notify NOT_MODIFIED
 read http:status "304" "Not changed"
 read closed
+read notify CONFIG_NOT_MODIFIED
 
-connect "http://localhost:8080/hello.txt"
+connect await CONFIG_NOT_MODIFIED
+    "http://localhost:8080/hello.txt"
 connected
 
 write http:method "GET"
 write http:header "If-None-Match" "BBBBBBB"
 write close
-
-read notify SECOND_READ
-read http:status "304" "Not changed"
-read closed
