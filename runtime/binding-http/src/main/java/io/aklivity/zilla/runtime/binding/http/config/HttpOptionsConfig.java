@@ -27,6 +27,7 @@ import java.util.stream.Stream;
 
 import io.aklivity.zilla.runtime.binding.http.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
+import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public final class HttpOptionsConfig extends OptionsConfig
@@ -55,41 +56,46 @@ public final class HttpOptionsConfig extends OptionsConfig
         HttpAuthorizationConfig authorization,
         List<HttpRequestConfig> requests)
     {
-        super(requests != null && !requests.isEmpty()
-            ? requests.stream()
-                .flatMap(request -> Stream.concat(
-                    Stream.of(request.content),
-                    Stream.concat(
-                        request.headers != null
-                            ? request.headers.stream().flatMap(header -> Stream.of(header != null ? header.model : null))
-                            : Stream.empty(),
-                        Stream.concat(
-                            request.pathParams != null
-                                ? request.pathParams.stream().flatMap(param -> Stream.of(param != null ? param.model : null))
-                                : Stream.empty(),
-                            Stream.concat(
-                                    request.queryParams != null
-                                    ? request.queryParams.stream().flatMap(param -> Stream.of(param != null ? param.model : null))
-                                    : Stream.empty(),
-                                    Stream.concat(request.responses != null
-                                        ? request.responses.stream().flatMap(param -> Stream.of(param != null
-                                            ? param.content
-                                            : null))
-                                        : Stream.empty(), request.responses != null
-                                        ? request.responses.stream()
-                                            .flatMap(response -> response.headers != null
-                                                ? response.headers.stream()
-                                                    .flatMap(param -> Stream.of(param != null ? param.model : null))
-                                                : Stream.empty())
-                                        : Stream.empty())
-                            )))).filter(Objects::nonNull))
-                .collect(Collectors.toList())
-            : emptyList());
-
+        super(resolveModels(requests), List.of());
         this.versions = versions;
         this.overrides = overrides;
         this.access = access;
         this.authorization = authorization;
         this.requests = requests;
+    }
+
+    private static List<ModelConfig> resolveModels(
+        List<HttpRequestConfig> requests)
+    {
+        return requests != null && !requests.isEmpty()
+            ? requests.stream()
+            .flatMap(request -> Stream.concat(
+                Stream.of(request.content),
+                Stream.concat(
+                    request.headers != null
+                        ? request.headers.stream().flatMap(header -> Stream.of(header != null ? header.model : null))
+                        : Stream.empty(),
+                    Stream.concat(
+                        request.pathParams != null
+                            ? request.pathParams.stream().flatMap(param -> Stream.of(param != null ? param.model : null))
+                            : Stream.empty(),
+                        Stream.concat(
+                            request.queryParams != null
+                                ? request.queryParams.stream().flatMap(param -> Stream.of(param != null ? param.model : null))
+                                : Stream.empty(),
+                            Stream.concat(request.responses != null
+                                ? request.responses.stream().flatMap(param -> Stream.of(param != null
+                                ? param.content
+                                : null))
+                                : Stream.empty(), request.responses != null
+                                ? request.responses.stream()
+                                .flatMap(response -> response.headers != null
+                                    ? response.headers.stream()
+                                    .flatMap(param -> Stream.of(param != null ? param.model : null))
+                                    : Stream.empty())
+                                : Stream.empty())
+                        )))).filter(Objects::nonNull))
+            .collect(Collectors.toList())
+            : emptyList();
     }
 }

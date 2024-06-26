@@ -21,6 +21,7 @@ import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 
 import java.net.URL;
+import java.nio.file.Path;
 
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -38,7 +39,7 @@ import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
 public class FilesystemCatalogFactoryTest
 {
     @Test
-    public void shouldLoadAndCreate()
+    public void shouldLoadAndCreate() throws Exception
     {
         Configuration config = new Configuration();
         CatalogFactory factory = CatalogFactory.instantiate();
@@ -50,7 +51,8 @@ public class FilesystemCatalogFactoryTest
         EngineContext engineContext = mock(EngineContext.class);
         URL url = FilesystemCatalogFactoryTest.class
             .getResource("../../../../specs/catalog/filesystem/config/asyncapi/mqtt.yaml");
-        Mockito.doReturn(url).when(engineContext).resolvePath("asyncapi/mqtt.yaml");
+        Path path = Path.of(url.toURI());
+        Mockito.doReturn(path).when(engineContext).resolvePath("asyncapi/mqtt.yaml");
 
         CatalogContext context = catalog.supply(engineContext);
         assertThat(context, instanceOf(FilesystemCatalogContext.class));

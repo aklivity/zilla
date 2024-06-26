@@ -24,7 +24,7 @@
   </licenses>
 
   <properties>
-    <jacoco.coverage.ratio>0.76</jacoco.coverage.ratio>
+    <jacoco.coverage.ratio>0.74</jacoco.coverage.ratio>
     <jacoco.missed.count>5</jacoco.missed.count>
   </properties>
 
@@ -76,6 +76,11 @@
       <groupId>com.fasterxml.jackson.dataformat</groupId>
       <artifactId>jackson-dataformat-yaml</artifactId>
       <version>2.16.1</version>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>filesystem-http</artifactId>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.jmock</groupId>

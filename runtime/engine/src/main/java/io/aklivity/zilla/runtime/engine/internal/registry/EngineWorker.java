@@ -37,13 +37,12 @@ import static java.lang.System.currentTimeMillis;
 import static java.lang.ThreadLocal.withInitial;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.agrona.CloseHelper.quietClose;
-import static org.agrona.LangUtil.rethrowUnchecked;
 import static org.agrona.concurrent.AgentRunner.startOnThread;
 
 import java.net.InetAddress;
-import java.net.MalformedURLException;
-import java.net.URL;
+import java.net.URI;
 import java.nio.channels.SelectableChannel;
+import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.BitSet;
@@ -173,7 +172,6 @@ public class EngineWorker implements EngineContext, Agent
 
     private final int localIndex;
     private final EngineConfiguration config;
-    private final URL configURL;
     private final LabelManager labels;
     private final String agentName;
     private final Function<String, InetAddress[]> resolveHost;
@@ -217,6 +215,7 @@ public class EngineWorker implements EngineContext, Agent
     private final EngineRegistry registry;
     private final Deque<Runnable> taskQueue;
     private final LongUnaryOperator affinityMask;
+    private final Path configPath;
     private final AgentRunner runner;
     private final IdleStrategy idleStrategy;
     private final ErrorHandler errorHandler;
@@ -260,7 +259,7 @@ public class EngineWorker implements EngineContext, Agent
     {
         this.localIndex = index;
         this.config = config;
-        this.configURL = config.configURL();
+        this.configPath = Path.of(config.configURI());
         this.labels = labels;
         this.affinityMask = affinityMask;
 
@@ -741,19 +740,12 @@ public class EngineWorker implements EngineContext, Agent
     }
 
     @Override
-    public URL resolvePath(
-        String path)
+    public Path resolvePath(
+        String location)
     {
-        URL resolved = null;
-        try
-        {
-            resolved = new URL(configURL, path);
-        }
-        catch (MalformedURLException ex)
-        {
-            rethrowUnchecked(ex);
-        }
-        return resolved;
+        return location.indexOf(':') == -1
+            ? configPath.resolveSibling(location)
+            : Path.of(URI.create(location));
     }
 
     @Override

@@ -16,8 +16,8 @@
 package io.aklivity.zilla.runtime.vault.filesystem.internal;
 
 import java.io.InputStream;
-import java.net.URL;
-import java.net.URLConnection;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.KeyStore;
 import java.security.KeyStore.Entry;
 import java.security.KeyStore.PrivateKeyEntry;
@@ -50,7 +50,7 @@ public class FileSystemVaultHandler implements VaultHandler
 
     public FileSystemVaultHandler(
         FileSystemOptionsConfig options,
-        Function<String, URL> resolvePath)
+        Function<String, Path> resolvePath)
     {
         lookupKey = supplyLookupPrivateKeyEntry(resolvePath, options.keys);
         lookupTrust = supplyLookupTrustedCertificateEntry(resolvePath, options.trust);
@@ -94,21 +94,21 @@ public class FileSystemVaultHandler implements VaultHandler
     }
 
     private static Function<String, KeyStore.PrivateKeyEntry> supplyLookupPrivateKeyEntry(
-        Function<String, URL> resolvePath,
+        Function<String, Path> resolvePath,
         FileSystemStoreConfig aliases)
     {
         return supplyLookupAlias(resolvePath, aliases, FileSystemVaultHandler::lookupPrivateKeyEntry);
     }
 
     private static Function<String, KeyStore.TrustedCertificateEntry> supplyLookupTrustedCertificateEntry(
-        Function<String, URL> resolvePath,
+        Function<String, Path> resolvePath,
         FileSystemStoreConfig aliases)
     {
         return supplyLookupAlias(resolvePath, aliases, FileSystemVaultHandler::lookupTrustedCertificateEntry);
     }
 
     private Function<Predicate<X500Principal>, KeyStore.PrivateKeyEntry[]> supplyLookupPrivateKeyEntries(
-        Function<String, URL> resolvePath,
+        Function<String, Path> resolvePath,
         FileSystemStoreConfig entries)
     {
         Function<Predicate<X500Principal>, KeyStore.PrivateKeyEntry[]> lookupKeys = p -> null;
@@ -117,9 +117,8 @@ public class FileSystemVaultHandler implements VaultHandler
         {
             try
             {
-                URL storeURL = resolvePath.apply(entries.store);
-                URLConnection connection = storeURL.openConnection();
-                try (InputStream input = connection.getInputStream())
+                Path storePath = resolvePath.apply(entries.store);
+                try (InputStream input = Files.newInputStream(storePath))
                 {
                     String type = Optional.ofNullable(entries.type).orElse(TYPE_DEFAULT);
                     char[] password = Optional.ofNullable(entries.password).map(String::toCharArray).orElse(null);
@@ -165,7 +164,7 @@ public class FileSystemVaultHandler implements VaultHandler
     }
 
     private static <R> Function<String, R> supplyLookupAlias(
-        Function<String, URL> resolvePath,
+        Function<String, Path> resolvePath,
         FileSystemStoreConfig aliases,
         Lookup<R> lookup)
     {
@@ -175,9 +174,8 @@ public class FileSystemVaultHandler implements VaultHandler
         {
             try
             {
-                URL storeURL = resolvePath.apply(aliases.store);
-                URLConnection connection = storeURL.openConnection();
-                try (InputStream input = connection.getInputStream())
+                Path storePath = resolvePath.apply(aliases.store);
+                try (InputStream input = Files.newInputStream(storePath))
                 {
                     String type = Optional.ofNullable(aliases.type).orElse(TYPE_DEFAULT);
                     char[] password = Optional.ofNullable(aliases.password).map(String::toCharArray).orElse(null);

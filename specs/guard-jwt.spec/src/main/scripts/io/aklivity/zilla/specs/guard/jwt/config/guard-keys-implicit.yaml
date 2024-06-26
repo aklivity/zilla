@@ -19,6 +19,6 @@ guards:
   jwt0:
     type: jwt
     options:
-      issuer: https://aklivity.us.auth0.com
+      issuer: http://localhost:8080
       audience: https://api.aklivity.com
       challenge: 30

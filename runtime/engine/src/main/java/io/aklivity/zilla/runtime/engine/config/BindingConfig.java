@@ -27,7 +27,6 @@ public class BindingConfig
     public transient long id;
     public transient long entryId;
     public transient ToLongFunction<String> resolveId;
-    public transient Function<String, String> readURL;
 
     public transient long vaultId;
     public transient String qvault;

@@ -68,7 +68,6 @@ public final class EngineConfigBuilder<T> extends ConfigBuilder<T, EngineConfigB
             namespaces = new LinkedList<>();
         }
 
-        return mapper.apply(new EngineConfig(
-            namespaces));
+        return mapper.apply(new EngineConfig(namespaces));
     }
 }

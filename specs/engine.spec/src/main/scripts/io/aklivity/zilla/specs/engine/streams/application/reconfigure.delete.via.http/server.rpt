@@ -14,7 +14,7 @@
 # under the License.
 #
 
-accept "http://localhost:8080/"
+accept "http://localhost:8080/zilla.yaml"
 accepted
 connected
 
@@ -33,24 +33,15 @@ write '---\n'
      '    exit: app0\n'
 write close
 
+
 accepted
 connected
 
 read http:method "GET"
+read http:header "If-None-Match" "AAAAAAA"
+read http:header "Prefer" "wait=86400"
 read closed
 
-write await FIRST_CONNECTED
 write http:status "404" "Not Found"
 write http:content-length
 write close
-
-accept "zilla://streams/app0"
-       option zilla:window 8192
-       option zilla:transmission "duplex"
-
-accepted
-connected
-
-read await CONFIG_DELETED
-read aborted
-write aborted
