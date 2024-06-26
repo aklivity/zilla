@@ -108,6 +108,8 @@ read ${grpc:protobuf()
            .string(1, "Hello World1")
            .build()}
 
+read notify DATA_RECEIVED
+
 read aborted
 write abort
 

@@ -539,7 +539,8 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
         @Override
         protected void onKafkaBegin(
             long traceId,
-            long authorization, OctetsFW extension)
+            long authorization,
+            OctetsFW extension)
         {
             if (!GrpcKafkaState.replyOpening(state))
             {
@@ -855,6 +856,8 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 int lenSize = len.sizeof();
                 replyPad = result.fieldId().sizeof() + lenSize + partitions.sizeof();
             }
+
+            delegate.onKafkaBegin(traceId, authorization, extension);
         }
 
         private void onKafkaData(
@@ -884,8 +887,6 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 final int flags = data.flags();
                 final OctetsFW payload = data.payload();
                 final OctetsFW extension = data.extension();
-
-                delegate.onKafkaBegin(traceId, authorization, extension);
 
                 final MutableDirectBuffer encodeBuffer = writeBuffer;
                 final int encodeOffset = DataFW.FIELD_OFFSET_PAYLOAD;
@@ -1280,6 +1281,11 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             long traceId,
             long authorization)
         {
+            if (!GrpcKafkaState.replyOpening(state))
+            {
+                doGrpcBegin(traceId, authorization, 0L, emptyRO);
+            }
+
             cleanup(traceId, authorization);
         }
 
@@ -1670,8 +1676,6 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             final long sequence = begin.sequence();
             final long acknowledge = begin.acknowledge();
             final long traceId = begin.traceId();
-            final long authorization = begin.authorization();
-            final OctetsFW extension = begin.extension();
 
             assert acknowledge <= sequence;
             assert sequence >= replySeq;
@@ -1684,7 +1688,6 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             assert replyAck <= replySeq;
 
             doKafkaWindow(traceId);
-            //delegate.onKafkaBegin(traceId, authorization, extension);
         }
 
         private void onKafkaEnd(
@@ -1957,8 +1960,6 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             final long sequence = begin.sequence();
             final long acknowledge = begin.acknowledge();
             final long traceId = begin.traceId();
-            final long authorization = begin.authorization();
-            final OctetsFW extension = begin.extension();
 
             assert acknowledge <= sequence;
             assert sequence >= replySeq;
@@ -1970,7 +1971,6 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
 
             assert replyAck <= replySeq;
 
-            //delegate.onKafkaBegin(traceId, authorization, extension);
             doKafkaWindow(traceId);
         }
 
