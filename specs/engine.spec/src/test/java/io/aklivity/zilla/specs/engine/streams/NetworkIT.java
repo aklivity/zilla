@@ -87,8 +87,10 @@ public class NetworkIT
     @Specification({
         "${net}/reconfigure.modify.via.http/client",
         "${net}/reconfigure.modify.via.http/server" })
-    public void shouldReconfigureWhenModifiedHTTP() throws Exception
+    public void shouldReconfigureWhenModifiedViaHttp() throws Exception
     {
+        k3po.start();
+        k3po.notifyBarrier("CONFIG_CHANGED");
         k3po.finish();
     }
 
@@ -96,8 +98,10 @@ public class NetworkIT
     @Specification({
         "${net}/reconfigure.create.via.http/client",
         "${net}/reconfigure.create.via.http/server" })
-    public void shouldReconfigureWhenCreatedHTTP() throws Exception
+    public void shouldReconfigureWhenCreatedViaHttp() throws Exception
     {
+        k3po.start();
+        k3po.notifyBarrier("CONFIG_CREATED");
         k3po.finish();
     }
 
@@ -105,8 +109,10 @@ public class NetworkIT
     @Specification({
         "${net}/reconfigure.delete.via.http/client",
         "${net}/reconfigure.delete.via.http/server" })
-    public void shouldReconfigureWhenDeletedHTTP() throws Exception
+    public void shouldReconfigureWhenDeletedViaHttp() throws Exception
     {
+        k3po.start();
+        k3po.notifyBarrier("CONFIG_DELETED");
         k3po.finish();
     }
 
@@ -115,7 +121,7 @@ public class NetworkIT
         "${net}/reconfigure.modify.no.etag.via.http/server",
         "${net}/reconfigure.modify.no.etag.via.http/client"
     })
-    public void shouldReconfigureWhenModifiedHTTPEtagNotSupported() throws Exception
+    public void shouldReconfigureWhenModifiedViaHttpEtagNotSupported() throws Exception
     {
         k3po.finish();
     }
@@ -125,8 +131,10 @@ public class NetworkIT
         "${net}/reconfigure.server.error.via.http/server",
         "${net}/reconfigure.server.error.via.http/client"
     })
-    public void shouldNotReconfigureWhen500Returned() throws Exception
+    public void shouldNotReconfigureViaHttpWhenServerError() throws Exception
     {
+        k3po.start();
+        k3po.notifyBarrier("SERVER_ERROR");
         k3po.finish();
     }
 }

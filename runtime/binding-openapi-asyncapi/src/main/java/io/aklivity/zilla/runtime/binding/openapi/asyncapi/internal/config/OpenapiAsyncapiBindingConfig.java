@@ -144,7 +144,6 @@ public final class OpenapiAsyncapiBindingConfig
                     Object2ObjectHashMap::new));
 
         this.composite = namespaceGenerator.generate(binding, openapis, asyncapis, openapiSchemaIdsByApiId::get);
-        this.composite.readLocation = binding.readLocation;
         attach.accept(this.composite);
 
         BindingConfig mappingBinding = composite.bindings.stream()

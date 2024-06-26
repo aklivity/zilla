@@ -59,22 +59,19 @@ public final class EngineConfigReader
     private final Resolver expressions;
     private final Collection<URL> schemaTypes;
     private final Consumer<String> logger;
-    private final Consumer<NamespaceConfig> addResources;
 
     public EngineConfigReader(
         EngineConfiguration config,
         ConfigAdapterContext context,
         Resolver expressions,
         Collection<URL> schemaTypes,
-        Consumer<String> logger,
-        Consumer<NamespaceConfig> addResources)
+        Consumer<String> logger)
     {
         this.config = config;
         this.context = context;
         this.expressions = expressions;
         this.schemaTypes = schemaTypes;
         this.logger = logger;
-        this.addResources = addResources;
     }
 
     public EngineConfig read(
@@ -164,7 +161,6 @@ public final class EngineConfigReader
                 reader.reset();
                 reader.skip(configAt);
                 NamespaceConfig namespace = jsonb.fromJson(reader, NamespaceConfig.class);
-                addResources.accept(namespace);
                 builder.namespace(namespace);
 
                 if (!errors.isEmpty())

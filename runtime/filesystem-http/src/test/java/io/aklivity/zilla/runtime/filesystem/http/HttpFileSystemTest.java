@@ -22,7 +22,7 @@ import java.nio.file.Path;
 
 import org.junit.Test;
 
-public class TestHttpFileSystem
+public class HttpFileSystemTest
 {
     @Test
     public void testHttpPath() throws Exception

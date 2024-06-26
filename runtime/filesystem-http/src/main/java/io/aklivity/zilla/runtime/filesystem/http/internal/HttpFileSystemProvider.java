@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.filesystem.http;
+package io.aklivity.zilla.runtime.filesystem.http.internal;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -36,42 +36,40 @@ import java.nio.file.attribute.FileAttribute;
 import java.nio.file.attribute.FileAttributeView;
 import java.nio.file.spi.FileSystemProvider;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 
-public abstract class AbstractHttpFileSystemProvider extends FileSystemProvider
+public class HttpFileSystemProvider extends FileSystemProvider
 {
     private final Map<URI, HttpFileSystem> fileSystems = new ConcurrentHashMap<>();
 
     @Override
-    public abstract String getScheme();
+    public String getScheme()
+    {
+        return "http";
+    }
 
     @Override
+    @SuppressWarnings("resource")
     public FileSystem newFileSystem(
         URI uri,
         Map<String, ?> env)
     {
-        checkUri(uri);
-        HttpFileSystem hfs = fileSystems.get(uri);
-        if (hfs == null)
-        {
-            hfs = new HttpFileSystem(this, uri);
-            fileSystems.put(uri, hfs);
-        }
-        else
-        {
-            throw new FileSystemAlreadyExistsException();
-        }
-        return hfs;
+        checkURI(uri);
+
+        URI rootURI = uri.resolve("/");
+        return fileSystems.compute(rootURI, (u, fs) -> computeHttpFileSystem(u, fs, env));
     }
 
     @Override
     public FileSystem getFileSystem(
         URI uri)
     {
-        checkUri(uri);
-        HttpFileSystem hfs = fileSystems.get(uri);
+        checkURI(uri);
+        URI rootURI = uri.resolve("/");
+        HttpFileSystem hfs = fileSystems.get(rootURI);
         if (hfs == null)
         {
             throw new FileSystemNotFoundException();
@@ -83,12 +81,10 @@ public abstract class AbstractHttpFileSystemProvider extends FileSystemProvider
     public Path getPath(
         URI uri)
     {
-        FileSystem hfs = fileSystems.get(uri);
-        if (hfs == null)
-        {
-            hfs = newFileSystem(uri, Map.of());
-        }
-        return hfs.getPath(uri.toString());
+        checkURI(uri);
+        URI rootURI = uri.resolve("/");
+        HttpFileSystem hfs = fileSystems.computeIfAbsent(rootURI, this::newHttpFileSystem);
+        return hfs.getPath(uri);
     }
 
     @Override
@@ -104,8 +100,8 @@ public abstract class AbstractHttpFileSystemProvider extends FileSystemProvider
         Path path,
         OpenOption... options)
     {
-        checkPath(path);
-        return new ByteArrayInputStream(readBody((HttpPath) path));
+        HttpPath httpPath = checkPath(path);
+        return new ByteArrayInputStream(httpPath.readBody());
     }
 
     @Override
@@ -141,8 +137,8 @@ public abstract class AbstractHttpFileSystemProvider extends FileSystemProvider
         Set<? extends OpenOption> options,
         FileAttribute<?>... attrs)
     {
-        checkPath(path);
-        return new ReadOnlyByteArrayChannel(readBody((HttpPath) path));
+        HttpPath httpPath = checkPath(path);
+        return new ReadOnlyByteArrayChannel(httpPath.readBody());
     }
 
     @Override
@@ -243,7 +239,7 @@ public abstract class AbstractHttpFileSystemProvider extends FileSystemProvider
         Path path,
         AccessMode... modes)
     {
-        throw new UnsupportedOperationException("not implemented");
+        Objects.requireNonNull(path);
     }
 
     @Override
@@ -288,31 +284,46 @@ public abstract class AbstractHttpFileSystemProvider extends FileSystemProvider
         fileSystems.remove(uri);
     }
 
-    private void checkUri(
+    private void checkURI(
         URI uri)
     {
         if (!uri.getScheme().equalsIgnoreCase(getScheme()))
         {
             throw new IllegalArgumentException("URI does not match this provider");
         }
+
         if (uri.getPath() == null)
         {
             throw new IllegalArgumentException("Path component is undefined");
         }
     }
 
-    private void checkPath(
+    private HttpPath checkPath(
         Path path)
     {
         if (!path.getFileSystem().provider().getScheme().equalsIgnoreCase(getScheme()))
         {
             throw new IllegalArgumentException("Scheme does not match this provider");
         }
+        return HttpPath.class.cast(path);
     }
 
-    private byte[] readBody(
-        HttpPath path)
+    private HttpFileSystem computeHttpFileSystem(
+        URI uri,
+        HttpFileSystem hfs,
+        Map<String, ?> env)
     {
-        return path.readBody();
+        if (hfs != null)
+        {
+            throw new FileSystemAlreadyExistsException();
+        }
+
+        return new HttpFileSystem(this, uri, env);
+    }
+
+    private HttpFileSystem newHttpFileSystem(
+        URI uri)
+    {
+        return new HttpFileSystem(this, uri, Map.of());
     }
 }

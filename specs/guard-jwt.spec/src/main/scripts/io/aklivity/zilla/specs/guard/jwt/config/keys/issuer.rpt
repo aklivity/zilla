@@ -13,12 +13,17 @@
 # specific language governing permissions and limitations under the License.
 #
 
----
-name: test
-guards:
-  jwt0:
-    type: jwt
-    options:
-      issuer: http://localhost:8080
-      audience: https://api.aklivity.com
-      challenge: 30
+accept "http://localhost:8080/.well-known/jwks.json"
+
+
+accepted
+connected
+
+read http:method "GET"
+read closed
+
+write http:status "200" "OK"
+write http:content-length
+write '{}'
+
+write close

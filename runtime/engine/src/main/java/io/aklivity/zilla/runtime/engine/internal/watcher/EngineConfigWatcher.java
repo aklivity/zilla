@@ -17,147 +17,256 @@ package io.aklivity.zilla.runtime.engine.internal.watcher;
 
 import static org.agrona.LangUtil.rethrowUnchecked;
 
+import java.io.IOException;
 import java.nio.file.FileSystem;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.WatchEvent;
+import java.nio.file.WatchEvent.Kind;
+import java.nio.file.WatchEvent.Modifier;
+import java.nio.file.WatchKey;
+import java.nio.file.WatchService;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.engine.config.EngineConfig;
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
+import org.agrona.LangUtil;
 
-public class EngineConfigWatcher
+public final class EngineConfigWatcher implements AutoCloseable
 {
-    private final Path configPath;
-    private final FileSystem fileSystem;
-    private final Function<Path, String> readPath;
-    private final Map<String, Set<String>> resources;
-    private final Map<String, ResourceWatcherTask> resourceTasks;
-    private final Consumer<Set<String>> resourceChangeListener;
-    private final ConfigWatcherTask configWatcherTask;
+    private static final Function<String, Function<Path, Set<Path>>> LOOKUP_RESOLVER;
+    static
+    {
+        Map<String, Function<Path, Set<Path>>> resolvers = new HashMap<>();
+        resolvers.put("http", Set::of);
+
+        Function<Path, Set<Path>> defaultResolver = EngineConfigWatcher::resolveWatchables;
+        LOOKUP_RESOLVER = scheme -> resolvers.getOrDefault(scheme, defaultResolver);
+    }
+
+    private final Function<Path, Set<Path>> resolver;
+    private final WatchService watcher;
+    private final Map<WatchKey, CompoundWatchKey> compoundKeys;
 
     public EngineConfigWatcher(
-        Path configPath,
-        Function<Path, String> readPath,
-        Function<String, EngineConfig> configChangeListener,
-        Consumer<Set<String>> resourceChangeListener)
+        FileSystem fileSystem)
     {
-        this.configPath = configPath;
-        this.fileSystem = configPath.getFileSystem();
-        this.readPath = readPath;
-        this.resources = new ConcurrentHashMap<>();
-        this.resourceTasks = new ConcurrentHashMap<>();
-        this.resourceChangeListener = resourceChangeListener;
-        this.configWatcherTask = new ConfigWatcherTask(this.fileSystem, configChangeListener, readPath);
+        this.resolver = LOOKUP_RESOLVER.apply(fileSystem.provider().getScheme());
+        this.watcher = newWatchService(fileSystem);
+        this.compoundKeys = new IdentityHashMap<>();
     }
 
-    public void startWatchingConfig() throws Exception
+    public WatchKey register(
+        Path watchable,
+        WatchEvent.Kind<?>... events) throws IOException
     {
-        configWatcherTask.watchConfig(configPath);
-        configWatcherTask.submit();
+        return register(watchable, events, new WatchEvent.Modifier[0]);
     }
 
-    public void addResources(
-        NamespaceConfig namespace)
+    public WatchKey register(
+        Path watchable,
+        Kind<?>[] events,
+        Modifier... modifiers) throws IOException
     {
-        namespace.resources.forEach(resource ->
+        WatchKey watchKey = null;
+
+        if (watcher != null)
+        {
+            watchKey = registerImpl(watchable, events, modifiers);
+        }
+
+        return watchKey;
+    }
+
+    public WatchKey take() throws InterruptedException
+    {
+        return watcher != null ? takeImpl() : null;
+    }
+
+    @Override
+    public void close() throws IOException
+    {
+        if (watcher != null)
+        {
+            watcher.close();
+        }
+    }
+
+    private WatchKey registerImpl(
+        Path watchable,
+        Kind<?>[] events,
+        Modifier... modifiers) throws IOException
+    {
+        Set<Path> watchPaths = resolver.apply(watchable);
+        Set<WatchKey> watchKeys = new HashSet<>();
+
+        for (Path watchPath : watchPaths)
+        {
+            WatchKey registeredKey = watchPath.register(watcher, events, modifiers);
+            watchKeys.add(registeredKey);
+        }
+
+        CompoundWatchKey compoundKey = new CompoundWatchKey(watchable, watchKeys);
+        watchKeys.forEach(k -> compoundKeys.put(k, compoundKey));
+
+        return compoundKey;
+    }
+
+    private WatchKey takeImpl() throws InterruptedException
+    {
+        WatchKey watchKey = watcher.take();
+        CompoundWatchKey compoundKey = compoundKeys.get(watchKey);
+
+        return compoundKey;
+    }
+
+    private final class CompoundWatchKey implements WatchKey
+    {
+        private final Path watchable;
+        private final Set<WatchKey> keys;
+        private final List<WatchEvent<?>> events;
+
+        CompoundWatchKey(
+            Path watchable,
+            Set<WatchKey> keys)
+        {
+            this.watchable = watchable;
+            this.keys = keys;
+            this.events = new LinkedList<>();
+        }
+
+        @Override
+        public boolean isValid()
+        {
+            return keys.stream().allMatch(WatchKey::isValid);
+        }
+
+        @Override
+        public List<WatchEvent<?>> pollEvents()
+        {
+            List<WatchEvent<?>> events = this.events;
+
+            events.clear();
+            for (WatchKey key : keys)
             {
-                resources.computeIfAbsent(resource, i ->
+                // TODO filter watch events
+                events.addAll(key.pollEvents());
+            }
+
+            return events;
+        }
+
+        @Override
+        public boolean reset()
+        {
+            return keys.stream().allMatch(WatchKey::reset);
+        }
+
+        @Override
+        public void cancel()
+        {
+            keys.stream().forEach(WatchKey::cancel);
+            keys.forEach(compoundKeys::remove);
+        }
+
+        @Override
+        public Path watchable()
+        {
+            return watchable;
+        }
+    }
+
+    private static Set<Path> resolveWatchables(
+        Path watchable)
+    {
+        Set<Path> watchedPaths = new HashSet<>();
+
+        Deque<Path> observablePaths = new LinkedList<>();
+        observablePaths.addLast(watchable);
+
+        while (!observablePaths.isEmpty())
+        {
+            Path observablePath = observablePaths.removeFirst();
+
+            if (watchedPaths.add(observablePath))
+            {
+                if (Files.isSymbolicLink(observablePath))
+                {
+                    Path targetPath = readSymbolicLink(observablePath);
+                    targetPath = watchable.resolveSibling(targetPath).normalize();
+                    observablePaths.addLast(targetPath);
+                }
+
+                for (Path ancestorPath = observablePath.getParent();
+                     ancestorPath != null;
+                     ancestorPath = ancestorPath.getParent())
+                {
+                    if (Files.isSymbolicLink(ancestorPath))
                     {
-                        startWatchingResource(resource, namespace.name);
-                        return ConcurrentHashMap.newKeySet();
+                        if (watchedPaths.add(ancestorPath))
+                        {
+                            Path targetPath = readSymbolicLink(ancestorPath);
+                            observablePaths.addLast(ancestorPath.resolve(targetPath).normalize());
+                        }
                     }
-                ).add(namespace.name);
-                resourceTasks.get(resource).addNamespace(namespace.name);
-            }
-        );
-    }
-
-    public void removeNamespace(
-        String namespace)
-    {
-        resources.entrySet().removeIf(e ->
-            {
-                String resource = e.getKey();
-                Set<String> namespaces = e.getValue();
-                namespaces.remove(namespace);
-                boolean empty = namespaces.isEmpty();
-                if (empty)
-                {
-                    stopWatchingResource(resource);
                 }
-                else
-                {
-                    removeNamespaceFromWatchedResource(resource, namespace);
-                }
-                return empty;
             }
-        );
-    }
-
-    private void startWatchingResource(
-        String resource,
-        String namespace)
-    {
-        try
-        {
-            ResourceWatcherTask watcherTask = new ResourceWatcherTask(fileSystem, resourceChangeListener, readPath);
-            watcherTask.addNamespace(namespace);
-            watcherTask.submit();
-            Path resourcePath = configPath.resolveSibling(resource);
-            watcherTask.watchResource(resourcePath);
-            resourceTasks.put(resource, watcherTask);
-            System.out.printf("started watching resource: %s resourcePath: %s\n", resource, resourcePath); // TODO: Ati
         }
-        catch (Exception ex)
-        {
-            rethrowUnchecked(ex);
-        }
-    }
 
-    private void stopWatchingResource(
-        String resource)
-    {
-        try
+        Set<Path> watchables = new HashSet<>();
+        for (Path watchedPath : watchedPaths)
         {
-            resourceTasks.remove(resource).close();
-            System.out.println("stopped watching resource: " + resource); // TODO: Ati
-        }
-        catch (Exception ex)
-        {
-            rethrowUnchecked(ex);
-        }
-    }
-
-    private void removeNamespaceFromWatchedResource(
-        String resource,
-        String namespace)
-    {
-        resourceTasks.get(resource).removeNamespace(namespace);
-    }
-
-    public void close()
-    {
-        resourceTasks.forEach((resource, watcherTask) ->
-        {
-            try
+            Path parentPath = watchedPath.getParent();
+            if (Files.exists(parentPath))
             {
-                watcherTask.close();
+                watchables.add(parentPath);
             }
-            catch (Exception ex)
-            {
-                rethrowUnchecked(ex);
-            }
-        });
+        }
+
+        return watchables;
+    }
+
+    private static Path readSymbolicLink(
+        Path link)
+    {
+        Path target = null;
+
         try
         {
-            configWatcherTask.close();
+            target = Files.readSymbolicLink(link);
+        }
+        catch (IOException ex)
+        {
+            LangUtil.rethrowUnchecked(ex);
+        }
+
+        return target;
+    }
+
+    private static WatchService newWatchService(
+        FileSystem fileSystem)
+    {
+        WatchService watcher = null;
+
+        try
+        {
+            watcher = fileSystem.newWatchService();
+        }
+        catch (UnsupportedOperationException ex)
+        {
+            // no watcher
         }
         catch (Exception ex)
         {
             rethrowUnchecked(ex);
         }
+
+        return watcher;
     }
 }

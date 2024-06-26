@@ -23,7 +23,6 @@ import java.util.concurrent.CountDownLatch;
 
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -35,7 +34,6 @@ import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
-
 
 public class ReconfigureHttpIT
 {
@@ -68,32 +66,14 @@ public class ReconfigureHttpIT
         EngineTest.TestEngineExt.registerLatch = new CountDownLatch(1);
     }
 
-    @Ignore // TODO: Ati
     @Test
-    @Configure(name = ENGINE_CONFIG_POLL_INTERVAL_SECONDS, value = "1")
-    @Configuration("http://localhost:8080/")
-    @Specification({
-        "${app}/reconfigure.modify.via.http/server",
-        "${net}/reconfigure.modify.via.http/client"
-    })
-    public void shouldReconfigureWhenModifiedHttp() throws Exception
-    {
-        k3po.start();
-        k3po.awaitBarrier("CONNECTED");
-        EngineTest.TestEngineExt.registerLatch.await();
-        k3po.notifyBarrier("CONFIG_CHANGED");
-        k3po.finish();
-    }
-
-    @Ignore // TODO: Ati
-    @Test
-    @Configure(name = ENGINE_CONFIG_POLL_INTERVAL_SECONDS, value = "1")
-    @Configuration("http://localhost:8080/")
+    @Configure(name = ENGINE_CONFIG_POLL_INTERVAL_SECONDS, value = "0")
+    @Configuration("http://localhost:8080/zilla.yaml")
     @Specification({
         "${app}/reconfigure.create.via.http/server",
         "${net}/reconfigure.create.via.http/client"
     })
-    public void shouldReconfigureWhenCreatedHttp() throws Exception
+    public void shouldReconfigureWhenCreatedViaHttp() throws Exception
     {
         k3po.start();
         EngineTest.TestEngineExt.registerLatch.await();
@@ -101,14 +81,14 @@ public class ReconfigureHttpIT
         k3po.finish();
     }
 
-    @Ignore // TODO: Ati
     @Test
-    @Configuration("http://localhost:8080/")
+    @Configure(name = ENGINE_CONFIG_POLL_INTERVAL_SECONDS, value = "0")
+    @Configuration("http://localhost:8080/zilla.yaml")
     @Specification({
         "${app}/reconfigure.delete.via.http/server",
         "${net}/reconfigure.delete.via.http/client"
     })
-    public void shouldReconfigureWhenDeletedHttp() throws Exception
+    public void shouldReconfigureWhenDeletedViaHttp() throws Exception
     {
         k3po.start();
         EngineTest.TestEngineExt.registerLatch.await();
@@ -116,15 +96,14 @@ public class ReconfigureHttpIT
         k3po.finish();
     }
 
-    @Ignore // TODO: Ati
     @Test
-    @Configure(name = ENGINE_CONFIG_POLL_INTERVAL_SECONDS, value = "1")
-    @Configuration("http://localhost:8080/")
+    @Configure(name = ENGINE_CONFIG_POLL_INTERVAL_SECONDS, value = "0")
+    @Configuration("http://localhost:8080/zilla.yaml")
     @Specification({
-        "${app}/reconfigure.modify.no.etag.via.http/server",
-        "${net}/reconfigure.modify.no.etag.via.http/client"
+        "${app}/reconfigure.modify.via.http/server",
+        "${net}/reconfigure.modify.via.http/client"
     })
-    public void shouldReconfigureWhenModifiedHttpEtagNotSupported() throws Exception
+    public void shouldReconfigureWhenModifiedViaHttp() throws Exception
     {
         k3po.start();
         k3po.awaitBarrier("CONNECTED");
@@ -133,15 +112,30 @@ public class ReconfigureHttpIT
         k3po.finish();
     }
 
-    @Ignore // TODO: Ati
     @Test
-    @Configure(name = ENGINE_CONFIG_POLL_INTERVAL_SECONDS, value = "1")
-    @Configuration("http://localhost:8080/")
+    @Configure(name = ENGINE_CONFIG_POLL_INTERVAL_SECONDS, value = "0")
+    @Configuration("http://localhost:8080/zilla.yaml")
+    @Specification({
+        "${app}/reconfigure.modify.no.etag.via.http/server",
+        "${net}/reconfigure.modify.no.etag.via.http/client"
+    })
+    public void shouldReconfigureWhenModifiedViaHttpWithNoEtag() throws Exception
+    {
+        k3po.start();
+        k3po.awaitBarrier("CONNECTED");
+        EngineTest.TestEngineExt.registerLatch.await();
+        k3po.notifyBarrier("CONFIG_CHANGED");
+        k3po.finish();
+    }
+
+    @Test
+    @Configure(name = ENGINE_CONFIG_POLL_INTERVAL_SECONDS, value = "0")
+    @Configuration("http://localhost:8080/zilla.yaml")
     @Specification({
         "${app}/reconfigure.server.error.via.http/server",
         "${net}/reconfigure.server.error.via.http/client"
     })
-    public void shouldNotReconfigureWhenStatus500() throws Exception
+    public void shouldNotReconfigureViaHttpWhenServerError() throws Exception
     {
         k3po.start();
         k3po.awaitBarrier("CHECK_RECONFIGURE");

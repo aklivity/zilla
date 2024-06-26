@@ -18,13 +18,9 @@ package io.aklivity.zilla.runtime.engine.config;
 import static java.util.Objects.requireNonNull;
 import static java.util.function.Function.identity;
 
-import java.nio.file.Path;
-import java.util.function.Function;
-
 public class GuardConfig
 {
     public transient long id;
-    public transient Function<Path, String> readPath;
 
     public final String namespace;
     public final String name;

@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.filesystem.http;
 
+import static io.aklivity.zilla.runtime.filesystem.http.internal.HttpFileSystemConfiguration.POLL_INTERVAL_PROPERTY_NAME;
+import static java.nio.file.StandardWatchEventKinds.ENTRY_CREATE;
 import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -22,12 +24,15 @@ import static org.junit.rules.RuleChain.outerRule;
 
 import java.io.InputStream;
 import java.net.URI;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
-import java.nio.file.spi.FileSystemProvider;
+import java.nio.file.WatchService;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -46,7 +51,6 @@ public class HttpFileSystemIT
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
     @Rule
-    //public final TestRule chain = outerRule(timeout).around(k3po); // TODO: Ati
     public final TestRule chain = outerRule(k3po).around(timeout);
 
     @Test
@@ -56,16 +60,19 @@ public class HttpFileSystemIT
     public void shouldReadString() throws Exception
     {
         // GIVEN
-        String helloUrl = "http://localhost:8080/hello.txt";
-        Path helloPath = Path.of(new URI(helloUrl));
+        URI helloURI = URI.create("http://localhost:8080/hello.txt");
+        try (FileSystem fs = FileSystems.newFileSystem(helloURI, Map.of()))
+        {
+            Path helloPath = fs.getPath(helloURI.toString());
 
-        // WHEN
-        k3po.start();
-        String helloBody = Files.readString(helloPath);
-        k3po.finish();
+            // WHEN
+            k3po.start();
+            String helloBody = Files.readString(helloPath);
+            k3po.finish();
 
-        // THEN
-        assertThat(helloBody, equalTo("Hello World!"));
+            // THEN
+            assertThat(helloBody, equalTo("Hello World!"));
+        }
     }
 
     @Test
@@ -75,18 +82,21 @@ public class HttpFileSystemIT
     public void shouldReadStringEtagNotModified() throws Exception
     {
         // GIVEN
-        String helloUrl = "http://localhost:8080/hello.txt";
-        Path helloPath = Path.of(new URI(helloUrl));
+        URI helloURI = URI.create("http://localhost:8080/hello.txt");
+        try (FileSystem fs = FileSystems.newFileSystem(helloURI, Map.of()))
+        {
+            Path helloPath = fs.getPath(helloURI.toString());
 
-        // WHEN
-        k3po.start();
-        String helloBody1 = Files.readString(helloPath);
-        String helloBody2 = Files.readString(helloPath);
-        k3po.finish();
+            // WHEN
+            k3po.start();
+            String helloBody1 = Files.readString(helloPath);
+            String helloBody2 = Files.readString(helloPath);
+            k3po.finish();
 
-        // THEN
-        assertThat(helloBody1, equalTo("Hello World!"));
-        assertThat(helloBody2, equalTo("Hello World!"));
+            // THEN
+            assertThat(helloBody1, equalTo("Hello World!"));
+            assertThat(helloBody2, equalTo("Hello World!"));
+        }
     }
 
     @Test
@@ -96,18 +106,21 @@ public class HttpFileSystemIT
     public void shouldReadStringEtagModified() throws Exception
     {
         // GIVEN
-        String helloUrl = "http://localhost:8080/hello.txt";
-        Path helloPath = Path.of(new URI(helloUrl));
+        URI helloURI = URI.create("http://localhost:8080/hello.txt");
+        try (FileSystem fs = FileSystems.newFileSystem(helloURI, Map.of()))
+        {
+            Path helloPath = fs.getPath(helloURI.toString());
 
-        // WHEN
-        k3po.start();
-        String helloBody1 = Files.readString(helloPath);
-        String helloBody2 = Files.readString(helloPath);
-        k3po.finish();
+            // WHEN
+            k3po.start();
+            String helloBody1 = Files.readString(helloPath);
+            String helloBody2 = Files.readString(helloPath);
+            k3po.finish();
 
-        // THEN
-        assertThat(helloBody1, equalTo("Hello World!"));
-        assertThat(helloBody2, equalTo("Hello Universe!"));
+            // THEN
+            assertThat(helloBody1, equalTo("Hello World!"));
+            assertThat(helloBody2, equalTo("Hello Universe!"));
+        }
     }
 
     @Test
@@ -117,16 +130,19 @@ public class HttpFileSystemIT
     public void shouldReadStringNotFound() throws Exception
     {
         // GIVEN
-        String notFoundUrl = "http://localhost:8080/notfound.txt";
-        Path notFoundPath = Path.of(new URI(notFoundUrl));
+        URI notFoundURI = URI.create("http://localhost:8080/notfound.txt");
+        try (FileSystem fs = FileSystems.newFileSystem(notFoundURI, Map.of()))
+        {
+            Path notFoundPath = fs.getPath(notFoundURI.toString());
 
-        // WHEN
-        k3po.start();
-        String notFoundBody = Files.readString(notFoundPath);
-        k3po.finish();
+            // WHEN
+            k3po.start();
+            String notFoundBody = Files.readString(notFoundPath);
+            k3po.finish();
 
-        // THEN
-        assertThat(notFoundBody, equalTo(""));
+            // THEN
+            assertThat(notFoundBody, equalTo(""));
+        }
     }
 
     @Test
@@ -136,18 +152,21 @@ public class HttpFileSystemIT
     public void shouldReadStringNotFoundSuccess() throws Exception
     {
         // GIVEN
-        String helloUrl = "http://localhost:8080/hello.txt";
-        Path helloPath = Path.of(new URI(helloUrl));
+        URI helloURI = URI.create("http://localhost:8080/hello.txt");
+        try (FileSystem fs = FileSystems.newFileSystem(helloURI, Map.of()))
+        {
+            Path helloPath = fs.getPath(helloURI.toString());
 
-        // WHEN
-        k3po.start();
-        String helloBody1 = Files.readString(helloPath);
-        String helloBody2 = Files.readString(helloPath);
-        k3po.finish();
+            // WHEN
+            k3po.start();
+            String helloBody1 = Files.readString(helloPath);
+            String helloBody2 = Files.readString(helloPath);
+            k3po.finish();
 
-        // THEN
-        assertThat(helloBody1, equalTo(""));
-        assertThat(helloBody2, equalTo("Hello World!"));
+            // THEN
+            assertThat(helloBody1, equalTo(""));
+            assertThat(helloBody2, equalTo("Hello World!"));
+        }
     }
 
     @Test
@@ -157,19 +176,21 @@ public class HttpFileSystemIT
     public void shouldReadInputStream() throws Exception
     {
         // GIVEN
-        String helloUrl = "http://localhost:8080/hello.txt";
-        Path helloPath = Path.of(new URI(helloUrl));
-        FileSystemProvider fsp = helloPath.getFileSystem().provider();
+        URI helloURI = URI.create("http://localhost:8080/hello.txt");
+        try (FileSystem fs = FileSystems.newFileSystem(helloURI, Map.of()))
+        {
+            Path helloPath = fs.getPath(helloURI.toString());
 
-        // WHEN
-        k3po.start();
-        InputStream helloIs = fsp.newInputStream(helloPath);
-        String helloBody = new String(helloIs.readAllBytes());
-        helloIs.close();
-        k3po.finish();
+            // WHEN
+            k3po.start();
+            InputStream helloIs = Files.newInputStream(helloPath);
+            String helloBody = new String(helloIs.readAllBytes());
+            helloIs.close();
+            k3po.finish();
 
-        // THEN
-        assertThat(helloBody, equalTo("Hello World!"));
+            // THEN
+            assertThat(helloBody, equalTo("Hello World!"));
+        }
     }
 
     @Test
@@ -179,19 +200,21 @@ public class HttpFileSystemIT
     public void shouldReadInputStreamNotFound() throws Exception
     {
         // GIVEN
-        String notFoundUrl = "http://localhost:8080/notfound.txt";
-        Path notFoundPath = Path.of(new URI(notFoundUrl));
-        FileSystemProvider fsp = notFoundPath.getFileSystem().provider();
+        URI notFoundURI = URI.create("http://localhost:8080/notfound.txt");
+        try (FileSystem fs = FileSystems.newFileSystem(notFoundURI, Map.of()))
+        {
+            Path notFoundPath = fs.getPath(notFoundURI.toString());
 
-        // WHEN
-        k3po.start();
-        InputStream notFoundIs = fsp.newInputStream(notFoundPath);
-        String notFoundBody = new String(notFoundIs.readAllBytes());
-        notFoundIs.close();
-        k3po.finish();
+            // WHEN
+            k3po.start();
+            InputStream notFoundIs = Files.newInputStream(notFoundPath);
+            String notFoundBody = new String(notFoundIs.readAllBytes());
+            notFoundIs.close();
+            k3po.finish();
 
-        // THEN
-        assertThat(notFoundBody, equalTo(""));
+            // THEN
+            assertThat(notFoundBody, equalTo(""));
+        }
     }
 
     @Test
@@ -201,31 +224,39 @@ public class HttpFileSystemIT
     public void shouldWatch() throws Exception
     {
         // GIVEN
-        String url = "http://localhost:8080/hello.txt";
-        Path path = Path.of(new URI(url));
-        ((HttpPath) path).pollSeconds(1); // TODO: Ati
-        HttpWatchService watchService = (HttpWatchService) path.getFileSystem().newWatchService();
+        URI uri = URI.create("http://localhost:8080/hello.txt");
+        Map<String, String> env = Map.of(POLL_INTERVAL_PROPERTY_NAME, "PT0S");
+        try (FileSystem fs = FileSystems.newFileSystem(uri, env))
+        {
+            Path path = fs.getPath(uri.toString());
 
-        // WHEN
-        k3po.start();
-        k3po.notifyBarrier("REGISTERED");
-        path.register(watchService);
-        WatchKey key1 = watchService.take();
-        List<WatchEvent<?>> events1 = key1.pollEvents();
-        k3po.notifyBarrier("MODIFIED");
-        WatchKey key2 = watchService.take();
-        List<WatchEvent<?>> events2 = key2.pollEvents();
-        watchService.close();
-        ((HttpPath) path).shutdown();
-        k3po.finish();
+            try (WatchService watcher = fs.newWatchService())
+            {
+                // WHEN
+                k3po.start();
 
-        // THEN
-        assertThat(events1.size(), equalTo(1));
-        assertThat(events1.get(0).kind(), equalTo(ENTRY_MODIFY));
-        assertThat(events1.get(0).context(), equalTo(path));
-        assertThat(events2.size(), equalTo(1));
-        assertThat(events1.get(0).kind(), equalTo(ENTRY_MODIFY));
-        assertThat(events2.get(0).context(), equalTo(path));
+                k3po.notifyBarrier("REGISTERED");
+                path.register(watcher);
+
+                WatchKey key1 = watcher.take();
+                List<WatchEvent<?>> events1 = key1.pollEvents();
+
+                k3po.notifyBarrier("MODIFIED");
+
+                WatchKey key2 = watcher.take();
+                List<WatchEvent<?>> events2 = key2.pollEvents();
+
+                k3po.finish();
+
+                // THEN
+                assertThat(events1.size(), equalTo(1));
+                assertThat(events1.get(0).kind(), equalTo(ENTRY_CREATE));
+                assertThat(events1.get(0).context(), equalTo(path));
+                assertThat(events2.size(), equalTo(1));
+                assertThat(events2.get(0).kind(), equalTo(ENTRY_MODIFY));
+                assertThat(events2.get(0).context(), equalTo(path));
+            }
+        }
     }
 
     @Test
@@ -235,29 +266,39 @@ public class HttpFileSystemIT
     public void shouldWatchRead() throws Exception
     {
         // GIVEN
-        String url = "http://localhost:8080/hello.txt";
-        Path path = Path.of(new URI(url));
-        HttpWatchService watchService = (HttpWatchService) path.getFileSystem().newWatchService();
-        ((HttpPath) path).pollSeconds(1); // TODO: Ati
+        URI uri = URI.create("http://localhost:8080/hello.txt");
+        Map<String, String> env = Map.of(POLL_INTERVAL_PROPERTY_NAME, "PT0S");
+        try (FileSystem fs = FileSystems.newFileSystem(uri, env))
+        {
+            Path path = fs.getPath(uri.toString());
 
-        // WHEN
-        k3po.start();
-        k3po.notifyBarrier("FIRST_READ");
-        String body1 = Files.readString(path);
-        k3po.notifyBarrier("REGISTERED");
-        path.register(watchService);
-        k3po.notifyBarrier("MODIFIED");
-        watchService.take();
-        k3po.notifyBarrier("NOT_MODIFIED");
-        watchService.take();
-        k3po.notifyBarrier("SECOND_READ");
-        String body2 = Files.readString(path);
-        watchService.close();
-        ((HttpPath) path).shutdown();
-        k3po.finish();
+            try (WatchService watcher = fs.newWatchService())
+            {
+                // WHEN
+                k3po.start();
 
-        // THEN
-        assertThat(body1, equalTo("Hello World!"));
-        assertThat(body2, equalTo("Hello Universe!"));
+                k3po.notifyBarrier("FIRST_READ");
+                String body1 = Files.readString(path);
+
+                k3po.notifyBarrier("REGISTERED");
+                path.register(watcher);
+
+                k3po.notifyBarrier("MODIFIED");
+                watcher.take();
+
+                k3po.notifyBarrier("NOT_MODIFIED");
+                watcher.take();
+
+                k3po.notifyBarrier("SECOND_READ");
+                String body2 = Files.readString(path);
+
+                k3po.finish();
+
+
+                // THEN
+                assertThat(body1, equalTo("Hello World!"));
+                assertThat(body2, equalTo("Hello Universe!"));
+            }
+        }
     }
 }

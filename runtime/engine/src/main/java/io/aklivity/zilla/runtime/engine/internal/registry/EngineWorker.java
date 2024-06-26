@@ -40,6 +40,7 @@ import static org.agrona.CloseHelper.quietClose;
 import static org.agrona.concurrent.AgentRunner.startOnThread;
 
 import java.net.InetAddress;
+import java.net.URI;
 import java.nio.channels.SelectableChannel;
 import java.nio.file.Path;
 import java.time.Clock;
@@ -214,7 +215,7 @@ public class EngineWorker implements EngineContext, Agent
     private final EngineRegistry registry;
     private final Deque<Runnable> taskQueue;
     private final LongUnaryOperator affinityMask;
-    private final Function<String, Path> resolvePath;
+    private final Path configPath;
     private final AgentRunner runner;
     private final IdleStrategy idleStrategy;
     private final ErrorHandler errorHandler;
@@ -242,7 +243,6 @@ public class EngineWorker implements EngineContext, Agent
         LabelManager labels,
         ErrorHandler errorHandler,
         LongUnaryOperator affinityMask,
-        Function<String, Path> resolvePath,
         Collection<Binding> bindings,
         Collection<Exporter> exporters,
         Collection<Guard> guards,
@@ -259,7 +259,7 @@ public class EngineWorker implements EngineContext, Agent
     {
         this.localIndex = index;
         this.config = config;
-        this.resolvePath = resolvePath;
+        this.configPath = Path.of(config.configURI());
         this.labels = labels;
         this.affinityMask = affinityMask;
 
@@ -743,7 +743,9 @@ public class EngineWorker implements EngineContext, Agent
     public Path resolvePath(
         String location)
     {
-        return resolvePath.apply(location);
+        return location.indexOf(':') == -1
+            ? configPath.resolveSibling(location)
+            : Path.of(URI.create(location));
     }
 
     @Override

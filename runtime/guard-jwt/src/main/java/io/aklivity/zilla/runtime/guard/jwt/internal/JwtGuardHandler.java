@@ -16,7 +16,8 @@ package io.aklivity.zilla.runtime.guard.jwt.internal;
 
 import static org.agrona.LangUtil.rethrowUnchecked;
 
-import java.net.URI;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
@@ -28,7 +29,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.LongSupplier;
 
 import jakarta.json.bind.Jsonb;
@@ -67,8 +67,7 @@ public class JwtGuardHandler implements GuardHandler
     public JwtGuardHandler(
         JwtOptionsConfig options,
         EngineContext context,
-        LongSupplier supplyAuthorizedId,
-        Function<Path, String> readPath)
+        LongSupplier supplyAuthorizedId)
     {
         this.issuer = options.issuer;
         this.audience = options.audience;
@@ -82,7 +81,8 @@ public class JwtGuardHandler implements GuardHandler
             Jsonb jsonb = JsonbBuilder.newBuilder()
                     .withConfig(config)
                     .build();
-            String keysText = readPath.apply(Path.of(URI.create(options.keysURL.get())));
+            Path keysPath = context.resolvePath(options.keysURL.get());
+            String keysText = readKeys(keysPath);
             JwtKeySetConfig jwks = jsonb.fromJson(keysText, JwtKeySetConfig.class);
             keysConfig = jwks.keys;
         }
@@ -404,5 +404,22 @@ public class JwtGuardHandler implements GuardHandler
                 unshare.accept(this);
             }
         }
+    }
+
+    private static String readKeys(
+        Path keysPath)
+    {
+        String content = null;
+
+        try
+        {
+            content = Files.readString(keysPath);
+        }
+        catch (IOException ex)
+        {
+            rethrowUnchecked(ex);
+        }
+
+        return content;
     }
 }

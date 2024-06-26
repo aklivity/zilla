@@ -12,15 +12,13 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.filesystem.http;
+package io.aklivity.zilla.runtime.filesystem.http.internal;
 
-public final class HttpsFileSystemProvider extends AbstractHttpFileSystemProvider
+public class HttpsFileSystemProvider extends HttpFileSystemProvider
 {
-    private static final String SCHEME = "https";
-
     @Override
     public String getScheme()
     {
-        return SCHEME;
+        return "https";
     }
 }

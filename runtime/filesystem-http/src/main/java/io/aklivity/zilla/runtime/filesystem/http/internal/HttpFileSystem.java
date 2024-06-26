@@ -12,37 +12,52 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.filesystem.http;
+package io.aklivity.zilla.runtime.filesystem.http.internal;
 
+import static java.net.http.HttpClient.Redirect.NORMAL;
+import static java.net.http.HttpClient.Version.HTTP_2;
 import static java.util.Objects.requireNonNull;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.net.URI;
+import java.net.http.HttpClient;
 import java.nio.file.FileStore;
 import java.nio.file.FileSystem;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.attribute.UserPrincipalLookupService;
-import java.nio.file.spi.FileSystemProvider;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Map;
 import java.util.Set;
 
 public final class HttpFileSystem extends FileSystem
 {
-    private static final String SEPARATOR = "/";
+    private static final String HTTP_PATH_SEPARATOR = "/";
 
-    private final AbstractHttpFileSystemProvider provider;
+    private final HttpFileSystemProvider provider;
     private final URI root;
+    private final HttpFileSystemConfiguration config;
+    private final HttpClient client;
+    private final MessageDigest md5;
 
     HttpFileSystem(
-        AbstractHttpFileSystemProvider provider,
-        URI root)
+        HttpFileSystemProvider provider,
+        URI root,
+        Map<String, ?> env)
     {
         this.provider = provider;
         this.root = root;
+        this.config = new HttpFileSystemConfiguration(env);
+        this.client = HttpClient.newBuilder()
+            .version(HTTP_2)
+            .followRedirects(NORMAL)
+            .build();
+        this.md5 = initMessageDigest("MD5");
     }
 
     @Override
-    public FileSystemProvider provider()
+    public HttpFileSystemProvider provider()
     {
         return provider;
     }
@@ -68,7 +83,7 @@ public final class HttpFileSystem extends FileSystem
     @Override
     public String getSeparator()
     {
-        return SEPARATOR;
+        return HTTP_PATH_SEPARATOR;
     }
 
     @Override
@@ -96,17 +111,18 @@ public final class HttpFileSystem extends FileSystem
     {
         requireNonNull(first);
         requireNonNull(more);
-        String path = more.length > 0 ? first + SEPARATOR + String.join(SEPARATOR, more) : first;
-        Path result = null;
-        try
-        {
-            result = new HttpPath(this, URI.create(path));
-        }
-        catch (Exception ex)
-        {
-            rethrowUnchecked(ex);
-        }
-        return result;
+
+        String path = more.length > 0
+            ? first + HTTP_PATH_SEPARATOR + String.join(HTTP_PATH_SEPARATOR, more)
+            : first;
+
+        return getPath(URI.create(path));
+    }
+
+    public HttpPath getPath(
+        URI uri)
+    {
+        return new HttpPath(this, uri);
     }
 
     @Override
@@ -125,12 +141,28 @@ public final class HttpFileSystem extends FileSystem
     @Override
     public HttpWatchService newWatchService()
     {
-        return new HttpWatchService();
+        return new HttpWatchService(config);
     }
 
-    HttpPath resolveSibling(
-        String other)
+    HttpClient client()
     {
-        return new HttpPath(this, root.resolve(URI.create(other)));
+        return client;
+    }
+
+    private static MessageDigest initMessageDigest(
+        String algorithm)
+    {
+        MessageDigest md5 = null;
+
+        try
+        {
+            md5 = MessageDigest.getInstance(algorithm);
+        }
+        catch (NoSuchAlgorithmException ex)
+        {
+            rethrowUnchecked(ex);
+        }
+
+        return md5;
     }
 }

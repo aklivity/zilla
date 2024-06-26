@@ -14,13 +14,6 @@
 # under the License.
 #
 
-
-connect "zilla://streams/net0"
-        option zilla:transmission "duplex"
-        option zilla:window 8192
-connect aborted
-write notify FIRST_ABORTED
-
 connect await CONFIG_CREATED
         "zilla://streams/net0"
         option zilla:transmission "duplex"

@@ -76,7 +76,7 @@ public final class EngineRule implements TestRule
     private Engine engine;
 
     private EngineConfiguration configuration;
-    private String configurationRoot;
+    private String configRoot;
     private Predicate<String> exceptions;
     private boolean clean;
 
@@ -125,7 +125,7 @@ public final class EngineRule implements TestRule
     public EngineRule configurationRoot(
         String configurationRoot)
     {
-        this.configurationRoot = configurationRoot;
+        this.configRoot = configurationRoot;
         return this;
     }
 
@@ -268,7 +268,6 @@ public final class EngineRule implements TestRule
     {
         Class<?> testClass = description.getTestClass();
         final String testMethod = description.getMethodName().replaceAll("\\[.*\\]", "");
-        URI jarUri = null;
         try
         {
             Configure[] configures = testClass
@@ -285,18 +284,11 @@ public final class EngineRule implements TestRule
                 {
                     configure(ENGINE_CONFIG_URL, configURI.toURL());
                 }
-                else if (configurationRoot != null)
+                else if (configRoot != null)
                 {
-                    String resourceName = String.format("%s/%s", configurationRoot, config.value());
+                    String resourceName = String.format("%s/%s", configRoot, config.value());
                     URL configURL = testClass.getClassLoader().getResource(resourceName);
                     configure(ENGINE_CONFIG_URL, configURL);
-                    if ("jar".equals(configURL.getProtocol()))
-                    {
-                        String jarLocation = Path.of(
-                            configURL.toString().replace("jar:file:", "").split("!")[0]
-                        ).toUri().toString();
-                        jarUri = new URI("jar", jarLocation, null);
-                    }
                 }
                 else
                 {
@@ -314,14 +306,13 @@ public final class EngineRule implements TestRule
         }
 
         boolean allowErrors = exceptions.test(testMethod);
-        URI jarUri0 = jarUri;
 
         return new Statement()
         {
             @Override
             public void evaluate() throws Throwable
             {
-                EngineConfiguration config = configuration();
+                final EngineConfiguration config = configuration();
                 final Thread baseThread = Thread.currentThread();
                 final List<Throwable> errors = new ArrayList<>();
                 final ErrorHandler errorHandler = ex ->
@@ -332,9 +323,22 @@ public final class EngineRule implements TestRule
                 };
 
                 FileSystem fs = null;
-                if (jarUri0 != null)
+
+                final URI configURI = config.configURI();
+
+                switch (configURI.getScheme())
                 {
-                    fs = FileSystems.newFileSystem(jarUri0, Map.of());
+                case "jar":
+                    String jarLocation = Path.of(
+                            configURI.toString().replace("jar:file:", "").split("!")[0]
+                            ).toUri().toString();
+                    URI jarURI = new URI("jar", jarLocation, null);
+                    fs = FileSystems.newFileSystem(jarURI, Map.of());
+                    break;
+                case "http":
+                    final String pollInterval = String.format("PT%dS", config.configPollIntervalSeconds());
+                    fs = FileSystems.newFileSystem(configURI, Map.of("zilla.filesystem.http.poll.interval", pollInterval));
+                    break;
                 }
 
                 engine = builder.config(config)

@@ -18,12 +18,15 @@ package io.aklivity.zilla.runtime.engine.internal.registry;
 import static java.util.stream.Collectors.toList;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
+import java.io.IOException;
 import java.net.URL;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
@@ -62,7 +65,7 @@ import io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
 import io.aklivity.zilla.runtime.engine.guard.Guard;
 import io.aklivity.zilla.runtime.engine.internal.Tuning;
 import io.aklivity.zilla.runtime.engine.internal.config.NamespaceAdapter;
-import io.aklivity.zilla.runtime.engine.internal.watcher.EngineConfigWatcher;
+import io.aklivity.zilla.runtime.engine.internal.watcher.EngineConfigWatchTask;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 import io.aklivity.zilla.runtime.engine.resolver.Resolver;
 
@@ -82,11 +85,11 @@ public class EngineManager
     private final EngineExtContext context;
     private final EngineConfiguration config;
     private final List<EngineExtSpi> extensions;
-    private final Function<Path, String> readPath;
-    private final Function<String, String> readLocation;
     private final Resolver expressions;
-    private final EngineConfigWatcher watcher;
+    private final Path configPath;
+    private final EngineConfigWatchTask watchTask;
 
+    private String currentText;
     private EngineConfig current;
 
     public EngineManager(
@@ -101,10 +104,7 @@ public class EngineManager
         Consumer<String> logger,
         EngineExtContext context,
         EngineConfiguration config,
-        List<EngineExtSpi> extensions,
-        Path configPath,
-        Function<Path, String> readPath,
-        Function<String, String> readLocation)
+        List<EngineExtSpi> extensions)
     {
         this.schemaTypes = schemaTypes;
         this.bindingByType = bindingByType;
@@ -118,10 +118,19 @@ public class EngineManager
         this.context = context;
         this.config = config;
         this.extensions = extensions;
-        this.readPath = readPath;
-        this.readLocation = readLocation;
         this.expressions = Resolver.instantiate(config);
-        this.watcher = new EngineConfigWatcher(configPath, readPath, this::reconfigure, this::reconfigure);
+        this.configPath = Path.of(config.configURI());
+        this.watchTask = new WatchTaskImpl(configPath);
+    }
+
+    public void start() throws Exception
+    {
+        watchTask.submit();
+    }
+
+    public void close()
+    {
+        watchTask.close();
     }
 
     public void process(
@@ -135,39 +144,47 @@ public class EngineManager
         process(guards, namespace);
     }
 
-    public void start() throws Exception
-    {
-        watcher.startWatchingConfig();
-    }
-
-    public void close()
-    {
-        watcher.close();
-    }
-
-    private EngineConfig reconfigure(
-        String configText)
+    private void onPathChanged(
+        Path watchedPath)
     {
         EngineConfig newConfig = null;
 
+        reconfigure:
         try
         {
-            newConfig = parse(configText);
+            if (!Files.exists(watchedPath))
+            {
+                break reconfigure;
+            }
+
+            String newConfigText = Files.readString(configPath);
+            if (Objects.equals(currentText, newConfigText))
+            {
+                break reconfigure;
+            }
+
+            newConfig = parse(newConfigText);
             if (newConfig != null)
             {
+                final String oldConfigText = currentText;
                 final EngineConfig oldConfig = current;
+
                 unregister(oldConfig);
 
                 try
                 {
+                    currentText = newConfigText;
                     current = newConfig;
+
                     register(newConfig);
                 }
                 catch (Exception ex)
                 {
                     context.onError(ex);
 
+                    currentText = oldConfigText;
                     current = oldConfig;
+
                     register(oldConfig);
 
                     rethrowUnchecked(ex);
@@ -186,15 +203,6 @@ public class EngineManager
                 throw new ConfigException("Engine configuration failed", ex);
             }
         }
-
-        return newConfig;
-    }
-
-    private void reconfigure(
-        Set<String> namespaces)
-    {
-        unregister(current);
-        register(current);
     }
 
     private EngineConfig parse(
@@ -213,11 +221,10 @@ public class EngineManager
         {
             EngineConfigReader reader = new EngineConfigReader(
                 config,
-                new NamespaceConfigAdapterContext(readLocation),
+                new NamespaceConfigAdapterContext(Path.of(config.configURI())),
                 expressions,
                 schemaTypes,
-                logger,
-                this::addResources);
+                logger);
 
             engine = reader.read(configText);
 
@@ -228,7 +235,6 @@ public class EngineManager
 
             for (NamespaceConfig namespace : engine.namespaces)
             {
-                namespace.readLocation = readLocation;
                 process(guards, namespace);
             }
         }
@@ -240,19 +246,10 @@ public class EngineManager
         return engine;
     }
 
-    private void addResources(
-        NamespaceConfig namespace)
-    {
-        watcher.addResources(namespace);
-    }
-
     private void process(
         List<GuardConfig> guards,
         NamespaceConfig namespace)
     {
-        assert readPath != null;
-        assert namespace.readLocation != null;
-
         namespace.id = supplyId.applyAsInt(namespace.name);
 
         NameResolver resolver = new NameResolver(namespace.id);
@@ -260,7 +257,6 @@ public class EngineManager
         for (GuardConfig guard : namespace.guards)
         {
             guard.id = resolver.resolve(guard.name);
-            guard.readPath = readPath;
         }
 
         for (VaultConfig vault : namespace.vaults)
@@ -292,7 +288,6 @@ public class EngineManager
             binding.id = resolver.resolve(binding.name);
             binding.entryId = resolver.resolve(binding.entry);
             binding.resolveId = resolver::resolve;
-            binding.readLocation = namespace.readLocation;
 
             binding.typeId = supplyId.applyAsInt(binding.type);
             binding.kindId = supplyId.applyAsInt(binding.kind.name().toLowerCase());
@@ -404,9 +399,8 @@ public class EngineManager
         {
             for (NamespaceConfig namespace : config.namespaces)
             {
-                System.out.println("register: " + namespace.name); // TODO: Ati
-                watcher.addResources(namespace);
                 register(namespace);
+                watch(namespace);
             }
         }
 
@@ -420,13 +414,26 @@ public class EngineManager
         {
             for (NamespaceConfig namespace : config.namespaces)
             {
-                System.out.println("unregister: " + namespace.name); // TODO: Ati
+                unwatch(namespace);
                 unregister(namespace);
-                watcher.removeNamespace(namespace.name);
             }
         }
 
         extensions.forEach(e -> e.onUnregistered(context));
+    }
+
+    private void watch(
+        NamespaceConfig namespace)
+    {
+        namespace.resources.stream()
+            .forEach(watchTask::watch);
+    }
+
+    private void unwatch(
+        NamespaceConfig namespace)
+    {
+        namespace.resources.stream()
+            .forEach(watchTask::unwatch);
     }
 
     private void register(
@@ -491,19 +498,47 @@ public class EngineManager
 
     private static final class NamespaceConfigAdapterContext implements ConfigAdapterContext
     {
-        private final Function<String, String> readLocation;
+        private final Path configPath;
 
         NamespaceConfigAdapterContext(
-            Function<String, String> readLocation)
+            Path configPath)
         {
-            this.readLocation = readLocation;
+            this.configPath = configPath;
         }
 
         @Override
-        public String readLocation(
+        public String readResource(
             String location)
         {
-            return readLocation.apply(location);
+            String content = null;
+
+            try
+            {
+                Path path = configPath.resolveSibling(location);
+                content = Files.readString(path);
+            }
+            catch (IOException ex)
+            {
+                rethrowUnchecked(ex);
+            }
+
+            return content;
+        }
+    }
+
+    private final class WatchTaskImpl extends EngineConfigWatchTask
+    {
+        WatchTaskImpl(
+            Path configPath)
+        {
+            super(configPath);
+        }
+
+        @Override
+        protected void onPathChanged(
+            Path watchedPath)
+        {
+            EngineManager.this.onPathChanged(watchedPath);
         }
     }
 }

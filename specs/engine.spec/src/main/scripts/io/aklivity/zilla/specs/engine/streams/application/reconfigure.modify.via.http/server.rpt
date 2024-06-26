@@ -33,6 +33,7 @@ write '---\n'
      '    exit: app0\n'
 write close
 
+
 accepted
 connected
 
@@ -55,16 +56,25 @@ write '---\n'
 write close
 
 
+accepted
+connected
+
+read http:method "GET"
+read http:header "If-None-Match" "BBBBBBB"
+read http:header "Prefer" "wait=86400"
+read closed
+
+
 accept "zilla://streams/app0"
      option zilla:window 8192
      option zilla:transmission "duplex"
 
 accepted
 connected
-write notify CONNECTED
 
 read aborted
 write aborted
+
 
 accept "zilla://streams/app1"
      option zilla:window 8192

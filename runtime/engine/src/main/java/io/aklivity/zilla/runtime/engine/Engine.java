@@ -21,8 +21,6 @@ import static java.util.stream.Collectors.toList;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -79,7 +77,6 @@ public final class Engine implements Collector, AutoCloseable
     private final AtomicInteger nextTaskId;
     private final ThreadFactory factory;
 
-    private final Path configPath;
     private final List<EngineWorker> workers;
     private final boolean readonly;
     private final EngineConfiguration config;
@@ -148,7 +145,7 @@ public final class Engine implements Collector, AutoCloseable
         for (int workerIndex = 0; workerIndex < workerCount; workerIndex++)
         {
             EngineWorker worker =
-                new EngineWorker(config, tasks, labels, errorHandler, tuning::affinity, this::resolvePath, bindings, exporters,
+                new EngineWorker(config, tasks, labels, errorHandler, tuning::affinity, bindings, exporters,
                     guards, vaults, catalogs, models, metricGroups, this, this::supplyEventReader,
                     eventFormatterFactory, workerIndex, readonly, this::process);
             workers.add(worker);
@@ -177,7 +174,6 @@ public final class Engine implements Collector, AutoCloseable
         final Map<String, Guard> guardsByType = guards.stream()
             .collect(Collectors.toMap(g -> g.name(), g -> g));
 
-        this.configPath = config.configPath();
         EngineManager manager = new EngineManager(
             schemaTypes,
             bindingsByType::get,
@@ -190,10 +186,7 @@ public final class Engine implements Collector, AutoCloseable
             logger,
             context,
             config,
-            extensions,
-            this.configPath,
-            this::readPath,
-            this::readLocation);
+            extensions);
 
         this.bindings = bindings;
         this.tasks = tasks;
@@ -283,35 +276,6 @@ public final class Engine implements Collector, AutoCloseable
     public static EngineBuilder builder()
     {
         return new EngineBuilder();
-    }
-
-    private String readPath(
-        Path path)
-    {
-        String result;
-        try
-        {
-            //System.out.println("ENG readPath path " + path); // TODO: Ati
-            result = Files.readString(path);
-            //System.out.println("ENG readPath result [" + result + "]"); // TODO: Ati
-        }
-        catch (Exception ex)
-        {
-            result = "";
-        }
-        return result;
-    }
-
-    public Path resolvePath(
-        String location)
-    {
-        return configPath.resolveSibling(location);
-    }
-
-    private String readLocation(
-        String location)
-    {
-        return readPath(resolvePath(location));
     }
 
     private Thread newTaskThread(

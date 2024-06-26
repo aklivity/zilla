@@ -41,7 +41,7 @@ public final class GrpcOptionsConfigAdapter implements OptionsConfigAdapterSpi, 
 
     private final GrpcProtobufParser parser = new GrpcProtobufParser();
 
-    private Function<String, String> readLocation;
+    private Function<String, String> readResource;
 
     @Override
     public Kind kind()
@@ -88,7 +88,7 @@ public final class GrpcOptionsConfigAdapter implements OptionsConfigAdapterSpi, 
     public void adaptContext(
         ConfigAdapterContext context)
     {
-        this.readLocation = context::readLocation;
+        this.readResource = context::readResource;
     }
 
     private List<GrpcProtobufConfig> asListProtobufs(
@@ -103,7 +103,7 @@ public final class GrpcOptionsConfigAdapter implements OptionsConfigAdapterSpi, 
         JsonValue value)
     {
         final String location = ((JsonString) value).getString();
-        final String protobuf = readLocation.apply(location);
+        final String protobuf = readResource.apply(location);
 
         return parser.parse(location, protobuf);
     }

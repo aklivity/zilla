@@ -20,14 +20,12 @@ import static java.util.function.Function.identity;
 
 import java.util.LinkedList;
 import java.util.List;
-import java.util.function.Function;
 
 public class NamespaceConfig
 {
     public static final String FILESYSTEM = "filesystem";
 
     public transient int id;
-    public transient Function<String, String> readLocation;
 
     public final String name;
     public final TelemetryConfig telemetry;
@@ -56,26 +54,52 @@ public class NamespaceConfig
         this.guards = requireNonNull(guards);
         this.vaults = requireNonNull(vaults);
         this.catalogs = requireNonNull(catalogs);
-        this.resources = resolveResources();
+        this.resources = resolveResources(this, telemetry, bindings, guards, vaults, catalogs);
     }
 
-    private List<String> resolveResources()
+    private static List<String> resolveResources(
+        NamespaceConfig namespace,
+        TelemetryConfig telemetry,
+        List<BindingConfig> bindings,
+        List<GuardConfig> guards,
+        List<VaultConfig> vaults,
+        List<CatalogConfig> catalogs)
     {
-        List<String> resources = new LinkedList<>();
-        for (CatalogConfig catalog : catalogs)
+        List<OptionsConfig> options = new LinkedList<>();
+
+        if (telemetry != null && telemetry.exporters != null)
         {
-            if (FILESYSTEM.equals(catalog.type))
-            {
-                resources.addAll(catalog.options.resources);
-            }
+            telemetry.exporters.stream()
+                .filter(e -> e.options != null)
+                .map(e -> e.options)
+                .forEach(options::add);
         }
-        for (VaultConfig vault : vaults)
-        {
-            if (FILESYSTEM.equals(vault.type))
-            {
-                resources.addAll(vault.options.resources);
-            }
-        }
-        return resources;
+
+        bindings.stream()
+            .filter(b -> b.options != null)
+            .map(b -> b.options)
+            .forEach(options::add);
+
+        guards.stream()
+            .filter(g -> g.options != null)
+            .map(g -> g.options)
+            .forEach(options::add);
+
+        vaults.stream()
+            .filter(v -> v.options != null)
+            .map(v -> v.options)
+            .forEach(options::add);
+
+        catalogs.stream()
+            .filter(c -> c.options != null)
+            .map(c -> c.options)
+            .forEach(options::add);
+
+        return options.stream()
+            .filter(o -> o.resources != null)
+            .flatMap(o -> o.resources.stream())
+            .sorted()
+            .distinct()
+            .toList();
     }
 }

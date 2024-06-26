@@ -45,6 +45,28 @@ public class JwtKeySetConfigAdapterTest
     }
 
     @Test
+    public void shouldReadJwtKeySetWhenKeysMissing()
+    {
+        String text =
+                "{" +
+                "}";
+        JwtKeySetConfig jwksConfig = jsonb.fromJson(text, JwtKeySetConfig.class);
+        assertThat(jwksConfig.keys, nullValue());
+    }
+
+    @Test
+    public void shouldWriteJwtKeySetWithKeysMissing()
+    {
+        JwtKeySetConfig keySetConfig = new JwtKeySetConfig(null);
+        String text = jsonb.toJson(keySetConfig);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo(
+                "{" +
+                "}"));
+    }
+
+    @Test
     public void shouldReadJwtKeySet()
     {
         String text =
@@ -81,7 +103,6 @@ public class JwtKeySetConfigAdapterTest
     @Test
     public void shouldWriteJwtKeySet()
     {
-
         JwtKeySetConfig keySetConfig = new JwtKeySetConfig(List.of(RFC7515_RS256_CONFIG, RFC7515_ES256_CONFIG));
         String text = jsonb.toJson(keySetConfig);
 

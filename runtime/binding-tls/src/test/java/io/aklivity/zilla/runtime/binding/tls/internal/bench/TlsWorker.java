@@ -103,7 +103,7 @@ public class TlsWorker implements EngineContext
                 .readonly(false)
                 .build()
                 .bufferPool();
-        this.configPath = config.configPath();
+        this.configPath = Path.of(config.configURI());
 
         this.signaler = new TlsSignaler();
 
