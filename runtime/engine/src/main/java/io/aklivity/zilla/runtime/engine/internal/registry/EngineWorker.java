@@ -40,7 +40,6 @@ import static org.agrona.CloseHelper.quietClose;
 import static org.agrona.concurrent.AgentRunner.startOnThread;
 
 import java.net.InetAddress;
-import java.net.URI;
 import java.nio.channels.SelectableChannel;
 import java.nio.file.Path;
 import java.time.Clock;
@@ -746,7 +745,7 @@ public class EngineWorker implements EngineContext, Agent
     {
         return location.indexOf(':') == -1
             ? configPath.resolveSibling(location)
-            : Path.of(URI.create(location));
+            : Path.of(configPath.toUri().resolve(location));
     }
 
     @Override

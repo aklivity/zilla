@@ -34,11 +34,11 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.Function;
 
+import org.agrona.CloseHelper;
 import org.agrona.LangUtil;
 
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
@@ -59,6 +59,7 @@ public final class EngineConfigWatcher implements AutoCloseable
     private final Function<Path, Set<Path>> resolver;
     private final WatchService watcher;
     private final Map<WatchKey, CompoundWatchKey> compoundKeys;
+    private final ExecutorService executor;
 
     public EngineConfigWatcher(
         EngineConfiguration config,
@@ -67,7 +68,17 @@ public final class EngineConfigWatcher implements AutoCloseable
     {
         this.resolver = LOOKUP_RESOLVER.apply(fileSystem.provider().getScheme());
         this.watcher = newWatchService(config, events, fileSystem);
+        this.executor = watcher != null ? Executors.newScheduledThreadPool(2) : null;
         this.compoundKeys = new IdentityHashMap<>();
+    }
+
+    public void submit(
+        EngineConfigWatchTask task)
+    {
+        if (executor != null)
+        {
+            executor.submit(task);
+        }
     }
 
     public WatchKey register(
@@ -98,11 +109,16 @@ public final class EngineConfigWatcher implements AutoCloseable
     }
 
     @Override
-    public void close() throws IOException
+    public void close()
     {
         if (watcher != null)
         {
-            watcher.close();
+            CloseHelper.quietClose(watcher);
+        }
+
+        if (executor != null)
+        {
+            executor.shutdownNow();
         }
     }
 
@@ -284,52 +300,6 @@ public final class EngineConfigWatcher implements AutoCloseable
             }
         }
 
-        if (watcher == null)
-        {
-            watcher = new NoopWatchService();
-        }
-
         return watcher;
-    }
-
-    private static final class NoopWatchService implements WatchService
-    {
-        private final Lock never;
-
-        private NoopWatchService()
-        {
-            ReentrantLock never = new ReentrantLock();
-            never.lock();
-
-            this.never = never;
-        }
-
-        @Override
-        public void close() throws IOException
-        {
-            never.unlock();
-        }
-
-        @Override
-        public WatchKey poll()
-        {
-            return null;
-        }
-
-        @Override
-        public WatchKey poll(
-            long timeout,
-            TimeUnit unit) throws InterruptedException
-        {
-            never.tryLock(timeout, unit);
-            return null;
-        }
-
-        @Override
-        public WatchKey take() throws InterruptedException
-        {
-            never.lock();
-            return null;
-        }
     }
 }
