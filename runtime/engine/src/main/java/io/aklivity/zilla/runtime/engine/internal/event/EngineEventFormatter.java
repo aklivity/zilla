@@ -26,9 +26,9 @@ import io.aklivity.zilla.runtime.engine.internal.types.event.EventFW;
 public final class EngineEventFormatter implements EventFormatterSpi
 {
     private static final String CONFIG_WATCHER_FAILED_FORMAT =
-        "Please restart to apply any config changes.";
+        "Dynamic config reloading is disabled.";
     private static final String CONFIG_WATCHER_FAILED_WITH_REASON_FORMAT =
-        CONFIG_WATCHER_FAILED_FORMAT + " %s";
+        CONFIG_WATCHER_FAILED_FORMAT + " %s.";
 
     private final EventFW eventRO = new EventFW();
     private final EngineEventExFW eventExRO = new EngineEventExFW();

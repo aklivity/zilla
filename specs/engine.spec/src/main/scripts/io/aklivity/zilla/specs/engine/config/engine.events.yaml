@@ -25,7 +25,7 @@ telemetry:
           - qname: engine.events
             id: engine.config.watcher.failed
             name: ENGINE_CONFIG_WATCHER_FAILED
-            message: Please restart to apply any config changes. [failed]
+            message: Dynamic config reloading is disabled. [failed].
 bindings:
   net0:
     type: test
