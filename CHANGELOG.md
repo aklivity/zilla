@@ -1,5 +1,34 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.82...HEAD)
+
+**Implemented enhancements:**
+
+- Add asyncapi http-kafka proxy example [\#1077](https://github.com/aklivity/zilla/issues/1077)
+- Use miliseconds in metrics [\#1069](https://github.com/aklivity/zilla/issues/1069)
+- Promote `filesystem` catalog out of incubator [\#1068](https://github.com/aklivity/zilla/issues/1068)
+- Support `asyncapi` mapping `http` protocol to `kafka` protocol [\#1063](https://github.com/aklivity/zilla/issues/1063)
+- Support filtering by kafka structured value field\(s\) [\#1062](https://github.com/aklivity/zilla/issues/1062)
+- Support remote zilla configuration with change detection [\#1061](https://github.com/aklivity/zilla/issues/1061)
+- Use full Event ID and the event name [\#1013](https://github.com/aklivity/zilla/issues/1013)
+- Support configuration of MQTT Publish QoS maximum [\#970](https://github.com/aklivity/zilla/issues/970)
+- Support `sse` server and client via `asyncapi` [\#952](https://github.com/aklivity/zilla/issues/952)
+- Review kafka binding partition offset vs progress offset [\#285](https://github.com/aklivity/zilla/issues/285)
+
+**Fixed bugs:**
+
+- iNotify error when multiple Zilla instances are started in K8s Pods on a Portainer.io host [\#1081](https://github.com/aklivity/zilla/issues/1081)
+- Running `emqtt_bench` `sub`  triggers an exception [\#1037](https://github.com/aklivity/zilla/issues/1037)
+- MqttSessionBeginEx missing packetIds in zilla dump [\#1028](https://github.com/aklivity/zilla/issues/1028)
+- Running `emqtt_bench`  triggers an exception in mqtt during the decoding [\#999](https://github.com/aklivity/zilla/issues/999)
+- Intermittent NPE when trying to resolve guards [\#994](https://github.com/aklivity/zilla/issues/994)
+
+**Closed issues:**
+
+- Add SSE payload validation to sse-server binding [\#1076](https://github.com/aklivity/zilla/issues/1076)
+
 ## [0.9.82](https://github.com/aklivity/zilla/tree/0.9.82) (2024-05-28)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.81...0.9.82)
