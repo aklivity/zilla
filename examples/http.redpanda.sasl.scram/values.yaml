@@ -1,5 +1,6 @@
 env:
   KEYSTORE_PASSWORD: generated
+  KAFKA_BOOTSTRAP_SERVER: redpanda:29092
   SASL_USERNAME: user
   SASL_PASSWORD: redpanda
 

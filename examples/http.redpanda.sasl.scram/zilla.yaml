@@ -71,20 +71,20 @@ bindings:
     type: kafka
     kind: client
     options:
+      servers:
+        - ${{env.KAFKA_BOOTSTRAP_SERVER}}
       sasl:
         mechanism: scram-sha-256
         username: ${{env.SASL_USERNAME}}
         password: ${{env.SASL_PASSWORD}}
+    exit: south_tls_client
+  south_tls_client:
+    type: tls
+    kind: client
     exit: south_tcp_client
   south_tcp_client:
     type: tcp
     kind: client
-    options:
-      host: redpanda
-      port: 29092
-    routes:
-      - when:
-          - cidr: 0.0.0.0/0
 telemetry:
   exporters:
     stdout_logs_exporter:
