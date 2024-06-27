@@ -20,7 +20,6 @@ import static io.aklivity.zilla.runtime.binding.tls.internal.types.ProxyInfoType
 import static io.aklivity.zilla.runtime.binding.tls.internal.types.ProxyInfoType.AUTHORITY;
 import static io.aklivity.zilla.runtime.binding.tls.internal.types.ProxyInfoType.SECURE;
 import static io.aklivity.zilla.runtime.binding.tls.internal.types.ProxySecureInfoType.NAME;
-import static java.lang.System.currentTimeMillis;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 import static javax.net.ssl.StandardConstants.SNI_HOST_NAME;
@@ -53,6 +52,7 @@ import org.agrona.LangUtil;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsMutualConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.internal.TlsConfiguration;
+import io.aklivity.zilla.runtime.binding.tls.internal.TlsEventContext;
 import io.aklivity.zilla.runtime.binding.tls.internal.identity.TlsClientX509ExtendedKeyManager;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.ProxyAddressFW;
@@ -76,6 +76,7 @@ public final class TlsBindingConfig
     public final List<TlsRouteConfig> routes;
 
     private SSLContext context;
+    private TlsKeyPairVerifier verifier;
 
     public TlsBindingConfig(
         BindingConfig binding)
@@ -91,12 +92,13 @@ public final class TlsBindingConfig
     public void init(
         TlsConfiguration config,
         VaultHandler vault,
-        SecureRandom random)
+        SecureRandom random,
+        TlsEventContext event)
     {
+        this.verifier = new TlsKeyPairVerifier(event);
         char[] keysPass = "generated".toCharArray();
         KeyStore keys = newKeys(config, vault, keysPass, options.keys, options.signers);
         KeyStore trust = newTrust(config, vault, options.trust, options.trustcacerts && kind == KindConfig.CLIENT);
-
         try
         {
             KeyManager[] keyManagers = null;
@@ -440,16 +442,10 @@ public final class TlsBindingConfig
                 for (String keyName : keyNames)
                 {
                     KeyStore.PrivateKeyEntry entry = vault.key(keyName);
-                    if (entry == null)
+                    if (!verifier.verify(entry, keyName, this.id))
                     {
-                        if (config.verbose())
-                        {
-                            System.out.printf("%d [%s] key \"%s\" not found\n",
-                                    currentTimeMillis(), this.qname, keyName);
-                        }
                         continue;
                     }
-
                     KeyStore.ProtectionParameter protection = new KeyStore.PasswordProtection(password);
                     store.setEntry(keyName, entry, protection);
                 }

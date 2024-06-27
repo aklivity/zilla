@@ -17,9 +17,12 @@ package io.aklivity.zilla.runtime.binding.tls.internal;
 
 import static io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsEventType.TLS_FAILED;
 import static io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsEventType.TLS_HANDSHAKE_FAILED;
+import static io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsEventType.TLS_KEY_PAIR_VERIFICATION_FAILED;
 import static io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsEventType.TLS_KEY_REJECTED;
 import static io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsEventType.TLS_PEER_NOT_VERIFIED;
 import static io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsEventType.TLS_PROTOCOL_REJECTED;
+import static io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsKeyPairFailureType.TLS_KEY_PAIR_INVALID;
+import static io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsKeyPairFailureType.TLS_KEY_PAIR_MISSING;
 
 import java.nio.ByteBuffer;
 import java.time.Clock;
@@ -29,6 +32,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.tls.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsEventExFW;
+import io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsKeyPairFailureType;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
@@ -46,6 +50,7 @@ public class TlsEventContext
     private final int tlsKeyRejectedEventId;
     private final int tlsPeerNotVerifiedEventId;
     private final int tlsHandshakeFailedEventId;
+    private final int tlsKeyPairVerificationFailedEventId;
     private final MessageConsumer eventWriter;
     private final Clock clock;
 
@@ -58,6 +63,7 @@ public class TlsEventContext
         this.tlsKeyRejectedEventId = context.supplyEventId("binding.tls.key.rejected");
         this.tlsPeerNotVerifiedEventId = context.supplyEventId("binding.tls.peer.not.verified");
         this.tlsHandshakeFailedEventId = context.supplyEventId("binding.tls.handshake.failed");
+        this.tlsKeyPairVerificationFailedEventId = context.supplyEventId("binding.tls.key.pair.verification.failed");
         this.eventWriter = context.supplyEventWriter();
         this.clock = context.clock();
     }
@@ -161,6 +167,44 @@ public class TlsEventContext
             .id(tlsHandshakeFailedEventId)
             .timestamp(clock.millis())
             .traceId(traceId)
+            .namespacedId(bindingId)
+            .extension(extension.buffer(), extension.offset(), extension.limit())
+            .build();
+        eventWriter.accept(tlsTypeId, event.buffer(), event.offset(), event.limit());
+    }
+
+    public void tlsKeyPairMissing(
+        long bindingId,
+        String keyName)
+    {
+        tlsKeyPairVerificationFailed(TLS_KEY_PAIR_MISSING, bindingId, keyName);
+    }
+
+    public void tlsKeyPairInvalid(
+        long bindingId,
+        String keyName)
+    {
+        tlsKeyPairVerificationFailed(TLS_KEY_PAIR_INVALID, bindingId, keyName);
+    }
+
+    private void tlsKeyPairVerificationFailed(
+        TlsKeyPairFailureType failureType,
+        long bindingId,
+        String keyName)
+    {
+        TlsEventExFW extension = tlsEventExRW
+            .wrap(extensionBuffer, 0, extensionBuffer.capacity())
+            .tlsKeyPairVerificationFailed(e -> e
+                .typeId(TLS_KEY_PAIR_VERIFICATION_FAILED.value())
+                .failureType(t -> t.set(failureType))
+                .keyName(keyName)
+            )
+            .build();
+        EventFW event = eventRW
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .id(tlsKeyPairVerificationFailedEventId)
+            .timestamp(clock.millis())
+            .traceId(0L)
             .namespacedId(bindingId)
             .extension(extension.buffer(), extension.offset(), extension.limit())
             .build();
