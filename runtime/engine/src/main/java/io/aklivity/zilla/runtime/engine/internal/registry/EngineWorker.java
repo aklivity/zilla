@@ -1103,7 +1103,11 @@ public class EngineWorker implements EngineContext, Agent
         switch (signalId)
         {
         case SIGNAL_TASK_QUEUED:
-            taskQueue.poll().run();
+            final Runnable task = taskQueue.poll();
+            if (task != null)
+            {
+                task.run();
+            }
             break;
         }
     }
