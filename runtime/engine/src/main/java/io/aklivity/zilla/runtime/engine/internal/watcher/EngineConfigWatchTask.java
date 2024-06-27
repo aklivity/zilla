@@ -29,6 +29,9 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import io.aklivity.zilla.runtime.engine.EngineConfiguration;
+import io.aklivity.zilla.runtime.engine.internal.event.EngineEventContext;
+
 public abstract class EngineConfigWatchTask implements AutoCloseable, Callable<Void>
 {
     private final Path configPath;
@@ -37,10 +40,12 @@ public abstract class EngineConfigWatchTask implements AutoCloseable, Callable<V
     private Map<String, WatchKey> resourceKeys;
 
     protected EngineConfigWatchTask(
+        EngineConfiguration config,
+        EngineEventContext events,
         Path configPath)
     {
         this.configPath = configPath;
-        this.watcher = new EngineConfigWatcher(configPath.getFileSystem());
+        this.watcher = new EngineConfigWatcher(config, events, configPath.getFileSystem());
         this.executor = Executors.newScheduledThreadPool(2);
         this.resourceKeys = new HashMap<>();
     }

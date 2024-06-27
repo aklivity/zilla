@@ -308,9 +308,10 @@ public class EngineWorker implements EngineContext, Agent
                 .build();
 
         this.eventsLayout = new EventsLayout.Builder()
-            .path(config.directory().resolve(String.format("events%d", index)))
-            .capacity(config.eventsBufferCapacity())
-            .build();
+                .path(config.directory().resolve(String.format("events%d", index)))
+                .capacity(config.eventsBufferCapacity())
+                .build();
+
         this.eventNames = new Int2ObjectHashMap<>();
 
         this.agentName = String.format("engine/data#%d", index);

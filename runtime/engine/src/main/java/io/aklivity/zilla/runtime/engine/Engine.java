@@ -21,6 +21,7 @@ import static java.util.stream.Collectors.toList;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.net.URL;
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -56,6 +57,7 @@ import io.aklivity.zilla.runtime.engine.guard.Guard;
 import io.aklivity.zilla.runtime.engine.internal.Info;
 import io.aklivity.zilla.runtime.engine.internal.LabelManager;
 import io.aklivity.zilla.runtime.engine.internal.Tuning;
+import io.aklivity.zilla.runtime.engine.internal.event.EngineEventContext;
 import io.aklivity.zilla.runtime.engine.internal.layouts.EventsLayout;
 import io.aklivity.zilla.runtime.engine.internal.registry.EngineManager;
 import io.aklivity.zilla.runtime.engine.internal.registry.EngineWorker;
@@ -68,6 +70,8 @@ import io.aklivity.zilla.runtime.engine.vault.Vault;
 
 public final class Engine implements Collector, AutoCloseable
 {
+    public static final String NAME = "engine";
+
     private final Collection<Binding> bindings;
     private final ExecutorService tasks;
     private final Tuning tuning;
@@ -81,6 +85,8 @@ public final class Engine implements Collector, AutoCloseable
     private final boolean readonly;
     private final EngineConfiguration config;
     private final EngineManager manager;
+
+    private final EventsLayout eventsLayout;
 
     Engine(
         EngineConfiguration config,
@@ -141,6 +147,11 @@ public final class Engine implements Collector, AutoCloseable
         }
         this.tuning = tuning;
 
+        this.eventsLayout = new EventsLayout.Builder()
+                .path(config.directory().resolve("events"))
+                .capacity(config.eventsBufferCapacity())
+                .build();
+
         List<EngineWorker> workers = new ArrayList<>(workerCount);
         for (int workerIndex = 0; workerIndex < workerCount; workerIndex++)
         {
@@ -174,6 +185,8 @@ public final class Engine implements Collector, AutoCloseable
         final Map<String, Guard> guardsByType = guards.stream()
             .collect(Collectors.toMap(g -> g.name(), g -> g));
 
+        EngineEventContext events = new EngineEventContext(this);
+
         EngineManager manager = new EngineManager(
             schemaTypes,
             bindingsByType::get,
@@ -186,6 +199,7 @@ public final class Engine implements Collector, AutoCloseable
             logger,
             context,
             config,
+            events,
             extensions);
 
         this.bindings = bindings;
@@ -271,6 +285,21 @@ public final class Engine implements Collector, AutoCloseable
     public ContextImpl context()
     {
         return context;
+    }
+
+    public EventsLayout.EventAccessor createEventAccessor()
+    {
+        return eventsLayout.createEventAccessor();
+    }
+
+    public MessageConsumer supplyEventWriter()
+    {
+        return this.eventsLayout::writeEvent;
+    }
+
+    public Clock clock()
+    {
+        return Clock.systemUTC();
     }
 
     public static EngineBuilder builder()
@@ -441,20 +470,30 @@ public final class Engine implements Collector, AutoCloseable
         return worker.supplyTypeId(label);
     }
 
+    public long supplyNamespacedId(
+        String namespace,
+        String name)
+    {
+        final int namespaceId = supplyLabelId(namespace);
+        final int bindingId = supplyLabelId(name);
+        return NamespacedId.id(namespaceId, bindingId);
+    }
+
     private final class EventReader implements MessageReader
     {
         private final EventsLayout.EventAccessor[] accessors;
         private final EventFW eventRO = new EventFW();
-        private int minWorkerIndex;
+        private int minAccessorIndex;
         private long minTimeStamp;
 
         EventReader()
         {
-            accessors = new EventsLayout.EventAccessor[workers.size()];
+            accessors = new EventsLayout.EventAccessor[workers.size() + 1];
             for (int i = 0; i < workers.size(); i++)
             {
                 accessors[i] = workers.get(i).createEventAccessor();
             }
+            accessors[workers.size()] = createEventAccessor();
         }
 
         @Override
@@ -467,18 +506,18 @@ public final class Engine implements Collector, AutoCloseable
             while (!empty && messagesRead < messageCountLimit)
             {
                 int eventCount = 0;
-                minWorkerIndex = 0;
+                minAccessorIndex = 0;
                 minTimeStamp = Long.MAX_VALUE;
-                for (int j = 0; j < workers.size(); j++)
+                for (int j = 0; j < accessors.length; j++)
                 {
-                    final int workerIndex = j;
-                    int eventPeeked = accessors[workerIndex].peekEvent((m, b, i, l) ->
+                    final int accessorIndex = j;
+                    int eventPeeked = accessors[accessorIndex].peekEvent((m, b, i, l) ->
                     {
                         eventRO.wrap(b, i, i + l);
                         if (eventRO.timestamp() < minTimeStamp)
                         {
                             minTimeStamp = eventRO.timestamp();
-                            minWorkerIndex = workerIndex;
+                            minAccessorIndex = accessorIndex;
                         }
                     });
                     eventCount += eventPeeked;
@@ -486,7 +525,7 @@ public final class Engine implements Collector, AutoCloseable
                 empty = eventCount == 0;
                 if (!empty)
                 {
-                    messagesRead += accessors[minWorkerIndex].readEvent(handler, 1);
+                    messagesRead += accessors[minAccessorIndex].readEvent(handler, 1);
                 }
             }
             return messagesRead;
