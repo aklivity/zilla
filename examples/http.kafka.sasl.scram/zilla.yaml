@@ -72,7 +72,7 @@ bindings:
     kind: client
     options:
       servers:
-        - kafka:29092
+        - ${{env.KAFKA_BOOTSTRAP_SERVER}}
       sasl:
         mechanism: scram-sha-256
         username: ${{env.SASL_USERNAME}}
