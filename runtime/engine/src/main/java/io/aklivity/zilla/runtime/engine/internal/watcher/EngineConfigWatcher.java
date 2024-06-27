@@ -34,9 +34,15 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.Function;
 
+import org.agrona.CloseHelper;
 import org.agrona.LangUtil;
+
+import io.aklivity.zilla.runtime.engine.EngineConfiguration;
+import io.aklivity.zilla.runtime.engine.internal.event.EngineEventContext;
 
 public final class EngineConfigWatcher implements AutoCloseable
 {
@@ -53,13 +59,26 @@ public final class EngineConfigWatcher implements AutoCloseable
     private final Function<Path, Set<Path>> resolver;
     private final WatchService watcher;
     private final Map<WatchKey, CompoundWatchKey> compoundKeys;
+    private final ExecutorService executor;
 
     public EngineConfigWatcher(
+        EngineConfiguration config,
+        EngineEventContext events,
         FileSystem fileSystem)
     {
         this.resolver = LOOKUP_RESOLVER.apply(fileSystem.provider().getScheme());
-        this.watcher = newWatchService(fileSystem);
+        this.watcher = newWatchService(config, events, fileSystem);
+        this.executor = watcher != null ? Executors.newScheduledThreadPool(2) : null;
         this.compoundKeys = new IdentityHashMap<>();
+    }
+
+    public void submit(
+        EngineConfigWatchTask task)
+    {
+        if (executor != null)
+        {
+            executor.submit(task);
+        }
     }
 
     public WatchKey register(
@@ -90,11 +109,16 @@ public final class EngineConfigWatcher implements AutoCloseable
     }
 
     @Override
-    public void close() throws IOException
+    public void close()
     {
         if (watcher != null)
         {
-            watcher.close();
+            CloseHelper.quietClose(watcher);
+        }
+
+        if (executor != null)
+        {
+            executor.shutdownNow();
         }
     }
 
@@ -250,21 +274,30 @@ public final class EngineConfigWatcher implements AutoCloseable
     }
 
     private static WatchService newWatchService(
+        EngineConfiguration config,
+        EngineEventContext events,
         FileSystem fileSystem)
     {
         WatchService watcher = null;
 
-        try
+        if (config.configWatch())
         {
-            watcher = fileSystem.newWatchService();
-        }
-        catch (UnsupportedOperationException ex)
-        {
-            // no watcher
-        }
-        catch (Exception ex)
-        {
-            rethrowUnchecked(ex);
+            try
+            {
+                watcher = fileSystem.newWatchService();
+            }
+            catch (UnsupportedOperationException ex)
+            {
+                // not supported (optional)
+            }
+            catch (IOException ex)
+            {
+                events.configWatcherFailed(0L, ex.getMessage());
+            }
+            catch (Throwable ex)
+            {
+                rethrowUnchecked(ex);
+            }
         }
 
         return watcher;

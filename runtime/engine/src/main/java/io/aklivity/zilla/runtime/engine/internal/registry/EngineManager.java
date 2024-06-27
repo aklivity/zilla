@@ -65,6 +65,7 @@ import io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
 import io.aklivity.zilla.runtime.engine.guard.Guard;
 import io.aklivity.zilla.runtime.engine.internal.Tuning;
 import io.aklivity.zilla.runtime.engine.internal.config.NamespaceAdapter;
+import io.aklivity.zilla.runtime.engine.internal.event.EngineEventContext;
 import io.aklivity.zilla.runtime.engine.internal.watcher.EngineConfigWatchTask;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 import io.aklivity.zilla.runtime.engine.resolver.Resolver;
@@ -104,6 +105,7 @@ public class EngineManager
         Consumer<String> logger,
         EngineExtContext context,
         EngineConfiguration config,
+        EngineEventContext events,
         List<EngineExtSpi> extensions)
     {
         this.schemaTypes = schemaTypes;
@@ -120,7 +122,7 @@ public class EngineManager
         this.extensions = extensions;
         this.expressions = Resolver.instantiate(config);
         this.configPath = Path.of(config.configURI());
-        this.watchTask = new WatchTaskImpl(configPath);
+        this.watchTask = new WatchTaskImpl(config, events, configPath);
     }
 
     public void start() throws Exception
@@ -529,9 +531,11 @@ public class EngineManager
     private final class WatchTaskImpl extends EngineConfigWatchTask
     {
         WatchTaskImpl(
+            EngineConfiguration config,
+            EngineEventContext events,
             Path configPath)
         {
-            super(configPath);
+            super(config, events, configPath);
         }
 
         @Override

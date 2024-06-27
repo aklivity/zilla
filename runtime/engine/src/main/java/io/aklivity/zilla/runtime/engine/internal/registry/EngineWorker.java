@@ -40,7 +40,6 @@ import static org.agrona.CloseHelper.quietClose;
 import static org.agrona.concurrent.AgentRunner.startOnThread;
 
 import java.net.InetAddress;
-import java.net.URI;
 import java.nio.channels.SelectableChannel;
 import java.nio.file.Path;
 import java.time.Clock;
@@ -308,9 +307,10 @@ public class EngineWorker implements EngineContext, Agent
                 .build();
 
         this.eventsLayout = new EventsLayout.Builder()
-            .path(config.directory().resolve(String.format("events%d", index)))
-            .capacity(config.eventsBufferCapacity())
-            .build();
+                .path(config.directory().resolve(String.format("events%d", index)))
+                .capacity(config.eventsBufferCapacity())
+                .build();
+
         this.eventNames = new Int2ObjectHashMap<>();
 
         this.agentName = String.format("engine/data#%d", index);
@@ -745,7 +745,7 @@ public class EngineWorker implements EngineContext, Agent
     {
         return location.indexOf(':') == -1
             ? configPath.resolveSibling(location)
-            : Path.of(URI.create(location));
+            : Path.of(configPath.toUri().resolve(location));
     }
 
     @Override
@@ -1103,7 +1103,11 @@ public class EngineWorker implements EngineContext, Agent
         switch (signalId)
         {
         case SIGNAL_TASK_QUEUED:
-            taskQueue.poll().run();
+            final Runnable task = taskQueue.poll();
+            if (task != null)
+            {
+                task.run();
+            }
             break;
         }
     }
