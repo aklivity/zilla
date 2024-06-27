@@ -26,7 +26,6 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiMessage
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiOperation;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiChannelView;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiMessageView;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiSchemaView;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiServerView;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfigBuilder;
@@ -35,11 +34,9 @@ import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.CatalogedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.MetricRefConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
-import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
 public class AyncapiKafkaProtocol extends AsyncapiProtocol
 {
@@ -147,7 +144,7 @@ public class AyncapiKafkaProtocol extends AsyncapiProtocol
 
     private <C> KafkaOptionsConfigBuilder<C> injectKafkaTopicOptions(
         KafkaOptionsConfigBuilder<C> options,
-         KafkaOptionsConfig kafka)
+        KafkaOptionsConfig kafka)
     {
         for (Asyncapi asyncapi : asyncapis)
         {
@@ -169,8 +166,8 @@ public class AyncapiKafkaProtocol extends AsyncapiProtocol
                     options
                         .topic(KafkaTopicConfig::builder)
                             .name(topic)
-                            .inject(topicConfig -> injectValue(topicConfig, asyncapi, channel.messages()))
                             .inject(topicConfig -> injectHeader(topicConfig, kafkaTopic))
+                            .inject(topicConfig -> injectValue(topicConfig, asyncapi, channel.messages()))
                             .build()
                         .build();
                 }
@@ -211,37 +208,16 @@ public class AyncapiKafkaProtocol extends AsyncapiProtocol
     {
         if (messages != null)
         {
-            if (hasJsonContentType(asyncapi))
+            for (Map.Entry<String, AsyncapiMessage> messageEntry : messages.entrySet())
             {
-                topic
-                    .value(JsonModelConfig::builder)
-                        .catalog()
-                        .name(INLINE_CATALOG_NAME)
-                        .inject(catalog -> injectSchemas(catalog, asyncapi, messages))
-                        .build()
-                    .build();
+                AsyncapiMessageView message =
+                    AsyncapiMessageView.of(asyncapi.components.messages, messageEntry.getValue());
+                if (message.payload() != null)
+                {
+                    topic.value(injectModel(asyncapi, message));
+                }
             }
         }
         return topic;
-    }
-
-    private <C> CatalogedConfigBuilder<C> injectSchemas(
-        CatalogedConfigBuilder<C> catalog,
-        Asyncapi asyncapi,
-        Map<String, AsyncapiMessage> messages)
-    {
-        for (String name : messages.keySet())
-        {
-            AsyncapiMessageView message = AsyncapiMessageView.of(asyncapi.components.messages, messages.get(name));
-            AsyncapiSchemaView payload = AsyncapiSchemaView.of(asyncapi.components.schemas, message.payload());
-            String subject = payload.refKey() != null ? payload.refKey() : name;
-            catalog
-                .schema()
-                    .subject(subject)
-                    .version(VERSION_LATEST)
-                    .build()
-                .build();
-        }
-        return catalog;
     }
 }

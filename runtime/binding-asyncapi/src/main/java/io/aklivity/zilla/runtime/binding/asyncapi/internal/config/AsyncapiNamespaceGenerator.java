@@ -60,7 +60,6 @@ public abstract class AsyncapiNamespaceGenerator
     protected static final String INLINE_CATALOG_NAME = "catalog0";
     protected static final String INLINE_CATALOG_TYPE = "inline";
     protected static final String VERSION_LATEST = "latest";
-    protected static final String APPLICATION_JSON = "application/json";
     protected static final AsyncapiOptionsConfig EMPTY_OPTION =
         new AsyncapiOptionsConfig(null, null, null, null, null, null, null);
     protected static final Pattern VARIABLE = Pattern.compile("\\{([^}]*.?)\\}");

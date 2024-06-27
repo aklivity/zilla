@@ -25,22 +25,29 @@ import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiMessage;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiMessageView;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiSchemaView;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.MetricRefConfig;
+import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.TelemetryRefConfigBuilder;
+import io.aklivity.zilla.runtime.model.avro.config.AvroModelConfig;
+import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
+import io.aklivity.zilla.runtime.model.protobuf.config.ProtobufModelConfig;
 
 public abstract class AsyncapiProtocol
 {
     protected static final String INLINE_CATALOG_NAME = "catalog0";
     protected static final Pattern JSON_CONTENT_TYPE = Pattern.compile("^application/(?:.+\\+)?json$");
+    protected static final Pattern AVRO_CONTENT_TYPE = Pattern.compile("^application/(?:.+\\+)?avro$");
+    protected static final Pattern PROTOBUF_CONTENT_TYPE = Pattern.compile("^application/(?:.+\\+)?protobuf$");
     protected static final String VERSION_LATEST = "latest";
 
     protected final Matcher jsonContentType = JSON_CONTENT_TYPE.matcher("");
+    protected final Matcher avroContentType = AVRO_CONTENT_TYPE.matcher("");
+    protected final Matcher protobufContentType = PROTOBUF_CONTENT_TYPE.matcher("");
     protected final List<Asyncapi> asyncapis;
     protected String qname;
     protected Map<String, String> securitySchemes;
@@ -109,50 +116,59 @@ public abstract class AsyncapiProtocol
         return binding;
     }
 
-    protected <C> CatalogedConfigBuilder<C> injectJsonSchemas(
+    protected <C> CatalogedConfigBuilder<C> injectSchema(
         CatalogedConfigBuilder<C> cataloged,
         Asyncapi asyncapi,
-        Map<String, AsyncapiMessage> messages,
-        String contentType)
+        AsyncapiMessageView message)
     {
-        for (Map.Entry<String, AsyncapiMessage> messageEntry : messages.entrySet())
-        {
-            AsyncapiMessageView message =
-                AsyncapiMessageView.of(asyncapi.components.messages, messageEntry.getValue());
-            if (message.payload() != null)
-            {
-                String schema = AsyncapiSchemaView.of(asyncapi.components.schemas, message.payload()).refKey();
-                if (message.contentType() != null && message.contentType().equals(contentType) ||
-                    jsonContentType.reset(asyncapi.defaultContentType).matches())
-                {
-                    cataloged
-                        .schema()
-                            .version(VERSION_LATEST)
-                            .subject(schema)
-                            .build();
-                }
-                else
-                {
-                    throw new RuntimeException("Invalid content type");
-                }
-            }
-        }
+        String schema = AsyncapiSchemaView.of(asyncapi.components.schemas, message.payload()).refKey();
+        cataloged.schema()
+            .version(VERSION_LATEST)
+            .subject(schema)
+            .build();
         return cataloged;
     }
 
-    protected boolean hasJsonContentType(
-        Asyncapi asyncapi)
+    protected ModelConfig injectModel(
+        Asyncapi asyncapi,
+        AsyncapiMessageView message)
     {
-        String contentType = null;
-        if (asyncapi.components != null && asyncapi.components.messages != null &&
-            !asyncapi.components.messages.isEmpty())
+        String contentType = message.contentType() == null ? asyncapi.defaultContentType : message.contentType();
+        ModelConfig model = null;
+
+        if (contentType == null)
         {
-            AsyncapiMessage firstAsyncapiMessage = asyncapi.components.messages.entrySet().stream()
-                .findFirst().get().getValue();
-            contentType = AsyncapiMessageView.of(asyncapi.components.messages, firstAsyncapiMessage).contentType();
+            model = null;
         }
-        return contentType != null && jsonContentType.reset(contentType).matches() || asyncapi.defaultContentType != null &&
-            jsonContentType.reset(asyncapi.defaultContentType).matches();
+        else if (jsonContentType.reset(contentType).matches())
+        {
+            model = JsonModelConfig.builder()
+                    .catalog()
+                    .name(INLINE_CATALOG_NAME)
+                    .inject(catalog -> injectSchema(catalog, asyncapi, message))
+                    .build()
+                .build();
+        }
+        else if (avroContentType.reset(contentType).matches())
+        {
+            model = AvroModelConfig.builder()
+                .catalog()
+                    .name(INLINE_CATALOG_NAME)
+                    .inject(catalog -> injectSchema(catalog, asyncapi, message))
+                    .build()
+                .build();
+        }
+        else if (protobufContentType.reset(contentType).matches())
+        {
+            model = ProtobufModelConfig.builder()
+                .catalog()
+                    .name(INLINE_CATALOG_NAME)
+                    .inject(catalog -> injectSchema(catalog, asyncapi, message))
+                    .build()
+                .build();
+        }
+
+        return model;
     }
 
     protected abstract boolean isSecure();

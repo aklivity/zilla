@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.config;
 
-import static io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiNamespaceGenerator.APPLICATION_JSON;
-
 import java.util.List;
 import java.util.Map;
 
@@ -90,19 +88,19 @@ public class AsyncapiMqttProtocol extends AsyncapiProtocol
             {
                 String topic = channelEntry.getValue().address.replaceAll("\\{[^}]+\\}", "#");
                 Map<String, AsyncapiMessage> messages = channelEntry.getValue().messages;
-                if (hasJsonContentType(asyncapi))
+                if (messages != null)
                 {
-                    options
-                        .topic()
-                        .name(topic)
-                        .content(JsonModelConfig::builder)
-                            .catalog()
-                                .name(INLINE_CATALOG_NAME)
-                                .inject(cataloged -> injectJsonSchemas(cataloged, asyncapi, messages, APPLICATION_JSON))
-                                .build()
-                            .build()
-                        .inject(t -> injectMqttUserPropertiesConfig(t, asyncapi, messages))
-                        .build();
+                    for (Map.Entry<String, AsyncapiMessage> messageEntry : messages.entrySet())
+                    {
+                        AsyncapiMessageView message =
+                            AsyncapiMessageView.of(asyncapi.components.messages, messageEntry.getValue());
+                        options
+                            .topic()
+                            .name(topic)
+                            .content(injectModel(asyncapi, message))
+                            .inject(t -> injectMqttUserPropertiesConfig(t, asyncapi, messages))
+                            .build();
+                    }
                 }
             }
         }
