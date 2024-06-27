@@ -206,7 +206,7 @@ public class EngineWorker implements EngineContext, Agent
     private final DeadlineTimerWheel timerWheel;
     private final Long2ObjectHashMap<Runnable> tasksByTimerId;
     private final Long2ObjectHashMap<Future<?>> futuresById;
-    private final ElektronSignaler signaler;
+    private final EngineSignaler signaler;
     private final Long2ObjectHashMap<MessageConsumer> correlations;
     private final Long2ObjectHashMap<AgentRunner> exportersById;
     private final Map<String, ModelContext> modelsByType;
@@ -339,7 +339,7 @@ public class EngineWorker implements EngineContext, Agent
         this.timerWheel = new DeadlineTimerWheel(MILLISECONDS, currentTimeMillis(), 512, 1024);
         this.tasksByTimerId = new Long2ObjectHashMap<>();
         this.futuresById = new Long2ObjectHashMap<>();
-        this.signaler = new ElektronSignaler(executor, Math.max(config.bufferSlotCapacity(), 512));
+        this.signaler = new EngineSignaler(executor, Math.max(config.bufferSlotCapacity(), 512));
 
         this.poller = new Poller();
 
@@ -1902,7 +1902,7 @@ public class EngineWorker implements EngineContext, Agent
         return dispatcher;
     }
 
-    private final class ElektronSignaler implements Signaler
+    private final class EngineSignaler implements Signaler
     {
         private final ThreadLocal<SignalFW.Builder> signalRW;
 
@@ -1910,7 +1910,7 @@ public class EngineWorker implements EngineContext, Agent
 
         private long nextFutureId;
 
-        private ElektronSignaler(
+        private EngineSignaler(
             ExecutorService executorService,
             int slotCapacity)
         {
