@@ -94,9 +94,9 @@ public final class TlsBindingConfig
         VaultHandler vault,
         SecureRandom random)
     {
-        TlsKeyPairVerifier verifier = new TlsKeyPairVerifier(events);
+        TlsKeyPairVerifier verifier = new TlsKeyPairVerifier();
         char[] keysPass = "generated".toCharArray();
-        KeyStore keys = newKeys(config, vault, keysPass, verifier, options.keys, options.signers);
+        KeyStore keys = newKeys(config, vault, keysPass, verifier, events, options.keys, options.signers);
         KeyStore trust = newTrust(config, vault, options.trust, options.trustcacerts && kind == KindConfig.CLIENT);
 
         try
@@ -411,6 +411,7 @@ public final class TlsBindingConfig
         VaultHandler vault,
         char[] password,
         TlsKeyPairVerifier verifier,
+        TlsEventContext events,
         List<String> keyNames,
         List<String> signerNames)
     {
@@ -443,8 +444,15 @@ public final class TlsBindingConfig
                 for (String keyName : keyNames)
                 {
                     KeyStore.PrivateKeyEntry entry = vault.key(keyName);
-                    if (!verifier.verify(entry, keyName, this.id))
+                    if (entry == null)
                     {
+                        events.tlsKeyPairMissing(this.id, keyName);
+                        continue;
+                    }
+                    boolean valid = verifier.verify(entry);
+                    if (!valid)
+                    {
+                        events.tlsKeyPairInvalid(this.id, keyName);
                         continue;
                     }
                     KeyStore.ProtectionParameter protection = new KeyStore.PasswordProtection(password);

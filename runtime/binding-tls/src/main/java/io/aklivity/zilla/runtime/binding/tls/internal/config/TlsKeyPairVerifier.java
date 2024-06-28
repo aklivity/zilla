@@ -26,65 +26,41 @@ import java.security.Signature;
 import java.security.SignatureException;
 import java.util.concurrent.ThreadLocalRandom;
 
-import io.aklivity.zilla.runtime.binding.tls.internal.TlsEventContext;
-
 public class TlsKeyPairVerifier
 {
     private static final String ALGORITHM = "SHA256withRSA";
 
-    private final TlsEventContext event;
-
-    public TlsKeyPairVerifier(
-        TlsEventContext event)
-    {
-        this.event = event;
-    }
-
     public boolean verify(
-        KeyStore.PrivateKeyEntry entry,
-        String keyName,
-        long bindingId)
+        KeyStore.PrivateKeyEntry entry)
     {
         boolean valid = false;
-        if (entry == null)
+        try
         {
-            event.tlsKeyPairMissing(bindingId, keyName);
+            PrivateKey privateKey = entry.getPrivateKey();
+            PublicKey publicKey = entry.getCertificate().getPublicKey();
+
+            // create a challenge
+            byte[] challenge = new byte[10000];
+            ThreadLocalRandom.current().nextBytes(challenge);
+
+            // sign using the private key
+            Signature sig = Signature.getInstance(ALGORITHM);
+            sig.initSign(privateKey);
+            sig.update(challenge);
+            byte[] signature = sig.sign();
+
+            // verify signature using the public key
+            sig.initVerify(publicKey);
+            sig.update(challenge);
+            valid = sig.verify(signature);
         }
-        else
+        catch (InvalidKeyException | SignatureException ex)
         {
-            try
-            {
-                PrivateKey privateKey = entry.getPrivateKey();
-                PublicKey publicKey = entry.getCertificate().getPublicKey();
-
-                // create a challenge
-                byte[] challenge = new byte[10000];
-                ThreadLocalRandom.current().nextBytes(challenge);
-
-                // sign using the private key
-                Signature sig = Signature.getInstance(ALGORITHM);
-                sig.initSign(privateKey);
-                sig.update(challenge);
-                byte[] signature = sig.sign();
-
-                // verify signature using the public key
-                sig.initVerify(publicKey);
-                sig.update(challenge);
-                valid = sig.verify(signature);
-
-                if (!valid)
-                {
-                    event.tlsKeyPairInvalid(bindingId, keyName);
-                }
-            }
-            catch (InvalidKeyException | SignatureException ex)
-            {
-                event.tlsKeyPairInvalid(bindingId, keyName);
-            }
-            catch (NoSuchAlgorithmException ex)
-            {
-                rethrowUnchecked(ex);
-            }
+            // key invalid
+        }
+        catch (NoSuchAlgorithmException ex)
+        {
+            rethrowUnchecked(ex);
         }
         return valid;
     }

@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.binding.tls.internal.config;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.mockito.Mockito.mock;
 
 import java.io.ByteArrayInputStream;
 import java.security.KeyFactory;
@@ -29,8 +28,6 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Base64;
 
 import org.junit.Test;
-
-import io.aklivity.zilla.runtime.binding.tls.internal.TlsEventContext;
 
 public class TlsKeyPairVerifierTest
 {
@@ -117,17 +114,15 @@ public class TlsKeyPairVerifierTest
 
     private static final char[] PASSWORD = "generated".toCharArray();
 
-    private TlsEventContext event = mock(TlsEventContext.class);
-
     @Test
     public void shouldVerifyValid() throws Exception
     {
         // GIVEN
-        TlsKeyPairVerifier verifier = new TlsKeyPairVerifier(event);
+        TlsKeyPairVerifier verifier = new TlsKeyPairVerifier();
         KeyStore.PrivateKeyEntry entry = privateKeyEntry(PRIVATE_KEY, VALID_CERTIFICATE, PASSWORD);
 
         // WHEN
-        boolean valid = verifier.verify(entry, "localhost", 42L);
+        boolean valid = verifier.verify(entry);
 
         // THEN
         assertThat(valid, equalTo(true));
@@ -137,25 +132,11 @@ public class TlsKeyPairVerifierTest
     public void shouldVerifyInvalid() throws Exception
     {
         // GIVEN
-        TlsKeyPairVerifier verifier = new TlsKeyPairVerifier(event);
+        TlsKeyPairVerifier verifier = new TlsKeyPairVerifier();
         KeyStore.PrivateKeyEntry entry = privateKeyEntry(PRIVATE_KEY, INVALID_CERTIFICATE, PASSWORD);
 
         // WHEN
-        boolean valid = verifier.verify(entry, "localhost", 42L);
-
-        // THEN
-        assertThat(valid, equalTo(false));
-    }
-
-    @Test
-    public void shouldVerifyMissing() throws Exception
-    {
-        // GIVEN
-        TlsKeyPairVerifier verifier = new TlsKeyPairVerifier(event);
-        KeyStore.PrivateKeyEntry entry = null;
-
-        // WHEN
-        boolean valid = verifier.verify(entry, "localhost", 42L);
+        boolean valid = verifier.verify(entry);
 
         // THEN
         assertThat(valid, equalTo(false));
