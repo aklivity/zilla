@@ -20,8 +20,8 @@ import java.util.Map;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiChannel;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiItem;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiMessage;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiSchema;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiTrait;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiMessageView;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiTraitView;
@@ -123,7 +123,7 @@ public class AsyncapiMqttProtocol extends AsyncapiProtocol
                 {
                     AsyncapiTraitView trait = AsyncapiTraitView.of(asyncapi.components.messageTraits, asyncapiTrait);
 
-                    for (Map.Entry<String, AsyncapiItem> header : trait.commonHeaders().properties.entrySet())
+                    for (Map.Entry<String, AsyncapiSchema> header : trait.commonHeaders().properties.entrySet())
                     {
                         topic
                             .userProperty()

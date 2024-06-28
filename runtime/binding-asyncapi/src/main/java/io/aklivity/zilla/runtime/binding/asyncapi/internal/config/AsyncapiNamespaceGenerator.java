@@ -20,6 +20,8 @@ import static io.aklivity.zilla.runtime.common.feature.FeatureFilter.featureEnab
 import static java.util.stream.Collectors.toList;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
+import java.io.StringReader;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +30,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import jakarta.json.Json;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonReader;
+import jakarta.json.JsonWriter;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 
@@ -41,7 +47,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiServerConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiSchema;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiSchemaItem;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiServer;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiTrait;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiSchemaView;
@@ -158,7 +164,7 @@ public abstract class AsyncapiNamespaceGenerator
                                 server.urlMatcher.reset(sc.url).matches() &&
                                 server.pathnameMatcher.reset(sc.pathname).matches();
                         })
-                    .collect(Collectors.toList())));
+                    .toList()));
         }
         else
         {
@@ -244,7 +250,7 @@ public abstract class AsyncapiNamespaceGenerator
                         .disable(WRITE_DOC_START_MARKER)
                         .enable(MINIMIZE_QUOTES)
                         .build();
-                    for (Map.Entry<String, AsyncapiSchema> entry : asyncapi.components.schemas.entrySet())
+                    for (Map.Entry<String, AsyncapiSchemaItem> entry : asyncapi.components.schemas.entrySet())
                     {
                         AsyncapiSchemaView schema = AsyncapiSchemaView.of(asyncapi.components.schemas, entry.getValue());
 
@@ -285,6 +291,23 @@ public abstract class AsyncapiNamespaceGenerator
         try
         {
             String schemaJson = jsonb.toJson(schema);
+
+            // Parse JSON string to JsonObject
+            JsonReader reader = Json.createReader(new StringReader(schemaJson));
+            JsonObject jsonObject = reader.readObject();
+
+            JsonObject modifiedJsonObject = jsonObject.getJsonObject("schema");
+
+            if (modifiedJsonObject != null)
+            {
+                StringWriter stringWriter = new StringWriter();
+                JsonWriter jsonWriter = Json.createWriter(stringWriter);
+                jsonWriter.writeObject(modifiedJsonObject);
+                jsonWriter.close();
+
+                schemaJson = stringWriter.toString();
+            }
+
             JsonNode json = new ObjectMapper().readTree(schemaJson);
             result = yaml.writeValueAsString(json);
         }
@@ -301,7 +324,7 @@ public abstract class AsyncapiNamespaceGenerator
     {
         List<MetricRefConfig> metrics = metricRefs.stream()
             .filter(m -> m.name.startsWith("stream."))
-            .collect(toList());
+            .toList();
 
         if (!metrics.isEmpty())
         {
