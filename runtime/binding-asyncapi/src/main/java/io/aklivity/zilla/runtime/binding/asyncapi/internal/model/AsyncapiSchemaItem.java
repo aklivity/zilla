@@ -14,17 +14,13 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.model;
 
-import java.util.Map;
+import jakarta.json.bind.annotation.JsonbProperty;
 
-import jakarta.json.bind.annotation.JsonbTypeDeserializer;
+import com.fasterxml.jackson.annotation.JsonInclude;
 
-public class AsyncapiComponents
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class AsyncapiSchemaItem
 {
-    public Map<String, AsyncapiSecurityScheme> securitySchemes;
-    public Map<String, AsyncapiMessage> messages;
-    @JsonbTypeDeserializer(AsyncapiSchemasPayloadDeserializer.class)
-    public Map<String, AsyncapiSchemaItem> schemas;
-    public Map<String, AsyncapiCorrelationId> correlationIds;
-    public Map<String, AsyncapiTrait> messageTraits;
-    public Map<String, AsyncapiVariable> serverVariables;
+    @JsonbProperty("$ref")
+    public String ref;
 }

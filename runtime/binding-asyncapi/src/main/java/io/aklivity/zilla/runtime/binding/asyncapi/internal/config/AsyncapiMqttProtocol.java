@@ -14,16 +14,14 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.config;
 
-import static io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiNamespaceGenerator.APPLICATION_JSON;
-
 import java.util.List;
 import java.util.Map;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiChannel;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiItem;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiMessage;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiSchema;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiTrait;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiMessageView;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiTraitView;
@@ -90,19 +88,19 @@ public class AsyncapiMqttProtocol extends AsyncapiProtocol
             {
                 String topic = channelEntry.getValue().address.replaceAll("\\{[^}]+\\}", "#");
                 Map<String, AsyncapiMessage> messages = channelEntry.getValue().messages;
-                if (hasJsonContentType(asyncapi))
+                if (messages != null)
                 {
-                    options
-                        .topic()
-                        .name(topic)
-                        .content(JsonModelConfig::builder)
-                            .catalog()
-                                .name(INLINE_CATALOG_NAME)
-                                .inject(cataloged -> injectJsonSchemas(cataloged, asyncapi, messages, APPLICATION_JSON))
-                                .build()
-                            .build()
-                        .inject(t -> injectMqttUserPropertiesConfig(t, asyncapi, messages))
-                        .build();
+                    for (Map.Entry<String, AsyncapiMessage> messageEntry : messages.entrySet())
+                    {
+                        AsyncapiMessageView message =
+                            AsyncapiMessageView.of(asyncapi.components.messages, messageEntry.getValue());
+                        options
+                            .topic()
+                            .name(topic)
+                            .content(injectModel(asyncapi, message))
+                            .inject(t -> injectMqttUserPropertiesConfig(t, asyncapi, messages))
+                            .build();
+                    }
                 }
             }
         }
@@ -125,7 +123,7 @@ public class AsyncapiMqttProtocol extends AsyncapiProtocol
                 {
                     AsyncapiTraitView trait = AsyncapiTraitView.of(asyncapi.components.messageTraits, asyncapiTrait);
 
-                    for (Map.Entry<String, AsyncapiItem> header : trait.commonHeaders().properties.entrySet())
+                    for (Map.Entry<String, AsyncapiSchema> header : trait.commonHeaders().properties.entrySet())
                     {
                         topic
                             .userProperty()
