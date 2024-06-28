@@ -1,0 +1,10 @@
+env:
+  ZILLA_INCUBATOR_ENABLED: "true"
+
+livenessProbePort: 7114
+readinessProbePort: 7114
+
+service:
+  ports:
+    - port: 7114
+      name: http

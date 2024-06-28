@@ -1,0 +1,20 @@
+version: '3'
+services:
+  zilla:
+    image: ghcr.io/aklivity/zilla:${ZILLA_VERSION}
+    container_name: zilla
+    pull_policy: always
+    restart: unless-stopped
+    ports:
+      - 7114:7114
+    environment:
+      ZILLA_INCUBATOR_ENABLED: "true"
+    volumes:
+      - ../../zilla.yaml:/etc/zilla/zilla.yaml
+      - ../../specs/sse-asyncapi.yaml:/etc/zilla/specs/sse-asyncapi.yaml
+      - ../../specs/kafka-asyncapi.yaml:/etc/zilla/specs/kafka-asyncapi.yaml
+    command: start -v -e
+
+networks:
+  default:
+    driver: bridge

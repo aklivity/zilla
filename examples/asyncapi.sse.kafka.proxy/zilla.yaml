@@ -1,0 +1,58 @@
+---
+name: zilla-sse-kafka-asyncapi
+catalogs:
+  host_filesystem:
+    type: filesystem
+    options:
+      subjects:
+        sse:
+          path: specs/sse-asyncapi.yaml
+        kafka:
+          path: specs/kafka-asyncapi.yaml
+bindings:
+  north_sse_server:
+    type: asyncapi
+    kind: server
+    options:
+      specs:
+        sse_api:
+          catalog:
+            host_filesystem:
+              subject: sse
+              version: latest
+    exit: south_kafka_proxy
+  south_kafka_proxy:
+    type: asyncapi
+    kind: proxy
+    options:
+      specs:
+        sse_api:
+          catalog:
+            host_filesystem:
+              subject: sse
+              version: latest
+        kafka_api:
+          catalog:
+            host_filesystem:
+              subject: kafka
+              version: latest
+    routes:
+      - when:
+          - api-id: sse_api
+        exit: south_kafka_client
+        with:
+          api-id: kafka_api
+  south_kafka_client:
+    type: asyncapi
+    kind: client
+    options:
+      specs:
+        kafka_api:
+          catalog:
+            host_filesystem:
+              subject: kafka
+              version: latest
+telemetry:
+  exporters:
+    stdout_exporter:
+      type: stdout
