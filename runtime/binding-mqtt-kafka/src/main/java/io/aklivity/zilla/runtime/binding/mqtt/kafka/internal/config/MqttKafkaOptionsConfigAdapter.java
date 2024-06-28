@@ -27,8 +27,10 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaOptionsConfigBuilder;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaPublishConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaTopicsConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaBinding;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttQoS;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
@@ -41,6 +43,8 @@ public class MqttKafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
     private static final String SESSIONS_NAME = "sessions";
     private static final String MESSAGES_NAME = "messages";
     private static final String RETAINED_NAME = "retained";
+    private static final String PUBLISH_NAME = "publish";
+    private static final String QOS_MAX_NAME = "qosMax";
 
     @Override
     public Kind kind()
@@ -111,6 +115,7 @@ public class MqttKafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
         JsonObject topics = object.getJsonObject(TOPICS_NAME);
         options.serverRef(object.getString(SERVER_NAME, null));
         JsonArray clientsJson = object.getJsonArray(CLIENTS_NAME);
+        JsonObject publish = object.getJsonObject(PUBLISH_NAME);
 
         List<String> clients = new ArrayList<>();
         if (clientsJson != null)
@@ -127,6 +132,17 @@ public class MqttKafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
             .messages(topics.getString(MESSAGES_NAME))
             .retained(topics.getString(RETAINED_NAME))
             .build());
+
+        if (publish != null)
+        {
+            options.publish(MqttKafkaPublishConfig.builder()
+                .qosMax(publish.getString(QOS_MAX_NAME)).build());
+        }
+        else
+        {
+            options.publish(MqttKafkaPublishConfig.builder()
+                .qosMax(MqttQoS.EXACTLY_ONCE.name()).build());
+        }
 
         return options.build();
     }

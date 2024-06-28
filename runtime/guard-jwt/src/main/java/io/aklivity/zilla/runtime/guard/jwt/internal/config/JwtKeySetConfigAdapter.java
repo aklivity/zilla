@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.runtime.guard.jwt.internal.config;
 
-import static java.util.stream.Collectors.toList;
-
 import java.util.List;
 
 import jakarta.json.Json;
@@ -36,15 +34,20 @@ public final class JwtKeySetConfigAdapter implements JsonbAdapter<JwtKeySetConfi
 
     @Override
     public JsonObject adaptToJson(
-        JwtKeySetConfig jwtKeySetConfig)
+        JwtKeySetConfig keysConfig)
     {
         JsonObjectBuilder object = Json.createObjectBuilder();
-        JsonArrayBuilder keysArray = Json.createArrayBuilder();
-        for (JwtKeyConfig key : jwtKeySetConfig.keys)
+
+        if (keysConfig.keys != null)
         {
-            keysArray.add(keyAdapter.adaptToJson(key));
+            JsonArrayBuilder keysArray = Json.createArrayBuilder();
+            for (JwtKeyConfig key : keysConfig.keys)
+            {
+                keysArray.add(keyAdapter.adaptToJson(key));
+            }
+            object.add(KEYS_NAME, keysArray);
         }
-        object.add(KEYS_NAME, keysArray);
+
         return object.build();
     }
 
@@ -52,12 +55,13 @@ public final class JwtKeySetConfigAdapter implements JsonbAdapter<JwtKeySetConfi
     public JwtKeySetConfig adaptFromJson(
         JsonObject keysObject)
     {
-        List<JwtKeyConfig> keysConfig = keysObject
-                .getJsonArray(KEYS_NAME)
-                .stream()
+        List<JwtKeyConfig> keysConfig = keysObject.containsKey(KEYS_NAME)
+            ? keysObject.getJsonArray(KEYS_NAME).stream()
                 .map(JsonValue::asJsonObject)
                 .map(keyAdapter::adaptFromJson)
-                .collect(toList());
+                .toList()
+            : null;
+
         return new JwtKeySetConfig(keysConfig);
     }
 }

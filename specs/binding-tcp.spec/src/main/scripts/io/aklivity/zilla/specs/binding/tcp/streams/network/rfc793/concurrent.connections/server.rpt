@@ -14,7 +14,7 @@
 # under the License.
 #
 
-accept "tcp://localhost:8080"
+accept "tcp://localhost:12345"
        notify ROUTED_SERVER
 
 # Stream 1

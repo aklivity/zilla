@@ -52,13 +52,14 @@ public final class TestExporterOptionsConfigBuilder<T> extends ConfigBuilder<T, 
     public TestExporterOptionsConfigBuilder<T> event(
         String qName,
         String id,
+        String name,
         String message)
     {
         if (this.events == null)
         {
             this.events = new LinkedList<>();
         }
-        this.events.add(new TestExporterOptionsConfig.Event(qName, id, message));
+        this.events.add(new TestExporterOptionsConfig.Event(qName, id, name, message));
         return this;
     }
 

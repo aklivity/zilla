@@ -18,7 +18,8 @@ package io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelStateEvent;
-import org.kaazing.k3po.driver.internal.netty.bootstrap.channel.AbstractServerChannelSink;
+
+import io.aklivity.k3po.runtime.driver.internal.netty.bootstrap.channel.AbstractServerChannelSink;
 
 public class ZillaServerChannelSink extends AbstractServerChannelSink<ZillaServerChannel>
 {

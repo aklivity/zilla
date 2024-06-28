@@ -23,8 +23,9 @@ import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
-import org.kaazing.k3po.junit.annotation.Specification;
-import org.kaazing.k3po.junit.rules.K3poRule;
+
+import io.aklivity.k3po.runtime.junit.annotation.Specification;
+import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 
 public class AsyncapiIT
 {
@@ -52,6 +53,16 @@ public class AsyncapiIT
         "${asyncapi}/http/create.pet/server"
     })
     public void shouldCreatePet() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${asyncapi}/sse/data.multiple/client",
+        "${asyncapi}/sse/data.multiple/server"
+    })
+    public void shouldReceiveMultipleData() throws Exception
     {
         k3po.finish();
     }

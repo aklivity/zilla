@@ -79,7 +79,7 @@ catalogs:
         components:
           correlationIds:
             petsCorrelationId:
-              location: '$message.header#/idempotency-key'
+              location: '$message.header#/CorrelId'
           schemas:
             petPayload:
               type: object
@@ -101,6 +101,14 @@ catalogs:
               summary: >-
                 Inform about Pet.
               contentType: application/json
+              correlationId:
+                $ref: '#/components/correlationIds/petsCorrelationId'
+              headers:
+                type: object
+                properties:
+                  CorrelId:
+                    type: string
+                    format: /pets;cid={correlationId}
               payload:
                 $ref: '#/components/schemas/petPayload'
 bindings:

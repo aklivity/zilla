@@ -19,8 +19,11 @@ module io.aklivity.zilla.runtime.binding.asyncapi
     requires io.aklivity.zilla.runtime.engine;
     requires io.aklivity.zilla.runtime.binding.mqtt;
     requires io.aklivity.zilla.runtime.binding.http;
+    requires io.aklivity.zilla.runtime.binding.sse;
     requires io.aklivity.zilla.runtime.binding.kafka;
     requires io.aklivity.zilla.runtime.binding.mqtt.kafka;
+    requires io.aklivity.zilla.runtime.binding.http.kafka;
+    requires io.aklivity.zilla.runtime.binding.sse.kafka;
     requires io.aklivity.zilla.runtime.binding.tcp;
     requires io.aklivity.zilla.runtime.binding.tls;
     requires io.aklivity.zilla.runtime.catalog.inline;
@@ -28,6 +31,7 @@ module io.aklivity.zilla.runtime.binding.asyncapi
     requires io.aklivity.zilla.runtime.vault.filesystem;
     requires io.aklivity.zilla.runtime.model.core;
     requires io.aklivity.zilla.runtime.model.json;
+    requires io.aklivity.zilla.runtime.common;
     requires org.leadpony.justify;
 
     opens io.aklivity.zilla.runtime.binding.asyncapi.internal.model;

@@ -17,6 +17,8 @@
  */
 package org.apache.ivy.util.url;
 
+import static org.apache.ivy.util.StringUtils.isNullOrEmpty;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.Authenticator;
@@ -24,8 +26,6 @@ import java.net.PasswordAuthentication;
 
 import org.apache.ivy.util.Credentials;
 import org.apache.ivy.util.Message;
-
-import static org.apache.ivy.util.StringUtils.isNullOrEmpty;
 
 /**
  *

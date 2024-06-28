@@ -58,7 +58,7 @@ public class ProtobufWriteConverterHandler extends ProtobufModelHandler implemen
                 ? catalog.id
                 : handler.resolve(subject, catalog.version);
 
-        return handler.encodePadding() + supplyIndexPadding(schemaId);
+        return handler.encodePadding(length) + supplyIndexPadding(schemaId);
     }
 
     @Override

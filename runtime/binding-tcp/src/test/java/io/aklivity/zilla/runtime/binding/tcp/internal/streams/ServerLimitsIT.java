@@ -30,9 +30,9 @@ import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
-import org.kaazing.k3po.junit.annotation.Specification;
-import org.kaazing.k3po.junit.rules.K3poRule;
 
+import io.aklivity.k3po.runtime.junit.annotation.Specification;
+import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
@@ -65,7 +65,7 @@ public class ServerLimitsIT
 
         try (SocketChannel channel = SocketChannel.open())
         {
-            channel.connect(new InetSocketAddress("127.0.0.1", 8080));
+            channel.connect(new InetSocketAddress("127.0.0.1", 12345));
 
             int len;
             try

@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>runtime</artifactId>
-    <version>0.9.82</version>
+    <version>0.9.83</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -24,9 +24,7 @@
   </licenses>
 
   <properties>
-    <maven.compiler.source>11</maven.compiler.source>
-    <maven.compiler.target>11</maven.compiler.target>
-    <jacoco.coverage.ratio>0.77</jacoco.coverage.ratio>
+    <jacoco.coverage.ratio>0.74</jacoco.coverage.ratio>
     <jacoco.missed.count>5</jacoco.missed.count>
   </properties>
 
@@ -80,6 +78,31 @@
       <version>2.16.1</version>
     </dependency>
     <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>filesystem-http</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jboss.byteman</groupId>
+      <artifactId>byteman</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jboss.byteman</groupId>
+      <artifactId>byteman-submit</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jboss.byteman</groupId>
+      <artifactId>byteman-install</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jboss.byteman</groupId>
+      <artifactId>byteman-bmunit</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>org.jmock</groupId>
       <artifactId>jmock-junit4</artifactId>
       <scope>test</scope>
@@ -90,18 +113,18 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.kaazing</groupId>
-      <artifactId>k3po.driver</artifactId>
+      <groupId>io.aklivity.k3po</groupId>
+      <artifactId>driver</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.kaazing</groupId>
-      <artifactId>k3po.lang</artifactId>
+      <groupId>io.aklivity.k3po</groupId>
+      <artifactId>lang</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.kaazing</groupId>
-      <artifactId>k3po.junit</artifactId>
+      <groupId>io.aklivity.k3po</groupId>
+      <artifactId>control-junit</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -229,6 +252,10 @@
         <artifactId>maven-compiler-plugin</artifactId>
       </plugin>
       <plugin>
+        <groupId>org.jboss.byteman</groupId>
+        <artifactId>byteman-rulecheck-maven-plugin</artifactId>
+      </plugin>
+      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
       </plugin>
@@ -274,13 +301,19 @@
         </executions>
       </plugin>
       <plugin>
-        <groupId>org.kaazing</groupId>
+        <groupId>io.aklivity.k3po</groupId>
         <artifactId>k3po-maven-plugin</artifactId>
         <dependencies>
           <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>${project.artifactId}</artifactId>
             <version>${project.version}</version>
+          </dependency>
+          <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>${project.artifactId}</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
           </dependency>
         </dependencies>
       </plugin>

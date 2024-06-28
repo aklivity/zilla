@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.stream;
 
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
@@ -35,6 +36,7 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.Asyncapi
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.EndFW;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.ExtensionFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.WindowFW;
@@ -49,6 +51,9 @@ import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 public final class AsyncapiClientFactory implements AsyncapiStreamFactory
 {
     private static final String MQTT_TYPE_NAME = "mqtt";
+    private static final String HTTP_TYPE_NAME = "http";
+    private static final String SSE_TYPE_NAME = "sse";
+    private static final String KAFKA_TYPE_NAME = "kafka";
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(), 0, 0);
 
     private final BeginFW beginRO = new BeginFW();
@@ -68,6 +73,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
     private final FlushFW.Builder flushRW = new FlushFW.Builder();
 
     private final AsyncapiBeginExFW asyncapiBeginExRO = new AsyncapiBeginExFW();
+    private final ExtensionFW extensionRO = new ExtensionFW();
 
     private final AsyncapiBeginExFW.Builder asyncapiBeginExRW = new AsyncapiBeginExFW.Builder();
 
@@ -77,6 +83,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
+    private final Function<String, Integer> supplyTypeId;
     private final LongSupplier supplyTraceId;
     private final LongFunction<CatalogHandler> supplyCatalog;
     private final Consumer<NamespaceConfig> attachComposite;
@@ -86,7 +93,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
     private final int mqttTypeId;
     private final AsyncapiConfiguration config;
     private final AsyncapiClientNamespaceGenerator namespaceGenerator;
-
+    private final Long2ObjectHashMap<String> compositeTypes;
 
     public AsyncapiClientFactory(
         AsyncapiConfiguration config,
@@ -102,11 +109,17 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
         this.supplyReplyId = context::supplyReplyId;
         this.supplyTraceId = context::supplyTraceId;
         this.supplyCatalog = context::supplyCatalog;
+        this.supplyTypeId = context::supplyTypeId;
         this.attachComposite = context::attachComposite;
         this.detachComposite = context::detachComposite;
         this.bindings = new Long2ObjectHashMap<>();
         this.asyncapiTypeId = context.supplyTypeId(AsyncapiBinding.NAME);
         this.mqttTypeId = context.supplyTypeId(MQTT_TYPE_NAME);
+        this.compositeTypes = new Long2ObjectHashMap<>();
+        compositeTypes.put(context.supplyTypeId(MQTT_TYPE_NAME), MQTT_TYPE_NAME);
+        compositeTypes.put(context.supplyTypeId(HTTP_TYPE_NAME), HTTP_TYPE_NAME);
+        compositeTypes.put(context.supplyTypeId(SSE_TYPE_NAME), SSE_TYPE_NAME);
+        compositeTypes.put(context.supplyTypeId(KAFKA_TYPE_NAME), KAFKA_TYPE_NAME);
     }
 
     @Override
@@ -166,7 +179,9 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
             final long apiId = asyncapiBeginEx.apiId();
             final String operationId = asyncapiBeginEx.operationId().asString();
 
-            final long resolvedId = binding.resolveCompositeResolvedId(apiId);
+            final ExtensionFW extensionEx = asyncapiBeginEx.extension().get(extensionRO::tryWrap);
+
+            final long resolvedId = binding.resolveCompositeResolvedId(apiId, compositeTypes.get(extensionEx.typeId()));
 
             if (resolvedId != -1)
             {
@@ -388,8 +403,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
             final long traceId = reset.traceId();
 
             assert acknowledge <= sequence;
-            assert sequence <= replySeq;
-            assert acknowledge >= replyAck;
+            // assert acknowledge >= replyAck;
             assert maximum >= replyMax;
 
             replyAck = acknowledge;

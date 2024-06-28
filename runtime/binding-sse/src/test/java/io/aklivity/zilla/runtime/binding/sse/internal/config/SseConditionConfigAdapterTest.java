@@ -58,7 +58,9 @@ public class SseConditionConfigAdapterTest
     @Test
     public void shouldWriteCondition()
     {
-        SseConditionConfig condition = new SseConditionConfig("/events");
+        SseConditionConfig condition = SseConditionConfig.builder()
+            .path("/events")
+            .build();
 
         String text = jsonb.toJson(condition);
 

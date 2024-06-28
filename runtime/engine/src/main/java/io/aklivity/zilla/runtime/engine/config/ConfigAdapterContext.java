@@ -15,7 +15,9 @@
  */
 package io.aklivity.zilla.runtime.engine.config;
 
+@Deprecated
 public interface ConfigAdapterContext
 {
-    String readURL(String location);
+    String readResource(
+        String location);
 }

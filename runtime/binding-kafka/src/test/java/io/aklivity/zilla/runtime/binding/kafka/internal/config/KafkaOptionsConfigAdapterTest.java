@@ -22,6 +22,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertEquals;
 
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
@@ -212,5 +213,53 @@ public class KafkaOptionsConfigAdapterTest
                 "\"value\":\"test\"}]," +
                 "\"servers\":[\"localhost:9092\"]," +
                 "\"sasl\":{\"mechanism\":\"plain\",\"username\":\"username\",\"password\":\"password\"}}"));
+    }
+
+    @Test
+    public void shouldReadHeadersOptions()
+    {
+        String text =
+            "{" +
+                "\"bootstrap\":" +
+                "[" +
+                    "\"test\"" +
+                "]," +
+                "\"topics\":" +
+                "[" +
+                    "{" +
+                    "\"name\": \"test\"," +
+                    "\"headers\":" +
+                    "{" +
+                    "\"correlation-id\": \"${message.value.correlationId}\"" +
+                    "}" +
+                    "}" +
+                "]" +
+            "}";
+
+        KafkaOptionsConfig options = jsonb.fromJson(text, KafkaOptionsConfig.class);
+
+        assertThat(options, not(nullValue()));
+        assertThat(options.bootstrap, equalTo(singletonList("test")));
+        assertEquals(options.topics.get(0).headers.get(0).name.asString(), "correlation-id");
+        assertEquals(options.topics.get(0).headers.get(0).path, "$.correlationId");
+    }
+
+    @Test
+    public void shouldWriteHeadersOptions()
+    {
+        KafkaOptionsConfig options = KafkaOptionsConfig.builder()
+            .bootstrap(singletonList("test"))
+            .topics(singletonList(KafkaTopicConfig.builder()
+                .name("test")
+                .header("correlation-id", "${message.value.correlationId}")
+                .value(TestModelConfig.builder().length(0).build())
+                .build()))
+            .build();
+
+        String text = jsonb.toJson(options);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo("{\"bootstrap\":[\"test\"]," +
+            "\"topics\":[{\"name\":\"test\",\"value\":\"test\",\"headers\":{\"correlation-id\":\"$.correlationId\"}}]}"));
     }
 }

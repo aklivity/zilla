@@ -15,12 +15,18 @@
  */
 package io.aklivity.zilla.runtime.binding.sse.internal.config;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 import jakarta.json.Json;
+import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.binding.sse.config.SseOptionsConfig;
+import io.aklivity.zilla.runtime.binding.sse.config.SseOptionsConfigBuilder;
+import io.aklivity.zilla.runtime.binding.sse.config.SseRequestConfig;
 import io.aklivity.zilla.runtime.binding.sse.internal.SseBinding;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
@@ -28,7 +34,11 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 public final class SseOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
     private static final String RETRY_NAME = "retry";
+    private static final String REQUESTS_NAME = "requests";
     public static final int RETRY_DEFAULT = 2000;
+
+
+    private final SseRequestConfigAdapter ssePath = new SseRequestConfigAdapter();
 
     @Override
     public Kind kind()
@@ -55,6 +65,15 @@ public final class SseOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
             object.add(RETRY_NAME, sseOptions.retry);
         }
 
+        if (sseOptions.requests != null)
+        {
+            JsonArrayBuilder requests = Json.createArrayBuilder();
+            sseOptions.requests.stream()
+                .map(ssePath::adaptToJson)
+                .forEach(requests::add);
+            object.add(REQUESTS_NAME, requests);
+        }
+
         return object.build();
     }
 
@@ -62,10 +81,25 @@ public final class SseOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
     public OptionsConfig adaptFromJson(
         JsonObject object)
     {
-        int retry = object.containsKey(RETRY_NAME)
-                ? object.getInt(RETRY_NAME)
-                : SseOptionsConfigAdapter.RETRY_DEFAULT;
+        SseOptionsConfigBuilder<SseOptionsConfig> sseOptions = SseOptionsConfig.builder();
 
-        return new SseOptionsConfig(retry);
+        if (object.containsKey(RETRY_NAME))
+        {
+            sseOptions.retry(object.getInt(RETRY_NAME));
+        }
+        else
+        {
+            sseOptions.retry(SseOptionsConfigAdapter.RETRY_DEFAULT);
+        }
+
+        if (object.containsKey(REQUESTS_NAME))
+        {
+            List<SseRequestConfig> requests = object.getJsonArray(REQUESTS_NAME).stream()
+                .map(item -> ssePath.adaptFromJson((JsonObject) item))
+                .collect(Collectors.toList());
+            sseOptions.requests(requests);
+        }
+
+        return sseOptions.build();
     }
 }

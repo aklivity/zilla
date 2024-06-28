@@ -24,7 +24,8 @@ telemetry:
                 events:
                     - qname: test.app0
                       id: binding.tls.handshake.failed
-                      message: HANDSHAKE_FAILED
+                      name: BINDING_TLS_HANDSHAKE_FAILED
+                      message: The client and server could not negotiate the desired level of security.
 vaults:
     client:
         type: filesystem

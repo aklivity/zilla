@@ -29,6 +29,7 @@ import org.junit.Test;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
+import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalogHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogOptionsConfig;
@@ -42,6 +43,9 @@ public class JsonConverterTest
                     "{" +
                         "\"id\": {" +
                         "\"type\": \"string\"" +
+                        "}," +
+                        "\"zillaId\": {" +
+                        "\"type\": \"integer\"" +
                         "}," +
                         "\"status\": {" +
                         "\"type\": \"string\"" +
@@ -207,5 +211,49 @@ public class JsonConverterTest
         data.wrap(bytes, 0, bytes.length);
 
         assertEquals(-1, converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
+    }
+
+    @Test
+    public void shouldExtract()
+    {
+        TestCatalogOptionsConfig testCatalogOptionsConfig = TestCatalogOptionsConfig.builder()
+            .id(9)
+            .schema(OBJECT_SCHEMA)
+            .build();
+        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test", testCatalogOptionsConfig);
+        when(context.supplyCatalog(catalogConfig.id)).thenReturn(new TestCatalogHandler(testCatalogOptionsConfig));
+        JsonReadConverterHandler converter = new JsonReadConverterHandler(config, context);
+
+        String statusPath = "$.status";
+        converter.extract(statusPath);
+
+        String zillaIdPath = "$.zillaId";
+        converter.extract(zillaIdPath);
+
+        DirectBuffer data = new UnsafeBuffer();
+
+        String payload =
+            "{" +
+                "\"id\": \"123\"," +
+                "\"zillaId\": 321," +
+                "\"status\": \"OK\"" +
+                "}";
+        byte[] bytes = payload.getBytes();
+        data.wrap(bytes, 0, bytes.length);
+        assertEquals(data.capacity(), converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
+
+        assertEquals(2, converter.extractedLength(statusPath));
+        final ConverterHandler.FieldVisitor visitor = (buffer, index, length) ->
+        {
+            assertEquals("OK", buffer.getStringWithoutLengthUtf8(index, length));
+        };
+        converter.extracted(statusPath, visitor);
+
+        assertEquals(3, converter.extractedLength(zillaIdPath));
+        final ConverterHandler.FieldVisitor zillaIdVisitor = (buffer, index, length) ->
+        {
+            assertEquals("321", buffer.getStringWithoutLengthUtf8(index, length));
+        };
+        converter.extracted(zillaIdPath, zillaIdVisitor);
     }
 }

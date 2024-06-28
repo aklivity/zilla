@@ -331,7 +331,8 @@ public class KarapaceCatalogHandler implements CatalogHandler
     }
 
     @Override
-    public int encodePadding()
+    public int encodePadding(
+        int length)
     {
         return MAX_PADDING_LENGTH;
     }

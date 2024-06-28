@@ -15,7 +15,6 @@
 package io.aklivity.zilla.runtime.exporter.otlp.internal.serializer;
 
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.COUNTER;
-import static io.aklivity.zilla.runtime.engine.metrics.Metric.Unit.COUNT;
 
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -62,6 +61,7 @@ public class OtlpMetricsSerializer
         KindConfig.SERVER, SERVER_METRIC_NAMES,
         KindConfig.CLIENT, CLIENT_METRIC_NAMES
     );
+    private static final String MILLISECONDS = "milliseconds";
 
     private final List<MetricRecord> records;
     private final List<AttributeConfig> attributes;
@@ -129,11 +129,22 @@ public class OtlpMetricsSerializer
     private JsonObject serializeScalar(
         ScalarRecord record)
     {
-        JsonObject dataPoint = Json.createObjectBuilder()
-            .add("asInt", record.valueReader().getAsLong())
+        JsonObjectBuilder dataPointBuilder = Json.createObjectBuilder();
+        String unit = descriptor.unit(record.metric());
+        if (MILLISECONDS.equals(unit))
+        {
+            dataPointBuilder
+                .add("asDouble", record.millisecondsValueReader().getAsDouble());
+        }
+        else
+        {
+            dataPointBuilder
+                .add("asInt", record.valueReader().getAsLong());
+        }
+        dataPointBuilder
             .add("timeUnixNano", now())
-            .add("attributes", attributes(record))
-            .build();
+            .add("attributes", attributes(record));
+        JsonObject dataPoint = dataPointBuilder.build();
         JsonArray dataPoints = Json.createArrayBuilder()
             .add(dataPoint)
             .build();
@@ -209,14 +220,17 @@ public class OtlpMetricsSerializer
         Arrays.stream(record.bucketLimits()).limit(record.buckets() - 1).forEach(explicitBounds::add);
         // The number of elements in bucket_counts must be by one greater than the number of elements in explicit_bounds.
         JsonArrayBuilder bucketCounts = Json.createArrayBuilder();
-        Arrays.stream(record.bucketValues()).forEach(bucketCounts::add);
+        String unit = descriptor.unit(record.metric());
+        long[] bucketValues = MILLISECONDS.equals(unit) ? record.millisecondBucketValues() : record.bucketValues();
+        Arrays.stream(bucketValues).forEach(bucketCounts::add);
+        long[] stats = MILLISECONDS.equals(unit) ? record.millisecondStats() : record.stats();
         JsonObject dataPoint = Json.createObjectBuilder()
             .add("timeUnixNano", now())
             .add("attributes", attributes(record))
-            .add("min", record.stats()[0])
-            .add("max", record.stats()[1])
-            .add("sum", record.stats()[2])
-            .add("count", record.stats()[3])
+            .add("min", stats[0])
+            .add("max", stats[1])
+            .add("sum", stats[2])
+            .add("count", stats[3])
             .add("explicitBounds", explicitBounds)
             .add("bucketCounts", bucketCounts)
             .build();
@@ -229,7 +243,7 @@ public class OtlpMetricsSerializer
         return Json.createObjectBuilder()
             .add("name", descriptor.nameByBinding(record.metric(), record.bindingId()))
             .add("description", descriptor.description(record.metric()))
-            .add("unit", descriptor.unit(record.metric()))
+            .add("unit", unit)
             .add("histogram", histogramData)
             .build();
     }
@@ -324,7 +338,12 @@ public class OtlpMetricsSerializer
             if (result == null)
             {
                 Metric.Unit unit = resolveMetric.apply(internalName).unit();
-                result = unit == COUNT ? "" : unit.toString().toLowerCase();
+                result = switch (unit)
+                {
+                case COUNT -> "";
+                case NANOSECONDS -> MILLISECONDS; // we are converting nanoseconds values to milliseconds
+                default -> unit.toString().toLowerCase();
+                };
                 units.put(internalName, result);
             }
             return result;

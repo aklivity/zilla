@@ -23,9 +23,9 @@ import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
-import org.kaazing.k3po.junit.annotation.Specification;
-import org.kaazing.k3po.junit.rules.K3poRule;
 
+import io.aklivity.k3po.runtime.junit.annotation.Specification;
+import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
@@ -54,6 +54,39 @@ public class AsyncapiIT
         "${asyncapi}/proxy.kafka.publish/server"
     })
     public void shouldPublish() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.http.kafka.yaml")
+    @Specification({
+        "${asyncapi}/proxy.http.create.pet/client",
+        "${asyncapi}/proxy.kafka.create.pet/server"
+    })
+    public void shouldCreatePet() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.http.kafka.async.yaml")
+    @Specification({
+        "${asyncapi}/proxy.http.async.verify.customer/client",
+        "${asyncapi}/proxy.kafka.async.verify.customer/server"
+    })
+    public void shouldVerifyCustomerAsync() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.sse.kafka.yaml")
+    @Specification({
+        "${asyncapi}/proxy.sse.server.sent.messages/client",
+        "${asyncapi}/proxy.kafka.server.sent.messages/server"
+    })
+    public void shouldReceiveServerSentMessages() throws Exception
     {
         k3po.finish();
     }

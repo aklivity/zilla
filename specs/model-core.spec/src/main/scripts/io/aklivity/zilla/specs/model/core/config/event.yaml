@@ -23,7 +23,8 @@ telemetry:
         events:
           - qname: test.net0
             id: model.core.validation.failed
-            message: VALIDATION_FAILED string
+            name: MODEL_CORE_VALIDATION_FAILED
+            message: A message payload failed validation. A field was not the expected type (string).
 bindings:
   net0:
     kind: server

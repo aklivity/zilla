@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>zilla</artifactId>
-    <version>0.9.82</version>
+    <version>0.9.83</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -40,6 +40,7 @@
     <module>binding-tls</module>
     <module>binding-ws</module>
     <module>catalog-apicurio</module>
+    <module>catalog-filesystem</module>
     <module>catalog-inline</module>
     <module>catalog-karapace</module>
     <module>common</module>
@@ -50,6 +51,7 @@
     <module>exporter-otlp</module>
     <module>exporter-prometheus</module>
     <module>exporter-stdout</module>
+    <module>filesystem-http</module>
     <module>guard-jwt</module>
     <module>metrics-grpc</module>
     <module>metrics-http</module>
@@ -181,6 +183,11 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
+        <artifactId>catalog-filesystem</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
         <artifactId>catalog-inline</artifactId>
         <version>${project.version}</version>
       </dependency>
@@ -227,6 +234,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>exporter-stdout</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>filesystem-http</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

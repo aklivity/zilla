@@ -24,11 +24,12 @@ telemetry:
         events:
           - qname: test.app0
             id: binding.tcp.dns.failed
-            message: DNS_FAILED localhost
+            name: BINDING_TCP_DNS_FAILED
+            message: Unable to resolve host dns for address (localhost).
 bindings:
   app0:
     type: tcp
     kind: client
     options:
       host: localhost
-      port: 8080
+      port: 12345

@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>specs</artifactId>
-    <version>0.9.82</version>
+    <version>0.9.83</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -24,16 +24,14 @@
   </licenses>
 
   <properties>
-    <maven.compiler.source>11</maven.compiler.source>
-    <maven.compiler.target>11</maven.compiler.target>
     <jacoco.coverage.ratio>0.90</jacoco.coverage.ratio>
     <jacoco.missed.count>0</jacoco.missed.count>
   </properties>
 
   <dependencies>
     <dependency>
-      <groupId>org.kaazing</groupId>
-      <artifactId>k3po.lang</artifactId>
+      <groupId>io.aklivity.k3po</groupId>
+      <artifactId>lang</artifactId>
       <scope>provided</scope>
     </dependency>
     <dependency>
@@ -47,8 +45,8 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.kaazing</groupId>
-      <artifactId>k3po.junit</artifactId>
+      <groupId>io.aklivity.k3po</groupId>
+      <artifactId>control-junit</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -110,7 +108,7 @@
         <artifactId>moditect-maven-plugin</artifactId>
       </plugin>
       <plugin>
-        <groupId>org.kaazing</groupId>
+        <groupId>io.aklivity.k3po</groupId>
         <artifactId>k3po-maven-plugin</artifactId>
         <dependencies>
           <dependency>

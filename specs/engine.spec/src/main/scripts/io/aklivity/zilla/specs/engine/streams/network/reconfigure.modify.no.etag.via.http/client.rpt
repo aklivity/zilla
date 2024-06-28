@@ -19,6 +19,8 @@ connect "zilla://streams/net0"
         option zilla:window 8192
 connected
 
+write notify CONNECTED
+
 write aborted
 read abort
 

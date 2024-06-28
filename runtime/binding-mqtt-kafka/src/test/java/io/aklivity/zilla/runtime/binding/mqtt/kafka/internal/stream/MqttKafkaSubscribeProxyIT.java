@@ -26,9 +26,9 @@ import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
-import org.kaazing.k3po.junit.annotation.Specification;
-import org.kaazing.k3po.junit.rules.K3poRule;
 
+import io.aklivity.k3po.runtime.junit.annotation.Specification;
+import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
@@ -522,6 +522,17 @@ public class MqttKafkaSubscribeProxyIT
         "${mqtt}/subscribe.receive.message.qos2/client",
         "${kafka}/subscribe.receive.message.qos2/server"})
     public void shouldReceiveMessageQoS2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.qos2.version1.offset.metadata/client",
+        "${kafka}/subscribe.qos2.version1.offset.metadata/server"})
+    public void shouldReceiveMessageQoS2WithVersion1OffsetMetadata() throws Exception
     {
         k3po.finish();
     }

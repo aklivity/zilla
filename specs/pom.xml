@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>zilla</artifactId>
-    <version>0.9.82</version>
+    <version>0.9.83</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -40,11 +40,13 @@
     <module>binding-sse-kafka.spec</module>
     <module>binding-kafka-grpc.spec</module>
     <module>catalog-apicurio.spec</module>
+    <module>catalog-filesystem.spec</module>
     <module>catalog-inline.spec</module>
     <module>catalog-karapace.spec</module>
     <module>exporter-otlp.spec</module>
     <module>exporter-prometheus.spec</module>
     <module>exporter-stdout.spec</module>
+    <module>filesystem-http.spec</module>
     <module>metrics-stream.spec</module>
     <module>metrics-http.spec</module>
     <module>metrics-grpc.spec</module>

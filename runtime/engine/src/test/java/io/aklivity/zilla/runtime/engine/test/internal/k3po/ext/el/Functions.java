@@ -19,9 +19,8 @@ import static java.lang.ThreadLocal.withInitial;
 
 import java.nio.file.Path;
 
-import org.kaazing.k3po.lang.el.Function;
-import org.kaazing.k3po.lang.el.spi.FunctionMapperSpi;
-
+import io.aklivity.k3po.runtime.lang.el.Function;
+import io.aklivity.k3po.runtime.lang.el.spi.FunctionMapperSpi;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.ZillaExtConfiguration;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.LabelManager;
 

@@ -23,13 +23,16 @@ telemetry:
         events:
           - qname: test.catalog0
             id: catalog.apicurio.unretrievable.artifact.subject.version
-            message: UNRETRIEVABLE_ARTIFACT artifactId latest
+            name: CATALOG_APICURIO_UNRETRIEVABLE_ARTIFACT_SUBJECT_VERSION
+            message: Unable to fetch artifact for subject artifactId with version latest.
           - qname: test.catalog0
             id: catalog.apicurio.unretrievable.artifact.subject.version.stale.artifact
-            message: UNRETRIEVABLE_ARTIFACT artifactId latest, USING_STALE_ARTIFACT 1
+            name: CATALOG_APICURIO_UNRETRIEVABLE_ARTIFACT_SUBJECT_VERSION_STALE_ARTIFACT
+            message: Unable to fetch artifact for subject artifactId with version latest; using stale artifact with id 1.
           - qname: test.catalog0
-            id: catalog.apicurio.retrievable.artifact.subject.version
-            message: RETRIEVED_ARTIFACT_SUBJECT_VERSION artifactId latest
+            id: catalog.apicurio.retrieved.artifact.subject.version
+            name: CATALOG_APICURIO_RETRIEVED_ARTIFACT_SUBJECT_VERSION
+            message: Successfully fetched artifact for subject artifactId with version latest.
 catalogs:
   catalog0:
     type: apicurio

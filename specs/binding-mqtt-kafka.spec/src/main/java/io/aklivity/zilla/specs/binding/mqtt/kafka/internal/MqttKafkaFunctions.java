@@ -18,11 +18,14 @@ package io.aklivity.zilla.specs.binding.mqtt.kafka.internal;
 import org.agrona.BitUtil;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
-import org.kaazing.k3po.lang.el.Function;
-import org.kaazing.k3po.lang.el.spi.FunctionMapperSpi;
 
+import io.aklivity.k3po.runtime.lang.el.Function;
+import io.aklivity.k3po.runtime.lang.el.spi.FunctionMapperSpi;
 import io.aklivity.zilla.specs.binding.mqtt.kafka.internal.types.MqttPublishOffsetMetadataFW;
 import io.aklivity.zilla.specs.binding.mqtt.kafka.internal.types.MqttSubscribeOffsetMetadataFW;
+import io.aklivity.zilla.specs.binding.mqtt.kafka.internal.types.MqttSubscribeOffsetMetadataV1FW;
+import io.aklivity.zilla.specs.binding.mqtt.kafka.internal.types.MqttSubscribeOffsetMetadataV2FW;
+import io.aklivity.zilla.specs.binding.mqtt.kafka.internal.types.MqttSubscribeOffsetMetadataVersion;
 
 public final class MqttKafkaFunctions
 {
@@ -40,29 +43,83 @@ public final class MqttKafkaFunctions
 
     public static final class MqttSubscribeOffsetMetadataBuilder
     {
-        private final MqttSubscribeOffsetMetadataFW.Builder offsetMetadataRW = new MqttSubscribeOffsetMetadataFW.Builder();
+        private final MqttSubscribeOffsetMetadataFW.Builder offsetMetadataRW =
+            new MqttSubscribeOffsetMetadataFW.Builder();
 
-        byte version = 1;
-
+        private final MqttSubscribeOffsetMetadataFW offsetMetadataRO = new MqttSubscribeOffsetMetadataFW();
+        private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
 
         private MqttSubscribeOffsetMetadataBuilder()
         {
-            MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
             offsetMetadataRW.wrap(writeBuffer, 0, writeBuffer.capacity());
-            offsetMetadataRW.version(version);
         }
 
-        public MqttSubscribeOffsetMetadataBuilder metadata(
-            int packetId)
+        public MqttSubscribeOffsetMetadataV1Builder v1()
         {
-            offsetMetadataRW.appendPacketIds((short) packetId);
-            return this;
+            offsetMetadataRW.kind(MqttSubscribeOffsetMetadataVersion.V1);
+            return new MqttSubscribeOffsetMetadataV1Builder();
+        }
+
+        public MqttSubscribeOffsetMetadataV2Builder v2()
+        {
+            offsetMetadataRW.kind(MqttSubscribeOffsetMetadataVersion.V2);
+            return new MqttSubscribeOffsetMetadataV2Builder();
         }
 
         public String build()
         {
-            final MqttSubscribeOffsetMetadataFW offsetMetadata = offsetMetadataRW.build();
+            final MqttSubscribeOffsetMetadataFW offsetMetadata = offsetMetadataRO;
             return BitUtil.toHex(offsetMetadata.buffer().byteArray(), offsetMetadata.offset(), offsetMetadata.limit());
+        }
+
+        public final class MqttSubscribeOffsetMetadataV1Builder
+        {
+            private final MqttSubscribeOffsetMetadataV1FW.Builder offsetMetadataV1RW =
+                new MqttSubscribeOffsetMetadataV1FW.Builder();
+
+            private MqttSubscribeOffsetMetadataV1Builder()
+            {
+                offsetMetadataV1RW.wrap(writeBuffer, 1, writeBuffer.capacity());
+            }
+
+            public MqttSubscribeOffsetMetadataV1Builder metadata(
+                int packetId)
+            {
+                offsetMetadataV1RW.appendPacketIds((short) packetId);
+                return this;
+            }
+
+            public MqttSubscribeOffsetMetadataBuilder build()
+            {
+                final MqttSubscribeOffsetMetadataV1FW offsetMetadataV1 = offsetMetadataV1RW.build();
+                offsetMetadataRO.wrap(writeBuffer, 0, offsetMetadataV1.limit());
+                return MqttSubscribeOffsetMetadataBuilder.this;
+            }
+        }
+
+        public final class MqttSubscribeOffsetMetadataV2Builder
+        {
+            private final MqttSubscribeOffsetMetadataV2FW.Builder offsetMetadataV2RW =
+                new MqttSubscribeOffsetMetadataV2FW.Builder();
+
+            private MqttSubscribeOffsetMetadataV2Builder()
+            {
+                offsetMetadataV2RW.wrap(writeBuffer, 1, writeBuffer.capacity());
+            }
+
+            public MqttSubscribeOffsetMetadataV2Builder metadata(
+                int packetId)
+            {
+                offsetMetadataV2RW.appendPacketIds((short) packetId);
+                return this;
+            }
+
+            public MqttSubscribeOffsetMetadataBuilder build()
+            {
+                final MqttSubscribeOffsetMetadataV2FW offsetMetadataV2 = offsetMetadataV2RW.build();
+                offsetMetadataRO.wrap(writeBuffer, 0, offsetMetadataV2.limit());
+                return MqttSubscribeOffsetMetadataBuilder.this;
+            }
         }
     }
 

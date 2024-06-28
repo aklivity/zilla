@@ -121,6 +121,7 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 
+
 public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 {
     private static final byte SLASH_BYTE = (byte) '/';
@@ -170,7 +171,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     public static final int MQTT_NOT_AUTHORIZED = 0x87;
     public static final int MQTT_IMPLEMENTATION_SPECIFIC_ERROR = 0x83;
     public static final String MQTT_INVALID_SESSION_TIMEOUT_REASON = "Invalid session expiry interval";
-    public static final String16FW MQTT_NON_COMPACT_SESSIONS_TOPIC = new String16FW("Sessions Kafka topic in non-compacted");
     private static final KafkaConfigFW CONFIG_COMPACT_CLEANUP_POLICY = new KafkaConfigFW.Builder()
         .wrap(new UnsafeBuffer(new byte[25]), 0, 25)
         .name("cleanup.policy")
@@ -3469,7 +3469,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                             .build();
                         delegate.doMqttWindow(authorization, traceId, 0, 0, 0);
                         delegate.doMqttReset(traceId, mqttResetEx);
-                        events.onMqttConnectionReset(traceId, routedId, MQTT_NON_COMPACT_SESSIONS_TOPIC);
+                        events.onMqttConnectionReset(traceId, routedId, delegate.sessionsTopic);
+                        doKafkaWindow(traceId, authorization, 0, 0, 0, 0, 0);
                         doKafkaAbort(traceId, authorization);
                         break onKafkaBegin;
                     }
@@ -3628,6 +3629,20 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             kafka = newKafkaStream(super::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, affinity, delegate.sessionsTopic, delegate.clientId, delegate.clientIdMigrate,
                 delegate.sessionId, server, capabilities);
+        }
+
+        private void doKafkaWindow(
+            long traceId,
+            long authorization,
+            long budgetId,
+            int capabilities,
+            long replySeq,
+            long replyAck,
+            int replyMax)
+        {
+
+            doWindow(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                traceId, authorization, budgetId, replyPad, 0, capabilities);
         }
 
         private void cancelWillSignal(

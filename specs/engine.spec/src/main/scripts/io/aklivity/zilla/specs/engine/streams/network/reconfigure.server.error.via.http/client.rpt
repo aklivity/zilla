@@ -19,9 +19,13 @@ connect "zilla://streams/net0"
         option zilla:window 8192
 connected
 
+read notify CONNECTED
+
+
 connect await SERVER_ERROR
         "zilla://streams/net0"
         option zilla:transmission "duplex"
         option zilla:window 8192
 connected
+
 write notify CHECK_RECONFIGURE

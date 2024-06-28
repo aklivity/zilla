@@ -42,15 +42,16 @@ import io.aklivity.zilla.runtime.engine.config.ConfigException;
 
 public class AsyncapiParser
 {
-    private static final Pattern VERSION_PATTERN = Pattern.compile("(\\d\\.\\d)\\.\\d+");
+    private static final Pattern VERSION_PATTERN = Pattern.compile("(?!\\.)(\\d+(\\.\\d+)+)(?:[-.][a-zA-Z]+)?(?![\\d.])$");
 
     private final Map<String, JsonSchema> schemas;
 
     public AsyncapiParser()
     {
         Map<String, JsonSchema> schemas = new Object2ObjectHashMap<>();
-        schemas.put("2.6", schema("2.6.0"));
-        schemas.put("3.0", schema("3.0.1"));
+        schemas.put("2.6.0", schema("2.6.0"));
+        schemas.put("3.0.0", schema("3.0.1"));
+        schemas.put("3.0.2-zilla", schema("3.0.2-zilla"));
         this.schemas = unmodifiableMap(schemas);
     }
 
@@ -115,8 +116,7 @@ public class AsyncapiParser
                 final String versionString = json.getString("asyncapi");
                 final Matcher matcher = VERSION_PATTERN.matcher(versionString);
 
-                final String majorMinorVersion = matcher.matches() ? matcher.group(1) : null;
-                return majorMinorVersion;
+                return matcher.matches() ? matcher.group(0) : null;
             }
             else
             {

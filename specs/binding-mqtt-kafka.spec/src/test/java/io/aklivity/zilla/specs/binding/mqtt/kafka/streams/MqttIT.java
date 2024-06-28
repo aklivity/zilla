@@ -22,8 +22,9 @@ import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
-import org.kaazing.k3po.junit.annotation.Specification;
-import org.kaazing.k3po.junit.rules.K3poRule;
+
+import io.aklivity.k3po.runtime.junit.annotation.Specification;
+import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 
 public class MqttIT
 {
@@ -787,6 +788,15 @@ public class MqttIT
         "${mqtt}/subscribe.receive.message.qos2/client",
         "${mqtt}/subscribe.receive.message.qos2/server"})
     public void shouldReceiveMessageQoS2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.qos2.version1.offset.metadata/client",
+        "${mqtt}/subscribe.qos2.version1.offset.metadata/server"})
+    public void shouldReceiveMessageQoS2WithVersion1OffsetMetadata() throws Exception
     {
         k3po.finish();
     }

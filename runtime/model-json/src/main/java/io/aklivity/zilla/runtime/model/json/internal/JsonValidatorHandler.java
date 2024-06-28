@@ -32,8 +32,8 @@ public class JsonValidatorHandler extends JsonModelHandler implements ValidatorH
     private final DirectBufferInputStream in;
     private final ExpandableDirectByteBuffer buffer;
 
-    private JsonParser parser;
     private int progress;
+    private JsonParser parser;
 
     public JsonValidatorHandler(
         JsonModelConfig config,

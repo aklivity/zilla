@@ -27,6 +27,7 @@ public class AsyncapiItem
     public String description;
     public Integer minimum;
     public Integer maximum;
+    public String format;
     @JsonbProperty("enum")
     public List<String> values;
     @JsonbProperty("$ref")

@@ -16,8 +16,8 @@
 package io.aklivity.zilla.runtime.binding.echo.internal.bench;
 
 import java.net.InetAddress;
-import java.net.URL;
 import java.nio.channels.SelectableChannel;
+import java.nio.file.Path;
 import java.time.Clock;
 import java.util.function.LongSupplier;
 
@@ -264,6 +264,13 @@ public class EchoWorker implements EngineContext
     }
 
     @Override
+    public String supplyEventName(
+        int eventId)
+    {
+        return "";
+    }
+
+    @Override
     public BindingHandler streamFactory()
     {
         return null;
@@ -312,8 +319,8 @@ public class EchoWorker implements EngineContext
     }
 
     @Override
-    public URL resolvePath(
-        String path)
+    public Path resolvePath(
+        String location)
     {
         return null;
     }

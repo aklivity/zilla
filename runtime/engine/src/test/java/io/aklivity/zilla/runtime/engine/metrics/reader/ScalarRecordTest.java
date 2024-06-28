@@ -15,8 +15,8 @@
  */
 package io.aklivity.zilla.runtime.engine.metrics.reader;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -30,6 +30,7 @@ import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 public class ScalarRecordTest
 {
     private static final LongSupplier READER_42 = () -> 42L;
+    private static final LongSupplier READER_42_M = () -> 42_005_000L;
 
     @Test
     public void shouldResolveFields()
@@ -54,5 +55,21 @@ public class ScalarRecordTest
         assertThat(bindingName, equalTo("binding1"));
         assertThat(metricName, equalTo("metric1"));
         assertThat(value, equalTo(42L));
+    }
+
+    @Test
+    public void shouldResolveTimeInMilliseconds()
+    {
+        // GIVEN
+        LongFunction<String> labelResolver = mock(LongFunction.class);
+        long bindingId = NamespacedId.id(77, 7);
+        long metricId = NamespacedId.id(77, 8);
+        ScalarRecord scalar = new ScalarRecord(bindingId, metricId, READER_42_M, labelResolver);
+
+        // WHEN
+        double millisecondsValue = scalar.millisecondsValueReader().getAsDouble();
+
+        // THEN
+        assertThat(millisecondsValue, equalTo(42.005));
     }
 }

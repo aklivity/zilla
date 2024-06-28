@@ -66,7 +66,7 @@ public class GrpcOptionsConfigAdapterTest
         {
             content = new String(resource.readAllBytes(), UTF_8);
         }
-        Mockito.doReturn(content).when(context).readURL("protobuf/echo.proto");
+        Mockito.doReturn(content).when(context).readResource("protobuf/echo.proto");
         adapter = new OptionsConfigAdapter(OptionsConfigAdapterSpi.Kind.BINDING, context);
         adapter.adaptType("grpc");
         JsonbConfig config = new JsonbConfig()

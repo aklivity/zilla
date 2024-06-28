@@ -23,10 +23,12 @@ telemetry:
         events:
           - qname: test.catalog0
             id: catalog.apicurio.unretrievable.artifact.id
-            message: UNRETRIEVABLE_ARTIFACT_ID 1
+            name: CATALOG_APICURIO_UNRETRIEVABLE_ARTIFACT_ID
+            message: Unable to fetch artifact id 1.
           - qname: test.catalog0
-            id: catalog.apicurio.retrievable.artifact.id
-            message: RETRIEVED_ARTIFACT_ID 1
+            id: catalog.apicurio.retrieved.artifact.id
+            name: CATALOG_APICURIO_RETRIEVED_ARTIFACT_ID
+            message: Successfully fetched artifact id 1.
 catalogs:
   catalog0:
     type: apicurio

@@ -44,7 +44,7 @@ public class ApicurioEventContext
     private final int staleArtifactID;
     private final int unretrievableArtifactId;
     private final int retrievableArtifactSubjectVersionId;
-    private final int retrievableArtifactId;
+    private final int retrievedArtifactId;
     private final MessageConsumer eventWriter;
     private final Clock clock;
 
@@ -57,8 +57,8 @@ public class ApicurioEventContext
         this.staleArtifactID = context.supplyEventId("catalog.apicurio.unretrievable.artifact.subject.version.stale.artifact");
         this.unretrievableArtifactId = context.supplyEventId("catalog.apicurio.unretrievable.artifact.id");
         this.retrievableArtifactSubjectVersionId = context.supplyEventId(
-            "catalog.apicurio.retrievable.artifact.subject.version");
-        this.retrievableArtifactId = context.supplyEventId("catalog.apicurio.retrievable.artifact.id");
+            "catalog.apicurio.retrieved.artifact.subject.version");
+        this.retrievedArtifactId = context.supplyEventId("catalog.apicurio.retrieved.artifact.id");
         this.eventWriter = context.supplyEventWriter();
         this.clock = context.clock();
     }
@@ -142,7 +142,7 @@ public class ApicurioEventContext
     {
         ApicurioEventExFW extension = apicurioEventExRW
             .wrap(extensionBuffer, 0, extensionBuffer.capacity())
-            .retrievableArtifactSubjectVersion(e -> e
+            .retrievedArtifactSubjectVersion(e -> e
                 .typeId(RETRIEVED_ARTIFACT_SUBJECT_VERSION.value())
                 .subject(subject)
                 .version(version)
@@ -165,14 +165,14 @@ public class ApicurioEventContext
     {
         ApicurioEventExFW extension = apicurioEventExRW
             .wrap(extensionBuffer, 0, extensionBuffer.capacity())
-            .retrievableArtifactId(e -> e
+            .retrievedArtifactId(e -> e
                 .typeId(RETRIEVED_ARTIFACT_ID.value())
                 .artifactId(artifactId)
             )
             .build();
         EventFW event = eventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
-            .id(retrievableArtifactId)
+            .id(retrievedArtifactId)
             .timestamp(clock.millis())
             .traceId(0L)
             .namespacedId(catalogId)
