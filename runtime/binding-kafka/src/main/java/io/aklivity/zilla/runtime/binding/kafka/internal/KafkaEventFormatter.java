@@ -21,6 +21,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.StringFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaApiVersionRejectedExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaAuthorizationFailedExFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaClusterAuthorizationFailedExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaEventExFW;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.event.EventFormatterSpi;
@@ -56,6 +57,13 @@ public final class KafkaEventFormatter implements EventFormatterSpi
         {
             final KafkaApiVersionRejectedExFW ex = extension.apiVersionRejected();
             result = String.format("%d %d", ex.apiKey(), ex.apiVersion());
+            break;
+        }
+        case CLUSTER_AUTHORIZATION_FAILED:
+        {
+            final KafkaClusterAuthorizationFailedExFW ex = extension.clusterAuthorizationFailed();
+            result = String.format("%d %d", ex.apiKey(), ex.apiVersion());
+            break;
         }
         }
         return result;
