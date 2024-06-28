@@ -76,7 +76,6 @@ public final class TlsBindingConfig
     public final List<TlsRouteConfig> routes;
 
     private SSLContext context;
-    private TlsKeyPairVerifier verifier;
 
     public TlsBindingConfig(
         BindingConfig binding)
@@ -95,9 +94,9 @@ public final class TlsBindingConfig
         VaultHandler vault,
         SecureRandom random)
     {
-        this.verifier = new TlsKeyPairVerifier(events);
+        TlsKeyPairVerifier verifier = new TlsKeyPairVerifier(events);
         char[] keysPass = "generated".toCharArray();
-        KeyStore keys = newKeys(config, vault, keysPass, options.keys, options.signers);
+        KeyStore keys = newKeys(config, vault, keysPass, verifier, options.keys, options.signers);
         KeyStore trust = newTrust(config, vault, options.trust, options.trustcacerts && kind == KindConfig.CLIENT);
 
         try
@@ -411,6 +410,7 @@ public final class TlsBindingConfig
         TlsConfiguration config,
         VaultHandler vault,
         char[] password,
+        TlsKeyPairVerifier verifier,
         List<String> keyNames,
         List<String> signerNames)
     {
