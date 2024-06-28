@@ -14,25 +14,42 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.grpc.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.GrpcType.BASE64;
+import static io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.GrpcType.TEXT;
+
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
+
+import org.agrona.MutableDirectBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.grpc.config.KafkaGrpcCorrelationConfig;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaHeaderFW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.OctetsFW;
+import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.GrpcMetadataFW;
+import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.GrpcType;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.KafkaDataExFW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.KafkaMergedFetchDataExFW;
 
 public final class KafkaGrpcFetchHeaderHelper
 {
+    private static final int META_PREFIX_LENGTH = 5;
+    private static final byte[] HEADER_META_PREFIX = new byte[5];
+    private static final byte[] META_PREFIX = "meta:".getBytes();
+    private static final byte[] HEADER_BIN_SUFFIX = new byte[4];
+    private static final byte[] BIN_SUFFIX = "-bin".getBytes();
+
     private final Map<OctetsFW, Consumer<OctetsFW>> visitors;
     private final OctetsFW serviceRO = new OctetsFW();
     private final OctetsFW methodRO = new OctetsFW();
     private final OctetsFW replyToRO = new OctetsFW();
     private final OctetsFW correlatedIdRO = new OctetsFW();
+    private final Array32FW.Builder<GrpcMetadataFW.Builder, GrpcMetadataFW> grpcMetadataRW =
+        new Array32FW.Builder<>(new GrpcMetadataFW.Builder(), new GrpcMetadataFW());
+    private final MutableDirectBuffer metaBuffer;
 
     public int partitionId;
     public long partitionOffset;
@@ -41,10 +58,13 @@ public final class KafkaGrpcFetchHeaderHelper
     public OctetsFW method;
     public OctetsFW replyTo;
     public OctetsFW correlationId;
+    public Array32FW<GrpcMetadataFW> metadata;
 
     public KafkaGrpcFetchHeaderHelper(
-        KafkaGrpcCorrelationConfig correlation)
+        KafkaGrpcCorrelationConfig correlation,
+        MutableDirectBuffer metaBuffer)
     {
+        this.metaBuffer = metaBuffer;
         Map<OctetsFW, Consumer<OctetsFW>> visitors = new HashMap<>();
         visitors.put(new OctetsFW().wrap(correlation.service.value(),
             0, correlation.service.length()), this::visitService);
@@ -65,6 +85,8 @@ public final class KafkaGrpcFetchHeaderHelper
         replyTo = null;
         correlationId = null;
 
+        grpcMetadataRW.wrap(metaBuffer, 0, metaBuffer.capacity());
+
         if (dataEx != null)
         {
             final KafkaMergedFetchDataExFW kafkaMergedFetchDataEx = dataEx.merged().fetch();
@@ -76,6 +98,8 @@ public final class KafkaGrpcFetchHeaderHelper
 
             headers.forEach(this::dispatch);
         }
+
+        metadata = grpcMetadataRW.build();
     }
 
     public boolean resolved()
@@ -90,10 +114,25 @@ public final class KafkaGrpcFetchHeaderHelper
     {
         final OctetsFW name = header.name();
         final OctetsFW value = header.value();
+        final int offset = name.offset();
+        final int limit = name.limit();
+
+        name.buffer().getBytes(offset, HEADER_META_PREFIX);
+        name.buffer().getBytes(limit - BIN_SUFFIX.length, HEADER_BIN_SUFFIX);
+
         final Consumer<OctetsFW> visitor = visitors.get(name);
         if (visitor != null)
         {
             visitor.accept(value);
+        }
+        else if (Arrays.equals(META_PREFIX, HEADER_META_PREFIX))
+        {
+            final GrpcType type = Arrays.equals(BIN_SUFFIX, HEADER_BIN_SUFFIX) ? BASE64 : TEXT;
+            grpcMetadataRW.item(m -> m.type(t -> t.set(type))
+                .nameLen(header.nameLen() - META_PREFIX_LENGTH)
+                .name(name.value(), META_PREFIX_LENGTH, header.nameLen() - META_PREFIX_LENGTH)
+                .valueLen(header.valueLen())
+                .value(value));
         }
 
         return service != null &&
