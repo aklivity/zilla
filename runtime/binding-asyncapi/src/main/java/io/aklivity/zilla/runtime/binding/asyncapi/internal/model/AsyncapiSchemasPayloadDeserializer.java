@@ -30,7 +30,10 @@ public class AsyncapiSchemasPayloadDeserializer  implements JsonbDeserializer<Ma
 {
 
     @Override
-    public Map<String, AsyncapiSchemaItem> deserialize(JsonParser parser, DeserializationContext ctx, Type rtType)
+    public Map<String, AsyncapiSchemaItem> deserialize(
+        JsonParser parser,
+        DeserializationContext ctx,
+        Type rtType)
     {
         Map<String, AsyncapiSchemaItem> result = new HashMap<>();
         Jsonb jsonb = JsonbBuilder.create();
