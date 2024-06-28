@@ -134,19 +134,26 @@ public abstract class AvroModelHandler
         boolean status = false;
         try
         {
-            GenericRecord record = supplyRecord(schemaId);
-            in.wrap(buffer, index, length);
-            GenericDatumReader<GenericRecord> reader = supplyReader(schemaId);
             Schema schema = supplySchema(schemaId);
-            if (reader != null)
+            switch (schema.getType())
             {
-                decoderFactory.binaryDecoder(in, decoder);
-                reader.read(record, decoder);
+            case STRING:
                 status = true;
-
+                break;
+            case RECORD:
+                GenericRecord record = supplyRecord(schemaId);
+                in.wrap(buffer, index, length);
+                GenericDatumReader<GenericRecord> reader = supplyReader(schemaId);
+                if (reader != null)
+                {
+                    decoderFactory.binaryDecoder(in, decoder);
+                    reader.read(record, decoder);
+                    status = true;
+                }
+                progress = index;
+                extractFields(buffer, index + length, schema);
+                break;
             }
-            progress = index;
-            extractFields(buffer, length, schema);
         }
         catch (IOException | AvroRuntimeException ex)
         {
@@ -157,12 +164,12 @@ public abstract class AvroModelHandler
 
     protected void extractFields(
         DirectBuffer buffer,
-        int length,
+        int limit,
         Schema schema)
     {
         for (Schema.Field field : schema.getFields())
         {
-            extract(field.schema(), buffer, length, extracted.get(field.name()));
+            extract(field.schema(), buffer, limit, extracted.get(field.name()));
         }
     }
 

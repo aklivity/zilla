@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.config;
 
-import static com.fasterxml.jackson.dataformat.yaml.YAMLGenerator.Feature.MINIMIZE_QUOTES;
 import static com.fasterxml.jackson.dataformat.yaml.YAMLGenerator.Feature.WRITE_DOC_START_MARKER;
 import static io.aklivity.zilla.runtime.common.feature.FeatureFilter.featureEnabled;
 import static java.util.stream.Collectors.toList;
@@ -33,15 +32,13 @@ import java.util.stream.Collectors;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonReader;
+import jakarta.json.JsonValue;
 import jakarta.json.JsonWriter;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 
 import org.agrona.collections.MutableInteger;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
@@ -248,7 +245,6 @@ public abstract class AsyncapiNamespaceGenerator
                 {
                     YAMLMapper yaml = YAMLMapper.builder()
                         .disable(WRITE_DOC_START_MARKER)
-                        .enable(MINIMIZE_QUOTES)
                         .build();
                     for (Map.Entry<String, AsyncapiSchemaItem> entry : asyncapi.components.schemas.entrySet())
                     {
@@ -257,7 +253,7 @@ public abstract class AsyncapiNamespaceGenerator
                         subjects
                             .subject(entry.getKey())
                             .version(VERSION_LATEST)
-                            .schema(writeSchemaYaml(jsonb, yaml, schema))
+                            .schema(writeSchemaJson(jsonb, schema))
                             .build();
                     }
                     if (asyncapi.components.messageTraits != null)
@@ -268,7 +264,7 @@ public abstract class AsyncapiNamespaceGenerator
                                 subjects
                                     .subject(k)
                                     .version(VERSION_LATEST)
-                                    .schema(writeSchemaYaml(jsonb, yaml, v))
+                                    .schema(writeSchemaJson(jsonb, v))
                                     .build());
                         }
                     }
@@ -282,39 +278,32 @@ public abstract class AsyncapiNamespaceGenerator
         return subjects;
     }
 
-    protected static String writeSchemaYaml(
+    protected static String writeSchemaJson(
         Jsonb jsonb,
-        YAMLMapper yaml,
         Object schema)
     {
-        String result = null;
-        try
+        String schemaJson = jsonb.toJson(schema);
+
+        JsonReader reader = Json.createReader(new StringReader(schemaJson));
+        JsonValue jsonValue = reader.readValue();
+
+        if (jsonValue instanceof JsonObject)
         {
-            String schemaJson = jsonb.toJson(schema);
+            JsonObject jsonObject = (JsonObject) jsonValue;
 
-            JsonReader reader = Json.createReader(new StringReader(schemaJson));
-            JsonObject jsonObject = reader.readObject();
-
-            JsonObject modifiedJsonObject = jsonObject.getJsonObject("schema");
-
-            if (modifiedJsonObject != null)
+            if (jsonObject.containsKey("schema"))
             {
+                JsonValue modifiedJsonValue = jsonObject.get("schema");
                 StringWriter stringWriter = new StringWriter();
                 JsonWriter jsonWriter = Json.createWriter(stringWriter);
-                jsonWriter.writeObject(modifiedJsonObject);
+                jsonWriter.write(modifiedJsonValue);
                 jsonWriter.close();
 
                 schemaJson = stringWriter.toString();
             }
+        }
 
-            JsonNode json = new ObjectMapper().readTree(schemaJson);
-            result = yaml.writeValueAsString(json);
-        }
-        catch (JsonProcessingException ex)
-        {
-            rethrowUnchecked(ex);
-        }
-        return result;
+        return schemaJson;
     }
 
     protected  <C> BindingConfigBuilder<C> injectMetrics(

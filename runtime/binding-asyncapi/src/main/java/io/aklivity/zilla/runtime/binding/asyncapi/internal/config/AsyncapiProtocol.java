@@ -165,6 +165,7 @@ public abstract class AsyncapiProtocol
         else if (avroContentType.reset(contentType).matches())
         {
             model = AvroModelConfig.builder()
+                .view("json")
                 .catalog()
                     .name(INLINE_CATALOG_NAME)
                     .inject(catalog -> injectValueSchema(catalog, asyncapi, message))
@@ -174,6 +175,7 @@ public abstract class AsyncapiProtocol
         else if (protobufContentType.reset(contentType).matches())
         {
             model = ProtobufModelConfig.builder()
+                .view("json")
                 .catalog()
                     .name(INLINE_CATALOG_NAME)
                     .inject(catalog -> injectValueSchema(catalog, asyncapi, message))
