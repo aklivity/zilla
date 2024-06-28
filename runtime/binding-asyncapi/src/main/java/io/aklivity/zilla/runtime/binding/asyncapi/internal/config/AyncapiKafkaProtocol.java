@@ -37,6 +37,7 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.MetricRefConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
+import io.aklivity.zilla.runtime.model.avro.config.AvroModelConfig;
 
 public class AyncapiKafkaProtocol extends AsyncapiProtocol
 {
@@ -167,6 +168,7 @@ public class AyncapiKafkaProtocol extends AsyncapiProtocol
                         .topic(KafkaTopicConfig::builder)
                             .name(topic)
                             .inject(topicConfig -> injectHeader(topicConfig, kafkaTopic))
+                            .inject(topicConfig -> injectKey(topicConfig, asyncapi, channel.messages()))
                             .inject(topicConfig -> injectValue(topicConfig, asyncapi, channel.messages()))
                             .build()
                         .build();
@@ -197,6 +199,31 @@ public class AyncapiKafkaProtocol extends AsyncapiProtocol
         {
             kafkaTopic.headers.forEach(h -> topic.header(h.name.asString(), h.path));
 
+        }
+        return topic;
+    }
+
+    private <C> KafkaTopicConfigBuilder<C> injectKey(
+        KafkaTopicConfigBuilder<C> topic,
+        Asyncapi asyncapi,
+        Map<String, AsyncapiMessage> messages)
+    {
+        if (messages != null)
+        {
+            for (Map.Entry<String, AsyncapiMessage> messageEntry : messages.entrySet())
+            {
+                AsyncapiMessageView message =
+                    AsyncapiMessageView.of(asyncapi.components.messages, messageEntry.getValue());
+                if (message.key() != null)
+                {
+                    topic.key(AvroModelConfig.builder()
+                        .catalog()
+                            .name(INLINE_CATALOG_NAME)
+                            .inject(catalog -> injectKeySchema(catalog, asyncapi, message))
+                            .build()
+                        .build());
+                }
+            }
         }
         return topic;
     }

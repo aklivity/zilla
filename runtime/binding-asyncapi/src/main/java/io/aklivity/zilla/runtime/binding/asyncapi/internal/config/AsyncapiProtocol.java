@@ -116,7 +116,20 @@ public abstract class AsyncapiProtocol
         return binding;
     }
 
-    protected <C> CatalogedConfigBuilder<C> injectSchema(
+    protected <C> CatalogedConfigBuilder<C> injectKeySchema(
+        CatalogedConfigBuilder<C> cataloged,
+        Asyncapi asyncapi,
+        AsyncapiMessageView message)
+    {
+        String schema = AsyncapiSchemaView.of(asyncapi.components.schemas, message.key()).refKey();
+        cataloged.schema()
+            .version(VERSION_LATEST)
+            .subject(schema)
+            .build();
+        return cataloged;
+    }
+
+    protected <C> CatalogedConfigBuilder<C> injectValueSchema(
         CatalogedConfigBuilder<C> cataloged,
         Asyncapi asyncapi,
         AsyncapiMessageView message)
@@ -145,7 +158,7 @@ public abstract class AsyncapiProtocol
             model = JsonModelConfig.builder()
                     .catalog()
                     .name(INLINE_CATALOG_NAME)
-                    .inject(catalog -> injectSchema(catalog, asyncapi, message))
+                    .inject(catalog -> injectValueSchema(catalog, asyncapi, message))
                     .build()
                 .build();
         }
@@ -154,7 +167,7 @@ public abstract class AsyncapiProtocol
             model = AvroModelConfig.builder()
                 .catalog()
                     .name(INLINE_CATALOG_NAME)
-                    .inject(catalog -> injectSchema(catalog, asyncapi, message))
+                    .inject(catalog -> injectValueSchema(catalog, asyncapi, message))
                     .build()
                 .build();
         }
@@ -163,7 +176,7 @@ public abstract class AsyncapiProtocol
             model = ProtobufModelConfig.builder()
                 .catalog()
                     .name(INLINE_CATALOG_NAME)
-                    .inject(catalog -> injectSchema(catalog, asyncapi, message))
+                    .inject(catalog -> injectValueSchema(catalog, asyncapi, message))
                     .build()
                 .build();
         }

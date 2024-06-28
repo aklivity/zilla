@@ -14,21 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.model;
 
-import java.util.List;
-
-import jakarta.json.bind.annotation.JsonbProperty;
-import jakarta.json.bind.annotation.JsonbTypeDeserializer;
-
-public class AsyncapiMessage
+public class AsyncapiKafkaMessageBinding
 {
-    public AsyncapiSchema headers;
-    public String contentType;
-    @JsonbTypeDeserializer(AsyncapiSchemaPayloadDeserializer.class)
-    public AsyncapiSchemaItem payload;
-    public List<AsyncapiTrait> traits;
-    public AsyncapiCorrelationId correlationId;
-    public AsyncapiMessageBindings bindings;
-
-    @JsonbProperty("$ref")
-    public String ref;
+    public AsyncapiMultiFormatSchema key;
 }
