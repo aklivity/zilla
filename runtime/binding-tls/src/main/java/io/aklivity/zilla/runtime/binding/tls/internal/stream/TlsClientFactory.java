@@ -207,7 +207,7 @@ public final class TlsClientFactory implements TlsStreamFactory
 
         VaultHandler vault = supplyVault.apply(tlsBinding.vaultId);
 
-        tlsBinding.init(config, vault, random, event);
+        tlsBinding.init(config, event, vault, random);
 
         bindings.put(binding.id, tlsBinding);
     }

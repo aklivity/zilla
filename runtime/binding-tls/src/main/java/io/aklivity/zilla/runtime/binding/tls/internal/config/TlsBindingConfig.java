@@ -91,14 +91,15 @@ public final class TlsBindingConfig
 
     public void init(
         TlsConfiguration config,
+        TlsEventContext events,
         VaultHandler vault,
-        SecureRandom random,
-        TlsEventContext event)
+        SecureRandom random)
     {
-        this.verifier = new TlsKeyPairVerifier(event);
+        this.verifier = new TlsKeyPairVerifier(events);
         char[] keysPass = "generated".toCharArray();
         KeyStore keys = newKeys(config, vault, keysPass, options.keys, options.signers);
         KeyStore trust = newTrust(config, vault, options.trust, options.trustcacerts && kind == KindConfig.CLIENT);
+
         try
         {
             KeyManager[] keyManagers = null;
