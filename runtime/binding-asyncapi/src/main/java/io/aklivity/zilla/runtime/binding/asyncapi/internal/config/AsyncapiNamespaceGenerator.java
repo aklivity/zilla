@@ -292,7 +292,6 @@ public abstract class AsyncapiNamespaceGenerator
         {
             String schemaJson = jsonb.toJson(schema);
 
-            // Parse JSON string to JsonObject
             JsonReader reader = Json.createReader(new StringReader(schemaJson));
             JsonObject jsonObject = reader.readObject();
 
