@@ -17,12 +17,12 @@ package io.aklivity.zilla.runtime.binding.tls.internal;
 
 import static io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsEventType.TLS_FAILED;
 import static io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsEventType.TLS_HANDSHAKE_FAILED;
-import static io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsEventType.TLS_KEY_PAIR_VERIFICATION_FAILED;
 import static io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsEventType.TLS_KEY_REJECTED;
+import static io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsEventType.TLS_KEY_VERIFICATION_FAILED;
 import static io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsEventType.TLS_PEER_NOT_VERIFIED;
 import static io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsEventType.TLS_PROTOCOL_REJECTED;
-import static io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsKeyPairFailureType.TLS_KEY_PAIR_INVALID;
-import static io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsKeyPairFailureType.TLS_KEY_PAIR_MISSING;
+import static io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsKeyFailureType.TLS_KEY_INVALID;
+import static io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsKeyFailureType.TLS_KEY_MISSING;
 
 import java.nio.ByteBuffer;
 import java.time.Clock;
@@ -32,7 +32,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.tls.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsEventExFW;
-import io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsKeyPairFailureType;
+import io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsKeyFailureType;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
@@ -177,25 +177,25 @@ public class TlsEventContext
         long bindingId,
         String keyName)
     {
-        tlsKeyPairVerificationFailed(TLS_KEY_PAIR_MISSING, bindingId, keyName);
+        tlsKeyPairVerificationFailed(TLS_KEY_MISSING, bindingId, keyName);
     }
 
     public void tlsKeyPairInvalid(
         long bindingId,
         String keyName)
     {
-        tlsKeyPairVerificationFailed(TLS_KEY_PAIR_INVALID, bindingId, keyName);
+        tlsKeyPairVerificationFailed(TLS_KEY_INVALID, bindingId, keyName);
     }
 
     private void tlsKeyPairVerificationFailed(
-        TlsKeyPairFailureType failureType,
+        TlsKeyFailureType failureType,
         long bindingId,
         String keyName)
     {
         TlsEventExFW extension = tlsEventExRW
             .wrap(extensionBuffer, 0, extensionBuffer.capacity())
-            .tlsKeyPairVerificationFailed(e -> e
-                .typeId(TLS_KEY_PAIR_VERIFICATION_FAILED.value())
+            .tlsKeyVerificationFailed(e -> e
+                .typeId(TLS_KEY_VERIFICATION_FAILED.value())
                 .failureType(t -> t.set(failureType))
                 .keyName(keyName)
             )
