@@ -37,13 +37,11 @@ import static java.lang.System.currentTimeMillis;
 import static java.lang.ThreadLocal.withInitial;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.agrona.CloseHelper.quietClose;
-import static org.agrona.LangUtil.rethrowUnchecked;
 import static org.agrona.concurrent.AgentRunner.startOnThread;
 
 import java.net.InetAddress;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.nio.channels.SelectableChannel;
+import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.BitSet;
@@ -173,7 +171,6 @@ public class EngineWorker implements EngineContext, Agent
 
     private final int localIndex;
     private final EngineConfiguration config;
-    private final URL configURL;
     private final LabelManager labels;
     private final String agentName;
     private final Function<String, InetAddress[]> resolveHost;
@@ -209,7 +206,7 @@ public class EngineWorker implements EngineContext, Agent
     private final DeadlineTimerWheel timerWheel;
     private final Long2ObjectHashMap<Runnable> tasksByTimerId;
     private final Long2ObjectHashMap<Future<?>> futuresById;
-    private final ElektronSignaler signaler;
+    private final EngineSignaler signaler;
     private final Long2ObjectHashMap<MessageConsumer> correlations;
     private final Long2ObjectHashMap<AgentRunner> exportersById;
     private final Map<String, ModelContext> modelsByType;
@@ -217,6 +214,7 @@ public class EngineWorker implements EngineContext, Agent
     private final EngineRegistry registry;
     private final Deque<Runnable> taskQueue;
     private final LongUnaryOperator affinityMask;
+    private final Path configPath;
     private final AgentRunner runner;
     private final IdleStrategy idleStrategy;
     private final ErrorHandler errorHandler;
@@ -260,7 +258,7 @@ public class EngineWorker implements EngineContext, Agent
     {
         this.localIndex = index;
         this.config = config;
-        this.configURL = config.configURL();
+        this.configPath = Path.of(config.configURI());
         this.labels = labels;
         this.affinityMask = affinityMask;
 
@@ -309,9 +307,10 @@ public class EngineWorker implements EngineContext, Agent
                 .build();
 
         this.eventsLayout = new EventsLayout.Builder()
-            .path(config.directory().resolve(String.format("events%d", index)))
-            .capacity(config.eventsBufferCapacity())
-            .build();
+                .path(config.directory().resolve(String.format("events%d", index)))
+                .capacity(config.eventsBufferCapacity())
+                .build();
+
         this.eventNames = new Int2ObjectHashMap<>();
 
         this.agentName = String.format("engine/data#%d", index);
@@ -340,7 +339,7 @@ public class EngineWorker implements EngineContext, Agent
         this.timerWheel = new DeadlineTimerWheel(MILLISECONDS, currentTimeMillis(), 512, 1024);
         this.tasksByTimerId = new Long2ObjectHashMap<>();
         this.futuresById = new Long2ObjectHashMap<>();
-        this.signaler = new ElektronSignaler(executor, Math.max(config.bufferSlotCapacity(), 512));
+        this.signaler = new EngineSignaler(executor, Math.max(config.bufferSlotCapacity(), 512));
 
         this.poller = new Poller();
 
@@ -741,19 +740,12 @@ public class EngineWorker implements EngineContext, Agent
     }
 
     @Override
-    public URL resolvePath(
-        String path)
+    public Path resolvePath(
+        String location)
     {
-        URL resolved = null;
-        try
-        {
-            resolved = new URL(configURL, path);
-        }
-        catch (MalformedURLException ex)
-        {
-            rethrowUnchecked(ex);
-        }
-        return resolved;
+        return location.indexOf(':') == -1
+            ? configPath.resolveSibling(location)
+            : Path.of(configPath.toUri().resolve(location));
     }
 
     @Override
@@ -1111,7 +1103,11 @@ public class EngineWorker implements EngineContext, Agent
         switch (signalId)
         {
         case SIGNAL_TASK_QUEUED:
-            taskQueue.poll().run();
+            final Runnable task = taskQueue.poll();
+            if (task != null)
+            {
+                task.run();
+            }
             break;
         }
     }
@@ -1906,7 +1902,7 @@ public class EngineWorker implements EngineContext, Agent
         return dispatcher;
     }
 
-    private final class ElektronSignaler implements Signaler
+    private final class EngineSignaler implements Signaler
     {
         private final ThreadLocal<SignalFW.Builder> signalRW;
 
@@ -1914,7 +1910,7 @@ public class EngineWorker implements EngineContext, Agent
 
         private long nextFutureId;
 
-        private ElektronSignaler(
+        private EngineSignaler(
             ExecutorService executorService,
             int slotCapacity)
         {

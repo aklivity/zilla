@@ -23,11 +23,16 @@ import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 
+import io.aklivity.k3po.runtime.junit.annotation.Specification;
+import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
 public class JwtGuardIT
 {
+    private final K3poRule k3po = new K3poRule()
+            .addScriptRoot("keys", "io/aklivity/zilla/specs/guard/jwt/config/keys");
+
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
     private final EngineRule engine = new EngineRule()
@@ -37,7 +42,7 @@ public class JwtGuardIT
             .clean();
 
     @Rule
-    public final TestRule chain = outerRule(engine).around(timeout);
+    public final TestRule chain = outerRule(k3po).around(engine).around(timeout);
 
     @Test
     @Configuration("guard.yaml")
@@ -47,13 +52,21 @@ public class JwtGuardIT
 
     @Test
     @Configuration("guard-keys-dynamic.yaml")
+    @Specification({
+        "${keys}/issuer"
+    })
     public void shouldInitializeGuardWithDynamicKeys() throws Exception
     {
+        k3po.finish();
     }
 
     @Test
     @Configuration("guard-keys-implicit.yaml")
+    @Specification({
+        "${keys}/issuer"
+    })
     public void shouldInitializeGuardWithImplicitKeys() throws Exception
     {
+        k3po.finish();
     }
 }

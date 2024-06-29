@@ -46,6 +46,7 @@
     <module>exporter-otlp.spec</module>
     <module>exporter-prometheus.spec</module>
     <module>exporter-stdout.spec</module>
+    <module>filesystem-http.spec</module>
     <module>metrics-stream.spec</module>
     <module>metrics-http.spec</module>
     <module>metrics-grpc.spec</module>

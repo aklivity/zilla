@@ -540,7 +540,8 @@ scope kafka
         enum KafkaEventType (uint8)
         {
             AUTHORIZATION_FAILED (1),
-            API_VERSION_REJECTED (2)
+            API_VERSION_REJECTED (2),
+            CLUSTER_AUTHORIZATION_FAILED (3)
         }
 
         struct KafkaAuthorizationFailedEx extends core::stream::Extension
@@ -554,10 +555,17 @@ scope kafka
             int32 apiVersion;
         }
 
+        struct KafkaClusterAuthorizationFailedEx extends core::stream::Extension
+        {
+            int32 apiKey;
+            int32 apiVersion;
+        }
+
         union KafkaEventEx switch (KafkaEventType)
         {
             case AUTHORIZATION_FAILED: KafkaAuthorizationFailedEx authorizationFailed;
             case API_VERSION_REJECTED: KafkaApiVersionRejectedEx apiVersionRejected;
+            case CLUSTER_AUTHORIZATION_FAILED: KafkaClusterAuthorizationFailedEx clusterAuthorizationFailed;
         }
     }
 }

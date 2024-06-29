@@ -16,11 +16,14 @@ package io.aklivity.zilla.runtime.binding.asyncapi.internal.model;
 
 import java.util.Map;
 
+import jakarta.json.bind.annotation.JsonbTypeDeserializer;
+
 public class AsyncapiComponents
 {
     public Map<String, AsyncapiSecurityScheme> securitySchemes;
     public Map<String, AsyncapiMessage> messages;
-    public Map<String, AsyncapiSchema> schemas;
+    @JsonbTypeDeserializer(AsyncapiSchemasPayloadDeserializer.class)
+    public Map<String, AsyncapiSchemaItem> schemas;
     public Map<String, AsyncapiCorrelationId> correlationIds;
     public Map<String, AsyncapiTrait> messageTraits;
     public Map<String, AsyncapiVariable> serverVariables;

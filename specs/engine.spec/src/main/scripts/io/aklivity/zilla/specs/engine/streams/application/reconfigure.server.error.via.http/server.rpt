@@ -14,7 +14,7 @@
 # under the License.
 #
 
-accept "http://localhost:8080/"
+accept "http://localhost:8080/zilla.yaml"
 accepted
 connected
 
@@ -53,6 +53,6 @@ accept "zilla://streams/app0"
 
 accepted
 connected
-write notify CONNECTED
+
 accepted
 connected

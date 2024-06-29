@@ -17,9 +17,9 @@
 accept "zilla://streams/net0"
        option zilla:transmission "duplex"
        option zilla:window 8192
+
 accepted
 connected
 
-write notify SERVER_ERROR
 accepted
 connected

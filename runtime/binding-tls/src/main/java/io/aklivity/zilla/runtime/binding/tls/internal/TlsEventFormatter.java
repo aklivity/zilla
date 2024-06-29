@@ -19,6 +19,7 @@ import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.binding.tls.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsEventExFW;
+import io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsKeyVerificationFailedExFW;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.event.EventFormatterSpi;
 
@@ -66,6 +67,16 @@ public final class TlsEventFormatter implements EventFormatterSpi
         case TLS_HANDSHAKE_FAILED:
         {
             result = "The client and server could not negotiate the desired level of security.";
+            break;
+        }
+        case TLS_KEY_VERIFICATION_FAILED:
+        {
+            TlsKeyVerificationFailedExFW ex = extension.tlsKeyVerificationFailed();
+            result = switch (ex.failureType().get())
+            {
+            case TLS_KEY_MISSING -> String.format("Key pair (%s) is missing.", ex.keyName());
+            case TLS_KEY_INVALID -> String.format("Key pair (%s) is invalid.", ex.keyName());
+            };
             break;
         }
         }

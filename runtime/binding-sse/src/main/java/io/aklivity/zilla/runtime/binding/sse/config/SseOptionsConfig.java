@@ -23,6 +23,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public final class SseOptionsConfig extends OptionsConfig
@@ -46,14 +47,20 @@ public final class SseOptionsConfig extends OptionsConfig
         int retry,
         List<SseRequestConfig> requests)
     {
-        super(requests != null && !requests.isEmpty()
+        super(resolveModels(requests), List.of());
+        this.retry = retry;
+        this.requests = requests;
+    }
+
+    private static List<ModelConfig> resolveModels(
+        List<SseRequestConfig> requests)
+    {
+        return requests != null && !requests.isEmpty()
             ? requests.stream()
             .flatMap(path ->
                 Stream.of(path.content)
                     .filter(Objects::nonNull))
             .collect(Collectors.toList())
-            : emptyList());
-        this.retry = retry;
-        this.requests = requests;
+            : emptyList();
     }
 }

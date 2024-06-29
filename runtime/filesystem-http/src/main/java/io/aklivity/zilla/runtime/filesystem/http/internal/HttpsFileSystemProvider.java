@@ -12,25 +12,13 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.asyncapi.internal.model;
+package io.aklivity.zilla.runtime.filesystem.http.internal;
 
-import java.util.List;
-
-import jakarta.json.bind.annotation.JsonbProperty;
-
-import com.fasterxml.jackson.annotation.JsonInclude;
-
-@JsonInclude(JsonInclude.Include.NON_NULL)
-public class AsyncapiItem
+public class HttpsFileSystemProvider extends HttpFileSystemProvider
 {
-    public String type;
-    public String description;
-    public Integer minimum;
-    public Integer maximum;
-    public String format;
-    @JsonbProperty("enum")
-    public List<String> values;
-    @JsonbProperty("$ref")
-    public String ref;
-    public AsyncapiSchema schema;
+    @Override
+    public String getScheme()
+    {
+        return "https";
+    }
 }

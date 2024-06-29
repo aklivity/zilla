@@ -14,7 +14,7 @@
 # under the License.
 #
 
-connect "http://localhost:8080/"
+connect "http://localhost:8080/zilla.yaml"
 connected
 
 write http:method "GET"
@@ -31,7 +31,7 @@ read '---\n'
      '    exit: app0\n'
 read closed
 
-connect "http://localhost:8080/"
+connect "http://localhost:8080/zilla.yaml"
 connected
 
 write http:method "GET"
@@ -44,11 +44,11 @@ read closed
 
 
 connect "zilla://streams/app0"
-option zilla:window 8192
-option zilla:transmission "duplex"
+    option zilla:window 8192
+    option zilla:transmission "duplex"
 connected
 
 connect "zilla://streams/app0"
-option zilla:window 8192
-option zilla:transmission "duplex"
+    option zilla:window 8192
+    option zilla:transmission "duplex"
 connected

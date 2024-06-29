@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.config;
 
-import static io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiNamespaceGenerator.APPLICATION_JSON;
 import static io.aklivity.zilla.runtime.binding.http.config.HttpPolicyConfig.CROSS_ORIGIN;
 
 import java.util.List;
@@ -29,6 +28,7 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiParamet
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiSchema;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiServer;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiChannelView;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiMessageView;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiServerView;
 import io.aklivity.zilla.runtime.binding.http.config.HttpAuthorizationConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpConditionConfig;
@@ -209,13 +209,15 @@ public class AsyncapiHttpProtocol extends AsyncapiProtocol
     {
         if (messages != null)
         {
-            if (hasJsonContentType(asyncapi))
+            for (Map.Entry<String, AsyncapiMessage> messageEntry : messages.entrySet())
             {
+                AsyncapiMessageView message =
+                    AsyncapiMessageView.of(asyncapi.components.messages, messageEntry.getValue());
                 request.
-                    content(JsonModelConfig::builder)
+                content(JsonModelConfig::builder)
                    .catalog()
                         .name(INLINE_CATALOG_NAME)
-                        .inject(cataloged -> injectJsonSchemas(cataloged, asyncapi, messages, APPLICATION_JSON))
+                        .inject(cataloged -> injectSchema(cataloged, asyncapi, message))
                         .build()
                     .build();
             }

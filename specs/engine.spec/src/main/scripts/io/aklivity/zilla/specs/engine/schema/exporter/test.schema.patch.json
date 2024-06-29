@@ -56,7 +56,14 @@
                                         {
                                             "type": "string"
                                         }
-                                    }
+                                    },
+                                    "required":
+                                    [
+                                        "qname",
+                                        "id",
+                                        "name",
+                                        "message"
+                                    ]
                                 }
                             }
                         }

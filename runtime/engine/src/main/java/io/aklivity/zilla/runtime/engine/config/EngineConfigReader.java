@@ -60,7 +60,6 @@ public final class EngineConfigReader
     private final Collection<URL> schemaTypes;
     private final Consumer<String> logger;
 
-
     public EngineConfigReader(
         EngineConfiguration config,
         ConfigAdapterContext context,
@@ -161,7 +160,8 @@ public final class EngineConfigReader
             {
                 reader.reset();
                 reader.skip(configAt);
-                builder.namespace(jsonb.fromJson(reader, NamespaceConfig.class));
+                NamespaceConfig namespace = jsonb.fromJson(reader, NamespaceConfig.class);
+                builder.namespace(namespace);
 
                 if (!errors.isEmpty())
                 {

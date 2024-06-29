@@ -18,13 +18,14 @@ package io.aklivity.zilla.runtime.engine.config;
 import static java.util.Objects.requireNonNull;
 import static java.util.function.Function.identity;
 
+import java.util.LinkedList;
 import java.util.List;
-import java.util.function.Function;
 
 public class NamespaceConfig
 {
+    public static final String FILESYSTEM = "filesystem";
+
     public transient int id;
-    public transient Function<String, String> readURL;
 
     public final String name;
     public final TelemetryConfig telemetry;
@@ -32,6 +33,7 @@ public class NamespaceConfig
     public final List<GuardConfig> guards;
     public final List<VaultConfig> vaults;
     public final List<CatalogConfig> catalogs;
+    public final List<String> resources;
 
     public static NamespaceConfigBuilder<NamespaceConfig> builder()
     {
@@ -52,5 +54,52 @@ public class NamespaceConfig
         this.guards = requireNonNull(guards);
         this.vaults = requireNonNull(vaults);
         this.catalogs = requireNonNull(catalogs);
+        this.resources = resolveResources(this, telemetry, bindings, guards, vaults, catalogs);
+    }
+
+    private static List<String> resolveResources(
+        NamespaceConfig namespace,
+        TelemetryConfig telemetry,
+        List<BindingConfig> bindings,
+        List<GuardConfig> guards,
+        List<VaultConfig> vaults,
+        List<CatalogConfig> catalogs)
+    {
+        List<OptionsConfig> options = new LinkedList<>();
+
+        if (telemetry != null && telemetry.exporters != null)
+        {
+            telemetry.exporters.stream()
+                .filter(e -> e.options != null)
+                .map(e -> e.options)
+                .forEach(options::add);
+        }
+
+        bindings.stream()
+            .filter(b -> b.options != null)
+            .map(b -> b.options)
+            .forEach(options::add);
+
+        guards.stream()
+            .filter(g -> g.options != null)
+            .map(g -> g.options)
+            .forEach(options::add);
+
+        vaults.stream()
+            .filter(v -> v.options != null)
+            .map(v -> v.options)
+            .forEach(options::add);
+
+        catalogs.stream()
+            .filter(c -> c.options != null)
+            .map(c -> c.options)
+            .forEach(options::add);
+
+        return options.stream()
+            .filter(o -> o.resources != null)
+            .flatMap(o -> o.resources.stream())
+            .sorted()
+            .distinct()
+            .toList();
     }
 }

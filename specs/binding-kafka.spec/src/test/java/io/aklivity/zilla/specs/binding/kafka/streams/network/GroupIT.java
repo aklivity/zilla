@@ -192,6 +192,15 @@ public class GroupIT
 
     @Test
     @Specification({
+        "${net}/invalid.describe.config.cluster.authorization.error/client",
+        "${net}/invalid.describe.config.cluster.authorization.error/server"})
+    public void shouldHandleInvalidDescribeConfigClusterAuthorizationError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/invalid.session.timeout/client",
         "${net}/invalid.session.timeout/server"})
     public void shouldHandleInvalidSessionTimeout() throws Exception
