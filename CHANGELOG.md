@@ -1,5 +1,17 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.83...HEAD)
+
+**Implemented enhancements:**
+
+- Verify public-private key pair obtained from vault used for TLS handshake [\#1073](https://github.com/aklivity/zilla/issues/1073)
+
+**Closed issues:**
+
+- feat: improve troubleshooting capabilities [\#903](https://github.com/aklivity/zilla/issues/903)
+
 ## [0.9.83](https://github.com/aklivity/zilla/tree/0.9.83) (2024-06-28)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.82...0.9.83)
