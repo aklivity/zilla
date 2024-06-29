@@ -50,7 +50,7 @@ public final class AsyncapiMessageView extends AsyncapiResolvable<AsyncapiMessag
 
     public AsyncapiSchemaItem payload()
     {
-        return (AsyncapiSchemaItem) message.payload;
+        return message.payload;
     }
 
     public List<AsyncapiTrait> traits()

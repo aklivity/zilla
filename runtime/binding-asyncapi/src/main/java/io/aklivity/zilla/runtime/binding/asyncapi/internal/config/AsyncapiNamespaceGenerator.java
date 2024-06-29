@@ -14,16 +14,18 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.config;
 
-import static com.fasterxml.jackson.dataformat.yaml.YAMLGenerator.Feature.WRITE_DOC_START_MARKER;
 import static io.aklivity.zilla.runtime.common.feature.FeatureFilter.featureEnabled;
 import static java.util.stream.Collectors.toList;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.ToLongFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -39,11 +41,10 @@ import jakarta.json.bind.JsonbBuilder;
 
 import org.agrona.collections.MutableInteger;
 
-import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
-
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiServerConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiKafkaServerBindings;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiSchemaItem;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiServer;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiTrait;
@@ -51,6 +52,7 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiSchemaVi
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiServerView;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineSchemaConfigBuilder;
+import io.aklivity.zilla.runtime.catalog.karapace.config.KarapaceOptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.MetricRefConfig;
@@ -60,8 +62,9 @@ import io.aklivity.zilla.runtime.engine.config.TelemetryRefConfigBuilder;
 
 public abstract class AsyncapiNamespaceGenerator
 {
-    protected static final String INLINE_CATALOG_NAME = "catalog0";
+    protected static final String CATALOG_NAME = "catalog0";
     protected static final String INLINE_CATALOG_TYPE = "inline";
+    protected static final String KARAPACE_CATALOG_TYPE = "karapace";
     protected static final String VERSION_LATEST = "latest";
     protected static final AsyncapiOptionsConfig EMPTY_OPTION =
         new AsyncapiOptionsConfig(null, null, null, null, null, null, null);
@@ -215,13 +218,33 @@ public abstract class AsyncapiNamespaceGenerator
         NamespaceConfigBuilder<C> namespace,
         List<Asyncapi> asyncapis)
     {
-        final boolean injectCatalog = asyncapis.stream()
-            .anyMatch(a -> a.components != null && a.components.schemas != null && !a.components.schemas.isEmpty());
-        if (injectCatalog)
+        Optional<AsyncapiServer> server = asyncapis.stream()
+            .filter(a -> a.servers.entrySet().stream().anyMatch(s ->  s.getValue().bindings != null &&
+                s.getValue().bindings.kafka != null))
+            .map(s -> s.servers.values())
+            .flatMap(Collection::stream)
+            .filter(s -> s.bindings.kafka != null)
+            .findFirst();
+        final boolean injectCatalog = asyncapis.stream().anyMatch(AsyncapiNamespaceGenerator::hasSchemas);
+        if (server.isPresent())
+        {
+            AsyncapiKafkaServerBindings kafka = server.get().bindings.kafka;
+            namespace
+                .catalog()
+                    .name(CATALOG_NAME)
+                    .type(KARAPACE_CATALOG_TYPE)
+                    .options(KarapaceOptionsConfig::builder)
+                        .url(kafka.schemaRegistryUrl)
+                        .context("default")
+                        .maxAge(Duration.ofHours(1))
+                        .build()
+                    .build();
+        }
+        else if (injectCatalog)
         {
             namespace
                 .catalog()
-                    .name(INLINE_CATALOG_NAME)
+                    .name(CATALOG_NAME)
                     .type(INLINE_CATALOG_TYPE)
                     .options(InlineOptionsConfig::builder)
                         .subjects()
@@ -239,13 +262,10 @@ public abstract class AsyncapiNamespaceGenerator
     {
         for (Asyncapi asyncapi : asyncapis)
         {
-            if (asyncapi.components != null && asyncapi.components.schemas != null && !asyncapi.components.schemas.isEmpty())
+            if (hasSchemas(asyncapi))
             {
                 try (Jsonb jsonb = JsonbBuilder.create())
                 {
-                    YAMLMapper yaml = YAMLMapper.builder()
-                        .disable(WRITE_DOC_START_MARKER)
-                        .build();
                     for (Map.Entry<String, AsyncapiSchemaItem> entry : asyncapi.components.schemas.entrySet())
                     {
                         AsyncapiSchemaView schema = AsyncapiSchemaView.of(asyncapi.components.schemas, entry.getValue());
@@ -276,6 +296,14 @@ public abstract class AsyncapiNamespaceGenerator
             }
         }
         return subjects;
+    }
+
+    private static boolean hasSchemas(
+        Asyncapi asyncapi)
+    {
+        return asyncapi.components != null &&
+            asyncapi.components.schemas != null &&
+            !asyncapi.components.schemas.isEmpty();
     }
 
     protected static String writeSchemaJson(
