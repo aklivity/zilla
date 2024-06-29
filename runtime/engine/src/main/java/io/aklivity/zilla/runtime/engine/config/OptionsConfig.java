@@ -21,15 +21,18 @@ import java.util.List;
 public class OptionsConfig
 {
     public final List<ModelConfig> models;
+    public final List<String> resources;
 
     public OptionsConfig()
     {
-        this(Collections.emptyList());
+        this(Collections.emptyList(), Collections.emptyList());
     }
 
     public OptionsConfig(
-        List<ModelConfig> models)
+        List<ModelConfig> models,
+        List<String> resources)
     {
         this.models = models;
+        this.resources = resources;
     }
 }

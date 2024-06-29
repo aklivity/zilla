@@ -87,7 +87,7 @@ public class ApplicationIT
     @Specification({
         "${app}/reconfigure.modify.via.http/client",
         "${app}/reconfigure.modify.via.http/server" })
-    public void shouldReconfigureWhenModifiedHTTP() throws Exception
+    public void shouldReconfigureWhenModifiedViaHttp() throws Exception
     {
         k3po.finish();
     }
@@ -96,7 +96,7 @@ public class ApplicationIT
     @Specification({
         "${app}/reconfigure.create.via.http/client",
         "${app}/reconfigure.create.via.http/server" })
-    public void shouldReconfigureWhenCreatedHTTP() throws Exception
+    public void shouldReconfigureWhenCreatedViaHttp() throws Exception
     {
         k3po.finish();
     }
@@ -105,7 +105,7 @@ public class ApplicationIT
     @Specification({
         "${app}/reconfigure.delete.via.http/client",
         "${app}/reconfigure.delete.via.http/server" })
-    public void shouldReconfigureWhenDeletedHTTP() throws Exception
+    public void shouldReconfigureWhenDeletedViaHttp() throws Exception
     {
         k3po.finish();
     }
@@ -115,7 +115,7 @@ public class ApplicationIT
         "${app}/reconfigure.modify.no.etag.via.http/server",
         "${app}/reconfigure.modify.no.etag.via.http/client"
     })
-    public void shouldReconfigureWhenModifiedHTTPEtagNotSupported() throws Exception
+    public void shouldReconfigureWhenModifiedViaHttpEtagNotSupported() throws Exception
     {
         k3po.finish();
     }
@@ -125,7 +125,7 @@ public class ApplicationIT
         "${app}/reconfigure.server.error.via.http/server",
         "${app}/reconfigure.server.error.via.http/client"
     })
-    public void shouldNotReconfigureWhen500Returned() throws Exception
+    public void shouldNotReconfigureViaHttpWhenServerError() throws Exception
     {
         k3po.finish();
     }

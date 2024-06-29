@@ -1,5 +1,90 @@
 # Changelog
 
+## [0.9.84](https://github.com/aklivity/zilla/tree/0.9.84) (2024-06-29)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.83...0.9.84)
+
+**Implemented enhancements:**
+
+- Verify public-private key pair obtained from vault used for TLS handshake [\#1073](https://github.com/aklivity/zilla/issues/1073)
+
+**Closed issues:**
+
+- feat: improve troubleshooting capabilities [\#903](https://github.com/aklivity/zilla/issues/903)
+
+**Merged pull requests:**
+
+- Use default config when missing [\#1118](https://github.com/aklivity/zilla/pull/1118) ([jfallows](https://github.com/jfallows))
+- Require test exporter event properties via test schema [\#1117](https://github.com/aklivity/zilla/pull/1117) ([jfallows](https://github.com/jfallows))
+- Include engine test sources JAR in release [\#1116](https://github.com/aklivity/zilla/pull/1116) ([jfallows](https://github.com/jfallows))
+- Generate asyncapi  schema catalog with avro, protobuf format support [\#1113](https://github.com/aklivity/zilla/pull/1113) ([akrambek](https://github.com/akrambek))
+- Add logging of cluster authorization failed error to kafka binding [\#1112](https://github.com/aklivity/zilla/pull/1112) ([attilakreiner](https://github.com/attilakreiner))
+- Verify public-private tls key pair [\#1108](https://github.com/aklivity/zilla/pull/1108) ([attilakreiner](https://github.com/attilakreiner))
+
+## [0.9.83](https://github.com/aklivity/zilla/tree/0.9.83) (2024-06-28)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.82...0.9.83)
+
+**Implemented enhancements:**
+
+- Add asyncapi http-kafka proxy example [\#1077](https://github.com/aklivity/zilla/issues/1077)
+- Use miliseconds in metrics [\#1069](https://github.com/aklivity/zilla/issues/1069)
+- Promote `filesystem` catalog out of incubator [\#1068](https://github.com/aklivity/zilla/issues/1068)
+- Support `asyncapi` mapping `http` protocol to `kafka` protocol [\#1063](https://github.com/aklivity/zilla/issues/1063)
+- Support filtering by kafka structured value field\(s\) [\#1062](https://github.com/aklivity/zilla/issues/1062)
+- Support remote zilla configuration with change detection [\#1061](https://github.com/aklivity/zilla/issues/1061)
+- Use full Event ID and the event name [\#1013](https://github.com/aklivity/zilla/issues/1013)
+- Support configuration of MQTT Publish QoS maximum [\#970](https://github.com/aklivity/zilla/issues/970)
+- Support `sse` server and client via `asyncapi` [\#952](https://github.com/aklivity/zilla/issues/952)
+- Review kafka binding partition offset vs progress offset [\#285](https://github.com/aklivity/zilla/issues/285)
+
+**Fixed bugs:**
+
+- iNotify error when multiple Zilla instances are started in K8s Pods on a Portainer.io host [\#1081](https://github.com/aklivity/zilla/issues/1081)
+- Running `emqtt_bench` `sub`  triggers an exception [\#1037](https://github.com/aklivity/zilla/issues/1037)
+- MqttSessionBeginEx missing packetIds in zilla dump [\#1028](https://github.com/aklivity/zilla/issues/1028)
+- Running `emqtt_bench`  triggers an exception in mqtt during the decoding [\#999](https://github.com/aklivity/zilla/issues/999)
+- Intermittent NPE when trying to resolve guards [\#994](https://github.com/aklivity/zilla/issues/994)
+
+**Closed issues:**
+
+- Add SSE payload validation to sse-server binding [\#1076](https://github.com/aklivity/zilla/issues/1076)
+
+**Merged pull requests:**
+
+- Refactor signaler class name [\#1111](https://github.com/aklivity/zilla/pull/1111) ([jfallows](https://github.com/jfallows))
+- fix: add volume mounts into the deployment yaml [\#1110](https://github.com/aklivity/zilla/pull/1110) ([vordimous](https://github.com/vordimous))
+- Support engine events and detect config watcher failed [\#1107](https://github.com/aklivity/zilla/pull/1107) ([jfallows](https://github.com/jfallows))
+- Support special characters for resolving channel ref [\#1101](https://github.com/aklivity/zilla/pull/1101) ([akrambek](https://github.com/akrambek))
+- Fix NegativeArraySizeException when receiving mqttFlush [\#1100](https://github.com/aklivity/zilla/pull/1100) ([bmaidics](https://github.com/bmaidics))
+- Asyncapi sse kafka proxy [\#1099](https://github.com/aklivity/zilla/pull/1099) ([bmaidics](https://github.com/bmaidics))
+- Fix dump mqtt session begin [\#1098](https://github.com/aklivity/zilla/pull/1098) ([attilakreiner](https://github.com/attilakreiner))
+- Promote catalog-filesystem out of incubator [\#1096](https://github.com/aklivity/zilla/pull/1096) ([attilakreiner](https://github.com/attilakreiner))
+- Fix imports [\#1095](https://github.com/aklivity/zilla/pull/1095) ([attilakreiner](https://github.com/attilakreiner))
+- Implement millisecond conversion to metrics [\#1094](https://github.com/aklivity/zilla/pull/1094) ([attilakreiner](https://github.com/attilakreiner))
+- filtering by structured value field\(s\) [\#1093](https://github.com/aklivity/zilla/pull/1093) ([aDaemonThread](https://github.com/aDaemonThread))
+- Add sse payload validation [\#1092](https://github.com/aklivity/zilla/pull/1092) ([bmaidics](https://github.com/bmaidics))
+- Ensure engine closes after stdout generated [\#1091](https://github.com/aklivity/zilla/pull/1091) ([jfallows](https://github.com/jfallows))
+- Await non-empty output before verifying expected vs actual [\#1090](https://github.com/aklivity/zilla/pull/1090) ([jfallows](https://github.com/jfallows))
+- Ensure stdout flush without newline before comparison to expected output [\#1089](https://github.com/aklivity/zilla/pull/1089) ([jfallows](https://github.com/jfallows))
+- Upgrade zilla docker image to use jdk 22 [\#1088](https://github.com/aklivity/zilla/pull/1088) ([jfallows](https://github.com/jfallows))
+- Update k3po dependency [\#1086](https://github.com/aklivity/zilla/pull/1086) ([jfallows](https://github.com/jfallows))
+- SSE asyncapi server, client [\#1085](https://github.com/aklivity/zilla/pull/1085) ([bmaidics](https://github.com/bmaidics))
+- Java 17 source compatibility [\#1084](https://github.com/aklivity/zilla/pull/1084) ([jfallows](https://github.com/jfallows))
+- Bump ubuntu from jammy-20240427 to jammy-20240530 in /cloud/docker-image/src/main/docker [\#1079](https://github.com/aklivity/zilla/pull/1079) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Dynamic decode padding by length fix [\#1078](https://github.com/aklivity/zilla/pull/1078) ([aDaemonThread](https://github.com/aDaemonThread))
+- Catalog Handler interface to support dynamic encode padding by length [\#1075](https://github.com/aklivity/zilla/pull/1075) ([aDaemonThread](https://github.com/aDaemonThread))
+- Fix mqtt-kafka non compact test [\#1074](https://github.com/aklivity/zilla/pull/1074) ([bmaidics](https://github.com/bmaidics))
+- Http-Kafka AsyncAPI [\#1072](https://github.com/aklivity/zilla/pull/1072) ([bmaidics](https://github.com/bmaidics))
+- Support remote zilla configuration with change detection [\#1071](https://github.com/aklivity/zilla/pull/1071) ([attilakreiner](https://github.com/attilakreiner))
+- feat: replace port 8080 with 12345 [\#1070](https://github.com/aklivity/zilla/pull/1070) ([vordimous](https://github.com/vordimous))
+- Fix NPE when trying to resolve guards [\#1067](https://github.com/aklivity/zilla/pull/1067) ([attilakreiner](https://github.com/attilakreiner))
+- Add publish qos max options for mqtt-kafka binding [\#1065](https://github.com/aklivity/zilla/pull/1065) ([bmaidics](https://github.com/bmaidics))
+- Added declarative helmfile [\#1054](https://github.com/aklivity/zilla/pull/1054) ([ttimot24](https://github.com/ttimot24))
+- Bump alpine from 3.19.1 to 3.20.0 in /cloud/docker-image/src/main/docker [\#1047](https://github.com/aklivity/zilla/pull/1047) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Fix TlsNetworkIT by adding cipherSuites [\#1043](https://github.com/aklivity/zilla/pull/1043) ([attilakreiner](https://github.com/attilakreiner))
+- feat: replace static event name with dynamic based on event id [\#1029](https://github.com/aklivity/zilla/pull/1029) ([vordimous](https://github.com/vordimous))
+
 ## [0.9.82](https://github.com/aklivity/zilla/tree/0.9.82) (2024-05-28)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.81...0.9.82)

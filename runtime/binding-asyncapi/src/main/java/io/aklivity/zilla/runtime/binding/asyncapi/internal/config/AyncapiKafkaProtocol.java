@@ -39,6 +39,7 @@ import io.aklivity.zilla.runtime.engine.config.MetricRefConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 import io.aklivity.zilla.runtime.model.avro.config.AvroModelConfig;
 
+
 public class AyncapiKafkaProtocol extends AsyncapiProtocol
 {
     public static final String SCHEME = "kafka";

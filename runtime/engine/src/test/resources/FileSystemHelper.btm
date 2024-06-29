@@ -1,0 +1,6 @@
+RULE watcher service failed
+CLASS ^java.nio.file.FileSystem
+METHOD newWatchService
+IF TRUE
+DO throw new java.io.IOException("[failed]")
+ENDRULE

@@ -179,6 +179,7 @@ public abstract class AsyncapiProtocol
                 .catalog()
                     .name(INLINE_CATALOG_NAME)
                     .inject(catalog -> injectValueSchema(catalog, asyncapi, message))
+
                     .build()
                 .build();
         }

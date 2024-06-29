@@ -16,21 +16,12 @@
 package io.aklivity.zilla.runtime.engine;
 
 import static io.aklivity.zilla.runtime.engine.internal.layouts.metrics.HistogramsLayout.BUCKETS;
-import static java.net.http.HttpClient.Redirect.NORMAL;
-import static java.net.http.HttpClient.Version.HTTP_2;
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.Executors.newFixedThreadPool;
 import static java.util.stream.Collectors.toList;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URISyntaxException;
 import java.net.URL;
-import java.net.URLConnection;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -40,11 +31,9 @@ import java.util.ServiceLoader;
 import java.util.ServiceLoader.Provider;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.function.LongConsumer;
 import java.util.function.LongSupplier;
@@ -68,12 +57,10 @@ import io.aklivity.zilla.runtime.engine.guard.Guard;
 import io.aklivity.zilla.runtime.engine.internal.Info;
 import io.aklivity.zilla.runtime.engine.internal.LabelManager;
 import io.aklivity.zilla.runtime.engine.internal.Tuning;
+import io.aklivity.zilla.runtime.engine.internal.event.EngineEventContext;
 import io.aklivity.zilla.runtime.engine.internal.layouts.EventsLayout;
 import io.aklivity.zilla.runtime.engine.internal.registry.EngineManager;
 import io.aklivity.zilla.runtime.engine.internal.registry.EngineWorker;
-import io.aklivity.zilla.runtime.engine.internal.registry.FileWatcherTask;
-import io.aklivity.zilla.runtime.engine.internal.registry.HttpWatcherTask;
-import io.aklivity.zilla.runtime.engine.internal.registry.WatcherTask;
 import io.aklivity.zilla.runtime.engine.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
@@ -83,6 +70,8 @@ import io.aklivity.zilla.runtime.engine.vault.Vault;
 
 public final class Engine implements Collector, AutoCloseable
 {
+    public static final String NAME = "engine";
+
     private final Collection<Binding> bindings;
     private final ExecutorService tasks;
     private final Tuning tuning;
@@ -92,14 +81,12 @@ public final class Engine implements Collector, AutoCloseable
     private final AtomicInteger nextTaskId;
     private final ThreadFactory factory;
 
-    private final WatcherTask watcherTask;
-    private final URL configURL;
     private final List<EngineWorker> workers;
     private final boolean readonly;
     private final EngineConfiguration config;
     private final EngineManager manager;
 
-    private Future<Void> watcherTaskRef;
+    private final EventsLayout eventsLayout;
 
     Engine(
         EngineConfiguration config,
@@ -160,6 +147,11 @@ public final class Engine implements Collector, AutoCloseable
         }
         this.tuning = tuning;
 
+        this.eventsLayout = new EventsLayout.Builder()
+                .path(config.directory().resolve("events"))
+                .capacity(config.eventsBufferCapacity())
+                .build();
+
         List<EngineWorker> workers = new ArrayList<>(workerCount);
         for (int workerIndex = 0; workerIndex < workerCount; workerIndex++)
         {
@@ -193,6 +185,8 @@ public final class Engine implements Collector, AutoCloseable
         final Map<String, Guard> guardsByType = guards.stream()
             .collect(Collectors.toMap(g -> g.name(), g -> g));
 
+        EngineEventContext events = new EngineEventContext(this);
+
         EngineManager manager = new EngineManager(
             schemaTypes,
             bindingsByType::get,
@@ -205,24 +199,8 @@ public final class Engine implements Collector, AutoCloseable
             logger,
             context,
             config,
-            extensions,
-            this::readURL);
-
-        this.configURL = config.configURL();
-        String protocol = configURL.getProtocol();
-        if ("file".equals(protocol) || "jar".equals(protocol))
-        {
-            Function<String, String> watcherReadURL = l -> readURL(configURL, l);
-            this.watcherTask = new FileWatcherTask(manager::reconfigure, watcherReadURL);
-        }
-        else if ("http".equals(protocol) || "https".equals(protocol))
-        {
-            this.watcherTask = new HttpWatcherTask(manager::reconfigure, config.configPollIntervalSeconds());
-        }
-        else
-        {
-            throw new UnsupportedOperationException();
-        }
+            events,
+            extensions);
 
         this.bindings = bindings;
         this.tasks = tasks;
@@ -255,11 +233,10 @@ public final class Engine implements Collector, AutoCloseable
             worker.doStart();
         }
 
-        watcherTaskRef = watcherTask.submit();
+        // ignore the config file in read-only mode; no config will be read so no namespaces, bindings, etc. will be attached
         if (!readonly)
         {
-            // ignore the config file in read-only mode; no config will be read so no namespaces, bindings, etc will be attached
-            watcherTask.watch(configURL).get();
+            manager.start();
         }
     }
 
@@ -273,8 +250,7 @@ public final class Engine implements Collector, AutoCloseable
 
         final List<Throwable> errors = new ArrayList<>();
 
-        watcherTask.close();
-        watcherTaskRef.get();
+        manager.close();
 
         for (EngineWorker worker : workers)
         {
@@ -311,52 +287,24 @@ public final class Engine implements Collector, AutoCloseable
         return context;
     }
 
+    public EventsLayout.EventAccessor createEventAccessor()
+    {
+        return eventsLayout.createEventAccessor();
+    }
+
+    public MessageConsumer supplyEventWriter()
+    {
+        return this.eventsLayout::writeEvent;
+    }
+
+    public Clock clock()
+    {
+        return Clock.systemUTC();
+    }
+
     public static EngineBuilder builder()
     {
         return new EngineBuilder();
-    }
-
-    private String readURL(
-        URL configURL,
-        String location)
-    {
-        String output = null;
-        try
-        {
-            final URL fileURL = new URL(configURL, location);
-            if ("http".equals(fileURL.getProtocol()) || "https".equals(fileURL.getProtocol()))
-            {
-                HttpClient client = HttpClient.newBuilder()
-                    .version(HTTP_2)
-                    .followRedirects(NORMAL)
-                    .build();
-
-                HttpRequest request = HttpRequest.newBuilder()
-                    .GET()
-                    .uri(fileURL.toURI())
-                    .build();
-
-                HttpResponse<String> response = client.send(
-                    request,
-                    HttpResponse.BodyHandlers.ofString());
-
-                output = response.body();
-            }
-            else
-            {
-
-                URLConnection connection = fileURL.openConnection();
-                try (InputStream input = connection.getInputStream())
-                {
-                    output = new String(input.readAllBytes(), UTF_8);
-                }
-            }
-        }
-        catch (IOException | URISyntaxException | InterruptedException ex)
-        {
-            output = "";
-        }
-        return output;
     }
 
     private Thread newTaskThread(
@@ -522,20 +470,30 @@ public final class Engine implements Collector, AutoCloseable
         return worker.supplyTypeId(label);
     }
 
+    public long supplyNamespacedId(
+        String namespace,
+        String name)
+    {
+        final int namespaceId = supplyLabelId(namespace);
+        final int bindingId = supplyLabelId(name);
+        return NamespacedId.id(namespaceId, bindingId);
+    }
+
     private final class EventReader implements MessageReader
     {
         private final EventsLayout.EventAccessor[] accessors;
         private final EventFW eventRO = new EventFW();
-        private int minWorkerIndex;
+        private int minAccessorIndex;
         private long minTimeStamp;
 
         EventReader()
         {
-            accessors = new EventsLayout.EventAccessor[workers.size()];
+            accessors = new EventsLayout.EventAccessor[workers.size() + 1];
             for (int i = 0; i < workers.size(); i++)
             {
                 accessors[i] = workers.get(i).createEventAccessor();
             }
+            accessors[workers.size()] = createEventAccessor();
         }
 
         @Override
@@ -548,18 +506,18 @@ public final class Engine implements Collector, AutoCloseable
             while (!empty && messagesRead < messageCountLimit)
             {
                 int eventCount = 0;
-                minWorkerIndex = 0;
+                minAccessorIndex = 0;
                 minTimeStamp = Long.MAX_VALUE;
-                for (int j = 0; j < workers.size(); j++)
+                for (int j = 0; j < accessors.length; j++)
                 {
-                    final int workerIndex = j;
-                    int eventPeeked = accessors[workerIndex].peekEvent((m, b, i, l) ->
+                    final int accessorIndex = j;
+                    int eventPeeked = accessors[accessorIndex].peekEvent((m, b, i, l) ->
                     {
                         eventRO.wrap(b, i, i + l);
                         if (eventRO.timestamp() < minTimeStamp)
                         {
                             minTimeStamp = eventRO.timestamp();
-                            minWorkerIndex = workerIndex;
+                            minAccessorIndex = accessorIndex;
                         }
                     });
                     eventCount += eventPeeked;
@@ -567,7 +525,7 @@ public final class Engine implements Collector, AutoCloseable
                 empty = eventCount == 0;
                 if (!empty)
                 {
-                    messagesRead += accessors[minWorkerIndex].readEvent(handler, 1);
+                    messagesRead += accessors[minAccessorIndex].readEvent(handler, 1);
                 }
             }
             return messagesRead;

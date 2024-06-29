@@ -50,11 +50,21 @@ public class EventIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("client.event.yaml")
+    @Configuration("client.event.api.version.rejected.yaml")
     @Specification({
         "${app}/invalid.describe.config/client",
         "${net}/invalid.describe.config/server"})
     public void shouldHandleInvalidDescribeConfig() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.event.cluster.authorization.failed.yaml")
+    @Specification({
+        "${app}/invalid.describe.config.cluster.authorization.error/client",
+        "${net}/invalid.describe.config.cluster.authorization.error/server"})
+    public void shouldHandleInvalidDescribeConfigClusterAuthorizationError() throws Exception
     {
         k3po.finish();
     }

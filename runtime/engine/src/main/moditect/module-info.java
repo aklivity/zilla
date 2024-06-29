@@ -53,6 +53,9 @@ module io.aklivity.zilla.runtime.engine
     requires org.slf4j;
     requires io.aklivity.zilla.runtime.common;
 
+    provides io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi
+        with io.aklivity.zilla.runtime.engine.internal.event.EngineEventFormatterFactory;
+
     uses io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
     uses io.aklivity.zilla.runtime.engine.config.CompositeBindingAdapterSpi;
     uses io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;

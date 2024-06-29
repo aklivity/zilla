@@ -16,8 +16,8 @@
 package io.aklivity.zilla.runtime.engine;
 
 import java.net.InetAddress;
-import java.net.URL;
 import java.nio.channels.SelectableChannel;
+import java.nio.file.Path;
 import java.time.Clock;
 import java.util.function.LongSupplier;
 
@@ -157,8 +157,8 @@ public interface EngineContext
     ConverterHandler supplyWriteConverter(
         ModelConfig config);
 
-    URL resolvePath(
-        String path);
+    Path resolvePath(
+        String location);
 
     Metric resolveMetric(
         String name);

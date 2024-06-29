@@ -25,7 +25,6 @@ import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.IOException;
 import java.net.URI;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -127,11 +126,9 @@ public final class ZillaStartCommand extends ZillaCommand
 
         EngineConfiguration config = new EngineConfiguration(props);
 
-        URL configURL = config.configURL();
-        if ("file".equals(configURL.getProtocol()))
+        Path configPath = Path.of(config.configURI());
+        if ("file".equals(configPath.getFileSystem().provider().getScheme()))
         {
-            final Path configPath = Paths.get(configURL.getPath());
-
             if (configPath.endsWith("zilla.yaml") && Files.notExists(configPath))
             {
                 Path configJson = configPath.resolveSibling("zilla.json");

@@ -48,8 +48,8 @@ read closed
 
 
 connect "zilla://streams/app0"
-option zilla:window 8192
-option zilla:transmission "duplex"
+    option zilla:window 8192
+    option zilla:transmission "duplex"
 
 connected
 
@@ -57,6 +57,6 @@ write abort
 read abort
 
 connect "zilla://streams/app1"
-option zilla:window 8192
-option zilla:transmission "duplex"
+    option zilla:window 8192
+    option zilla:transmission "duplex"
 connected

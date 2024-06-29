@@ -22,6 +22,7 @@ import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 
 import java.net.URL;
+import java.nio.file.Path;
 
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -41,13 +42,14 @@ public class FilesystemIT
     private EngineContext context = mock(EngineContext.class);
 
     @Before
-    public void setup()
+    public void setup() throws Exception
     {
         config = new FilesystemOptionsConfig(singletonList(
             new FilesystemSchemaConfig("subject1", "asyncapi/mqtt.yaml")));
 
         URL url = FilesystemIT.class.getResource("../../../../specs/catalog/filesystem/config/asyncapi/mqtt.yaml");
-        Mockito.doReturn(url).when(context).resolvePath("asyncapi/mqtt.yaml");
+        Path path = Path.of(url.toURI());
+        Mockito.doReturn(path).when(context).resolvePath("asyncapi/mqtt.yaml");
     }
 
     @Test

@@ -97,6 +97,11 @@ spec:
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
+            {{- if .Values.volumeMounts }}
+              {{- with .Values.volumeMounts }}
+                {{- toYaml . | nindent 12 }}
+              {{- end }}
+            {{- end }}
             {{- if index .Values "zilla.yaml" }}
             - name: {{ include "zilla.fullname" . }}
               mountPath: {{ .Values.configPath }}
@@ -127,6 +132,11 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       volumes:
+        {{- if .Values.volumes }}
+          {{- with .Values.volumes }}
+            {{- toYaml . | nindent 8 }}
+          {{- end }}
+        {{- end }}
         {{- if index .Values "zilla.yaml" }}
         - name: {{ include "zilla.fullname" . }}
           configMap:

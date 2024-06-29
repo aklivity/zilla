@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.catalog.filesystem.internal.config;
 
+import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Function;
 
@@ -37,6 +38,18 @@ public class FilesystemOptionsConfig extends OptionsConfig
     public FilesystemOptionsConfig(
         List<FilesystemSchemaConfig> subjects)
     {
+        super(List.of(), resolveResources(subjects));
         this.subjects = subjects;
+    }
+
+    private static List<String> resolveResources(
+        List<FilesystemSchemaConfig> subjects)
+    {
+        List<String> resources = new LinkedList<>();
+        for (FilesystemSchemaConfig subject : subjects)
+        {
+            resources.add(subject.path);
+        }
+        return resources;
     }
 }
