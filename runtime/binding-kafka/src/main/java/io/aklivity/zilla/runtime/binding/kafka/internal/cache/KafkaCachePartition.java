@@ -749,8 +749,11 @@ public final class KafkaCachePartition
             {
                 final ValueConsumer writeKey = (buffer, index, length) ->
                 {
-                    Varint32FW newLength = varIntRW.set(length).build();
-                    logFile.appendBytes(newLength);
+                    if (length == 5)
+                    {
+                        Varint32FW newLength = varIntRW.set(length + 36).build();
+                        logFile.appendBytes(newLength);
+                    }
                     logFile.appendBytes(buffer, index, length);
                 };
 

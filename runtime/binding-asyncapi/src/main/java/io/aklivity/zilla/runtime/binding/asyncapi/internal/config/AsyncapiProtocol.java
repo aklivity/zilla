@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiMessage;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiMessageView;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiSchemaView;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
@@ -139,6 +140,25 @@ public abstract class AsyncapiProtocol
             .version(VERSION_LATEST)
             .subject(schema)
             .build();
+        return cataloged;
+    }
+
+    protected <C> CatalogedConfigBuilder<C> injectValueSchemas(
+        CatalogedConfigBuilder<C> cataloged,
+        Asyncapi asyncapi,
+        Map<String, AsyncapiMessage> messages)
+    {
+        for (Map.Entry<String, AsyncapiMessage> messageEntry : messages.entrySet())
+        {
+            AsyncapiMessageView message =
+                AsyncapiMessageView.of(asyncapi.components.messages, messageEntry.getValue());
+            String schema = AsyncapiSchemaView.of(asyncapi.components.schemas, message.payload()).refKey();
+            cataloged.schema()
+                .version(VERSION_LATEST)
+                .subject(schema)
+                .build();
+        }
+
         return cataloged;
     }
 

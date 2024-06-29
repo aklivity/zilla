@@ -74,7 +74,7 @@ public final class AsyncapiMessageView extends AsyncapiResolvable<AsyncapiMessag
         Map<String, AsyncapiMessage> messages,
         AsyncapiMessage message)
     {
-        super(messages, "#/components/messages/(\\w+)");
+        super(messages, "#/components/messages/(.+)");
         this.message = message.ref == null ? message : resolveRef(message.ref);
     }
 }
