@@ -15,19 +15,25 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.catalog;
 
+import org.agrona.DirectBuffer;
+
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.internal.types.String8FW;
+import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogOptionsConfig;
 
 public class TestCatalogHandler implements CatalogHandler
 {
     private final String schema;
     private final int id;
+    private final DirectBuffer prefix;
 
     public TestCatalogHandler(
         TestCatalogOptionsConfig options)
     {
         this.id = options != null ? options.id : NO_SCHEMA_ID;
         this.schema = options != null ? options.schema : null;
+        this.prefix = options != null ? new String8FW(options.prefix).value() : null;
     }
 
     @Override
@@ -43,5 +49,45 @@ public class TestCatalogHandler implements CatalogHandler
         int schemaId)
     {
         return schemaId == id ? schema : null;
+    }
+
+    @Override
+    public int decode(
+        long traceId,
+        long bindingId,
+        DirectBuffer data,
+        int index,
+        int length,
+        ValueConsumer next,
+        Decoder decoder)
+    {
+        int offset = prefix != null ? prefix.capacity() : 0;
+        return decoder.accept(traceId, bindingId, NO_SCHEMA_ID, data, index + offset, length - offset, next);
+    }
+
+    @Override
+    public int encode(
+        long traceId,
+        long bindingId,
+        int schemaId,
+        DirectBuffer data,
+        int index,
+        int length,
+        ValueConsumer next,
+        Encoder encoder)
+    {
+        if (prefix != null)
+        {
+            next.accept(prefix, 0, prefix.capacity());
+        }
+        int valLength = encoder.accept(traceId, bindingId, schemaId, data, index, length, next);
+        return valLength > 0 ? prefix.capacity() + valLength : -1;
+    }
+
+    @Override
+    public int encodePadding(
+        int length)
+    {
+        return prefix != null ? prefix.capacity() : 0;
     }
 }

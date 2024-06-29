@@ -42,6 +42,10 @@
                             "id":
                             {
                                 "type": "integer"
+                            },
+                            "prefix":
+                            {
+                                "type": "string"
                             }
                         },
                         "additionalProperties": false
