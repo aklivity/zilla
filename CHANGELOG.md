@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.9.84](https://github.com/aklivity/zilla/tree/0.9.84) (2024-06-29)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.83...0.9.84)
+
+**Implemented enhancements:**
+
+- Verify public-private key pair obtained from vault used for TLS handshake [\#1073](https://github.com/aklivity/zilla/issues/1073)
+
+**Closed issues:**
+
+- feat: improve troubleshooting capabilities [\#903](https://github.com/aklivity/zilla/issues/903)
+
+**Merged pull requests:**
+
+- Use default config when missing [\#1118](https://github.com/aklivity/zilla/pull/1118) ([jfallows](https://github.com/jfallows))
+- Require test exporter event properties via test schema [\#1117](https://github.com/aklivity/zilla/pull/1117) ([jfallows](https://github.com/jfallows))
+- Include engine test sources JAR in release [\#1116](https://github.com/aklivity/zilla/pull/1116) ([jfallows](https://github.com/jfallows))
+- Generate asyncapi  schema catalog with avro, protobuf format support [\#1113](https://github.com/aklivity/zilla/pull/1113) ([akrambek](https://github.com/akrambek))
+- Add logging of cluster authorization failed error to kafka binding [\#1112](https://github.com/aklivity/zilla/pull/1112) ([attilakreiner](https://github.com/attilakreiner))
+- Verify public-private tls key pair [\#1108](https://github.com/aklivity/zilla/pull/1108) ([attilakreiner](https://github.com/attilakreiner))
+
 ## [0.9.83](https://github.com/aklivity/zilla/tree/0.9.83) (2024-06-28)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.82...0.9.83)
