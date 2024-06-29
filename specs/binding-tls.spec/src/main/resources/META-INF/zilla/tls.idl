@@ -23,7 +23,20 @@ scope tls
             TLS_PROTOCOL_REJECTED (2),
             TLS_KEY_REJECTED (3),
             TLS_PEER_NOT_VERIFIED (4),
-            TLS_HANDSHAKE_FAILED (5)
+            TLS_HANDSHAKE_FAILED (5),
+            TLS_KEY_VERIFICATION_FAILED (6)
+        }
+
+        enum TlsKeyFailureType (uint8)
+        {
+            TLS_KEY_MISSING (1),
+            TLS_KEY_INVALID (2)
+        }
+
+        struct TlsKeyVerificationFailedEx extends core::stream::Extension
+        {
+            TlsKeyFailureType failureType;
+            string8 keyName;
         }
 
         union TlsEventEx switch (TlsEventType)
@@ -33,6 +46,7 @@ scope tls
             case TLS_KEY_REJECTED: core::stream::Extension tlsKeyRejected;
             case TLS_PEER_NOT_VERIFIED: core::stream::Extension tlsPeerNotVerified;
             case TLS_HANDSHAKE_FAILED: core::stream::Extension tlsHandshakeFailed;
+            case TLS_KEY_VERIFICATION_FAILED: TlsKeyVerificationFailedEx tlsKeyVerificationFailed;
         }
     }
 }

@@ -98,15 +98,11 @@ public final class TestExporterOptionsConfigAdapter implements OptionsConfigAdap
                 for (JsonValue e : events)
                 {
                     JsonObject e0 = e.asJsonObject();
-                    if (e0.containsKey(QNAME_NAME) && e0.containsKey(MESSAGE_NAME))
-                    {
-                        testOptions.event(
-                                e0.getString(QNAME_NAME),
-                                e0.getString(ID_NAME),
-                                e0.getString(NAME_NAME),
-                                e0.getString(MESSAGE_NAME)
-                        );
-                    }
+                    testOptions.event(
+                        e0.getString(QNAME_NAME),
+                        e0.getString(ID_NAME),
+                        e0.getString(NAME_NAME),
+                        e0.getString(MESSAGE_NAME));
                 }
             }
         }

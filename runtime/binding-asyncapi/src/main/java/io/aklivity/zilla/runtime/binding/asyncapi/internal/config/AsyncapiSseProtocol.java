@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.config;
 
-import static io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiNamespaceGenerator.APPLICATION_JSON;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 
@@ -27,14 +26,15 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiChannel
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiMessage;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiOperation;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiChannelView;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiMessageView;
 import io.aklivity.zilla.runtime.binding.sse.config.SseConditionConfig;
 import io.aklivity.zilla.runtime.binding.sse.config.SseOptionsConfig;
 import io.aklivity.zilla.runtime.binding.sse.config.SseOptionsConfigBuilder;
+import io.aklivity.zilla.runtime.binding.sse.config.SsePathConfigBuilder;
 import io.aklivity.zilla.runtime.common.feature.Incubating;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.MetricRefConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
-import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
 @Incubating
 public class AsyncapiSseProtocol extends AsyncapiProtocol
@@ -152,21 +152,36 @@ public class AsyncapiSseProtocol extends AsyncapiProtocol
             {
                 String path = channelEntry.getValue().address.replaceAll("\\{[^}]+\\}", "*");
                 Map<String, AsyncapiMessage> messages = channelEntry.getValue().messages;
-                if (hasJsonContentType(asyncapi))
+                if (messages != null)
                 {
                     options
                         .request()
                         .path(path)
-                        .content(JsonModelConfig::builder)
-                            .catalog()
-                                .name(INLINE_CATALOG_NAME)
-                                .inject(cataloged -> injectJsonSchemas(cataloged, asyncapi, messages, APPLICATION_JSON))
-                                .build()
-                            .build()
+                        .inject(c -> injectValue(c, asyncapi, messages))
                         .build();
                 }
             }
         }
         return options;
+    }
+
+    private <C> SsePathConfigBuilder<C> injectValue(
+        SsePathConfigBuilder<C> request,
+        Asyncapi asyncapi,
+        Map<String, AsyncapiMessage> messages)
+    {
+        if (messages != null)
+        {
+            for (Map.Entry<String, AsyncapiMessage> messageEntry : messages.entrySet())
+            {
+                AsyncapiMessageView message =
+                    AsyncapiMessageView.of(asyncapi.components.messages, messageEntry.getValue());
+                if (message.payload() != null)
+                {
+                    request.content(injectModel(asyncapi, message));
+                }
+            }
+        }
+        return request;
     }
 }

@@ -19,14 +19,17 @@ import java.util.Map;
 
 import jakarta.json.bind.annotation.JsonbProperty;
 
-public class AsyncapiSchema extends AsyncapiItem
+public class AsyncapiSchema extends AsyncapiSchemaItem
 {
     public String type;
     public AsyncapiSchema items;
-    public Map<String, AsyncapiItem> properties;
+    public Map<String, AsyncapiSchema> properties;
     public List<String> required;
     public String format;
-
-    @JsonbProperty("$ref")
-    public String ref;
+    public String description;
+    public Integer minimum;
+    public Integer maximum;
+    @JsonbProperty("enum")
+    public List<String> values;
+    public AsyncapiSchema schema;
 }

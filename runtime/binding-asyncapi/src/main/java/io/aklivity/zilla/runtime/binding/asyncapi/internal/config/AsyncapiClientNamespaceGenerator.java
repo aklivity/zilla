@@ -45,7 +45,7 @@ public class AsyncapiClientNamespaceGenerator extends AsyncapiNamespaceGenerator
                 .name(String.format("%s.%s-%s", qname, "$composite", namespace))
                 .inject(n -> this.injectNamespaceMetric(n, !metricRefs.isEmpty()))
                 .inject(n -> this.injectCatalog(n, namespaceConfig.asyncapis))
-                .inject(n -> this.injectProtocolClients(n, servers, metricRefs))
+                .inject(n -> this.injectProtocolClients(n, servers, metricRefs, options))
                 .inject(n -> this.injectProtocolRelatedBindings(n, servers, metricRefs))
                 .inject(n -> this.injectTlsClient(n, options, metricRefs))
                 .inject(n -> this.injectTcpClient(n, servers, options, metricRefs))
@@ -77,7 +77,8 @@ public class AsyncapiClientNamespaceGenerator extends AsyncapiNamespaceGenerator
     private <C> NamespaceConfigBuilder<C> injectProtocolClients(
         NamespaceConfigBuilder<C> namespace,
         List<AsyncapiServerView> servers,
-        List<MetricRefConfig> metricRefs)
+        List<MetricRefConfig> metricRefs,
+        AsyncapiOptionsConfig options)
     {
         for (AsyncapiServerView server : servers)
         {
@@ -85,7 +86,7 @@ public class AsyncapiClientNamespaceGenerator extends AsyncapiNamespaceGenerator
             final String scheme = protocol.scheme;
             final String exit = "sse".equals(scheme) ? "http_client0" : isTlsEnabled ? "tls_client0" : "tcp_client0";
             namespace = namespace
-                .inject(n -> protocol.injectProtocolClientCache(n, metricRefs))
+                .inject(n -> protocol.injectProtocolClientCache(n, metricRefs, options))
                 .binding()
                     .name(String.format("%s_client0", scheme))
                     .type(scheme)

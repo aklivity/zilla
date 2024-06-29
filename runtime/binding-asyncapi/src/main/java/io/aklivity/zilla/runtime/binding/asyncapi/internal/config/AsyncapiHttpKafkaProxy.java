@@ -26,6 +26,7 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiChannel
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiMessage;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiOperation;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiReply;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiSchema;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiChannelView;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiCorrelationIdView;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiMessageView;
@@ -274,7 +275,7 @@ public class AsyncapiHttpKafkaProxy extends AsyncapiProxy
             AsyncapiMessageView messageView = AsyncapiMessageView.of(httpAsyncapi.components.messages, message.getValue());
             AsyncapiSchemaView schema = AsyncapiSchemaView.of(httpAsyncapi.components.schemas, messageView.payload());
 
-            if (schema != null && "array".equals(schema.getType()))
+            if ("array".equals(schema.getType()))
             {
                 fetch.merged(HttpKafkaWithFetchMergeConfig.builder()
                     .contentType("application/json")
@@ -321,7 +322,8 @@ public class AsyncapiHttpKafkaProxy extends AsyncapiProxy
                     if (headerLocation.reset(correlationId.location()).find())
                     {
                         String headerName = headerLocation.group(1);
-                        String location = message.headers().properties.get(headerName).format;
+                        AsyncapiSchema asyncapiSchemaItem = (AsyncapiSchema) message.headers().properties.get(headerName);
+                        String location = asyncapiSchemaItem.format;
                         location = location.replaceAll(CORRELATION_ID, "\\${correlationId}");
                         location = location.replaceAll(PARAMETERS, "\\${params.$1}");
                         produce.async(HttpKafkaWithProduceAsyncHeaderConfig.builder()

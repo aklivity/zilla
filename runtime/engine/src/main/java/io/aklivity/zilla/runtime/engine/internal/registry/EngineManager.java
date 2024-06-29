@@ -154,16 +154,18 @@ public class EngineManager
         reconfigure:
         try
         {
-            if (!Files.exists(watchedPath))
+            String newConfigText = Files.exists(configPath) ? Files.readString(configPath) : null;
+            if (newConfigText == null || newConfigText.isEmpty())
             {
-                break reconfigure;
+                newConfigText = CONFIG_TEXT_DEFAULT;
             }
 
-            String newConfigText = Files.readString(configPath);
             if (Objects.equals(currentText, newConfigText))
             {
                 break reconfigure;
             }
+
+            logger.accept(newConfigText);
 
             newConfig = parse(newConfigText);
             if (newConfig != null)
@@ -211,13 +213,6 @@ public class EngineManager
         String configText)
     {
         EngineConfig engine = null;
-
-        if (configText == null || configText.isEmpty())
-        {
-            configText = CONFIG_TEXT_DEFAULT;
-        }
-
-        logger.accept(configText);
 
         try
         {

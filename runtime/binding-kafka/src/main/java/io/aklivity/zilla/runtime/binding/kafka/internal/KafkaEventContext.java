@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.kafka.internal;
 
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaEventType.API_VERSION_REJECTED;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaEventType.AUTHORIZATION_FAILED;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaEventType.CLUSTER_AUTHORIZATION_FAILED;
 
 import java.nio.ByteBuffer;
 import java.time.Clock;
@@ -40,6 +41,7 @@ public class KafkaEventContext
     private final int kafkaTypeId;
     private final int authorizationFailedEventId;
     private final int apiVersionRejectedEventId;
+    private final int clusterAuthorizationFailedEventId;
     private final MessageConsumer eventWriter;
     private final Clock clock;
 
@@ -49,6 +51,7 @@ public class KafkaEventContext
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.authorizationFailedEventId = context.supplyEventId("binding.kafka.authorization.failed");
         this.apiVersionRejectedEventId = context.supplyEventId("binding.kafka.api.version.rejected");
+        this.clusterAuthorizationFailedEventId = context.supplyEventId("binding.kafka.cluster.authorization.failed");
         this.eventWriter = context.supplyEventWriter();
         this.clock = context.clock();
     }
@@ -93,6 +96,31 @@ public class KafkaEventContext
         EventFW event = eventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .id(apiVersionRejectedEventId)
+            .timestamp(clock.millis())
+            .traceId(traceId)
+            .namespacedId(bindingId)
+            .extension(extension.buffer(), extension.offset(), extension.limit())
+            .build();
+        eventWriter.accept(kafkaTypeId, event.buffer(), event.offset(), event.limit());
+    }
+
+    public void clusterAuthorizationFailed(
+        long traceId,
+        long bindingId,
+        int apiKey,
+        int apiVersion)
+    {
+        KafkaEventExFW extension = kafkaEventExRW
+            .wrap(extensionBuffer, 0, extensionBuffer.capacity())
+            .clusterAuthorizationFailed(e -> e
+                .typeId(CLUSTER_AUTHORIZATION_FAILED.value())
+                .apiKey(apiKey)
+                .apiVersion(apiVersion)
+            )
+            .build();
+        EventFW event = eventRW
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .id(clusterAuthorizationFailedEventId)
             .timestamp(clock.millis())
             .traceId(traceId)
             .namespacedId(bindingId)
