@@ -121,7 +121,8 @@ public final class KafkaCachePartition
     private final MutableDirectBuffer entryInfo = new UnsafeBuffer(new byte[FIELD_OFFSET_KEY]);
     private final MutableDirectBuffer valueInfo = new UnsafeBuffer(new byte[Integer.BYTES]);
 
-    private final Varint32FW.Builder varIntRW = new Varint32FW.Builder().wrap(new UnsafeBuffer(new byte[5]), 0, 5);
+    private final Varint32FW varintRO = new Varint32FW();
+    private final Varint32FW.Builder varintRW = new Varint32FW.Builder().wrap(new UnsafeBuffer(new byte[5]), 0, 5);
     private final Array32FW<KafkaHeaderFW> headersRO = new Array32FW<KafkaHeaderFW>(new KafkaHeaderFW());
     private final Array32FW.Builder<KafkaHeaderFW.Builder, KafkaHeaderFW> trailersRW =
         new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
@@ -451,15 +452,28 @@ public final class KafkaCachePartition
         }
         else
         {
+            final int keyAt = logFile.capacity();
+            Varint32FW initLength = varintRW.set(0).build();
+            logFile.appendBytes(initLength);
+
             final ValueConsumer writeKey = (buffer, index, length) ->
             {
-                Varint32FW newLength = varIntRW.set(length).build();
-                logFile.appendBytes(newLength);
+                Varint32FW progress = logFile.readBytes(keyAt, varintRO::wrap);
+                Varint32FW newLength = varintRW.set(progress.value() + length).build();
+                int keyShift = newLength.sizeof() - progress.sizeof();
+                if (keyShift > 0)
+                {
+                    logFile.readBytes(progress.limit(), octetsRO::wrap);
+                    logFile.writeBytes(newLength.limit(), octetsRO);
+                }
+                logFile.writeBytes(keyAt, newLength);
                 logFile.appendBytes(buffer, index, length);
             };
+
             OctetsFW value = key.value();
-            int converted = convertKey.convert(traceId, bindingId, value.buffer(), value.offset(),
-                value.sizeof(), writeKey);
+            int converted = convertKey.convert(traceId, bindingId,
+                    value.buffer(), value.offset(), value.sizeof(), writeKey);
+
             if (converted == -1)
             {
                 logFile.writeInt(entryMark.value + FIELD_OFFSET_FLAGS, CACHE_ENTRY_FLAGS_ABORTED);
@@ -747,15 +761,26 @@ public final class KafkaCachePartition
             }
             else
             {
+                final int keyAt = logFile.capacity();
+                Varint32FW initLength = varintRW.set(0).build();
+                logFile.appendBytes(initLength);
+
                 final ValueConsumer writeKey = (buffer, index, length) ->
                 {
-                    Varint32FW newLength = varIntRW.set(length).build();
-                    logFile.appendBytes(newLength);
+                    Varint32FW progress = logFile.readBytes(keyAt, varintRO::wrap);
+                    Varint32FW newLength = varintRW.set(progress.value() + length).build();
+                    int keyShift = newLength.sizeof() - progress.sizeof();
+                    if (keyShift > 0)
+                    {
+                        logFile.readBytes(progress.limit(), octetsRO::wrap);
+                        logFile.writeBytes(newLength.limit(), octetsRO);
+                    }
+                    logFile.writeBytes(keyAt, newLength);
                     logFile.appendBytes(buffer, index, length);
                 };
 
-                converted = convertKey.convert(traceId, bindingId, value.buffer(),
-                    value.offset(), value.sizeof(), writeKey);
+                converted = convertKey.convert(traceId, bindingId,
+                    value.buffer(), value.offset(), value.sizeof(), writeKey);
 
                 if (converted == -1)
                 {
