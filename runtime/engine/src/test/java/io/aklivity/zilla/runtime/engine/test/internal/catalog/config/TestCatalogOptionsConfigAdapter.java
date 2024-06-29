@@ -24,9 +24,12 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
 public class TestCatalogOptionsConfigAdapter implements OptionsConfigAdapterSpi
 {
-    private static final String SUBJECT = "subject";
-    private static final String SCHEMA = "schema";
-    private static final String ID = "id";
+    private static final String SUBJECT_NAME = "subject";
+    private static final String SCHEMA_NAME = "schema";
+    private static final String ID_NAME = "id";
+    private static final String PREFIX_NAME = "prefix";
+
+    private static final int ID_DEFAULT = 0;
 
     @Override
     public Kind kind()
@@ -47,10 +50,28 @@ public class TestCatalogOptionsConfigAdapter implements OptionsConfigAdapterSpi
         TestCatalogOptionsConfig config = (TestCatalogOptionsConfig) options;
         JsonObjectBuilder catalog = Json.createObjectBuilder();
 
-        if (config.schema != null &&
-            !config.schema.isEmpty())
+        String subject = config.subject;
+        if (subject != null && !subject.isEmpty())
         {
-            catalog.add(SCHEMA, config.schema);
+            catalog.add(SUBJECT_NAME, subject);
+        }
+
+        String schema = config.schema;
+        if (schema != null && !schema.isEmpty())
+        {
+            catalog.add(SCHEMA_NAME, schema);
+        }
+
+        int id = config.id;
+        if (id != ID_DEFAULT)
+        {
+            catalog.add(SCHEMA_NAME, id);
+        }
+
+        String prefix = config.prefix;
+        if (prefix != null && !prefix.isEmpty())
+        {
+            catalog.add(PREFIX_NAME, prefix);
         }
 
         return catalog.build();
@@ -64,19 +85,24 @@ public class TestCatalogOptionsConfigAdapter implements OptionsConfigAdapterSpi
 
         if (object != null)
         {
-            if (object.containsKey(SUBJECT))
+            if (object.containsKey(SUBJECT_NAME))
             {
-                config.subject(object.getString(SUBJECT));
+                config.subject(object.getString(SUBJECT_NAME));
             }
 
-            if (object.containsKey(SCHEMA))
+            if (object.containsKey(SCHEMA_NAME))
             {
-                config.schema(object.getString(SCHEMA));
+                config.schema(object.getString(SCHEMA_NAME));
             }
 
-            config.id(object.containsKey(ID)
-                ? object.getInt(ID)
-                : 0);
+            config.id(object.containsKey(ID_NAME)
+                ? object.getInt(ID_NAME)
+                : ID_DEFAULT);
+
+            if (object.containsKey(PREFIX_NAME))
+            {
+                config.prefix(object.getString(PREFIX_NAME));
+            }
         }
         return config.build();
     }
