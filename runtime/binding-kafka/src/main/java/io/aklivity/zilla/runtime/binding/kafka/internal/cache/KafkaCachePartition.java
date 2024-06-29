@@ -767,12 +767,15 @@ public final class KafkaCachePartition
 
                 final ValueConsumer writeKey = (buffer, index, length) ->
                 {
-                    if (length == 5)
+                    Varint32FW progress = logFile.readBytes(keyAt, varintRO::wrap);
+                    Varint32FW newLength = varintRW.set(progress.value() + length).build();
+                    int keyShift = newLength.sizeof() - progress.sizeof();
+                    if (keyShift > 0)
                     {
-                        Varint32FW newLength = varIntRW.set(length + 36).build();
-                        logFile.appendBytes(newLength);
+                        logFile.readBytes(progress.limit(), octetsRO::wrap);
+                        logFile.writeBytes(newLength.limit(), octetsRO);
                     }
-
+                    logFile.writeBytes(keyAt, newLength);
                     logFile.appendBytes(buffer, index, length);
                 };
 
