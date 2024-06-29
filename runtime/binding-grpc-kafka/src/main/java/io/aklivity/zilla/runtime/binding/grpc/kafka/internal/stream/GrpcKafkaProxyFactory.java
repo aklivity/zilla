@@ -17,8 +17,11 @@ package io.aklivity.zilla.runtime.binding.grpc.kafka.internal.stream;
 import static io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaWithProduceResult.META_PREFIX;
 import static io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaCapabilities.FETCH_ONLY;
 import static io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaCapabilities.PRODUCE_ONLY;
+import static io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcType.BASE64;
+import static io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcType.TEXT;
 import static java.time.Instant.now;
 
+import java.util.Arrays;
 import java.util.function.LongUnaryOperator;
 
 import org.agrona.DirectBuffer;
@@ -67,6 +70,11 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
 {
     private static final String GRPC_TYPE_NAME = "grpc";
     private static final String KAFKA_TYPE_NAME = "kafka";
+    private static final int META_PREFIX_LENGTH = 5;
+    private static final byte[] HEADER_META_PREFIX = new byte[5];
+    private static final byte[] META_PREFIX = "meta:".getBytes();
+    private static final byte[] HEADER_BIN_SUFFIX = new byte[4];
+    private static final byte[] BIN_SUFFIX = "-bin".getBytes();
 
     private static final int DATA_FLAG_INIT = 0x02;
     private static final int DATA_FLAG_FIN = 0x01;
@@ -1421,11 +1429,20 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
 
             headers.forEach(h ->
             {
-                if (META_PREFIX.equals(h.name().value().getStringWithoutLengthUtf8(0, 5)))
+                final OctetsFW name = h.name();
+                final int offset = name.offset();
+                final int limit = name.limit();
+
+                name.buffer().getBytes(offset, HEADER_META_PREFIX);
+                name.buffer().getBytes(limit - BIN_SUFFIX.length, HEADER_BIN_SUFFIX);
+
+                if (Arrays.equals(META_PREFIX, HEADER_META_PREFIX))
                 {
-                    builder.item(m -> m.type(t -> t.set(GrpcType.TEXT))
-                        .nameLen(h.nameLen() - 5)
-                        .name(h.name().value(), 5, h.nameLen() - 5)
+                    final GrpcType type = Arrays.equals(BIN_SUFFIX, HEADER_BIN_SUFFIX) ? BASE64 : TEXT;
+
+                    builder.item(m -> m.type(t -> t.set(type))
+                        .nameLen(h.nameLen() - META_PREFIX_LENGTH)
+                        .name(h.name().value(), META_PREFIX_LENGTH, h.nameLen() - META_PREFIX_LENGTH)
                         .valueLen(h.valueLen())
                         .value(h.value()));
                 }
