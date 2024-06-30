@@ -188,11 +188,13 @@ public class AyncapiKafkaProtocol extends AsyncapiProtocol
                                 .findFirst()
                                 .orElse(null)
                             : null;
+                        AsyncapiChannelView replyView = AsyncapiChannelView.of(asyncapi.channels, operation.reply.channel);
 
                         options
                             .topic(KafkaTopicConfig::builder)
                                 .name(replyTo)
                                 .inject(topicConfig -> injectHeader(topicConfig, kafkaReply))
+                                .inject(topicConfig -> injectValue(topicConfig, asyncapi, replyView.messages()))
                                 .build()
                             .build();
                     }
@@ -260,7 +262,7 @@ public class AyncapiKafkaProtocol extends AsyncapiProtocol
         if (messages != null)
         {
             AsyncapiMessageView message =
-                AsyncapiMessageView.of(asyncapi.components.messages,  messages.values().stream().findFirst().get());
+                AsyncapiMessageView.of(asyncapi.components.messages, messages.values().stream().findFirst().get());
             String contentType = message.contentType() == null ? asyncapi.defaultContentType : message.contentType();
             ModelConfig model = null;
             if (contentType != null)
