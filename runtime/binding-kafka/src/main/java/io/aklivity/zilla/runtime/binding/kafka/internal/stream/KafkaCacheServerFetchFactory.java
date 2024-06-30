@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.IntFunction;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
@@ -778,8 +779,8 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 }
 
                 partition.writeEntry(context, traceId, routedId, partitionOffset, entryMark, valueMark, 0L, producerId,
-                        EMPTY_KEY, EMPTY_HEADERS, EMPTY_OCTETS, null,
-                        entryFlags, KafkaDeltaType.NONE, convertKey, convertValue, verbose, headerTypes);
+                        EMPTY_KEY, EMPTY_HEADERS, EMPTY_OCTETS,
+                    entryFlags, KafkaDeltaType.NONE, convertKey, convertValue, verbose, headerTypes);
 
                 if (result == KafkaTransactionResult.ABORT)
                 {
@@ -878,11 +879,11 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                     this.deleteId = doServerFanoutInitialSignalAt(deleteAt, traceId, SIGNAL_SEGMENT_DELETE);
                 }
 
+                IntFunction<KafkaCacheEntryFW> findAncestor =
+                    kh -> findAndMarkAncestor(key, nextHead, kh, partitionOffset);
                 final int entryFlags = (flags & FLAGS_SKIP) != 0x00 ? CACHE_ENTRY_FLAGS_ABORTED : 0x00;
-                final long keyHash = partition.computeKeyHash(key);
-                final KafkaCacheEntryFW ancestor = findAndMarkAncestor(key, nextHead, (int) keyHash, partitionOffset);
                 partition.writeEntryStart(context, traceId, routedId, partitionOffset, entryMark, valueMark, timestamp,
-                    producerId, key, keyHash, valueLength, ancestor, entryFlags, deltaType, valueFragment, convertKey,
+                    producerId, key, valueLength, findAncestor, entryFlags, deltaType, valueFragment, convertKey,
                     convertValue, verbose);
             }
 
