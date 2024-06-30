@@ -158,6 +158,9 @@ public class AyncapiKafkaProtocol extends AsyncapiProtocol
                 AsyncapiOperation operation = asyncapi.operations.get(name);
                 AsyncapiChannelView channel = AsyncapiChannelView.of(asyncapi.channels, operation.channel);
                 String topic = channel.address();
+                String replyTo = operation.reply != null
+                    ? AsyncapiChannelView.of(asyncapi.channels, operation.reply.channel).address()
+                    : null;
 
                 if (channel.messages() != null && !channel.messages().isEmpty() ||
                     channel.parameters() != null && !channel.parameters().isEmpty())
@@ -176,6 +179,23 @@ public class AyncapiKafkaProtocol extends AsyncapiProtocol
                             .inject(topicConfig -> injectValue(topicConfig, asyncapi, channel.messages()))
                             .build()
                         .build();
+
+                    if (replyTo != null)
+                    {
+                        KafkaTopicConfig kafkaReply = kafka != null && kafka.topics != null
+                            ? kafka.topics.stream()
+                                .filter(t -> t.name.equals(replyTo))
+                                .findFirst()
+                                .orElse(null)
+                            : null;
+
+                        options
+                            .topic(KafkaTopicConfig::builder)
+                                .name(replyTo)
+                                .inject(topicConfig -> injectHeader(topicConfig, kafkaReply))
+                                .build()
+                            .build();
+                    }
                 }
             }
         }
@@ -201,7 +221,7 @@ public class AyncapiKafkaProtocol extends AsyncapiProtocol
     {
         if (kafkaTopic != null)
         {
-            kafkaTopic.headers.forEach(h -> topic.header(h.name.asString(), h.path));
+            kafkaTopic.headers.forEach(h -> topic.header(h.name, h.path));
 
         }
         return topic;
