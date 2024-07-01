@@ -4,7 +4,7 @@ set -ex
 # Install Zilla to the Kubernetes cluster with helm and wait for the pod to start up
 ZILLA_CHART="${ZILLA_CHART:-oci://ghcr.io/aklivity/charts/zilla}"
 ZILLA_VERSION="${ZILLA_VERSION:-^0.9.0}"
-NAMESPACE="${NAMESPACE:-mqtt-proxy-asyncapi}"
+NAMESPACE="${NAMESPACE:-asyncapi-mqtt-proxy}"
 helm upgrade --install zilla $ZILLA_CHART --version $ZILLA_VERSION --namespace $NAMESPACE --create-namespace --wait \
     --values values.yaml \
     --set-file zilla\\.yaml=zilla.yaml \

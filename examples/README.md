@@ -63,6 +63,11 @@ Options:
 
 | Name                                                               | Description                                                                                         |
 |--------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------|
+| [asyncapi.mqtt.proxy](asyncapi.mqtt.proxy)                         | Forwards validated MQTT publish messages and proxies subscribes to an MQTT broker                   |
+| [asyncapi.mqtt.kafka.proxy](asyncapi.mqtt.kafka.proxy)             | Forwards MQTT publish messages to Kafka, broadcasting to all subscribed MQTT clients                |
+| [asyncapi.http.kafka.proxy](asyncapi.http.kafka.proxy)             | Correlates HTTP requests and responses over separate Kafka topics                                   |
+| [asyncapi.sse.proxy](asyncapi.sse.proxy)                           | Proxies validated messages delivered by the SSE server                                              |
+| [asyncapi.sse.kafka.proxy](asyncapi.sse.kafka.proxy)               | Streams messages published to a Kafka topic over SSE                                                |
 | [tcp.echo](tcp.echo)                                               | Echoes bytes sent to the TCP server                                                                 |
 | [tcp.reflect](tcp.reflect)                                         | Echoes bytes sent to the TCP server, broadcasting to all TCP clients                                |
 | [tls.echo](tls.echo)                                               | Echoes encrypted bytes sent to the TLS server                                                       |
@@ -90,10 +95,6 @@ Options:
 | [amqp.reflect](amqp.reflect)                                       | Echoes messages published to the AMQP server, broadcasting to all receiving AMQP clients            |
 | [mqtt.kafka.broker](mqtt.kafka.broker)                             | Forwards MQTT publish messages to Kafka, broadcasting to all subscribed MQTT clients                |
 | [mqtt.kafka.broker.jwt](mqtt.kafka.broker.jwt)                     | Forwards MQTT publish messages to Kafka, broadcasting to all subscribed JWT-authorized MQTT clients |
-| [asyncapi.mqtt.proxy](asyncapi.mqtt.proxy)                         | Forwards validated MQTT publish messages and proxies subscribes to an MQTT broker                   |
-| [asyncapi.mqtt.kafka.proxy](asyncapi.mqtt.kafka.proxy)             | Mediate MQTT broker messages onto Kafka topics while validating them                                |
-| [asyncapi.http.kafka.proxy](asyncapi.http.kafka.proxy)             | Implement the common Petstore AsyncAPI example where requests are proxied to Kafka.                 |
-| [asyncapi.sse.proxy](asyncapi.sse.proxy)                           | Proxies validated messages delivered by the SSE server                                              |
 | [quickstart](quickstart)                                           | Starts endpoints for all protocols (HTTP, SSE, gRPC, MQTT)                                          |
 | [sse.kafka.fanout](sse.kafka.fanout)                               | Streams messages published to a Kafka topic, applying conflation based on log compaction            |
 | [sse.proxy.jwt](sse.proxy.jwt)                                     | Proxies messages delivered by the SSE server, enforcing streaming security constraints              |

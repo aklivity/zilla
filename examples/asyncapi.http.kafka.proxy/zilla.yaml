@@ -1,0 +1,65 @@
+---
+name: zilla-http-kafka-asyncapi
+catalogs:
+  host_filesystem:
+    type: filesystem
+    options:
+      subjects:
+        http:
+          path: specs/http-asyncapi.yaml
+        kafka:
+          path: specs/kafka-asyncapi.yaml
+bindings:
+  north_http_server:
+    type: asyncapi
+    kind: server
+    options:
+      specs:
+        http_api:
+          catalog:
+            host_filesystem:
+              subject: http
+              version: latest
+    exit: south_kafka_proxy
+  south_kafka_proxy:
+    type: asyncapi
+    kind: proxy
+    options:
+      specs:
+        http_api:
+          catalog:
+            host_filesystem:
+              subject: http
+              version: latest
+        kafka_api:
+          catalog:
+            host_filesystem:
+              subject: kafka
+              version: latest
+    routes:
+      - when:
+          - api-id: http_api
+            operation-id: createPets
+        exit: south_kafka_client
+        with:
+          api-id: kafka_api
+          operation-id: addPet
+      - when:
+          - api-id: http_api
+        exit: south_kafka_client
+        with:
+          api-id: kafka_api
+  south_kafka_client:
+    type: asyncapi
+    kind: client
+    options:
+      specs:
+        kafka_api:
+          catalog:
+            host_filesystem:
+              subject: kafka
+              version: latest
+telemetry:
+  exporters:
+    stdout_exporter:
+      type: stdout

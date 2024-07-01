@@ -1,4 +1,4 @@
-# mqtt.proxy.asyncapi
+# asyncapi.mqtt.proxy
 
 Listens on mqtt port `7183` and will forward mqtt publish messages and proxies subscribes to mosquitto MQTT broker listening on `1883` for topic `smartylighting/streetlights/1/0/event/+/lighting/measured`.
 
@@ -26,10 +26,10 @@ The `setup.sh` script:
 
 ```text
 + ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
-+ helm upgrade --install mqtt-proxy-asyncapi oci://ghcr.io/aklivity/charts/zilla --namespace mqtt-proxy-asyncapi --create-namespace --wait --values values.yaml --set-file 'zilla\.yaml=zilla.yaml'
-NAME: mqtt-proxy-asyncapi
++ helm upgrade --install asyncapi-mqtt-proxy oci://ghcr.io/aklivity/charts/zilla --namespace asyncapi-mqtt-proxy --create-namespace --wait --values values.yaml --set-file 'zilla\.yaml=zilla.yaml'
+NAME: asyncapi-mqtt-proxy
 LAST DEPLOYED: [...]
-NAMESPACE: mqtt-proxy-asyncapi
+NAMESPACE: asyncapi-mqtt-proxy
 STATUS: deployed
 REVISION: 1
 NOTES:
@@ -41,16 +41,16 @@ NAMESPACE: zilla-mqtt-kafka-reflect
 STATUS: deployed
 REVISION: 1
 TEST SUITE: None
-+ helm upgrade --install mqtt-proxy-asyncapi-mosquitto chart --namespace mqtt-proxy-asyncapi --create-namespace --wait
-NAME: mqtt-proxy-asyncapi-mosquitto
++ helm upgrade --install asyncapi-mqtt-proxy-mosquitto chart --namespace asyncapi-mqtt-proxy --create-namespace --wait
+NAME: asyncapi-mqtt-proxy-mosquitto
 LAST DEPLOYED: Tue Sep 19 18:15:07 2023
-NAMESPACE: mqtt-proxy-asyncapi
+NAMESPACE: asyncapi-mqtt-proxy
 STATUS: deployed
 REVISION: 1
 TEST SUITE: None
-+ kubectl port-forward --namespace mqtt-proxy-asyncapi service/mqtt-proxy-asyncapi-zilla 7183
++ kubectl port-forward --namespace asyncapi-mqtt-proxy service/asyncapi-mqtt-proxy-zilla 7183
 + nc -z localhost 7183
-+ kubectl port-forward --namespace mqtt-proxy-asyncapi service/mosquitto 1883
++ kubectl port-forward --namespace asyncapi-mqtt-proxy service/mosquitto 1883
 + sleep 1
 + nc -z localhost 7183
 Connection to localhost port 7183 [tcp/ibm-mqisdp] succeeded!
@@ -132,9 +132,9 @@ output:
 99998
 99999
 + killall kubectl
-+ helm uninstall mqtt-proxy-asyncapi mqtt-proxy-asyncapi-mosquitto --namespace mqtt-proxy-asyncapi
-release "mqtt-proxy-asyncapi" uninstalled
-release "mqtt-proxy-asyncapi-mosquitto" uninstalled
-+ kubectl delete namespace mqtt-proxy-asyncapi
-namespace "mqtt-proxy-asyncapi" deleted
++ helm uninstall asyncapi-mqtt-proxy asyncapi-mqtt-proxy-mosquitto --namespace asyncapi-mqtt-proxy
+release "asyncapi-mqtt-proxy" uninstalled
+release "asyncapi-mqtt-proxy-mosquitto" uninstalled
++ kubectl delete namespace asyncapi-mqtt-proxy
+namespace "asyncapi-mqtt-proxy" deleted
 ```

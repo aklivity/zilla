@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-NAMESPACE="${NAMESPACE:-zilla-mqtt-kafka-asyncapi-proxy}"
+NAMESPACE="${NAMESPACE:-zilla-asyncapi-mqtt-kafka-proxy}"
 export ZILLA_VERSION="${ZILLA_VERSION:-latest}"
 export KAFKA_BROKER="${KAFKA_BROKER:-kafka}"
 export KAFKA_BOOTSTRAP_SERVER="${KAFKA_BOOTSTRAP_SERVER:-host.docker.internal:9092}"

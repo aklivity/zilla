@@ -18,7 +18,7 @@ This resource can be run using Docker compose or Kubernetes. The setup scripts a
 
 ### Setup
 
-Wether you chose [compose](./docker/compose) or [helm](./k8s/helm), the `setup.sh` script will:
+Whether you chose [compose](./docker/compose) or [helm](./k8s/helm), the `setup.sh` script will:
 
 - create an instance of `docker.io/bitnami/kafka`
 - create an instance of `docker.io/provectuslabs/kafka-ui`
