@@ -81,7 +81,8 @@ public class TestCatalogHandler implements CatalogHandler
             next.accept(prefix, 0, prefix.capacity());
         }
         int valLength = encoder.accept(traceId, bindingId, schemaId, data, index, length, next);
-        return valLength > 0 ? prefix.capacity() + valLength : -1;
+        int prefixLen = prefix != null ? prefix.capacity() : 0;
+        return valLength > 0 ? prefixLen + valLength : -1;
     }
 
     @Override

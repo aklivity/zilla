@@ -147,6 +147,7 @@ public class AsyncapiHttpProtocol extends AsyncapiProtocol
                                 .exit("sse_server0")
                                 .when(HttpConditionConfig::builder)
                                     .header(":path", path)
+                                    .header(":method", "GET")
                                     .build()
                                 .build();
                         }

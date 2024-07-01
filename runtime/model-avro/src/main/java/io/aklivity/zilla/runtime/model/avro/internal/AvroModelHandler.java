@@ -258,11 +258,13 @@ public abstract class AvroModelHandler
 
         if (schema != null)
         {
-            padding = 2;
+            padding = 10;
             if (schema.getType().equals(Schema.Type.RECORD))
             {
                 for (Schema.Field field : schema.getFields())
                 {
+                    padding += field.name().getBytes().length;
+
                     switch (field.schema().getType())
                     {
                     case RECORD:
@@ -272,24 +274,24 @@ public abstract class AvroModelHandler
                     }
                     case UNION:
                     {
-                        padding += field.name().getBytes().length + JSON_FIELD_UNION_LENGTH;
+                        padding += JSON_FIELD_UNION_LENGTH;
                         break;
                     }
                     case MAP:
                     {
-                        padding += field.name().getBytes().length + JSON_FIELD_MAP_LENGTH +
+                        padding += JSON_FIELD_MAP_LENGTH +
                             calculatePadding(field.schema().getValueType());
                         break;
                     }
                     case ARRAY:
                     {
-                        padding += field.name().getBytes().length + JSON_FIELD_ARRAY_LENGTH +
+                        padding += JSON_FIELD_ARRAY_LENGTH +
                             calculatePadding(field.schema().getElementType());
                         break;
                     }
                     default:
                     {
-                        padding += field.name().getBytes().length + JSON_FIELD_STRUCTURE_LENGTH;
+                        padding += JSON_FIELD_STRUCTURE_LENGTH;
                         break;
                     }
                     }
