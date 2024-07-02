@@ -239,7 +239,7 @@ public final class GrpcFunctions
 
         public BytesMatcher build()
         {
-            return method != null ? this::match : buf -> null;
+            return this::match;
         }
 
         private GrpcBeginExFW match(
@@ -280,25 +280,25 @@ public final class GrpcFunctions
         private boolean matchMethod(
             GrpcBeginExFW beginEx)
         {
-            return method.equals(beginEx.method().asString());
+            return method == null || method.equals(beginEx.method().asString());
         }
 
         private boolean matchScheme(
             GrpcBeginExFW beginEx)
         {
-            return scheme.equals(beginEx.scheme().asString());
+            return scheme == null || scheme.equals(beginEx.scheme().asString());
         }
 
         private boolean matchAuthority(
             GrpcBeginExFW beginEx)
         {
-            return authority.equals(beginEx.authority().asString());
+            return authority == null || authority.equals(beginEx.authority().asString());
         }
 
         private boolean matchService(
             GrpcBeginExFW beginEx)
         {
-            return service.equals(beginEx.service().asString());
+            return service == null || service.equals(beginEx.service().asString());
         }
 
         private boolean matchTypeId(

@@ -39,6 +39,13 @@ read ${grpc:protobuf()
 
 read closed
 
+write zilla:begin.ext ${grpc:beginEx()
+                            .typeId(zilla:id("grpc"))
+                            .metadata("custom", "value")
+                            .build()}
+
+write flush
+
 write zilla:data.ext ${grpc:dataEx()
                               .typeId(zilla:id("grpc"))
                               .deferred(94217)

@@ -43,6 +43,8 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .header("zilla:method", "EchoClientStream")
                                .header("zilla:reply-to", "responses")
                                .header("zilla:correlation-id", "59410e57-3e0f-4b61-9328-f645a7968ac8-97e816c79fb6624b7d221026cc36107c")
+                               .header("meta:custom", "test")
+                               .header("meta:idempotency-key", "59410e57-3e0f-4b61-9328-f645a7968ac8")
                                .build()
                            .build()}
 read ${grpc:protobuf()
@@ -63,6 +65,8 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .header("zilla:method", "EchoClientStream")
                                .header("zilla:reply-to", "responses")
                                .header("zilla:correlation-id", "59410e57-3e0f-4b61-9328-f645a7968ac8-97e816c79fb6624b7d221026cc36107c")
+                               .header("meta:custom", "test")
+                               .header("meta:idempotency-key", "59410e57-3e0f-4b61-9328-f645a7968ac8")
                                .build()
                            .build()}
 read zilla:data.null

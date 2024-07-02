@@ -14,10 +14,14 @@
  */
 package io.aklivity.zilla.runtime.binding.grpc.kafka.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaWithProduceResult.META_PREFIX;
 import static io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaCapabilities.FETCH_ONLY;
 import static io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaCapabilities.PRODUCE_ONLY;
+import static io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcType.BASE64;
+import static io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcType.TEXT;
 import static java.time.Instant.now;
 
+import java.util.Arrays;
 import java.util.function.LongUnaryOperator;
 
 import org.agrona.DirectBuffer;
@@ -46,7 +50,9 @@ import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.Extens
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcAbortExFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcBeginExFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcDataExFW;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcMetadataFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcResetExFW;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcType;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.KafkaDataExFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.KafkaMergedBeginExFW;
@@ -64,6 +70,11 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
 {
     private static final String GRPC_TYPE_NAME = "grpc";
     private static final String KAFKA_TYPE_NAME = "kafka";
+    private static final int META_PREFIX_LENGTH = 5;
+    private static final byte[] HEADER_META_PREFIX = new byte[5];
+    private static final byte[] META_PREFIX = "meta:".getBytes();
+    private static final byte[] HEADER_BIN_SUFFIX = new byte[4];
+    private static final byte[] BIN_SUFFIX = "-bin".getBytes();
 
     private static final int DATA_FLAG_INIT = 0x02;
     private static final int DATA_FLAG_FIN = 0x01;
@@ -106,9 +117,12 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
     private final KafkaBeginExFW kafkaBeginExRO = new KafkaBeginExFW();
     private final KafkaDataExFW kafkaDataExRO = new KafkaDataExFW();
 
+    private final GrpcBeginExFW.Builder grpcBeginExRW = new GrpcBeginExFW.Builder();
     private final GrpcDataExFW.Builder grpcDataExRW = new GrpcDataExFW.Builder();
     private final GrpcResetExFW.Builder grpcResetExRW = new GrpcResetExFW.Builder();
     private final GrpcAbortExFW.Builder grpcAbortExRW = new GrpcAbortExFW.Builder();
+    private final Array32FW.Builder<GrpcMetadataFW.Builder, GrpcMetadataFW> grpcMetadataRW =
+        new Array32FW.Builder<>(new GrpcMetadataFW.Builder(), new GrpcMetadataFW());
 
     private final KafkaBeginExFW.Builder kafkaBeginExRW = new KafkaBeginExFW.Builder();
     private final KafkaDataExFW.Builder kafkaDataExRW = new KafkaDataExFW.Builder();
@@ -116,6 +130,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
 
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer extBuffer;
+    private final MutableDirectBuffer metaBuffer;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
@@ -131,6 +146,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
     {
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.metaBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
@@ -531,7 +547,8 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
         @Override
         protected void onKafkaBegin(
             long traceId,
-            long authorization, OctetsFW extension)
+            long authorization,
+            OctetsFW extension)
         {
             if (!GrpcKafkaState.replyOpening(state))
             {
@@ -1139,7 +1156,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             assert acknowledge <= sequence;
             assert sequence >= initialSeq;
 
-            initialSeq = sequence;
+            initialSeq = sequence + reserved;
 
             assert initialAck <= initialSeq;
 
@@ -1272,17 +1289,23 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             long traceId,
             long authorization)
         {
+            if (!GrpcKafkaState.replyOpening(state))
+            {
+                doGrpcBegin(traceId, authorization, 0L, emptyRO);
+            }
+
             cleanup(traceId, authorization);
         }
 
         @Override
         protected void onKafkaBegin(
             long traceId,
-            long authorization, OctetsFW extension)
+            long authorization,
+            OctetsFW extension)
         {
             if (!GrpcKafkaState.replyOpening(state))
             {
-                doGrpcBegin(traceId, authorization, 0L, emptyRO);
+                doGrpcBegin(traceId, authorization, 0L, extension);
             }
         }
 
@@ -1296,6 +1319,11 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             OctetsFW payload,
             KafkaDataExFW kafkaDataEx)
         {
+            if (!GrpcKafkaState.replyOpening(state))
+            {
+                doGrpcBegin(traceId, authorization, 0L, kafkaDataEx.merged().fetch().headers());
+            }
+
             if (GrpcKafkaState.replyClosing(state))
             {
                 replySeq += reserved;
@@ -1386,6 +1414,48 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
 
             doBegin(grpc, originId, routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, authorization, affinity, extension);
+        }
+
+        private void doGrpcBegin(
+            long traceId,
+            long authorization,
+            long affinity,
+            Array32FW<KafkaHeaderFW> headers)
+        {
+            state = GrpcKafkaState.openingReply(state);
+
+            Array32FW.Builder<GrpcMetadataFW.Builder, GrpcMetadataFW> builder =
+                grpcMetadataRW.wrap(metaBuffer, 0, metaBuffer.capacity());
+
+            headers.forEach(h ->
+            {
+                final OctetsFW name = h.name();
+                final int offset = name.offset();
+                final int limit = name.limit();
+
+                name.buffer().getBytes(offset, HEADER_META_PREFIX);
+                name.buffer().getBytes(limit - BIN_SUFFIX.length, HEADER_BIN_SUFFIX);
+
+                if (Arrays.equals(META_PREFIX, HEADER_META_PREFIX))
+                {
+                    final GrpcType type = Arrays.equals(BIN_SUFFIX, HEADER_BIN_SUFFIX) ? BASE64 : TEXT;
+
+                    builder.item(m -> m.type(t -> t.set(type))
+                        .nameLen(h.nameLen() - META_PREFIX_LENGTH)
+                        .name(h.name().value(), META_PREFIX_LENGTH, h.nameLen() - META_PREFIX_LENGTH)
+                        .valueLen(h.valueLen())
+                        .value(h.value()));
+                }
+            });
+
+            GrpcBeginExFW beginEx = grpcBeginExRW
+                .wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(grpcTypeId)
+                .metadata(builder.build())
+                .build();
+
+            doBegin(grpc, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                traceId, authorization, affinity, beginEx);
         }
 
         private void doGrpcData(
@@ -1623,8 +1693,6 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             final long sequence = begin.sequence();
             final long acknowledge = begin.acknowledge();
             final long traceId = begin.traceId();
-            final long authorization = begin.authorization();
-            final OctetsFW extension = begin.extension();
 
             assert acknowledge <= sequence;
             assert sequence >= replySeq;
@@ -1637,7 +1705,6 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             assert replyAck <= replySeq;
 
             doKafkaWindow(traceId);
-            delegate.onKafkaBegin(traceId, authorization, extension);
         }
 
         private void onKafkaEnd(
@@ -1910,8 +1977,6 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             final long sequence = begin.sequence();
             final long acknowledge = begin.acknowledge();
             final long traceId = begin.traceId();
-            final long authorization = begin.authorization();
-            final OctetsFW extension = begin.extension();
 
             assert acknowledge <= sequence;
             assert sequence >= replySeq;
@@ -1923,7 +1988,6 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
 
             assert replyAck <= replySeq;
 
-            delegate.onKafkaBegin(traceId, authorization, extension);
             doKafkaWindow(traceId);
         }
 
