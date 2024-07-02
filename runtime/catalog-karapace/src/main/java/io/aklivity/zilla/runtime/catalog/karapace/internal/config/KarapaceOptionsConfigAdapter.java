@@ -21,6 +21,8 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.runtime.catalog.karapace.config.KarapaceOptionsConfig;
+import io.aklivity.zilla.runtime.catalog.karapace.config.KarapaceOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 

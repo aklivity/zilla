@@ -85,18 +85,27 @@ public class AvroWriteConverterHandler extends AvroModelHandler implements Conve
         try
         {
             Schema schema = supplySchema(schemaId);
-            GenericDatumReader<GenericRecord> reader = supplyReader(schemaId);
-            GenericDatumWriter<GenericRecord> writer = supplyWriter(schemaId);
-            if (reader != null)
+
+            switch (schema.getType())
             {
-                GenericRecord record = supplyRecord(schemaId);
-                in.wrap(buffer, index, length);
-                expandable.wrap(expandable.buffer());
-                record = reader.read(record, decoderFactory.jsonDecoder(schema, in));
-                encoderFactory.binaryEncoder(expandable, encoder);
-                writer.write(record, encoder);
-                encoder.flush();
-                next.accept(expandable.buffer(), 0, expandable.position());
+            case STRING:
+                next.accept(buffer, index, length);
+                break;
+            case RECORD:
+                GenericDatumReader<GenericRecord> reader = supplyReader(schemaId);
+                GenericDatumWriter<GenericRecord> writer = supplyWriter(schemaId);
+                if (reader != null)
+                {
+                    GenericRecord record = supplyRecord(schemaId);
+                    in.wrap(buffer, index, length);
+                    expandable.wrap(expandable.buffer());
+                    record = reader.read(record, decoderFactory.jsonDecoder(schema, in));
+                    encoderFactory.binaryEncoder(expandable, encoder);
+                    writer.write(record, encoder);
+                    encoder.flush();
+                    next.accept(expandable.buffer(), 0, expandable.position());
+                }
+                break;
             }
         }
         catch (IOException | AvroRuntimeException ex)

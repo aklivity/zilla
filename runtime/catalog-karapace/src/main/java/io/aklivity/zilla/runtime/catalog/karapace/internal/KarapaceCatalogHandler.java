@@ -32,7 +32,7 @@ import org.agrona.DirectBuffer;
 import org.agrona.collections.Int2ObjectCache;
 import org.agrona.concurrent.UnsafeBuffer;
 
-import io.aklivity.zilla.runtime.catalog.karapace.internal.config.KarapaceOptionsConfig;
+import io.aklivity.zilla.runtime.catalog.karapace.config.KarapaceOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.karapace.internal.serializer.RegisterSchemaRequest;
 import io.aklivity.zilla.runtime.catalog.karapace.internal.types.KarapacePrefixFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;

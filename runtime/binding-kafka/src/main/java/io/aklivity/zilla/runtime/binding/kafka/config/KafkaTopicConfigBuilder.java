@@ -15,8 +15,6 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.config;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
@@ -25,7 +23,6 @@ import java.util.regex.Pattern;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.String32FW;
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 
@@ -33,9 +30,12 @@ public final class KafkaTopicConfigBuilder<T> extends ConfigBuilder<T, KafkaTopi
 {
     private static final String PATH = "^\\$\\{message\\.value\\.([A-Za-z_][A-Za-z0-9_]*)\\}$";
     private static final Pattern PATH_PATTERN = Pattern.compile(PATH);
-    private static final String INTERNAL_PATH_PATTERN = "$.%s";
+    private static final String INTERNAL_VALUE = "$.%s";
+    private static final String INTERNAL_PATH = "^\\$\\..*$";
+    private static final Pattern INTERNAL_PATH_PATTERN = Pattern.compile(INTERNAL_PATH);
 
     private final Matcher matcher;
+    private final Matcher internalMatcher;
     private final Function<KafkaTopicConfig, T> mapper;
     private String name;
     private KafkaOffsetType defaultOffset;
@@ -50,6 +50,7 @@ public final class KafkaTopicConfigBuilder<T> extends ConfigBuilder<T, KafkaTopi
         this.mapper = mapper;
         this.headers = new ArrayList<>();
         this.matcher = PATH_PATTERN.matcher("");
+        this.internalMatcher = INTERNAL_PATH_PATTERN.matcher("");
     }
 
     @Override
@@ -104,8 +105,12 @@ public final class KafkaTopicConfigBuilder<T> extends ConfigBuilder<T, KafkaTopi
         }
         if (matcher.reset(path).matches())
         {
-            this.headers.add(new KafkaTopicHeaderType(new String32FW(name, UTF_8),
-                String.format(INTERNAL_PATH_PATTERN, matcher.group(1))));
+            this.headers.add(new KafkaTopicHeaderType(name,
+                String.format(INTERNAL_VALUE, matcher.group(1))));
+        }
+        else if (internalMatcher.reset(path).matches())
+        {
+            this.headers.add(new KafkaTopicHeaderType(name, path));
         }
         return this;
     }

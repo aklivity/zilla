@@ -83,7 +83,7 @@ public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicCon
             JsonObjectBuilder headers = Json.createObjectBuilder();
             for (KafkaTopicHeaderType header : topic.headers)
             {
-                headers.add(header.name.asString(), header.path);
+                headers.add(header.name, header.path);
             }
             object.add(HEADERS_NAME, headers);
         }

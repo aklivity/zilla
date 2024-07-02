@@ -109,6 +109,12 @@
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
+      <artifactId>catalog-karapace</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
       <artifactId>model-core</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>

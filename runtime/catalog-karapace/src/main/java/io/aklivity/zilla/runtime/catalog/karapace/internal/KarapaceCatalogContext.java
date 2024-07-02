@@ -16,7 +16,7 @@ package io.aklivity.zilla.runtime.catalog.karapace.internal;
 
 import java.util.concurrent.ConcurrentMap;
 
-import io.aklivity.zilla.runtime.catalog.karapace.internal.config.KarapaceOptionsConfig;
+import io.aklivity.zilla.runtime.catalog.karapace.config.KarapaceOptionsConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;

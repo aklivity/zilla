@@ -134,19 +134,26 @@ public abstract class AvroModelHandler
         boolean status = false;
         try
         {
-            GenericRecord record = supplyRecord(schemaId);
-            in.wrap(buffer, index, length);
-            GenericDatumReader<GenericRecord> reader = supplyReader(schemaId);
             Schema schema = supplySchema(schemaId);
-            if (reader != null)
+            switch (schema.getType())
             {
-                decoderFactory.binaryDecoder(in, decoder);
-                reader.read(record, decoder);
+            case STRING:
                 status = true;
-
+                break;
+            case RECORD:
+                GenericRecord record = supplyRecord(schemaId);
+                in.wrap(buffer, index, length);
+                GenericDatumReader<GenericRecord> reader = supplyReader(schemaId);
+                if (reader != null)
+                {
+                    decoderFactory.binaryDecoder(in, decoder);
+                    reader.read(record, decoder);
+                    status = true;
+                }
+                progress = index;
+                extractFields(buffer, index + length, schema);
+                break;
             }
-            progress = index;
-            extractFields(buffer, length, schema);
         }
         catch (IOException | AvroRuntimeException ex)
         {
@@ -157,12 +164,12 @@ public abstract class AvroModelHandler
 
     protected void extractFields(
         DirectBuffer buffer,
-        int length,
+        int limit,
         Schema schema)
     {
         for (Schema.Field field : schema.getFields())
         {
-            extract(field.schema(), buffer, length, extracted.get(field.name()));
+            extract(field.schema(), buffer, limit, extracted.get(field.name()));
         }
     }
 
@@ -251,11 +258,13 @@ public abstract class AvroModelHandler
 
         if (schema != null)
         {
-            padding = 2;
+            padding = 10;
             if (schema.getType().equals(Schema.Type.RECORD))
             {
                 for (Schema.Field field : schema.getFields())
                 {
+                    padding += field.name().getBytes().length;
+
                     switch (field.schema().getType())
                     {
                     case RECORD:
@@ -265,24 +274,24 @@ public abstract class AvroModelHandler
                     }
                     case UNION:
                     {
-                        padding += field.name().getBytes().length + JSON_FIELD_UNION_LENGTH;
+                        padding += JSON_FIELD_UNION_LENGTH;
                         break;
                     }
                     case MAP:
                     {
-                        padding += field.name().getBytes().length + JSON_FIELD_MAP_LENGTH +
+                        padding += JSON_FIELD_MAP_LENGTH +
                             calculatePadding(field.schema().getValueType());
                         break;
                     }
                     case ARRAY:
                     {
-                        padding += field.name().getBytes().length + JSON_FIELD_ARRAY_LENGTH +
+                        padding += JSON_FIELD_ARRAY_LENGTH +
                             calculatePadding(field.schema().getElementType());
                         break;
                     }
                     default:
                     {
-                        padding += field.name().getBytes().length + JSON_FIELD_STRUCTURE_LENGTH;
+                        padding += JSON_FIELD_STRUCTURE_LENGTH;
                         break;
                     }
                     }

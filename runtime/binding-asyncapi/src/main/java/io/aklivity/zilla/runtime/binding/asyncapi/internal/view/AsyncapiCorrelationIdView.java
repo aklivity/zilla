@@ -56,7 +56,7 @@ public final class AsyncapiCorrelationIdView extends AsyncapiResolvable<Asyncapi
         Map<String, AsyncapiCorrelationId> correlationIds,
         AsyncapiCorrelationId correlationId)
     {
-        super(correlationIds, "#/components/correlationIds/(\\w+)");
+        super(correlationIds, "#/components/correlationIds/(.+)");
         if (correlationId.ref != null)
         {
             correlationId = resolveRef(correlationId.ref);

@@ -36,7 +36,12 @@ import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.MetricRefConfig;
+import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
+import io.aklivity.zilla.runtime.model.avro.config.AvroModelConfig;
+import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
+import io.aklivity.zilla.runtime.model.protobuf.config.ProtobufModelConfig;
+
 
 public class AyncapiKafkaProtocol extends AsyncapiProtocol
 {
@@ -153,6 +158,9 @@ public class AyncapiKafkaProtocol extends AsyncapiProtocol
                 AsyncapiOperation operation = asyncapi.operations.get(name);
                 AsyncapiChannelView channel = AsyncapiChannelView.of(asyncapi.channels, operation.channel);
                 String topic = channel.address();
+                String replyTo = operation.reply != null
+                    ? AsyncapiChannelView.of(asyncapi.channels, operation.reply.channel).address()
+                    : null;
 
                 if (channel.messages() != null && !channel.messages().isEmpty() ||
                     channel.parameters() != null && !channel.parameters().isEmpty())
@@ -167,9 +175,29 @@ public class AyncapiKafkaProtocol extends AsyncapiProtocol
                         .topic(KafkaTopicConfig::builder)
                             .name(topic)
                             .inject(topicConfig -> injectHeader(topicConfig, kafkaTopic))
+                            .inject(topicConfig -> injectKey(topicConfig, asyncapi, channel.messages()))
                             .inject(topicConfig -> injectValue(topicConfig, asyncapi, channel.messages()))
                             .build()
                         .build();
+
+                    if (replyTo != null)
+                    {
+                        KafkaTopicConfig kafkaReply = kafka != null && kafka.topics != null
+                            ? kafka.topics.stream()
+                                .filter(t -> t.name.equals(replyTo))
+                                .findFirst()
+                                .orElse(null)
+                            : null;
+                        AsyncapiChannelView replyView = AsyncapiChannelView.of(asyncapi.channels, operation.reply.channel);
+
+                        options
+                            .topic(KafkaTopicConfig::builder)
+                                .name(replyTo)
+                                .inject(topicConfig -> injectHeader(topicConfig, kafkaReply))
+                                .inject(topicConfig -> injectValue(topicConfig, asyncapi, replyView.messages()))
+                                .build()
+                            .build();
+                    }
                 }
             }
         }
@@ -195,8 +223,33 @@ public class AyncapiKafkaProtocol extends AsyncapiProtocol
     {
         if (kafkaTopic != null)
         {
-            kafkaTopic.headers.forEach(h -> topic.header(h.name.asString(), h.path));
+            kafkaTopic.headers.forEach(h -> topic.header(h.name, h.path));
 
+        }
+        return topic;
+    }
+
+    private <C> KafkaTopicConfigBuilder<C> injectKey(
+        KafkaTopicConfigBuilder<C> topic,
+        Asyncapi asyncapi,
+        Map<String, AsyncapiMessage> messages)
+    {
+        if (messages != null)
+        {
+            for (Map.Entry<String, AsyncapiMessage> messageEntry : messages.entrySet())
+            {
+                AsyncapiMessageView message =
+                    AsyncapiMessageView.of(asyncapi.components.messages, messageEntry.getValue());
+                if (message.key() != null)
+                {
+                    topic.key(AvroModelConfig.builder()
+                        .catalog()
+                            .name(INLINE_CATALOG_NAME)
+                            .inject(catalog -> injectKeySchema(catalog, asyncapi, message))
+                            .build()
+                        .build());
+                }
+            }
         }
         return topic;
     }
@@ -208,15 +261,43 @@ public class AyncapiKafkaProtocol extends AsyncapiProtocol
     {
         if (messages != null)
         {
-            for (Map.Entry<String, AsyncapiMessage> messageEntry : messages.entrySet())
+            AsyncapiMessageView message =
+                AsyncapiMessageView.of(asyncapi.components.messages, messages.values().stream().findFirst().get());
+            String contentType = message.contentType() == null ? asyncapi.defaultContentType : message.contentType();
+            ModelConfig model = null;
+            if (contentType != null)
             {
-                AsyncapiMessageView message =
-                    AsyncapiMessageView.of(asyncapi.components.messages, messageEntry.getValue());
-                if (message.payload() != null)
+                if (jsonContentType.reset(contentType).matches())
                 {
-                    topic.value(injectModel(asyncapi, message));
+                    model = JsonModelConfig.builder()
+                            .catalog()
+                            .name(INLINE_CATALOG_NAME)
+                            .inject(catalog -> injectValueSchemas(catalog, asyncapi, messages))
+                            .build()
+                        .build();
+                }
+                else if (avroContentType.reset(contentType).matches())
+                {
+                    model = AvroModelConfig.builder()
+                        .view("json")
+                        .catalog()
+                            .name(INLINE_CATALOG_NAME)
+                            .inject(catalog -> injectValueSchemas(catalog, asyncapi, messages))
+                            .build()
+                        .build();
+                }
+                else if (protobufContentType.reset(contentType).matches())
+                {
+                    model = ProtobufModelConfig.builder()
+                        .view("json")
+                        .catalog()
+                            .name(INLINE_CATALOG_NAME)
+                            .inject(catalog -> injectValueSchemas(catalog, asyncapi, messages))
+                            .build()
+                        .build();
                 }
             }
+            topic.value(model);
         }
         return topic;
     }

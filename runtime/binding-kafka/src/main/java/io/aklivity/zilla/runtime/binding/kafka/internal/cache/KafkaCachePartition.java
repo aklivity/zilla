@@ -35,6 +35,7 @@ import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.Kafka
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_SEQUENCE;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_TIMESTAMP;
 import static java.nio.ByteBuffer.allocateDirect;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 import static org.agrona.BitUtil.SIZE_OF_INT;
 
@@ -122,6 +123,8 @@ public final class KafkaCachePartition
     private final MutableDirectBuffer valueInfo = new UnsafeBuffer(new byte[Integer.BYTES]);
 
     private final Varint32FW varintRO = new Varint32FW();
+    private final String32FW.Builder stringRW = new String32FW.Builder()
+        .wrap(new UnsafeBuffer(new byte[256]), 0, 256);;
     private final Varint32FW.Builder varintRW = new Varint32FW.Builder().wrap(new UnsafeBuffer(new byte[5]), 0, 5);
     private final Array32FW<KafkaHeaderFW> headersRO = new Array32FW<KafkaHeaderFW>(new KafkaHeaderFW());
     private final Array32FW.Builder<KafkaHeaderFW.Builder, KafkaHeaderFW> trailersRW =
@@ -148,6 +151,7 @@ public final class KafkaCachePartition
     private KafkaCacheEntryFW ancestorEntry;
     private final AtomicLong produceCapacity;
     private final OctetsFW octetsRO = new OctetsFW();
+    private final KafkaKeyFW keyRO = new KafkaKeyFW();
 
     public KafkaCachePartition(
         Path location,
@@ -351,7 +355,6 @@ public final class KafkaCachePartition
         KafkaKeyFW key,
         ArrayFW<KafkaHeaderFW> headers,
         OctetsFW value,
-        KafkaCacheEntryFW ancestor,
         int entryFlags,
         KafkaDeltaType deltaType,
         ConverterHandler convertKey,
@@ -359,10 +362,9 @@ public final class KafkaCachePartition
         boolean verbose,
         List<KafkaTopicHeaderType> headerTypes)
     {
-        final long keyHash = computeHash(key);
         final int valueLength = value != null ? value.sizeof() : -1;
         writeEntryStart(context, traceId, bindingId, offset, entryMark, valueMark, timestamp, producerId, key,
-            keyHash, valueLength, ancestor, entryFlags, deltaType, value, convertKey, convertValue, verbose);
+            valueLength, null, entryFlags, deltaType, value, convertKey, convertValue, verbose);
         writeEntryContinue(value);
         writeEntryFinish(headers, deltaType, context, traceId, bindingId, FLAGS_COMPLETE, offset, entryMark, valueMark,
             convertValue, verbose, headerTypes);
@@ -378,9 +380,8 @@ public final class KafkaCachePartition
         long timestamp,
         long producerId,
         KafkaKeyFW key,
-        long keyHash,
         int valueLength,
-        KafkaCacheEntryFW ancestor,
+        IntFunction<KafkaCacheEntryFW> findAncestor,
         int entryFlags,
         KafkaDeltaType deltaType,
         OctetsFW payload,
@@ -408,16 +409,6 @@ public final class KafkaCachePartition
 
         logFile.mark();
 
-        final long ancestorOffset = ancestor != null ? ancestor.offset$() : NO_ANCESTOR_OFFSET;
-        final int deltaPosition = deltaType == JSON_PATCH &&
-                                  ancestor != null && ancestor.valueLen() != -1 &&
-                                  valueLength != -1
-                    ? deltaFile.capacity()
-                    : NO_DELTA_POSITION;
-
-        assert deltaPosition == NO_DELTA_POSITION || ancestor != null;
-        this.ancestorEntry = ancestor;
-
         int convertedPos = NO_CONVERTED_POSITION;
         if (valueLength != -1 && convertValue != ConverterHandler.NONE)
         {
@@ -438,21 +429,22 @@ public final class KafkaCachePartition
         entryInfo.putLong(FIELD_OFFSET_OWNER_ID, producerId);
         entryInfo.putLong(FIELD_OFFSET_ACKNOWLEDGE, NO_ACKNOWLEDGE);
         entryInfo.putInt(FIELD_OFFSET_SEQUENCE, NO_SEQUENCE);
-        entryInfo.putLong(FIELD_OFFSET_ANCESTOR, ancestorOffset);
+        entryInfo.putLong(FIELD_OFFSET_ANCESTOR, NO_ANCESTOR_OFFSET);
         entryInfo.putLong(FIELD_OFFSET_DESCENDANT, NO_DESCENDANT_OFFSET);
         entryInfo.putInt(FIELD_OFFSET_FLAGS, entryFlags);
         entryInfo.putInt(FIELD_OFFSET_CONVERTED_POSITION, convertedPos);
-        entryInfo.putInt(FIELD_OFFSET_DELTA_POSITION, deltaPosition);
+        entryInfo.putInt(FIELD_OFFSET_DELTA_POSITION, NO_DELTA_POSITION);
         entryInfo.putShort(FIELD_OFFSET_ACK_MODE, KafkaAckMode.NONE.value());
 
         logFile.appendBytes(entryInfo);
+        final int keyAt = logFile.capacity();
+
         if (key.value() == null)
         {
             logFile.appendBytes(key);
         }
         else
         {
-            final int keyAt = logFile.capacity();
             Varint32FW initLength = varintRW.set(0).build();
             logFile.appendBytes(initLength);
 
@@ -463,8 +455,10 @@ public final class KafkaCachePartition
                 int keyShift = newLength.sizeof() - progress.sizeof();
                 if (keyShift > 0)
                 {
-                    logFile.readBytes(progress.limit(), octetsRO::wrap);
-                    logFile.writeBytes(newLength.limit(), octetsRO);
+                    OctetsFW octets = logFile.readBytes(progress.limit(), progress.limit() + progress.value(),  octetsRO::wrap);
+                    logFile.writeBytes(newLength.limit(), octets);
+
+                    logFile.advance(keyAt + newLength.limit());
                 }
                 logFile.writeBytes(keyAt, newLength);
                 logFile.appendBytes(buffer, index, length);
@@ -488,6 +482,23 @@ public final class KafkaCachePartition
         logFile.appendInt(valueLength);
 
         valueMark.value = logFile.capacity();
+
+        final long keyHash = computeHash(logFile.readBytes(keyAt, keyRO::wrap));
+
+        final KafkaCacheEntryFW ancestor = findAncestor != null ? findAncestor.apply((int) keyHash) : null;
+
+        final long ancestorOffset = ancestor != null ? ancestor.offset$() : NO_ANCESTOR_OFFSET;
+        final int deltaPosition = deltaType == JSON_PATCH &&
+                                  ancestor != null && ancestor.valueLen() != -1 &&
+                                  valueLength != -1
+                    ? deltaFile.capacity()
+                    : NO_DELTA_POSITION;
+
+        logFile.writeLong(entryMark.value + FIELD_OFFSET_ANCESTOR, ancestorOffset);
+        logFile.writeInt(entryMark.value + FIELD_OFFSET_DELTA_POSITION, deltaPosition);
+
+        assert deltaPosition == NO_DELTA_POSITION || ancestor != null;
+        this.ancestorEntry = ancestor;
 
         final long hashEntry = keyHash << 32 | logFile.markValue();
         hashFile.appendLong(hashEntry);
@@ -548,7 +559,8 @@ public final class KafkaCachePartition
         final KafkaCacheFile indexFile = headSegment.indexFile();
         final KafkaCacheFile convertedFile = headSegment.convertedFile();
 
-        final int valueLength = logFile.capacity() - valueMark.value;
+        final int valueLength = logFile.readInt(valueMark.value - SIZE_OF_INT);
+        assert logFile.capacity() - valueMark.value == Math.max(valueLength, 0);
 
         final int logAvailable = logFile.available();
         final int logRequired = headers.sizeof();
@@ -594,7 +606,7 @@ public final class KafkaCachePartition
                         trailersRW.wrap(trailersRW.buffer(), 0, trailersRW.maxLimit());
                     for (KafkaTopicHeaderType header : headerTypes)
                     {
-                        String32FW name = header.name;
+                        String32FW name = stringRW.set(header.name, UTF_8).build();
                         String path = header.path;
                         builder.item(h ->
                         {

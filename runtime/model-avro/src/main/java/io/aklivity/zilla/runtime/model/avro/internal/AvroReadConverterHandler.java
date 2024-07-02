@@ -196,7 +196,7 @@ public class AvroReadConverterHandler extends AvroModelHandler implements Conver
                 out.flush();
 
                 progress = index;
-                extractFields(buffer, length, schema);
+                extractFields(buffer, index + length, schema);
             }
         }
         catch (IOException | AvroRuntimeException ex)

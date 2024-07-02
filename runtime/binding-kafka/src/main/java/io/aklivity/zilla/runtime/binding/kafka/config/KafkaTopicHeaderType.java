@@ -15,15 +15,13 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.config;
 
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.String32FW;
-
 public class KafkaTopicHeaderType
 {
-    public final String32FW name;
+    public final String name;
     public final String path;
 
     public KafkaTopicHeaderType(
-        String32FW name,
+        String name,
         String path)
     {
         this.name = name;
