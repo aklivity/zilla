@@ -15,15 +15,11 @@
  */
 package io.aklivity.zilla.runtime.command.version.internal.airline;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Properties;
-
 import com.github.rvesse.airline.annotations.Command;
 
 import io.aklivity.zilla.runtime.command.ZillaCommand;
 
-@Command(name = "version", description = "Print Zilla version")
+@Command(name = "version", description = "Display version information")
 public final class ZillaVersionCommand extends ZillaCommand
 {
     public ZillaVersionCommand()
@@ -33,16 +29,7 @@ public final class ZillaVersionCommand extends ZillaCommand
     @Override
     public void run()
     {
-        Properties properties = new Properties();
-        try (InputStream input = ZillaVersionCommand.class.getClassLoader().getResourceAsStream("version.properties"))
-        {
-            properties.load(input);
-            String version = properties.getProperty("version");
-            System.out.println("Zilla version: " + version);
-        }
-        catch (IOException ex)
-        {
-            ex.printStackTrace();
-        }
+        String version = ZillaVersionCommand.class.getModule().getDescriptor().rawVersion().orElse("unavailable");
+        System.out.println("zilla version " + version);
     }
 }
