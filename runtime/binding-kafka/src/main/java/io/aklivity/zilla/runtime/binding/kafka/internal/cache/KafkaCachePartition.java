@@ -622,9 +622,7 @@ public final class KafkaCachePartition
         }
 
         logFile.appendBytes(headers);
-        final int trailersAt = logFile.capacity();
         logFile.appendBytes(trailers);
-        logFile.readBytes(trailersAt, headersRO::wrap);
         logFile.appendInt(0);
 
         final long offsetDelta = (int)(progress - headSegment.baseOffset());

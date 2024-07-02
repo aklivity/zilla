@@ -172,8 +172,7 @@ public class AsyncapiSseProtocol extends AsyncapiProtocol
     {
         if (messages != null)
         {
-            request.
-                content(JsonModelConfig::builder)
+            request.content(JsonModelConfig::builder)
                 .catalog()
                 .name(INLINE_CATALOG_NAME)
                 .inject(cataloged -> injectValueSchemas(cataloged, asyncapi, messages))
