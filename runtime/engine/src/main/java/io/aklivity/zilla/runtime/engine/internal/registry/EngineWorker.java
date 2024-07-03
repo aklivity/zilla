@@ -36,7 +36,9 @@ import static io.aklivity.zilla.runtime.engine.metrics.MetricContext.Direction.S
 import static java.lang.System.currentTimeMillis;
 import static java.lang.ThreadLocal.withInitial;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.agrona.CloseHelper.quietClose;
+import static org.agrona.LangUtil.rethrowUnchecked;
 import static org.agrona.concurrent.AgentRunner.startOnThread;
 
 import java.net.InetAddress;
@@ -64,7 +66,6 @@ import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 import java.util.function.Supplier;
 
-import org.agrona.CloseHelper;
 import org.agrona.DeadlineTimerWheel;
 import org.agrona.DeadlineTimerWheel.TimerHandler;
 import org.agrona.DirectBuffer;
@@ -789,8 +790,15 @@ public class EngineWorker implements EngineContext, Agent
 
     public void doClose()
     {
-        CloseHelper.close(runner);
-        thread = null;
+        try
+        {
+            Consumer<Thread> timeout = t -> rethrowUnchecked(new IllegalStateException("close timeout"));
+            runner.close((int) SECONDS.toMillis(5L), timeout);
+        }
+        finally
+        {
+            thread = null;
+        }
     }
 
     @Override

@@ -21,12 +21,14 @@ import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
+import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, TestBindingOptionsConfigBuilder<T>>
 {
     private final Function<OptionsConfig, T> mapper;
 
+    private ModelConfig value;
     private String mode;
     private TestAuthorizationConfig authorization;
     private List<CatalogedConfig> catalogs;
@@ -44,6 +46,13 @@ public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, T
     protected Class<TestBindingOptionsConfigBuilder<T>> thisType()
     {
         return (Class<TestBindingOptionsConfigBuilder<T>>) getClass();
+    }
+
+    public TestBindingOptionsConfigBuilder<T> value(
+        ModelConfig value)
+    {
+        this.value = value;
+        return this;
     }
 
     public TestBindingOptionsConfigBuilder<T> mode(
@@ -95,6 +104,6 @@ public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, T
     @Override
     public T build()
     {
-        return mapper.apply(new TestBindingOptionsConfig(mode, authorization, catalogs, events, catalogAssertions));
+        return mapper.apply(new TestBindingOptionsConfig(value, mode, authorization, catalogs, events, catalogAssertions));
     }
 }

@@ -19,10 +19,12 @@ import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
+import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public final class TestBindingOptionsConfig extends OptionsConfig
 {
+    public final ModelConfig value;
     public final String mode;
     public final TestAuthorizationConfig authorization;
     public final List<CatalogedConfig> cataloged;
@@ -41,12 +43,15 @@ public final class TestBindingOptionsConfig extends OptionsConfig
     }
 
     TestBindingOptionsConfig(
+        ModelConfig value,
         String mode,
         TestAuthorizationConfig authorization,
         List<CatalogedConfig> cataloged,
         List<Event> events,
         List<CatalogAssertions> catalogAssertions)
     {
+        super(value != null ? List.of(value) : List.of(), List.of());
+        this.value = value;
         this.mode = mode;
         this.authorization = authorization;
         this.cataloged = cataloged;

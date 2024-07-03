@@ -13,24 +13,12 @@
 # specific language governing permissions and limitations under the License.
 #
 
----
-name: test
-telemetry:
-  exporters:
-    exporter0:
-      type: test
-      options:
-        events:
-          - qname: test.net0
-            id: model.core.validation.failed
-            name: MODEL_CORE_VALIDATION_FAILED
-            message: A message payload failed validation. A field was not the expected type (string).
-bindings:
-  net0:
-    type: test
-    kind: server
-    options:
-      value:
-        model: string
-        encoding: utf_8
-    exit: app0
+connect "zilla://streams/net0"
+        option zilla:transmission "duplex"
+        option zilla:window 8192
+connected
+
+write "{"
+        "\"id\": 123,"
+        "\"status\": \"OK\""
+      "}"
