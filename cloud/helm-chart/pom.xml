@@ -65,8 +65,8 @@
         </configuration>
         <executions>
           <execution>
-            <phase>deploy</phase>
             <goals>
+              <goal>lint</goal>
               <goal>push</goal>
             </goals>
           </execution>
