@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.kafka.internal;
+package io.aklivity.zilla.runtime.binding.kafka.internal.events;
 
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaEventType.API_VERSION_REJECTED;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaEventType.AUTHORIZATION_FAILED;
@@ -25,6 +25,7 @@ import java.time.Clock;
 import org.agrona.concurrent.AtomicBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
+import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaEventExFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
