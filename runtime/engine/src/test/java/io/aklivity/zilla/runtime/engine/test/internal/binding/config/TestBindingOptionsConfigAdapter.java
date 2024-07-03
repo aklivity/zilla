@@ -26,6 +26,7 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
 
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
+import io.aklivity.zilla.runtime.engine.config.ModelConfigAdapter;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
@@ -35,6 +36,7 @@ public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapt
 {
     public static final String DEFAULT_ASSERTION_SCHEMA = new String();
 
+    private static final String VALUE_NAME = "value";
     private static final String MODE_NAME = "mode";
     private static final String CATALOG_NAME = "catalog";
     private static final String AUTHORIZATION_NAME = "authorization";
@@ -46,6 +48,8 @@ public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapt
     private static final String ID_NAME = "id";
     private static final String SCHEMA_NAME = "schema";
     private static final String DELAY_NAME = "delay";
+
+    private final ModelConfigAdapter model = new ModelConfigAdapter();
 
     private final SchemaConfigAdapter schema = new SchemaConfigAdapter();
 
@@ -69,10 +73,16 @@ public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapt
 
         JsonObjectBuilder object = Json.createObjectBuilder();
 
+        if (testOptions.value != null)
+        {
+            object.add(VALUE_NAME, model.adaptToJson(testOptions.value));
+        }
+
         if (testOptions.mode != null)
         {
             object.add(MODE_NAME, testOptions.mode);
         }
+
         if (testOptions.cataloged != null && !testOptions.cataloged.isEmpty())
         {
             JsonObjectBuilder catalogs = Json.createObjectBuilder();
@@ -87,6 +97,7 @@ public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapt
             }
             object.add(CATALOG_NAME, catalogs);
         }
+
         if (testOptions.catalogAssertions != null)
         {
             JsonObjectBuilder assertions = Json.createObjectBuilder();
@@ -107,6 +118,7 @@ public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapt
             assertions.add(CATALOG_NAME, catalogAssertions);
             object.add(ASSERTIONS_NAME, assertions);
         }
+
         if (testOptions.authorization != null)
         {
             JsonObjectBuilder credentials = Json.createObjectBuilder();
@@ -115,6 +127,7 @@ public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapt
             authorization.add(testOptions.authorization.name, credentials);
             object.add(AUTHORIZATION_NAME, authorization);
         }
+
         if (testOptions.events != null)
         {
             JsonArrayBuilder events = Json.createArrayBuilder();
@@ -139,10 +152,16 @@ public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapt
 
         if (object != null)
         {
+            if (object.containsKey(VALUE_NAME))
+            {
+                testOptions.value(model.adaptFromJson(object.get(VALUE_NAME)));
+            }
+
             if (object.containsKey(MODE_NAME))
             {
                 testOptions.mode(object.getString(MODE_NAME));
             }
+
             if (object.containsKey(CATALOG_NAME))
             {
                 JsonObject catalogsJson = object.getJsonObject(CATALOG_NAME);
@@ -161,6 +180,7 @@ public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapt
                 }
                 testOptions.catalog(catalogs);
             }
+
             if (object.containsKey(ASSERTIONS_NAME))
             {
                 JsonObject assertionsJson = object.getJsonObject(ASSERTIONS_NAME);
@@ -184,6 +204,7 @@ public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapt
                     }
                 }
             }
+
             if (object.containsKey(AUTHORIZATION_NAME))
             {
                 JsonObject authorization = object.getJsonObject(AUTHORIZATION_NAME);
@@ -198,6 +219,7 @@ public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapt
                     }
                 }
             }
+
             if (object.containsKey(EVENTS_NAME))
             {
                 JsonArray events = object.getJsonArray(EVENTS_NAME);

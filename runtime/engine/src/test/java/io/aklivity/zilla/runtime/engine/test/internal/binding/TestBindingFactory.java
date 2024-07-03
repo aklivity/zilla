@@ -34,6 +34,8 @@ import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
+import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
+import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig.CatalogAssertion;
@@ -79,6 +81,7 @@ final class TestBindingFactory implements BindingHandler
     private final Long2LongHashMap router;
     private final TestEventContext event;
 
+    private ConverterHandler valueType;
     private List<CatalogHandler> catalogs;
     private SchemaConfig catalog;
     private List<CatalogAssertion> catalogAssertions;
@@ -111,6 +114,11 @@ final class TestBindingFactory implements BindingHandler
         TestBindingOptionsConfig options = (TestBindingOptionsConfig) binding.options;
         if (options != null)
         {
+            if (options.value != null)
+            {
+                this.valueType = context.supplyWriteConverter(options.value);
+            }
+
             if (options.cataloged != null)
             {
                 this.catalog = options.cataloged.size() != 0 ? options.cataloged.get(0).schemas.get(0) : null;
@@ -119,11 +127,13 @@ final class TestBindingFactory implements BindingHandler
                 {
                     int namespaceId = context.supplyTypeId(binding.namespace);
                     int catalogId = context.supplyTypeId(catalog.name);
-                    catalogs.add(context.supplyCatalog(NamespacedId.id(namespaceId, catalogId)));
+                    final CatalogHandler handler = context.supplyCatalog(NamespacedId.id(namespaceId, catalogId));
+                    catalogs.add(handler);
                 }
                 this.catalogAssertions = options.catalogAssertions != null && !options.catalogAssertions.isEmpty() ?
                     options.catalogAssertions.get(0).assertions : null;
             }
+
             if (options.authorization != null)
             {
                 int namespaceId = context.supplyTypeId(binding.namespace);
@@ -131,6 +141,7 @@ final class TestBindingFactory implements BindingHandler
                 this.guard = context.supplyGuard(NamespacedId.id(namespaceId, guardId));
                 this.credentials = options.authorization.credentials;
             }
+
             this.events = options.events;
         }
     }
@@ -336,7 +347,16 @@ final class TestBindingFactory implements BindingHandler
 
             initialSeq = sequence + reserved;
 
-            target.doInitialData(traceId, flags, reserved, payload);
+            if (valueType != null &&
+                valueType.convert(traceId, routedId, payload.buffer(), payload.offset(), payload.sizeof(),
+                        ValueConsumer.NOP) < 0)
+            {
+                target.doInitialAbort(traceId);
+            }
+            else
+            {
+                target.doInitialData(traceId, flags, reserved, payload);
+            }
         }
 
         private void onInitialEnd(
