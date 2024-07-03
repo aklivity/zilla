@@ -96,6 +96,7 @@ spec:
           readinessProbe:
             tcpSocket:
               port: {{ .Values.readinessProbePort }}
+            initialDelaySeconds: 3
           {{- end}}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
