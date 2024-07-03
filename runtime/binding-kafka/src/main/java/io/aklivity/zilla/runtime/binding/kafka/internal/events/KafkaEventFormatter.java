@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.kafka.internal;
+package io.aklivity.zilla.runtime.binding.kafka.internal.events;
 
 import org.agrona.DirectBuffer;
 
@@ -56,13 +56,15 @@ public final class KafkaEventFormatter implements EventFormatterSpi
         case API_VERSION_REJECTED:
         {
             final KafkaApiVersionRejectedExFW ex = extension.apiVersionRejected();
-            result = String.format("%d %d", ex.apiKey(), ex.apiVersion());
+            KafkaApiKey apiKey = KafkaApiKey.of(ex.apiKey());
+            result = String.format("%s (Version: %d)", apiKey.title(), ex.apiVersion());
             break;
         }
         case CLUSTER_AUTHORIZATION_FAILED:
         {
             final KafkaClusterAuthorizationFailedExFW ex = extension.clusterAuthorizationFailed();
-            result = String.format("%d %d", ex.apiKey(), ex.apiVersion());
+            KafkaApiKey apiKey = KafkaApiKey.of(ex.apiKey());
+            result = String.format("%s (Version: %d)", apiKey.title(), ex.apiVersion());
             break;
         }
         }
