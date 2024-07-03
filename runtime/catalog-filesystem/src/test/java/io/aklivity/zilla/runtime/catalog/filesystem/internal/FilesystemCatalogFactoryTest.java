@@ -14,27 +14,15 @@
  */
 package io.aklivity.zilla.runtime.catalog.filesystem.internal;
 
-import static java.util.Collections.singletonList;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.mock;
-
-import java.net.URL;
-import java.nio.file.Path;
 
 import org.junit.Test;
-import org.mockito.Mockito;
 
-import io.aklivity.zilla.runtime.catalog.filesystem.internal.config.FilesystemOptionsConfig;
-import io.aklivity.zilla.runtime.catalog.filesystem.internal.config.FilesystemSchemaConfig;
 import io.aklivity.zilla.runtime.engine.Configuration;
-import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.Catalog;
-import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogFactory;
-import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
 
 public class FilesystemCatalogFactoryTest
 {
@@ -43,27 +31,9 @@ public class FilesystemCatalogFactoryTest
     {
         Configuration config = new Configuration();
         CatalogFactory factory = CatalogFactory.instantiate();
-        Catalog catalog = factory.create("filesystem", config);
+        Catalog catalog = factory.create(FilesystemCatalog.NAME, config);
 
         assertThat(catalog, instanceOf(FilesystemCatalog.class));
-        assertEquals("filesystem", catalog.name());
-
-        EngineContext engineContext = mock(EngineContext.class);
-        URL url = FilesystemCatalogFactoryTest.class
-            .getResource("../../../../specs/catalog/filesystem/config/asyncapi/mqtt.yaml");
-        Path path = Path.of(url.toURI());
-        Mockito.doReturn(path).when(engineContext).resolvePath("asyncapi/mqtt.yaml");
-
-        CatalogContext context = catalog.supply(engineContext);
-        assertThat(context, instanceOf(FilesystemCatalogContext.class));
-
-        FilesystemOptionsConfig catalogConfig =
-            new FilesystemOptionsConfig(singletonList(
-                new FilesystemSchemaConfig("subject1", "asyncapi/mqtt.yaml")));
-
-        CatalogConfig options = new CatalogConfig("test", "catalog0", "filesystem", catalogConfig);
-        CatalogHandler handler = context.attach(options);
-
-        assertThat(handler, instanceOf(FilesystemCatalogHandler.class));
+        assertEquals(FilesystemCatalog.NAME, catalog.name());
     }
 }

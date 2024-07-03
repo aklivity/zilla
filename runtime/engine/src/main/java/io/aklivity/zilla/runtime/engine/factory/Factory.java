@@ -32,6 +32,11 @@ public abstract class Factory
         for (S factory : filter(factories))
         {
             factoriesByType.put(factory.type(), factory);
+
+            for (String alias : factory.aliases())
+            {
+                factoriesByType.put(alias, factory);
+            }
         }
 
         return construct.apply(unmodifiableMap(factoriesByType));
