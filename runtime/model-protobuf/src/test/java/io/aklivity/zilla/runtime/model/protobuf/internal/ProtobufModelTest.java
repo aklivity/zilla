@@ -32,6 +32,7 @@ import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalogHandler;
+import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogOptionsConfig;
 import io.aklivity.zilla.runtime.model.protobuf.config.ProtobufModelConfig;
 
@@ -98,29 +99,35 @@ public class ProtobufModelTest
     public void init()
     {
         context = mock(EngineContext.class);
-        TestCatalogOptionsConfig testCatalogOptionsConfig = TestCatalogOptionsConfig.builder()
-            .id(1)
-            .schema(SCHEMA)
+
+        TestCatalogConfig catalog = CatalogConfig.builder(TestCatalogConfig::new)
+            .namespace("test")
+            .name("test0")
+            .type("test")
+            .options(TestCatalogOptionsConfig::builder)
+                .id(1)
+                .schema(SCHEMA)
+                .build()
             .build();
-        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test", testCatalogOptionsConfig);
-        when(context.supplyCatalog(catalogConfig.id)).thenReturn(new TestCatalogHandler(testCatalogOptionsConfig));
+
+        when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
     }
 
     @Test
     public void shouldWriteValidProtobufEvent()
     {
-        ProtobufModelConfig config = ProtobufModelConfig.builder()
-                .catalog()
-                    .name("test0")
-                    .schema()
-                        .strategy("topic")
-                        .version("latest")
-                        .subject("test-value")
-                        .record("SimpleMessage")
-                        .build()
+        ProtobufModelConfig model = ProtobufModelConfig.builder()
+            .catalog()
+                .name("test0")
+                .schema()
+                    .strategy("topic")
+                    .version("latest")
+                    .subject("test-value")
+                    .record("SimpleMessage")
                     .build()
-                .build();
-        ProtobufWriteConverterHandler converter = new ProtobufWriteConverterHandler(config, context);
+                .build()
+            .build();
+        ProtobufWriteConverterHandler converter = new ProtobufWriteConverterHandler(model, context);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -134,18 +141,18 @@ public class ProtobufModelTest
     @Test
     public void shouldWriteValidProtobufEventNestedMessage()
     {
-        ProtobufModelConfig config = ProtobufModelConfig.builder()
-                .catalog()
-                    .name("test0")
-                        .schema()
-                        .strategy("topic")
-                        .version("latest")
-                        .subject("test-value")
-                        .record("DemoMessage.SimpleMessage")
-                        .build()
+        ProtobufModelConfig model = ProtobufModelConfig.builder()
+            .catalog()
+                .name("test0")
+                    .schema()
+                    .strategy("topic")
+                    .version("latest")
+                    .subject("test-value")
+                    .record("DemoMessage.SimpleMessage")
                     .build()
-                .build();
-        ProtobufWriteConverterHandler converter = new ProtobufWriteConverterHandler(config, context);
+                .build()
+            .build();
+        ProtobufWriteConverterHandler converter = new ProtobufWriteConverterHandler(model, context);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -157,18 +164,18 @@ public class ProtobufModelTest
     @Test
     public void shouldWriteValidProtobufEventIncorrectRecordName()
     {
-        ProtobufModelConfig config = ProtobufModelConfig.builder()
-                .catalog()
-                    .name("test0")
-                        .schema()
-                        .strategy("topic")
-                        .version("latest")
-                        .subject("test-value")
-                        .record("DemoMessage.IncorrectRecord")
-                        .build()
+        ProtobufModelConfig model = ProtobufModelConfig.builder()
+            .catalog()
+                .name("test0")
+                    .schema()
+                    .strategy("topic")
+                    .version("latest")
+                    .subject("test-value")
+                    .record("DemoMessage.IncorrectRecord")
                     .build()
-                .build();
-        ProtobufWriteConverterHandler converter = new ProtobufWriteConverterHandler(config, context);
+                .build()
+            .build();
+        ProtobufWriteConverterHandler converter = new ProtobufWriteConverterHandler(model, context);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -180,17 +187,17 @@ public class ProtobufModelTest
     @Test
     public void shouldReadValidProtobufEvent()
     {
-        ProtobufModelConfig config = ProtobufModelConfig.builder()
-                .catalog()
-                    .name("test0")
-                    .schema()
-                        .strategy("topic")
-                        .version("latest")
-                        .subject("test-value")
-                        .build()
+        ProtobufModelConfig model = ProtobufModelConfig.builder()
+            .catalog()
+                .name("test0")
+                .schema()
+                    .strategy("topic")
+                    .version("latest")
+                    .subject("test-value")
                     .build()
-                .build();
-        ProtobufReadConverterHandler converter = new ProtobufReadConverterHandler(config, context);
+                .build()
+            .build();
+        ProtobufReadConverterHandler converter = new ProtobufReadConverterHandler(model, context);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -204,17 +211,17 @@ public class ProtobufModelTest
     @Test
     public void shouldReadValidProtobufEventNestedMessage()
     {
-        ProtobufModelConfig config = ProtobufModelConfig.builder()
-                .catalog()
-                    .name("test0")
-                        .schema()
-                        .strategy("topic")
-                        .version("latest")
-                        .subject("test-value")
-                        .build()
+        ProtobufModelConfig model = ProtobufModelConfig.builder()
+            .catalog()
+                .name("test0")
+                    .schema()
+                    .strategy("topic")
+                    .version("latest")
+                    .subject("test-value")
                     .build()
-                .build();
-        ProtobufReadConverterHandler converter = new ProtobufReadConverterHandler(config, context);
+                .build()
+            .build();
+        ProtobufReadConverterHandler converter = new ProtobufReadConverterHandler(model, context);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -226,19 +233,19 @@ public class ProtobufModelTest
     @Test
     public void shouldReadValidProtobufEventFormatJson()
     {
-        ProtobufModelConfig config = ProtobufModelConfig.builder()
-                .view("json")
-                .catalog()
-                    .name("test0")
-                    .schema()
-                        .strategy("topic")
-                        .version("latest")
-                        .subject("test-value")
-                        .build()
+        ProtobufModelConfig model = ProtobufModelConfig.builder()
+            .view("json")
+            .catalog()
+                .name("test0")
+                .schema()
+                    .strategy("topic")
+                    .version("latest")
+                    .subject("test-value")
                     .build()
-                .build();
+                .build()
+            .build();
 
-        ProtobufReadConverterHandler converter = new ProtobufReadConverterHandler(config, context);
+        ProtobufReadConverterHandler converter = new ProtobufReadConverterHandler(model, context);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -265,20 +272,20 @@ public class ProtobufModelTest
     @Test
     public void shouldWriteValidProtobufEventFormatJson()
     {
-        ProtobufModelConfig config = ProtobufModelConfig.builder()
-                .view("json")
-                .catalog()
-                    .name("test0")
-                    .schema()
-                        .strategy("topic")
-                        .version("latest")
-                        .subject("test-value")
-                        .record("SimpleMessage")
-                        .build()
+        ProtobufModelConfig model = ProtobufModelConfig.builder()
+            .view("json")
+            .catalog()
+                .name("test0")
+                .schema()
+                    .strategy("topic")
+                    .version("latest")
+                    .subject("test-value")
+                    .record("SimpleMessage")
                     .build()
-                .build();
+                .build()
+            .build();
 
-        ProtobufWriteConverterHandler converter = new ProtobufWriteConverterHandler(config, context);
+        ProtobufWriteConverterHandler converter = new ProtobufWriteConverterHandler(model, context);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -301,7 +308,7 @@ public class ProtobufModelTest
     @Test
     public void shouldWriteInvalidProtobufEventFormatJson()
     {
-        ProtobufModelConfig config = ProtobufModelConfig.builder()
+        ProtobufModelConfig model = ProtobufModelConfig.builder()
             .view("json")
             .catalog()
                 .name("test0")
@@ -317,7 +324,7 @@ public class ProtobufModelTest
         when(context.clock()).thenReturn(Clock.systemUTC());
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
 
-        ProtobufWriteConverterHandler converter = new ProtobufWriteConverterHandler(config, context);
+        ProtobufWriteConverterHandler converter = new ProtobufWriteConverterHandler(model, context);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -336,18 +343,18 @@ public class ProtobufModelTest
     @Test
     public void shouldVerifyJsonFormatPaddingLength()
     {
-        ProtobufModelConfig config = ProtobufModelConfig.builder()
-                .view("json")
-                .catalog()
-                    .name("test0")
-                        .schema()
-                        .strategy("topic")
-                        .version("latest")
-                        .subject("test-value")
-                        .build()
+        ProtobufModelConfig model = ProtobufModelConfig.builder()
+            .view("json")
+            .catalog()
+                .name("test0")
+                    .schema()
+                    .strategy("topic")
+                    .version("latest")
+                    .subject("test-value")
                     .build()
-                .build();
-        ProtobufReadConverterHandler converter = new ProtobufReadConverterHandler(config, context);
+                .build()
+            .build();
+        ProtobufReadConverterHandler converter = new ProtobufReadConverterHandler(model, context);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -357,18 +364,18 @@ public class ProtobufModelTest
     @Test
     public void shouldVerifyIndexPaddingLength()
     {
-        ProtobufModelConfig config = ProtobufModelConfig.builder()
-                .catalog()
-                    .name("test0")
-                        .schema()
-                        .strategy("topic")
-                        .version("latest")
-                        .subject("test-value")
-                        .record("DemoMessage.SimpleMessage")
-                        .build()
+        ProtobufModelConfig model = ProtobufModelConfig.builder()
+            .catalog()
+                .name("test0")
+                    .schema()
+                    .strategy("topic")
+                    .version("latest")
+                    .subject("test-value")
+                    .record("DemoMessage.SimpleMessage")
                     .build()
-                .build();
-        ProtobufWriteConverterHandler converter = new ProtobufWriteConverterHandler(config, context);
+                .build()
+            .build();
+        ProtobufWriteConverterHandler converter = new ProtobufWriteConverterHandler(model, context);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -379,14 +386,18 @@ public class ProtobufModelTest
     @Test
     public void shouldExtract()
     {
-        TestCatalogOptionsConfig testCatalogOptionsConfig = TestCatalogOptionsConfig.builder()
-            .id(9)
-            .schema(COMPLEX_SCHEMA)
+        TestCatalogConfig catalog = CatalogConfig.builder(TestCatalogConfig::new)
+            .namespace("test")
+            .name("test0")
+            .type("test")
+            .options(TestCatalogOptionsConfig::builder)
+                .id(9)
+                .schema(COMPLEX_SCHEMA)
+                .build()
             .build();
-        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test", testCatalogOptionsConfig);
-        when(context.supplyCatalog(catalogConfig.id)).thenReturn(new TestCatalogHandler(testCatalogOptionsConfig));
+        when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
 
-        ProtobufModelConfig config = ProtobufModelConfig.builder()
+        ProtobufModelConfig model = ProtobufModelConfig.builder()
             .catalog()
                 .name("test0")
                 .schema()
@@ -396,7 +407,7 @@ public class ProtobufModelTest
                     .build()
                 .build()
             .build();
-        ProtobufReadConverterHandler converter = new ProtobufReadConverterHandler(config, context);
+        ProtobufReadConverterHandler converter = new ProtobufReadConverterHandler(model, context);
 
         String stringPath = "$.field_string";
         converter.extract(stringPath);

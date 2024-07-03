@@ -13,16 +13,19 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.factory;
+package io.aklivity.zilla.runtime.engine.test.internal.catalog.config;
 
-import java.util.Set;
+import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
 
-public interface FactorySpi
+public class TestCatalogConfig
 {
-    String type();
+    public final long id;
+    public final TestCatalogOptionsConfig options;
 
-    default Set<String> aliases()
+    public TestCatalogConfig(
+        CatalogConfig catalog)
     {
-        return Set.of();
+        this.id = catalog.id;
+        this.options = (TestCatalogOptionsConfig) catalog.options;
     }
 }

@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.catalog.inline;
 
-import static java.util.Collections.singletonList;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -22,18 +21,13 @@ import static org.mockito.Mockito.mock;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
-import io.aklivity.zilla.runtime.catalog.inline.config.InlineSchemaConfig;
 import io.aklivity.zilla.runtime.catalog.inline.internal.InlineCatalog;
 import io.aklivity.zilla.runtime.catalog.inline.internal.InlineCatalogContext;
-import io.aklivity.zilla.runtime.catalog.inline.internal.InlineCatalogHandler;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.Catalog;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogFactory;
-import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
 
 public class InlineCatalogFactoryTest
 {
@@ -42,19 +36,12 @@ public class InlineCatalogFactoryTest
     {
         Configuration config = new Configuration();
         CatalogFactory factory = CatalogFactory.instantiate();
-        Catalog catalog = factory.create("inline", config);
+        Catalog catalog = factory.create(InlineCatalog.NAME, config);
 
         assertThat(catalog, instanceOf(InlineCatalog.class));
-        assertEquals("inline", catalog.name());
+        assertEquals(InlineCatalog.NAME, catalog.name());
 
         CatalogContext context = catalog.supply(mock(EngineContext.class));
         assertThat(context, instanceOf(InlineCatalogContext.class));
-
-        InlineOptionsConfig catalogConfig =
-                new InlineOptionsConfig(singletonList(
-                        new InlineSchemaConfig("subject1", "latest", "{\"type\": \"string\"}")));
-        CatalogConfig options = new CatalogConfig("test", "catalog0", "inline", catalogConfig);
-        CatalogHandler handler = context.attach(options);
-        assertThat(handler, instanceOf(InlineCatalogHandler.class));
     }
 }
