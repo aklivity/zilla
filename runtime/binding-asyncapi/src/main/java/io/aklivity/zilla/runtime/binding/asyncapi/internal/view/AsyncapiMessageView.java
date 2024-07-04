@@ -45,7 +45,9 @@ public final class AsyncapiMessageView extends AsyncapiResolvable<AsyncapiMessag
 
     public AsyncapiMultiFormatSchema key()
     {
-        return message.bindings.kafka.key;
+        return message.bindings != null && message.bindings.kafka != null
+            ? message.bindings.kafka.key
+            : null;
     }
 
     public AsyncapiSchemaItem payload()
