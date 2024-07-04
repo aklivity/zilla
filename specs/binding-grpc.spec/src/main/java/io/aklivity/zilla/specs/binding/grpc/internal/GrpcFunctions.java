@@ -92,13 +92,9 @@ public final class GrpcFunctions
     public static final class GrpcBeginExBuilder
     {
         private final GrpcBeginExFW.Builder beginExRW;
-        private final OctetsFW.Builder nameBuilder;
-        private final OctetsFW.Builder valueBuilder;
 
         private GrpcBeginExBuilder()
         {
-            nameBuilder = new OctetsFW.Builder().wrap(new UnsafeBuffer(new byte[1024 * 8]), 0, 1024 * 8);
-            valueBuilder = new OctetsFW.Builder().wrap(new UnsafeBuffer(new byte[1024 * 8]), 0, 1024 * 8);
             MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
             this.beginExRW = new GrpcBeginExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
         }
@@ -152,9 +148,11 @@ public final class GrpcFunctions
         {
             beginExRW.metadataItem(b -> b.type(t -> t.set(GrpcType.valueOf(type)))
                 .nameLen(name.length())
-                .name(nameBuilder.set(name.getBytes()).build())
+                .name(new OctetsFW.Builder()
+                    .wrap(new UnsafeBuffer(new byte[1024 * 8]), 0, 1024 * 8).set(name.getBytes()).build())
                 .valueLen(value.length())
-                .value(valueBuilder.set(value.getBytes()).build()));
+                .value(new OctetsFW.Builder()
+                    .wrap(new UnsafeBuffer(new byte[1024 * 8]), 0, 1024 * 8).set(value.getBytes()).build()));
             return this;
         }
 
@@ -172,10 +170,6 @@ public final class GrpcFunctions
         private final DirectBuffer bufferRO = new UnsafeBuffer();
 
         private final GrpcBeginExFW beginExRO = new GrpcBeginExFW();
-        private final OctetsFW.Builder nameBuilder =
-            new OctetsFW.Builder().wrap(new UnsafeBuffer(new byte[1024 * 8]), 0, 1024 * 8);
-        private final OctetsFW.Builder valueBuilder =
-            new OctetsFW.Builder().wrap(new UnsafeBuffer(new byte[1024 * 8]), 0, 1024 * 8);
 
         private final Map<OctetsFW, MetadataValue> metadata = new LinkedHashMap<>();
 
@@ -232,8 +226,10 @@ public final class GrpcFunctions
             String name,
             String value)
         {
-            metadata.put(nameBuilder.set(name.getBytes()).build(),
-                new MetadataValue(GrpcType.valueOf(type), valueBuilder.set(value.getBytes()).build()::equals));
+            metadata.put(new OctetsFW.Builder()
+                    .wrap(new UnsafeBuffer(new byte[1024 * 8]), 0, 1024 * 8).set(name.getBytes()).build(),
+                new MetadataValue(GrpcType.valueOf(type), new OctetsFW.Builder()
+                    .wrap(new UnsafeBuffer(new byte[1024 * 8]), 0, 1024 * 8).set(value.getBytes()).build()::equals));
             return this;
         }
 

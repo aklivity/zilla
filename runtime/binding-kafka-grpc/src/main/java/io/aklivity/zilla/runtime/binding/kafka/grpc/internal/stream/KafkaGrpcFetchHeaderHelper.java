@@ -37,9 +37,7 @@ import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.KafkaM
 public final class KafkaGrpcFetchHeaderHelper
 {
     private static final int META_PREFIX_LENGTH = 5;
-    private static final byte[] HEADER_META_PREFIX = new byte[5];
     private static final byte[] META_PREFIX = "meta:".getBytes();
-    private static final byte[] HEADER_BIN_SUFFIX = new byte[4];
     private static final byte[] BIN_SUFFIX = "-bin".getBytes();
 
     private final Map<OctetsFW, Consumer<OctetsFW>> visitors;
@@ -50,6 +48,8 @@ public final class KafkaGrpcFetchHeaderHelper
     private final Array32FW.Builder<GrpcMetadataFW.Builder, GrpcMetadataFW> grpcMetadataRW =
         new Array32FW.Builder<>(new GrpcMetadataFW.Builder(), new GrpcMetadataFW());
     private final MutableDirectBuffer metaBuffer;
+    private final byte[] headerPrefix = new byte[5];
+    private final byte[] headerSuffix = new byte[4];
 
     public int partitionId;
     public long partitionOffset;
@@ -117,20 +117,22 @@ public final class KafkaGrpcFetchHeaderHelper
         final int offset = name.offset();
         final int limit = name.limit();
 
-        name.buffer().getBytes(offset, HEADER_META_PREFIX);
-        name.buffer().getBytes(limit - BIN_SUFFIX.length, HEADER_BIN_SUFFIX);
+        name.buffer().getBytes(offset, headerPrefix);
+        name.buffer().getBytes(limit - BIN_SUFFIX.length, headerSuffix);
 
         final Consumer<OctetsFW> visitor = visitors.get(name);
         if (visitor != null)
         {
             visitor.accept(value);
         }
-        else if (Arrays.equals(META_PREFIX, HEADER_META_PREFIX))
+        else if (Arrays.equals(META_PREFIX, headerPrefix))
         {
-            final GrpcType type = Arrays.equals(BIN_SUFFIX, HEADER_BIN_SUFFIX) ? BASE64 : TEXT;
+            final GrpcType type = Arrays.equals(BIN_SUFFIX, headerSuffix) ? BASE64 : TEXT;
+            int length = header.nameLen() - META_PREFIX_LENGTH;
+            final int metadataNameLength = type == BASE64 ? length - BIN_SUFFIX.length : length;
             grpcMetadataRW.item(m -> m.type(t -> t.set(type))
-                .nameLen(header.nameLen() - META_PREFIX_LENGTH)
-                .name(name.value(), META_PREFIX_LENGTH, header.nameLen() - META_PREFIX_LENGTH)
+                .nameLen(metadataNameLength)
+                .name(name.value(), META_PREFIX_LENGTH, metadataNameLength)
                 .valueLen(header.valueLen())
                 .value(value));
         }

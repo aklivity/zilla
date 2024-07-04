@@ -24,8 +24,8 @@ read zilla:begin.ext ${grpc:matchBeginEx()
                            .authority("localhost:8080")
                            .service("example.EchoService")
                            .method("EchoUnary")
-                           .metadata("custom", "test")
                            .metadata("idempotency-key", "59410e57-3e0f-4b61-9328-f645a7968ac8")
+                           .metadata("BASE64", "custom", "dGVzdA==")
                            .build()}
 connected
 
@@ -38,6 +38,7 @@ read closed
 write zilla:begin.ext ${grpc:beginEx()
                               .typeId(zilla:id("grpc"))
                               .metadata("custom", "value")
+                              .metadata("BASE64", "customProperty", "dGVzdA==")
                               .build()}
 write flush
 

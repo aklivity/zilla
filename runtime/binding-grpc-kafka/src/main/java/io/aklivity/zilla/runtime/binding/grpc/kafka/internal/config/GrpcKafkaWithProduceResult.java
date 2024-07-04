@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config;
 
+import static io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcType.BASE64;
+
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -37,6 +39,9 @@ import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcMe
 public class GrpcKafkaWithProduceResult
 {
     public static final String META_PREFIX = "meta:";
+    public static final String BIN_SUFFIX = "-bin";
+    private static final int META_PREFIX_LENGTH = 5;
+    private static final int BIN_SUFFIX_LENGTH = 4;
 
     private static final KafkaOffsetFW KAFKA_OFFSET_HISTORICAL =
         new KafkaOffsetFW.Builder()
@@ -158,8 +163,14 @@ public class GrpcKafkaWithProduceResult
         GrpcMetadataFW metadata)
     {
         int nameLen = metadata.nameLen();
-        int nameLenWithPrefix = nameLen + 5;
-        buffer.putBytes(5, metadata.name().value(), 0, nameLen);
+        int nameLenWithPrefix = nameLen + META_PREFIX_LENGTH;
+        buffer.putBytes(META_PREFIX_LENGTH, metadata.name().value(), 0, nameLen);
+
+        if (metadata.type().get() == BASE64)
+        {
+            buffer.putStringWithoutLengthAscii(nameLenWithPrefix, BIN_SUFFIX);
+            nameLenWithPrefix += BIN_SUFFIX_LENGTH;
+        }
 
         builder
             .nameLen(nameLenWithPrefix)

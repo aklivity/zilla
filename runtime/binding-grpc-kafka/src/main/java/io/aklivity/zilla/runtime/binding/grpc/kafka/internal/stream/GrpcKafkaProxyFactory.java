@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.grpc.kafka.internal.stream;
 
-import static io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaWithProduceResult.META_PREFIX;
 import static io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaCapabilities.FETCH_ONLY;
 import static io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaCapabilities.PRODUCE_ONLY;
 import static io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcType.BASE64;
@@ -71,9 +70,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
     private static final String GRPC_TYPE_NAME = "grpc";
     private static final String KAFKA_TYPE_NAME = "kafka";
     private static final int META_PREFIX_LENGTH = 5;
-    private static final byte[] HEADER_META_PREFIX = new byte[5];
     private static final byte[] META_PREFIX = "meta:".getBytes();
-    private static final byte[] HEADER_BIN_SUFFIX = new byte[4];
     private static final byte[] BIN_SUFFIX = "-bin".getBytes();
 
     private static final int DATA_FLAG_INIT = 0x02;
@@ -84,6 +81,9 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
     private static final String16FW HEADER_VALUE_GRPC_OK = new String16FW("0");
     private static final String16FW HEADER_VALUE_GRPC_ABORTED = new String16FW("10");
     private static final String16FW HEADER_VALUE_GRPC_INTERNAL_ERROR = new String16FW("13");
+
+    private final byte[] headerPrefix = new byte[5];
+    private final byte[] headerSuffix = new byte[4];
 
     private final Varuint32FW.Builder lenRW =
         new Varuint32FW.Builder().wrap(new UnsafeBuffer(new byte[1024 * 8]), 0, 1024 * 8);;
@@ -1433,16 +1433,18 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 final int offset = name.offset();
                 final int limit = name.limit();
 
-                name.buffer().getBytes(offset, HEADER_META_PREFIX);
-                name.buffer().getBytes(limit - BIN_SUFFIX.length, HEADER_BIN_SUFFIX);
+                name.buffer().getBytes(offset, headerPrefix);
+                name.buffer().getBytes(limit - BIN_SUFFIX.length, headerSuffix);
 
-                if (Arrays.equals(META_PREFIX, HEADER_META_PREFIX))
+                if (Arrays.equals(META_PREFIX, headerPrefix))
                 {
-                    final GrpcType type = Arrays.equals(BIN_SUFFIX, HEADER_BIN_SUFFIX) ? BASE64 : TEXT;
+                    final GrpcType type = Arrays.equals(BIN_SUFFIX, headerSuffix) ? BASE64 : TEXT;
+                    int length = h.nameLen() - META_PREFIX_LENGTH;
+                    final int metadataNameLength = type == BASE64 ? length - BIN_SUFFIX.length : length;
 
                     builder.item(m -> m.type(t -> t.set(type))
-                        .nameLen(h.nameLen() - META_PREFIX_LENGTH)
-                        .name(h.name().value(), META_PREFIX_LENGTH, h.nameLen() - META_PREFIX_LENGTH)
+                        .nameLen(metadataNameLength)
+                        .name(h.name().value(), META_PREFIX_LENGTH, metadataNameLength)
                         .valueLen(h.valueLen())
                         .value(h.value()));
                 }
