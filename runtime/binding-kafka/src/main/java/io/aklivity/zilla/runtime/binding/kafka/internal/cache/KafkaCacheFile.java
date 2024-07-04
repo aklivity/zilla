@@ -142,6 +142,14 @@ public class KafkaCacheFile implements AutoCloseable
         return visitor.visit(mappedBuf, position, capacity);
     }
 
+    public <T> T readBytes(
+        int position,
+        int maxLimit,
+        Flyweight.Visitor<T> visitor)
+    {
+        return visitor.visit(mappedBuf, position, maxLimit);
+    }
+
     public int readInt(
         int position)
     {

@@ -300,7 +300,7 @@ public class AvroModelTest
             0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
         data.wrap(bytes, 0, bytes.length);
 
-        assertEquals(260, converter.padding(data, 0, data.capacity()));
+        assertEquals(292, converter.padding(data, 0, data.capacity()));
     }
 
     @Test

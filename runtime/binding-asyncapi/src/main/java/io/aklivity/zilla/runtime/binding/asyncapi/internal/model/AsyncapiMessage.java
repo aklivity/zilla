@@ -27,6 +27,7 @@ public class AsyncapiMessage
     public AsyncapiSchemaItem payload;
     public List<AsyncapiTrait> traits;
     public AsyncapiCorrelationId correlationId;
+    public AsyncapiMessageBindings bindings;
 
     @JsonbProperty("$ref")
     public String ref;

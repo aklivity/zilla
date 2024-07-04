@@ -26,7 +26,6 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiChannel
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiMessage;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiOperation;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiChannelView;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiMessageView;
 import io.aklivity.zilla.runtime.binding.sse.config.SseConditionConfig;
 import io.aklivity.zilla.runtime.binding.sse.config.SseOptionsConfig;
 import io.aklivity.zilla.runtime.binding.sse.config.SseOptionsConfigBuilder;
@@ -35,6 +34,7 @@ import io.aklivity.zilla.runtime.common.feature.Incubating;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.MetricRefConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
+import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
 @Incubating
 public class AsyncapiSseProtocol extends AsyncapiProtocol
@@ -172,15 +172,12 @@ public class AsyncapiSseProtocol extends AsyncapiProtocol
     {
         if (messages != null)
         {
-            for (Map.Entry<String, AsyncapiMessage> messageEntry : messages.entrySet())
-            {
-                AsyncapiMessageView message =
-                    AsyncapiMessageView.of(asyncapi.components.messages, messageEntry.getValue());
-                if (message.payload() != null)
-                {
-                    request.content(injectModel(asyncapi, message));
-                }
-            }
+            request.content(JsonModelConfig::builder)
+                .catalog()
+                .name(INLINE_CATALOG_NAME)
+                .inject(cataloged -> injectValueSchemas(cataloged, asyncapi, messages))
+                .build()
+                .build();
         }
         return request;
     }
