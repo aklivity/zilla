@@ -18,15 +18,17 @@ import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.event.EventFormatterSpi;
-import io.aklivity.zilla.runtime.model.avro.internal.types.StringFW;
 import io.aklivity.zilla.runtime.model.avro.internal.types.event.AvroModelEventExFW;
 import io.aklivity.zilla.runtime.model.avro.internal.types.event.AvroModelValidationFailedExFW;
 import io.aklivity.zilla.runtime.model.avro.internal.types.event.EventFW;
 
 public final class AvroModelEventFormatter implements EventFormatterSpi
 {
+    private static final String VALIDATION_FAILED_FORMAT = "A message payload failed validation.";
+    private static final String VALIDATION_FAILED_WITH_ERROR_FORMAT = VALIDATION_FAILED_FORMAT + " %s";
+
     private final EventFW eventRO = new EventFW();
-    private final AvroModelEventExFW avroModelEventExFW = new AvroModelEventExFW();
+    private final AvroModelEventExFW eventExRO = new AvroModelEventExFW();
 
     AvroModelEventFormatter(
         Configuration config)
@@ -39,25 +41,24 @@ public final class AvroModelEventFormatter implements EventFormatterSpi
         int length)
     {
         final EventFW event = eventRO.wrap(buffer, index, index + length);
-        final AvroModelEventExFW extension = avroModelEventExFW
-            .wrap(event.extension().buffer(), event.extension().offset(), event.extension().limit());
+        final AvroModelEventExFW eventEx = event.extension().get(eventExRO::wrap);
+
         String result = null;
-        switch (extension.kind())
+        switch (eventEx.kind())
         {
         case VALIDATION_FAILED:
-        {
-            AvroModelValidationFailedExFW ex = extension.validationFailed();
-            result = String.format("A message payload failed validation. %s.", asString(ex.error()));
+            result = formatValidationFailed(eventEx.validationFailed());
             break;
-        }
         }
         return result;
     }
 
-    private static String asString(
-        StringFW stringFW)
+    private String formatValidationFailed(
+        AvroModelValidationFailedExFW validationFailed)
     {
-        String s = stringFW.asString();
-        return s == null ? "" : s;
+        String error = validationFailed.error().asString();
+        return error != null
+            ? String.format(VALIDATION_FAILED_WITH_ERROR_FORMAT, error)
+            : VALIDATION_FAILED_FORMAT;
     }
 }

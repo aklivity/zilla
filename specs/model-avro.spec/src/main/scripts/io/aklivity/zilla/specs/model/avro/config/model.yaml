@@ -19,6 +19,7 @@ catalogs:
   test0:
     type: test
     options:
+      subject: test
       schema: |
         {
           "fields": [
@@ -44,7 +45,7 @@ bindings:
         model: avro
         view: json
         catalog:
-          catalog0:
-            - subject: test0
+          test0:
+            - subject: test
               version: latest
     exit: test

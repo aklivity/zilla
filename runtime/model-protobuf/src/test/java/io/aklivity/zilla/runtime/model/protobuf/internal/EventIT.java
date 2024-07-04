@@ -31,8 +31,8 @@ import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 public class EventIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/engine/streams/network")
-        .addScriptRoot("app", "io/aklivity/zilla/specs/engine/streams/application");
+        .addScriptRoot("net", "io/aklivity/zilla/specs/model/protobuf/streams/network")
+        .addScriptRoot("app", "io/aklivity/zilla/specs/model/protobuf/streams/application");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
@@ -49,8 +49,8 @@ public class EventIT
     @Test
     @Configuration("event.yaml")
     @Specification({
-        "${net}/handshake/client",
-        "${app}/handshake/server"
+        "${net}/client.sent.protobuf.invalid/client",
+        "${app}/client.sent.protobuf.invalid/server"
     })
     public void shouldLogEvents() throws Exception
     {

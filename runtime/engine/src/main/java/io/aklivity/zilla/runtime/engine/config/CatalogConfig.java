@@ -16,6 +16,9 @@
 package io.aklivity.zilla.runtime.engine.config;
 
 import static java.util.Objects.requireNonNull;
+import static java.util.function.Function.identity;
+
+import java.util.function.Function;
 
 public class CatalogConfig
 {
@@ -27,7 +30,18 @@ public class CatalogConfig
     public final String type;
     public final OptionsConfig options;
 
-    public CatalogConfig(
+    public static CatalogConfigBuilder<CatalogConfig> builder()
+    {
+        return new CatalogConfigBuilder<>(identity());
+    }
+
+    public static <T> CatalogConfigBuilder<T> builder(
+        Function<CatalogConfig, T> mapper)
+    {
+        return new CatalogConfigBuilder<>(mapper);
+    }
+
+    CatalogConfig(
         String namespace,
         String name,
         String type,

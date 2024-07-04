@@ -18,21 +18,6 @@
 
   <modules>
     <module>docker-image</module>
+    <module>helm-chart</module>
   </modules>
-
-  <profiles>
-    <profile>
-      <id>release</id>
-      <activation>
-        <property>
-          <name>release</name>
-          <value>true</value>
-        </property>
-      </activation>
-
-      <modules>
-        <module>helm-chart</module>
-      </modules>
-    </profile>
-  </profiles>
 </project>

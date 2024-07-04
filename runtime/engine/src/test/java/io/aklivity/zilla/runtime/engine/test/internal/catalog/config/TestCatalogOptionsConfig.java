@@ -32,7 +32,7 @@ public class TestCatalogOptionsConfig extends OptionsConfig
     }
 
     public static <T> TestCatalogOptionsConfigBuilder<T> builder(
-            Function<OptionsConfig, T> mapper)
+        Function<OptionsConfig, T> mapper)
     {
         return new TestCatalogOptionsConfigBuilder<>(mapper);
     }
