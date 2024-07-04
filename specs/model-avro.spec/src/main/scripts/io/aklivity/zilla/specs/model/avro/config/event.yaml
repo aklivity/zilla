@@ -24,11 +24,12 @@ telemetry:
           - qname: test.net0
             id: model.avro.validation.failed
             name: MODEL_AVRO_VALIDATION_FAILED
-            message: A message payload failed validation. java.io.EOFException.
+            message: A message payload failed validation.
 catalogs:
   test0:
     type: test
     options:
+      subject: test
       schema: |
         {
           "fields": [
@@ -47,13 +48,13 @@ catalogs:
         }
 bindings:
   net0:
-    kind: server
     type: test
+    kind: server
     options:
       value:
         model: avro
         catalog:
-          catalog0:
-            - subject: test0
+          test0:
+            - subject: test
               version: latest
     exit: app0

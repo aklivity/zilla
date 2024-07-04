@@ -20,8 +20,8 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 
 import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
+import io.aklivity.zilla.runtime.engine.config.CatalogConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapter;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
@@ -67,14 +67,20 @@ public class CatalogAdapter
         String name,
         JsonObject object)
     {
+        CatalogConfigBuilder<CatalogConfig> builder = CatalogConfig.builder()
+            .namespace(namespace)
+            .name(name);
+
         String type = object.getString(TYPE_NAME);
+        builder.type(type);
 
         options.adaptType(type);
 
-        OptionsConfig opts = object.containsKey(OPTIONS_NAME) ?
-                options.adaptFromJson(object.getJsonObject(OPTIONS_NAME)) :
-                null;
+        if (object.containsKey(OPTIONS_NAME))
+        {
+            builder.options(options.adaptFromJson(object.getJsonObject(OPTIONS_NAME)));
+        }
 
-        return new CatalogConfig(namespace, name, type, opts);
+        return builder.build();
     }
 }

@@ -611,6 +611,8 @@
         <docker.skip.push>true</docker.skip.push>
         <docker.skip.tag>true</docker.skip.tag>
         <docker.latest.tag></docker.latest.tag>
+        <helm.push.skip>true</helm.push.skip>
+        <helm.package.skip>true</helm.package.skip>
       </properties>
 
       <build>

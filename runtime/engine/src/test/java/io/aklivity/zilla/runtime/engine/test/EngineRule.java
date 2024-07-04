@@ -367,13 +367,13 @@ public final class EngineRule implements TestRule
                     }
                     finally
                     {
-                        if (!allowErrors)
-                        {
-                            assertEmpty(errors);
-                        }
                         if (fs != null)
                         {
                             fs.close();
+                        }
+                        if (!allowErrors)
+                        {
+                            assertEmpty(errors);
                         }
                     }
                 }

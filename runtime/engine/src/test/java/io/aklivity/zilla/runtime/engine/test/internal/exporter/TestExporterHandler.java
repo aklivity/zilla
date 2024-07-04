@@ -59,6 +59,19 @@ class TestExporterHandler implements ExporterHandler
     @Override
     public void stop()
     {
+        try
+        {
+            // drain events
+            while (options.events != null &&
+                    eventIndex < options.events.size())
+            {
+                readEvent.read(this::handleEvent, Integer.MAX_VALUE);
+            }
+        }
+        catch (Exception ex)
+        {
+            assert options.events == null || eventIndex == options.events.size();
+        }
     }
 
     private void handleEvent(

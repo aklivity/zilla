@@ -29,6 +29,7 @@ catalogs:
   test0:
     type: test
     options:
+      subject: test
       schema: |
         {
           "type": "object",
@@ -53,7 +54,7 @@ bindings:
       value:
         model: json
         catalog:
-          catalog0:
-            - subject: test0
+          test0:
+            - subject: test
               version: latest
     exit: app0

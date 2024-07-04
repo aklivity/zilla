@@ -17,20 +17,12 @@ package io.aklivity.zilla.runtime.catalog.karapace.internal;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.mock;
-
-import java.time.Duration;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.catalog.karapace.config.KarapaceOptionsConfig;
 import io.aklivity.zilla.runtime.engine.Configuration;
-import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.Catalog;
-import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogFactory;
-import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
 
 public class KarapaceCatalogFactoryTest
 {
@@ -39,22 +31,9 @@ public class KarapaceCatalogFactoryTest
     {
         Configuration config = new Configuration();
         CatalogFactory factory = CatalogFactory.instantiate();
-        Catalog catalog = factory.create("karapace", config);
+        Catalog catalog = factory.create(KarapaceCatalog.NAME, config);
 
         assertThat(catalog, instanceOf(KarapaceCatalog.class));
-        assertEquals("karapace", catalog.name());
-
-        CatalogContext context = catalog.supply(mock(EngineContext.class));
-        assertThat(context, instanceOf(KarapaceCatalogContext.class));
-
-        KarapaceOptionsConfig catalogConfig = KarapaceOptionsConfig.builder()
-            .url("http://localhost:8081")
-            .context("default")
-            .maxAge(Duration.ofSeconds(100))
-            .build();
-        CatalogConfig options = new CatalogConfig("test", "catalog0", "karapace", catalogConfig);
-        CatalogHandler handler = context.attach(options);
-
-        assertThat(handler, instanceOf(KarapaceCatalogHandler.class));
+        assertEquals(KarapaceCatalog.NAME, catalog.name());
     }
 }

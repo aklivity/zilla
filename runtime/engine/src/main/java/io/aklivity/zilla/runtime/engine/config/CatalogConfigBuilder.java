@@ -63,13 +63,13 @@ public final class CatalogConfigBuilder<T> extends ConfigBuilder<T, CatalogConfi
     }
 
     public <C extends ConfigBuilder<CatalogConfigBuilder<T>, C>> C options(
-            Function<Function<OptionsConfig, CatalogConfigBuilder<T>>, C> options)
+        Function<Function<OptionsConfig, CatalogConfigBuilder<T>>, C> options)
     {
         return options.apply(this::options);
     }
 
     public CatalogConfigBuilder<T> options(
-            OptionsConfig options)
+        OptionsConfig options)
     {
         this.options = options;
         return this;

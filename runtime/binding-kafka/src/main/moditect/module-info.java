@@ -36,5 +36,5 @@ module io.aklivity.zilla.runtime.binding.kafka
         with io.aklivity.zilla.runtime.binding.kafka.internal.identity.KafkaConfluentClientIdSupplierFactory;
 
     provides io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi
-        with io.aklivity.zilla.runtime.binding.kafka.internal.KafkaEventFormatterFactory;
+        with io.aklivity.zilla.runtime.binding.kafka.internal.events.KafkaEventFormatterFactory;
 }
