@@ -48,6 +48,7 @@
     <module>command-metrics</module>
     <module>command-start</module>
     <module>command-stop</module>
+    <module>command-version</module>
     <module>exporter-otlp</module>
     <module>exporter-prometheus</module>
     <module>exporter-stdout</module>
@@ -219,6 +220,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>command-stop</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>command-version</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
