@@ -22,14 +22,11 @@ import io.aklivity.zilla.runtime.command.ZillaCommand;
 @Command(name = "version", description = "Display version information")
 public final class ZillaVersionCommand extends ZillaCommand
 {
-    public ZillaVersionCommand()
-    {
-    }
 
     @Override
     public void run()
     {
-        String version = ZillaVersionCommand.class.getModule().getDescriptor().rawVersion().orElse("unavailable");
+        String version = ZillaVersionCommand.class.getModule().getDescriptor().rawVersion().orElse("develop-SNAPSHOT");
         System.out.println("zilla version " + version);
     }
 }
