@@ -56,4 +56,22 @@ public class GroupSaslIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/initial.delay.config.with.sasl.plain/client",
+        "${net}/initial.delay.config.with.sasl.plain/server"})
+    public void shouldCreateConnectionForJoinGroupWithSaslPlain() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/initial.delay.config.with.sasl.scram/client",
+        "${net}/initial.delay.config.with.sasl.scram/server"})
+    public void shouldCreateConnectionForJoinGroupWithSaslScram() throws Exception
+    {
+        k3po.finish();
+    }
 }
