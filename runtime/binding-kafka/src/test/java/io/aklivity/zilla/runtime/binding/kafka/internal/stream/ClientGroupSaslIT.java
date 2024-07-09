@@ -45,7 +45,7 @@ public class ClientGroupSaslIT
         .directory("target/zilla-itests")
         .countersBufferCapacity(8192)
         .configure(KAFKA_CLIENT_INSTANCE_ID_NAME,
-            "io.aklivity.zilla.runtime.binding.kafka.internal.stream.ClientGroupIT::supplyInstanceId")
+            "io.aklivity.zilla.runtime.binding.kafka.internal.stream.ClientGroupSaslIT::supplyInstanceId")
         .configurationRoot("io/aklivity/zilla/specs/binding/kafka/config")
         .external("net0")
         .clean();
@@ -72,6 +72,28 @@ public class ClientGroupSaslIT
     @Configure(name = KAFKA_CLIENT_SASL_SCRAM_NONCE_NAME,
         value = "io.aklivity.zilla.runtime.binding.kafka.internal.stream.ClientGroupSaslIT::supplyNonce")
     public void shouldAssignLeaderWithSaslScram() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.options.sasl.plain.yaml")
+    @Specification({
+        "${app}/leader.assignment/client",
+        "${net}/initial.delay.config.with.sasl.plain/server"})
+    public void shouldCreateConnectionForJoinGroupWithSaslPlain() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.options.sasl.scram.yaml")
+    @Specification({
+        "${app}/leader.assignment/client",
+        "${net}/initial.delay.config.with.sasl.scram/server"})
+    @Configure(name = KAFKA_CLIENT_SASL_SCRAM_NONCE_NAME,
+        value = "io.aklivity.zilla.runtime.binding.kafka.internal.stream.ClientGroupSaslIT::supplyNonce")
+    public void shouldCreateConnectionForJoinGroupWithSaslScram() throws Exception
     {
         k3po.finish();
     }

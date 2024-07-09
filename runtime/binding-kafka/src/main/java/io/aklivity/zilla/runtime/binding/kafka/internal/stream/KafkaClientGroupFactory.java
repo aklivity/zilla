@@ -35,10 +35,10 @@ import java.util.function.Consumer;
 import java.util.function.IntFunction;
 import java.util.function.LongFunction;
 import java.util.function.Supplier;
-import java.util.function.UnaryOperator;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
+import org.agrona.collections.IntObjectToObjectFunction;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.LongLongConsumer;
 import org.agrona.collections.MutableInteger;
@@ -117,7 +117,7 @@ import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker implements BindingHandler
 {
     private static final int GROUP_RECORD_FRAME_MAX_SIZE = 256;
-    private static final int NO_REBALANCE_DELAY = 0;
+    private static final int NO_DELAY = 0;
     private static final short METADATA_LOWEST_VERSION = 0;
     private static final short ERROR_EXISTS = -1;
     private static final short ERROR_NONE = 0;
@@ -294,9 +294,9 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private final MutableDirectBuffer userdataBuffer;
     private final BufferPool decodePool;
     private final BufferPool encodePool;
-    private final IntFunction<Signaler> signalerSupplier;
-    private final IntFunction<BindingHandler> streamFactorySupplier;
-    private final IntFunction<UnaryOperator<KafkaSaslConfig>> resolveSaslSupplier;
+    private final IntFunction<Signaler> supplySignaler;
+    private final IntFunction<BindingHandler> supplyStreamFactory;
+    private final IntObjectToObjectFunction<KafkaSaslConfig, KafkaSaslConfig> resolveSasl;
     private final LongFunction<KafkaBindingConfig> supplyBinding;
     private final Supplier<String> supplyInstanceId;
     private final LongFunction<BudgetDebitor> supplyDebitor;
@@ -314,9 +314,9 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         EngineContext context,
         LongFunction<KafkaBindingConfig> supplyBinding,
         LongFunction<BudgetDebitor> supplyDebitor,
-        IntFunction<Signaler> signalerSupplier,
-        IntFunction<BindingHandler> streamFactorySupplier,
-        IntFunction<UnaryOperator<KafkaSaslConfig>> resolveSaslSupplier,
+        IntFunction<Signaler> supplySignaler,
+        IntFunction<BindingHandler> supplyStreamFactory,
+        IntObjectToObjectFunction<KafkaSaslConfig, KafkaSaslConfig> resolveSasl,
         LongFunction<KafkaClientRoute> supplyClientRoute)
     {
         super(config, context);
@@ -331,9 +331,9 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         this.encodePool = context.bufferPool();
         this.supplyBinding = supplyBinding;
         this.supplyDebitor = supplyDebitor;
-        this.signalerSupplier = signalerSupplier;
-        this.streamFactorySupplier = streamFactorySupplier;
-        this.resolveSaslSupplier = resolveSaslSupplier;
+        this.supplySignaler = supplySignaler;
+        this.supplyStreamFactory = supplyStreamFactory;
+        this.resolveSasl = resolveSasl;
         this.instanceIds = new Long2ObjectHashMap<>();
         this.groupStreams = new Object2ObjectHashMap<>();
         this.configs = new LinkedHashMap<>();
@@ -381,7 +381,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             {
                 final long resolvedId = resolved.id;
                 final List<KafkaServerConfig> servers = binding.servers();
-                final KafkaSaslConfig sasl = resolveSaslSupplier.apply(NO_REBALANCE_DELAY).apply(binding.sasl());
+                final KafkaSaslConfig sasl = binding.sasl();
 
                 final GroupMembership groupMembership = instanceIds.get(binding.id);
                 assert groupMembership != null;
@@ -402,7 +402,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                         timeout,
                         groupMembership,
                         servers,
-                        sasl);
+                        delay -> resolveSasl.apply(delay, sasl));
                     newStream = newGroup::onStream;
 
                     groupStreams.put(groupId, newGroup);
@@ -458,7 +458,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 .build();
 
         final MessageConsumer receiver =
-                streamFactorySupplier.apply(rebalanceDelay)
+                supplyStreamFactory.apply(rebalanceDelay)
                     .newStream(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof(), sender);
 
         receiver.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
@@ -1286,6 +1286,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         private final GroupMembership groupMembership;
         private final String groupId;
         private final String protocol;
+        private final IntFunction<KafkaSaslConfig> resolveSasl;
 
         private KafkaGroupClient client;
         private MessageConsumer sender;
@@ -1325,7 +1326,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             int timeout,
             GroupMembership groupMembership,
             List<KafkaServerConfig> servers,
-            KafkaSaslConfig sasl)
+            IntFunction<KafkaSaslConfig> resolveSasl)
         {
             this.sender = sender;
             this.originId = originId;
@@ -1337,7 +1338,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             this.protocol = protocol;
             this.timeout = timeout;
             this.groupMembership = groupMembership;
-            this.cluster = new ClusterClient(routedId, resolvedId, servers, sasl, this);
+            this.resolveSasl = resolveSasl;
+            this.cluster = new ClusterClient(routedId, resolvedId, servers, this);
             this.client = cluster;
             this.metadataBuffer = new UnsafeBuffer(new byte[2048]);
         }
@@ -1864,14 +1866,13 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             long originId,
             long routedId,
             List<KafkaServerConfig> servers,
-            KafkaSaslConfig sasl,
             KafkaGroupStream delegate)
         {
-            super(servers, sasl, originId, routedId);
+            super(servers, delegate.resolveSasl.apply(NO_DELAY), originId, routedId);
 
             this.encoder = sasl != null ? encodeSaslHandshakeRequest : encodeFindCoordinatorRequest;
             this.delegate = delegate;
-            this.signaler = signalerSupplier.apply(NO_REBALANCE_DELAY);
+            this.signaler = supplySignaler.apply(NO_DELAY);
             this.decoder = decodeClusterReject;
         }
 
@@ -2112,7 +2113,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                         .sizeof());
                 }
 
-                network = newStream(this::onNetwork, NO_REBALANCE_DELAY, originId, routedId, initialId,
+                network = newStream(this::onNetwork, NO_DELAY, originId, routedId, initialId,
                     initialSeq, initialAck, initialMax, traceId, authorization, affinity, extension);
             }
         }
@@ -2508,7 +2509,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 .port(port)
                 .build();
 
-            describe = describe == null ? new DescribeClient(originId, routedId, server, sasl, delegate) : describe;
+            describe = describe == null ? new DescribeClient(originId, routedId, server, delegate) : describe;
             delegate.client = describe;
 
             delegate.client.doNetworkBegin(traceId, authorization, 0);
@@ -2609,13 +2610,12 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             long originId,
             long routedId,
             KafkaServerConfig server,
-            KafkaSaslConfig sasl,
             KafkaGroupStream delegate)
         {
-            super(server, sasl, originId, routedId);
+            super(server, delegate.resolveSasl.apply(NO_DELAY), originId, routedId);
             this.configs = new LinkedHashMap<>();
             this.delegate = delegate;
-            this.signaler = signalerSupplier.apply(NO_REBALANCE_DELAY);
+            this.signaler = supplySignaler.apply(NO_DELAY);
 
             this.encoder = sasl != null ? encodeSaslHandshakeRequest : encodeDescribeRequest;
             this.decoder = decodeReject;
@@ -2883,7 +2883,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                     .sizeof());
             }
 
-            network = newStream(this::onNetwork, NO_REBALANCE_DELAY, originId, routedId, initialId,
+            network = newStream(this::onNetwork, NO_DELAY, originId, routedId, initialId,
                 initialSeq, initialAck, initialMax, traceId, authorization, affinity, extension);
         }
 
@@ -3284,7 +3284,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             }
 
             joinGroup = joinGroup == null ?
-                new JoinGroupClient(delay, originId, routedId, server, sasl, delegate) : joinGroup;
+                new JoinGroupClient(delay, originId, routedId, server, delegate) : joinGroup;
             delegate.client = joinGroup;
             delegate.client.doNetworkBegin(traceId, authorization, 0);
 
@@ -3386,14 +3386,13 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             long originId,
             long routedId,
             KafkaServerConfig server,
-            KafkaSaslConfig sasl,
             KafkaGroupStream delegate)
         {
-            super(server, sasl, originId, routedId);
+            super(server, delegate.resolveSasl.apply(rebalanceDelay), originId, routedId);
 
             this.rebalanceDelay = rebalanceDelay;
             this.delegate = delegate;
-            this.signaler = signalerSupplier.apply(rebalanceDelay);
+            this.signaler = supplySignaler.apply(rebalanceDelay);
             this.decoder = decodeJoinGroupReject;
             this.members = new ArrayList<>();
             this.encoder = sasl != null ? encodeSaslHandshakeRequest : encodeJoinGroupRequest;
@@ -4203,7 +4202,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                     .sizeof()));
 
             coordinator = coordinator == null ?
-                new CoordinatorClient(originId, routedId, server, sasl, this, delegate) : coordinator;
+                new CoordinatorClient(originId, routedId, server, this, delegate) : coordinator;
             delegate.client = coordinator;
             coordinator.onJoinGroupResponse(traceId, generationId, members);
 
@@ -4309,15 +4308,14 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             long originId,
             long routedId,
             KafkaServerConfig server,
-            KafkaSaslConfig sasl,
             JoinGroupClient joinGroup,
             KafkaGroupStream delegate)
         {
-            super(server, sasl, originId, routedId);
+            super(server, delegate.resolveSasl.apply(NO_DELAY), originId, routedId);
 
             this.joinGroup = joinGroup;
             this.delegate = delegate;
-            this.signaler = signalerSupplier.apply(NO_REBALANCE_DELAY);
+            this.signaler = supplySignaler.apply(NO_DELAY);
             this.decoder = decodeCoordinatorReject;
             this.encoders = new ArrayDeque<>();
             if (sasl != null)
@@ -4589,7 +4587,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                     .build()
                     .sizeof());
 
-                network = newStream(this::onNetwork, NO_REBALANCE_DELAY, originId, routedId, initialId,
+                network = newStream(this::onNetwork, NO_DELAY, originId, routedId, initialId,
                     initialSeq, initialAck, initialMax, traceId, authorization, affinity, extension);
             }
         }

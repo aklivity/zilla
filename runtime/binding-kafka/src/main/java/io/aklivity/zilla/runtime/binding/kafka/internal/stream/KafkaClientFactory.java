@@ -21,6 +21,7 @@ import java.util.function.UnaryOperator;
 
 import org.agrona.DirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
+import org.agrona.collections.IntObjectToObjectFunction;
 import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
@@ -60,22 +61,29 @@ public final class KafkaClientFactory implements KafkaStreamFactory
         final KafkaClientConnectionPool connectionPool = new KafkaClientConnectionPool(
             config, context, bindings::get, accountant.creditor());
 
-        final BindingHandler streamFactory = config.clientConnectionPool() ? connectionPool.streamFactory() :
-                context.streamFactory();
+        final BindingHandler streamFactory = config.clientConnectionPool()
+            ? connectionPool.streamFactory()
+            : context.streamFactory();
 
-        final IntFunction<BindingHandler> streamFactorySupplier = d ->
-            d == 0 ? streamFactory : context.streamFactory();
+        final IntFunction<BindingHandler> supplyStreamFactory = d -> d == 0
+            ? streamFactory
+            : context.streamFactory();
 
-        final UnaryOperator<KafkaSaslConfig> resolveSasl = config.clientConnectionPool() ? c -> null :
-            UnaryOperator.identity();
+        final UnaryOperator<KafkaSaslConfig> resolveSasl = config.clientConnectionPool()
+            ? c -> null
+            : UnaryOperator.identity();
 
-        final IntFunction<UnaryOperator<KafkaSaslConfig>> resolveSaslSupplier = d ->
-            d == 0 ? resolveSasl : UnaryOperator.identity();
+        final IntObjectToObjectFunction<KafkaSaslConfig, KafkaSaslConfig> resolveSaslWithDelay = (d, c) -> d == 0
+            ? resolveSasl.apply(c)
+            : c;
 
-        final Signaler signaler = config.clientConnectionPool() ? connectionPool.signaler() :
-                context.signaler();
+        final Signaler signaler = config.clientConnectionPool()
+            ? connectionPool.signaler()
+            : context.signaler();
 
-        final IntFunction<Signaler> signalSupplier = d -> d == 0 ? signaler : context.signaler();
+        final IntFunction<Signaler> supplySignaler = d -> d == 0
+            ? signaler
+            : context.signaler();
 
         final KafkaClientMetaFactory clientMetaFactory = new KafkaClientMetaFactory(
                 config, context, bindings::get, accountant::supplyDebitor, supplyClientRoute,
@@ -85,8 +93,8 @@ public final class KafkaClientFactory implements KafkaStreamFactory
                 config, context, bindings::get, accountant::supplyDebitor, signaler, streamFactory, resolveSasl);
 
         final KafkaClientGroupFactory clientGroupFactory = new KafkaClientGroupFactory(
-            config, context, bindings::get, accountant::supplyDebitor, signalSupplier, streamFactorySupplier,
-            resolveSaslSupplier, supplyClientRoute);
+            config, context, bindings::get, accountant::supplyDebitor, supplySignaler, supplyStreamFactory,
+            resolveSaslWithDelay, supplyClientRoute);
 
         final KafkaClientFetchFactory clientFetchFactory = new KafkaClientFetchFactory(
                 config, context, bindings::get, accountant::supplyDebitor, supplyClientRoute);
