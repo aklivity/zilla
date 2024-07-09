@@ -22,6 +22,19 @@ read http:method "GET"
 read http:version "HTTP/1.1"
 read closed
 
+write http:status "500" "Internal Server Error"
+write http:header "content-type" "application/json"
+write http:content-length
+
+write close
+
+accepted
+connected
+
+read http:method "GET"
+read http:version "HTTP/1.1"
+read closed
+
 write http:status "200" "OK"
 write http:header "content-type" "application/json"
 write http:content-length
@@ -36,6 +49,6 @@ write 'asyncapi: 3.0.0\n'
       '  plain:\n'
       '    host: mqtt://localhost:7183\n'
       '    protocol: mqtt\n'
-      'defaultContentType: application/json';
+      'defaultContentType: application/json'
 
 write close

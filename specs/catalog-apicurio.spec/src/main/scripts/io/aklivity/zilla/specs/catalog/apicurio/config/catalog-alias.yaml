@@ -17,7 +17,7 @@
 name: test
 catalogs:
   catalog0:
-    type: apicurio-registry
+    type: apicurio
     options:
       url: http://localhost:8081
       group-id: default

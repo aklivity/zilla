@@ -39,12 +39,12 @@ import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
-public class ApicurioIT
+public class ApicurioCatalogIT
 {
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("net", "io/aklivity/zilla/specs/engine/streams/network")
         .addScriptRoot("app", "io/aklivity/zilla/specs/engine/streams/application")
-        .addScriptRoot("local", "io/aklivity/zilla/runtime/catalog/schema/registry/internal");
+        .addScriptRoot("remote", "io/aklivity/zilla/specs/catalog/apicurio/streams");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
@@ -76,7 +76,7 @@ public class ApicurioIT
     @Specification({
         "${net}/handshake/client",
         "${app}/handshake/server",
-        "${local}/resolve.artifact.via.global.id" })
+        "${remote}/resolve.artifact.via.global.id" })
     public void shouldResolveArtifactViaGlobalId() throws Exception
     {
         k3po.finish();
@@ -87,7 +87,7 @@ public class ApicurioIT
     @Specification({
         "${net}/handshake/client",
         "${app}/handshake/server",
-        "${local}/resolve.artifact.via.artifactid.version" })
+        "${remote}/resolve.artifact.via.artifactid.version" })
     public void shouldResolveArtifactIdViaSubjectAndVersion() throws Exception
     {
         k3po.finish();
@@ -98,7 +98,7 @@ public class ApicurioIT
     @Specification({
         "${net}/handshake/client",
         "${app}/handshake/server",
-        "${local}/resolve.artifact.latest.version" })
+        "${remote}/resolve.artifact.latest.version" })
     public void shouldResolveArtifactIdViaSubjectAndLatestVersion() throws Exception
     {
         k3po.finish();
@@ -109,7 +109,7 @@ public class ApicurioIT
     @Specification({
         "${net}/handshake/client",
         "${app}/handshake/server",
-        "${local}/resolve.artifact.via.global.id" })
+        "${remote}/resolve.artifact.via.global.id" })
     public void shouldResolveArtifactViaGlobalIdFromCache() throws Exception
     {
         k3po.finish();
@@ -120,7 +120,7 @@ public class ApicurioIT
     @Specification({
         "${net}/handshake/client",
         "${app}/handshake/server",
-        "${local}/resolve.artifact.via.artifactid.version" })
+        "${remote}/resolve.artifact.via.artifactid.version" })
     public void shouldResolveArtifactIdViaSubjectAndVersionFromCache() throws Exception
     {
         k3po.finish();
@@ -131,7 +131,7 @@ public class ApicurioIT
     @Specification({
         "${net}/handshake/client",
         "${app}/handshake/server",
-        "${local}/resolve.artifact.via.global.id.retry" })
+        "${remote}/resolve.artifact.via.global.id.retry" })
     public void shouldResolveArtifactViaGlobalIdRetry() throws Exception
     {
         k3po.finish();
@@ -142,7 +142,7 @@ public class ApicurioIT
     @Specification({
         "${net}/handshake/client",
         "${app}/handshake/server",
-        "${local}/resolve.artifact.via.artifactid.version.retry" })
+        "${remote}/resolve.artifact.via.artifactid.version.retry" })
     public void shouldResolveArtifactIdViaSubjectAndVersionFromCacheAndRetry() throws Exception
     {
         k3po.finish();
@@ -153,7 +153,7 @@ public class ApicurioIT
     @Specification({
         "${net}/handshake/client",
         "${app}/handshake/server",
-        "${local}/resolve.artifact.via.artifactid.version.failed" })
+        "${remote}/resolve.artifact.via.artifactid.version.failed" })
     public void shouldResolveArtifactIdViaSubjectAndVersionFailed() throws Exception
     {
         k3po.finish();

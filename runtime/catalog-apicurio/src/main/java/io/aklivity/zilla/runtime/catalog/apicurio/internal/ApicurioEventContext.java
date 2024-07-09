@@ -22,6 +22,7 @@ import static io.aklivity.zilla.runtime.catalog.apicurio.internal.types.event.Ap
 
 import java.nio.ByteBuffer;
 import java.time.Clock;
+import java.util.regex.Pattern;
 
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -51,14 +52,18 @@ public class ApicurioEventContext
     public ApicurioEventContext(
         EngineContext context)
     {
-        this.apicurioTypeId = context.supplyTypeId(ApicurioCatalog.NAME);
+        this.apicurioTypeId = context.supplyTypeId(ApicurioCatalog.TYPE);
+        String format = toEventFormat(ApicurioCatalog.TYPE);
         this.unretrievableArtifactSubjectVersionId = context.supplyEventId(
-            "catalog.apicurio.unretrievable.artifact.subject.version");
-        this.staleArtifactID = context.supplyEventId("catalog.apicurio.unretrievable.artifact.subject.version.stale.artifact");
-        this.unretrievableArtifactId = context.supplyEventId("catalog.apicurio.unretrievable.artifact.id");
+            format.formatted("unretrievable.artifact.subject.version"));
+        this.staleArtifactID = context.supplyEventId(
+            format.formatted("unretrievable.artifact.subject.version.stale.artifact"));
+        this.unretrievableArtifactId = context.supplyEventId(
+            format.formatted("unretrievable.artifact.id"));
         this.retrievableArtifactSubjectVersionId = context.supplyEventId(
-            "catalog.apicurio.retrieved.artifact.subject.version");
-        this.retrievedArtifactId = context.supplyEventId("catalog.apicurio.retrieved.artifact.id");
+            format.formatted("retrieved.artifact.subject.version"));
+        this.retrievedArtifactId = context.supplyEventId(
+            format.formatted("retrieved.artifact.id"));
         this.eventWriter = context.supplyEventWriter();
         this.clock = context.clock();
     }
@@ -179,5 +184,15 @@ public class ApicurioEventContext
             .extension(extension.buffer(), extension.offset(), extension.limit())
             .build();
         eventWriter.accept(apicurioTypeId, event.buffer(), event.offset(), event.limit());
+    }
+
+    private static String toEventFormat(
+        String type)
+    {
+        return String.format("%s.%%s",
+            String.format("catalog.%s",
+                Pattern.compile("\\-([a-z])")
+                    .matcher(type)
+                    .replaceAll(m -> String.format(".%s", m.group(1)))));
     }
 }
