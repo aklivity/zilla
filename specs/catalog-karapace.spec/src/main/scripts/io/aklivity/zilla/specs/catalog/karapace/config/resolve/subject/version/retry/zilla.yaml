@@ -35,7 +35,7 @@ telemetry:
             message:  Successfully fetched schema for subject items-snapshots-value with version latest.
 catalogs:
   catalog0:
-    type: karapace
+    type: karapace-schema-registry
     options:
       url: http://localhost:8081
       max-age: 0

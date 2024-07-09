@@ -2,6 +2,11 @@
     {
         "op": "add",
         "path": "/$defs/catalog/properties/type/enum/-",
+        "value": "karapace-schema-registry"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/catalog/properties/type/enum/-",
         "value": "karapace"
     },
     {
@@ -15,7 +20,7 @@
                 {
                     "type":
                     {
-                        "const": "karapace"
+                        "enum": [ "karapace-schema-registry", "karapace" ]
                     }
                 }
             },
@@ -25,7 +30,7 @@
                 {
                     "type":
                     {
-                        "const": "karapace"
+                        "enum": [ "karapace-schema-registry", "karapace" ]
                     },
                     "options":
                     {

@@ -40,4 +40,12 @@ public class SchemaTest
 
         assertThat(config, not(nullValue()));
     }
+
+    @Test
+    public void shouldValidateCatalogWithAlias()
+    {
+        JsonObject config = schema.validate("catalog-alias.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
 }

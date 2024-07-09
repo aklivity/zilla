@@ -31,7 +31,7 @@ telemetry:
             message: Successfully fetched schema id 9.
 catalogs:
   catalog0:
-    type: karapace
+    type: karapace-schema-registry
     options:
       url: http://localhost:8081
 bindings:
