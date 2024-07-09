@@ -18,5 +18,6 @@ This project includes:
   Java Unified Expression Language Implementation under The Apache Software License, Version 2.0
   k3po::runtime::lang under The Apache Software License, Version 2.0
   org.leadpony.justify under The Apache Software License, Version 2.0
+  zilla::specs::catalog-schema-registry.spec under Aklivity Community License Agreement
   zilla::specs::engine.spec under The Apache Software License, Version 2.0
 

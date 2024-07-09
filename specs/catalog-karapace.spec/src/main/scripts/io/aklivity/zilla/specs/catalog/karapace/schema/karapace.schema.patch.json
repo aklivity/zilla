@@ -29,25 +29,7 @@
                     },
                     "options":
                     {
-                        "properties":
-                        {
-                            "url":
-                            {
-                                "type": "string"
-                            },
-                            "context":
-                            {
-                                "type": "string",
-                                "default": "default"
-                            },
-                            "max-age":
-                            {
-                                "title": "Max Age",
-                                "type": "number",
-                                "default": 300
-                            }
-                        },
-                        "additionalProperties": false
+                        "$ref": "#/$defs/options/catalog/schema-registry"
                     }
                 },
                 "additionalProperties": false
