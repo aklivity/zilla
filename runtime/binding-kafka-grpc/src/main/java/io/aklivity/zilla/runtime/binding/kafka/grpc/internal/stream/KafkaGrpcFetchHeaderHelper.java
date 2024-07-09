@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
+import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.grpc.config.KafkaGrpcCorrelationConfig;
@@ -36,9 +37,10 @@ import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.KafkaM
 
 public final class KafkaGrpcFetchHeaderHelper
 {
-    private static final int META_PREFIX_LENGTH = 5;
     private static final byte[] META_PREFIX = "meta:".getBytes();
     private static final byte[] BIN_SUFFIX = "-bin".getBytes();
+    private static final int META_PREFIX_LENGTH = META_PREFIX.length;
+    private static final int BIN_SUFFIX_LENGTH = BIN_SUFFIX.length;
 
     private final Map<OctetsFW, Consumer<OctetsFW>> visitors;
     private final OctetsFW serviceRO = new OctetsFW();
@@ -48,8 +50,8 @@ public final class KafkaGrpcFetchHeaderHelper
     private final Array32FW.Builder<GrpcMetadataFW.Builder, GrpcMetadataFW> grpcMetadataRW =
         new Array32FW.Builder<>(new GrpcMetadataFW.Builder(), new GrpcMetadataFW());
     private final MutableDirectBuffer metaBuffer;
-    private final byte[] headerPrefix = new byte[5];
-    private final byte[] headerSuffix = new byte[4];
+    private final byte[] headerPrefix = new byte[META_PREFIX_LENGTH];
+    private final byte[] headerSuffix = new byte[BIN_SUFFIX_LENGTH];
 
     public int partitionId;
     public long partitionOffset;
@@ -59,6 +61,8 @@ public final class KafkaGrpcFetchHeaderHelper
     public OctetsFW replyTo;
     public OctetsFW correlationId;
     public Array32FW<GrpcMetadataFW> metadata;
+
+    private Array32FW.Builder<GrpcMetadataFW.Builder, GrpcMetadataFW> builder;
 
     public KafkaGrpcFetchHeaderHelper(
         KafkaGrpcCorrelationConfig correlation,
@@ -85,7 +89,7 @@ public final class KafkaGrpcFetchHeaderHelper
         replyTo = null;
         correlationId = null;
 
-        grpcMetadataRW.wrap(metaBuffer, 0, metaBuffer.capacity());
+        builder = grpcMetadataRW.wrap(metaBuffer, 0, metaBuffer.capacity());
 
         if (dataEx != null)
         {
@@ -114,11 +118,11 @@ public final class KafkaGrpcFetchHeaderHelper
     {
         final OctetsFW name = header.name();
         final OctetsFW value = header.value();
+        final DirectBuffer buffer = name.buffer();
         final int offset = name.offset();
         final int limit = name.limit();
-
-        name.buffer().getBytes(offset, headerPrefix);
-        name.buffer().getBytes(limit - BIN_SUFFIX.length, headerSuffix);
+        buffer.getBytes(offset, headerPrefix);
+        buffer.getBytes(limit - BIN_SUFFIX_LENGTH, headerSuffix);
 
         final Consumer<OctetsFW> visitor = visitors.get(name);
         if (visitor != null)
@@ -128,13 +132,15 @@ public final class KafkaGrpcFetchHeaderHelper
         else if (Arrays.equals(META_PREFIX, headerPrefix))
         {
             final GrpcType type = Arrays.equals(BIN_SUFFIX, headerSuffix) ? BASE64 : TEXT;
-            int length = header.nameLen() - META_PREFIX_LENGTH;
-            final int metadataNameLength = type == BASE64 ? length - BIN_SUFFIX.length : length;
-            grpcMetadataRW.item(m -> m.type(t -> t.set(type))
-                .nameLen(metadataNameLength)
-                .name(name.value(), META_PREFIX_LENGTH, metadataNameLength)
+            final int nameLen = type == BASE64
+                ? header.nameLen() - META_PREFIX_LENGTH -  BIN_SUFFIX_LENGTH
+                : header.nameLen() - META_PREFIX_LENGTH;
+            builder.item(m -> m
+                .type(t -> t.set(type))
+                .nameLen(nameLen)
+                .name(name.value(), META_PREFIX_LENGTH, nameLen)
                 .valueLen(header.valueLen())
-                .value(value));
+                .value(header.value()));
         }
 
         return service != null &&

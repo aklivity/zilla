@@ -25,7 +25,7 @@ read zilla:begin.ext ${grpc:matchBeginEx()
                            .service("example.EchoService")
                            .method("EchoClientStream")
                            .metadata("idempotency-key", "59410e57-3e0f-4b61-9328-f645a7968ac8")
-                           .metadata("BASE64", "custom", "dGVzdA==")
+                           .metadataBase64("custom", "dGVzdA==")
                            .build()}
 connected
 

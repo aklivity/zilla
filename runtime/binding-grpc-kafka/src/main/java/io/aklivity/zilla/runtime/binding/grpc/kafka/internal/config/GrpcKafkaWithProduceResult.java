@@ -35,13 +35,15 @@ import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaOffsetTy
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcMetadataFW;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcType;
 
 public class GrpcKafkaWithProduceResult
 {
     public static final String META_PREFIX = "meta:";
     public static final String BIN_SUFFIX = "-bin";
-    private static final int META_PREFIX_LENGTH = 5;
-    private static final int BIN_SUFFIX_LENGTH = 4;
+
+    private static final int META_PREFIX_LENGTH = META_PREFIX.length();
+    private static final int BIN_SUFFIX_LENGTH = BIN_SUFFIX.length();
 
     private static final KafkaOffsetFW KAFKA_OFFSET_HISTORICAL =
         new KafkaOffsetFW.Builder()
@@ -60,7 +62,7 @@ public class GrpcKafkaWithProduceResult
     private final String16FW service;
     private final String16FW method;
     private final Array32FW<GrpcMetadataFW> metadata;
-    private final ExpandableDirectByteBuffer buffer;
+    private final ExpandableDirectByteBuffer nameBuffer;
 
     GrpcKafkaWithProduceResult(
         String16FW service,
@@ -84,8 +86,8 @@ public class GrpcKafkaWithProduceResult
         this.acks = acks;
         this.keyRef = keyRef;
         this.hash = hash;
-        this.buffer = new ExpandableDirectByteBuffer();
-        this.buffer.putStringWithoutLengthAscii(0, META_PREFIX);
+        this.nameBuffer = new ExpandableDirectByteBuffer();
+        this.nameBuffer.putStringWithoutLengthAscii(0, META_PREFIX);
 
         hash.updateHash(correlation.service.value());
         hash.updateHash(service.value());
@@ -162,19 +164,18 @@ public class GrpcKafkaWithProduceResult
         KafkaHeaderFW.Builder builder,
         GrpcMetadataFW metadata)
     {
-        int nameLen = metadata.nameLen();
-        int nameLenWithPrefix = nameLen + META_PREFIX_LENGTH;
-        buffer.putBytes(META_PREFIX_LENGTH, metadata.name().value(), 0, nameLen);
-
-        if (metadata.type().get() == BASE64)
+        GrpcType type = metadata.type().get();
+        DirectBuffer name = metadata.name().value();
+        int nameLen = META_PREFIX_LENGTH + metadata.nameLen();
+        nameBuffer.putBytes(META_PREFIX_LENGTH, name, 0, name.capacity());
+        if (type == BASE64)
         {
-            buffer.putStringWithoutLengthAscii(nameLenWithPrefix, BIN_SUFFIX);
-            nameLenWithPrefix += BIN_SUFFIX_LENGTH;
+            nameBuffer.putStringWithoutLengthAscii(nameLen, BIN_SUFFIX);
+            nameLen += BIN_SUFFIX_LENGTH;
         }
-
         builder
-            .nameLen(nameLenWithPrefix)
-            .name(buffer, 0, nameLenWithPrefix)
+            .nameLen(nameLen)
+            .name(nameBuffer, 0, nameLen)
             .valueLen(metadata.valueLen())
             .value(metadata.value().value(), 0, metadata.valueLen());
     }

@@ -24,7 +24,7 @@ read zilla:begin.ext ${grpc:matchBeginEx()
                            .authority("localhost:8080")
                            .service("example.EchoService")
                            .method("EchoUnary")
-                           .metadata("BASE64", "custom", "dGVzdA==")
+                           .metadataBase64("custom", "dGVzdA==")
                            .build()}
 connected
 

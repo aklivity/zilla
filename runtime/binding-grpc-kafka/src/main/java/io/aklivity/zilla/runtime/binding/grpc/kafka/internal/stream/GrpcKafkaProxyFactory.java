@@ -69,9 +69,10 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
 {
     private static final String GRPC_TYPE_NAME = "grpc";
     private static final String KAFKA_TYPE_NAME = "kafka";
-    private static final int META_PREFIX_LENGTH = 5;
     private static final byte[] META_PREFIX = "meta:".getBytes();
     private static final byte[] BIN_SUFFIX = "-bin".getBytes();
+    private static final int META_PREFIX_LENGTH = META_PREFIX.length;
+    private static final int BIN_SUFFIX_LENGTH = BIN_SUFFIX.length;
 
     private static final int DATA_FLAG_INIT = 0x02;
     private static final int DATA_FLAG_FIN = 0x01;
@@ -82,8 +83,8 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
     private static final String16FW HEADER_VALUE_GRPC_ABORTED = new String16FW("10");
     private static final String16FW HEADER_VALUE_GRPC_INTERNAL_ERROR = new String16FW("13");
 
-    private final byte[] headerPrefix = new byte[5];
-    private final byte[] headerSuffix = new byte[4];
+    private final byte[] headerPrefix = new byte[META_PREFIX_LENGTH];
+    private final byte[] headerSuffix = new byte[BIN_SUFFIX_LENGTH];
 
     private final Varuint32FW.Builder lenRW =
         new Varuint32FW.Builder().wrap(new UnsafeBuffer(new byte[1024 * 8]), 0, 1024 * 8);;
@@ -1430,21 +1431,21 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             headers.forEach(h ->
             {
                 final OctetsFW name = h.name();
+                final DirectBuffer buffer = name.buffer();
                 final int offset = name.offset();
                 final int limit = name.limit();
-
-                name.buffer().getBytes(offset, headerPrefix);
-                name.buffer().getBytes(limit - BIN_SUFFIX.length, headerSuffix);
-
+                buffer.getBytes(offset, headerPrefix);
+                buffer.getBytes(limit - BIN_SUFFIX.length, headerSuffix);
                 if (Arrays.equals(META_PREFIX, headerPrefix))
                 {
                     final GrpcType type = Arrays.equals(BIN_SUFFIX, headerSuffix) ? BASE64 : TEXT;
-                    int length = h.nameLen() - META_PREFIX_LENGTH;
-                    final int metadataNameLength = type == BASE64 ? length - BIN_SUFFIX.length : length;
-
-                    builder.item(m -> m.type(t -> t.set(type))
-                        .nameLen(metadataNameLength)
-                        .name(h.name().value(), META_PREFIX_LENGTH, metadataNameLength)
+                    final int nameLen = type == BASE64
+                        ? h.nameLen() - META_PREFIX_LENGTH -  BIN_SUFFIX_LENGTH
+                        : h.nameLen() - META_PREFIX_LENGTH;
+                    builder.item(m -> m
+                        .type(t -> t.set(type))
+                        .nameLen(nameLen)
+                        .name(name.value(), META_PREFIX_LENGTH, nameLen)
                         .valueLen(h.valueLen())
                         .value(h.value()));
                 }

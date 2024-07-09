@@ -141,18 +141,28 @@ public final class GrpcFunctions
             return metadata("TEXT", name, value);
         }
 
+        public GrpcBeginExBuilder metadataBase64(
+            String name,
+            String value)
+        {
+            return metadata("BASE64", name, value);
+        }
+
         public GrpcBeginExBuilder metadata(
             String type,
             String name,
             String value)
         {
+            DirectBuffer nameBuffer = new UnsafeBuffer(name.getBytes());
+            OctetsFW nameOctets = new OctetsFW().wrap(nameBuffer, 0, nameBuffer.capacity());
+            DirectBuffer valueBuffer = new UnsafeBuffer(value.getBytes());
+            OctetsFW valueOctets = new OctetsFW().wrap(valueBuffer, 0, valueBuffer.capacity());
+
             beginExRW.metadataItem(b -> b.type(t -> t.set(GrpcType.valueOf(type)))
                 .nameLen(name.length())
-                .name(new OctetsFW.Builder()
-                    .wrap(new UnsafeBuffer(new byte[1024 * 8]), 0, 1024 * 8).set(name.getBytes()).build())
+                .name(nameOctets)
                 .valueLen(value.length())
-                .value(new OctetsFW.Builder()
-                    .wrap(new UnsafeBuffer(new byte[1024 * 8]), 0, 1024 * 8).set(value.getBytes()).build()));
+                .value(valueOctets));
             return this;
         }
 
@@ -221,15 +231,23 @@ public final class GrpcFunctions
             return metadata("TEXT", name, value);
         }
 
+        public GrpcBeginExMatcherBuilder metadataBase64(
+            String name,
+            String value)
+        {
+            return metadata("BASE64", name, value);
+        }
+
         public GrpcBeginExMatcherBuilder metadata(
             String type,
             String name,
             String value)
         {
-            metadata.put(new OctetsFW.Builder()
-                    .wrap(new UnsafeBuffer(new byte[1024 * 8]), 0, 1024 * 8).set(name.getBytes()).build(),
-                new MetadataValue(GrpcType.valueOf(type), new OctetsFW.Builder()
-                    .wrap(new UnsafeBuffer(new byte[1024 * 8]), 0, 1024 * 8).set(value.getBytes()).build()::equals));
+            DirectBuffer nameBuffer = new UnsafeBuffer(name.getBytes());
+            OctetsFW nameOctets = new OctetsFW().wrap(nameBuffer, 0, nameBuffer.capacity());
+            DirectBuffer valueBuffer = new UnsafeBuffer(value.getBytes());
+            OctetsFW valueOctets = new OctetsFW().wrap(valueBuffer, 0, valueBuffer.capacity());
+            metadata.put(nameOctets, new MetadataValue(GrpcType.valueOf(type), valueOctets::equals));
             return this;
         }
 
