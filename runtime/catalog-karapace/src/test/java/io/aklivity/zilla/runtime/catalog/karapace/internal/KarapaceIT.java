@@ -33,7 +33,7 @@ public class KarapaceIT
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("net", "io/aklivity/zilla/specs/engine/streams/network")
         .addScriptRoot("app", "io/aklivity/zilla/specs/engine/streams/application")
-        .addScriptRoot("local", "io/aklivity/zilla/runtime/catalog/karapace/internal");
+        .addScriptRoot("remote", "io/aklivity/zilla/specs/catalog/schema/registry/streams");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
@@ -52,7 +52,7 @@ public class KarapaceIT
     @Specification({
         "${net}/handshake/client",
         "${app}/handshake/server",
-        "${local}/resolve.schema.via.schema.id" })
+        "${remote}/resolve.schema.via.schema.id" })
     public void shouldResolveSchemaViaSchemaId() throws Exception
     {
         k3po.finish();
@@ -63,7 +63,7 @@ public class KarapaceIT
     @Specification({
         "${net}/handshake/client",
         "${app}/handshake/server",
-        "${local}/resolve.schema.via.subject.version" })
+        "${remote}/resolve.schema.via.subject.version" })
     public void shouldResolveSchemaIdViaSubjectVersion() throws Exception
     {
         k3po.finish();
@@ -74,7 +74,7 @@ public class KarapaceIT
     @Specification({
         "${net}/handshake/client",
         "${app}/handshake/server",
-        "${local}/resolve.schema.via.schema.id" })
+        "${remote}/resolve.schema.via.schema.id" })
     public void shouldResolveSchemaViaSchemaIdFromCache() throws Exception
     {
         k3po.finish();
@@ -85,7 +85,7 @@ public class KarapaceIT
     @Specification({
         "${net}/handshake/client",
         "${app}/handshake/server",
-        "${local}/resolve.schema.via.subject.version" })
+        "${remote}/resolve.schema.via.subject.version" })
     public void shouldResolveSchemaIdViaSubjectVersionFromCache() throws Exception
     {
         k3po.finish();
@@ -96,7 +96,7 @@ public class KarapaceIT
     @Specification({
         "${net}/handshake/client",
         "${app}/handshake/server",
-        "${local}/resolve.schema.via.schema.id.failed"})
+        "${remote}/resolve.schema.via.schema.id.failed"})
     public void shouldLogFailedRegistryResponseForSchema() throws Exception
     {
         k3po.finish();
@@ -107,7 +107,7 @@ public class KarapaceIT
     @Specification({
         "${net}/handshake/client",
         "${app}/handshake/server",
-        "${local}/resolve.schema.via.subject.version.failed"})
+        "${remote}/resolve.schema.via.subject.version.failed"})
     public void shouldLogFailedRegistryResponseForSchemaId() throws Exception
     {
         k3po.finish();
@@ -118,7 +118,7 @@ public class KarapaceIT
     @Specification({
         "${net}/handshake/client",
         "${app}/handshake/server",
-        "${local}/resolve.schema.via.schema.id.on.retry" })
+        "${remote}/resolve.schema.via.schema.id.on.retry" })
     public void shouldResolveSchemaViaSchemaIdOnRetry() throws Exception
     {
         k3po.finish();
@@ -129,7 +129,7 @@ public class KarapaceIT
     @Specification({
         "${net}/handshake/client",
         "${app}/handshake/server",
-        "${local}/resolve.schema.via.subject.version.retry"})
+        "${remote}/resolve.schema.via.subject.version.retry"})
     public void shouldResolveSchemaIdFromCacheAndRetry() throws Exception
     {
         k3po.finish();
