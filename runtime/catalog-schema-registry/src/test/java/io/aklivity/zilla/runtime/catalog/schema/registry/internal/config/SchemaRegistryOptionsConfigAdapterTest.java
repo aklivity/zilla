@@ -43,7 +43,7 @@ public class SchemaRegistryOptionsConfigAdapterTest
     }
 
     @Test
-    public void shouldReadCondition()
+    public void shouldReadOptions()
     {
         String text =
                 "{" +
@@ -60,7 +60,7 @@ public class SchemaRegistryOptionsConfigAdapterTest
     }
 
     @Test
-    public void shouldWriteCondition()
+    public void shouldWriteOptions()
     {
         SchemaRegistryOptionsConfig catalog = SchemaRegistryOptionsConfig.builder()
             .url("http://localhost:8081")
