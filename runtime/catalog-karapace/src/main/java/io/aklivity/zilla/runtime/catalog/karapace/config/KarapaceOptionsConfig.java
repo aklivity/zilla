@@ -17,14 +17,11 @@ package io.aklivity.zilla.runtime.catalog.karapace.config;
 import java.time.Duration;
 import java.util.function.Function;
 
+import io.aklivity.zilla.runtime.catalog.schema.registry.config.AbstractSchemaRegistryOptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
-public class KarapaceOptionsConfig extends OptionsConfig
+public class KarapaceOptionsConfig extends AbstractSchemaRegistryOptionsConfig
 {
-    public final String url;
-    public final String context;
-    public final Duration maxAge;
-
     public static KarapaceOptionsConfigBuilder<KarapaceOptionsConfig> builder()
     {
         return new KarapaceOptionsConfigBuilder<>(KarapaceOptionsConfig.class::cast);
@@ -36,13 +33,11 @@ public class KarapaceOptionsConfig extends OptionsConfig
         return new KarapaceOptionsConfigBuilder<>(mapper);
     }
 
-    public KarapaceOptionsConfig(
+    KarapaceOptionsConfig(
         String url,
         String context,
         Duration maxAge)
     {
-        this.url = url;
-        this.context = context;
-        this.maxAge = maxAge;
+        super(url, context, maxAge);
     }
 }

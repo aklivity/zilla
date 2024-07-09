@@ -15,15 +15,8 @@
 package io.aklivity.zilla.runtime.catalog.karapace.internal;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.junit.Assert.assertEquals;
 import static org.junit.rules.RuleChain.outerRule;
-import static org.mockito.Mockito.mock;
 
-import java.time.Duration;
-
-import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -32,10 +25,6 @@ import org.junit.rules.Timeout;
 
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
-import io.aklivity.zilla.runtime.catalog.karapace.config.KarapaceOptionsConfig;
-import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
@@ -57,19 +46,6 @@ public class KarapaceIT
 
     @Rule
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
-
-    private KarapaceOptionsConfig config;
-    private EngineContext context = mock(EngineContext.class);
-
-    @Before
-    public void setup()
-    {
-        config = KarapaceOptionsConfig.builder()
-            .url("http://localhost:8081")
-            .context("default")
-            .maxAge(Duration.ofSeconds(1))
-            .build();
-    }
 
     @Test
     @Configuration("resolve/schema/id/zilla.yaml")
@@ -157,61 +133,5 @@ public class KarapaceIT
     public void shouldResolveSchemaIdFromCacheAndRetry() throws Exception
     {
         k3po.finish();
-    }
-
-    @Test
-    public void shouldVerifyMaxPadding()
-    {
-        KarapaceCatalogHandler catalog = new KarapaceCatalogHandler(config, context, 0L);
-
-        assertEquals(5, catalog.encodePadding(0));
-    }
-
-    @Test
-    public void shouldVerifyEncodedData()
-    {
-        KarapaceCatalogHandler catalog = new KarapaceCatalogHandler(config, context, 0L);
-
-        DirectBuffer data = new UnsafeBuffer();
-
-        byte[] bytes = {0x06, 0x69, 0x64,
-            0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
-        data.wrap(bytes, 0, bytes.length);
-
-        assertEquals(18, catalog.encode(0L, 0L, 1, data, 0, data.capacity(),
-            ValueConsumer.NOP, CatalogHandler.Encoder.IDENTITY));
-    }
-
-    @Test
-    public void shouldResolveSchemaIdAndProcessData()
-    {
-
-        KarapaceCatalogHandler catalog = new KarapaceCatalogHandler(config, context, 0L);
-
-        DirectBuffer data = new UnsafeBuffer();
-
-        byte[] bytes = {0x00, 0x00, 0x00, 0x00, 0x09, 0x06, 0x69, 0x64,
-            0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
-        data.wrap(bytes, 0, bytes.length);
-
-        int valLength = catalog.decode(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP, CatalogHandler.Decoder.IDENTITY);
-
-        assertEquals(data.capacity() - 5, valLength);
-    }
-
-    @Test
-    public void shouldResolveSchemaIdFromData()
-    {
-        KarapaceCatalogHandler catalog = new KarapaceCatalogHandler(config, context, 0L);
-
-        DirectBuffer data = new UnsafeBuffer();
-
-        byte[] bytes = {0x00, 0x00, 0x00, 0x00, 0x09, 0x06, 0x69, 0x64,
-            0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
-        data.wrap(bytes, 0, bytes.length);
-
-        int schemaId = catalog.resolve(data, 0, data.capacity());
-
-        assertEquals(9, schemaId);
     }
 }

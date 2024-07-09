@@ -43,6 +43,7 @@
     <module>catalog-filesystem</module>
     <module>catalog-inline</module>
     <module>catalog-karapace</module>
+    <module>catalog-schema-registry</module>
     <module>common</module>
     <module>command</module>
     <module>command-metrics</module>

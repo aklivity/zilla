@@ -51,6 +51,7 @@ import java.util.Collection;
 import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ExecutorService;
@@ -399,7 +400,15 @@ public class EngineWorker implements EngineContext, Agent
         for (Catalog catalog : catalogs)
         {
             String type = catalog.name();
-            catalogsByType.put(type, catalog.supply(this));
+            Set<String> aliases = catalog.aliases();
+
+            CatalogContext context = catalog.supply(this);
+
+            catalogsByType.put(type, context);
+            for (String alias : aliases)
+            {
+                catalogsByType.put(alias, context);
+            }
         }
 
         Map<String, ModelContext> modelsByType = new LinkedHashMap<>();

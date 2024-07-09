@@ -14,22 +14,23 @@
  */
 package io.aklivity.zilla.runtime.catalog.karapace.internal;
 
-import io.aklivity.zilla.runtime.engine.Configuration;
-import io.aklivity.zilla.runtime.engine.catalog.Catalog;
-import io.aklivity.zilla.runtime.engine.catalog.CatalogFactorySpi;
+import java.net.URL;
+import java.util.Set;
 
-public class KarapaceCatalogFactorySpi implements CatalogFactorySpi
+import io.aklivity.zilla.runtime.catalog.schema.registry.AbstractSchemaRegistryCatalogFactorySpi;
+
+public final class KarapaceCatalogFactorySpi extends AbstractSchemaRegistryCatalogFactorySpi
 {
-    @Override
-    public String type()
+    public static final String TYPE = "karapace-schema-registry";
+    public static final Set<String> TYPE_ALIASES = Set.of("karapace");
+
+    public KarapaceCatalogFactorySpi()
     {
-        return KarapaceCatalog.NAME;
+        super(TYPE, TYPE_ALIASES, KarapaceCatalogFactorySpi::supplySchema);
     }
 
-    @Override
-    public Catalog create(
-        Configuration config)
+    private static URL supplySchema()
     {
-        return new KarapaceCatalog(config);
+        return KarapaceCatalogFactorySpi.class.getResource("schema/karapace.schema.patch.json");
     }
 }
