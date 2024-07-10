@@ -711,10 +711,9 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                     assert partitionOffset >= 0 && partitionOffset >= nextOffset
                         : String.format("%d >= 0 && %d >= %d", partitionOffset, partitionOffset, nextOffset);
 
-                    final long keyHash = partition.computeKeyHash(key);
                     if (partition.writeProduceEntryStart(traceId, routedId, partitionOffset, stream.segment,
                         stream.entryMark, stream.valueMark, stream.valueLimit, timestamp, stream.initialId,
-                        producerId, producerEpoch, sequence, ackMode, key, keyHash, valueLength,
+                        producerId, producerEpoch, sequence, ackMode, key, valueLength,
                         headers, trailersSizeMax, valueFragment, convertKey, convertValue) == -1)
                     {
                         error = ERROR_INVALID_RECORD;
@@ -791,10 +790,9 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 assert partitionOffset >= 0 && partitionOffset >= nextOffset
                     : String.format("%d >= 0 && %d >= %d", partitionOffset, partitionOffset, nextOffset);
 
-                final long keyHash = partition.computeKeyHash(EMPTY_KEY);
                 partition.writeProduceEntryStart(traceId, routedId, partitionOffset, stream.segment, stream.entryMark,
                     stream.valueMark, stream.valueLimit, now().toEpochMilli(), stream.initialId, PRODUCE_FLUSH_PRODUCER_ID,
-                    PRODUCE_FLUSH_PRODUCER_EPOCH, PRODUCE_FLUSH_SEQUENCE, KafkaAckMode.LEADER_ONLY, EMPTY_KEY, keyHash,
+                    PRODUCE_FLUSH_PRODUCER_EPOCH, PRODUCE_FLUSH_SEQUENCE, KafkaAckMode.LEADER_ONLY, EMPTY_KEY,
                     0, EMPTY_TRAILERS, trailersSizeMax, EMPTY_OCTETS, convertKey, convertValue);
                 stream.partitionOffset = partitionOffset;
                 partitionOffset++;
