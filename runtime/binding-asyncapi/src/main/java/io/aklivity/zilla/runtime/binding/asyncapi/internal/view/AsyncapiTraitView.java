@@ -44,7 +44,7 @@ public final class AsyncapiTraitView extends AsyncapiResolvable<AsyncapiTrait>
         Map<String, AsyncapiTrait> traits,
         AsyncapiTrait trait)
     {
-        super(traits, "#/components/messageTraits/(\\w+)");
+        super(traits, "#/components/messageTraits/(.+)");
         this.trait = trait.ref == null ? trait : resolveRef(trait.ref);
     }
 }

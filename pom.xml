@@ -7,7 +7,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>io.aklivity.zilla</groupId>
   <artifactId>zilla</artifactId>
-  <version>0.9.84</version>
+  <version>0.9.85</version>
   <packaging>pom</packaging>
   <name>zilla</name>
   <url>https://github.com/aklivity/zilla</url>
@@ -611,6 +611,8 @@
         <docker.skip.push>true</docker.skip.push>
         <docker.skip.tag>true</docker.skip.tag>
         <docker.latest.tag></docker.latest.tag>
+        <helm.push.skip>true</helm.push.skip>
+        <helm.package.skip>true</helm.package.skip>
       </properties>
 
       <build>

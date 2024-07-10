@@ -1,1 +1,1 @@
-io.aklivity.zilla.runtime.binding.kafka.internal.KafkaEventFormatterFactory
+io.aklivity.zilla.runtime.binding.kafka.internal.events.KafkaEventFormatterFactory

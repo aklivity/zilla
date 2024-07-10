@@ -284,7 +284,7 @@ public final class EngineConfigWatcher implements AutoCloseable
         {
             try
             {
-                watcher = fileSystem.newWatchService();
+                watcher = newWatchService(fileSystem);
             }
             catch (UnsupportedOperationException ex)
             {
@@ -301,5 +301,11 @@ public final class EngineConfigWatcher implements AutoCloseable
         }
 
         return watcher;
+    }
+
+    private static WatchService newWatchService(
+        FileSystem fileSystem) throws IOException
+    {
+        return fileSystem.newWatchService();
     }
 }

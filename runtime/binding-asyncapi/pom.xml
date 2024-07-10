@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>runtime</artifactId>
-    <version>0.9.84</version>
+    <version>0.9.85</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -104,6 +104,12 @@
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>catalog-inline</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>catalog-karapace</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>

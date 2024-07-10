@@ -24,6 +24,7 @@ public class TestCatalogOptionsConfig extends OptionsConfig
     public final String subject;
     public final String schema;
     public final int id;
+    public final String prefix;
 
     public static TestCatalogOptionsConfigBuilder<TestCatalogOptionsConfig> builder()
     {
@@ -31,7 +32,7 @@ public class TestCatalogOptionsConfig extends OptionsConfig
     }
 
     public static <T> TestCatalogOptionsConfigBuilder<T> builder(
-            Function<OptionsConfig, T> mapper)
+        Function<OptionsConfig, T> mapper)
     {
         return new TestCatalogOptionsConfigBuilder<>(mapper);
     }
@@ -39,10 +40,12 @@ public class TestCatalogOptionsConfig extends OptionsConfig
     public TestCatalogOptionsConfig(
         int id,
         String subject,
-        String schema)
+        String schema,
+        String prefix)
     {
         this.subject = subject;
         this.schema = schema;
         this.id = id;
+        this.prefix = prefix;
     }
 }

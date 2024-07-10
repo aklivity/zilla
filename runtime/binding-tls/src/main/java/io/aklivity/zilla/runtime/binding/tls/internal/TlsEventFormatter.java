@@ -74,8 +74,8 @@ public final class TlsEventFormatter implements EventFormatterSpi
             TlsKeyVerificationFailedExFW ex = extension.tlsKeyVerificationFailed();
             result = switch (ex.failureType().get())
             {
-            case TLS_KEY_MISSING -> String.format("Key pair (%s) is missing.", ex.keyName());
-            case TLS_KEY_INVALID -> String.format("Key pair (%s) is invalid.", ex.keyName());
+            case TLS_KEY_MISSING -> String.format("Key (%s) is missing.", ex.keyName());
+            case TLS_KEY_INVALID -> String.format("Key (%s) is invalid.", ex.keyName());
             };
             break;
         }

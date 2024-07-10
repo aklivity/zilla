@@ -28,6 +28,8 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.catalog.karapace.config.KarapaceOptionsConfig;
+
 public class KarapaceOptionsConfigAdapterTest
 {
     private Jsonb jsonb;

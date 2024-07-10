@@ -208,4 +208,12 @@ public class GroupIT
         k3po.finish();
     }
 
+    @Test
+    @Specification({
+        "${net}/initial.delay.config/client",
+        "${net}/initial.delay.config/server"})
+    public void shouldCreateConnectionForJoinGroup() throws Exception
+    {
+        k3po.finish();
+    }
 }

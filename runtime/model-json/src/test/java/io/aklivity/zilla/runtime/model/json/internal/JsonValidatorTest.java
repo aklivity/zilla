@@ -33,6 +33,7 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalogHandler;
+import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogOptionsConfig;
 import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
@@ -61,17 +62,6 @@ public class JsonValidatorTest
             OBJECT_SCHEMA +
             "}";
 
-    private final JsonModelConfig config = JsonModelConfig.builder()
-            .catalog()
-            .name("test0")
-                .schema()
-                    .strategy("topic")
-                    .subject(null)
-                    .version("latest")
-                    .id(1)
-                    .build()
-                .build()
-            .build();
     private EngineContext context;
 
     @Before
@@ -83,13 +73,30 @@ public class JsonValidatorTest
     @Test
     public void shouldVerifyValidCompleteJsonObject()
     {
-        TestCatalogOptionsConfig testCatalogOptionsConfig = TestCatalogOptionsConfig.builder()
-            .id(1)
-            .schema(OBJECT_SCHEMA)
+        TestCatalogConfig catalog = CatalogConfig.builder(TestCatalogConfig::new)
+            .namespace("test")
+            .name("test0")
+            .type("test")
+            .options(TestCatalogOptionsConfig::builder)
+                .id(1)
+                .schema(OBJECT_SCHEMA)
+                .build()
             .build();
-        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test", testCatalogOptionsConfig);
-        when(context.supplyCatalog(catalogConfig.id)).thenReturn(new TestCatalogHandler(testCatalogOptionsConfig));
-        JsonValidatorHandler validator = new JsonValidatorHandler(config, context);
+
+        JsonModelConfig model = JsonModelConfig.builder()
+            .catalog()
+            .name("test0")
+                .schema()
+                    .strategy("topic")
+                    .subject(null)
+                    .version("latest")
+                    .id(1)
+                    .build()
+                .build()
+            .build();
+
+        when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
+        JsonValidatorHandler validator = new JsonValidatorHandler(model, context);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -107,15 +114,32 @@ public class JsonValidatorTest
     @Test
     public void shouldVerifyInvalidCompleteJsonObject()
     {
-        TestCatalogOptionsConfig testCatalogOptionsConfig = TestCatalogOptionsConfig.builder()
-            .id(1)
-            .schema(OBJECT_SCHEMA)
+        TestCatalogConfig catalog = CatalogConfig.builder(TestCatalogConfig::new)
+            .namespace("test")
+            .name("test0")
+            .type("test")
+            .options(TestCatalogOptionsConfig::builder)
+                .id(1)
+                .schema(OBJECT_SCHEMA)
+                .build()
             .build();
-        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test", testCatalogOptionsConfig);
-        when(context.supplyCatalog(catalogConfig.id)).thenReturn(new TestCatalogHandler(testCatalogOptionsConfig));
+
+        JsonModelConfig model = JsonModelConfig.builder()
+            .catalog()
+            .name("test0")
+                .schema()
+                    .strategy("topic")
+                    .subject(null)
+                    .version("latest")
+                    .id(1)
+                    .build()
+                .build()
+            .build();
+
+        when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
         when(context.clock()).thenReturn(Clock.systemUTC());
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
-        JsonValidatorHandler validator = new JsonValidatorHandler(config, context);
+        JsonValidatorHandler validator = new JsonValidatorHandler(model, context);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -133,13 +157,30 @@ public class JsonValidatorTest
     @Test
     public void shouldVerifyValidFragmentedJsonObject()
     {
-        TestCatalogOptionsConfig testCatalogOptionsConfig = TestCatalogOptionsConfig.builder()
-            .id(1)
-            .schema(OBJECT_SCHEMA)
+        TestCatalogConfig catalog = CatalogConfig.builder(TestCatalogConfig::new)
+            .namespace("test")
+            .name("test0")
+            .type("test")
+            .options(TestCatalogOptionsConfig::builder)
+                .id(1)
+                .schema(OBJECT_SCHEMA)
+                .build()
             .build();
-        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test", testCatalogOptionsConfig);
-        when(context.supplyCatalog(catalogConfig.id)).thenReturn(new TestCatalogHandler(testCatalogOptionsConfig));
-        JsonValidatorHandler validator = new JsonValidatorHandler(config, context);
+
+        JsonModelConfig model = JsonModelConfig.builder()
+            .catalog()
+            .name("test0")
+                .schema()
+                    .strategy("topic")
+                    .subject(null)
+                    .version("latest")
+                    .id(1)
+                    .build()
+                .build()
+            .build();
+
+        when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
+        JsonValidatorHandler validator = new JsonValidatorHandler(model, context);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -158,15 +199,32 @@ public class JsonValidatorTest
     @Test
     public void shouldVerifyInvalidFragmentedJsonObject()
     {
-        TestCatalogOptionsConfig testCatalogOptionsConfig = TestCatalogOptionsConfig.builder()
-            .id(1)
-            .schema(OBJECT_SCHEMA)
+        TestCatalogConfig catalog = CatalogConfig.builder(TestCatalogConfig::new)
+            .namespace("test")
+            .name("test0")
+            .type("test")
+            .options(TestCatalogOptionsConfig::builder)
+                .id(1)
+                .schema(OBJECT_SCHEMA)
+                .build()
             .build();
-        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test", testCatalogOptionsConfig);
-        when(context.supplyCatalog(catalogConfig.id)).thenReturn(new TestCatalogHandler(testCatalogOptionsConfig));
+
+        JsonModelConfig model = JsonModelConfig.builder()
+            .catalog()
+            .name("test0")
+                .schema()
+                    .strategy("topic")
+                    .subject(null)
+                    .version("latest")
+                    .id(1)
+                    .build()
+                .build()
+            .build();
+
+        when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
         when(context.clock()).thenReturn(Clock.systemUTC());
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
-        JsonValidatorHandler validator = new JsonValidatorHandler(config, context);
+        JsonValidatorHandler validator = new JsonValidatorHandler(model, context);
 
         DirectBuffer data = new UnsafeBuffer();
 
@@ -185,13 +243,30 @@ public class JsonValidatorTest
     @Test
     public void shouldVerifyValidJsonArray()
     {
-        TestCatalogOptionsConfig testCatalogOptionsConfig = TestCatalogOptionsConfig.builder()
-            .id(1)
-            .schema(ARRAY_SCHEMA)
+        TestCatalogConfig catalog = CatalogConfig.builder(TestCatalogConfig::new)
+            .namespace("test")
+            .name("test0")
+            .type("test")
+            .options(TestCatalogOptionsConfig::builder)
+                .id(1)
+                .schema(ARRAY_SCHEMA)
+                .build()
             .build();
-        CatalogConfig catalogConfig = new CatalogConfig("test", "test0", "test", testCatalogOptionsConfig);
-        when(context.supplyCatalog(catalogConfig.id)).thenReturn(new TestCatalogHandler(testCatalogOptionsConfig));
-        JsonValidatorHandler validator = new JsonValidatorHandler(config, context);
+
+        JsonModelConfig model = JsonModelConfig.builder()
+            .catalog()
+            .name("test0")
+                .schema()
+                    .strategy("topic")
+                    .subject(null)
+                    .version("latest")
+                    .id(1)
+                    .build()
+                .build()
+            .build();
+
+        when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
+        JsonValidatorHandler validator = new JsonValidatorHandler(model, context);
 
         DirectBuffer data = new UnsafeBuffer();
 
