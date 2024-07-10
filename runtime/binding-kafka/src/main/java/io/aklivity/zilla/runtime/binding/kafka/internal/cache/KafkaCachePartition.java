@@ -783,8 +783,11 @@ public final class KafkaCachePartition
                     int keyShift = newLength.sizeof() - progress.sizeof();
                     if (keyShift > 0)
                     {
-                        logFile.readBytes(progress.limit(), octetsRO::wrap);
-                        logFile.writeBytes(newLength.limit(), octetsRO);
+                        OctetsFW octets = logFile
+                            .readBytes(progress.limit(), progress.limit() + progress.value(), octetsRO::wrap);
+                        logFile.writeBytes(newLength.limit(), octets);
+
+                        logFile.advance(keyAt + newLength.limit());
                     }
                     logFile.writeBytes(keyAt, newLength);
                     logFile.appendBytes(buffer, index, length);

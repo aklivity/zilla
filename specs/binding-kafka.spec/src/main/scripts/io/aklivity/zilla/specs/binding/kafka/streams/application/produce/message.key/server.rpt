@@ -70,7 +70,7 @@ write zilla:begin.ext ${kafka:beginEx()
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
                              .produce()
-                                 .key("key1")
+                                 .key("0edccc2c-03ef-4a71-adde-dd306455ad22-0edccc2c-03ef-4a71-adde-dd306455ad22")
                                  .build()
                              .build()}
 read "Hello, world"
