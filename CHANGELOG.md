@@ -1,5 +1,22 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.84...HEAD)
+
+**Implemented enhancements:**
+
+- add option to print version information to the cli tools [\#1066](https://github.com/aklivity/zilla/issues/1066)
+
+**Fixed bugs:**
+
+- Support key validation in kafka asyncapi generation [\#1105](https://github.com/aklivity/zilla/issues/1105)
+- Asyncapi doesn't generate schema for catalog with avro format [\#1104](https://github.com/aklivity/zilla/issues/1104)
+
+**Closed issues:**
+
+- Add more context to the Kafka API event code log formatter. [\#1126](https://github.com/aklivity/zilla/issues/1126)
+
 ## [0.9.84](https://github.com/aklivity/zilla/tree/0.9.84) (2024-06-29)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.83...0.9.84)
