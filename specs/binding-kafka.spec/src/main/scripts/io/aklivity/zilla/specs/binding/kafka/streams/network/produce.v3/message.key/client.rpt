@@ -81,7 +81,7 @@ write zilla:begin.ext ${proxy:beginEx()
 
 connected
 
-write 129                               # size
+write 200                               # size
       0s                                # produce
       3s                                # v3
       ${newRequestId}
@@ -93,9 +93,9 @@ write 129                               # size
       4s "test"
       1
       0                                 # partition
-      84                                # record set size
+      155                               # record set size
       0L                                # first offset
-      72                                # length
+      143                               # length
       -1
       [0x02]
       0x4e8723aa
@@ -107,12 +107,12 @@ write 129                               # size
       -1s
       -1
       1                                 # records
-      ${kafka:varint(22)}
+      ${kafka:varint(92)}
       [0x00]
       ${kafka:varint(0)}
       ${kafka:varint(0)}
-      ${kafka:varint(4)}                # key
-      "key1"
+      ${kafka:varint(73)}               # key
+      "0edccc2c-03ef-4a71-adde-dd306455ad22-0edccc2c-03ef-4a71-adde-dd306455ad22"
       ${kafka:varint(12)}               # value
       "Hello, world"
       ${kafka:varint(0)}                # headers
