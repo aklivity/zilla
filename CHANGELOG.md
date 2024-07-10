@@ -1,5 +1,36 @@
 # Changelog
 
+## [0.9.85](https://github.com/aklivity/zilla/tree/0.9.85) (2024-07-10)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.84...0.9.85)
+
+**Implemented enhancements:**
+
+- add option to print version information to the cli tools [\#1066](https://github.com/aklivity/zilla/issues/1066)
+
+**Fixed bugs:**
+
+- Support key validation in kafka asyncapi generation [\#1105](https://github.com/aklivity/zilla/issues/1105)
+- Asyncapi doesn't generate schema for catalog with avro format [\#1104](https://github.com/aklivity/zilla/issues/1104)
+
+**Closed issues:**
+
+- Add more context to the Kafka API event code log formatter. [\#1126](https://github.com/aklivity/zilla/issues/1126)
+
+**Merged pull requests:**
+
+- Ensure SASL handshake occurs for JoinGroupRequest as needed… [\#1139](https://github.com/aklivity/zilla/pull/1139) ([jfallows](https://github.com/jfallows))
+- Add CatalogConfig.builder\(\) methods [\#1133](https://github.com/aklivity/zilla/pull/1133) ([jfallows](https://github.com/jfallows))
+- Lint helm chart on local builds and PR builds [\#1132](https://github.com/aklivity/zilla/pull/1132) ([jfallows](https://github.com/jfallows))
+- fix: Add custom pod labels and fix notes for connection instructions [\#1130](https://github.com/aklivity/zilla/pull/1130) ([vordimous](https://github.com/vordimous))
+- Detect missing events in test exporter [\#1128](https://github.com/aklivity/zilla/pull/1128) ([jfallows](https://github.com/jfallows))
+- Enhance Kafka event descriptions [\#1127](https://github.com/aklivity/zilla/pull/1127) ([jfallows](https://github.com/jfallows))
+- Bug fixes and improvements to support asyncapi http, sse, and kafka integration [\#1124](https://github.com/aklivity/zilla/pull/1124) ([akrambek](https://github.com/akrambek))
+- Add zilla version command [\#1121](https://github.com/aklivity/zilla/pull/1121) ([bmaidics](https://github.com/bmaidics))
+- Support reentrant kafka write key for converter [\#1120](https://github.com/aklivity/zilla/pull/1120) ([jfallows](https://github.com/jfallows))
+- Enhance TLS key pair verification tests [\#1119](https://github.com/aklivity/zilla/pull/1119) ([jfallows](https://github.com/jfallows))
+- Bump alpine from 3.20.0 to 3.20.1 in /cloud/docker-image/src/main/docker [\#1102](https://github.com/aklivity/zilla/pull/1102) ([dependabot[bot]](https://github.com/apps/dependabot))
+
 ## [0.9.84](https://github.com/aklivity/zilla/tree/0.9.84) (2024-06-29)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.83...0.9.84)
