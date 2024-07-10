@@ -712,7 +712,6 @@ public final class KafkaCachePartition
         int sequence,
         KafkaAckMode ackMode,
         KafkaKeyFW key,
-        long keyHash,
         int valueLength,
         ArrayFW<KafkaHeaderFW> headers,
         int trailersSizeMax,
