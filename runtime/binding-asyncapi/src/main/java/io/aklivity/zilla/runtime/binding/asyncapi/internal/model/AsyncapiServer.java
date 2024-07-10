@@ -26,4 +26,5 @@ public class AsyncapiServer
     public String protocol;
     public JsonArray security;
     public Map<String, AsyncapiVariable> variables;
+    public AsyncapiServerBindings bindings;
 }

@@ -96,7 +96,7 @@ public final class AsyncapiSchemaView extends AsyncapiResolvable<AsyncapiSchemaI
         Map<String, AsyncapiSchemaItem> schemas,
         AsyncapiSchemaItem schema)
     {
-        super(schemas, "#/components/schemas/(\\w+)");
+        super(schemas, "#/components/schemas/(.+)");
 
         if (schema.ref != null)
         {

@@ -48,7 +48,7 @@ public final class AsyncapiVariableView extends AsyncapiResolvable<AsyncapiVaria
         Map<String, AsyncapiVariable> variables,
         AsyncapiVariable variable)
     {
-        super(variables, "#/components/serverVariables/(\\w+)");
+        super(variables, "#/components/serverVariables/(.+)");
         this.variable = variable.ref == null ? variable : resolveRef(variable.ref);
     }
 }
