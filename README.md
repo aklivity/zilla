@@ -84,7 +84,7 @@ helm install zilla oci://ghcr.io/aklivity/charts/zilla --namespace zilla --creat
 
 ### 📚 Read the docs
 
-- **[Zilla Documentation](https://docs.aklivity.io/zilla/latest/how-tos/install.html):** Guides, tutorials and references to help understand how to use Zilla and configure it for your use case.
+- **[Zilla Documentation](https://docs.aklivity.io/zilla/latest):** Guides, tutorials and references to help understand how to use Zilla and configure it for your use case.
 - **[Product Roadmap][zilla-roadmap]:** Check out our plan for upcoming releases. 
 - **[Zilla Examples](https://github.com/aklivity/zilla-examples)**: A collection of pre-canned Zilla feature demos.
 - **[Eventful Petstore Demo](https://github.com/aklivity/zilla-demos/tree/main/petstore):** See Zilla make the OpenAPI/Swagger Petstore service event-driven by mapping it onto Kafka in just a few lines of YAML.
