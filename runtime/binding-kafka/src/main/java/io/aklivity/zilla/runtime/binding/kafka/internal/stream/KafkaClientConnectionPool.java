@@ -149,7 +149,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         this.supplyReplyId = context::supplyReplyId;
         this.supplyTraceId = context::supplyTraceId;
         this.creditor = creditor;
-        this.connectionPool = new Object2ObjectHashMap();
+        this.connectionPool = new Object2ObjectHashMap<>();
         this.streamsByInitialId = new Long2ObjectHashMap<>();
         this.connectionPoolCleanupMillis = config.clientConnectionPoolCleanupMillis();
     }
@@ -677,13 +677,13 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         private final long replyId;
         private long initialSeq;
         private long initialAck;
-        private final LongArrayQueue initialSeqOffset;
-        private long initialAckSnapshot;
+        private final LongArrayQueue initialSeqOffsets;
+        private long initialAckProgress;
 
         private long replySeq;
         private long replyAck;
-        private final LongArrayQueue replySeqOffset;
-        private final LongArrayQueue replyAckOffset;
+        private final LongArrayQueue replySeqOffsets;
+        private final LongArrayQueue replyAckOffsets;
         private long replyAckSnapshot;
         private int replyMax;
         private int replyPad;
@@ -712,9 +712,9 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.authorization = authorization;
-            this.initialSeqOffset = new LongArrayQueue(NO_OFFSET);
-            this.replySeqOffset = new LongArrayQueue(NO_OFFSET);
-            this.replyAckOffset = new LongArrayQueue(NO_OFFSET);
+            this.initialSeqOffsets = new LongArrayQueue(NO_OFFSET);
+            this.replySeqOffsets = new LongArrayQueue(NO_OFFSET);
+            this.replyAckOffsets = new LongArrayQueue(NO_OFFSET);
         }
 
         private void onStreamMessage(
@@ -789,7 +789,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
 
             if (requestBytes == 0)
             {
-                initialSeqOffset.add(connection.initialSeq);
+                initialSeqOffsets.add(connection.initialSeq);
                 nextRequestId++;
 
                 final DirectBuffer buffer = payload.buffer();
@@ -896,18 +896,20 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         {
             if (KafkaState.initialOpened(connection.state))
             {
-                final long initialSeqOffsetPeek = initialSeqOffset.peekLong();
+                final long initialSeqOffsetPeek = initialSeqOffsets.peekLong();
 
                 if (initialSeqOffsetPeek != NO_OFFSET)
                 {
-                    assert initialAck <= connection.initialAck - initialSeqOffsetPeek + initialAckSnapshot;
+                    assert initialAck <= connection.initialAck - initialSeqOffsetPeek + initialAckProgress;
 
-                    initialAck = connection.initialAck - initialSeqOffsetPeek + initialAckSnapshot;
+                    initialAck = Math.min(initialSeq, connection.initialAck - initialSeqOffsetPeek + initialAckProgress);
+
+                    assert initialAck <= initialSeq;
 
                     if (initialAck == initialSeq)
                     {
-                        initialSeqOffset.removeLong();
-                        initialAckSnapshot = initialAck;
+                        initialSeqOffsets.removeLong();
+                        initialAckProgress = initialAck;
                     }
                 }
 
@@ -937,7 +939,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         {
             if (responseBytes == 0)
             {
-                replySeqOffset.add(connection.replySeq - reserved);
+                replySeqOffsets.add(connection.replySeq - reserved);
                 nexResponseId++;
                 final ResponseHeaderFW responseHeader = responseHeaderRO.wrap(payload, offset, offset + length);
                 responseBytes = responseHeader.length() + KAFKA_FRAME_LENGTH_FIELD_OFFSET;
@@ -981,7 +983,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         private void flushStreamWindow(
             long traceId)
         {
-            final long replySeqOffsetPeek = replySeqOffset.peekLong();
+            final long replySeqOffsetPeek = replySeqOffsets.peekLong();
 
             if (replySeqOffsetPeek != NO_OFFSET)
             {
@@ -990,9 +992,9 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
                 // TODO: && responseAckBytes == 0
                 if (replyAck == replySeq)
                 {
-                    replyAckOffset.add(replySeqOffsetPeek + replyAck - replyAckSnapshot);
+                    replyAckOffsets.add(replySeqOffsetPeek + replyAck - replyAckSnapshot);
 
-                    replySeqOffset.removeLong();
+                    replySeqOffsets.removeLong();
                     replyAckSnapshot = replyAck;
                 }
             }
@@ -1431,17 +1433,17 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
                     maxReplyPad = stream.replyPad;
                     minReplyMax = stream.replyMax;
 
-                    if (stream.replyAck < stream.replySeq || stream.replyAckOffset.isEmpty())
+                    if (stream.replyAck < stream.replySeq || stream.replyAckOffsets.isEmpty())
                     {
-                        if (!stream.replySeqOffset.isEmpty())
+                        if (!stream.replySeqOffsets.isEmpty())
                         {
-                            maxReplyAck = stream.replySeqOffset.peekLong() + stream.replyAck - stream.replyAckSnapshot;
+                            maxReplyAck = stream.replySeqOffsets.peekLong() + stream.replyAck - stream.replyAckSnapshot;
                         }
                         break ack;
                     }
-                    maxReplyAck = stream.replyAckOffset.removeLong();
+                    maxReplyAck = stream.replyAckOffsets.removeLong();
 
-                    if (KafkaState.closed(stream.state) && stream.replyAckOffset.isEmpty())
+                    if (KafkaState.closed(stream.state) && stream.replyAckOffsets.isEmpty())
                     {
                         streamsByInitialId.remove(responseAck);
                     }
@@ -1727,17 +1729,17 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
 
             state = KafkaState.openedInitial(state);
 
-            if (!flushable)
+            if (flushable)
             {
-                doEncodeRequestIfNecessary(traceId, authorization);
+                flushStreamWindows(traceId, credit);
             }
             else
             {
-                doStreamWindow(traceId, credit);
+                doEncodeRequestIfNecessary(traceId, authorization);
             }
         }
 
-        private void doStreamWindow(
+        private void flushStreamWindows(
             long traceId,
             int credit)
         {
@@ -1758,11 +1760,11 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
 
                 if (stream != null)
                 {
-                    long streamAck = stream.initialAck;
+                    final long streamAckSnapshot = stream.initialAck;
 
                     stream.doStreamWindow(authorization, traceId);
 
-                    credit = Math.max(credit - (int)(streamAck - stream.initialAck), 0);
+                    credit = Math.max(credit - (int)(stream.initialAck - streamAckSnapshot), 0);
 
                     if (stream.initialAck != stream.initialSeq)
                     {
@@ -2036,7 +2038,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             {
             case ERROR_NONE:
                 flushable = true;
-                doStreamWindow(traceId, initialMax);
+                flushStreamWindows(traceId, initialMax);
                 break;
             default:
                 cleanupConnection(traceId);

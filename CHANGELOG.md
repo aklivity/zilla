@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.9.87](https://github.com/aklivity/zilla/tree/0.9.87) (2024-07-12)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.86...0.9.87)
+
+**Merged pull requests:**
+
+- Support multiple requests with single window ack on shared connection [\#1144](https://github.com/aklivity/zilla/pull/1144) ([jfallows](https://github.com/jfallows))
+
+## [0.9.86](https://github.com/aklivity/zilla/tree/0.9.86) (2024-07-10)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.85...0.9.86)
+
+**Merged pull requests:**
+
+- Handle incremental key validation when length increases [\#1140](https://github.com/aklivity/zilla/pull/1140) ([akrambek](https://github.com/akrambek))
+
 ## [0.9.85](https://github.com/aklivity/zilla/tree/0.9.85) (2024-07-10)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.84...0.9.85)
