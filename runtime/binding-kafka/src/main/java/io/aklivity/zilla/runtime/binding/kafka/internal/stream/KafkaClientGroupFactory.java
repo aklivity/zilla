@@ -1238,6 +1238,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 progress = leaveGroupResponse.limit();
 
                 final short errorCode = leaveGroupResponse.errorCode();
+
                 if (errorCode == ERROR_NONE)
                 {
                     members:
@@ -5198,7 +5199,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             switch (errorCode)
             {
             case ERROR_NONE:
-                encoders.add(encodeSaslAuthenticateRequest);
+                encoders.addFirst(encodeSaslAuthenticateRequest);
                 decoder = decodeCoordinatorSaslAuthenticateResponse;
                 break;
             default:
@@ -5240,7 +5241,12 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             nextResponseId++;
 
-            delegate.groupMembership.memberIds.put(delegate.groupId, memberId);
+            String removedId = delegate.groupMembership.memberIds.put(delegate.groupId, memberId);
+            if (removedId != null)
+            {
+                // TODO: log event
+                System.out.printf("[%s] consumer group member id error %s, heartbeat too late?\n", delegate.groupId, removedId);
+            }
 
             delegate.client = joinGroup;
             joinGroup.doJoinGroupRequest(traceId);
