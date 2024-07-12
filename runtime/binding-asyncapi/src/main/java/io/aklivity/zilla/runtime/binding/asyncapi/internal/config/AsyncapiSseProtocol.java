@@ -25,15 +25,20 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiChannel;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiMessage;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiOperation;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiSecurityScheme;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiChannelView;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiSecuritySchemeView;
+import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.sse.config.SseConditionConfig;
 import io.aklivity.zilla.runtime.binding.sse.config.SseOptionsConfig;
 import io.aklivity.zilla.runtime.binding.sse.config.SseOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.sse.config.SsePathConfigBuilder;
 import io.aklivity.zilla.runtime.common.feature.Incubating;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
+import io.aklivity.zilla.runtime.engine.config.GuardedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.MetricRefConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
+import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
 import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
 @Incubating
@@ -111,6 +116,8 @@ public class AsyncapiSseProtocol extends AsyncapiProtocol
                         .when(SseConditionConfig::builder)
                             .path(path)
                             .build()
+                        .inject(route -> injectHttpServerRouteGuarded(
+                                        route, qname, options.http, asyncapi, operation.security))
                         .build();
                 }
             }
@@ -182,5 +189,40 @@ public class AsyncapiSseProtocol extends AsyncapiProtocol
                 .build();
         }
         return request;
+    }
+
+    private <C> RouteConfigBuilder<C> injectHttpServerRouteGuarded(
+        RouteConfigBuilder<C> route,
+        String qname,
+        HttpOptionsConfig options,
+        Asyncapi asyncapi,
+        List<AsyncapiSecurityScheme> securities)
+    {
+        if (securities != null && !securities.isEmpty())
+        {
+            AsyncapiSecuritySchemeView security =
+                AsyncapiSecuritySchemeView.of(asyncapi.components.securitySchemes, securities.get(0));
+
+            if ("oauth2".equals(security.type()))
+            {
+                route
+                    .guarded()
+                    .name(String.format("%s:%s", qname, options.authorization.name))
+                    .inject(guarded -> injectGuardedRoles(guarded, security.scopes()))
+                    .build();
+            }
+        }
+        return route;
+    }
+
+    private <C> GuardedConfigBuilder<C> injectGuardedRoles(
+        GuardedConfigBuilder<C> guarded,
+        List<String> roles)
+    {
+        for (String role : roles)
+        {
+            guarded.role(role);
+        }
+        return guarded;
     }
 }
