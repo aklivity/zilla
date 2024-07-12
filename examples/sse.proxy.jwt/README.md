@@ -18,22 +18,6 @@ Generates JWT tokens from the command line.
 brew install mike-engel/jwt-cli/jwt-cli
 ```
 
-### Build the sse-server docker image
-
-```bash
-docker build -t zilla-examples/sse-server:latest .
-```
-
-output:
-
-```text
-...
- => exporting to image                                                                                                                                                                       1.4s 
- => => exporting layers                                                                                                                                                                      1.4s 
- => => writing image sha256:104abb7e5a4389c50d02aaf5d9bb2fef883c82e066ac2b400c9039b35086efcc                                                                                                 0.0s 
- => => naming to docker.io/zilla-examples/sse-server:latest
-```
-
 ### Setup
 
 The `setup.sh` script:
@@ -49,8 +33,6 @@ The `setup.sh` script:
 output:
 
 ```text
-+ docker image inspect zilla-examples/sse-server:latest --format 'Image Found {{.RepoTags}}'
-Image Found [zilla-examples/sse-server:latest]
 + ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
 + helm upgrade --install zilla-sse-proxy-jwt oci://ghcr.io/aklivity/charts/zilla --namespace zilla-sse-proxy-jwt --create-namespace --wait [...]
 NAME: zilla-sse-proxy-jwt
@@ -80,14 +62,6 @@ Connection to localhost port 7143 [tcp/websm] succeeded!
 + sleep 1
 + nc -z localhost 8001
 Connection to localhost port 8001 [tcp/vcom-tunnel] succeeded!
-```
-
-Note: if you see the following output from `./setup.sh` then you need to first build the `zilla-examples/sse-server:latest` image, see above.
-
-```bash
-+ docker image inspect zilla-examples/sse-server --format 'Image Found {{.RepoTags}}'
-
-Error: No such image: zilla-examples/sse-server
 ```
 
 ### Generate JWT token

@@ -17,7 +17,7 @@ spec:
       containers:
         - name: sse-server
           args: ["-v", "-p", "8001", "-i", "7001"]
-          image: "zilla-examples/sse-server:latest"
+          image: "ghcr.io/aklivity/extras-sse-server:sha-42ad67e"
           ports:
             - containerPort: 8001
             - containerPort: 7001
@@ -27,7 +27,6 @@ spec:
             initialDelaySeconds: 3
             periodSeconds: 5
           tty: true
-          imagePullPolicy: Never
 ---
 apiVersion: v1
 kind: Service
