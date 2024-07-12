@@ -41,7 +41,7 @@ Use **Zilla** as a:
 | [Validate MQTT via AsyncAPI →](https://github.com/aklivity/zilla-examples/tree/main/mqtt.proxy.asyncapi) | Enforce an AsyncAPI schema for messages going into an MQTT broker. |
 | **Much more!** | Check out all the [Zilla Demos](https://github.com/aklivity/zilla-demos) and [Zilla Examples](https://github.com/aklivity/zilla-examples). |
 
-## Quickstart
+## Get Started
 
 **Zilla** is stateless, declaratively configured, and has no external dependencies. The fastest way to get started is to follow the [Quickstart](https://vordimous.github.io/zilla-docs/next/tutorials/quickstart/kafka-proxies.html).
 
@@ -49,7 +49,7 @@ Use **Zilla** as a:
 
 Single-node and cluster deployment options are available.
  
-### Homebrew
+**Homebrew**
 ```
 brew tap aklivity/tap 
 brew install zilla
@@ -57,7 +57,7 @@ brew install zilla
 zilla start -ve -c ./zilla.yaml
 ```
 
-### Docker
+**Docker**
 
 ```
 docker pull ghcr.io/aklivity/zilla
@@ -65,7 +65,7 @@ docker pull ghcr.io/aklivity/zilla
 docker run ghcr.io/aklivity/zilla:latest start -v
 ```
 
-### Helm
+**Helm**
 
 ```
 helm install zilla oci://ghcr.io/aklivity/charts/zilla --namespace zilla --create-namespace --wait \
@@ -84,7 +84,7 @@ helm install zilla oci://ghcr.io/aklivity/charts/zilla --namespace zilla --creat
 
 ### 📚 Read the docs
 
-- **[Zilla Documentation](https://docs.aklivity.io/zilla/latest/how-tos/install.html):** Guides, tutorials and references to help understand how to use Zilla and configure it for your use case.
+- **[Zilla Documentation](https://docs.aklivity.io/zilla/latest):** Guides, tutorials and references to help understand how to use Zilla and configure it for your use case.
 - **[Product Roadmap][zilla-roadmap]:** Check out our plan for upcoming releases. 
 - **[Zilla Examples](https://github.com/aklivity/zilla-examples)**: A collection of pre-canned Zilla feature demos.
 - **[Eventful Petstore Demo](https://github.com/aklivity/zilla-demos/tree/main/petstore):** See Zilla make the OpenAPI/Swagger Petstore service event-driven by mapping it onto Kafka in just a few lines of YAML.
