@@ -52,7 +52,7 @@ public class AsyncapiServerNamespaceGenerator extends AsyncapiNamespaceGenerator
                 .inject(n -> injectTcpServer(n, servers, options, metricRefs))
                 .inject(n -> injectTlsServer(n, servers, options))
                 .inject(n -> injectProtocolRelatedBindings(n, servers, metricRefs))
-                .inject(n -> injectProtocolServers(n, servers, metricRefs))
+                .inject(n -> injectProtocolServers(n, binding.namespace, options, servers, metricRefs))
                 .build();
     }
 
@@ -71,6 +71,8 @@ public class AsyncapiServerNamespaceGenerator extends AsyncapiNamespaceGenerator
 
     private <C> NamespaceConfigBuilder<C> injectProtocolServers(
         NamespaceConfigBuilder<C> namespace,
+        String qname,
+        AsyncapiOptionsConfig options,
         List<AsyncapiServerView> servers,
         List<MetricRefConfig> metricRefs)
     {
@@ -84,7 +86,7 @@ public class AsyncapiServerNamespaceGenerator extends AsyncapiNamespaceGenerator
                     .inject(b -> this.injectMetrics(b, metricRefs))
                     .kind(SERVER)
                     .inject(protocol::injectProtocolServerOptions)
-                    .inject(protocol::injectProtocolServerRoutes)
+                    .inject(b -> protocol.injectProtocolServerRoutes(b, qname, options))
                 .build();
         }
         return  namespace;

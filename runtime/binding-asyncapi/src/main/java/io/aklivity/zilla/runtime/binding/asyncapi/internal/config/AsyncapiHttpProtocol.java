@@ -26,8 +26,10 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiMessage
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiOperation;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiParameter;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiSchema;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiSecurityScheme;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiServer;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiChannelView;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiSecuritySchemeView;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiServerView;
 import io.aklivity.zilla.runtime.binding.http.config.HttpAuthorizationConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpConditionConfig;
@@ -65,7 +67,7 @@ public class AsyncapiHttpProtocol extends AsyncapiProtocol
 
     private static final String SECURE_SCHEME = "https";
     private final Map<String, String> securitySchemes;
-    private final boolean isJwtEnabled;
+    private final boolean isOauthEnabled;
     private final String guardName;
     private final HttpAuthorizationConfig authorization;
 
@@ -77,7 +79,7 @@ public class AsyncapiHttpProtocol extends AsyncapiProtocol
     {
         super(qname, asyncapis, protocol, SCHEME);
         this.securitySchemes = resolveSecuritySchemes();
-        this.isJwtEnabled = !securitySchemes.isEmpty();
+        this.isOauthEnabled = !securitySchemes.isEmpty();
 
         final HttpOptionsConfig httpOptions = options.http;
         this.guardName = httpOptions != null ? String.format("%s:%s", qname, httpOptions.authorization.name) : null;
@@ -100,7 +102,9 @@ public class AsyncapiHttpProtocol extends AsyncapiProtocol
 
     @Override
     public <C> BindingConfigBuilder<C> injectProtocolServerRoutes(
-        BindingConfigBuilder<C> binding)
+        BindingConfigBuilder<C> binding,
+        String qname,
+        AsyncapiOptionsConfig options)
     {
         for (Asyncapi asyncapi : asyncapis)
         {
@@ -127,7 +131,8 @@ public class AsyncapiHttpProtocol extends AsyncapiProtocol
                                         .header(":path", path)
                                         .header(":method", method)
                                         .build()
-                                    .inject(route -> injectHttpServerRouteGuarded(route, server))
+                                    .inject(route -> injectHttpServerRouteGuarded(
+                                        route, qname, options.http, asyncapi, operation.security))
                                     .build();
                             }
                         }
@@ -167,7 +172,7 @@ public class AsyncapiHttpProtocol extends AsyncapiProtocol
     private <C> HttpOptionsConfigBuilder<C> injectHttpServerOptions(
         HttpOptionsConfigBuilder<C> options)
     {
-        if (isJwtEnabled)
+        if (isOauthEnabled)
         {
             options.authorization(authorization).build();
         }
@@ -264,24 +269,23 @@ public class AsyncapiHttpProtocol extends AsyncapiProtocol
 
     private <C> RouteConfigBuilder<C> injectHttpServerRouteGuarded(
         RouteConfigBuilder<C> route,
-        AsyncapiServerView server)
+        String qname,
+        HttpOptionsConfig options,
+        Asyncapi asyncapi,
+        List<AsyncapiSecurityScheme> securities)
     {
-        if (server.security() != null)
+        if (securities != null && !securities.isEmpty())
         {
-            for (Map<String, List<String>> securityItem : server.security())
+            AsyncapiSecuritySchemeView security =
+                AsyncapiSecuritySchemeView.of(asyncapi.components.securitySchemes, securities.get(0));
+
+            if (isOauthEnabled && "oauth2".equals(security.type()))
             {
-                for (String securityItemLabel : securityItem.keySet())
-                {
-                    if (isJwtEnabled && "jwt".equals(securitySchemes.get(securityItemLabel)))
-                    {
-                        route
-                            .guarded()
-                                .name(guardName)
-                                .inject(guarded -> injectGuardedRoles(guarded, securityItem.get(securityItemLabel)))
-                                .build();
-                        break;
-                    }
-                }
+                route
+                    .guarded()
+                    .name(String.format("%s:%s", qname, options.authorization.name))
+                    .inject(guarded -> injectGuardedRoles(guarded, security.scopes()))
+                    .build();
             }
         }
         return route;
