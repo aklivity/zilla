@@ -24,7 +24,7 @@ public final class HttpAuthorizationConfig
     public final String name;
     public final HttpCredentialsConfig credentials;
 
-    public String qname;
+    public transient String qname;
 
     public static HttpAuthorizationConfigBuilder<HttpAuthorizationConfig> builder()
     {

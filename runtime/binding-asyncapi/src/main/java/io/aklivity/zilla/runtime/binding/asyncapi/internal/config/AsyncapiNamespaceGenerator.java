@@ -87,7 +87,10 @@ public abstract class AsyncapiNamespaceGenerator
         this.vault = binding.vault;
 
         AsyncapiOptionsConfig options = (AsyncapiOptionsConfig) binding.options;
-        options.http.authorization.qname = String.format("%s:%s", namespace, options.http.authorization.name);
+        if (options.http != null && options.http.authorization != null)
+        {
+            options.http.authorization.qname = String.format("%s:%s", namespace, options.http.authorization.name);
+        }
     }
 
     public NamespaceConfig generate(
