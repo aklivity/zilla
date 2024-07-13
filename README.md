@@ -16,7 +16,7 @@
 
 <h3 align="center">
   <a href="https://docs.aklivity.io/zilla/"><b>Docs</b></a> &bull;
-  <a href="https://docs.aklivity.io/zilla/latest/tutorials/quickstart/kafka-proxies.html"><b>Quickstart</b></a> &bull;
+  <a href="https://docs.aklivity.io/zilla/latest/how-tos/quickstart/"><b>Quickstart</b></a> &bull;
   <a href="https://github.com/aklivity/zilla-demos"><b>Demos</b></a> &bull;
   <a href="https://www.aklivity.io/blog"><b>Blog</b></a>  
 </h3>
@@ -43,7 +43,7 @@ Use **Zilla** as a:
 
 ## Get Started
 
-**Zilla** is stateless, declaratively configured, and has no external dependencies. The fastest way to get started is to follow the [Quickstart](https://vordimous.github.io/zilla-docs/next/tutorials/quickstart/kafka-proxies.html).
+**Zilla** is stateless, declaratively configured, and has no external dependencies. The fastest way to get started is to follow the [Quickstart](https://docs.aklivity.io/zilla/latest/how-tos/quickstart/l).
 
 ## Installing Zilla
 
