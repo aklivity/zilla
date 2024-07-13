@@ -102,7 +102,6 @@ public abstract class AsyncapiProtocol
 
     public abstract <C> BindingConfigBuilder<C> injectProtocolServerRoutes(
         BindingConfigBuilder<C> binding,
-        String qname,
         AsyncapiOptionsConfig options);
 
     public <C> NamespaceConfigBuilder<C> injectProtocolClientCache(

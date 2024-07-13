@@ -103,7 +103,6 @@ public class AsyncapiHttpProtocol extends AsyncapiProtocol
     @Override
     public <C> BindingConfigBuilder<C> injectProtocolServerRoutes(
         BindingConfigBuilder<C> binding,
-        String qname,
         AsyncapiOptionsConfig options)
     {
         for (Asyncapi asyncapi : asyncapis)
@@ -132,7 +131,7 @@ public class AsyncapiHttpProtocol extends AsyncapiProtocol
                                         .header(":method", method)
                                         .build()
                                     .inject(route -> injectHttpServerRouteGuarded(
-                                        route, qname, options.http, asyncapi, operation.security))
+                                        route, options.http, asyncapi, operation.security))
                                     .build();
                             }
                         }
@@ -174,7 +173,7 @@ public class AsyncapiHttpProtocol extends AsyncapiProtocol
     {
         if (isOauthEnabled)
         {
-            options.authorization(authorization).build();
+            options.authorization(authorization);
         }
         return options;
     }
@@ -269,7 +268,6 @@ public class AsyncapiHttpProtocol extends AsyncapiProtocol
 
     private <C> RouteConfigBuilder<C> injectHttpServerRouteGuarded(
         RouteConfigBuilder<C> route,
-        String qname,
         HttpOptionsConfig options,
         Asyncapi asyncapi,
         List<AsyncapiSecurityScheme> securities)
@@ -283,7 +281,7 @@ public class AsyncapiHttpProtocol extends AsyncapiProtocol
             {
                 route
                     .guarded()
-                    .name(String.format("%s:%s", qname, options.authorization.name))
+                    .name(options.authorization.qname)
                     .inject(guarded -> injectGuardedRoles(guarded, security.scopes()))
                     .build();
             }

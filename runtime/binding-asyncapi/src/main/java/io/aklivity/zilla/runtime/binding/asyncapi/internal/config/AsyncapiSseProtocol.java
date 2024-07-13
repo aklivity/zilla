@@ -78,7 +78,7 @@ public class AsyncapiSseProtocol extends AsyncapiProtocol
                     .inject(b -> this.injectMetrics(b, metricRefs))
                     .kind(SERVER)
                     .inject(httpProtocol::injectProtocolServerOptions)
-                    .inject(b -> httpProtocol.injectProtocolServerRoutes(b, qname, options))
+                    .inject(b -> httpProtocol.injectProtocolServerRoutes(b, options))
                 .build();
         }
         return namespace;
@@ -98,7 +98,6 @@ public class AsyncapiSseProtocol extends AsyncapiProtocol
     @Override
     public <C> BindingConfigBuilder<C> injectProtocolServerRoutes(
         BindingConfigBuilder<C> binding,
-        String qname,
         AsyncapiOptionsConfig options)
     {
         for (Asyncapi asyncapi : asyncapis)

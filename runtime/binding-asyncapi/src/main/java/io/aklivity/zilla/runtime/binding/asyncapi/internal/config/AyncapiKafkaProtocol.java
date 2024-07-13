@@ -114,7 +114,6 @@ public class AyncapiKafkaProtocol extends AsyncapiProtocol
     @Override
     public <C> BindingConfigBuilder<C> injectProtocolServerRoutes(
         BindingConfigBuilder<C> binding,
-        String qname,
         AsyncapiOptionsConfig options)
     {
         return binding;
