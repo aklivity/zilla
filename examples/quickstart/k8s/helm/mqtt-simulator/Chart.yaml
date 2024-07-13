@@ -1,0 +1,8 @@
+apiVersion: v2
+name: mqtt-simulator
+description: MQTT Simulator
+version: 1.0.0
+type: application
+appVersion: "zilla-quickstart"
+sources:
+  - https://github.com/vordimous/mqtt-simulator

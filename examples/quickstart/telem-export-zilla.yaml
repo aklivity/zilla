@@ -1,0 +1,14 @@
+name: telemetry-exporters
+telemetry:
+  exporters:
+    # Enable Standard Out logs
+    stdout_logs_exporter:
+      type: stdout
+    # Prometheus endpoint definition
+    prometheus_metric_exporter:
+      type: prometheus
+      options:
+        endpoints:
+          - scheme: http
+            path: /metrics
+            port: 7190

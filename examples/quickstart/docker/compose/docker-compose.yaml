@@ -1,5 +1,7 @@
 version: '3'
 services:
+
+
   zilla:
     image: ghcr.io/aklivity/zilla:${ZILLA_VERSION}
     container_name: zilla
@@ -16,22 +18,19 @@ services:
       ROUTE_GUIDE_SERVER_PORT: 50051
     volumes:
       - ../../zilla.yaml:/etc/zilla/zilla.yaml
-      - ./grpc/echo.proto:/etc/zilla/proto/echo.proto
-      - ./grpc/route_guide.proto:/etc/zilla/proto/route_guide.proto
-    command: start -v -e -Pzilla.binding.kafka.client.connection.pool=false
+      - ./proto/route_guide.proto:/proto/route_guide.proto
+    command: start -v -e -Pzilla.engine.worker.capacity=512
 
   mqtt-simulator:
-    build: https://github.com/vordimous/mqtt-simulator.git#zilla-quickstart
+    image: ghcr.io/vordimous/mqtt-simulator:zilla-quickstart
     container_name: mqtt-simulator
-    image: aklivity/mqtt-simulator:local
     restart: unless-stopped
     volumes:
-      - ./mqtt/config/settings.json:/usr/src/app/config/settings.json
+      - ./sim_settings.json:/usr/src/app/config/settings.json
 
   route-guide-server:
-    build: ./grpc/route_guide/server
+    image: ghcr.io/aklivity/extras-route-guide-server:sha-e49c994
     container_name: route-guide-server
-    image: aklivity/route-guide-server:local
     restart: unless-stopped
     ports:
       - 50051:50051

@@ -4,7 +4,6 @@
     "PROTOCOL_VERSION": 5,
     "CLEAN_SESSION": false,
     "QOS": 0,
-    "RETAINED": true,
     "TOPICS": [
         {
             "TYPE": "multiple",

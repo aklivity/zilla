@@ -1,0 +1,82 @@
+name: mqtt-quickstart
+
+bindings:
+  # Proxy service entrypoint
+  north_tcp_server:
+    type: tcp
+    kind: server
+    options:
+      host: 0.0.0.0
+      port:
+        - 7183
+    routes:
+      - when:
+          - port: 7183
+        exit: north_mqtt_server
+    telemetry:
+      metrics:
+        - stream.*
+
+  # MQTT Server to Kafka topics
+  #region mqtt_broker_mapping
+  north_mqtt_server:
+    type: mqtt
+    kind: server
+    exit: north_mqtt_kafka_mapping
+  north_mqtt_kafka_mapping:
+    type: mqtt-kafka
+    kind: proxy
+    options:
+      topics:
+        sessions: mqtt-sessions
+        messages: mqtt-messages
+        retained: mqtt-retained
+    #endregion mqtt_broker_mapping
+    exit: north_kafka_cache_client
+    telemetry:
+      metrics:
+        - stream.*
+
+  # Kafka sync layer
+  north_kafka_cache_client:
+    type: kafka
+    kind: cache_client
+    exit: south_kafka_cache_server
+    telemetry:
+      metrics:
+        - stream.*
+  south_kafka_cache_server:
+    type: kafka
+    kind: cache_server
+    options:
+      bootstrap:
+        - mqtt-messages
+        - mqtt-retained
+    exit: south_kafka_client
+    telemetry:
+      metrics:
+        - stream.*
+
+  # Connect to local Kafka
+  south_kafka_client:
+    type: kafka
+    kind: client
+    options:
+      servers:
+        - ${{env.KAFKA_BOOTSTRAP_SERVER}}
+    exit: south_tcp_client
+  south_tcp_client:
+    type: tcp
+    kind: client
+
+telemetry:
+  # Desired metrics to track
+  metrics:
+    - stream.opens.sent
+    - stream.opens.received
+    - stream.closes.sent
+    - stream.closes.received
+    - stream.errors.sent
+    - stream.errors.received
+    - stream.active.sent
+    - stream.active.received

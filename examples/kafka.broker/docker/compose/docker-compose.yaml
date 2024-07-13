@@ -1,7 +1,7 @@
 version: '3'
 services:
   kafka:
-    image: bitnami/kafka:3.2
+    image: bitnami/kafka:3.5
     container_name: kafka
     restart: unless-stopped
     ports:
@@ -22,7 +22,7 @@ services:
       KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
 
   kafka-ui:
-    image: provectuslabs/kafka-ui:latest
+    image: ghcr.io/kafbat/kafka-ui:latest
     container_name: kafka-ui
     restart: unless-stopped
     ports:

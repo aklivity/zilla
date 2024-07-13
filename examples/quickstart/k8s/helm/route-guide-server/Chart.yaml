@@ -1,0 +1,8 @@
+apiVersion: v2
+name: route-guide-server
+description: Route Guide server
+version: 1.0.0
+type: application
+appVersion: "sha-d619679"
+sources:
+  - https://github.com/aklivity/zilla-demos/tree/main/extras-containers/route-guide-server

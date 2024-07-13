@@ -1,0 +1,219 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "mqtt-simulator.fullname" . }}
+  labels:
+    {{- include "mqtt-simulator.labels" . | nindent 4 }}
+data:
+  sim_settings.json: |-
+    {
+        "BROKER_URL": "{{- .Values.brokerUrl -}}",
+        "BROKER_PORT": {{- .Values.brokerPort -}},
+        "PROTOCOL_VERSION": 5,
+        "CLEAN_SESSION": false,
+        "QOS": 0,
+        "RETAIN": true,
+        "TOPICS": [
+            {
+                "TYPE": "multiple",
+                "PREFIX": "lamp",
+                "RANGE_START": 1,
+                "RANGE_END": 2,
+                "TIME_INTERVAL": 40,
+                "DATA": [
+                    {
+                        "NAME": "on",
+                        "TYPE": "bool",
+                        "RETAIN_PROBABILITY": 0.85
+                    },
+                    {
+                        "NAME": "temperature",
+                        "TYPE": "int",
+                        "INITIAL_VALUE": 2750,
+                        "MIN_VALUE": 2700,
+                        "MAX_VALUE": 6500,
+                        "MAX_STEP": 250,
+                        "RETAIN_PROBABILITY": 0.3,
+                        "RESET_PROBABILITY": 0.1,
+                        "INCREASE_PROBABILITY": 0.8,
+                        "RESTART_ON_BOUNDARIES": true
+                    }
+                ]
+            },
+            {
+                "TYPE": "single",
+                "PREFIX": "air_quality",
+                "TIME_INTERVAL": 60,
+                "DATA": [
+                    {
+                        "NAME": "pollution_particles",
+                        "TYPE": "float",
+                        "MIN_VALUE": 0,
+                        "MAX_VALUE": 1,
+                        "MAX_STEP": 0.15,
+                        "RETAIN_PROBABILITY": 0.9
+                    },
+                    {
+                        "NAME": "alert",
+                        "TYPE": "bool",
+                        "RETAIN_PROBABILITY": 0.9
+                    }
+                ]
+            },
+            {
+                "TYPE": "list",
+                "PREFIX": "temperature",
+                "LIST": ["roof", "basement"],
+                "TIME_INTERVAL": 80,
+                "DATA": [
+                    {
+                        "NAME": "temperature",
+                        "TYPE": "float",
+                        "MIN_VALUE": 20,
+                        "MAX_VALUE": 55,
+                        "MAX_STEP": 3,
+                        "RETAIN_PROBABILITY": 0.5,
+                        "INCREASE_PROBABILITY": 0.6
+                    }
+                ]
+            },
+            {
+                "TYPE": "single",
+                "PREFIX": "freezer",
+                "TIME_INTERVAL": 60,
+                "DATA": [
+                    {
+                        "NAME": "temperature",
+                        "TYPE": "math_expression",
+                        "RETAIN_PROBABILITY": 0.1,
+                        "MATH_EXPRESSION": "2*math.pow(x,2)+1",
+                        "INTERVAL_START": 0,
+                        "INTERVAL_END": 5,
+                        "MIN_DELTA": 0.3,
+                        "MAX_DELTA": 0.5
+                    }
+                ]
+            },
+            {
+                "TYPE": "single",
+                "PREFIX": "location",
+                "TIME_INTERVAL": 50,
+                "DATA": [
+                    {
+                        "NAME": "coordinate",
+                        "TYPE": "raw_values",
+                        "RESTART_ON_END": true,
+                        "VALUES": [
+                            {
+                                "lat": -121.883682,
+                                "long": 37.354635
+                            },
+                            {
+                                "lat": -121.883352,
+                                "long": 37.354192
+                            },
+                            {
+                                "lat": -121.884284,
+                                "long": 37.353757
+                            },
+                            {
+                                "lat": -121.885227,
+                                "long": 37.353324
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "mqtt-simulator.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "mqtt-simulator.labels" . | nindent 4 }}
+  {{- with .Values.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+{{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+{{- end }}
+  selector:
+    matchLabels:
+      {{- include "mqtt-simulator.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+      {{- with .Values.podAnnotations }}
+          {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "mqtt-simulator.selectorLabels" . | nindent 8 }}
+        {{- if .Values.podLabels }}
+        {{- toYaml .Values.podLabels | nindent 8 }}
+        {{- end }}
+
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.initContainers }}
+      initContainers:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      volumes:
+        - name: sim-settings
+          configMap:
+            name: {{ include "mqtt-simulator.fullname" . }}
+            items:
+              - key: sim_settings.json
+                path: sim_settings.json
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: {{ include "mqtt-simulator.imageName" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            {{- range $key, $value := .Values.env }}
+            - name: "{{ tpl $key $ }}"
+              value: "{{ tpl (print $value) $ }}"
+            {{- end }}
+          tty: true
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: sim-settings
+              mountPath: /usr/src/app/config/settings.json
+              subPath: sim_settings.json
+          {{- if .Values.volumeMounts}}
+            {{- with .Values.volumeMounts }} 
+              {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- end }}
+      {{- if .Values.volumes}}
+      volumes:
+        {{- with .Values.volumes }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

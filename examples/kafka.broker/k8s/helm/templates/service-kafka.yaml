@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: kafka
-          image: "bitnami/kafka:3.2"
+          image: "bitnami/kafka:3.5"
           env:
             - name: ALLOW_PLAINTEXT_LISTENER
               value: "yes"

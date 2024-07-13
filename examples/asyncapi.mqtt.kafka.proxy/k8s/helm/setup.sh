@@ -4,7 +4,7 @@ set -e
 ZILLA_VERSION="${ZILLA_VERSION:-^0.9.0}"
 NAMESPACE="${NAMESPACE:-zilla-asyncapi-mqtt-kafka-proxy}"
 export KAFKA_BROKER="${KAFKA_BROKER:-kafka}"
-export KAFKA_BOOTSTRAP_SERVER="${KAFKA_BOOTSTRAP_SERVER:-host.docker.internal:9092}"
+export KAFKA_BOOTSTRAP_SERVER="${KAFKA_BOOTSTRAP_SERVER:-kafka.$NAMESPACE.svc.cluster.local:9092}"
 INIT_KAFKA="${INIT_KAFKA:-true}"
 ZILLA_CHART="${ZILLA_CHART:-oci://ghcr.io/aklivity/charts/zilla}"
 
@@ -19,7 +19,7 @@ helm upgrade --install zilla $ZILLA_CHART --version $ZILLA_VERSION --namespace $
 
 # Create the mqtt topics in Kafka
 if [[ $INIT_KAFKA == true ]]; then
-  kubectl run kafka-init-pod --image=bitnami/kafka:3.2 --namespace $NAMESPACE --rm --restart=Never -i -t -- /bin/sh -c "
+  kubectl run kafka-init-pod --image=bitnami/kafka:3.5 --namespace $NAMESPACE --rm --restart=Never -i -t -- /bin/sh -c "
   echo 'Creating topics for $KAFKA_BOOTSTRAP_SERVER'
   /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server $KAFKA_BOOTSTRAP_SERVER --create --if-not-exists --topic mqtt-messages
   /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server $KAFKA_BOOTSTRAP_SERVER --create --if-not-exists --topic streetlights
