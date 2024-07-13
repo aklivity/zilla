@@ -53,6 +53,10 @@ catalogs:
             bindings:
               http:
                 method: POST
+              x-zilla-http-kafka:
+                overrides:
+                  zilla:command: CreatePet
+                  zilla:identity: "{identity}"
             channel:
               $ref: '#/channels/pets'
           listPets:

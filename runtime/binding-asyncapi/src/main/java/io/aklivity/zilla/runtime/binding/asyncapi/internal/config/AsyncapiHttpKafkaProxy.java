@@ -22,6 +22,7 @@ import java.util.regex.Pattern;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiBinding;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiChannel;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiMessage;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiOperation;
@@ -341,7 +342,31 @@ public class AsyncapiHttpKafkaProxy extends AsyncapiProxy
             produce.replyTo(channel.address());
         }
 
-        produce.build();
+        AsyncapiBinding httpKafkaBinding = httpOperation.bindings.get("x-zilla-http-kafka");
+        if (httpKafkaBinding != null)
+        {
+            Map<String, String> overrides = httpKafkaBinding.overrides;
+            if (overrides != null)
+            {
+                for (Map.Entry<String, String> override : overrides.entrySet())
+                {
+                    String name = override.getKey();
+                    String value = override.getValue();
+
+                    // TODO: generate "jwt0" guard via security scheme
+                    //       then use knowledge of generated guard name
+                    if ("{identity}".equals(value))
+                    {
+                        value = String.format("${guarded['jwt0'].identity}");
+                    }
+
+                    produce.override()
+                        .name(name)
+                        .value(value)
+                        .build();
+                }
+            }
+        }
 
         return produce;
     }
