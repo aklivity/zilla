@@ -14,10 +14,10 @@
  */
 package io.aklivity.zilla.runtime.binding.sse.kafka.config;
 
+import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.binding.sse.kafka.internal.config.SseKafkaWithFilterConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.WithConfig;
 
@@ -42,6 +42,11 @@ public final class SseKafkaWithConfigBuilder<T> extends ConfigBuilder<T, SseKafk
         return this;
     }
 
+    public SseKafkaWithFilterConfigBuilder<SseKafkaWithConfigBuilder<T>> filter()
+    {
+        return new SseKafkaWithFilterConfigBuilder<>(this::filter);
+    }
+
     public SseKafkaWithConfigBuilder<T> filters(
         List<SseKafkaWithFilterConfig> filters)
     {
@@ -63,10 +68,21 @@ public final class SseKafkaWithConfigBuilder<T> extends ConfigBuilder<T, SseKafk
         return (Class<SseKafkaWithConfigBuilder<T>>) getClass();
     }
 
-
     @Override
     public T build()
     {
         return mapper.apply(new SseKafkaWithConfig(topic, filters, eventId));
+    }
+
+    private SseKafkaWithConfigBuilder<T> filter(
+        SseKafkaWithFilterConfig filter)
+    {
+        if (filters == null)
+        {
+            filters = new LinkedList<>();
+        }
+
+        filters.add(filter);
+        return this;
     }
 }

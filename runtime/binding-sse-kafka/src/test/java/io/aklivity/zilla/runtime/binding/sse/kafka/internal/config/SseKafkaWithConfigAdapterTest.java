@@ -19,7 +19,6 @@ import static com.github.npathai.hamcrestopt.OptionalMatchers.isPresentAnd;
 import static com.vtence.hamcrest.jpa.HasFieldWithValue.hasField;
 import static io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithConfig.EVENT_ID_DEFAULT;
 import static io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithConfig.EVENT_ID_KEY64_AND_ETAG;
-import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.both;
 import static org.hamcrest.Matchers.contains;
@@ -111,12 +110,13 @@ public class SseKafkaWithConfigAdapterTest
     {
         SseKafkaWithConfig with = SseKafkaWithConfig.builder()
             .topic("test")
-            .filters(
-            singletonList(new SseKafkaWithFilterConfig(
-                "fixed-key",
-                singletonList(new SseKafkaWithFilterHeaderConfig(
-                    "tag",
-                    "fixed-tag")))))
+            .filter()
+                .key("fixed-key")
+                .header()
+                    .name("tag")
+                    .value("fixed-tag")
+                    .build()
+                .build()
             .eventId(EVENT_ID_DEFAULT)
             .build();
 

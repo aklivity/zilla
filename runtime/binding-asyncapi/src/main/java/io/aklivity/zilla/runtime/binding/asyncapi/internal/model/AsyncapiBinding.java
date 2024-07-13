@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.model;
 
+import java.util.List;
 import java.util.Map;
 
 public class AsyncapiBinding
@@ -21,4 +22,6 @@ public class AsyncapiBinding
     public String method;
 
     public Map<String, String> overrides;
+
+    public List<AsyncapiSseKafkaFilter> filters;
 }

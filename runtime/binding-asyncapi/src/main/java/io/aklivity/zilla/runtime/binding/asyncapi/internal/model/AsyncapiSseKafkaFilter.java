@@ -12,18 +12,11 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.sse.kafka.internal.config;
+package io.aklivity.zilla.runtime.binding.asyncapi.internal.model;
 
-public final class SseKafkaWithFilterHeaderConfig
+import java.util.Map;
+
+public class AsyncapiSseKafkaFilter
 {
-    public final String name;
-    public final String value;
-
-    public SseKafkaWithFilterHeaderConfig(
-        String name,
-        String value)
-    {
-        this.name = name;
-        this.value = value;
-    }
+    public Map<String, String> headers;
 }
