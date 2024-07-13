@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.model;
 
+import java.util.List;
 import java.util.Map;
 
 public class AsyncapiOperation
@@ -22,4 +23,5 @@ public class AsyncapiOperation
     public AsyncapiChannel channel;
     public String action;
     public AsyncapiReply reply;
+    public List<AsyncapiSecurityScheme> security;
 }
