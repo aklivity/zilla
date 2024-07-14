@@ -38,7 +38,6 @@ import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithConfigBuilder;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchConfigBuilder;
-import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchFilterConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchFilterConfigBuilder;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchMergeConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithProduceAsyncHeaderConfig;
@@ -122,7 +121,7 @@ public class AsyncapiHttpKafkaProxy extends AsyncapiProxy
 
         final AsyncapiChannelView channel = AsyncapiChannelView.of(httpAsyncapi.channels, whenOperation.channel);
         String path = channel.address();
-        if (whenOperation.bindings != null)
+        if (whenOperation.bindings != null && whenOperation.bindings.containsKey("http"))
         {
             String method = whenOperation.bindings.get("http").method;
             final List<String> paramNames = findParams(path);
@@ -298,11 +297,8 @@ public class AsyncapiHttpKafkaProxy extends AsyncapiProxy
 
         if (!paramNames.isEmpty())
         {
-            fetch.filters(List.of(HttpKafkaWithFetchFilterConfig.builder()
-                .key(String.format("${params.%s}", paramNames.get(paramNames.size() - 1)))
-                .build()));
+            fetch.filter().key(String.format("${params.%s}", paramNames.get(paramNames.size() - 1)));
         }
-
 
         AsyncapiBinding httpKafkaBinding = httpOperation.bindings.get("x-zilla-http-kafka");
         if (httpKafkaBinding != null)
