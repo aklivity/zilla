@@ -12,17 +12,23 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.asyncapi.internal.model;
+package io.aklivity.zilla.runtime.binding.asyncapi.internal.config;
 
-import java.util.List;
-import java.util.Map;
-
-public class AsyncapiBinding
+public final class AsyncapiIdentity
 {
-    public String method;
+    public static String resolve(
+        String namespace,
+        String value)
+    {
+        if ("{identity}".equals(value))
+        {
+            value = String.format("${guarded['%s:jwt0'].identity}", namespace);
+        }
 
-    public String key;
-    public Map<String, String> overrides;
+        return value;
+    }
 
-    public List<AsyncapiKafkaFilter> filters;
+    private AsyncapiIdentity()
+    {
+    }
 }

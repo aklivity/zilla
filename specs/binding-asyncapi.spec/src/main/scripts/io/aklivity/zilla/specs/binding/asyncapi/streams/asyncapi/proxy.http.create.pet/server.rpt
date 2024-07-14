@@ -31,6 +31,7 @@ read zilla:begin.ext ${openapi:beginEx()
                                   .header(":authority", "localhost:8080")
                                   .header("content-type", "application/json")
                                   .header("content-length", "39")
+                                  .header("zilla:command", "CreatePet")
                                   .build())
                              .build()}
 
