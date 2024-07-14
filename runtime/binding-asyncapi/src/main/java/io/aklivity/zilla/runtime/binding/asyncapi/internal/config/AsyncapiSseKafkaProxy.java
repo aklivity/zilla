@@ -21,11 +21,14 @@ import java.util.Map;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiBinding;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiKafkaFilter;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiOperation;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiChannelView;
 import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaConditionConfig;
 import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithConfig;
 import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithConfigBuilder;
+import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithFilterConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
 
@@ -45,6 +48,7 @@ public class AsyncapiSseKafkaProxy extends AsyncapiProxy
     @Override
     protected <C> BindingConfigBuilder<C> injectProxyRoutes(
         BindingConfigBuilder<C> binding,
+        String namespace,
         List<AsyncapiRouteConfig> routes)
     {
         inject:
@@ -59,23 +63,27 @@ public class AsyncapiSseKafkaProxy extends AsyncapiProxy
                 {
                     break inject;
                 }
+
                 final AsyncapiOperation whenOperation = sseAsyncapi.operations.get(condition.operationId);
                 if (whenOperation == null)
                 {
                     for (Map.Entry<String, AsyncapiOperation> e : sseAsyncapi.operations.entrySet())
                     {
-                        AsyncapiOperation withOperation = route.with.operationId != null ?
-                            kafkaAsyncapi.operations.get(route.with.operationId) : kafkaAsyncapi.operations.get(e.getKey());
+                        AsyncapiOperation withOperation = route.with.operationId != null
+                            ? kafkaAsyncapi.operations.get(route.with.operationId)
+                            : kafkaAsyncapi.operations.get(e.getKey());
+
                         if (withOperation != null)
                         {
-                            binding = addSseKafkaRoute(binding, kafkaAsyncapi, sseAsyncapi, e.getValue(), withOperation);
+                            binding = addSseKafkaRoute(binding, kafkaAsyncapi, sseAsyncapi, e.getValue(), withOperation,
+                                    namespace);
                         }
                     }
                 }
                 else
                 {
                     AsyncapiOperation withOperation = kafkaAsyncapi.operations.get(route.with.operationId);
-                    binding = addSseKafkaRoute(binding, kafkaAsyncapi, sseAsyncapi, whenOperation, withOperation);
+                    binding = addSseKafkaRoute(binding, kafkaAsyncapi, sseAsyncapi, whenOperation, withOperation, namespace);
                 }
             }
         }
@@ -87,23 +95,23 @@ public class AsyncapiSseKafkaProxy extends AsyncapiProxy
         Asyncapi kafkaAsyncapi,
         Asyncapi sseAsyncapi,
         AsyncapiOperation whenOperation,
-        AsyncapiOperation withOperation)
+        AsyncapiOperation withOperation,
+        String namespace)
     {
-
-        if (whenOperation.bindings == null)
+        if (whenOperation.bindings == null || !whenOperation.bindings.containsKey("http"))
         {
             final AsyncapiChannelView channel = AsyncapiChannelView.of(sseAsyncapi.channels, whenOperation.channel);
             String path = channel.address();
 
-            final RouteConfigBuilder<BindingConfigBuilder<C>> routeBuilder = binding.route();
-            routeBuilder
+            binding.route()
                 .exit(qname)
-                    .when(SseKafkaConditionConfig::builder)
+                .when(SseKafkaConditionConfig::builder)
                     .path(path)
                     .build()
-                .inject(r -> injectSseKafkaRouteWith(r, kafkaAsyncapi, withOperation));
-            binding = routeBuilder.build();
+                .inject(r -> injectSseKafkaRouteWith(r, kafkaAsyncapi, whenOperation, withOperation, namespace))
+                .build();
         }
+
         return binding;
     }
 
@@ -118,23 +126,75 @@ public class AsyncapiSseKafkaProxy extends AsyncapiProxy
     private <C> RouteConfigBuilder<C> injectSseKafkaRouteWith(
         RouteConfigBuilder<C> route,
         Asyncapi kafkaAsyncapi,
-        AsyncapiOperation kafkaOperation)
+        AsyncapiOperation sseOperation,
+        AsyncapiOperation kafkaOperation,
+        String namespace)
     {
-        final SseKafkaWithConfigBuilder<SseKafkaWithConfig> newWith = SseKafkaWithConfig.builder();
-        final AsyncapiChannelView channel = AsyncapiChannelView
-            .of(kafkaAsyncapi.channels, kafkaOperation.channel);
-        final String topic = channel.address();
-
         if (ASYNCAPI_RECEIVE_ACTION_NAME.equals(kafkaOperation.action))
         {
-            newWith
-                .topic(topic)
-                .eventId(EVENT_ID_DEFAULT)
-                .build();
+            final AsyncapiChannelView channel = AsyncapiChannelView
+                    .of(kafkaAsyncapi.channels, kafkaOperation.channel);
+            final String topic = channel.address();
+
+            route.with(SseKafkaWithConfig.builder()
+                    .topic(topic)
+                    .eventId(EVENT_ID_DEFAULT)
+                    .inject(w -> injectSseKafkaRouteWithFilters(w, sseOperation, namespace))
+                    .build());
         }
 
-        route.with(newWith.build());
-
         return route;
+    }
+
+    private <C> SseKafkaWithConfigBuilder<C> injectSseKafkaRouteWithFilters(
+        SseKafkaWithConfigBuilder<C> with,
+        AsyncapiOperation sseOperation,
+        String namespace)
+    {
+        if (sseOperation.bindings != null)
+        {
+            AsyncapiBinding sseKafkaBinding = sseOperation.bindings.get("x-zilla-sse-kafka");
+            if (sseKafkaBinding != null)
+            {
+                List<AsyncapiKafkaFilter> filters = sseKafkaBinding.filters;
+                if (filters != null)
+                {
+                    for (AsyncapiKafkaFilter filter : filters)
+                    {
+                        SseKafkaWithFilterConfigBuilder<SseKafkaWithConfigBuilder<C>> withFilter =
+                                with.filter();
+
+                        String key = filter.key;
+                        if (key != null)
+                        {
+                            key = AsyncapiIdentity.resolve(namespace, key);
+
+                            withFilter.key(key);
+                        }
+
+                        Map<String, String> headers = filter.headers;
+                        if (headers != null)
+                        {
+                            for (Map.Entry<String, String> header : headers.entrySet())
+                            {
+                                String name = header.getKey();
+                                String value = header.getValue();
+
+                                value = AsyncapiIdentity.resolve(namespace, value);
+
+                                withFilter.header()
+                                    .name(name)
+                                    .value(value)
+                                    .build();
+                            }
+                        }
+
+                        withFilter.build();
+                    }
+                }
+            }
+        }
+
+        return with;
     }
 }

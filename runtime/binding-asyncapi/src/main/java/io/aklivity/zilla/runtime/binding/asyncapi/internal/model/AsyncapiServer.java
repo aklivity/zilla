@@ -14,9 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.model;
 
+import java.util.List;
 import java.util.Map;
-
-import jakarta.json.JsonArray;
 
 public class AsyncapiServer
 {
@@ -24,7 +23,7 @@ public class AsyncapiServer
     public String url;
     public String pathname;
     public String protocol;
-    public JsonArray security;
+    public List<AsyncapiSecurityScheme> security;
     public Map<String, AsyncapiVariable> variables;
     public AsyncapiServerBindings bindings;
 }

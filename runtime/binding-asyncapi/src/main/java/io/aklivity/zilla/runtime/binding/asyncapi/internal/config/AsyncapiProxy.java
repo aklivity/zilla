@@ -39,6 +39,7 @@ public abstract class AsyncapiProxy
 
     protected abstract <C> BindingConfigBuilder<C> injectProxyRoutes(
         BindingConfigBuilder<C> binding,
+        String namespace,
         List<AsyncapiRouteConfig> routes);
 
     public abstract <C> BindingConfigBuilder<C> injectProxyOptions(

@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.http.kafka.config;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Function;
 
@@ -59,6 +60,11 @@ public final class HttpKafkaWithProduceConfigBuilder<T> extends ConfigBuilder<T,
         return this;
     }
 
+    public HttpKafkaWithProduceOverrideConfigBuilder<HttpKafkaWithProduceConfigBuilder<T>> override()
+    {
+        return new HttpKafkaWithProduceOverrideConfigBuilder<>(this::override);
+    }
+
     public HttpKafkaWithProduceConfigBuilder<T> overrides(
         List<HttpKafkaWithProduceOverrideConfig> overrides)
     {
@@ -101,10 +107,21 @@ public final class HttpKafkaWithProduceConfigBuilder<T> extends ConfigBuilder<T,
         return (Class<HttpKafkaWithProduceConfigBuilder<T>>) getClass();
     }
 
-
     @Override
     public T build()
     {
         return mapper.apply(new HttpKafkaWithProduceConfig(topic, acks, key, overrides, replyTo, async));
+    }
+
+    private HttpKafkaWithProduceConfigBuilder<T> override(
+        HttpKafkaWithProduceOverrideConfig override)
+    {
+        if (overrides == null)
+        {
+            overrides = new LinkedList<>();
+        }
+
+        overrides.add(override);
+        return this;
     }
 }

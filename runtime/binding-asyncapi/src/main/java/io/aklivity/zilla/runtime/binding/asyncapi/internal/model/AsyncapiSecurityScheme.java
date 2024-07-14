@@ -14,7 +14,20 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.model;
 
+import java.util.List;
+
+import jakarta.json.bind.annotation.JsonbProperty;
+
 public class AsyncapiSecurityScheme
 {
-    public String bearerFormat;
+    public String type;
+    public String name;
+    public String in;
+    public String scheme;
+    public Object flows;
+    public String openIdConnectUrl;
+    public List<String> scopes;
+
+    @JsonbProperty("$ref")
+    public String ref;
 }

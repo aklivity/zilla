@@ -12,21 +12,18 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.sse.kafka.internal.config;
+package io.aklivity.zilla.runtime.binding.sse.kafka.config;
 
-import java.util.List;
-import java.util.Optional;
-
-public final class SseKafkaWithFilterConfig
+public final class SseKafkaWithFilterHeaderConfig
 {
-    public final Optional<String> key;
-    public final Optional<List<SseKafkaWithFilterHeaderConfig>> headers;
+    public final String name;
+    public final String value;
 
-    public SseKafkaWithFilterConfig(
-        String key,
-        List<SseKafkaWithFilterHeaderConfig> headers)
+    public SseKafkaWithFilterHeaderConfig(
+        String name,
+        String value)
     {
-        this.key = Optional.ofNullable(key);
-        this.headers = Optional.ofNullable(headers);
+        this.name = name;
+        this.value = value;
     }
 }
