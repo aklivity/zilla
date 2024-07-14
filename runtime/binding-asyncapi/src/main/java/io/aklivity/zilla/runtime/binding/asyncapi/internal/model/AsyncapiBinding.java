@@ -24,5 +24,5 @@ public class AsyncapiBinding
     public String key;
     public Map<String, String> overrides;
 
-    public List<AsyncapiSseKafkaFilter> filters;
+    public List<AsyncapiKafkaFilter> filters;
 }

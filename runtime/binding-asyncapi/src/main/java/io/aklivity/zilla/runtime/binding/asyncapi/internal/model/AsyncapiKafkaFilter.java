@@ -16,7 +16,7 @@ package io.aklivity.zilla.runtime.binding.asyncapi.internal.model;
 
 import java.util.Map;
 
-public class AsyncapiSseKafkaFilter
+public class AsyncapiKafkaFilter
 {
     public String key;
     public Map<String, String> headers;

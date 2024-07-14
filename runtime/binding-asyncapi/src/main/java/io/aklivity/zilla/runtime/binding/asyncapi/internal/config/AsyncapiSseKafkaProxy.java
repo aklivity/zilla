@@ -23,7 +23,7 @@ import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiBinding;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiOperation;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiSseKafkaFilter;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiKafkaFilter;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiChannelView;
 import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaConditionConfig;
 import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithConfig;
@@ -156,10 +156,10 @@ public class AsyncapiSseKafkaProxy extends AsyncapiProxy
             AsyncapiBinding sseKafkaBinding = sseOperation.bindings.get("x-zilla-sse-kafka");
             if (sseKafkaBinding != null)
             {
-                List<AsyncapiSseKafkaFilter> filters = sseKafkaBinding.filters;
+                List<AsyncapiKafkaFilter> filters = sseKafkaBinding.filters;
                 if (filters != null)
                 {
-                    for (AsyncapiSseKafkaFilter filter : filters)
+                    for (AsyncapiKafkaFilter filter : filters)
                     {
                         SseKafkaWithFilterConfigBuilder<SseKafkaWithConfigBuilder<C>> withFilter =
                                 with.filter();
