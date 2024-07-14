@@ -116,7 +116,7 @@ public class AsyncapiSseProtocol extends AsyncapiProtocol
                             .path(path)
                             .build()
                         .inject(route -> injectHttpServerRouteGuarded(
-                                        route, qname, options.http, asyncapi, operation.security))
+                                route, options.http, asyncapi, operation.security))
                         .build();
                 }
             }
@@ -192,7 +192,6 @@ public class AsyncapiSseProtocol extends AsyncapiProtocol
 
     private <C> RouteConfigBuilder<C> injectHttpServerRouteGuarded(
         RouteConfigBuilder<C> route,
-        String qname,
         HttpOptionsConfig options,
         Asyncapi asyncapi,
         List<AsyncapiSecurityScheme> securities)
@@ -206,7 +205,7 @@ public class AsyncapiSseProtocol extends AsyncapiProtocol
             {
                 route
                     .guarded()
-                    .name(String.format("%s:%s", qname, options.authorization.name))
+                    .name(options.authorization.name)
                     .inject(guarded -> injectGuardedRoles(guarded, security.scopes()))
                     .build();
             }
