@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.http.kafka.config;
 
+import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Function;
 
@@ -39,6 +40,11 @@ public final class HttpKafkaWithFetchConfigBuilder<T> extends ConfigBuilder<T, H
         return this;
     }
 
+    public HttpKafkaWithFetchFilterConfigBuilder<HttpKafkaWithFetchConfigBuilder<T>> filter()
+    {
+        return new HttpKafkaWithFetchFilterConfigBuilder<>(this::filter);
+    }
+
     public HttpKafkaWithFetchConfigBuilder<T> filters(
          List<HttpKafkaWithFetchFilterConfig> filters)
     {
@@ -60,10 +66,21 @@ public final class HttpKafkaWithFetchConfigBuilder<T> extends ConfigBuilder<T, H
         return (Class<HttpKafkaWithFetchConfigBuilder<T>>) getClass();
     }
 
-
     @Override
     public T build()
     {
         return mapper.apply(new HttpKafkaWithFetchConfig(topic, filters, merge));
+    }
+
+    private HttpKafkaWithFetchConfigBuilder<T> filter(
+        HttpKafkaWithFetchFilterConfig filter)
+    {
+        if (filters == null)
+        {
+            filters = new LinkedList<>();
+        }
+
+        filters.add(filter);
+        return this;
     }
 }
