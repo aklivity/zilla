@@ -95,7 +95,7 @@ public class AsyncapiProxyNamespaceGenerator extends AsyncapiNamespaceGenerator
                 .kind(PROXY)
                 .inject(b -> this.injectMetrics(b, metricRefs))
                 .inject(b -> proxy.injectProxyOptions(b, options))
-                .inject(b -> proxy.injectProxyRoutes(b, r))
+                .inject(b -> proxy.injectProxyRoutes(b, null, r))
                 .build();
         });
 

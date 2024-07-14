@@ -70,6 +70,7 @@ public class AsyncapiHttpKafkaProxy extends AsyncapiProxy
     @Override
     protected <C> BindingConfigBuilder<C> injectProxyRoutes(
         BindingConfigBuilder<C> binding,
+        String namespace,
         List<AsyncapiRouteConfig> routes)
     {
         inject:
@@ -93,14 +94,15 @@ public class AsyncapiHttpKafkaProxy extends AsyncapiProxy
                             kafkaAsyncapi.operations.get(route.with.operationId) : kafkaAsyncapi.operations.get(e.getKey());
                         if (withOperation != null)
                         {
-                            binding = addHttpKafkaRoute(binding, kafkaAsyncapi, httpAsyncapi, e.getValue(), withOperation);
+                            binding = addHttpKafkaRoute(binding, kafkaAsyncapi, httpAsyncapi, e.getValue(), withOperation,
+                                    namespace);
                         }
                     }
                 }
                 else
                 {
                     AsyncapiOperation withOperation = kafkaAsyncapi.operations.get(route.with.operationId);
-                    binding = addHttpKafkaRoute(binding, kafkaAsyncapi, httpAsyncapi, whenOperation, withOperation);
+                    binding = addHttpKafkaRoute(binding, kafkaAsyncapi, httpAsyncapi, whenOperation, withOperation, namespace);
                 }
             }
         }
@@ -112,7 +114,8 @@ public class AsyncapiHttpKafkaProxy extends AsyncapiProxy
         Asyncapi kafkaAsyncapi,
         Asyncapi httpAsyncapi,
         AsyncapiOperation whenOperation,
-        AsyncapiOperation withOperation)
+        AsyncapiOperation withOperation,
+        String namespace)
     {
 
         final AsyncapiChannelView channel = AsyncapiChannelView.of(httpAsyncapi.channels, whenOperation.channel);
@@ -144,7 +147,7 @@ public class AsyncapiHttpKafkaProxy extends AsyncapiProxy
                         {
                             final RouteConfigBuilder<BindingConfigBuilder<C>> asyncRouteBuilder = binding.route();
                             binding = addAsyncOperation(asyncRouteBuilder, httpAsyncapi, kafkaAsyncapi, operation,
-                                withOperation);
+                                withOperation, namespace);
                         }
                     }
                 }
@@ -158,7 +161,7 @@ public class AsyncapiHttpKafkaProxy extends AsyncapiProxy
                     .path(path)
                     .build()
                 .inject(r -> injectHttpKafkaRouteWith(r, httpAsyncapi, kafkaAsyncapi, whenOperation,
-                    withOperation, paramNames));
+                    withOperation, paramNames, namespace));
             binding = routeBuilder.build();
         }
         return binding;
@@ -169,7 +172,8 @@ public class AsyncapiHttpKafkaProxy extends AsyncapiProxy
         Asyncapi httpAsyncapi,
         Asyncapi kafkaAsyncapi,
         AsyncapiOperation httpOperation,
-        AsyncapiOperation kafkaOperation)
+        AsyncapiOperation kafkaOperation,
+        String namespace)
     {
         final AsyncapiChannelView channel = AsyncapiChannelView.of(httpAsyncapi.channels, httpOperation.channel);
         String path = channel.address();
@@ -182,7 +186,7 @@ public class AsyncapiHttpKafkaProxy extends AsyncapiProxy
                 .path(path)
                 .build()
             .inject(r -> injectAsyncProduceHttpKafkaRouteWith(r, httpAsyncapi, kafkaAsyncapi, httpOperation,
-                kafkaOperation, paramNames))
+                kafkaOperation, paramNames, namespace))
             .build();
     }
 
@@ -212,7 +216,8 @@ public class AsyncapiHttpKafkaProxy extends AsyncapiProxy
         Asyncapi kafkaAsyncapi,
         AsyncapiOperation httpOperation,
         AsyncapiOperation kafkaOperation,
-        List<String> paramNames)
+        List<String> paramNames,
+        String namespace)
     {
         final HttpKafkaWithConfigBuilder<HttpKafkaWithConfig> newWith = HttpKafkaWithConfig.builder();
         final AsyncapiChannelView channel = AsyncapiChannelView
@@ -231,7 +236,7 @@ public class AsyncapiHttpKafkaProxy extends AsyncapiProxy
             newWith.produce(HttpKafkaWithProduceConfig.builder()
                 .topic(topic)
                 .inject(w -> injectHttpKafkaRouteProduceWith(w, httpOperation, kafkaOperation, httpAsyncapi,
-                    kafkaAsyncapi.channels, paramNames))
+                    kafkaAsyncapi.channels, paramNames, namespace))
                 .build());
             break;
         }
@@ -247,7 +252,8 @@ public class AsyncapiHttpKafkaProxy extends AsyncapiProxy
         Asyncapi kafkaAsyncapi,
         AsyncapiOperation httpOperation,
         AsyncapiOperation kafkaOperation,
-        List<String> paramNames)
+        List<String> paramNames,
+        String namespace)
     {
         final HttpKafkaWithConfigBuilder<HttpKafkaWithConfig> newWith = HttpKafkaWithConfig.builder();
         final AsyncapiChannelView channel = AsyncapiChannelView.of(kafkaAsyncapi.channels, kafkaOperation.channel);
@@ -256,7 +262,7 @@ public class AsyncapiHttpKafkaProxy extends AsyncapiProxy
         newWith.produce(HttpKafkaWithProduceConfig.builder()
             .topic(topic)
             .inject(w -> injectHttpKafkaRouteProduceWith(w, httpOperation, kafkaOperation, httpAsyncapi,
-                kafkaAsyncapi.channels, paramNames))
+                kafkaAsyncapi.channels, paramNames, namespace))
             .build());
         route.with(newWith.build());
 
@@ -303,7 +309,8 @@ public class AsyncapiHttpKafkaProxy extends AsyncapiProxy
         AsyncapiOperation kafkaOperation,
         Asyncapi httpAsyncapi,
         Map<String, AsyncapiChannel> kafkaChannels,
-        List<String> paramNames)
+        List<String> paramNames,
+        String namespace)
     {
         final String key = !paramNames.isEmpty() ? String.format("${params.%s}",
             paramNames.get(paramNames.size() - 1)) : "${idempotencyKey}";
@@ -357,7 +364,7 @@ public class AsyncapiHttpKafkaProxy extends AsyncapiProxy
                     //       then use knowledge of generated guard name
                     if ("{identity}".equals(value))
                     {
-                        value = String.format("${guarded['jwt0'].identity}");
+                        value = String.format("${guarded['%s:jwt0'].identity}", namespace);
                     }
 
                     produce.override()
