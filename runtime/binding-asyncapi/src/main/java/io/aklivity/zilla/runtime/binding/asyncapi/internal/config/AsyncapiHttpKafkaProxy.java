@@ -24,6 +24,7 @@ import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiBinding;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiChannel;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiKafkaFilter;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiMessage;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiOperation;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiReply;
@@ -38,6 +39,7 @@ import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithConfigBu
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchConfigBuilder;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchFilterConfig;
+import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchFilterConfigBuilder;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchMergeConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithProduceAsyncHeaderConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithProduceConfig;
@@ -229,7 +231,7 @@ public class AsyncapiHttpKafkaProxy extends AsyncapiProxy
         case "receive":
             newWith.fetch(HttpKafkaWithFetchConfig.builder()
                 .topic(topic)
-                .inject(with -> injectHttpKafkaRouteFetchWith(with, httpAsyncapi, httpOperation, paramNames))
+                .inject(with -> injectHttpKafkaRouteFetchWith(with, httpAsyncapi, httpOperation, paramNames, namespace))
                 .build());
             break;
         case "send":
@@ -273,7 +275,8 @@ public class AsyncapiHttpKafkaProxy extends AsyncapiProxy
         HttpKafkaWithFetchConfigBuilder<C> fetch,
         Asyncapi httpAsyncapi,
         AsyncapiOperation httpOperation,
-        List<String> paramNames)
+        List<String> paramNames,
+        String namespace)
     {
         final AsyncapiChannelView channel = AsyncapiChannelView.of(httpAsyncapi.channels, httpOperation.channel);
         merge:
@@ -299,6 +302,45 @@ public class AsyncapiHttpKafkaProxy extends AsyncapiProxy
                 .key(String.format("${params.%s}", paramNames.get(paramNames.size() - 1)))
                 .build()));
         }
+
+
+        AsyncapiBinding httpKafkaBinding = httpOperation.bindings.get("x-zilla-http-kafka");
+        if (httpKafkaBinding != null)
+        {
+            List<AsyncapiKafkaFilter> filters = httpKafkaBinding.filters;
+            if (filters != null)
+            {
+                for (AsyncapiKafkaFilter filter : filters)
+                {
+                    HttpKafkaWithFetchFilterConfigBuilder<HttpKafkaWithFetchConfigBuilder<C>> withFilter = fetch.filter();
+
+                    String key = filter.key;
+                    if (key != null)
+                    {
+                        key = AsyncapiIdentity.resolve(namespace, key);
+
+                        withFilter.key(key);
+                    }
+
+                    Map<String, String> headers = filter.headers;
+                    if (headers != null)
+                    {
+                        for (Map.Entry<String, String> header : headers.entrySet())
+                        {
+                            String name = header.getKey();
+                            String value = header.getValue();
+
+                            value = AsyncapiIdentity.resolve(namespace, value);
+
+                            withFilter.header(name, value);
+                        }
+                    }
+
+                    withFilter.build();
+                }
+            }
+        }
+
 
         return fetch;
     }
