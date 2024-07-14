@@ -19,7 +19,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.binding.sse.kafka.internal.config.SseKafkaWithFilterConfig;
 import io.aklivity.zilla.runtime.engine.config.WithConfig;
 
 public final class SseKafkaWithConfig extends WithConfig

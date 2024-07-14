@@ -142,7 +142,7 @@ public class AsyncapiHttpProtocol extends AsyncapiProtocol
                     for (String name : asyncapi.operations.keySet())
                     {
                         AsyncapiOperation operation = asyncapi.operations.get(name);
-                        if (operation.bindings == null)
+                        if (operation.bindings == null || !operation.bindings.containsKey("http"))
                         {
                             AsyncapiChannelView channel = AsyncapiChannelView.of(asyncapi.channels, operation.channel);
                             String path = channel.address().replaceAll("\\{[^}]+\\}", "*");
