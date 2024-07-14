@@ -352,6 +352,14 @@ public class AsyncapiHttpKafkaProxy extends AsyncapiProxy
         AsyncapiBinding httpKafkaBinding = httpOperation.bindings.get("x-zilla-http-kafka");
         if (httpKafkaBinding != null)
         {
+            String httpKafkaKey = httpKafkaBinding.key;
+            if (httpKafkaKey != null)
+            {
+                httpKafkaKey = AsyncapiIdentity.resolve(namespace, httpKafkaKey);
+
+                produce.key(httpKafkaKey);
+            }
+
             Map<String, String> overrides = httpKafkaBinding.overrides;
             if (overrides != null)
             {
@@ -360,12 +368,7 @@ public class AsyncapiHttpKafkaProxy extends AsyncapiProxy
                     String name = override.getKey();
                     String value = override.getValue();
 
-                    // TODO: generate "jwt0" guard via security scheme
-                    //       then use knowledge of generated guard name
-                    if ("{identity}".equals(value))
-                    {
-                        value = String.format("${guarded['%s:jwt0'].identity}", namespace);
-                    }
+                    value = AsyncapiIdentity.resolve(namespace, value);
 
                     produce.override()
                         .name(name)
