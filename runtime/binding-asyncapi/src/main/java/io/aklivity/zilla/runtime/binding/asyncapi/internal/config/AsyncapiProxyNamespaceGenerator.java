@@ -86,6 +86,7 @@ public class AsyncapiProxyNamespaceGenerator extends AsyncapiNamespaceGenerator
             .name(String.format("%s/%s", qname, namespace))
             .inject(n -> this.injectNamespaceMetric(n, !metricRefs.isEmpty()));
 
+        String ns = binding.namespace;
         routesByProtocol.forEach((k, r) ->
         {
             final AsyncapiProxy proxy = resolveProxy(k);
@@ -95,7 +96,7 @@ public class AsyncapiProxyNamespaceGenerator extends AsyncapiNamespaceGenerator
                 .kind(PROXY)
                 .inject(b -> this.injectMetrics(b, metricRefs))
                 .inject(b -> proxy.injectProxyOptions(b, options))
-                .inject(b -> proxy.injectProxyRoutes(b, r))
+                .inject(b -> proxy.injectProxyRoutes(b, ns, r))
                 .build();
         });
 

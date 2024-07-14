@@ -48,6 +48,7 @@ public class AsyncapiSseKafkaProxy extends AsyncapiProxy
     @Override
     protected <C> BindingConfigBuilder<C> injectProxyRoutes(
         BindingConfigBuilder<C> binding,
+        String namespace,
         List<AsyncapiRouteConfig> routes)
     {
         inject:
@@ -74,14 +75,15 @@ public class AsyncapiSseKafkaProxy extends AsyncapiProxy
 
                         if (withOperation != null)
                         {
-                            binding = addSseKafkaRoute(binding, kafkaAsyncapi, sseAsyncapi, e.getValue(), withOperation);
+                            binding = addSseKafkaRoute(binding, kafkaAsyncapi, sseAsyncapi, e.getValue(), withOperation,
+                                    namespace);
                         }
                     }
                 }
                 else
                 {
                     AsyncapiOperation withOperation = kafkaAsyncapi.operations.get(route.with.operationId);
-                    binding = addSseKafkaRoute(binding, kafkaAsyncapi, sseAsyncapi, whenOperation, withOperation);
+                    binding = addSseKafkaRoute(binding, kafkaAsyncapi, sseAsyncapi, whenOperation, withOperation, namespace);
                 }
             }
         }
@@ -93,7 +95,8 @@ public class AsyncapiSseKafkaProxy extends AsyncapiProxy
         Asyncapi kafkaAsyncapi,
         Asyncapi sseAsyncapi,
         AsyncapiOperation whenOperation,
-        AsyncapiOperation withOperation)
+        AsyncapiOperation withOperation,
+        String namespace)
     {
         if (whenOperation.bindings == null || !whenOperation.bindings.containsKey("http"))
         {
@@ -105,7 +108,7 @@ public class AsyncapiSseKafkaProxy extends AsyncapiProxy
                 .when(SseKafkaConditionConfig::builder)
                     .path(path)
                     .build()
-                .inject(r -> injectSseKafkaRouteWith(r, kafkaAsyncapi, whenOperation, withOperation))
+                .inject(r -> injectSseKafkaRouteWith(r, kafkaAsyncapi, whenOperation, withOperation, namespace))
                 .build();
         }
 
@@ -124,7 +127,8 @@ public class AsyncapiSseKafkaProxy extends AsyncapiProxy
         RouteConfigBuilder<C> route,
         Asyncapi kafkaAsyncapi,
         AsyncapiOperation sseOperation,
-        AsyncapiOperation kafkaOperation)
+        AsyncapiOperation kafkaOperation,
+        String namespace)
     {
         if (ASYNCAPI_RECEIVE_ACTION_NAME.equals(kafkaOperation.action))
         {
@@ -135,7 +139,7 @@ public class AsyncapiSseKafkaProxy extends AsyncapiProxy
             route.with(SseKafkaWithConfig.builder()
                     .topic(topic)
                     .eventId(EVENT_ID_DEFAULT)
-                    .inject(w -> injectSseKafkaRouteWithFilters(w, sseOperation))
+                    .inject(w -> injectSseKafkaRouteWithFilters(w, sseOperation, namespace))
                     .build());
         }
 
@@ -144,7 +148,8 @@ public class AsyncapiSseKafkaProxy extends AsyncapiProxy
 
     private <C> SseKafkaWithConfigBuilder<C> injectSseKafkaRouteWithFilters(
         SseKafkaWithConfigBuilder<C> with,
-        AsyncapiOperation sseOperation)
+        AsyncapiOperation sseOperation,
+        String namespace)
     {
         if (sseOperation.bindings != null)
         {
@@ -171,7 +176,7 @@ public class AsyncapiSseKafkaProxy extends AsyncapiProxy
                                 //       then use knowledge of generated guard name
                                 if ("{identity}".equals(value))
                                 {
-                                    value = String.format("${guarded['jwt0'].identity}");
+                                    value = String.format("${guarded['%s:jwt0'].identity}", namespace);
                                 }
 
                                 withFilter.header()
