@@ -18,5 +18,6 @@ import java.util.Map;
 
 public class AsyncapiSseKafkaFilter
 {
+    public String key;
     public Map<String, String> headers;
 }

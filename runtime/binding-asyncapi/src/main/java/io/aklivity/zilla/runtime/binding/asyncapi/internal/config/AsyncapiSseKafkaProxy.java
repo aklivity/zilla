@@ -161,32 +161,35 @@ public class AsyncapiSseKafkaProxy extends AsyncapiProxy
                 {
                     for (AsyncapiSseKafkaFilter filter : filters)
                     {
+                        SseKafkaWithFilterConfigBuilder<SseKafkaWithConfigBuilder<C>> withFilter =
+                                with.filter();
+
+                        String key = filter.key;
+                        if (key != null)
+                        {
+                            key = AsyncapiIdentity.resolve(namespace, key);
+
+                            withFilter.key(key);
+                        }
+
                         Map<String, String> headers = filter.headers;
                         if (headers != null)
                         {
-                            SseKafkaWithFilterConfigBuilder<SseKafkaWithConfigBuilder<C>> withFilter =
-                                    with.filter();
-
                             for (Map.Entry<String, String> header : headers.entrySet())
                             {
                                 String name = header.getKey();
                                 String value = header.getValue();
 
-                                // TODO: generate "jwt0" guard via security scheme
-                                //       then use knowledge of generated guard name
-                                if ("{identity}".equals(value))
-                                {
-                                    value = String.format("${guarded['%s:jwt0'].identity}", namespace);
-                                }
+                                value = AsyncapiIdentity.resolve(namespace, value);
 
                                 withFilter.header()
                                     .name(name)
                                     .value(value)
                                     .build();
                             }
-
-                            withFilter.build();
                         }
+
+                        withFilter.build();
                     }
                 }
             }
