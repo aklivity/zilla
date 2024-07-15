@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.9.88](https://github.com/aklivity/zilla/tree/0.9.88) (2024-07-15)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.87...0.9.88)
+
+**Implemented enhancements:**
+
+- AsyncAPI `http-kafka` header overrides support [\#1141](https://github.com/aklivity/zilla/issues/1141)
+
+**Fixed bugs:**
+
+- AsyncAPI sse kafka filtering support [\#1137](https://github.com/aklivity/zilla/issues/1137)
+
+**Merged pull requests:**
+
+- Support asyncapi authorization in http kafka and sse kafka [\#1150](https://github.com/aklivity/zilla/pull/1150) ([akrambek](https://github.com/akrambek))
+- MInor fixes for asyncapi sse-kafka and http-kafka binding support [\#1149](https://github.com/aklivity/zilla/pull/1149) ([akrambek](https://github.com/akrambek))
+- Support `sse-kafka` header filters from AsyncAPI sse operation [\#1148](https://github.com/aklivity/zilla/pull/1148) ([jfallows](https://github.com/jfallows))
+- Support `http-kafka` header overrides from AsyncAPI http operation [\#1147](https://github.com/aklivity/zilla/pull/1147) ([jfallows](https://github.com/jfallows))
+- fix: update readme links [\#1146](https://github.com/aklivity/zilla/pull/1146) ([vordimous](https://github.com/vordimous))
+- Support http authorization in asyncapi generation [\#1145](https://github.com/aklivity/zilla/pull/1145) ([akrambek](https://github.com/akrambek))
+- update ingress values and implementation [\#1142](https://github.com/aklivity/zilla/pull/1142) ([vordimous](https://github.com/vordimous))
+
 ## [0.9.87](https://github.com/aklivity/zilla/tree/0.9.87) (2024-07-12)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.86...0.9.87)
