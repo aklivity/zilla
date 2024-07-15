@@ -52,7 +52,7 @@ public class AsyncapiServerNamespaceGenerator extends AsyncapiNamespaceGenerator
                 .inject(n -> injectTcpServer(n, servers, options, metricRefs))
                 .inject(n -> injectTlsServer(n, servers, options))
                 .inject(n -> injectProtocolRelatedBindings(n, servers, metricRefs))
-                .inject(n -> injectProtocolServers(n, servers, metricRefs))
+                .inject(n -> injectProtocolServers(n, options, servers, metricRefs))
                 .build();
     }
 
@@ -71,6 +71,7 @@ public class AsyncapiServerNamespaceGenerator extends AsyncapiNamespaceGenerator
 
     private <C> NamespaceConfigBuilder<C> injectProtocolServers(
         NamespaceConfigBuilder<C> namespace,
+        AsyncapiOptionsConfig options,
         List<AsyncapiServerView> servers,
         List<MetricRefConfig> metricRefs)
     {
@@ -84,7 +85,7 @@ public class AsyncapiServerNamespaceGenerator extends AsyncapiNamespaceGenerator
                     .inject(b -> this.injectMetrics(b, metricRefs))
                     .kind(SERVER)
                     .inject(protocol::injectProtocolServerOptions)
-                    .inject(protocol::injectProtocolServerRoutes)
+                    .inject(b -> protocol.injectProtocolServerRoutes(b, options))
                 .build();
         }
         return  namespace;
@@ -124,15 +125,18 @@ public class AsyncapiServerNamespaceGenerator extends AsyncapiNamespaceGenerator
     {
         for (AsyncapiServerView server : servers)
         {
-            final RouteConfigBuilder<BindingConfigBuilder<C>> routeBuilder = binding.route();
-            final AsyncapiProtocol protocol = server.getAsyncapiProtocol();
-            final int[] compositePorts = new int[] { server.getPort() };
-            binding = routeBuilder
-                .when(TcpConditionConfig::builder)
-                    .ports(compositePorts)
-                    .build()
-                    .exit(String.format("%s_server0", protocol.tcpRoute))
-                    .build();
+            if (!server.getAsyncapiProtocol().isSecure())
+            {
+                final RouteConfigBuilder<BindingConfigBuilder<C>> routeBuilder = binding.route();
+                final AsyncapiProtocol protocol = server.getAsyncapiProtocol();
+                final int[] compositePorts = new int[] { server.getPort() };
+                binding = routeBuilder
+                    .when(TcpConditionConfig::builder)
+                        .ports(compositePorts)
+                        .build()
+                        .exit(String.format("%s_server0", protocol.tcpRoute))
+                        .build();
+            }
         }
         return binding;
     }
@@ -175,32 +179,35 @@ public class AsyncapiServerNamespaceGenerator extends AsyncapiNamespaceGenerator
         BindingConfigBuilder<NamespaceConfigBuilder<C>> binding = namespace.binding();
         if (isTlsEnabled)
         {
-            binding =
-                binding
-                    .name("tls_server0")
-                    .type("tls")
-                    .kind(SERVER)
-                    .options(TlsOptionsConfig::builder)
-                        .keys(options.tls.keys)
-                        .sni(options.tls.sni)
-                        .alpn(options.tls.alpn)
-                        .build()
-                    .vault(String.format("%s:%s", this.namespace, vault));
-        }
-        for (AsyncapiServerView server : servers)
-        {
-            final RouteConfigBuilder<BindingConfigBuilder<NamespaceConfigBuilder<C>>> routeBuilder = binding.route();
-            final AsyncapiProtocol protocol = server.getAsyncapiProtocol();
-            if (protocol.isSecure())
+            binding
+                .name("tls_server0")
+                .type("tls")
+                .kind(SERVER)
+                .options(TlsOptionsConfig::builder)
+                    .keys(options.tls.keys)
+                    .sni(options.tls.sni)
+                    .alpn(options.tls.alpn)
+                    .build()
+                .vault(String.format("%s:%s", this.namespace, vault));
+
+            for (AsyncapiServerView server : servers)
             {
-                routeBuilder
-                    .when(TlsConditionConfig::builder)
-                        .ports(new int[] { server.getPort() })
-                        .build()
-                    .exit(String.format("%s_server0", protocol.scheme))
-                    .build();
+                final RouteConfigBuilder<BindingConfigBuilder<NamespaceConfigBuilder<C>>> routeBuilder = binding.route();
+                final AsyncapiProtocol protocol = server.getAsyncapiProtocol();
+                if (protocol.isSecure())
+                {
+                    routeBuilder
+                        .when(TlsConditionConfig::builder)
+                            .ports(new int[] { server.getPort() })
+                            .build()
+                        .exit(String.format("%s_server0", protocol.tcpRoute))
+                        .build();
+                }
             }
+
+            binding.build();
         }
+
         return namespace;
     }
 }

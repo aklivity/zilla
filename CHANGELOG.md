@@ -1,5 +1,25 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.87...HEAD)
+
+**Implemented enhancements:**
+
+- AsyncAPI `http-kafka` header overrides support [\#1141](https://github.com/aklivity/zilla/issues/1141)
+
+**Fixed bugs:**
+
+- AsyncAPI sse kafka filtering support [\#1137](https://github.com/aklivity/zilla/issues/1137)
+
+## [0.9.87](https://github.com/aklivity/zilla/tree/0.9.87) (2024-07-12)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.86...0.9.87)
+
+**Merged pull requests:**
+
+- Support multiple requests with single window ack on shared connection [\#1144](https://github.com/aklivity/zilla/pull/1144) ([jfallows](https://github.com/jfallows))
+
 ## [0.9.86](https://github.com/aklivity/zilla/tree/0.9.86) (2024-07-10)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.85...0.9.86)

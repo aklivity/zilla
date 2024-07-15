@@ -1,10 +1,12 @@
+{{- if not .Values.ingress.enabled }}
 Connect to Zilla by running these commands:
-{{- if .Values.ingress.enabled }}
-{{- range $host := .Values.ingress.hosts }}
-  {{- range .paths }}
-  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ $host.host }}{{ .path }}
-  {{- end }}
 {{- end }}
+{{- if .Values.ingress.enabled }}
+Zilla is available through an ingress controller at the base url(s):
+  {{- $host := or .Values.ingress.host "localhost" -}}
+  {{- range $path := .Values.ingress.paths }}
+    http{{ if $.Values.ingress.tls.enabled }}s{{ end }}://{{ $host }}{{ $path.path }}
+  {{- end }}
 {{- else if contains "NodePort" .Values.service.type }}
   export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "zilla.fullname" . }})
   export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")

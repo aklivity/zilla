@@ -477,7 +477,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
 
             assert replyAck <= replySeq;
 
-            if (FileSystemState.replyOpening(state) && !FileSystemState.replyOpened(state))
+            if (FileSystemState.replyOpening(state) && !FileSystemState.replyClosed(state))
             {
                 state = FileSystemState.openReply(state);
 
@@ -620,16 +620,24 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         {
             final int replyNoAck = (int)(replySeq - replyAck);
             final int replyWin = replyMax - replyNoAck - replyPad;
+
             if (!FileSystemState.replyOpening(state))
             {
                 String newTag = calculateTag();
                 doAppBegin(traceId, newTag);
             }
+
             if (replyWin > 0)
             {
                 InputStream input = getInputStream();
+
                 try
                 {
+                    if (input != null)
+                    {
+                        input.skip(replyBytes);
+                    }
+
                     int available = input != null ? input.available() : 0;
 
                     if (available > 0)
@@ -660,6 +668,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
                                 {
                                     input.close();
                                     input = null;
+                                    replyBytes = 0;
                                 }
                             }
                         }

@@ -125,7 +125,8 @@ bindings:
         keys:
           - localhost
         sni:
-          - http.example.net
+          - localhost
         alpn:
+          - http/1.1
           - h2
     exit: asyncapi0

@@ -158,7 +158,8 @@ public class AsyncapiMqttProtocol extends AsyncapiProtocol
 
     @Override
     public <C> BindingConfigBuilder<C> injectProtocolServerRoutes(
-        BindingConfigBuilder<C> binding)
+        BindingConfigBuilder<C> binding,
+        AsyncapiOptionsConfig options)
     {
         for (Asyncapi asyncapi : asyncapis)
         {

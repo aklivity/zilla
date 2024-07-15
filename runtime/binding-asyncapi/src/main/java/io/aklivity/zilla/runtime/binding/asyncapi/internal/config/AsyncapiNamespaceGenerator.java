@@ -85,6 +85,12 @@ public abstract class AsyncapiNamespaceGenerator
         this.namespace = binding.namespace;
         this.qvault = binding.qvault;
         this.vault = binding.vault;
+
+        AsyncapiOptionsConfig options = (AsyncapiOptionsConfig) binding.options;
+        if (options.http != null && options.http.authorization != null)
+        {
+            options.http.authorization.qname = String.format("%s:%s", namespace, options.http.authorization.name);
+        }
     }
 
     public NamespaceConfig generate(
@@ -120,7 +126,7 @@ public abstract class AsyncapiNamespaceGenerator
                 protocol = new AsyncapiHttpProtocol(qname, asyncapis, options, protocolName);
                 break;
             case "sse":
-            case "secure-sse":
+            case "sse-secure":
                 if (featureEnabled(AsyncapiSseProtocol.class))
                 {
                     final boolean httpServerAvailable = servers.stream().anyMatch(s -> "http".equals(s.protocol()));

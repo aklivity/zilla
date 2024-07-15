@@ -101,7 +101,8 @@ public abstract class AsyncapiProtocol
         BindingConfigBuilder<C> binding);
 
     public abstract <C> BindingConfigBuilder<C> injectProtocolServerRoutes(
-        BindingConfigBuilder<C> binding);
+        BindingConfigBuilder<C> binding,
+        AsyncapiOptionsConfig options);
 
     public <C> NamespaceConfigBuilder<C> injectProtocolClientCache(
         NamespaceConfigBuilder<C> namespace,
@@ -219,13 +220,13 @@ public abstract class AsyncapiProtocol
             {
                 for (String securitySchemeName : asyncapi.components.securitySchemes.keySet())
                 {
-                    String guardType = asyncapi.components.securitySchemes.get(securitySchemeName).bearerFormat;
                     //TODO: change when jwt support added for mqtt in asyncapi
+                    //String guardType = asyncapi.components.securitySchemes.get(securitySchemeName).bearerFormat;
                     //if ("jwt".equals(guardType))
                     //{
                     //    result.put(securitySchemeName, guardType);
                     //}
-                    result.put(securitySchemeName, guardType);
+                    result.put(securitySchemeName, "");
                 }
             }
         }

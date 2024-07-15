@@ -16,7 +16,7 @@
 
 <h3 align="center">
   <a href="https://docs.aklivity.io/zilla/"><b>Docs</b></a> &bull;
-  <a href="https://docs.aklivity.io/zilla/latest/tutorials/quickstart/kafka-proxies.html"><b>Quickstart</b></a> &bull;
+  <a href="https://docs.aklivity.io/zilla/latest/how-tos/quickstart/"><b>Quickstart</b></a> &bull;
   <a href="https://github.com/aklivity/zilla-demos"><b>Demos</b></a> &bull;
   <a href="https://www.aklivity.io/blog"><b>Blog</b></a>  
 </h3>
@@ -41,11 +41,11 @@ Use **Zilla** as a:
 | [Validate MQTT via AsyncAPI →](https://github.com/aklivity/zilla-examples/tree/main/mqtt.proxy.asyncapi) | Enforce an AsyncAPI schema for messages going into an MQTT broker. |
 | **Much more!** | Check out all the [Zilla Demos](https://github.com/aklivity/zilla-demos) and [Zilla Examples](https://github.com/aklivity/zilla-examples). |
 
-## Get Started
+## Get started in 60 seconds
 
-**Zilla** is stateless, declaratively configured, and has no external dependencies. The fastest way to get started is to follow the [Quickstart](https://vordimous.github.io/zilla-docs/next/tutorials/quickstart/kafka-proxies.html).
+**Zilla** is stateless, declaratively configured, and has no external dependencies. The fastest way to get started is to follow the hosted [**Quickstart**](https://docs.aklivity.io/zilla/latest/how-tos/quickstart/).
 
-## Installing Zilla
+## Install options
 
 Single-node and cluster deployment options are available.
  

@@ -14,15 +14,10 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.model;
 
-import java.util.List;
 import java.util.Map;
 
-public class AsyncapiBinding
+public class AsyncapiKafkaFilter
 {
-    public String method;
-
     public String key;
-    public Map<String, String> overrides;
-
-    public List<AsyncapiKafkaFilter> filters;
+    public Map<String, String> headers;
 }

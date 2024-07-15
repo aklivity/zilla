@@ -47,6 +47,11 @@ catalogs:
             action: receive
             channel:
               $ref: '#/channels/events'
+            bindings:
+              x-zilla-sse-kafka:
+                filters:
+                  - headers:
+                      header: "value"
         
         components:
           schemas:

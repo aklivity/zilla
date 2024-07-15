@@ -16,9 +16,6 @@ package io.aklivity.zilla.runtime.binding.sse.kafka.internal.config;
 
 import static io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithConfig.EVENT_ID_DEFAULT;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import jakarta.json.Json;
 import jakarta.json.JsonArray;
 import jakarta.json.JsonArrayBuilder;
@@ -27,6 +24,10 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithConfig;
+import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithConfigBuilder;
+import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithFilterConfig;
+import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithFilterConfigBuilder;
+import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithFilterHeaderConfig;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.SseKafkaBinding;
 import io.aklivity.zilla.runtime.engine.config.WithConfig;
 import io.aklivity.zilla.runtime.engine.config.WithConfigAdapterSpi;
@@ -105,36 +106,39 @@ public final class SseKafkaWithConfigAdapter implements WithConfigAdapterSpi, Js
     {
         String newTopic = object.getString(TOPIC_NAME);
 
-        List<SseKafkaWithFilterConfig> newFilters = null;
+        final SseKafkaWithConfigBuilder<SseKafkaWithConfig> newWith = SseKafkaWithConfig.builder()
+            .topic(newTopic);
+
         if (object.containsKey(FILTERS_NAME))
         {
             JsonArray filters = object.getJsonArray(FILTERS_NAME);
-            newFilters = new ArrayList<>(filters.size());
-
             for (int i = 0; i < filters.size(); i++)
             {
                 JsonObject filter = filters.getJsonObject(i);
 
-                String newKey = null;
+                SseKafkaWithFilterConfigBuilder<?> newFilter = newWith.filter();
+
                 if (filter.containsKey(FILTERS_KEY_NAME))
                 {
-                    newKey = filter.getString(FILTERS_KEY_NAME);
+                    newFilter.key(filter.getString(FILTERS_KEY_NAME));
                 }
 
-                List<SseKafkaWithFilterHeaderConfig> newHeaders = null;
                 if (filter.containsKey(FILTERS_HEADERS_NAME))
                 {
                     JsonObject headers = filter.getJsonObject(FILTERS_HEADERS_NAME);
-                    newHeaders = new ArrayList<>(headers.size());
 
                     for (String newHeaderName : headers.keySet())
                     {
                         String newHeaderValue = headers.getString(newHeaderName);
-                        newHeaders.add(new SseKafkaWithFilterHeaderConfig(newHeaderName, newHeaderValue));
+
+                        newFilter.header()
+                            .name(newHeaderName)
+                            .value(newHeaderValue)
+                            .build();
                     }
                 }
 
-                newFilters.add(new SseKafkaWithFilterConfig(newKey, newHeaders));
+                newFilter.build();
             }
         }
 
@@ -156,11 +160,8 @@ public final class SseKafkaWithConfigAdapter implements WithConfigAdapterSpi, Js
                 }
             }
         }
+        newWith.eventId(newEventId);
 
-        return SseKafkaWithConfig.builder()
-            .topic(newTopic)
-            .filters(newFilters)
-            .eventId(newEventId)
-            .build();
+        return newWith.build();
     }
 }
