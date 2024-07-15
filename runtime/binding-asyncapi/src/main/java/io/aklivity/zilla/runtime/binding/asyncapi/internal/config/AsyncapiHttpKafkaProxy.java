@@ -303,7 +303,9 @@ public class AsyncapiHttpKafkaProxy extends AsyncapiProxy
 
         if (!paramNames.isEmpty())
         {
-            fetch.filter().key(String.format("${params.%s}", paramNames.get(paramNames.size() - 1)));
+            fetch.filter()
+                .key(String.format("${params.%s}", paramNames.get(paramNames.size() - 1)))
+                .build();
         }
 
         AsyncapiBinding httpKafkaBinding = httpOperation.bindings.get("x-zilla-http-kafka");

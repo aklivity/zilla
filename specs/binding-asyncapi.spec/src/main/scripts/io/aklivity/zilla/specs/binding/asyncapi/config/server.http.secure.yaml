@@ -125,7 +125,7 @@ bindings:
         keys:
           - localhost
         sni:
-          - localhost
+          - http.example.net
         alpn:
           - http/1.1
           - h2
