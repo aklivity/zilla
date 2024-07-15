@@ -125,15 +125,18 @@ public class AsyncapiServerNamespaceGenerator extends AsyncapiNamespaceGenerator
     {
         for (AsyncapiServerView server : servers)
         {
-            final RouteConfigBuilder<BindingConfigBuilder<C>> routeBuilder = binding.route();
-            final AsyncapiProtocol protocol = server.getAsyncapiProtocol();
-            final int[] compositePorts = new int[] { server.getPort() };
-            binding = routeBuilder
-                .when(TcpConditionConfig::builder)
-                    .ports(compositePorts)
-                    .build()
-                    .exit(String.format("%s_server0", protocol.tcpRoute))
-                    .build();
+            if (!server.getAsyncapiProtocol().isSecure())
+            {
+                final RouteConfigBuilder<BindingConfigBuilder<C>> routeBuilder = binding.route();
+                final AsyncapiProtocol protocol = server.getAsyncapiProtocol();
+                final int[] compositePorts = new int[] { server.getPort() };
+                binding = routeBuilder
+                    .when(TcpConditionConfig::builder)
+                        .ports(compositePorts)
+                        .build()
+                        .exit(String.format("%s_server0", protocol.tcpRoute))
+                        .build();
+            }
         }
         return binding;
     }
@@ -176,17 +179,16 @@ public class AsyncapiServerNamespaceGenerator extends AsyncapiNamespaceGenerator
         BindingConfigBuilder<NamespaceConfigBuilder<C>> binding = namespace.binding();
         if (isTlsEnabled)
         {
-            binding =
-                binding
-                    .name("tls_server0")
-                    .type("tls")
-                    .kind(SERVER)
-                    .options(TlsOptionsConfig::builder)
-                        .keys(options.tls.keys)
-                        .sni(options.tls.sni)
-                        .alpn(options.tls.alpn)
-                        .build()
-                    .vault(String.format("%s:%s", this.namespace, vault));
+            binding
+                .name("tls_server0")
+                .type("tls")
+                .kind(SERVER)
+                .options(TlsOptionsConfig::builder)
+                    .keys(options.tls.keys)
+                    .sni(options.tls.sni)
+                    .alpn(options.tls.alpn)
+                    .build()
+                .vault(String.format("%s:%s", this.namespace, vault));
         }
         for (AsyncapiServerView server : servers)
         {
@@ -202,6 +204,12 @@ public class AsyncapiServerNamespaceGenerator extends AsyncapiNamespaceGenerator
                     .build();
             }
         }
+
+        if (isTlsEnabled)
+        {
+            binding.build();
+        }
+
         return namespace;
     }
 }
