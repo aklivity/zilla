@@ -1,5 +1,17 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.87...HEAD)
+
+**Implemented enhancements:**
+
+- AsyncAPI `http-kafka` header overrides support [\#1141](https://github.com/aklivity/zilla/issues/1141)
+
+**Fixed bugs:**
+
+- AsyncAPI sse kafka filtering support [\#1137](https://github.com/aklivity/zilla/issues/1137)
+
 ## [0.9.87](https://github.com/aklivity/zilla/tree/0.9.87) (2024-07-12)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.86...0.9.87)
