@@ -110,7 +110,7 @@ public class AsyncapiHttpProtocol extends AsyncapiProtocol
             for (Map.Entry<String, AsyncapiServer> entry : asyncapi.servers.entrySet())
             {
                 AsyncapiServerView server = AsyncapiServerView.of(entry.getValue());
-                if ("http".equals(server.protocol()))
+                if (server.protocol().startsWith("http"))
                 {
                     for (String name : asyncapi.operations.keySet())
                     {
@@ -137,7 +137,7 @@ public class AsyncapiHttpProtocol extends AsyncapiProtocol
                         }
                     }
                 }
-                else if ("sse".equals(server.protocol()))
+                else if (server.protocol().startsWith("sse"))
                 {
                     for (String name : asyncapi.operations.keySet())
                     {
@@ -173,7 +173,10 @@ public class AsyncapiHttpProtocol extends AsyncapiProtocol
     {
         if (isOauthEnabled)
         {
-            options.authorization(authorization);
+            options.authorization()
+                .name(authorization.qname)
+                .credentials(authorization.credentials)
+                .build();
         }
         return options;
     }
@@ -189,7 +192,7 @@ public class AsyncapiHttpProtocol extends AsyncapiProtocol
                 AsyncapiChannelView channel = AsyncapiChannelView.of(asyncapi.channels, operation.channel);
                 String path = channel.address();
 
-                if (operation.bindings != null && operation.bindings.get("http") != null &&
+                if (operation.bindings != null && operation.bindings.containsKey("http") &&
                     channel.messages() != null && !channel.messages().isEmpty() ||
                     channel.parameters() != null && !channel.parameters().isEmpty())
                 {

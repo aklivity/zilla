@@ -47,7 +47,8 @@ public class AsyncapiMqttKafkaProxy extends AsyncapiProxy
     @Override
     protected <C> BindingConfigBuilder<C> injectProxyRoutes(
         BindingConfigBuilder<C> binding,
-        String namespace, List<AsyncapiRouteConfig> routes)
+        String namespace,
+        List<AsyncapiRouteConfig> routes)
     {
         inject:
         for (AsyncapiRouteConfig route : routes)

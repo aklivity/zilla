@@ -29,10 +29,12 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiMessage
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiOperation;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiReply;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiSchema;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiSecurityScheme;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiChannelView;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiCorrelationIdView;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiMessageView;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiSchemaView;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiSecuritySchemeView;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaConditionConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithConfigBuilder;
@@ -44,6 +46,7 @@ import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithProduceA
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithProduceConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithProduceConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
+import io.aklivity.zilla.runtime.engine.config.GuardedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
 
 public class AsyncapiHttpKafkaProxy extends AsyncapiProxy
@@ -95,15 +98,16 @@ public class AsyncapiHttpKafkaProxy extends AsyncapiProxy
                             kafkaAsyncapi.operations.get(route.with.operationId) : kafkaAsyncapi.operations.get(e.getKey());
                         if (withOperation != null)
                         {
-                            binding = addHttpKafkaRoute(binding, kafkaAsyncapi, httpAsyncapi, e.getValue(), withOperation,
-                                    namespace);
+                            binding = addHttpKafkaRoute(binding, kafkaAsyncapi, httpAsyncapi,
+                                e.getValue(), withOperation, namespace);
                         }
                     }
                 }
                 else
                 {
                     AsyncapiOperation withOperation = kafkaAsyncapi.operations.get(route.with.operationId);
-                    binding = addHttpKafkaRoute(binding, kafkaAsyncapi, httpAsyncapi, whenOperation, withOperation, namespace);
+                    binding = addHttpKafkaRoute(binding, kafkaAsyncapi, httpAsyncapi,
+                        whenOperation, withOperation, namespace);
                 }
             }
         }
@@ -162,7 +166,9 @@ public class AsyncapiHttpKafkaProxy extends AsyncapiProxy
                     .path(path)
                     .build()
                 .inject(r -> injectHttpKafkaRouteWith(r, httpAsyncapi, kafkaAsyncapi, whenOperation,
-                    withOperation, paramNames, namespace));
+                    withOperation, paramNames, namespace))
+                .inject(route -> injectHttpServerRouteGuarded(
+                    route, namespace, httpAsyncapi, whenOperation.security));
             binding = routeBuilder.build();
         }
         return binding;
@@ -297,7 +303,9 @@ public class AsyncapiHttpKafkaProxy extends AsyncapiProxy
 
         if (!paramNames.isEmpty())
         {
-            fetch.filter().key(String.format("${params.%s}", paramNames.get(paramNames.size() - 1)));
+            fetch.filter()
+                .key(String.format("${params.%s}", paramNames.get(paramNames.size() - 1)))
+                .build();
         }
 
         AsyncapiBinding httpKafkaBinding = httpOperation.bindings.get("x-zilla-http-kafka");
@@ -417,5 +425,39 @@ public class AsyncapiHttpKafkaProxy extends AsyncapiProxy
         }
 
         return produce;
+    }
+
+    private <C> RouteConfigBuilder<C> injectHttpServerRouteGuarded(
+        RouteConfigBuilder<C> route,
+        String namespace,
+        Asyncapi asyncapi,
+        List<AsyncapiSecurityScheme> securities)
+    {
+        if (securities != null && !securities.isEmpty())
+        {
+            AsyncapiSecuritySchemeView security =
+                AsyncapiSecuritySchemeView.of(asyncapi.components.securitySchemes, securities.get(0));
+
+            if ("oauth2".equals(security.type()))
+            {
+                route
+                    .guarded()
+                    .name(String.format("%s:jwt0", namespace))
+                    .inject(guarded -> injectGuardedRoles(guarded, security.scopes()))
+                    .build();
+            }
+        }
+        return route;
+    }
+
+    private <C> GuardedConfigBuilder<C> injectGuardedRoles(
+        GuardedConfigBuilder<C> guarded,
+        List<String> roles)
+    {
+        for (String role : roles)
+        {
+            guarded.role(role);
+        }
+        return guarded;
     }
 }

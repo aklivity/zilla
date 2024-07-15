@@ -126,7 +126,7 @@ public abstract class AsyncapiNamespaceGenerator
                 protocol = new AsyncapiHttpProtocol(qname, asyncapis, options, protocolName);
                 break;
             case "sse":
-            case "secure-sse":
+            case "sse-secure":
                 if (featureEnabled(AsyncapiSseProtocol.class))
                 {
                     final boolean httpServerAvailable = servers.stream().anyMatch(s -> "http".equals(s.protocol()));
