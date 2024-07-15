@@ -192,7 +192,8 @@ public class AsyncapiHttpProtocol extends AsyncapiProtocol
                 AsyncapiChannelView channel = AsyncapiChannelView.of(asyncapi.channels, operation.channel);
                 String path = channel.address();
 
-                if (operation.bindings != null && channel.messages() != null && !channel.messages().isEmpty() ||
+                if (operation.bindings != null && operation.bindings.containsKey("http") &&
+                    channel.messages() != null && !channel.messages().isEmpty() ||
                     channel.parameters() != null && !channel.parameters().isEmpty())
                 {
                     Method method = Method.valueOf(operation.bindings.get("http").method);
