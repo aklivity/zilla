@@ -189,24 +189,22 @@ public class AsyncapiServerNamespaceGenerator extends AsyncapiNamespaceGenerator
                     .alpn(options.tls.alpn)
                     .build()
                 .vault(String.format("%s:%s", this.namespace, vault));
-        }
-        for (AsyncapiServerView server : servers)
-        {
-            final RouteConfigBuilder<BindingConfigBuilder<NamespaceConfigBuilder<C>>> routeBuilder = binding.route();
-            final AsyncapiProtocol protocol = server.getAsyncapiProtocol();
-            if (protocol.isSecure())
-            {
-                routeBuilder
-                    .when(TlsConditionConfig::builder)
-                        .ports(new int[] { server.getPort() })
-                        .build()
-                    .exit(String.format("%s_server0", protocol.scheme))
-                    .build();
-            }
-        }
 
-        if (isTlsEnabled)
-        {
+            for (AsyncapiServerView server : servers)
+            {
+                final RouteConfigBuilder<BindingConfigBuilder<NamespaceConfigBuilder<C>>> routeBuilder = binding.route();
+                final AsyncapiProtocol protocol = server.getAsyncapiProtocol();
+                if (protocol.isSecure())
+                {
+                    routeBuilder
+                        .when(TlsConditionConfig::builder)
+                            .ports(new int[] { server.getPort() })
+                            .build()
+                        .exit(String.format("%s_server0", protocol.scheme))
+                        .build();
+                }
+            }
+
             binding.build();
         }
 

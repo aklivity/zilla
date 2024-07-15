@@ -110,7 +110,7 @@ public class AsyncapiHttpProtocol extends AsyncapiProtocol
             for (Map.Entry<String, AsyncapiServer> entry : asyncapi.servers.entrySet())
             {
                 AsyncapiServerView server = AsyncapiServerView.of(entry.getValue());
-                if ("http".equals(server.protocol()))
+                if (server.protocol().contains("http"))
                 {
                     for (String name : asyncapi.operations.keySet())
                     {
