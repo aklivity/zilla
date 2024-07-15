@@ -29,6 +29,6 @@ public final class ApicurioEventFormatterFactory implements EventFormatterFactor
     @Override
     public String type()
     {
-        return ApicurioCatalog.NAME;
+        return ApicurioCatalog.TYPE;
     }
 }

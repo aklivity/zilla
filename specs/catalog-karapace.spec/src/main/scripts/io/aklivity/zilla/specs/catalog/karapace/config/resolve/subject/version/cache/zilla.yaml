@@ -17,7 +17,7 @@
 name: test
 catalogs:
   catalog0:
-    type: karapace
+    type: karapace-schema-registry
     options:
       url: http://localhost:8081
       max-age: 5000

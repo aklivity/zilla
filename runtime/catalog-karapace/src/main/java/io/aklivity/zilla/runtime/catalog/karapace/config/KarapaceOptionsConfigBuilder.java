@@ -17,23 +17,16 @@ package io.aklivity.zilla.runtime.catalog.karapace.config;
 import java.time.Duration;
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
+import io.aklivity.zilla.runtime.catalog.schema.registry.config.AbstractSchemaRegistryOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
-public final class KarapaceOptionsConfigBuilder<T> extends ConfigBuilder<T, KarapaceOptionsConfigBuilder<T>>
+public final class KarapaceOptionsConfigBuilder<T>
+    extends AbstractSchemaRegistryOptionsConfigBuilder<T, KarapaceOptionsConfigBuilder<T>>
 {
-    private static final Duration MAX_AGE_DEFAULT = Duration.ofSeconds(300);
-
-    private final Function<OptionsConfig, T> mapper;
-
-    private String url;
-    private String context;
-    private Duration maxAge;
-
     KarapaceOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
     {
-        this.mapper = mapper;
+        super(mapper);
     }
 
     @Override
@@ -43,31 +36,12 @@ public final class KarapaceOptionsConfigBuilder<T> extends ConfigBuilder<T, Kara
         return (Class<KarapaceOptionsConfigBuilder<T>>) getClass();
     }
 
-    public KarapaceOptionsConfigBuilder<T> url(
-        String url)
-    {
-        this.url = url;
-        return this;
-    }
-
-    public KarapaceOptionsConfigBuilder<T> context(
-        String context)
-    {
-        this.context = context;
-        return this;
-    }
-
-    public KarapaceOptionsConfigBuilder<T> maxAge(
+    @Override
+    protected KarapaceOptionsConfig newOptionsConfig(
+        String url,
+        String context,
         Duration maxAge)
     {
-        this.maxAge = maxAge;
-        return this;
-    }
-
-    @Override
-    public T build()
-    {
-        Duration maxAge = (this.maxAge != null) ? this.maxAge : MAX_AGE_DEFAULT;
-        return mapper.apply(new KarapaceOptionsConfig(url, context, maxAge));
+        return new KarapaceOptionsConfig(url, context, maxAge);
     }
 }

@@ -35,6 +35,11 @@
       <version>${project.version}</version>
     </dependency>
     <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>catalog-schema-registry.spec</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
       <scope>test</scope>
@@ -60,23 +65,6 @@
       <plugin>
         <groupId>org.jasig.maven</groupId>
         <artifactId>maven-notice-plugin</artifactId>
-      </plugin>
-      <plugin>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>flyweight-maven-plugin</artifactId>
-        <version>${project.version}</version>
-        <configuration>
-          <scopeNames>core karapace</scopeNames>
-          <packageName>io.aklivity.zilla.specs.catalog.karapace.internal.types</packageName>
-        </configuration>
-        <executions>
-          <execution>
-            <goals>
-              <goal>validate</goal>
-              <goal>generate</goal>
-            </goals>
-          </execution>
-        </executions>
       </plugin>
       <plugin>
         <groupId>com.mycila</groupId>

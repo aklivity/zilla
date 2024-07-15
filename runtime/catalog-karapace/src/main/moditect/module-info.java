@@ -14,8 +14,8 @@
  */
 module io.aklivity.zilla.runtime.catalog.karapace
 {
-    requires java.net.http;
     requires io.aklivity.zilla.runtime.engine;
+    requires io.aklivity.zilla.runtime.catalog.schema.registry;
 
     exports io.aklivity.zilla.runtime.catalog.karapace.config;
 
@@ -26,5 +26,5 @@ module io.aklivity.zilla.runtime.catalog.karapace
         with io.aklivity.zilla.runtime.catalog.karapace.internal.config.KarapaceOptionsConfigAdapter;
 
     provides io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi
-        with io.aklivity.zilla.runtime.catalog.karapace.internal.KarapaceEventFormatterFactory;
+        with io.aklivity.zilla.runtime.catalog.karapace.internal.events.KarapaceEventFormatterFactory;
 }

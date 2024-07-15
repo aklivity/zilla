@@ -37,8 +37,10 @@ public final class EventFormatterFactory extends Factory
         for (Map.Entry<String, EventFormatterFactorySpi> entry : factories.entrySet())
         {
             String type = entry.getKey();
+
             EventFormatterFactorySpi factory = entry.getValue();
             EventFormatterSpi formatter = factory.create(config);
+
             int typeId = context.supplyTypeId(type);
             formatters.put(typeId, formatter);
         }

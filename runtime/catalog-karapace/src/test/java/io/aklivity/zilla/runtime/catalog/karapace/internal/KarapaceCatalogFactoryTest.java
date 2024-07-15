@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.runtime.catalog.karapace.internal;
 
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
@@ -31,9 +29,9 @@ public class KarapaceCatalogFactoryTest
     {
         Configuration config = new Configuration();
         CatalogFactory factory = CatalogFactory.instantiate();
-        Catalog catalog = factory.create(KarapaceCatalog.NAME, config);
+        Catalog catalog = factory.create(KarapaceCatalogFactorySpi.TYPE, config);
 
-        assertThat(catalog, instanceOf(KarapaceCatalog.class));
-        assertEquals(KarapaceCatalog.NAME, catalog.name());
+        assertEquals(KarapaceCatalogFactorySpi.TYPE, catalog.name());
+        assertEquals(KarapaceCatalogFactorySpi.TYPE_ALIASES, catalog.aliases());
     }
 }

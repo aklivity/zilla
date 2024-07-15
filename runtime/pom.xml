@@ -43,6 +43,7 @@
     <module>catalog-filesystem</module>
     <module>catalog-inline</module>
     <module>catalog-karapace</module>
+    <module>catalog-schema-registry</module>
     <module>common</module>
     <module>command</module>
     <module>command-metrics</module>
@@ -195,6 +196,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>catalog-karapace</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>catalog-schema-registry</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
