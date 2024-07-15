@@ -43,9 +43,9 @@ Use **Zilla** as a:
 
 ## Get started in 60 seconds
 
-**Zilla** is stateless, declaratively configured, and has no external dependencies. The fastest way to get started is to follow the hosted [Quickstart](https://docs.aklivity.io/zilla/latest/how-tos/quickstart/).
+**Zilla** is stateless, declaratively configured, and has no external dependencies. The fastest way to get started is to follow the hosted [**Quickstart**](https://docs.aklivity.io/zilla/latest/how-tos/quickstart/).
 
-## Installing Zilla
+## Install options
 
 Single-node and cluster deployment options are available.
  
