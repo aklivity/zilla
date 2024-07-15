@@ -33,6 +33,13 @@ public final class HttpAuthorizationConfigBuilder<T> extends ConfigBuilder<T, Ht
         return this;
     }
 
+    public HttpAuthorizationConfigBuilder<T> credentials(
+        HttpCredentialsConfig credentials)
+    {
+        this.credentials = credentials;
+        return this;
+    }
+
     public HttpCredentialsConfigBuilder<HttpAuthorizationConfigBuilder<T>> credentials()
     {
         return new HttpCredentialsConfigBuilder<>(this::credentials);
@@ -56,12 +63,5 @@ public final class HttpAuthorizationConfigBuilder<T> extends ConfigBuilder<T, Ht
     protected Class<HttpAuthorizationConfigBuilder<T>> thisType()
     {
         return (Class<HttpAuthorizationConfigBuilder<T>>) getClass();
-    }
-
-    private HttpAuthorizationConfigBuilder<T> credentials(
-        HttpCredentialsConfig credentials)
-    {
-        this.credentials = credentials;
-        return this;
     }
 }

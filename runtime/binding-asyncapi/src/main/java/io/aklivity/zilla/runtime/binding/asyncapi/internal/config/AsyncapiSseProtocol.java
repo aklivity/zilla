@@ -45,7 +45,7 @@ import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 public class AsyncapiSseProtocol extends AsyncapiProtocol
 {
     private static final String SCHEME = "sse";
-    private static final String SECURE_PROTOCOL = "secure-sse";
+    private static final String SECURE_PROTOCOL = "sse-secure";
 
     private final boolean httpServerAvailable;
     private final AsyncapiOptionsConfig options;
@@ -205,7 +205,7 @@ public class AsyncapiSseProtocol extends AsyncapiProtocol
             {
                 route
                     .guarded()
-                    .name(options.authorization.name)
+                    .name(options.authorization.qname)
                     .inject(guarded -> injectGuardedRoles(guarded, security.scopes()))
                     .build();
             }

@@ -110,7 +110,7 @@ public class AsyncapiHttpProtocol extends AsyncapiProtocol
             for (Map.Entry<String, AsyncapiServer> entry : asyncapi.servers.entrySet())
             {
                 AsyncapiServerView server = AsyncapiServerView.of(entry.getValue());
-                if (server.protocol().contains("http"))
+                if (server.protocol().startsWith("http"))
                 {
                     for (String name : asyncapi.operations.keySet())
                     {
@@ -137,7 +137,7 @@ public class AsyncapiHttpProtocol extends AsyncapiProtocol
                         }
                     }
                 }
-                else if ("sse".equals(server.protocol()))
+                else if (server.protocol().startsWith("sse"))
                 {
                     for (String name : asyncapi.operations.keySet())
                     {
@@ -173,7 +173,10 @@ public class AsyncapiHttpProtocol extends AsyncapiProtocol
     {
         if (isOauthEnabled)
         {
-            options.authorization(authorization);
+            options.authorization()
+                .name(authorization.qname)
+                .credentials(authorization.credentials)
+                .build();
         }
         return options;
     }

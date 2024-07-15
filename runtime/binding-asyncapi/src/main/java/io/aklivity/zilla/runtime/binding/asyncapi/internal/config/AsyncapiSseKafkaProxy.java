@@ -24,12 +24,15 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiBinding;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiKafkaFilter;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiOperation;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiSecurityScheme;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiChannelView;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiSecuritySchemeView;
 import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaConditionConfig;
 import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithConfig;
 import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithConfigBuilder;
 import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithFilterConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
+import io.aklivity.zilla.runtime.engine.config.GuardedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
 
 public class AsyncapiSseKafkaProxy extends AsyncapiProxy
@@ -109,6 +112,8 @@ public class AsyncapiSseKafkaProxy extends AsyncapiProxy
                     .path(path)
                     .build()
                 .inject(r -> injectSseKafkaRouteWith(r, kafkaAsyncapi, whenOperation, withOperation, namespace))
+                .inject(route -> injectSseServerRouteGuarded(
+                    route, namespace, sseAsyncapi, whenOperation.security))
                 .build();
         }
 
@@ -196,5 +201,39 @@ public class AsyncapiSseKafkaProxy extends AsyncapiProxy
         }
 
         return with;
+    }
+
+    private <C> RouteConfigBuilder<C> injectSseServerRouteGuarded(
+        RouteConfigBuilder<C> route,
+        String namespace,
+        Asyncapi asyncapi,
+        List<AsyncapiSecurityScheme> securities)
+    {
+        if (securities != null && !securities.isEmpty())
+        {
+            AsyncapiSecuritySchemeView security =
+                AsyncapiSecuritySchemeView.of(asyncapi.components.securitySchemes, securities.get(0));
+
+            if ("oauth2".equals(security.type()))
+            {
+                route
+                    .guarded()
+                    .name(String.format("%s:jwt0", namespace))
+                    .inject(guarded -> injectGuardedRoles(guarded, security.scopes()))
+                    .build();
+            }
+        }
+        return route;
+    }
+
+    private <C> GuardedConfigBuilder<C> injectGuardedRoles(
+        GuardedConfigBuilder<C> guarded,
+        List<String> roles)
+    {
+        for (String role : roles)
+        {
+            guarded.role(role);
+        }
+        return guarded;
     }
 }

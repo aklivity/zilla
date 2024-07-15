@@ -200,7 +200,7 @@ public class AsyncapiServerNamespaceGenerator extends AsyncapiNamespaceGenerator
                         .when(TlsConditionConfig::builder)
                             .ports(new int[] { server.getPort() })
                             .build()
-                        .exit(String.format("%s_server0", protocol.scheme))
+                        .exit(String.format("%s_server0", protocol.tcpRoute))
                         .build();
                 }
             }
