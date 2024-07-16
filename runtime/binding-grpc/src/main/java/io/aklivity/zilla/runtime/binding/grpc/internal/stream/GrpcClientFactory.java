@@ -105,6 +105,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
     private final HttpEndExFW endExRO = new HttpEndExFW();
     private final GrpcMessageFW grpcMessageRO = new GrpcMessageFW();
     private final HttpBeginExFW.Builder httpBeginExRW = new HttpBeginExFW.Builder();
+    private final GrpcBeginExFW.Builder grpcBeginExRW = new GrpcBeginExFW.Builder();
     private final GrpcDataExFW.Builder grpcDataExRW = new GrpcDataExFW.Builder();
     private final GrpcAbortExFW.Builder grpcAbortExRW = new GrpcAbortExFW.Builder();
     private final GrpcResetExFW.Builder grpcResetExRW = new GrpcResetExFW.Builder();
@@ -139,7 +140,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
         this.httpTypeId = context.supplyTypeId(HTTP_TYPE_NAME);
         this.grpcTypeId = context.supplyTypeId(GrpcBinding.NAME);
         this.bindings = new Long2ObjectHashMap<>();
-        this.helper = new HttpGrpcResponseHeaderHelper();
+        this.helper = new HttpGrpcResponseHeaderHelper(metadataBuffer);
 
         this.grpcAbortedStatusRO = grpcAbortExRW.wrap(new UnsafeBuffer(new byte[32]), 0, 32)
                 .typeId(grpcTypeId)
@@ -448,12 +449,13 @@ public class GrpcClientFactory implements GrpcStreamFactory
         private void doAppBegin(
             long traceId,
             long authorization,
-            long affinity)
+            long affinity,
+            Flyweight extension)
         {
             state = GrpcState.openingReply(state);
 
             doBegin(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                traceId, authorization, affinity);
+                traceId, authorization, affinity, extension);
         }
 
         private void doAppData(
@@ -784,7 +786,13 @@ public class GrpcClientFactory implements GrpcStreamFactory
             replyMax = maximum;
             state = GrpcState.openingReply(state);
 
-            delegate.doAppBegin(traceId, authorization, affinity);
+            Flyweight beginEx = grpcBeginExRW
+                .wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(grpcTypeId)
+                .metadata(helper.metadata)
+                .build();
+
+            delegate.doAppBegin(traceId, authorization, affinity, beginEx);
 
             if (!HTTP_HEADER_VALUE_STATUS_200.equals(status) ||
                 grpcStatus != null && !HEADER_VALUE_GRPC_OK.equals(grpcStatus))
@@ -1029,7 +1037,8 @@ public class GrpcClientFactory implements GrpcStreamFactory
         int maximum,
         long traceId,
         long authorization,
-        long affinity)
+        long affinity,
+        Flyweight extension)
     {
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
             .originId(originId)
@@ -1041,6 +1050,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
             .traceId(traceId)
             .authorization(authorization)
             .affinity(affinity)
+            .extension(extension.buffer(), extension.offset(), extension.sizeof())
             .build();
 
         receiver.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());

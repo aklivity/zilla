@@ -1443,7 +1443,10 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
 
             assert replyAck <= replySeq;
 
-            extension.get(grpcBeginExRO::tryWrap);
+            if (extension.sizeof() > 0)
+            {
+                extension.get(grpcBeginExRO::tryWrap);
+            }
 
             correlater.doKafkaBegin(traceId, authorization, affinity);
         }
@@ -1489,8 +1492,11 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
                         .headers(h ->
                         {
                             server.condition.headers(correlationId, h);
-                            Array32FW<GrpcMetadataFW> metadata = grpcBeginExRO.metadata();
-                            metadata.forEach(md -> h.item(i -> metadata(i, md)));
+                            if (grpcBeginExRO.buffer() != null)
+                            {
+                                Array32FW<GrpcMetadataFW> metadata = grpcBeginExRO.metadata();
+                                metadata.forEach(md -> h.item(i -> metadata(i, md)));
+                            }
                         })))
                     .build();
             }
