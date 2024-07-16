@@ -82,6 +82,10 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
     private static final String16FW HEADER_VALUE_GRPC_OK = new String16FW("0");
     private static final String16FW HEADER_VALUE_GRPC_ABORTED = new String16FW("10");
     private static final String16FW HEADER_VALUE_GRPC_INTERNAL_ERROR = new String16FW("13");
+    private static final Array32FW<KafkaHeaderFW> EMPTY_HEADERS =
+        new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
+            .wrap(new UnsafeBuffer(0L, 0), 0, 0)
+            .build();
 
     private final byte[] headerPrefix = new byte[META_PREFIX_LENGTH];
     private final byte[] headerSuffix = new byte[BIN_SUFFIX_LENGTH];
@@ -90,7 +94,6 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
         new Varuint32FW.Builder().wrap(new UnsafeBuffer(new byte[1024 * 8]), 0, 1024 * 8);;
 
     private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBuffer(0L, 0), 0, 0);
-    private final Array32FW<KafkaHeaderFW> emptyHeaderRO = new Array32FW<>(new KafkaHeaderFW());
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -592,7 +595,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 }
                 else
                 {
-                    doGrpcBegin(traceId, authorization, 0L, emptyHeaderRO);
+                    doGrpcBegin(traceId, authorization, 0L, EMPTY_HEADERS);
                 }
             }
 
@@ -1400,7 +1403,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 }
                 else
                 {
-                    doGrpcBegin(traceId, authorization, 0L, emptyHeaderRO);
+                    doGrpcBegin(traceId, authorization, 0L, EMPTY_HEADERS);
                 }
             }
 
