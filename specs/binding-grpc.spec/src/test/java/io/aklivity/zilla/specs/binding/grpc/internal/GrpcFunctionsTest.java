@@ -93,6 +93,23 @@ public class GrpcFunctionsTest
     }
 
     @Test
+    public void shouldGenerateBeginExtensionWithMetadata()
+    {
+        byte[] build = GrpcFunctions.beginEx()
+            .typeId(0x01)
+            .metadata("custom", "test")
+            .build();
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        GrpcBeginExFW beginEx = new GrpcBeginExFW().wrap(buffer, 0, buffer.capacity());
+        beginEx.metadata().forEach(h ->
+        {
+            assertTrue(nameBuilder.set("custom".getBytes()).build().equals(h.name()));
+            assertTrue(valueBuilder.set("test".getBytes()).build().equals(h.value()));
+        });
+        assertTrue(beginEx.metadata().sizeof() > 0);
+    }
+
+    @Test
     public void shouldMatchBeginExtension() throws Exception
     {
         String value = "value";
@@ -114,6 +131,28 @@ public class GrpcFunctionsTest
             .authority("localhost:8080")
             .service("example.EchoService")
             .method("EchoUnary")
+            .metadataItem(h -> h.type(t -> t.set(TEXT).build()).nameLen(custom.length())
+                .name(nameBuilder.set(custom.getBytes()).build())
+                .valueLen(value.length()).value(valueBuilder.set(value.getBytes()).build()))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchBeginExtensionWithMetadata() throws Exception
+    {
+        String value = "value";
+        String custom = "custom";
+        BytesMatcher matcher = GrpcFunctions.matchBeginEx()
+            .typeId(0x01)
+            .metadata(custom, value)
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new GrpcBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
             .metadataItem(h -> h.type(t -> t.set(TEXT).build()).nameLen(custom.length())
                 .name(nameBuilder.set(custom.getBytes()).build())
                 .valueLen(value.length()).value(valueBuilder.set(value.getBytes()).build()))

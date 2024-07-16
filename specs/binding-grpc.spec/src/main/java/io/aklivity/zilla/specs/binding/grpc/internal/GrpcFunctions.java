@@ -92,13 +92,9 @@ public final class GrpcFunctions
     public static final class GrpcBeginExBuilder
     {
         private final GrpcBeginExFW.Builder beginExRW;
-        private final OctetsFW.Builder nameBuilder;
-        private final OctetsFW.Builder valueBuilder;
 
         private GrpcBeginExBuilder()
         {
-            nameBuilder = new OctetsFW.Builder().wrap(new UnsafeBuffer(new byte[1024 * 8]), 0, 1024 * 8);
-            valueBuilder = new OctetsFW.Builder().wrap(new UnsafeBuffer(new byte[1024 * 8]), 0, 1024 * 8);
             MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
             this.beginExRW = new GrpcBeginExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
         }
@@ -145,16 +141,28 @@ public final class GrpcFunctions
             return metadata("TEXT", name, value);
         }
 
-        public GrpcBeginExBuilder metadata(
+        public GrpcBeginExBuilder metadataBase64(
+            String name,
+            String value)
+        {
+            return metadata("BASE64", name, value);
+        }
+
+        private GrpcBeginExBuilder metadata(
             String type,
             String name,
             String value)
         {
+            DirectBuffer nameBuffer = new UnsafeBuffer(name.getBytes());
+            OctetsFW nameOctets = new OctetsFW().wrap(nameBuffer, 0, nameBuffer.capacity());
+            DirectBuffer valueBuffer = new UnsafeBuffer(value.getBytes());
+            OctetsFW valueOctets = new OctetsFW().wrap(valueBuffer, 0, valueBuffer.capacity());
+
             beginExRW.metadataItem(b -> b.type(t -> t.set(GrpcType.valueOf(type)))
                 .nameLen(name.length())
-                .name(nameBuilder.set(name.getBytes()).build())
+                .name(nameOctets)
                 .valueLen(value.length())
-                .value(valueBuilder.set(value.getBytes()).build()));
+                .value(valueOctets));
             return this;
         }
 
@@ -172,10 +180,6 @@ public final class GrpcFunctions
         private final DirectBuffer bufferRO = new UnsafeBuffer();
 
         private final GrpcBeginExFW beginExRO = new GrpcBeginExFW();
-        private final OctetsFW.Builder nameBuilder =
-            new OctetsFW.Builder().wrap(new UnsafeBuffer(new byte[1024 * 8]), 0, 1024 * 8);
-        private final OctetsFW.Builder valueBuilder =
-            new OctetsFW.Builder().wrap(new UnsafeBuffer(new byte[1024 * 8]), 0, 1024 * 8);
 
         private final Map<OctetsFW, MetadataValue> metadata = new LinkedHashMap<>();
 
@@ -227,19 +231,29 @@ public final class GrpcFunctions
             return metadata("TEXT", name, value);
         }
 
-        public GrpcBeginExMatcherBuilder metadata(
+        public GrpcBeginExMatcherBuilder metadataBase64(
+            String name,
+            String value)
+        {
+            return metadata("BASE64", name, value);
+        }
+
+        private GrpcBeginExMatcherBuilder metadata(
             String type,
             String name,
             String value)
         {
-            metadata.put(nameBuilder.set(name.getBytes()).build(),
-                new MetadataValue(GrpcType.valueOf(type), valueBuilder.set(value.getBytes()).build()::equals));
+            DirectBuffer nameBuffer = new UnsafeBuffer(name.getBytes());
+            OctetsFW nameOctets = new OctetsFW().wrap(nameBuffer, 0, nameBuffer.capacity());
+            DirectBuffer valueBuffer = new UnsafeBuffer(value.getBytes());
+            OctetsFW valueOctets = new OctetsFW().wrap(valueBuffer, 0, valueBuffer.capacity());
+            metadata.put(nameOctets, new MetadataValue(GrpcType.valueOf(type), valueOctets::equals));
             return this;
         }
 
         public BytesMatcher build()
         {
-            return method != null ? this::match : buf -> null;
+            return this::match;
         }
 
         private GrpcBeginExFW match(
@@ -280,25 +294,25 @@ public final class GrpcFunctions
         private boolean matchMethod(
             GrpcBeginExFW beginEx)
         {
-            return method.equals(beginEx.method().asString());
+            return method == null || method.equals(beginEx.method().asString());
         }
 
         private boolean matchScheme(
             GrpcBeginExFW beginEx)
         {
-            return scheme.equals(beginEx.scheme().asString());
+            return scheme == null || scheme.equals(beginEx.scheme().asString());
         }
 
         private boolean matchAuthority(
             GrpcBeginExFW beginEx)
         {
-            return authority.equals(beginEx.authority().asString());
+            return authority == null || authority.equals(beginEx.authority().asString());
         }
 
         private boolean matchService(
             GrpcBeginExFW beginEx)
         {
-            return service.equals(beginEx.service().asString());
+            return service == null || service.equals(beginEx.service().asString());
         }
 
         private boolean matchTypeId(

@@ -16,6 +16,7 @@
 connect "zilla://streams/grpc0"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
+    option zilla:update "proactive"
 
 write zilla:begin.ext ${grpc:beginEx()
                               .typeId(zilla:id("grpc"))
@@ -30,6 +31,12 @@ write zilla:data.empty
 write flush
 
 write close
+
+read zilla:begin.ext ${grpc:matchBeginEx()
+                           .typeId(zilla:id("grpc"))
+                           .metadata("custom", "value")
+                           .metadataBase64("customProperty", "dGVzdA==")
+                           .build()}
 
 read ${grpc:protobuf()
            .string(1, "Hello World")
