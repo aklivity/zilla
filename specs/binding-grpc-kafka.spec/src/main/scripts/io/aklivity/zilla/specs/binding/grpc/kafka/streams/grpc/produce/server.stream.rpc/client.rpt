@@ -40,7 +40,7 @@ write close
 read zilla:begin.ext ${grpc:matchBeginEx()
                            .typeId(zilla:id("grpc"))
                            .metadata("custom", "value")
-                           .metadata("BASE64", "customProperty", "dGVzdA==")
+                           .metadataBase64("customProperty", "dGVzdA==")
                            .build()}
 
 read ${grpc:protobuf()

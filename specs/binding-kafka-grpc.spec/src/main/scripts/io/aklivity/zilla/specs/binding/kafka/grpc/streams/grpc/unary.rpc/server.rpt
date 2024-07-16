@@ -38,7 +38,7 @@ read closed
 write zilla:begin.ext ${grpc:beginEx()
                               .typeId(zilla:id("grpc"))
                               .metadata("custom", "value")
-                              .metadata("BASE64", "customProperty", "dGVzdA==")
+                              .metadataBase64("customProperty", "dGVzdA==")
                               .build()}
 write flush
 

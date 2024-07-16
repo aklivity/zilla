@@ -148,7 +148,7 @@ public final class GrpcFunctions
             return metadata("BASE64", name, value);
         }
 
-        public GrpcBeginExBuilder metadata(
+        private GrpcBeginExBuilder metadata(
             String type,
             String name,
             String value)
@@ -238,7 +238,7 @@ public final class GrpcFunctions
             return metadata("BASE64", name, value);
         }
 
-        public GrpcBeginExMatcherBuilder metadata(
+        private GrpcBeginExMatcherBuilder metadata(
             String type,
             String name,
             String value)

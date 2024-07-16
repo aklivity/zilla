@@ -90,6 +90,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
         new Varuint32FW.Builder().wrap(new UnsafeBuffer(new byte[1024 * 8]), 0, 1024 * 8);;
 
     private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBuffer(0L, 0), 0, 0);
+    private final Array32FW<KafkaHeaderFW> emptyHeaderRO = new Array32FW<>(new KafkaHeaderFW());
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -582,7 +583,17 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 final KafkaDataExFW kafkaDataEx =
                     dataEx != null && dataEx.typeId() == kafkaTypeId ? extension.get(kafkaDataExRO::tryWrap) : null;
 
-                doGrpcBegin(traceId, authorization, 0L, kafkaDataEx.merged().fetch().headers());
+                if (kafkaDataEx != null &&
+                    kafkaDataEx.merged() != null &&
+                    kafkaDataEx.merged().fetch() != null &&
+                    kafkaDataEx.merged().fetch().headers() != null)
+                {
+                    doGrpcBegin(traceId, authorization, 0L, kafkaDataEx.merged().fetch().headers());
+                }
+                else
+                {
+                    doGrpcBegin(traceId, authorization, 0L, emptyHeaderRO);
+                }
             }
 
             doGrpcData(traceId, authorization, budgetId, reserved, flags, buffer, offset, length);
@@ -1380,7 +1391,17 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
         {
             if (!GrpcKafkaState.replyOpening(state))
             {
-                doGrpcBegin(traceId, authorization, 0L, kafkaDataEx.merged().fetch().headers());
+                if (kafkaDataEx != null &&
+                    kafkaDataEx.merged() != null &&
+                    kafkaDataEx.merged().fetch() != null &&
+                    kafkaDataEx.merged().fetch().headers() != null)
+                {
+                    doGrpcBegin(traceId, authorization, 0L, kafkaDataEx.merged().fetch().headers());
+                }
+                else
+                {
+                    doGrpcBegin(traceId, authorization, 0L, emptyHeaderRO);
+                }
             }
 
             if (GrpcKafkaState.replyClosing(state))
