@@ -84,7 +84,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
     private static final String16FW HEADER_VALUE_GRPC_INTERNAL_ERROR = new String16FW("13");
     private static final Array32FW<KafkaHeaderFW> EMPTY_HEADERS =
         new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
-            .wrap(new UnsafeBuffer(0L, 0), 0, 0)
+            .wrap(new UnsafeBuffer(new byte[8]), 0, 8)
             .build();
 
     private final byte[] headerPrefix = new byte[META_PREFIX_LENGTH];
