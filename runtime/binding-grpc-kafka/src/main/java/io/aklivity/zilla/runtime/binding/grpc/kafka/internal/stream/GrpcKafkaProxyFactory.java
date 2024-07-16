@@ -130,6 +130,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
     private final GrpcKafkaIdHelper messageFieldHelper = new GrpcKafkaIdHelper();
 
     private final MutableDirectBuffer writeBuffer;
+    private final MutableDirectBuffer progressBuffer;
     private final MutableDirectBuffer extBuffer;
     private final MutableDirectBuffer metaBuffer;
     private final BindingHandler streamFactory;
@@ -146,6 +147,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
         EngineContext context)
     {
         this.writeBuffer = context.writeBuffer();
+        this.progressBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.metaBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.streamFactory = context.streamFactory();
@@ -953,7 +955,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 final OctetsFW payload = data.payload();
                 final OctetsFW extension = data.extension();
 
-                final MutableDirectBuffer encodeBuffer = writeBuffer;
+                final MutableDirectBuffer encodeBuffer = progressBuffer;
                 final int encodeOffset = DataFW.FIELD_OFFSET_PAYLOAD;
                 final int payloadSize = payload.sizeof();
 
