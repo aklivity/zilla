@@ -14,10 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.stream;
 
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.LongFunction;
-import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 
 import org.agrona.DirectBuffer;
@@ -37,33 +33,19 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.Asyncapi
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.EndFW;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.ExtensionFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.FlushFW;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.HttpBeginExFW;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.MqttBeginExFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.ResetFW;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.SseBeginExFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
-import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 
 public final class AsyncapiServerFactory implements AsyncapiStreamFactory
 {
-    private static final String MQTT_TYPE_NAME = "mqtt";
-    private static final String HTTP_TYPE_NAME = "http";
-    private static final String SSE_TYPE_NAME = "sse";
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(), 0, 0);
+
     private final BeginFW beginRO = new BeginFW();
-    private final BeginFW compositeBeginRO = new BeginFW();
-    private final ExtensionFW extensionRO = new ExtensionFW();
-    private final HttpBeginExFW httpBeginRO = new HttpBeginExFW();
-    private final SseBeginExFW sseBeginRO = new SseBeginExFW();
-    private final MqttBeginExFW mqttBeginRO = new MqttBeginExFW();
     private final DataFW dataRO = new DataFW();
     private final EndFW endRO = new EndFW();
     private final FlushFW flushRO = new FlushFW();
@@ -83,53 +65,34 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
 
     private final AsyncapiBeginExFW.Builder asyncapiBeginExRW = new AsyncapiBeginExFW.Builder();
 
-    private final MutableDirectBuffer writeBuffer;
-    private final MutableDirectBuffer extBuffer;
-    private final BufferPool bufferPool;
+    private final AsyncapiConfiguration config;
+    private final EngineContext context;
+
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
-    private final LongSupplier supplyTraceId;
-    private final Function<String, Integer> supplyTypeId;
-    private final LongFunction<CatalogHandler> supplyCatalog;
-    private final Consumer<NamespaceConfig> attachComposite;
-    private final Consumer<NamespaceConfig> detachComposite;
+    private final MutableDirectBuffer writeBuffer;
+    private final MutableDirectBuffer extBuffer;
+
     private final Long2ObjectHashMap<AsyncapiBindingConfig> bindings;
     private final int asyncapiTypeId;
-    private final int mqttTypeId;
-    private final int sseTypeId;
-    private final int httpTypeId;
-    private final AsyncapiConfiguration config;
-    private final AsyncapiServerNamespaceGenerator namespaceGenerator;
+
+    private final AsyncapiServerNamespaceGenerator generator;
 
     public AsyncapiServerFactory(
         AsyncapiConfiguration config,
         EngineContext context)
     {
         this.config = config;
-        this.namespaceGenerator = new AsyncapiServerNamespaceGenerator();
+        this.context = context;
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
-        this.bufferPool = context.bufferPool();
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
-        this.supplyTypeId = context::supplyTypeId;
-        this.supplyTraceId = context::supplyTraceId;
-        this.supplyCatalog = context::supplyCatalog;
-        this.attachComposite = context::attachComposite;
-        this.detachComposite = context::detachComposite;
-        this.bindings = new Long2ObjectHashMap<>();
         this.asyncapiTypeId = context.supplyTypeId(AsyncapiBinding.NAME);
-        this.mqttTypeId = context.supplyTypeId(MQTT_TYPE_NAME);
-        this.httpTypeId = context.supplyTypeId(HTTP_TYPE_NAME);
-        this.sseTypeId = context.supplyTypeId(SSE_TYPE_NAME);
-    }
-
-    @Override
-    public int originTypeId()
-    {
-        return mqttTypeId;
+        this.bindings = new Long2ObjectHashMap<>();
+        this.generator = new AsyncapiServerNamespaceGenerator();
     }
 
     @Override
@@ -142,8 +105,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        AsyncapiBindingConfig asyncapiBinding = new AsyncapiBindingConfig(binding, namespaceGenerator, supplyCatalog,
-            attachComposite, detachComposite, config.targetRouteId());
+        AsyncapiBindingConfig asyncapiBinding = new AsyncapiBindingConfig(config, context, binding, generator);
         bindings.put(binding.id, asyncapiBinding);
 
         asyncapiBinding.attach(binding);
@@ -183,22 +145,9 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
 
             if (route != null)
             {
-                final ExtensionFW extensionEx = begin.extension().get(extensionRO::tryWrap);
-                String operationId = null;
-                if (extensionEx.typeId() == httpTypeId)
-                {
-                    operationId = binding.resolveHttpOperationId(extension.get(httpBeginRO::tryWrap));
-                }
-                else if (extensionEx.typeId() == mqttTypeId)
-                {
-                    operationId = binding.resolveMqttOperationId(extension.get(mqttBeginRO::tryWrap));
-                }
-                else if (extensionEx.typeId() == sseTypeId)
-                {
-                    operationId = binding.resolveSseOperationId(extension.get(sseBeginRO::tryWrap));
-                }
-
+                final String operationId = binding.resolveOperationId(extension);
                 final long apiId = binding.resolveApiId(originId);
+
                 newStream = new CompositeStream(
                     receiver,
                     originId,

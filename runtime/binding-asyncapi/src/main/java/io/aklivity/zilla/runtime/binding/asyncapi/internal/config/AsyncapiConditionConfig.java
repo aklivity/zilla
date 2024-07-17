@@ -39,9 +39,9 @@ public class AsyncapiConditionConfig extends ConditionConfig
     }
 
     private boolean matchesApiId(
-        long apiId,
-        ToLongFunction<String> supplyApiId)
+        long schemaId,
+        ToLongFunction<String> supplySchemaId)
     {
-        return supplyApiId.applyAsLong(this.apiId) == apiId;
+        return supplySchemaId.applyAsLong(this.apiId) == schemaId;
     }
 }
