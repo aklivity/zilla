@@ -21,3 +21,12 @@ service:
       name: grpc
     - port: 7190
       name: metrics
+
+volumeMounts:
+  - name: proto-files
+    mountPath: /etc/zilla/proto
+
+volumes:
+  - name: proto-files
+    configMap:
+      name: protobuf-files

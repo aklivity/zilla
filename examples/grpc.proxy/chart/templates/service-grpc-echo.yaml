@@ -16,16 +16,16 @@ spec:
     spec:
       containers:
         - name: grpc-echo
-          image: "zilla-examples/grpc-echo:latest"
+          image: "ghcr.io/aklivity/extras-grpc-echo-server:sha-478b2ce"
+          args: ["--port", "50051"]
           ports:
-            - containerPort: 8080
+            - containerPort: 50051
           readinessProbe:
             tcpSocket:
-              port: 8080
+              port: 50051
             initialDelaySeconds: 3
             periodSeconds: 5
           tty: true
-          imagePullPolicy: Never
 ---
 apiVersion: v1
 kind: Service
@@ -36,5 +36,5 @@ spec:
     app.kubernetes.io/instance: grpc-echo
   ports:
     - name: http
-      port: 8080
+      port: 50051
   type: ClusterIP

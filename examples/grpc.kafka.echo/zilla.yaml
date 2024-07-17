@@ -59,14 +59,14 @@ bindings:
         - subject: echo
     routes:
       - when:
-          - method: example.EchoService/*
+          - method: grpc.examples.echo.Echo/*
         exit: north_grpc_kafka_mapping
   north_grpc_kafka_mapping:
     type: grpc-kafka
     kind: proxy
     routes:
       - when:
-          - method: example.EchoService/*
+          - method: grpc.examples.echo.Echo/*
         exit: north_kafka_cache_client
         with:
           capability: produce

@@ -1,19 +1,26 @@
 syntax = "proto3";
+option go_package = "google.golang.org/grpc/examples/features/proto/echo";
 
-package example;
+package grpc.examples.echo;
 
-service EchoService
-{
-  rpc EchoUnary(EchoMessage) returns (EchoMessage);
-
-  rpc EchoClientStream(stream EchoMessage) returns (EchoMessage);
-
-  rpc EchoServerStream( EchoMessage) returns (stream EchoMessage);
-
-  rpc EchoBidiStream(stream EchoMessage) returns (stream EchoMessage);
+// EchoRequest is the request for echo.
+message EchoRequest {
+  string message = 1;
 }
 
-message EchoMessage
-{
+// EchoResponse is the response for echo.
+message EchoResponse {
   string message = 1;
+}
+
+// Echo is the echo service.
+service Echo {
+  // UnaryEcho is unary echo.
+  rpc UnaryEcho(EchoRequest) returns (EchoResponse) {}
+  // ServerStreamingEcho is server side streaming.
+  rpc ServerStreamingEcho(EchoRequest) returns (stream EchoResponse) {}
+  // ClientStreamingEcho is client side streaming.
+  rpc ClientStreamingEcho(stream EchoRequest) returns (EchoResponse) {}
+  // BidirectionalStreamingEcho is bidi streaming.
+  rpc BidirectionalStreamingEcho(stream EchoRequest) returns (stream EchoResponse) {}
 }

@@ -62,7 +62,7 @@ Connection to localhost port 9092 [tcp/XmlIpcRegSvc] succeeded!
 Echo `{"message":"Hello World"}` message via unary rpc using `grpcurl` client.
 
 ```bash
-grpcurl -insecure -proto proto/echo.proto  -d '{"message":"Hello World"}' localhost:7153 example.EchoService.EchoUnary
+grpcurl -insecure -proto proto/echo.proto  -d '{"message":"Hello World"}' localhost:7153 grpc.examples.echo.Echo.UnaryEcho
 ```
 
 output:
@@ -91,9 +91,9 @@ output:
   "broker": 1,
   "headers": [
     "zilla:service",
-    "example.EchoService",
+    "grpc.examples.echo.Echo",
     "zilla:method",
-    "EchoUnary",
+    "UnaryEcho",
     "zilla:reply-to",
     "echo-messages",
     "zilla:correlation-id",
@@ -111,9 +111,9 @@ output:
   "broker": 1,
   "headers": [
     "zilla:service",
-    "example.EchoService",
+    "grpc.examples.echo.Echo",
     "zilla:method",
-    "EchoUnary",
+    "UnaryEcho",
     "zilla:reply-to",
     "echo-messages",
     "zilla:correlation-id",
@@ -130,7 +130,7 @@ output:
 Echo messages via bidirectional streaming rpc.
 
 ```bash
-grpcurl -insecure -proto proto/echo.proto -d @ localhost:7153 example.EchoService.EchoBidiStream
+grpcurl -insecure -proto proto/echo.proto -d @ localhost:7153 grpc.examples.echo.Echo.BidirectionalStreamingEcho
 ```
 
 Paste below message.
@@ -160,9 +160,9 @@ output:
   "broker": 1,
   "headers": [
     "zilla:service",
-    "example.EchoService",
+    "grpc.examples.echo.Echo",
     "zilla:method",
-    "EchoBidiStream",
+    "BidirectionalStreamingEcho",
     "zilla:reply-to",
     "echo-messages",
     "zilla:correlation-id",
@@ -180,9 +180,9 @@ output:
   "broker": 1,
   "headers": [
     "zilla:service",
-    "example.EchoService",
+    "grpc.examples.echo.Echo",
     "zilla:method",
-    "EchoBidiStream",
+    "BidirectionalStreamingEcho",
     "zilla:reply-to",
     "echo-messages",
     "zilla:correlation-id",
@@ -199,7 +199,7 @@ output:
 ```bash
 ghz --config bench.json \
     --proto proto/echo.proto \
-    --call example.EchoService/EchoBidiStream \
+    --call grpc.examples.echo.Echo/BidirectionalStreamingEcho \
     localhost:7153
 ```
 

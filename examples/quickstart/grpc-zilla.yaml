@@ -7,7 +7,7 @@ catalogs:
     options:
       subjects:
         route_guide:
-          path: /proto/route_guide.proto
+          path: proto/route_guide.proto
 #endregion route_guide_proto
 
 bindings:

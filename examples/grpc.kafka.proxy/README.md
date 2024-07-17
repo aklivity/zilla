@@ -1,30 +1,15 @@
-# grpc..kafka.proxy
+# grpc.kafka.proxy
 
-Listens on https port `7153` and uses kafka as proxy to talk to `grpc_echo` on tcp port `8080`.
+Listens on https port `7153` and uses kafka as proxy to talk to `grpc-echo` on tcp port `50051`.
 
-### Requirements
+## Requirements
 
 - bash, jq, nc, grpcurl
 - Kubernetes (e.g. Docker Desktop with Kubernetes enabled)
 - kubectl
 - helm 3.0+
 
-### Build `grpc-echo` service
-
-```bash
-docker build -t zilla-examples/grpc-echo:latest .
-```
-
-output:
-
-```text
- => exporting to image
-  => => exporting layers
- => => writing image sha256:8ad3819be40334045c01d189000c63a1dfe22b2a97ef376d0c6e56616de132c7 
- => => naming to docker.io/zilla-examples/grpc-echo:latest
-```
-
-### Setup
+## Setup
 
 The `setup.sh` script:
 
@@ -38,8 +23,6 @@ The `setup.sh` script:
 output:
 
 ```text
-+ docker image inspect zilla-examples/grpc-echo:latest --format 'Image Found {{.RepoTags}}'
-Image Found [zilla-examples/grpc-echo:latest]
 + ZILLA_CHART=oci://ghcr.io/aklivity/charts/zilla
 + helm upgrade --install zilla-grpc-kafka-proxy oci://ghcr.io/aklivity/charts/zilla --namespace zilla-grpc-kafka-proxy --create-namespace --wait [...]
 NAME: zilla-grpc-kafka-proxy
@@ -74,14 +57,14 @@ Connection to localhost port 9092 [tcp/XmlIpcRegSvc] succeeded!
 Connection to localhost port 8080 [tcp/http-alt] succeeded!
 ```
 
-### Verify behavior
+## Verify behavior
 
-#### Unary Stream
+### Unary Stream
 
 Echo `{"message":"Hello World"}` message via unary rpc.
 
 ```bash
-grpcurl -insecure -proto proto/echo.proto  -d '{"message":"Hello World"}' localhost:7153 example.EchoService.EchoUnary
+grpcurl -insecure -proto proto/echo.proto  -d '{"message":"Hello World"}' localhost:7153 grpc.examples.echo.Echo.UnaryEcho
 ```
 
 output:
@@ -110,9 +93,9 @@ output:
   "broker": 1,
   "headers": [
     "zilla:service",
-    "example.EchoService",
+    "grpc.examples.echo.Echo",
     "zilla:method",
-    "EchoUnary",
+    "UnaryEcho",
     "zilla:reply-to",
     "echo-responses",
     "zilla:correlation-id",
@@ -130,9 +113,9 @@ output:
   "broker": 1,
   "headers": [
     "zilla:service",
-    "example.EchoService",
+    "grpc.examples.echo.Echo",
     "zilla:method",
-    "EchoUnary",
+    "UnaryEcho",
     "zilla:reply-to",
     "echo-responses",
     "zilla:correlation-id",
@@ -144,23 +127,41 @@ output:
 % Reached end of topic echo-requests [0] at offset 2
 ```
 
-#### Bidirectional streaming
+### Bidirectional streaming
 
 Echo messages via bidirectional streaming rpc.
 
 ```bash
-grpcurl -insecure -proto proto/echo.proto -d @ localhost:7153 example.EchoService.EchoBidiStream
+grpcurl -insecure -proto proto/echo.proto -d @ localhost:7153 grpc.examples.echo.Echo.BidirectionalStreamingEcho <<EOM
+{"message":"Hello World, first"}
+{"message":"Hello World, stream"}
+{"message":"Hello World, stream"}
+{"message":"Hello World, stream"}
+{"message":"Hello World, last"}
+EOM
 ```
 
-Past below message.
+output:
 
 ```json
 {
-  "message": "Hello World"
+  "message": "Hello World, first"
+}
+{
+  "message": "Hello World, stream"
+}
+{
+  "message": "Hello World, stream"
+}
+{
+  "message": "Hello World, stream"
+}
+{
+  "message": "Hello World, last"
 }
 ```
 
-Verify the message payload, followed by a tombstone to mark the end of the response.
+Verify the message payloads arrived in order, followed by a tombstone to mark the end of the response.
 
 ```bash
 kcat -C -b localhost:9092 -t echo-responses -J -u | jq .
@@ -172,37 +173,93 @@ output:
 {
   "topic": "echo-responses",
   "partition": 0,
-  "offset": 0,
+  "offset": 4,
   "tstype": "create",
-  "ts": 1683828555010,
+  "ts": 1721162975117,
   "broker": 1,
   "headers": [
     "zilla:correlation-id",
-    "c3c3eb97-313f-4cf0-aa6c-f83c1080e649-cdd8170a6db4597eb33ba423f67e19e2"
+    "d8b57dd3-d0e8-4b99-86ce-a7c79cd7d49a-46ae5cdb4b46cbb367cbad0bea36a56f"
   ],
-  "key": "c3c3eb97-313f-4cf0-aa6c-f83c1080e649-cdd8170a6db4597eb33ba423f67e19e2",
-  "payload": "\n\u000bHello World"
+  "key": "d8b57dd3-d0e8-4b99-86ce-a7c79cd7d49a-46ae5cdb4b46cbb367cbad0bea36a56f",
+  "payload": "\n\u0012Hello World, first"
 }
 {
   "topic": "echo-responses",
   "partition": 0,
-  "offset": 1,
+  "offset": 5,
   "tstype": "create",
-  "ts": 1683828555018,
+  "ts": 1721162975117,
   "broker": 1,
   "headers": [
     "zilla:correlation-id",
-    "c3c3eb97-313f-4cf0-aa6c-f83c1080e649-cdd8170a6db4597eb33ba423f67e19e2",
+    "d8b57dd3-d0e8-4b99-86ce-a7c79cd7d49a-46ae5cdb4b46cbb367cbad0bea36a56f"
+  ],
+  "key": "d8b57dd3-d0e8-4b99-86ce-a7c79cd7d49a-46ae5cdb4b46cbb367cbad0bea36a56f",
+  "payload": "\n\u0013Hello World, stream"
+}
+{
+  "topic": "echo-responses",
+  "partition": 0,
+  "offset": 6,
+  "tstype": "create",
+  "ts": 1721162975117,
+  "broker": 1,
+  "headers": [
+    "zilla:correlation-id",
+    "d8b57dd3-d0e8-4b99-86ce-a7c79cd7d49a-46ae5cdb4b46cbb367cbad0bea36a56f"
+  ],
+  "key": "d8b57dd3-d0e8-4b99-86ce-a7c79cd7d49a-46ae5cdb4b46cbb367cbad0bea36a56f",
+  "payload": "\n\u0013Hello World, stream"
+}
+{
+  "topic": "echo-responses",
+  "partition": 0,
+  "offset": 7,
+  "tstype": "create",
+  "ts": 1721162975117,
+  "broker": 1,
+  "headers": [
+    "zilla:correlation-id",
+    "d8b57dd3-d0e8-4b99-86ce-a7c79cd7d49a-46ae5cdb4b46cbb367cbad0bea36a56f"
+  ],
+  "key": "d8b57dd3-d0e8-4b99-86ce-a7c79cd7d49a-46ae5cdb4b46cbb367cbad0bea36a56f",
+  "payload": "\n\u0013Hello World, stream"
+}
+{
+  "topic": "echo-responses",
+  "partition": 0,
+  "offset": 8,
+  "tstype": "create",
+  "ts": 1721162975117,
+  "broker": 1,
+  "headers": [
+    "zilla:correlation-id",
+    "d8b57dd3-d0e8-4b99-86ce-a7c79cd7d49a-46ae5cdb4b46cbb367cbad0bea36a56f"
+  ],
+  "key": "d8b57dd3-d0e8-4b99-86ce-a7c79cd7d49a-46ae5cdb4b46cbb367cbad0bea36a56f",
+  "payload": "\n\u0011Hello World, last"
+}
+{
+  "topic": "echo-responses",
+  "partition": 0,
+  "offset": 9,
+  "tstype": "create",
+  "ts": 1721162975117,
+  "broker": 1,
+  "headers": [
+    "zilla:correlation-id",
+    "d8b57dd3-d0e8-4b99-86ce-a7c79cd7d49a-46ae5cdb4b46cbb367cbad0bea36a56f",
     "zilla:status",
     "0"
   ],
-  "key": "c3c3eb97-313f-4cf0-aa6c-f83c1080e649-cdd8170a6db4597eb33ba423f67e19e2",
+  "key": "d8b57dd3-d0e8-4b99-86ce-a7c79cd7d49a-46ae5cdb4b46cbb367cbad0bea36a56f",
   "payload": null
 }
-% Reached end of topic echo-responses [0] at offset 4
+% Reached end of topic echo-responses [0] at offset 9
 ```
 
-### Teardown
+## Teardown
 
 The `teardown.sh` script stops port forwarding, uninstalls Zilla and deletes the namespace.
 

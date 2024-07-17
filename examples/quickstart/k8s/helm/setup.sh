@@ -8,14 +8,15 @@ export KAFKA_BOOTSTRAP_SERVER="${KAFKA_BOOTSTRAP_SERVER:-kafka.$NAMESPACE.svc.cl
 INIT_KAFKA="${INIT_KAFKA:-true}"
 ZILLA_CHART="${ZILLA_CHART:-oci://ghcr.io/aklivity/charts/zilla}"
 
+kubectl get ns $NAMESPACE || kubectl create ns $NAMESPACE
+kubectl create configmap protobuf-files --from-file=./proto/ -n $NAMESPACE -o yaml --dry-run=client | kubectl apply -f -
+
 # Install Zilla to the Kubernetes cluster with helm and wait for the pod to start up
 echo "==== Installing $ZILLA_CHART to $NAMESPACE with $KAFKA_BROKER($KAFKA_BOOTSTRAP_SERVER) ===="
-helm upgrade --install zilla $ZILLA_CHART --version $ZILLA_VERSION --namespace $NAMESPACE --create-namespace --wait \
+helm upgrade --install zilla $ZILLA_CHART --version $ZILLA_VERSION --namespace $NAMESPACE --wait \
     --values values.yaml \
     --set env.KAFKA_BOOTSTRAP_SERVER="$KAFKA_BOOTSTRAP_SERVER" \
     --set env.ROUTE_GUIDE_SERVER_HOST="route-guide-server.$NAMESPACE.svc.cluster.local" \
-    --set-file configMaps.proto.data.route_guide\\.proto=./proto/route_guide.proto \
-    --set-file configMaps.proto.data.echo\\.proto=./proto/echo.proto \
     --set-file zilla\\.yaml=../../zilla.yaml \
 
 # MQTT Simulator

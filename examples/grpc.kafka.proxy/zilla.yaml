@@ -21,8 +21,16 @@ bindings:
     kind: server
     options:
       host: 0.0.0.0
-      port: 7153
-    exit: north_tls_server
+      port:
+        - 7151
+        - 7153
+    routes:
+      - when:
+          - port: 7151
+        exit: north_http_server
+      - when:
+          - port: 7153
+        exit: north_tls_server
   north_tls_server:
     type: tls
     kind: server
@@ -43,12 +51,7 @@ bindings:
         - h2
       access-control:
         policy: cross-origin
-    routes:
-      - when:
-          - headers:
-              ":scheme": https
-              ":authority": localhost:7153
-        exit: north_grpc_server
+    exit: north_grpc_server
   north_grpc_server:
     type: grpc
     kind: server
@@ -57,14 +60,14 @@ bindings:
         - subject: echo
     routes:
       - when:
-          - method: example.EchoService/*
+          - method: grpc.examples.echo.Echo/*
         exit: north_grpc_kafka_mapping
   north_grpc_kafka_mapping:
     type: grpc-kafka
     kind: proxy
     routes:
       - when:
-          - method: example.EchoService/*
+          - method: grpc.examples.echo.Echo/*
         exit: north_kafka_cache_client
         with:
           capability: produce
@@ -100,17 +103,17 @@ bindings:
         when:
           - topic: echo-requests
             reply-to: echo-responses
-            method: example.EchoService/*
+            method: grpc.examples.echo.Echo/*
         with:
           scheme: http
-          authority: localhost:7153
+          authority: ${{env.ECHO_SERVER_HOST}}:${{env.ECHO_SERVER_PORT}}
   west_grpc_client:
     type: grpc
     kind: client
     routes:
       - exit: west_http_client
         when:
-          - method: example.EchoService/*
+          - method: grpc.examples.echo.Echo/*
   west_http_client:
     type: http
     kind: client
@@ -122,8 +125,8 @@ bindings:
     type: tcp
     kind: client
     options:
-      host: grpc-echo
-      port: 8080
+      host: ${{env.ECHO_SERVER_HOST}}
+      port: ${{env.ECHO_SERVER_PORT}}
 telemetry:
   exporters:
     stdout_logs_exporter:

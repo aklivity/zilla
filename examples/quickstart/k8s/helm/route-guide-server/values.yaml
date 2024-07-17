@@ -5,7 +5,7 @@ image:
   repository: aklivity/extras-route-guide-server
   pullPolicy: Always
   # Overrides the image tag whose default is the chart appVersion.
-  tag: "sha-e49c994"
+  tag: "sha-478b2ce"
 
 imagePullSecrets: []
 nameOverride: ""
