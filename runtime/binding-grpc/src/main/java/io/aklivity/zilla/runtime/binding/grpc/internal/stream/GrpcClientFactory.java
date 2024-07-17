@@ -770,9 +770,11 @@ public class GrpcClientFactory implements GrpcStreamFactory
 
             String16FW status = HTTP_HEADER_VALUE_STATUS_200;
             String16FW grpcStatus = null;
+
+            helper.visit(httpBeginEx);
+
             if (httpBeginEx != null)
             {
-                helper.visit(httpBeginEx);
                 status = helper.status;
                 grpcStatus = helper.grpcStatus;
             }

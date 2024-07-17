@@ -98,8 +98,9 @@ public final class HttpGrpcResponseHeaderHelper
         if (beginEx != null)
         {
             beginEx.headers().forEach(this::dispatch);
-            metadata = grpcMetadataRW.build();
         }
+
+        metadata = grpcMetadataRW.build();
     }
 
     private boolean dispatch(

@@ -259,8 +259,9 @@ public final class GrpcBindingConfig
             if (beginEx != null)
             {
                 beginEx.headers().forEach(this::dispatch);
-                metadata = grpcMetadataRW.build();
             }
+
+            metadata = grpcMetadataRW.build();
         }
 
         private boolean dispatch(
