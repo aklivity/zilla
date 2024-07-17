@@ -30,6 +30,7 @@ import java.util.function.LongUnaryOperator;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
+import org.agrona.collections.MutableInteger;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.grpc.internal.GrpcBinding;
@@ -52,7 +53,9 @@ import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcAbortExFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcBeginExFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcDataExFW;
+import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcMetadataFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcResetExFW;
+import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcType;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.HttpEndExFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.HttpResetExFW;
@@ -100,6 +103,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
     private static final String16FW HEADER_VALUE_GRPC_ABORTED = new String16FW("10");
     private static final String16FW HEADER_VALUE_GRPC_UNIMPLEMENTED = new String16FW("12");
     private static final String16FW HEADER_VALUE_GRPC_INTERNAL_ERROR = new String16FW("13");
+    private static final OctetsFW DASH_BIN_OCTETS = new OctetsFW().wrap(new String16FW("-bind").value(), 0, 4);
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -116,6 +120,8 @@ public final class GrpcServerFactory implements GrpcStreamFactory
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
     private final FlushFW.Builder flushRW = new FlushFW.Builder();
+    private final MutableInteger headerOffsetRW = new MutableInteger();
+    private final OctetsFW.Builder octetsRW = new OctetsFW.Builder();
 
     private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
     private final GrpcBeginExFW grpcBeginExRO = new GrpcBeginExFW();
@@ -675,14 +681,43 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             long authorization,
             long replySeq,
             long replyAck,
-            int replyMax)
+            int replyMax,
+            Array32FW<GrpcMetadataFW> metadata)
         {
             this.replySeq = replySeq;
 
             doBegin(network, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization,
-                affinity, hs -> hs.item(h -> h.name(HEADER_NAME_STATUS).value(HEADER_VALUE_STATUS_200))
-                    .item(h -> h.name(HEADER_NAME_CONTENT_TYPE).value(method.contentType))
-                    .item(h -> h.name(HEADER_NAME_GRPC_ENCODING).value(HEADER_VALUE_GRPC_ENCODING)));
+                affinity, hs ->
+                {
+                    hs.item(h -> h.name(HEADER_NAME_STATUS).value(HEADER_VALUE_STATUS_200))
+                        .item(h -> h.name(HEADER_NAME_CONTENT_TYPE).value(method.contentType))
+                        .item(h -> h.name(HEADER_NAME_GRPC_ENCODING).value(HEADER_VALUE_GRPC_ENCODING));
+
+                    headerOffsetRW.value = 0;
+
+                    if (metadata != null)
+                    {
+                        metadata.forEach(m ->
+                        {
+                            if (m.type().get() == GrpcType.BASE64)
+                            {
+                                OctetsFW name = octetsRW.wrap(extBuffer, headerOffsetRW.value, extBuffer.capacity())
+                                    .put(m.name()).put(DASH_BIN_OCTETS).build();
+                                headerOffsetRW.value += octetsRW.limit();
+
+                                hs.item(h -> h
+                                    .name(name.value(), 0, name.sizeof())
+                                    .value(m.value().value(), 0, m.valueLen()));
+                            }
+                            else
+                            {
+                                hs.item(h -> h
+                                    .name(m.name().value(), 0, m.nameLen())
+                                    .value(m.value().value(), 0, m.valueLen()));
+                            }
+                        });
+                    }
+                });
 
             state = GrpcState.openingReply(state);
         }
@@ -1050,6 +1085,10 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             final long traceId = begin.traceId();
             final long authorization = begin.authorization();
 
+            final OctetsFW extension = begin.extension();
+
+            final GrpcBeginExFW grpcBeginEx = extension.get(grpcBeginExRO::tryWrap);
+
             state = GrpcState.openReply(state);
 
             assert acknowledge <= sequence;
@@ -1060,7 +1099,8 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             grpcReplyAck = acknowledge;
             state = GrpcState.openingReply(state);
 
-            delegate.doNetBegin(traceId, authorization, grpcReplySeq, grpcReplyAck, grpcReplyMax);
+            delegate.doNetBegin(traceId, authorization, grpcReplySeq, grpcReplyAck, grpcReplyMax,
+                grpcBeginEx != null ? grpcBeginEx.metadata() : null);
         }
 
         private void onAppData(

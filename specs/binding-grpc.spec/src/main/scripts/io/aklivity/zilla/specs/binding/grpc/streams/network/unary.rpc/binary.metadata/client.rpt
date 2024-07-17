@@ -42,6 +42,8 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header(":status", "200")
                            .header("content-type", "application/grpc")
                            .header("grpc-encoding", "identity")
+                           .header("custom", "value")
+                           .header("customProperty-bin", "dGVzdA==")
                            .build()}
 
 read ${grpc:message()
