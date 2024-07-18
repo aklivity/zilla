@@ -4,6 +4,8 @@ env:
 livenessProbePort: 7114
 readinessProbePort: 7114
 
+args: ["start", "-v", "-e", "-Pzilla.binding.kafka.client.produce.record.framing.size=1024"]
+
 service:
   ports:
     - port: 7114
