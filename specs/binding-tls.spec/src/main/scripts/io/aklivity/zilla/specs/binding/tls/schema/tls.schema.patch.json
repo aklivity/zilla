@@ -92,6 +92,10 @@
                         }
                     }
                 },
+                "required":
+                [
+                    "vault"
+                ],
                 "anyOf":
                 [
                     {

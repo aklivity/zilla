@@ -16,10 +16,19 @@
 
 ---
 name: test
+vaults:
+  proxy:
+    type: filesystem
+    options:
+      trust:
+        store: stores/client/trust
+        type: pkcs12
+        password: generated
 bindings:
   net0:
     type: tls
     kind: proxy
+    vault: proxy
     routes:
       - when:
           - authority: localhost
