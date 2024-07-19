@@ -9,9 +9,9 @@ export KAFKA_PORT="${KAFKA_PORT:-9092}"
 INIT_KAFKA="${INIT_KAFKA:-true}"
 
 # Start or restart Zilla
-if [[ -z $(docker-compose -p $NAMESPACE ps -q zilla) ]]; then
+if [[ -z $(docker compose -p $NAMESPACE ps -q zilla) ]]; then
   echo "==== Running the $NAMESPACE example with $KAFKA_BROKER($KAFKA_BOOTSTRAP_SERVER) ===="
-  docker-compose -p $NAMESPACE up -d
+  docker compose -p $NAMESPACE up -d
 
   # Create topics in Kafka
   if [[ $INIT_KAFKA == true ]]; then
@@ -22,5 +22,5 @@ if [[ -z $(docker-compose -p $NAMESPACE ps -q zilla) ]]; then
   fi
 
 else
-  docker-compose -p $NAMESPACE restart --no-deps zilla
+  docker compose -p $NAMESPACE up -d --force-recreate --no-deps zilla
 fi

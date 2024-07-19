@@ -8,9 +8,9 @@ export KAFKA_BOOTSTRAP_SERVER="${KAFKA_BOOTSTRAP_SERVER:-host.docker.internal:90
 INIT_KAFKA="${INIT_KAFKA:-true}"
 
 # Start or restart Zilla
-if [[ -z $(docker-compose -p $NAMESPACE ps -q zilla) ]]; then
+if [[ -z $(docker compose -p $NAMESPACE ps -q zilla) ]]; then
   echo "==== Running the $NAMESPACE example with $KAFKA_BROKER($KAFKA_BOOTSTRAP_SERVER) ===="
-  docker-compose -p $NAMESPACE up -d
+  docker compose -p $NAMESPACE up -d
 
   if [[ $INIT_KAFKA == true ]]; then
     # Create the mqtt topics in Kafka
@@ -24,5 +24,5 @@ if [[ -z $(docker-compose -p $NAMESPACE ps -q zilla) ]]; then
   fi
 
 else
-  docker-compose -p $NAMESPACE restart --no-deps zilla
+  docker compose -p $NAMESPACE up -d --force-recreate --no-deps zilla
 fi

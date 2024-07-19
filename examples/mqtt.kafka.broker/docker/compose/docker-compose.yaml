@@ -1,4 +1,3 @@
-version: '3'
 services:
   zilla:
     image: ghcr.io/aklivity/zilla:${ZILLA_VERSION}

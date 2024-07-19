@@ -1,7 +1,4 @@
-version: '3'
 services:
-
-
   zilla:
     image: ghcr.io/aklivity/zilla:${ZILLA_VERSION}
     container_name: zilla
@@ -29,7 +26,7 @@ services:
       - ./sim_settings.json:/usr/src/app/config/settings.json
 
   route-guide-server:
-    image: ghcr.io/aklivity/extras-route-guide-server:sha-478b2ce
+    image: ghcr.io/aklivity/extras-route-guide-server:sha-e49c994
     container_name: route-guide-server
     restart: unless-stopped
     ports:

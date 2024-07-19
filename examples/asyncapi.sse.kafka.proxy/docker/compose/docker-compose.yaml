@@ -1,4 +1,3 @@
-version: '3'
 services:
   zilla:
     image: ghcr.io/aklivity/zilla:${ZILLA_VERSION}
@@ -8,6 +7,7 @@ services:
     ports:
       - 7114:7114
     environment:
+      KAFKA_BOOTSTRAP_SERVER: ${KAFKA_BOOTSTRAP_SERVER}
       ZILLA_INCUBATOR_ENABLED: "true"
     volumes:
       - ../../zilla.yaml:/etc/zilla/zilla.yaml

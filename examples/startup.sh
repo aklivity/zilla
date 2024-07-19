@@ -160,7 +160,7 @@ if [[ $USE_HELM == false && -d "$WORKDIR/$EXAMPLE_FOLDER/$COMPOSE_FOLDER" ]]; th
         echo "Docker is required to run this setup."
         exit
     fi
-    if ! [[ -x "$(command -v docker-compose)" ]]; then
+    if ! [[ -x "$(command -v docker compose)" ]]; then
         echo "Docker Compose is required to run this setup."
         exit
     fi
