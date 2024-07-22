@@ -1,0 +1,66 @@
+/*
+ * Copyright 2021-2023 Aklivity Inc
+ *
+ * Licensed under the Aklivity Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ *   https://www.aklivity.io/aklivity-community-license/
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+scope schema_registry
+{
+    scope event
+    {
+        enum SchemaRegistryEventType (uint8)
+        {
+            UNRETRIEVABLE_SCHEMA_SUBJECT_VERSION (1),
+            UNRETRIEVABLE_SCHEMA_SUBJECT_VERSION_STALE_SCHEMA (2),
+            UNRETRIEVABLE_SCHEMA_ID (3),
+            RETRIEVED_SCHEMA_SUBJECT_VERSION (4),
+            RETRIEVED_SCHEMA_ID (5)
+        }
+
+        struct SchemaRegistryUnretrievableSchemaSubjectVersionEx extends core::stream::Extension
+        {
+            string8 subject;
+            string8 version;
+        }
+
+        struct SchemaRegistryUnretrievableSchemaSubjectVersionStaleSchemaEx extends core::stream::Extension
+        {
+            string8 subject;
+            string8 version;
+            int32 schemaId;
+        }
+
+        struct SchemaRegistryUnretrievableSchemaIdEx extends core::stream::Extension
+        {
+            int32 schemaId;
+        }
+
+        struct SchemaRegistryRetrievableSchemaSubjectVersionEx extends core::stream::Extension
+        {
+            string8 subject;
+            string8 version;
+        }
+
+        struct SchemaRegistryRetrievableSchemaIdEx extends core::stream::Extension
+        {
+            int32 schemaId;
+        }
+
+        union SchemaRegistryEventEx switch (SchemaRegistryEventType)
+        {
+            case UNRETRIEVABLE_SCHEMA_SUBJECT_VERSION: SchemaRegistryUnretrievableSchemaSubjectVersionEx unretrievableSchemaSubjectVersion;
+            case UNRETRIEVABLE_SCHEMA_SUBJECT_VERSION_STALE_SCHEMA: SchemaRegistryUnretrievableSchemaSubjectVersionStaleSchemaEx unretrievableSchemaSubjectVersionStaleSchema;
+            case UNRETRIEVABLE_SCHEMA_ID: SchemaRegistryUnretrievableSchemaIdEx unretrievableSchemaId;
+            case RETRIEVED_SCHEMA_SUBJECT_VERSION: SchemaRegistryRetrievableSchemaSubjectVersionEx retrievableSchemaSubjectVersion;
+            case RETRIEVED_SCHEMA_ID: SchemaRegistryRetrievableSchemaIdEx retrievableSchemaId;
+        }
+    }
+}

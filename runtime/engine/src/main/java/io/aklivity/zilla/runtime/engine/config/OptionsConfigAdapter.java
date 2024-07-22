@@ -15,11 +15,13 @@
  */
 package io.aklivity.zilla.runtime.engine.config;
 
-import static java.util.function.Function.identity;
-import static java.util.stream.Collectors.toMap;
+import static java.util.Collections.unmodifiableMap;
 
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
+import java.util.Set;
 import java.util.function.Supplier;
 
 import jakarta.json.JsonObject;
@@ -27,7 +29,7 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 public class OptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
 {
-    private final Map<String, OptionsConfigAdapterSpi> delegatesByName;
+    private final Map<String, OptionsConfigAdapterSpi> delegatesByType;
     private ConfigAdapterContext context;
 
     private OptionsConfigAdapterSpi delegate;
@@ -36,19 +38,19 @@ public class OptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObj
         OptionsConfigAdapterSpi.Kind kind,
         ConfigAdapterContext context)
     {
-        delegatesByName = ServiceLoader
+        this.delegatesByType = toMap(ServiceLoader
             .load(OptionsConfigAdapterSpi.class)
             .stream()
             .map(Supplier::get)
             .filter(s -> s.kind() == kind)
-            .collect(toMap(OptionsConfigAdapterSpi::type, identity()));
+            .toList());
         this.context = context;
     }
 
     public void adaptType(
         String type)
     {
-        delegate = delegatesByName.get(type);
+        delegate = delegatesByType.get(type);
         if (delegate != null)
         {
             delegate.adaptContext(context);
@@ -67,5 +69,23 @@ public class OptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObj
         JsonObject object)
     {
         return delegate != null ? delegate.adaptFromJson(object) : null;
+    }
+
+    private static Map<String, OptionsConfigAdapterSpi> toMap(
+        List<OptionsConfigAdapterSpi> adapters)
+    {
+        Map<String, OptionsConfigAdapterSpi> adaptersByType = new HashMap<>();
+        for (OptionsConfigAdapterSpi adapter : adapters)
+        {
+            String type = adapter.type();
+            Set<String> aliases = adapter.aliases();
+
+            adaptersByType.put(type, adapter);
+            for (String alias : aliases)
+            {
+                adaptersByType.put(alias, adapter);
+            }
+        }
+        return unmodifiableMap(adaptersByType);
     }
 }

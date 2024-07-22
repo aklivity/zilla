@@ -24,6 +24,8 @@ scope internal
             octets[serviceLength] service = null;
             int32 methodLength;
             octets[methodLength] method = null;
+            int32 metadataLength;
+            octets[metadataLength] metadata = null;
             int64 traceId;
             int64 authorization;
             int32 partitionId;

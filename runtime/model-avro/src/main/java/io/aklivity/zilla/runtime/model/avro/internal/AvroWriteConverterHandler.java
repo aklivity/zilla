@@ -82,6 +82,7 @@ public class AvroWriteConverterHandler extends AvroModelHandler implements Conve
         int length,
         ValueConsumer next)
     {
+        int valLength = -1;
         try
         {
             Schema schema = supplySchema(schemaId);
@@ -90,6 +91,7 @@ public class AvroWriteConverterHandler extends AvroModelHandler implements Conve
             {
             case STRING:
                 next.accept(buffer, index, length);
+                valLength = length;
                 break;
             case RECORD:
                 GenericDatumReader<GenericRecord> reader = supplyReader(schemaId);
@@ -103,7 +105,12 @@ public class AvroWriteConverterHandler extends AvroModelHandler implements Conve
                     encoderFactory.binaryEncoder(expandable, encoder);
                     writer.write(record, encoder);
                     encoder.flush();
-                    next.accept(expandable.buffer(), 0, expandable.position());
+                    int position = expandable.position();
+                    if (position > 0)
+                    {
+                        next.accept(expandable.buffer(), 0, position);
+                        valLength = position;
+                    }
                 }
                 break;
             }
@@ -112,6 +119,6 @@ public class AvroWriteConverterHandler extends AvroModelHandler implements Conve
         {
             event.validationFailure(traceId, bindingId, ex.getMessage());
         }
-        return expandable.position();
+        return valLength;
     }
 }

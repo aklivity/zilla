@@ -23,6 +23,8 @@ write zilla:begin.ext ${grpc:beginEx()
                             .authority("localhost:8080")
                             .service("example.EchoService")
                             .method("EchoUnary")
+                            .metadata("custom", "test")
+                            .metadata("idempotency-key", "59410e57-3e0f-4b61-9328-f645a7968ac8")
                             .build()}
 connected
 
@@ -36,6 +38,11 @@ write ${grpc:protobuf()
 write flush
 
 write close
+
+read zilla:begin.ext ${grpc:matchBeginEx()
+                           .typeId(zilla:id("grpc"))
+                           .metadata("custom", "value")
+                           .build()}
 
 read zilla:data.ext ${grpc:dataEx()
                               .typeId(zilla:id("grpc"))

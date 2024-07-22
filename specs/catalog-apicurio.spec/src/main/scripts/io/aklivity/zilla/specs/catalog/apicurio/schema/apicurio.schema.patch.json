@@ -2,6 +2,11 @@
     {
         "op": "add",
         "path": "/$defs/catalog/properties/type/enum/-",
+        "value": "apicurio-registry"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/catalog/properties/type/enum/-",
         "value": "apicurio"
     },
     {
@@ -15,7 +20,7 @@
                 {
                     "type":
                     {
-                        "const": "apicurio"
+                        "enum": [ "apicurio-registry", "apicurio" ]
                     }
                 }
             },
@@ -25,7 +30,7 @@
                 {
                     "type":
                     {
-                        "const": "apicurio"
+                        "enum": [ "apicurio-registry", "apicurio" ]
                     },
                     "options":
                     {

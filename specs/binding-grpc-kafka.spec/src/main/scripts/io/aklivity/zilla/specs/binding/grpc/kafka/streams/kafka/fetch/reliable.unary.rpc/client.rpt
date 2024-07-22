@@ -51,6 +51,8 @@ read zilla:data.ext ${kafka:matchDataEx()
                               .progress(0, 2)
                               .progress(1, 1)
                               .key("test")
+                              .header("meta:custom", "value")
+                              .header("meta:customProperty-bin", "dGVzdA==")
                               .build()
                            .build()}
 read ${grpc:protobuf()

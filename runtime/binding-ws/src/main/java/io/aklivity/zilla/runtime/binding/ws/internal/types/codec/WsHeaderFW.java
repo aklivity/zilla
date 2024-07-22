@@ -84,11 +84,12 @@ public final class WsHeaderFW extends Flyweight
         return buffer().getInt(offset() + FIELD_OFFSET_FLAGS_AND_OPCODE + FIELD_SIZE_FLAGS_AND_OPCODE + lengthSize());
     }
 
-    public int length()
+    public long length()
     {
         return length(buffer(), offset());
     }
 
+    //TODO: add 10k tests with 8k buffer
     @Override
     public int limit()
     {
@@ -230,7 +231,7 @@ public final class WsHeaderFW extends Flyweight
         }
     }
 
-    private static int length(DirectBuffer buffer, int offset)
+    private static long length(DirectBuffer buffer, int offset)
     {
         int length = buffer.getByte(offset + FIELD_OFFSET_MASK_AND_LENGTH) & 0x7f;
 
@@ -241,20 +242,9 @@ public final class WsHeaderFW extends Flyweight
 
         case 0x7f:
             long length8bytes = buffer.getLong(offset + FIELD_OFFSET_MASK_AND_LENGTH + 1, ByteOrder.BIG_ENDIAN);
-            validateLength(length8bytes);
-            return (int) length8bytes & 0xffffffff;
-
+            return length8bytes & 0x7fff_ffff_ffff_ffffL;
         default:
             return length;
-        }
-    }
-
-    private static void validateLength(
-            long length8bytes)
-    {
-        if (length8bytes >> 17L != 0L)
-        {
-            throw new IllegalStateException(String.format("frame payload=%d too long", length8bytes));
         }
     }
 

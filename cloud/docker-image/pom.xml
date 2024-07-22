@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>cloud</artifactId>
-    <version>0.9.88</version>
+    <version>0.9.89</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -190,6 +190,12 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>catalog-karapace</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>catalog-schema-registry</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>
     </dependency>

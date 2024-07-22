@@ -18,6 +18,7 @@ property string100k ${core:randomString(102400)}
 connect "zilla://streams/grpc0"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
+    option zilla:update "proactive"
 
 write zilla:begin.ext ${grpc:beginEx()
                               .typeId(zilla:id("grpc"))
@@ -41,6 +42,11 @@ write ${grpc:protobuf()
 write flush
 
 write close
+
+read zilla:begin.ext ${grpc:matchBeginEx()
+                           .typeId(zilla:id("grpc"))
+                           .metadata("custom", "value")
+                           .build()}
 
 read zilla:data.ext ${grpc:dataEx()
                               .typeId(zilla:id("grpc"))

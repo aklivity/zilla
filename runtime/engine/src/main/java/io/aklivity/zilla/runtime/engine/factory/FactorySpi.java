@@ -15,14 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.factory;
 
-import java.util.Set;
-
 public interface FactorySpi
 {
     String type();
-
-    default Set<String> aliases()
-    {
-        return Set.of();
-    }
 }

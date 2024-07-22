@@ -18,7 +18,9 @@ package io.aklivity.zilla.runtime.engine.config;
 import jakarta.json.JsonObject;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-public interface OptionsConfigAdapterSpi extends JsonbAdapter<OptionsConfig, JsonObject>
+import io.aklivity.zilla.runtime.engine.factory.Aliasable;
+
+public interface OptionsConfigAdapterSpi extends JsonbAdapter<OptionsConfig, JsonObject>, Aliasable
 {
     enum Kind
     {

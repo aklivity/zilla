@@ -31,9 +31,9 @@ public class ApicurioCatalogFactoryTest
     {
         Configuration config = new Configuration();
         CatalogFactory factory = CatalogFactory.instantiate();
-        Catalog catalog = factory.create(ApicurioCatalog.NAME, config);
+        Catalog catalog = factory.create(ApicurioCatalog.TYPE, config);
 
         assertThat(catalog, instanceOf(ApicurioCatalog.class));
-        assertEquals(ApicurioCatalog.NAME, catalog.name());
+        assertEquals(ApicurioCatalog.TYPE, catalog.name());
     }
 }

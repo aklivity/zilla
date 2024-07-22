@@ -23,7 +23,7 @@ public class ApicurioCatalogFactorySpi implements CatalogFactorySpi
     @Override
     public String type()
     {
-        return ApicurioCatalog.NAME;
+        return ApicurioCatalog.TYPE;
     }
 
     @Override

@@ -43,7 +43,7 @@ public class KarapaceOptionsConfigAdapterTest
     }
 
     @Test
-    public void shouldReadCondition()
+    public void shouldReadOptions()
     {
         String text =
                 "{" +
@@ -60,7 +60,7 @@ public class KarapaceOptionsConfigAdapterTest
     }
 
     @Test
-    public void shouldWriteCondition()
+    public void shouldWriteOptions()
     {
         KarapaceOptionsConfig catalog = KarapaceOptionsConfig.builder()
             .url("http://localhost:8081")

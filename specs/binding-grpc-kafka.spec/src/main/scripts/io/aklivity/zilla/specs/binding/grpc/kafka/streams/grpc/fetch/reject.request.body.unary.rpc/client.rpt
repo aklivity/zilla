@@ -16,6 +16,7 @@
 connect "zilla://streams/grpc0"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
+    option zilla:update "proactive"
 
 write zilla:begin.ext ${grpc:beginEx()
                             .typeId(zilla:id("grpc"))

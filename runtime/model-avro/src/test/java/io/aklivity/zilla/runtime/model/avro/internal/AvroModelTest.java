@@ -268,6 +268,47 @@ public class AvroModelTest
     }
 
     @Test
+    public void shouldWriteInvalidJsonEvent()
+    {
+        TestCatalogConfig catalog = CatalogConfig.builder(TestCatalogConfig::new)
+            .namespace("test")
+            .name("test0")
+            .type("test")
+            .options(TestCatalogOptionsConfig::builder)
+                .id(9)
+                .schema(SCHEMA)
+                .build()
+            .build();
+        AvroModelConfig model = AvroModelConfig.builder()
+            .view("json")
+            .catalog()
+                .name("test0")
+                    .schema()
+                    .strategy("topic")
+                    .version("latest")
+                    .subject("test-value")
+                    .build()
+                .build()
+            .build();
+
+        when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
+        AvroWriteConverterHandler converter = new AvroWriteConverterHandler(model, context);
+
+        String payload =
+            "{" +
+                "\"id\":123," +
+                "\"status\":\"positive\"" +
+            "}";
+
+        DirectBuffer data = new UnsafeBuffer();
+        data.wrap(payload.getBytes(), 0, payload.getBytes().length);
+        int progress = converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP);
+        assertEquals(-1, progress);
+    }
+
+    @Test
     public void shouldVerifyPaddingLength()
     {
         TestCatalogConfig catalog = CatalogConfig.builder(TestCatalogConfig::new)

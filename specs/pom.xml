@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>zilla</artifactId>
-    <version>0.9.88</version>
+    <version>0.9.89</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -43,6 +43,7 @@
     <module>catalog-filesystem.spec</module>
     <module>catalog-inline.spec</module>
     <module>catalog-karapace.spec</module>
+    <module>catalog-schema-registry.spec</module>
     <module>exporter-otlp.spec</module>
     <module>exporter-prometheus.spec</module>
     <module>exporter-stdout.spec</module>
@@ -138,6 +139,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>catalog-karapace.spec</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>catalog-schema-registry.spec</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

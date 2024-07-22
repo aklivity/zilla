@@ -33,10 +33,10 @@ scope grpc
 
         struct GrpcBeginEx extends core::stream::Extension
         {
-            string16 scheme;
-            string16 authority;
-            string16 service;
-            string16 method;
+            string16 scheme = null;
+            string16 authority = null;
+            string16 service = null;
+            string16 method = null;
             GrpcMetadata[] metadata;
         }
 

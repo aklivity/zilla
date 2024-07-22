@@ -60,10 +60,10 @@ public final class GrpcBindingConfig
     private static final Pattern METHOD_PATTERN = Pattern.compile("/(?<ServiceName>.*?)/(?<Method>.*)");
     private static final String SERVICE_NAME = "ServiceName";
     private static final String METHOD = "Method";
-    private static final byte[] HEADER_GRPC_PREFIX = new byte[5];
-    private static final byte[] HEADER_BIN_SUFFIX = new byte[4];
     private static final byte[] GRPC_PREFIX = "grpc-".getBytes();
     private static final byte[] BIN_SUFFIX = "-bin".getBytes();
+    private static final int GRPC_PREFIX_LENGTH = GRPC_PREFIX.length;
+    private static final int BIN_SUFFIX_LENGTH = BIN_SUFFIX.length;
 
     public final long id;
     public final String name;
@@ -226,6 +226,8 @@ public final class GrpcBindingConfig
         private final String16FW schemeRO = new String16FW();
         private final String16FW authorityRO = new String16FW();
         private final String16FW teRO = new String16FW();
+        private final byte[] headerPrefix = new byte[GRPC_PREFIX_LENGTH];
+        private final byte[] headerSuffix = new byte[BIN_SUFFIX_LENGTH];
 
         public Array32FW<GrpcMetadataFW> metadata;
         public CharSequence path;
@@ -259,8 +261,9 @@ public final class GrpcBindingConfig
             if (beginEx != null)
             {
                 beginEx.headers().forEach(this::dispatch);
-                metadata = grpcMetadataRW.build();
             }
+
+            metadata = grpcMetadataRW.build();
         }
 
         private boolean dispatch(
@@ -344,12 +347,12 @@ public final class GrpcBindingConfig
 
             final int offset = name.offset();
             final int limit = name.limit();
-            name.buffer().getBytes(offset, HEADER_GRPC_PREFIX);
-            name.buffer().getBytes(limit - BIN_SUFFIX.length, HEADER_BIN_SUFFIX);
+            name.buffer().getBytes(offset, headerPrefix);
+            name.buffer().getBytes(limit - BIN_SUFFIX.length, headerSuffix);
 
-            if (notHttpHeader && !GRPC_PREFIX.equals(HEADER_GRPC_PREFIX))
+            if (notHttpHeader && !GRPC_PREFIX.equals(headerPrefix))
             {
-                final GrpcType type = Arrays.equals(BIN_SUFFIX, HEADER_BIN_SUFFIX) ? BASE64 : TEXT;
+                final GrpcType type = Arrays.equals(BIN_SUFFIX, headerSuffix) ? BASE64 : TEXT;
                 final int metadataNameLength = type == BASE64 ? name.length() - BIN_SUFFIX.length : name.length();
 
                 grpcMetadataRW.item(m -> m.type(t -> t.set(type))
