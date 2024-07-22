@@ -43,10 +43,10 @@ public final class HttpGrpcResponseHeaderHelper
     private static final String8FW HTTP_HEADER_GRPC_STATUS = new String8FW("grpc-status");
     private static final String8FW HEADER_NAME_CONTENT_TYPE = new String8FW("content-type");
 
-    private static final byte[] HEADER_GRPC_PREFIX = new byte[5];
-    private static final byte[] HEADER_BIN_SUFFIX = new byte[4];
     private static final byte[] GRPC_PREFIX = "grpc-".getBytes();
     private static final byte[] BIN_SUFFIX = "-bin".getBytes();
+    private static final int GRPC_PREFIX_LENGTH = GRPC_PREFIX.length;
+    private static final int BIN_SUFFIX_LENGTH = BIN_SUFFIX.length;
 
     private final Array32FW.Builder<GrpcMetadataFW.Builder, GrpcMetadataFW> grpcMetadataRW =
         new Array32FW.Builder<>(new GrpcMetadataFW.Builder(), new GrpcMetadataFW());
@@ -73,6 +73,8 @@ public final class HttpGrpcResponseHeaderHelper
     private final AsciiSequenceView contentTypeRO = new AsciiSequenceView();
     private final String16FW statusRO = new String16FW();
     private final String16FW grpcStatusRO = new String16FW();
+    private final byte[] headerPrefix = new byte[GRPC_PREFIX_LENGTH];
+    private final byte[] headerSuffix = new byte[BIN_SUFFIX_LENGTH];
     private final MutableDirectBuffer metadataBuffer;
 
     public CharSequence contentType;
@@ -150,12 +152,12 @@ public final class HttpGrpcResponseHeaderHelper
 
         final int offset = name.offset();
         final int limit = name.limit();
-        name.buffer().getBytes(offset, HEADER_GRPC_PREFIX);
-        name.buffer().getBytes(limit - BIN_SUFFIX.length, HEADER_BIN_SUFFIX);
+        name.buffer().getBytes(offset, headerPrefix);
+        name.buffer().getBytes(limit - BIN_SUFFIX.length, headerSuffix);
 
-        if (notHttpHeader && !GRPC_PREFIX.equals(HEADER_GRPC_PREFIX))
+        if (notHttpHeader && !GRPC_PREFIX.equals(headerPrefix))
         {
-            final GrpcType type = Arrays.equals(BIN_SUFFIX, HEADER_BIN_SUFFIX) ? BASE64 : TEXT;
+            final GrpcType type = Arrays.equals(BIN_SUFFIX, headerSuffix) ? BASE64 : TEXT;
             final int metadataNameLength = type == BASE64 ? name.length() - BIN_SUFFIX.length : name.length();
 
             grpcMetadataRW.item(m -> m.type(t -> t.set(type))
