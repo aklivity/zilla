@@ -1394,8 +1394,8 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
                 if (KafkaConfiguration.DEBUG)
                 {
-                    System.out.format("[client] %s[%s] PRODUCE aborted (%d bytes)\n",
-                        topic, partitionId, network, networkBytesReceived);
+                    System.out.format("[client] %s[%d] PRODUCE aborted (%d bytes)\n",
+                        topic, partitionId, networkBytesReceived);
                 }
 
                 state = KafkaState.closedReply(state);
