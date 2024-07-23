@@ -92,10 +92,20 @@
                         }
                     }
                 },
-                "required":
-                [
-                    "vault"
-                ],
+                "if":
+                {
+                    "properties":
+                    {
+                        "kind":
+                        {
+                            "const": "server"
+                        }
+                    }
+                },
+                "then":
+                {
+                    "required": ["vault"]
+                },
                 "anyOf":
                 [
                     {
