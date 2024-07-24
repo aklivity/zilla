@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.specs.binding.http.kafka.config;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
@@ -22,6 +23,7 @@ import jakarta.json.JsonObject;
 
 import org.junit.Rule;
 import org.junit.Test;
+import org.leadpony.justify.api.JsonValidatingException;
 
 import io.aklivity.zilla.specs.engine.config.ConfigSchemaRule;
 
@@ -151,5 +153,11 @@ public class SchemaTest
         JsonObject config = schema.validate("proxy.put.item.async.yaml");
 
         assertThat(config, not(nullValue()));
+    }
+
+    @Test(expected = JsonValidatingException.class)
+    public void shouldFailInvalidPath()
+    {
+        schema.validate("proxy.invalid.path.yaml");
     }
 }
