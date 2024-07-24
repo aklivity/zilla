@@ -112,7 +112,8 @@
                                             "path":
                                             {
                                                 "title": "Path",
-                                                "type": "string"
+                                                "type": "string",
+                                                "pattern": "^/"
                                             }
                                         },
                                         "additionalProperties": false
