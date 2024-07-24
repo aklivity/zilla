@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.specs.binding.http.kafka.config;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
