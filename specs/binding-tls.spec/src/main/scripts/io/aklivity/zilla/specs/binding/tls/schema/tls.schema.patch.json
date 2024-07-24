@@ -92,6 +92,20 @@
                         }
                     }
                 },
+                "if":
+                {
+                    "properties":
+                    {
+                        "kind":
+                        {
+                            "const": "server"
+                        }
+                    }
+                },
+                "then":
+                {
+                    "required": ["vault"]
+                },
                 "anyOf":
                 [
                     {
@@ -131,7 +145,23 @@
                             },
                             "options":
                             {
-                                "$ref": "#/$defs/options/binding/tls"
+                                "allOf":
+                                [
+                                    {
+                                        "$ref": "#/$defs/options/binding/tls"
+                                    },
+                                    {
+                                        "oneOf":
+                                        [
+                                            {
+                                                "required": ["keys"]
+                                            },
+                                            {
+                                                "required": ["signers"]
+                                            }
+                                        ]
+                                    }
+                                ]
                             }
                         }
                     },
