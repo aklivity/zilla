@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal.config;
 
+import static io.aklivity.zilla.runtime.engine.config.WithConfig.NO_COMPOSITE_ID;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
@@ -22,14 +23,16 @@ import java.util.function.Function;
 import java.util.function.LongPredicate;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpConditionConfig;
+import io.aklivity.zilla.runtime.binding.http.config.HttpWithConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 
 public final class HttpRouteConfig
 {
     public final long id;
 
-    private List<HttpConditionMatcher> when;
-    private LongPredicate authorized;
+    private final List<HttpConditionMatcher> when;
+    private final HttpWithConfig with;
+    private final LongPredicate authorized;
 
     public HttpRouteConfig(
         RouteConfig route)
@@ -39,7 +42,13 @@ public final class HttpRouteConfig
             .map(HttpConditionConfig.class::cast)
             .map(HttpConditionMatcher::new)
             .collect(toList());
+        this.with = (HttpWithConfig)route.with;
         this.authorized = route.authorized;
+    }
+
+    public long compositeId()
+    {
+        return with != null ? with.compositeId : NO_COMPOSITE_ID;
     }
 
     boolean authorized(

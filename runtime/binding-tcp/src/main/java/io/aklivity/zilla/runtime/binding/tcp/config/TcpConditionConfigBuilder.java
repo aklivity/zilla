@@ -17,6 +17,8 @@ package io.aklivity.zilla.runtime.binding.tcp.config;
 
 import java.util.function.Function;
 
+import org.agrona.collections.IntArrayList;
+
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 
@@ -26,7 +28,7 @@ public final class TcpConditionConfigBuilder<T> extends ConfigBuilder<T, TcpCond
 
     private String cidr;
     private String authority;
-    private int[] ports;
+    private IntArrayList ports;
 
     TcpConditionConfigBuilder(
         Function<ConditionConfig, T> mapper)
@@ -55,16 +57,28 @@ public final class TcpConditionConfigBuilder<T> extends ConfigBuilder<T, TcpCond
         return this;
     }
 
+    public TcpConditionConfigBuilder<T> port(
+        int port)
+    {
+        if (ports == null)
+        {
+            ports = new IntArrayList(1, -1);
+        }
+        ports.addInt(port);
+        return this;
+    }
+
     public TcpConditionConfigBuilder<T> ports(
         int[] ports)
     {
-        this.ports = ports;
+        this.ports = new IntArrayList(ports, ports.length, -1);
         return this;
     }
 
     @Override
     public T build()
     {
-        return mapper.apply(new TcpConditionConfig(cidr, authority, ports));
+        final int[] portsArray = ports != null ? ports.toIntArray() : null;
+        return mapper.apply(new TcpConditionConfig(cidr, authority, portsArray));
     }
 }

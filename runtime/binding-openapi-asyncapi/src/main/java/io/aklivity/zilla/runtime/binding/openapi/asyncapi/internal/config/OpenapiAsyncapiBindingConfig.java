@@ -30,10 +30,10 @@ import org.agrona.collections.Object2LongHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiCatalogConfig;
-import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiParser;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiSchemaConfig;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
+import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiSpecificationConfig;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiView;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.config.OpenapiAsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiCatalogConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiConfig;
@@ -136,7 +136,7 @@ public final class OpenapiAsyncapiBindingConfig
                 (e, n) -> e,
                 Object2ObjectHashMap::new));
 
-        final Map<String, Asyncapi> asyncapis = asyncapiConfigs.stream()
+        final Map<String, AsyncapiView> asyncapis = asyncapiConfigs.stream()
             .collect(Collectors.toMap(
                     c -> c.apiLabel,
                     c -> c.asyncapi,
@@ -165,10 +165,10 @@ public final class OpenapiAsyncapiBindingConfig
     }
 
     private List<AsyncapiSchemaConfig> convertToAsyncapi(
-        Set<AsyncapiConfig> configs)
+        Set<AsyncapiSpecificationConfig> configs)
     {
         final List<AsyncapiSchemaConfig> asyncapiConfigs = new ArrayList<>();
-        for (AsyncapiConfig config : configs)
+        for (AsyncapiSpecificationConfig config : configs)
         {
             for (AsyncapiCatalogConfig catalog : config.catalogs)
             {
@@ -176,7 +176,8 @@ public final class OpenapiAsyncapiBindingConfig
                 final CatalogHandler handler = supplyCatalog.apply(catalogId);
                 final int schemaId = handler.resolve(catalog.subject, catalog.version);
                 final String payload = handler.resolve(schemaId);
-                asyncapiConfigs.add(new AsyncapiSchemaConfig(config.apiLabel, schemaId, asyncapiParser.parse(payload)));
+                final AsyncapiView asyncapi = AsyncapiView.of(asyncapiParser.parse(payload));
+                asyncapiConfigs.add(new AsyncapiSchemaConfig(config.label, schemaId, asyncapi));
             }
         }
         return asyncapiConfigs;

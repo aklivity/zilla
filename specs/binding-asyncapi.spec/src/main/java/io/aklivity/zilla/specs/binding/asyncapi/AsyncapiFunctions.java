@@ -16,7 +16,6 @@
 package io.aklivity.zilla.specs.binding.asyncapi;
 
 import java.nio.ByteBuffer;
-import java.util.Objects;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
@@ -25,7 +24,6 @@ import org.agrona.concurrent.UnsafeBuffer;
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.k3po.runtime.lang.el.Function;
 import io.aklivity.k3po.runtime.lang.el.spi.FunctionMapperSpi;
-import io.aklivity.zilla.specs.binding.asyncapi.internal.types.OctetsFW;
 import io.aklivity.zilla.specs.binding.asyncapi.internal.types.stream.AsyncapiBeginExFW;
 
 public final class AsyncapiFunctions
@@ -98,7 +96,7 @@ public final class AsyncapiFunctions
         private Integer typeId;
         private long apiId;
         private String operationId;
-        private OctetsFW.Builder extensionRW;
+        private BytesMatcher extension;
 
         public AsyncapiBeginExMatcherBuilder typeId(
             int typeId)
@@ -122,13 +120,9 @@ public final class AsyncapiFunctions
         }
 
         public AsyncapiBeginExMatcherBuilder extension(
-            byte[] extension)
+            BytesMatcher extension)
         {
-            assert extensionRW == null;
-            extensionRW = new OctetsFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
-
-            extensionRW.set(Objects.requireNonNullElseGet(extension, () -> new byte[] {}));
-
+            this.extension = extension;
             return this;
         }
 
@@ -151,11 +145,14 @@ public final class AsyncapiFunctions
             if (beginEx != null &&
                 matchTypeId(beginEx) &&
                 matchApiId(beginEx) &&
-                matchOperationId(beginEx) &&
-                matchExtension(beginEx))
+                matchOperationId(beginEx))
             {
-                byteBuf.position(byteBuf.position() + beginEx.sizeof());
-                return beginEx;
+                byteBuf.position(byteBuf.position() + beginEx.sizeof() - beginEx.extension().sizeof());
+
+                if (matchExtension(beginEx))
+                {
+                    return beginEx;
+                }
             }
             throw new Exception(beginEx.toString());
         }
@@ -179,9 +176,9 @@ public final class AsyncapiFunctions
         }
 
         private boolean matchExtension(
-            final AsyncapiBeginExFW beginEx)
+            AsyncapiBeginExFW beginEx) throws Exception
         {
-            return extensionRW == null || extensionRW.build().equals(beginEx.extension());
+            return extension == null || extension.match(bufferRO.byteBuffer()) != null;
         }
     }
 

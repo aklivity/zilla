@@ -34,7 +34,7 @@ public final class HttpAuthorizationConfig
     public static <T> HttpAuthorizationConfigBuilder<T> builder(
         Function<HttpAuthorizationConfig, T> mapper)
     {
-        return new HttpAuthorizationConfigBuilder(mapper);
+        return new HttpAuthorizationConfigBuilder<>(mapper);
     }
 
     HttpAuthorizationConfig(

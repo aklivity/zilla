@@ -294,6 +294,7 @@ public final class SseServerFactory implements SseStreamFactory
 
             if (resolved != null)
             {
+                final long compositeId = resolved.compositeId();
                 final boolean timestampRequested = httpBeginEx.headers().anyMatch(header ->
                     HEADER_NAME_ACCEPT.equals(header.name()) &&
                     header.value().asString().contains("ext=timestamp"));
@@ -310,7 +311,7 @@ public final class SseServerFactory implements SseStreamFactory
                     binding.supplyModelConfig(path.asString()));
 
                 server.onNetBegin(begin);
-                server.stream.doAppBegin(traceId, authorization, affinity, scheme, authority, path, lastId8);
+                server.stream.doAppBegin(traceId, authorization, affinity, compositeId, scheme, authority, path, lastId8);
 
                 newStream = server::onNetMessage;
             }
@@ -898,13 +899,14 @@ public final class SseServerFactory implements SseStreamFactory
                 long traceId,
                 long authorization,
                 long affinity,
+                long compositeId,
                 String16FW scheme,
                 String16FW authority,
                 String16FW path,
                 String8FW lastId)
             {
                 application = newSseStream(this::onAppMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                        traceId, authorization, affinity, scheme, authority, path, lastId);
+                        traceId, authorization, affinity, compositeId, scheme, authority, path, lastId);
             }
 
             private void doAppEndDeferred(
@@ -1516,12 +1518,14 @@ public final class SseServerFactory implements SseStreamFactory
         long traceId,
         long authorization,
         long affinity,
+        long compositeId,
         String16FW scheme,
         String16FW authority,
         String16FW path,
         String8FW lastId)
     {
         final SseBeginExFW sseBegin = sseBeginExRW.wrap(writeBuffer, BeginFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
+                .compositeId(compositeId)
                 .typeId(sseTypeId)
                 .scheme(scheme)
                 .authority(authority)

@@ -19,6 +19,8 @@ import java.util.List;
 import jakarta.json.bind.annotation.JsonbProperty;
 import jakarta.json.bind.annotation.JsonbTypeDeserializer;
 
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.AsyncapiMessageBindings;
+
 public class AsyncapiMessage
 {
     public AsyncapiSchema headers;

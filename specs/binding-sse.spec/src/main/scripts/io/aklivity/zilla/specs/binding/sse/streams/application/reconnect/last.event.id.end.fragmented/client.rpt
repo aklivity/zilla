@@ -28,7 +28,7 @@ write zilla:begin.ext ${sse:beginEx()
 
 connected
 
-read zilla:data.ext ${zilla:id("sse")} 1519937168533L [0xfe] [0..254] [0x10] [0..16]
+read zilla:data.ext 0L ${zilla:id("sse")} 1519937168533L [0xfe] [0..254] [0x10] [0..16]
 read "Hello, world"
 
 read zilla:end.ext ${sse:endEx()

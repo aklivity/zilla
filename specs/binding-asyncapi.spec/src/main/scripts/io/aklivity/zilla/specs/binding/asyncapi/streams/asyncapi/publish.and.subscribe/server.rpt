@@ -22,7 +22,7 @@ accepted
 
 read zilla:begin.ext ${asyncapi:matchBeginEx()
                              .typeId(zilla:id("asyncapi"))
-                             .extension(mqtt:beginEx()
+                             .extension(mqtt:matchBeginEx()
                                             .typeId(zilla:id("mqtt"))
                                             .session()
                                               .clientId("client")
@@ -50,7 +50,7 @@ accepted
 
 read zilla:begin.ext ${asyncapi:matchBeginEx()
                              .typeId(zilla:id("asyncapi"))
-                             .extension(mqtt:beginEx()
+                             .extension(mqtt:matchBeginEx()
                                               .typeId(zilla:id("mqtt"))
                                               .publish()
                                                 .clientId("client")
@@ -79,7 +79,7 @@ accepted
 
 read zilla:begin.ext ${asyncapi:matchBeginEx()
                              .typeId(zilla:id("asyncapi"))
-                             .extension(mqtt:beginEx()
+                             .extension(mqtt:matchBeginEx()
                                              .typeId(zilla:id("mqtt"))
                                              .subscribe()
                                                  .clientId("client")

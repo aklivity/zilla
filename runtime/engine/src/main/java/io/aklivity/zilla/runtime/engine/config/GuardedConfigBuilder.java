@@ -51,6 +51,13 @@ public final class GuardedConfigBuilder<T> extends ConfigBuilder<T, GuardedConfi
         return this;
     }
 
+    public GuardedConfigBuilder<T>  roles(
+        List<String> roles)
+    {
+        this.roles = roles;
+        return this;
+    }
+
     public GuardedConfigBuilder<T> role(
         String role)
     {

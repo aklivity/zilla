@@ -36,6 +36,11 @@ public final class AsyncapiMqttKafkaConfigBuilder<T> extends ConfigBuilder<T, As
         return (Class<AsyncapiMqttKafkaConfigBuilder<T>>) getClass();
     }
 
+    public AsyncapiChannelsConfigBuilder<AsyncapiMqttKafkaConfigBuilder<T>> channels()
+    {
+        return AsyncapiChannelsConfig.builder(this::channels);
+    }
+
     public AsyncapiMqttKafkaConfigBuilder<T> channels(
         AsyncapiChannelsConfig channels)
     {

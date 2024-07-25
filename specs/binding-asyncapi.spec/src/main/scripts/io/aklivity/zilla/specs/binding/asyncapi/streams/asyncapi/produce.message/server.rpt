@@ -22,7 +22,7 @@ accepted
 
 read zilla:begin.ext ${asyncapi:matchBeginEx()
                              .typeId(zilla:id("asyncapi"))
-                             .extension(kafka:beginEx()
+                             .extension(kafka:matchBeginEx()
                                            .typeId(zilla:id("kafka"))
                                            .merged()
                                                .capabilities("PRODUCE_ONLY")

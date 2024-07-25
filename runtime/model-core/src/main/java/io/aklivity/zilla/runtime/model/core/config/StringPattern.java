@@ -16,15 +16,18 @@ package io.aklivity.zilla.runtime.model.core.config;
 
 public enum StringPattern
 {
-    EMAIL("^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}"),
-    DATE("^(\\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])"),
-    DATE_TIME("^(\\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])T([01]\\d|2[0-3]):([0-5]\\d):([0-5]\\d)Z");
+    EMAIL("email", "^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}"),
+    DATE("date", "^(\\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])"),
+    DATE_TIME("date-time", "^(\\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])T([01]\\d|2[0-3]):([0-5]\\d):([0-5]\\d)Z");
 
+    public final String format;
     public final String pattern;
 
     StringPattern(
+        String format,
         String pattern)
     {
+        this.format = format;
         this.pattern = pattern;
     }
 

@@ -33,12 +33,22 @@ public final class HttpKafkaWithConfigBuilder<T> extends ConfigBuilder<T, HttpKa
         this.mapper = mapper;
     }
 
+    public HttpKafkaWithFetchConfigBuilder<HttpKafkaWithConfigBuilder<T>> fetch()
+    {
+        return HttpKafkaWithFetchConfig.builder(this::fetch);
+    }
+
     public HttpKafkaWithConfigBuilder<T> fetch(
         HttpKafkaWithFetchConfig fetch)
     {
         capability = HttpKafkaCapability.FETCH;
         this.fetch = fetch;
         return this;
+    }
+
+    public HttpKafkaWithProduceConfigBuilder<HttpKafkaWithConfigBuilder<T>> produce()
+    {
+        return HttpKafkaWithProduceConfig.builder(this::produce);
     }
 
     public HttpKafkaWithConfigBuilder<T> produce(

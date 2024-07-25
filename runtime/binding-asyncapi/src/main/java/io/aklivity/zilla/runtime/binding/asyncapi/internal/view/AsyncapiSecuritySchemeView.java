@@ -15,41 +15,32 @@
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.view;
 
 import java.util.List;
-import java.util.Map;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiSecurityScheme;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.resolver.AsyncapiResolver;
 
-public final class AsyncapiSecuritySchemeView extends AsyncapiResolvable<AsyncapiSecurityScheme>
+public final class AsyncapiSecuritySchemeView
 {
-    private final AsyncapiSecurityScheme scheme;
+    public final String name;
+    public final String type;
+    public final List<String> scopes;
 
-    public String type()
+    AsyncapiSecuritySchemeView(
+        AsyncapiResolver resolver,
+        AsyncapiSecurityScheme model)
     {
-        return scheme.type;
+        this(resolver, model.ref, model);
     }
 
-    public List<String> scopes()
+    AsyncapiSecuritySchemeView(
+        AsyncapiResolver resolver,
+        String name,
+        AsyncapiSecurityScheme model)
     {
-        return scheme.scopes;
-    }
+        final AsyncapiSecurityScheme resolved = resolver.securitySchemes.resolve(model);
 
-    public String refKey()
-    {
-        return key;
-    }
-
-    public static AsyncapiSecuritySchemeView of(
-        Map<String, AsyncapiSecurityScheme> schemes,
-        AsyncapiSecurityScheme scheme)
-    {
-        return new AsyncapiSecuritySchemeView(schemes, scheme);
-    }
-
-    private AsyncapiSecuritySchemeView(
-        Map<String, AsyncapiSecurityScheme> schemes,
-        AsyncapiSecurityScheme scheme)
-    {
-        super(schemes, "#/components/securitySchemes/(.+)");
-        this.scheme = scheme.ref == null ? scheme : resolveRef(scheme.ref);
+        this.name = name;
+        this.type = resolved.type;
+        this.scopes = resolved.scopes;
     }
 }

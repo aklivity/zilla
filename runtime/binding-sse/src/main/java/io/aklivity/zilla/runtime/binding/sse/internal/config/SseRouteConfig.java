@@ -15,12 +15,14 @@
  */
 package io.aklivity.zilla.runtime.binding.sse.internal.config;
 
+import static io.aklivity.zilla.runtime.engine.config.WithConfig.NO_COMPOSITE_ID;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
 import java.util.function.LongPredicate;
 
 import io.aklivity.zilla.runtime.binding.sse.config.SseConditionConfig;
+import io.aklivity.zilla.runtime.binding.sse.config.SseWithConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 
 public final class SseRouteConfig
@@ -28,6 +30,7 @@ public final class SseRouteConfig
     public final long id;
 
     private final List<SseConditionMatcher> when;
+    private final SseWithConfig with;
     private final LongPredicate authorized;
 
     public SseRouteConfig(
@@ -38,7 +41,13 @@ public final class SseRouteConfig
             .map(SseConditionConfig.class::cast)
             .map(SseConditionMatcher::new)
             .collect(toList());
+        this.with = (SseWithConfig) route.with;
         this.authorized = route.authorized;
+    }
+
+    public long compositeId()
+    {
+        return with != null ? with.compositeId : NO_COMPOSITE_ID;
     }
 
     boolean authorized(

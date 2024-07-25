@@ -19,7 +19,7 @@ accept "zilla://streams/net0"
   option zilla:transmission "duplex"
 accepted
 
-read zilla:begin.ext ${zilla:id("http")}
+read zilla:begin.ext 0L ${zilla:id("http")}
                        [0xb4 0x00 0x00 0x00]
                        [0x08 0x00 0x00 0x00]
                        [0x07] ":method" [0x03 0x00] "GET"

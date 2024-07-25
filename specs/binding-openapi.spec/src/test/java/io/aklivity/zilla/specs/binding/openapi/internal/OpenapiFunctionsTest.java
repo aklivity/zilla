@@ -77,7 +77,7 @@ public class OpenapiFunctionsTest
             .extension(new byte[] {1})
             .build();
 
-        ByteBuffer byteBuf = ByteBuffer.allocate(26);
+        ByteBuffer byteBuf = ByteBuffer.allocate(34);
         MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1]);
 
         new OpenapiBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())

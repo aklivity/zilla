@@ -23,6 +23,7 @@ accept ${serverAddress}
 accepted
 
 read zilla:begin.ext ${http:matchBeginEx()
+                              .compositeId(core:decodeLong("0x0000_0001_0000_0001"))
                               .typeId(zilla:id("http"))
                               .header(":method", "POST")
                               .header(":scheme", "http")

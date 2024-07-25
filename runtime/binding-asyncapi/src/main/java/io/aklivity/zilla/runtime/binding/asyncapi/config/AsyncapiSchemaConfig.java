@@ -15,18 +15,18 @@
 package io.aklivity.zilla.runtime.binding.asyncapi.config;
 
 
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiView;
 
 public class AsyncapiSchemaConfig
 {
     public final String apiLabel;
     public final int schemaId;
-    public final Asyncapi asyncapi;
+    public final AsyncapiView asyncapi;
 
     public AsyncapiSchemaConfig(
         String apiLabel,
         int schemaId,
-        Asyncapi asyncapi)
+        AsyncapiView asyncapi)
     {
         this.apiLabel = apiLabel;
         this.schemaId = schemaId;

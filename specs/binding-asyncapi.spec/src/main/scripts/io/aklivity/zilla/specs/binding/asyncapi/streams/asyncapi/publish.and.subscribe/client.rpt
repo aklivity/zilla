@@ -30,7 +30,7 @@ write zilla:begin.ext ${asyncapi:beginEx()
 
 read zilla:begin.ext ${asyncapi:matchBeginEx()
                              .typeId(zilla:id("asyncapi"))
-                             .extension(mqtt:beginEx()
+                             .extension(mqtt:matchBeginEx()
                                             .typeId(zilla:id("mqtt"))
                                             .session()
                                               .clientId("client")

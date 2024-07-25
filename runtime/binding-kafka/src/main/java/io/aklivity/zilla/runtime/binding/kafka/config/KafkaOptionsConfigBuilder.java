@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.binding.kafka.config;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Function;
 
@@ -47,37 +48,35 @@ public final class KafkaOptionsConfigBuilder<T> extends ConfigBuilder<T, KafkaOp
     }
 
     public KafkaOptionsConfigBuilder<T> bootstrap(
-        List<String> bootstrap)
+        String topic)
     {
-        this.bootstrap = bootstrap;
-        return this;
-    }
-
-    public KafkaOptionsConfigBuilder<T> topics(
-        List<KafkaTopicConfig> topics)
-    {
-        this.topics = topics;
+        if (bootstrap == null)
+        {
+            bootstrap = new LinkedList<>();
+        }
+        bootstrap.add(topic);
         return this;
     }
 
     public KafkaOptionsConfigBuilder<T> topic(
         KafkaTopicConfig topic)
     {
-        this.topics.add(topic);
+        if (topics == null)
+        {
+            topics = new LinkedList<>();
+        }
+        topics.add(topic);
         return this;
     }
 
-    public <C extends ConfigBuilder<KafkaOptionsConfigBuilder<T>, C>> C topic(
-        Function<Function<KafkaTopicConfig, KafkaOptionsConfigBuilder<T>>, C> topic)
+    public KafkaTopicConfigBuilder<KafkaOptionsConfigBuilder<T>> topic()
     {
-        return topic.apply(this::topic);
+        return KafkaTopicConfig.builder(this::topic);
     }
 
-    public KafkaOptionsConfigBuilder<T> servers(
-        List<KafkaServerConfig> servers)
+    public KafkaServerConfigBuilder<KafkaOptionsConfigBuilder<T>> server()
     {
-        this.servers = servers;
-        return this;
+        return KafkaServerConfig.builder(this::server);
     }
 
     public KafkaOptionsConfigBuilder<T> sasl(
@@ -87,10 +86,21 @@ public final class KafkaOptionsConfigBuilder<T> extends ConfigBuilder<T, KafkaOp
         return this;
     }
 
-    public <C extends ConfigBuilder<KafkaOptionsConfigBuilder<T>, C>> C sasl(
-        Function<Function<KafkaSaslConfig, KafkaOptionsConfigBuilder<T>>, C> sasl)
+    public KafkaSaslConfigBuilder<KafkaOptionsConfigBuilder<T>> sasl()
     {
-        return sasl.apply(this::sasl);
+        return KafkaSaslConfig.builder(this::sasl);
+    }
+
+    public KafkaOptionsConfigBuilder<T> server(
+        KafkaServerConfig server)
+    {
+        if (servers == null)
+        {
+            servers = new LinkedList<>();
+        }
+
+        servers.add(server);
+        return this;
     }
 
     @Override

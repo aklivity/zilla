@@ -1077,6 +1077,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                                 binding.options.overrides.forEach((k, v) -> headers.put(k.asString(), v.asString()));
 
                                 final HttpBeginExFW.Builder newBeginEx = newBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
+                                                                                     .compositeId(route.compositeId())
                                                                                      .typeId(httpTypeId);
                                 headers.forEach((k, v) -> newBeginEx.headersItem(i -> i.name(k).value(v)));
                                 beginEx = newBeginEx.build();
@@ -5017,6 +5018,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                             }
 
                             final HttpBeginExFW beginEx = beginExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                                    .compositeId(route.compositeId())
                                     .typeId(httpTypeId)
                                     .headers(hs -> headers.forEach((n, v) -> hs.item(h -> h.name(n).value(v))))
                                     .build();
@@ -5410,6 +5412,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                                 exchangeAuth, traceId, policy, origin, contentLength, null);
 
                     final HttpBeginExFW beginEx = beginExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                            .compositeId(route.compositeId())
                             .typeId(httpTypeId)
                             .headers(hs -> headers.forEach((n, v) -> hs.item(i -> i.name(n).value(v))))
                             .build();

@@ -35,10 +35,10 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiChannelsConfig;
-import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiMqttKafkaConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiServerConfig;
+import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiSpecificationConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
@@ -120,7 +120,7 @@ public class AsyncapiOptionsConfigAdapterTest
         AsyncapiOptionsConfig options = jsonb.fromJson(text, AsyncapiOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
-        AsyncapiConfig asyncapi = options.asyncapis.get(0);
+        AsyncapiSpecificationConfig asyncapi = options.specs.get(0);
         assertThat(asyncapi.servers.size(), equalTo(1));
         AsyncapiServerConfig server = asyncapi.servers.get(0);
         assertThat(server.host, equalTo("test.mosquitto.org:1883"));
@@ -138,6 +138,17 @@ public class AsyncapiOptionsConfigAdapterTest
     {
         AsyncapiOptionsConfig options = AsyncapiOptionsConfig.builder()
             .inject(Function.identity())
+            .spec()
+                .label("mqtt-api")
+                .catalog()
+                    .name("catalog0")
+                    .subject("smartylighting")
+                    .version("latest")
+                    .build()
+                .server()
+                    .host("test.mosquitto.org:1883")
+                    .build()
+                .build()
             .tcp(TcpOptionsConfig.builder()
                 .host("localhost")
                 .ports(new int[] { 7183 })
@@ -163,6 +174,26 @@ public class AsyncapiOptionsConfigAdapterTest
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo(
             "{" +
+                "\"specs\":" +
+                "{" +
+                    "\"mqtt-api\":" +
+                    "{" +
+                        "\"catalog\":" +
+                        "{" +
+                            "\"catalog0\":" +
+                            "{" +
+                                "\"subject\":\"smartylighting\"," +
+                                "\"version\":\"latest\"" +
+                            "}" +
+                        "}," +
+                        "\"servers\":" +
+                        "[" +
+                            "{" +
+                                "\"host\":\"test.mosquitto.org:1883\"" +
+                            "}" +
+                        "]" +
+                    "}" +
+                "}," +
                 "\"tcp\":" +
                 "{" +
                     "\"host\":\"localhost\"," +

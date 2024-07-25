@@ -40,7 +40,7 @@ write close
 read zilla:begin.ext ${asyncapi:matchBeginEx()
                              .typeId(zilla:id("asyncapi"))
                              .apiId(0)
-                             .extension(http:beginEx()
+                             .extension(http:matchBeginEx()
                                    .typeId(zilla:id("http"))
                                    .header(":status", "204")
                                   .build())

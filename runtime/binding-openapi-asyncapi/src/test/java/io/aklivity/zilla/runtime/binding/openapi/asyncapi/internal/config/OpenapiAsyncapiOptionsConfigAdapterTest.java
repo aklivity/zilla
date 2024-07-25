@@ -35,8 +35,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
-import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiCatalogConfig;
-import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiConfig;
+import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiSpecificationConfig;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.config.OpenapiAsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.config.OpenapiAsyncapiSpecConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiCatalogConfig;
@@ -98,9 +97,9 @@ public class OpenapiAsyncapiOptionsConfigAdapterTest
         OpenapiConfig openapi = options.specs.openapi.stream().findFirst().get();
         assertEquals("openapi-id", openapi.apiLabel);
         assertThat(openapi.apiLabel, not(nullValue()));
-        AsyncapiConfig asyncapi = options.specs.asyncapi.stream().findFirst().get();
-        assertEquals("asyncapi-id", asyncapi.apiLabel);
-        assertThat(asyncapi.apiLabel, not(nullValue()));
+        AsyncapiSpecificationConfig asyncapi = options.specs.asyncapi.stream().findFirst().get();
+        assertEquals("asyncapi-id", asyncapi.label);
+        assertThat(asyncapi.label, not(nullValue()));
     }
 
     @Test
@@ -114,9 +113,15 @@ public class OpenapiAsyncapiOptionsConfigAdapterTest
         openapiConfigs.add(new OpenapiConfig("openapi-id",
             List.of(new OpenapiCatalogConfig("catalog0", "petstore", "latest"))));
 
-        Set<AsyncapiConfig> asyncapiConfigs = new HashSet<>();
-        asyncapiConfigs.add(new AsyncapiConfig("asyncapi-id",
-            List.of(new AsyncapiCatalogConfig("catalog0", "petstore", "latest"))));
+        Set<AsyncapiSpecificationConfig> asyncapiConfigs = new HashSet<>();
+        asyncapiConfigs.add(AsyncapiSpecificationConfig.builder()
+            .label("asyncapi-id")
+            .catalog()
+                .name("catalog0")
+                .subject("petstore")
+                .version("latest")
+                .build()
+            .build());
 
         final OpenapiAsyncapiOptionsConfig options = new OpenapiAsyncapiOptionsConfig(
             new OpenapiAsyncapiSpecConfig(openapiConfigs, asyncapiConfigs));

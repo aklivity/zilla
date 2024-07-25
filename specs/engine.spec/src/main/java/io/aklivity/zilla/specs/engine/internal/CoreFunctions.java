@@ -48,6 +48,13 @@ public final class CoreFunctions
     private static final ThreadLocal<String16FW.Builder> STRING16N_RW = withInitial(() -> new String16FW.Builder(BIG_ENDIAN));
 
     @Function
+    public static long decodeLong(
+        String value)
+    {
+        return Long.decode(value.replace("_", ""));
+    }
+
+    @Function
     public static String file(
         String name) throws IOException
     {

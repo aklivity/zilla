@@ -32,8 +32,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.model.config.TestModelConfig;
 
@@ -89,22 +87,22 @@ public class KafkaOptionsConfigAdapterTest
     public void shouldWriteOptions()
     {
         KafkaOptionsConfig options = KafkaOptionsConfig.builder()
-            .bootstrap(singletonList("test"))
-            .topics(
-                singletonList(KafkaTopicConfig.builder()
-                    .name("test")
-                    .defaultOffset(LIVE)
-                    .deltaType(JSON_PATCH)
-                    .value(TestModelConfig.builder().build())
-                    .build()))
-            .servers(singletonList(KafkaServerConfig.builder()
-                    .host("localhost")
-                    .port(9092).build()))
-            .sasl(KafkaSaslConfig.builder()
+            .bootstrap("test")
+            .topic()
+                .name("test")
+                .defaultOffset(LIVE)
+                .deltaType(JSON_PATCH)
+                .value(TestModelConfig.builder().build())
+                .build()
+            .server()
+                .host("localhost")
+                .port(9092)
+                .build()
+            .sasl()
                 .mechanism("plain")
                 .username("username")
                 .password("password")
-                .build())
+                .build()
             .build();
 
         String text = jsonb.toJson(options);
@@ -157,21 +155,21 @@ public class KafkaOptionsConfigAdapterTest
     public void shouldWriteSaslScramOptions()
     {
         KafkaOptionsConfig options = KafkaOptionsConfig.builder()
-            .bootstrap(singletonList("test"))
-            .topics(singletonList(KafkaTopicConfig.builder()
+            .bootstrap("test")
+            .topic()
                 .name("test")
                 .defaultOffset(LIVE)
                 .deltaType(JSON_PATCH)
-                .build()))
-            .servers(singletonList(KafkaServerConfig.builder()
+                .build()
+            .server()
                 .host("localhost")
                 .port(9092)
-                .build()))
-            .sasl(KafkaSaslConfig.builder()
+                .build()
+            .sasl()
                 .mechanism("scram-sha-256")
                 .username("username")
                 .password("password")
-                .build())
+                .build()
             .build();
 
         String text = jsonb.toJson(options);
@@ -187,22 +185,22 @@ public class KafkaOptionsConfigAdapterTest
     public void shouldWriteCatalogOptions()
     {
         KafkaOptionsConfig options = KafkaOptionsConfig.builder()
-            .bootstrap(singletonList("test"))
-            .topics(singletonList(KafkaTopicConfig.builder()
+            .bootstrap("test")
+            .topic()
                 .name("test")
-                    .defaultOffset(LIVE)
-                    .deltaType(JSON_PATCH)
-                    .value(TestModelConfig.builder().length(0).build())
-                    .build()))
-            .servers(singletonList(KafkaServerConfig.builder()
-                    .host("localhost")
-                    .port(9092)
-                    .build()))
-            .sasl(KafkaSaslConfig.builder()
+                .defaultOffset(LIVE)
+                .deltaType(JSON_PATCH)
+                .value(TestModelConfig.builder().length(0).build())
+                .build()
+            .server()
+                .host("localhost")
+                .port(9092)
+                .build()
+            .sasl()
                 .mechanism("plain")
                 .username("username")
                 .password("password")
-                .build())
+                .build()
             .build();
 
         String text = jsonb.toJson(options);
@@ -248,12 +246,12 @@ public class KafkaOptionsConfigAdapterTest
     public void shouldWriteHeadersOptions()
     {
         KafkaOptionsConfig options = KafkaOptionsConfig.builder()
-            .bootstrap(singletonList("test"))
-            .topics(singletonList(KafkaTopicConfig.builder()
+            .bootstrap("test")
+            .topic()
                 .name("test")
                 .header("correlation-id", "${message.value.correlationId}")
                 .value(TestModelConfig.builder().length(0).build())
-                .build()))
+                .build()
             .build();
 
         String text = jsonb.toJson(options);
