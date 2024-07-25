@@ -42,7 +42,7 @@ public final class AsyncapiChannelView
         AsyncapiResolver resolver,
         AsyncapiChannel model)
     {
-        this(resolver, model.ref, model);
+        this(resolver, resolver.channels.resolveRef(model.ref), model);
     }
 
     AsyncapiChannelView(
@@ -56,12 +56,12 @@ public final class AsyncapiChannelView
         this.address = resolved.address;
         this.messages = resolved.messages != null
             ? resolved.messages.entrySet().stream()
-                .map(e -> new AsyncapiMessageView(resolver, e.getKey(), e.getValue()))
+                .map(e -> new AsyncapiMessageView(this, resolver, e.getKey(), e.getValue()))
                 .toList()
             : null;
         this.parameters = resolved.parameters != null
             ? resolved.parameters.entrySet().stream()
-                .map(e -> new AsyncapiParameterView(resolver, e.getKey(), e.getValue()))
+                .map(e -> new AsyncapiParameterView(this, resolver, e.getKey(), e.getValue()))
                 .toList()
             : null;
     }

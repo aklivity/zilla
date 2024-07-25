@@ -1077,11 +1077,13 @@ public final class HttpServerFactory implements HttpStreamFactory
                                 binding.options.overrides.forEach((k, v) -> headers.put(k.asString(), v.asString()));
 
                                 final HttpBeginExFW.Builder newBeginEx = newBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
-                                                                                     .compositeId(route.compositeId())
                                                                                      .typeId(httpTypeId);
                                 headers.forEach((k, v) -> newBeginEx.headersItem(i -> i.name(k).value(v)));
                                 beginEx = newBeginEx.build();
                             }
+
+                            // route discovered after HttpBeginEx construction started
+                            codecBuffer.putLong(beginEx.offset() + HttpBeginExFW.FIELD_OFFSET_COMPOSITE_ID, route.compositeId());
 
                             HttpPolicyConfig policy = binding.access().effectivePolicy(headers);
                             final String origin = policy == CROSS_ORIGIN ? headers.get(HEADER_NAME_ORIGIN) : null;

@@ -333,7 +333,7 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                 {
                     cataloged.schema()
                         .version("latest")
-                        .subject(message.name)
+                        .subject("%s-%s-payload".formatted(message.channel.name, message.name))
                         .build();
                 }
 
@@ -356,19 +356,42 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                                 : schema.type;
 
                             ModelConfig model = MODELS.get(modelType);
-                            if (model != null)
+
+                            if (model == null)
                             {
-                                request
-                                    .pathParam()
-                                        .name(parameter.name)
-                                        .model(model)
-                                        .build();
+                                model = JsonModelConfig.builder()
+                                    .catalog()
+                                        .name("catalog0")
+                                        .inject(cataloged -> injectHttpPathParamSchemas(cataloged, operation))
+                                        .build()
+                                    .build();
                             }
+
+                            request
+                                .pathParam()
+                                .name(parameter.name)
+                                .model(model)
+                                .build();
                         }
                     }
                 }
 
                 return request;
+            }
+
+            private <C> CatalogedConfigBuilder<C> injectHttpPathParamSchemas(
+                CatalogedConfigBuilder<C> cataloged,
+                AsyncapiOperationView operation)
+            {
+                for (AsyncapiParameterView parameter : operation.channel.parameters)
+                {
+                    cataloged.schema()
+                        .version("latest")
+                        .subject("%s-params-%s".formatted(parameter.channel.name, parameter.name))
+                        .build();
+                }
+
+                return cataloged;
             }
 
             private <C>BindingConfigBuilder<C> injectHttpRoutes(

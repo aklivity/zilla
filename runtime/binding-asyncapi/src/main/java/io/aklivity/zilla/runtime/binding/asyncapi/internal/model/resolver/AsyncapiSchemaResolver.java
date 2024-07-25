@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.model.resolver;
 
-import java.util.Map;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
@@ -23,28 +21,27 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiSchemaI
 
 public final class AsyncapiSchemaResolver
 {
-    private final Map<String, AsyncapiSchemaItem> schemas;
-    private final Matcher matcher;
+    private final ResolverImpl resolver;
 
     public AsyncapiSchemaResolver(
         Asyncapi model)
     {
-        this.schemas = model.components.schemas;
-        this.matcher = Pattern.compile("#/components/schemas/(.+)").matcher("");
+        this.resolver = new ResolverImpl(model);
     }
 
     @SuppressWarnings("unchecked")
     public <T extends AsyncapiSchemaItem> T resolve(
-        T schema)
+        T model)
     {
-        T resolved = schema;
+        return (T) resolver.resolve(model);
+    }
 
-        if (schema.ref != null && matcher.reset(schema.ref).matches())
+    private final class ResolverImpl extends AbstractAsyncapiResolver<AsyncapiSchemaItem>
+    {
+        private ResolverImpl(
+            Asyncapi model)
         {
-            String key = matcher.group(1);
-            resolved = (T) schemas.get(key);
+            super(model.components.schemas, Pattern.compile("#/components/schemas/(.+)"));
         }
-
-        return resolved;
     }
 }

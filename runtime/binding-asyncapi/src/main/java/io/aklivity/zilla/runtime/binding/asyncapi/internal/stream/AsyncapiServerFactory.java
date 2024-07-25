@@ -794,6 +794,9 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
                     .extension(extension)
                     .build();
 
+                this.initialSeq = delegate.initialSeq;
+                this.initialAck = delegate.initialAck;
+
                 this.initialId = supplyInitialId.applyAsLong(routedId);
                 this.replyId = supplyReplyId.applyAsLong(initialId);
                 this.receiver = newStream(this::onAsyncapiMessage,

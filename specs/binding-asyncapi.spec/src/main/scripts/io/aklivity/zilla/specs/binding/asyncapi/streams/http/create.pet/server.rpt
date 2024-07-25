@@ -14,35 +14,19 @@
 # under the License.
 #
 
-property serverAddress "zilla://streams/composite0"
-
-accept ${serverAddress}
-        option zilla:window 8192
-        option zilla:transmission "half-duplex"
+accept "http://localhost:8080/pets"
 
 accepted
-
-read zilla:begin.ext ${http:matchBeginEx()
-                              .compositeId(core:decodeLong("0x0000_0001_0000_0001"))
-                              .typeId(zilla:id("http"))
-                              .header(":method", "POST")
-                              .header(":scheme", "http")
-                              .header(":path", "/pets")
-                              .header(":authority", "localhost:8080")
-                              .header("content-type", "application/json")
-                              .header("content-length", "8")
-                              .build()}
 connected
 
-read "{\"test\"}"
+read http:method "GET"
+read http:header "content-type" "application/json"
+
+read "{\"id\":1, \"name\":\"Snoopy\", \"tag\":\"available\"}"
 read closed
 
-write zilla:begin.ext ${http:beginEx()
-                             .typeId(zilla:id("http"))
-                             .header(":status", "200")
-                             .header("content-type", "application/json")
-                             .header("content-length", "21")
-                             .build()}
 
-write "{\"message\": \"string\"}"
-write flush
+write http:status "200" "OK"
+write http:content-length
+
+write close

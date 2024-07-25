@@ -14,36 +14,16 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.model.resolver;
 
-import java.util.Map;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiSecurityScheme;
 
-public final class AsyncapiSecuritySchemeResolver
+public final class AsyncapiSecuritySchemeResolver extends AbstractAsyncapiResolver<AsyncapiSecurityScheme>
 {
-    private final Map<String, AsyncapiSecurityScheme> securitySchemes;
-    private final Matcher matcher;
-
     public AsyncapiSecuritySchemeResolver(
         Asyncapi model)
     {
-        this.securitySchemes = model.components.securitySchemes;
-        this.matcher = Pattern.compile("#/components.securitySchemes/(.+)").matcher("");
-    }
-
-    public AsyncapiSecurityScheme resolve(
-            AsyncapiSecurityScheme channel)
-    {
-        AsyncapiSecurityScheme resolved = channel;
-
-        if (channel.ref != null && matcher.reset(channel.ref).matches())
-        {
-            String key = matcher.group(1);
-            resolved = securitySchemes.get(key);
-        }
-
-        return resolved;
+        super(model.components.securitySchemes, Pattern.compile("#/components.securitySchemes/(.+)"));
     }
 }

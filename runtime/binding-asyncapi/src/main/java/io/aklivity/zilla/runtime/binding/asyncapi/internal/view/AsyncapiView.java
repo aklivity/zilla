@@ -34,7 +34,6 @@ public final class AsyncapiView
     public final List<AsyncapiServerView> servers;
     public final List<AsyncapiChannelView> channels;
     public final Map<String, AsyncapiOperationView> operations;
-    public final AsyncapiComponentsView components;
 
     public boolean hasProtocol(
         String protocol)
@@ -90,9 +89,5 @@ public final class AsyncapiView
         this.operations = new TreeMap<>(asyncapi.operations).entrySet().stream()
             .collect(toMap(Map.Entry::getKey,
                 e -> new AsyncapiOperationView(this, compositeId(id, opIndex.value++), resolver, e.getKey(), e.getValue())));
-
-        this.components = asyncapi.components != null
-            ? new AsyncapiComponentsView(resolver, asyncapi.components)
-            : null;
     }
 }

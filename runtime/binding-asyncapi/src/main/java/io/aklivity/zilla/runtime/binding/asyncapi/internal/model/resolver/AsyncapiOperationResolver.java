@@ -14,36 +14,16 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.model.resolver;
 
-import java.util.Map;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiOperation;
 
-public final class AsyncapiOperationResolver
+public final class AsyncapiOperationResolver extends AbstractAsyncapiResolver<AsyncapiOperation>
 {
-    private final Map<String, AsyncapiOperation> operations;
-    private final Matcher matcher;
-
     public AsyncapiOperationResolver(
         Asyncapi model)
     {
-        this.operations = model.operations;
-        this.matcher = Pattern.compile("#/operations/(.+)").matcher("");
-    }
-
-    public AsyncapiOperation resolve(
-        AsyncapiOperation operation)
-    {
-        AsyncapiOperation resolved = operation;
-
-        if (operation.ref != null && matcher.reset(operation.ref).matches())
-        {
-            String key = matcher.group(1);
-            resolved = operations.get(key);
-        }
-
-        return resolved;
+        super(model.operations, Pattern.compile("#/operations/(.+)"));
     }
 }

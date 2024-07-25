@@ -14,13 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.model;
 
-import jakarta.json.bind.annotation.JsonbProperty;
-
-import com.fasterxml.jackson.annotation.JsonInclude;
-
-@JsonInclude(JsonInclude.Include.NON_NULL)
-public class AsyncapiSchemaItem
+public class AsyncapiSchemaItem extends AbstractAsyncapiResolvable
 {
-    @JsonbProperty("$ref")
-    public String ref;
 }

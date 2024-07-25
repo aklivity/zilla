@@ -21,6 +21,7 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.resolver.Asynca
 
 public final class AsyncapiMessageView
 {
+    public final AsyncapiChannelView channel;
     public final String name;
     public final AsyncapiSchemaView headers;
     public final String contentType;
@@ -30,10 +31,13 @@ public final class AsyncapiMessageView
     public final AsyncapiMessageBindingsView bindings;
 
     AsyncapiMessageView(
+        AsyncapiChannelView channel,
         AsyncapiResolver resolver,
         String name,
         AsyncapiMessage model)
     {
+        this.channel = channel;
+
         final AsyncapiMessage resolved = resolver.messages.resolve(model);
 
         this.name = name;

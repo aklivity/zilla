@@ -19,14 +19,17 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.resolver.Asynca
 
 public final class AsyncapiParameterView
 {
+    public final AsyncapiChannelView channel;
     public final String name;
     public final AsyncapiSchemaView schema;
 
     AsyncapiParameterView(
+        AsyncapiChannelView channel,
         AsyncapiResolver resolver,
         String name,
         AsyncapiParameter model)
     {
+        this.channel = channel;
         this.name = name;
         this.schema = model.schema != null
             ? new AsyncapiSchemaView(resolver, model.schema)

@@ -42,7 +42,7 @@ public final class AsyncapiComponentsView
 
         this.messages = model.messages != null
                 ? model.messages.entrySet().stream()
-                    .map(e -> new AsyncapiMessageView(resolver, e.getKey(), e.getValue()))
+                    .map(e -> new AsyncapiMessageView(null, resolver, e.getKey(), e.getValue()))
                     .toList()
                 : null;
 

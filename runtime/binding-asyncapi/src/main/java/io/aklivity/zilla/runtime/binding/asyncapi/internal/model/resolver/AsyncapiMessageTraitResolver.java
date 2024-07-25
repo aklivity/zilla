@@ -14,36 +14,16 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.model.resolver;
 
-import java.util.Map;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiTrait;
 
-public final class AsyncapiMessageTraitResolver
+public final class AsyncapiMessageTraitResolver extends AbstractAsyncapiResolver<AsyncapiTrait>
 {
-    private final Map<String, AsyncapiTrait> messageTraits;
-    private final Matcher matcher;
-
     public AsyncapiMessageTraitResolver(
         Asyncapi model)
     {
-        this.messageTraits = model.components.messageTraits;
-        this.matcher = Pattern.compile("#/components/messageTraits/(.+)").matcher("");
-    }
-
-    public AsyncapiTrait resolve(
-        AsyncapiTrait trait)
-    {
-        AsyncapiTrait resolved = trait;
-
-        if (trait.ref != null && matcher.reset(trait.ref).matches())
-        {
-            String key = matcher.group(1);
-            resolved = messageTraits.get(key);
-        }
-
-        return resolved;
+        super(model.components.messageTraits, Pattern.compile("#/components/messageTraits/(.+)"));
     }
 }

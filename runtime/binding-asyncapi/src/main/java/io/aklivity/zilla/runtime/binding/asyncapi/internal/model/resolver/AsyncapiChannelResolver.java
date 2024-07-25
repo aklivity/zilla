@@ -14,36 +14,16 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.model.resolver;
 
-import java.util.Map;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiChannel;
 
-public final class AsyncapiChannelResolver
+public final class AsyncapiChannelResolver extends AbstractAsyncapiResolver<AsyncapiChannel>
 {
-    private final Map<String, AsyncapiChannel> channels;
-    private final Matcher matcher;
-
     public AsyncapiChannelResolver(
         Asyncapi model)
     {
-        this.channels = model.channels;
-        this.matcher = Pattern.compile("#/channels/(.+)").matcher("");
-    }
-
-    public AsyncapiChannel resolve(
-        AsyncapiChannel channel)
-    {
-        AsyncapiChannel resolved = channel;
-
-        if (channel.ref != null && matcher.reset(channel.ref).matches())
-        {
-            String key = matcher.group(1);
-            resolved = channels.get(key);
-        }
-
-        return resolved;
+        super(model.channels, Pattern.compile("#/channels/(.+)"));
     }
 }

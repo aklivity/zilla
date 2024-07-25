@@ -29,12 +29,12 @@ write zilla:begin.ext ${asyncapi:beginEx()
                                   .header(":path", "/pets")
                                   .header(":authority", "localhost:8080")
                                   .header("content-type", "application/json")
-                                  .header("content-length", "8")
+                                  .header("content-length", "44")
                                   .build())
                              .build()}
 connected
 
-write "{\"test\"}"
+write "{\"id\":1, \"name\":\"Snoopy\", \"tag\":\"available\"}"
 write close
 
 read zilla:begin.ext ${asyncapi:matchBeginEx()
@@ -43,9 +43,7 @@ read zilla:begin.ext ${asyncapi:matchBeginEx()
                              .extension(http:matchBeginEx()
                                  .typeId(zilla:id("http"))
                                  .header(":status", "200")
-                                 .header("content-type", "application/json")
-                                 .header("content-length", "21")
                                  .build())
                              .build()}
 
-read "{\"message\": \"string\"}"
+read closed

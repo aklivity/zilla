@@ -14,36 +14,16 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.model.resolver;
 
-import java.util.Map;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiCorrelationId;
 
-public final class AsyncapiCorrelationIdResolver
+public final class AsyncapiCorrelationIdResolver extends AbstractAsyncapiResolver<AsyncapiCorrelationId>
 {
-    private final Map<String, AsyncapiCorrelationId> correlationIds;
-    private final Matcher matcher;
-
     public AsyncapiCorrelationIdResolver(
         Asyncapi model)
     {
-        this.correlationIds = model.components.correlationIds;
-        this.matcher = Pattern.compile("#/components/correlationIds/(.+)").matcher("");
-    }
-
-    public AsyncapiCorrelationId resolve(
-        AsyncapiCorrelationId correlationId)
-    {
-        AsyncapiCorrelationId resolved = correlationId;
-
-        if (correlationId.ref != null && matcher.reset(correlationId.ref).matches())
-        {
-            String key = matcher.group(1);
-            resolved = correlationIds.get(key);
-        }
-
-        return resolved;
+        super(model.components.correlationIds, Pattern.compile("#/components/correlationIds/(.+)"));
     }
 }

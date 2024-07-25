@@ -46,7 +46,6 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiCompos
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiSchemaItem;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.kafka.AsyncapiKafkaServerBinding;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiSchemaItemView;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiSchemaView;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiServerView;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiView;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
@@ -296,18 +295,18 @@ public abstract class AsyncapiCompositeGenerator
                 {
                     schemas.stream()
                         .map(s -> s.asyncapi)
-                        .map(v -> v.components)
-                        .filter(c -> c != null)
-                        .map(c -> c.schemas)
-                        .filter(s -> s != null)
-                        .flatMap(s -> s.entrySet().stream())
-                        .forEach(se ->
+                        .flatMap(v -> v.operations.values().stream())
+                        .map(o -> o.channel)
+                        .filter(c -> c.messages != null)
+                        .flatMap(c -> c.messages.stream())
+                        .filter(m -> m.payload != null)
+                        .forEach(m ->
                         {
-                            final String schemaName = se.getKey();
-                            final AsyncapiSchemaItemView schema = se.getValue();
+                            final String subject = "%s-%s-payload".formatted(m.channel.name, m.name);
+                            final AsyncapiSchemaItemView schema = m.payload;
 
                             subjects
-                                .subject(schemaName)
+                                .subject(subject)
                                 .version("latest")
                                 .schema(toSchemaJson(jsonb, schema.model))
                                 .build();
@@ -315,20 +314,17 @@ public abstract class AsyncapiCompositeGenerator
 
                     schemas.stream()
                         .map(s -> s.asyncapi)
-                        .map(v -> v.components)
-                        .filter(c -> c != null)
-                        .map(c -> c.messageTraits)
-                        .filter(m -> m != null)
-                        .flatMap(m -> m.stream())
-                        .map(m -> m.headers)
-                        .flatMap(h -> h.properties.entrySet().stream())
-                        .forEach(pe ->
+                        .flatMap(v -> v.operations.values().stream())
+                        .map(o -> o.channel)
+                        .filter(c -> c.parameters != null)
+                        .flatMap(c -> c.parameters.stream())
+                        .forEach(p ->
                         {
-                            String property = pe.getKey();
-                            AsyncapiSchemaView schema = pe.getValue();
+                            final String subject = "%s-params-%s".formatted(p.channel.name, p.name);
+                            final AsyncapiSchemaItemView schema = p.schema;
 
                             subjects
-                                .subject(property)
+                                .subject(subject)
                                 .version("latest")
                                 .schema(toSchemaJson(jsonb, schema.model))
                                 .build();

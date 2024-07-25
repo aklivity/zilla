@@ -29,7 +29,7 @@ public final class AsyncapiSecuritySchemeView
         AsyncapiResolver resolver,
         AsyncapiSecurityScheme model)
     {
-        this(resolver, model.ref, model);
+        this(resolver, resolver.securitySchemes.resolveRef(model.ref), model);
     }
 
     AsyncapiSecuritySchemeView(

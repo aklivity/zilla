@@ -27,15 +27,17 @@ public abstract class AsyncapiSchemaItemView
         AsyncapiResolver resolver,
         AsyncapiSchemaItem model)
     {
+        final AsyncapiSchemaItem resolved = resolver.schemas.resolve(model);
+
         AsyncapiSchemaItemView view = null;
 
-        if (model instanceof AsyncapiSchema)
+        if (resolved instanceof AsyncapiSchema)
         {
-            view = new AsyncapiSchemaView(resolver, (AsyncapiSchema) model);
+            view = new AsyncapiSchemaView(resolver, (AsyncapiSchema) resolved);
         }
-        else if (model instanceof AsyncapiMultiFormatSchema)
+        else if (resolved instanceof AsyncapiMultiFormatSchema)
         {
-            view = new AsyncapiMultiFormatSchemaView(resolver, (AsyncapiMultiFormatSchema) model);
+            view = new AsyncapiMultiFormatSchemaView(resolver, (AsyncapiMultiFormatSchema) resolved);
         }
 
         return view;
