@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.catalog.inline.internal;
 
-import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
@@ -26,7 +25,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
-import io.aklivity.zilla.runtime.catalog.inline.config.InlineSchemaConfig;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 
@@ -37,11 +35,15 @@ public class InlineIT
     @Before
     public void setup()
     {
-        config = new InlineOptionsConfig(singletonList(
-                new InlineSchemaConfig("subject1", "latest",
-                        "{\"fields\":[{\"name\":\"id\",\"type\":\"string\"}," +
-                        "{\"name\":\"status\",\"type\":\"string\"}]," +
-                        "\"name\":\"Event\",\"namespace\":\"io.aklivity.example\",\"type\":\"record\"}")));
+        config = InlineOptionsConfig.builder()
+                    .schema()
+                        .subject("subject1")
+                        .version("latest")
+                        .schema("{\"fields\":[{\"name\":\"id\",\"type\":\"string\"}," +
+                            "{\"name\":\"status\",\"type\":\"string\"}]," +
+                            "\"name\":\"Event\",\"namespace\":\"io.aklivity.example\",\"type\":\"record\"}")
+                        .build()
+                    .build();
     }
 
     @Test
