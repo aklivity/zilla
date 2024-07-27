@@ -19,7 +19,7 @@ accept "http://localhost:8080/pets"
 accepted
 connected
 
-read http:method "GET"
+read http:method "POST"
 read http:header "content-type" "application/json"
 
 read "{\"id\":1, \"name\":\"Snoopy\", \"tag\":\"available\"}"

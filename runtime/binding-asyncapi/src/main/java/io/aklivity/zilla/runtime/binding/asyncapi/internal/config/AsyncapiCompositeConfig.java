@@ -32,7 +32,7 @@ import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 public final class AsyncapiCompositeConfig
 {
     public final List<AsyncapiCompositeRouteConfig> routes;
-    public final NamespaceConfig namespace;
+    public final List<NamespaceConfig> namespaces;
 
     private final LongFunction<String> resolveLabel;
     private final ToLongFunction<String> resolveSchemaId;
@@ -40,19 +40,19 @@ public final class AsyncapiCompositeConfig
     private Long2ObjectHashMap<AsyncapiOperationView> operationsById;
 
     public AsyncapiCompositeConfig(
-        NamespaceConfig namespace,
-        List<AsyncapiSchemaConfig> schemas)
+        List<AsyncapiSchemaConfig> schemas,
+        List<NamespaceConfig> namespaces)
     {
-        this(namespace, List.of(), schemas);
+        this(schemas, namespaces, List.of());
     }
 
     public AsyncapiCompositeConfig(
-        NamespaceConfig namespace,
-        List<AsyncapiCompositeRouteConfig> routes,
-        List<AsyncapiSchemaConfig> schemas)
+        List<AsyncapiSchemaConfig> schemas,
+        List<NamespaceConfig> namespaces,
+        List<AsyncapiCompositeRouteConfig> routes)
     {
         this.routes = routes;
-        this.namespace = namespace;
+        this.namespaces = namespaces;
 
         final Long2ObjectHashMap<String> labelsBySchemaId = new Long2ObjectHashMap<>();
         schemas.forEach(s -> labelsBySchemaId.put(s.schemaId, s.apiLabel));
@@ -71,7 +71,9 @@ public final class AsyncapiCompositeConfig
     public boolean hasBindingId(
         long bindingId)
     {
-        return NamespacedId.namespaceId(bindingId) == namespace.id;
+        return namespaces.stream()
+                .mapToInt(n -> n.id)
+                .anyMatch(id -> id == NamespacedId.namespaceId(bindingId));
     }
 
     public AsyncapiCompositeRouteConfig resolve(

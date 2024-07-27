@@ -115,7 +115,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
         assert composite != null;
         // TODO: schedule generate retry if null
 
-        context.attachComposite(composite.namespace);
+        composite.namespaces.forEach(context::attachComposite);
         attached.composite = composite;
     }
 
@@ -128,7 +128,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
 
         if (composite != null)
         {
-            context.detachComposite(composite.namespace);
+            composite.namespaces.forEach(context::detachComposite);
         }
 
         // TODO: cancel generate retry if scheduled

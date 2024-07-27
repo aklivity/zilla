@@ -16,14 +16,17 @@ package io.aklivity.zilla.runtime.binding.asyncapi.internal.config.composite;
 
 import static io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithConfig.EVENT_ID_DEFAULT;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.PROXY;
+import static java.util.function.Function.identity;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiSchemaConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiBindingConfig;
@@ -69,23 +72,26 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
         AsyncapiBindingConfig binding,
         List<AsyncapiSchemaConfig> schemas)
     {
-        NamespaceHelper helper = new ProxyNamespaceHelper(binding, schemas);
-
-        NamespaceConfig namespace = NamespaceConfig.builder()
-            .inject(helper::injectAll)
-            .build();
-
-        Matcher routed = Pattern.compile("(http|sse|mqtt)_kafka_proxy0").matcher("");
-
-        // routes (apiId + operationId) -> (apiId + operationId)
-        // convert to schemaId + operationId -> compositeId + affinity (references apiId + operationId)
-        // note: server must deduce context from typed extension unless correlating affinity can be "stamped"
-
+        // TODO: each ProxyNamespaceBuilder should represent a pair of schemas
+        //       mapped by binding routes
+        List<NamespaceConfig> namespaces = new LinkedList<>();
         List<AsyncapiCompositeRouteConfig> routes = new LinkedList<>();
         for (AsyncapiSchemaConfig schema : schemas)
         {
+            Function<String, AsyncapiSchemaConfig> resolveSchema = schemas.stream()
+                .collect(Collectors.toMap(s -> s.apiLabel, identity()))::get;
+            NamespaceHelper helper = new ProxyNamespaceHelper(binding, schema, resolveSchema);
+            NamespaceConfig namespace = NamespaceConfig.builder()
+                .inject(helper::injectAll)
+                .build();
+            namespaces.add(namespace);
+
+            Matcher routed = Pattern.compile("(http|sse|mqtt)_kafka_proxy0").matcher("");
             final int apiId = schema.schemaId;
 
+            // routes (apiId + operationId) -> (apiId + operationId)
+            // convert to schemaId + operationId -> compositeId + affinity (references apiId + operationId)
+            // note: server must deduce context from typed extension unless correlating affinity can be "stamped"
             namespace.bindings.stream()
                 .filter(b -> routed.reset(b.type).matches())
                 .filter(b -> schema.asyncapi.servers.stream().anyMatch(s -> s.protocol.startsWith(routed.group(1))))
@@ -103,19 +109,22 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
                 });
         }
 
-        return new AsyncapiCompositeConfig(namespace, routes, schemas);
+        return new AsyncapiCompositeConfig(schemas, namespaces, routes);
     }
 
     private final class ProxyNamespaceHelper extends NamespaceHelper
     {
         private final CatalogsHelper catalogs;
         private final BindingsHelper bindings;
+        private final Function<String, AsyncapiSchemaConfig> resolveSchema;
 
         private ProxyNamespaceHelper(
             AsyncapiBindingConfig config,
-            List<AsyncapiSchemaConfig> schemas)
+            AsyncapiSchemaConfig schema,
+            Function<String, AsyncapiSchemaConfig> resolveSchema)
         {
-            super(config, schemas);
+            super(config, schema);
+            this.resolveSchema = resolveSchema;
             this.catalogs = new CatalogsHelper();
             this.bindings = new ProxyBindingsHelper();
         }
@@ -128,7 +137,6 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
                     .inject(bindings::injectAll);
         }
 
-
         private final class ProxyRouteHelper
         {
             private final List<ProxyOperationHelper> when;
@@ -138,9 +146,10 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
                 AsyncapiRouteConfig route)
             {
                 this.when = route.when.stream()
-                        .map(c -> new ProxyOperationHelper(schemasByLabel.get(c.apiId), c.operationId))
+                        .filter(c -> schema.apiLabel.equals(c.apiId))
+                        .map(c -> new ProxyOperationHelper(schema, c.operationId))
                         .toList();
-                this.with = new ProxyOperationHelper(schemasByLabel.get(route.with.apiId), route.with.operationId);
+                this.with = new ProxyOperationHelper(resolveSchema.apply(route.with.apiId), route.with.operationId);
             }
 
             private boolean hasWhenProtocol(

@@ -19,8 +19,7 @@ import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiSchemaConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiBindingConfig;
@@ -56,13 +55,14 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
         AsyncapiBindingConfig binding,
         List<AsyncapiSchemaConfig> schemas)
     {
-        NamespaceHelper helper = new ServerNamespaceHelper(binding, schemas);
+        List<NamespaceConfig> namespaces = schemas.stream()
+            .map(schema -> new ServerNamespaceHelper(binding, schema))
+            .map(helper -> NamespaceConfig.builder()
+                .inject(helper::injectAll)
+                .build())
+            .toList();
 
-        NamespaceConfig namespace = NamespaceConfig.builder()
-            .inject(helper::injectAll)
-            .build();
-
-        return new AsyncapiCompositeConfig(namespace, schemas);
+        return new AsyncapiCompositeConfig(schemas, namespaces);
     }
 
     private final class ServerNamespaceHelper extends NamespaceHelper
@@ -72,9 +72,9 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
 
         private ServerNamespaceHelper(
             AsyncapiBindingConfig config,
-            List<AsyncapiSchemaConfig> schemas)
+            AsyncapiSchemaConfig schema)
         {
-            super(config, schemas);
+            super(config, schema);
             this.catalogs = new CatalogsHelper();
             this.bindings = new ServerBindingsHelper();
         }
@@ -90,10 +90,6 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
 
         private final class ServerBindingsHelper extends BindingsHelper
         {
-            private static final Pattern PATTERN_PORT = Pattern.compile("\\:(\\d+)");
-
-            private final Matcher matchPort = PATTERN_PORT.matcher("");
-
             private final Map<String, NamespaceInjector> protocols;
             private final List<String> plain;
             private final List<String> secure;
@@ -126,12 +122,11 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                     ? config.options.tcp
                     : TcpOptionsConfig.builder()
                         .host("0.0.0.0")
-                        .ports(config.options.specs.stream()
-                            .flatMap(s -> s.servers.stream())
-                            .map(s -> s.url != null ? s.url : s.host)
-                            .filter(h -> matchPort.reset(h).matches())
-                            .map(h -> matchPort.group(1))
-                            .mapToInt(Integer::parseInt)
+                        .ports(Stream.of(schema)
+                            .map(s -> s.asyncapi)
+                            .flatMap(v -> v.servers.stream())
+                            .filter(s -> plain.contains(s.protocol))
+                            .mapToInt(s -> s.port)
                             .distinct()
                             .toArray())
                         .build();
@@ -152,7 +147,7 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
             private <C>BindingConfigBuilder<C> injectTcpRoutes(
                 BindingConfigBuilder<C> binding)
             {
-                schemas.stream()
+                Stream.of(schema)
                     .map(s -> s.asyncapi)
                     .flatMap(v -> v.servers.stream())
                     .filter(s -> plain.contains(s.protocol))
@@ -163,7 +158,7 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                         .exit(String.format("%s_server0", s.protocol))
                         .build());
 
-                schemas.stream()
+                Stream.of(schema)
                     .map(s -> s.asyncapi)
                     .flatMap(v -> v.servers.stream())
                     .filter(s -> secure.contains(s.protocol))
@@ -180,7 +175,7 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
             private <C> NamespaceConfigBuilder<C> injectTlsServer(
                 NamespaceConfigBuilder<C> namespace)
             {
-                if (schemas.stream()
+                if (Stream.of(schema)
                         .map(s -> s.asyncapi)
                         .flatMap(v -> v.servers.stream())
                         .filter(s -> secure.contains(s.protocol))
@@ -202,7 +197,7 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
             private <C>BindingConfigBuilder<C> injectTlsRoutes(
                 BindingConfigBuilder<C> binding)
             {
-                schemas.stream()
+                Stream.of(schema)
                     .map(s -> s.asyncapi)
                     .flatMap(v -> v.servers.stream())
                     .filter(s -> secure.contains(s.protocol))
@@ -219,12 +214,13 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
             private <C> NamespaceConfigBuilder<C> injectProtocols(
                 NamespaceConfigBuilder<C> namespace)
             {
-                schemas.stream()
+                Stream.of(schema)
                     .map(s -> s.asyncapi)
                     .flatMap(v -> v.servers.stream())
                     .map(s -> s.protocol)
                     .distinct()
                     .map(protocols::get)
+                    .filter(p -> p != null)
                     .forEach(p -> p.inject(namespace));
 
                 return namespace;
@@ -235,7 +231,7 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
             {
                 namespace.inject(this::injectHttpServer);
 
-                if (schemas.stream()
+                if (Stream.of(schema)
                     .map(s -> s.asyncapi)
                     .filter(v -> v.servers.stream()
                         .anyMatch(s -> s.protocol.startsWith("http")))
@@ -288,7 +284,7 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
             private <C> HttpOptionsConfigBuilder<C> injectHttpServerRequests(
                 HttpOptionsConfigBuilder<C> options)
             {
-                schemas.stream()
+                Stream.of(schema)
                     .map(s -> s.asyncapi)
                     .flatMap(v -> v.operations.values().stream())
                     .filter(AsyncapiOperationView::hasBindingsHttp)
@@ -397,7 +393,7 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
             private <C>BindingConfigBuilder<C> injectHttpRoutes(
                 BindingConfigBuilder<C> binding)
             {
-                schemas.stream()
+                Stream.of(schema)
                     .map(s -> s.asyncapi)
                     .filter(v -> v.servers.stream()
                         .anyMatch(s -> s.protocol.startsWith("http")))
@@ -473,7 +469,7 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
             private <C>BindingConfigBuilder<C> injectSseRoutes(
                 BindingConfigBuilder<C> binding)
             {
-                schemas.stream()
+                Stream.of(schema)
                     .map(s -> s.asyncapi)
                     .filter(v -> v.servers.stream()
                         .anyMatch(s -> s.protocol.startsWith("http")))

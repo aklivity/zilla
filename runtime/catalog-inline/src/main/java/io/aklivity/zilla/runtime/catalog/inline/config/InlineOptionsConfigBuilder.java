@@ -25,7 +25,7 @@ public class InlineOptionsConfigBuilder<T> extends ConfigBuilder<T, InlineOption
 {
     private final Function<OptionsConfig, T> mapper;
 
-    private List<InlineSchemaConfig> subjects;
+    private List<InlineSchemaConfig> schemas;
 
     InlineOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
@@ -34,30 +34,31 @@ public class InlineOptionsConfigBuilder<T> extends ConfigBuilder<T, InlineOption
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     protected Class<InlineOptionsConfigBuilder<T>> thisType()
     {
         return (Class<InlineOptionsConfigBuilder<T>>) getClass();
     }
 
-    public InlineSchemaConfigBuilder<InlineOptionsConfigBuilder<T>> subjects()
+    public InlineSchemaConfigBuilder<InlineOptionsConfigBuilder<T>> schema()
     {
-        return new InlineSchemaConfigBuilder<>(this::subjects);
+        return new InlineSchemaConfigBuilder<>(this::schema);
     }
 
-    public InlineOptionsConfigBuilder<T> subjects(
-        InlineSchemaConfig config)
+    public InlineOptionsConfigBuilder<T> schema(
+        InlineSchemaConfig schema)
     {
-        if (subjects == null)
+        if (schemas == null)
         {
-            subjects = new ArrayList<>();
+            schemas = new ArrayList<>();
         }
-        subjects.add(config);
+        schemas.add(schema);
         return this;
     }
 
     @Override
     public T build()
     {
-        return mapper.apply(new InlineOptionsConfig(subjects));
+        return mapper.apply(new InlineOptionsConfig(schemas));
     }
 }

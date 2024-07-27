@@ -14,21 +14,19 @@
 # under the License.
 #
 
-connect "zilla://streams/composite0"
-        option zilla:window 8192
-        option zilla:transmission "duplex"
-        option zilla:ephemeral "test:composite0/sse_api"
-
-write zilla:begin.ext ${sse:beginEx()
-                           .typeId(zilla:id("sse"))
-                           .scheme("http")
-                           .authority("localhost:8080")
-                           .path("/events/a8b7c6d5")
-                           .lastId(null)
-                           .build()}
-
+connect "http://localhost:8080/events/a8b7c6d5"
 connected
 
-read "Hello, world"
+write http:method "GET"
+write http:host
 
-read "Hello, again"
+write close
+
+read http:status "200" "OK"
+read http:header "content-type" "text/event-stream"
+
+read "data:Hello, world\n"
+     "\n"
+
+read "data:Hello, again\n"
+     "\n"

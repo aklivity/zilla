@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.config.composite;
 
-import static java.util.function.Function.identity;
-import static java.util.stream.Collectors.toMap;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.StringReader;
@@ -25,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
@@ -33,8 +32,6 @@ import jakarta.json.JsonValue;
 import jakarta.json.JsonWriter;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
-
-import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiCatalogConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiParser;
@@ -49,7 +46,7 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiSchemaIt
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiServerView;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiView;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
-import io.aklivity.zilla.runtime.catalog.inline.config.InlineSchemaConfigBuilder;
+import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.catalog.karapace.config.KarapaceOptionsConfig;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
@@ -135,23 +132,14 @@ public abstract class AsyncapiCompositeGenerator
     protected abstract class NamespaceHelper
     {
         protected final AsyncapiBindingConfig config;
-        protected final List<AsyncapiSchemaConfig> schemas;
-        protected final Map<String, AsyncapiSchemaConfig> schemasByLabel;
-        protected final Long2ObjectHashMap<AsyncapiSchemaConfig> schemasById;
+        protected final AsyncapiSchemaConfig schema;
 
         protected NamespaceHelper(
             AsyncapiBindingConfig config,
-            List<AsyncapiSchemaConfig> schemas)
+            AsyncapiSchemaConfig schema)
         {
             this.config = config;
-            this.schemas = schemas;
-
-            this.schemasByLabel = schemas.stream()
-                .collect(toMap(s -> s.apiLabel, identity()));
-
-            final Long2ObjectHashMap<AsyncapiSchemaConfig> schemasById = new Long2ObjectHashMap<>();
-            schemas.forEach(s -> schemasById.put(s.schemaId, s));
-            this.schemasById = schemasById;
+            this.schema = schema;
         }
 
         public final <C> NamespaceConfigBuilder<C> injectAll(
@@ -234,7 +222,7 @@ public abstract class AsyncapiCompositeGenerator
             public <C> NamespaceConfigBuilder<C> injectAll(
                 NamespaceConfigBuilder<C> namespace)
             {
-                Optional<AsyncapiServerView> serverRef = schemas.stream()
+                Optional<AsyncapiServerView> serverRef = Stream.of(schema)
                     .map(s -> s.asyncapi)
                     .flatMap(v -> v.servers.stream())
                     .filter(s -> s.bindings != null)
@@ -281,19 +269,17 @@ public abstract class AsyncapiCompositeGenerator
                         .name("catalog0")
                         .type("inline")
                         .options(InlineOptionsConfig::builder)
-                            .subjects()
-                                .inject(this::injectInlineSubjects)
-                                .build()
+                            .inject(this::injectInlineSubjects)
                             .build()
                         .build();
             }
 
-            private <C> InlineSchemaConfigBuilder<C> injectInlineSubjects(
-                InlineSchemaConfigBuilder<C> subjects)
+            private <C> InlineOptionsConfigBuilder<C> injectInlineSubjects(
+                InlineOptionsConfigBuilder<C> options)
             {
                 try (Jsonb jsonb = JsonbBuilder.create())
                 {
-                    schemas.stream()
+                    Stream.of(schema)
                         .map(s -> s.asyncapi)
                         .flatMap(v -> v.operations.values().stream())
                         .map(o -> o.channel)
@@ -305,25 +291,26 @@ public abstract class AsyncapiCompositeGenerator
                             final String subject = "%s-%s-payload".formatted(m.channel.name, m.name);
                             final AsyncapiSchemaItemView schema = m.payload;
 
-                            subjects
+                            options.schema()
                                 .subject(subject)
                                 .version("latest")
                                 .schema(toSchemaJson(jsonb, schema.model))
                                 .build();
                         });
 
-                    schemas.stream()
+                    Stream.of(schema)
                         .map(s -> s.asyncapi)
                         .flatMap(v -> v.operations.values().stream())
                         .map(o -> o.channel)
                         .filter(c -> c.parameters != null)
                         .flatMap(c -> c.parameters.stream())
+                        .filter(p -> p.schema != null) // TODO: runtime expressions
                         .forEach(p ->
                         {
                             final String subject = "%s-params-%s".formatted(p.channel.name, p.name);
                             final AsyncapiSchemaItemView schema = p.schema;
 
-                            subjects
+                            options.schema()
                                 .subject(subject)
                                 .version("latest")
                                 .schema(toSchemaJson(jsonb, schema.model))
@@ -335,7 +322,7 @@ public abstract class AsyncapiCompositeGenerator
                     rethrowUnchecked(ex);
                 }
 
-                return subjects;
+                return options;
             }
 
             private static String toSchemaJson(

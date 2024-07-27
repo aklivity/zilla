@@ -49,17 +49,18 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
         AsyncapiBindingConfig binding,
         List<AsyncapiSchemaConfig> schemas)
     {
-        NamespaceHelper helper = new ClientNamespaceHelper(binding, schemas);
-
-        NamespaceConfig namespace = NamespaceConfig.builder()
-            .inject(helper::injectAll)
-            .build();
-
-        Matcher routed = Pattern.compile("(http|sse|mqtt|kafka)(?:_cache)?_client0").matcher("");
-
+        List<NamespaceConfig> namespaces = new LinkedList<>();
         List<AsyncapiCompositeRouteConfig> routes = new LinkedList<>();
         for (AsyncapiSchemaConfig schema : schemas)
         {
+            NamespaceHelper helper = new ClientNamespaceHelper(binding, schema);
+            NamespaceConfig namespace = NamespaceConfig.builder()
+                    .inject(helper::injectAll)
+                    .build();
+
+            namespaces.add(namespace);
+
+            Matcher routed = Pattern.compile("(http|sse|mqtt|kafka)(?:_cache)?_client0").matcher("");
             namespace.bindings.stream()
                 .filter(b -> routed.reset(b.type).matches())
                 .forEach(b ->
@@ -75,7 +76,7 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                 });
         }
 
-        return new AsyncapiCompositeConfig(namespace, routes, schemas);
+        return new AsyncapiCompositeConfig(schemas, namespaces, routes);
     }
 
     private final class ClientNamespaceHelper extends NamespaceHelper
@@ -85,9 +86,9 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
 
         private ClientNamespaceHelper(
             AsyncapiBindingConfig config,
-            List<AsyncapiSchemaConfig> schemas)
+            AsyncapiSchemaConfig schema)
         {
-            super(config, schemas);
+            super(config, schema);
             this.catalogs = new CatalogsHelper();
             this.bindings = new ClientBindingsHelper();
         }
@@ -135,7 +136,7 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
             private <C> NamespaceConfigBuilder<C> injectProtocols(
                 NamespaceConfigBuilder<C> namespace)
             {
-                schemas.stream()
+                Stream.of(schema)
                     .map(s -> s.asyncapi)
                     .flatMap(v -> v.servers.stream())
                     .map(s -> s.protocol)
@@ -149,7 +150,7 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
             private <C> NamespaceConfigBuilder<C> injectTlsClient(
                 NamespaceConfigBuilder<C> namespace)
             {
-                if (schemas.stream()
+                if (Stream.of(schema)
                         .map(s -> s.asyncapi)
                         .flatMap(v -> v.servers.stream())
                         .filter(s -> secure.contains(s.protocol))
@@ -255,7 +256,7 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
 
                 if (topics != null)
                 {
-                    schemas.stream()
+                    Stream.of(schema)
                         .map(s -> s.asyncapi)
                         .flatMap(v -> v.operations.values().stream())
                         .filter(o -> o.channel.hasMessages() || o.channel.hasParameters())
@@ -357,7 +358,7 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
             private <C> KafkaOptionsConfigBuilder<C> injectKafkaBootstrapOptions(
                 KafkaOptionsConfigBuilder<C> options)
             {
-                schemas.stream()
+                Stream.of(schema)
                     .map(s -> s.asyncapi)
                     .flatMap(v -> v.channels.stream())
                     .filter(c -> !PARAMETERIZED_TOPIC_PATTERN.matcher(c.address).find())

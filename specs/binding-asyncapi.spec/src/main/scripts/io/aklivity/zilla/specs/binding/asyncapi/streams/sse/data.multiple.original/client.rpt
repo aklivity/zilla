@@ -14,22 +14,21 @@
 # under the License.
 #
 
-accept "http://localhost:8080/events/a8b7c6d5"
+connect "zilla://streams/composite0"
+        option zilla:window 8192
+        option zilla:transmission "duplex"
+        option zilla:ephemeral "test:composite0/sse_api"
 
-accepted
+write zilla:begin.ext ${sse:beginEx()
+                           .typeId(zilla:id("sse"))
+                           .scheme("http")
+                           .authority("localhost:8080")
+                           .path("/events/a8b7c6d5")
+                           .lastId(null)
+                           .build()}
+
 connected
 
-read http:method "GET"
-read closed
+read "Hello, world"
 
-write http:status "200" "OK"
-write http:header "content-type" "text/event-stream"
-write http:header "transfer-encoding" "chunked"
-
-write "data:Hello, world\n"
-      "\n"
-write flush
-
-write "data:Hello, again\n"
-      "\n"
-write flush
+read "Hello, again"

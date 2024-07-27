@@ -34,7 +34,7 @@ public class InlineOptionsConfig extends OptionsConfig
         return new InlineOptionsConfigBuilder<>(mapper);
     }
 
-    public InlineOptionsConfig(
+    InlineOptionsConfig(
         List<InlineSchemaConfig> subjects)
     {
         this.subjects = subjects;
