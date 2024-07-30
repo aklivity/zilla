@@ -24,6 +24,7 @@ import java.util.stream.Stream;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiSchemaConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiCompositeConfig;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiChannelView;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiMessageView;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiOperationView;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiParameterView;
@@ -35,6 +36,11 @@ import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfig.Method;
 import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfigBuilder;
 import io.aklivity.zilla.runtime.binding.http.config.HttpWithConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttConditionConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfigBuilder;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttTopicConfigBuilder;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttWithConfig;
 import io.aklivity.zilla.runtime.binding.sse.config.SseConditionConfig;
 import io.aklivity.zilla.runtime.binding.sse.config.SseWithConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
@@ -233,8 +239,6 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
 
                 if (Stream.of(schema)
                     .map(s -> s.asyncapi)
-                    .filter(v -> v.servers.stream()
-                        .anyMatch(s -> s.protocol.startsWith("http")))
                     .flatMap(v -> v.operations.values().stream())
                     .filter(AsyncapiOperationView::hasBindingsSse)
                     .count() != 0L)
@@ -257,8 +261,8 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                             .access()
                                 .policy(CROSS_ORIGIN)
                                 .build()
-                                .inject(this::injectHttpAuthorization)
-                                .inject(this::injectHttpServerRequests)
+                            .inject(this::injectHttpAuthorization)
+                            .inject(this::injectHttpRequests)
                             .build()
                         .inject(this::injectHttpRoutes)
                         .inject(this::injectMetrics)
@@ -281,7 +285,7 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                 return options;
             }
 
-            private <C> HttpOptionsConfigBuilder<C> injectHttpServerRequests(
+            private <C> HttpOptionsConfigBuilder<C> injectHttpRequests(
                 HttpOptionsConfigBuilder<C> options)
             {
                 Stream.of(schema)
@@ -358,7 +362,10 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                                 model = JsonModelConfig.builder()
                                     .catalog()
                                         .name("catalog0")
-                                        .inject(cataloged -> injectHttpPathParamSchemas(cataloged, operation))
+                                        .schema()
+                                            .version("latest")
+                                            .subject("%s-params-%s".formatted(parameter.channel.name, parameter.name))
+                                            .build()
                                         .build()
                                     .build();
                             }
@@ -375,32 +382,15 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                 return request;
             }
 
-            private <C> CatalogedConfigBuilder<C> injectHttpPathParamSchemas(
-                CatalogedConfigBuilder<C> cataloged,
-                AsyncapiOperationView operation)
-            {
-                for (AsyncapiParameterView parameter : operation.channel.parameters)
-                {
-                    cataloged.schema()
-                        .version("latest")
-                        .subject("%s-params-%s".formatted(parameter.channel.name, parameter.name))
-                        .build();
-                }
-
-                return cataloged;
-            }
-
             private <C>BindingConfigBuilder<C> injectHttpRoutes(
                 BindingConfigBuilder<C> binding)
             {
                 Stream.of(schema)
                     .map(s -> s.asyncapi)
-                    .filter(v -> v.servers.stream()
-                        .anyMatch(s -> s.protocol.startsWith("http")))
                     .flatMap(v -> v.operations.values().stream())
                     .forEach(operation ->
                     {
-                        final String path = operation.channel.address.replaceAll("\\{[^}]+\\}", "*");
+                        final String path = operation.channel.address.replaceAll(REGEX_ADDRESS_PARAMETER, "*");
 
                         if (operation.hasBindingsHttp())
                         {
@@ -477,7 +467,7 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                     .filter(AsyncapiOperationView::hasBindingsSse)
                     .forEach(operation ->
                     {
-                        final String path = operation.channel.address.replaceAll("\\{[^}]+\\}", "*");
+                        final String path = operation.channel.address.replaceAll(REGEX_ADDRESS_PARAMETER, "*");
 
                         binding
                             .route()
@@ -497,8 +487,150 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
             private <C> NamespaceConfigBuilder<C> injectMqtt(
                 NamespaceConfigBuilder<C> namespace)
             {
-                // TODO
-                return namespace;
+                return namespace
+                        .binding()
+                            .name("mqtt_server0")
+                            .type("mqtt")
+                            .kind(SERVER)
+                            .options(MqttOptionsConfig::builder)
+                                .inject(this::injectMqttAuthorization)
+                                .inject(this::injectMqttTopicsOptions)
+                                .build()
+                            .inject(this::injectMqttRoutes)
+                            .inject(this::injectMetrics)
+                            .build();
+            }
+
+            private <C> MqttOptionsConfigBuilder<C> injectMqttAuthorization(
+                MqttOptionsConfigBuilder<C> options)
+            {
+                final MqttOptionsConfig mqttOptions = config.options.mqtt;
+                if (mqttOptions != null &&
+                    mqttOptions.authorization != null)
+                {
+                    options.authorization()
+                        .name(mqttOptions.authorization.qname)
+                        .credentials(mqttOptions.authorization.credentials)
+                        .build();
+                }
+
+                return options;
+            }
+
+            private <C> MqttOptionsConfigBuilder<C> injectMqttTopicsOptions(
+                MqttOptionsConfigBuilder<C> options)
+            {
+                Stream.of(schema)
+                    .map(s -> s.asyncapi)
+                    .flatMap(v -> v.channels.stream())
+                    .filter(AsyncapiChannelView::hasMessages)
+                    .forEach(c -> c.messages.stream()
+                        .forEach(m ->
+                            options.topic()
+                                .name(c.address.replaceAll(REGEX_ADDRESS_PARAMETER, "#"))
+                                .inject(t -> injectMqttContentModel(t, m))
+                                .inject(t -> injectMqttUserProperties(t, m))
+                                .build()));
+
+                return options;
+            }
+
+            private <C> MqttTopicConfigBuilder<C> injectMqttContentModel(
+                MqttTopicConfigBuilder<C> topic,
+                AsyncapiMessageView message)
+            {
+                injectPayloadModel(topic::content, message);
+                return topic;
+            }
+
+            private <C> MqttTopicConfigBuilder<C> injectMqttUserProperties(
+                MqttTopicConfigBuilder<C> topic,
+                AsyncapiMessageView message)
+            {
+                if (message.hasTraits())
+                {
+                    message.traits.stream()
+                        .filter(t -> t.headers != null)
+                        .filter(t -> t.headers.properties != null)
+                        .flatMap(t -> t.headers.properties.keySet().stream())
+                        .forEach(property ->
+                            topic
+                                .userProperty()
+                                .name(property)
+                                .value(JsonModelConfig::builder)
+                                .catalog()
+                                    .name("catalog0")
+                                    .schema()
+                                        .subject("%s-%s-header-%s".formatted(message.channel.name, message.name, property))
+                                        .version("latest")
+                                        .build()
+                                    .build()
+                                .build());
+                }
+
+                return topic;
+            }
+
+            private <C> BindingConfigBuilder<C> injectMqttRoutes(
+                BindingConfigBuilder<C> binding)
+            {
+                Stream.of(schema)
+                    .map(s -> s.asyncapi)
+                    .flatMap(v -> v.operations.values().stream())
+                    .forEach(o ->
+                        binding.inject(b -> injectMqttRoute(b, o)));
+
+                binding.route()
+                    .exit(config.qname)
+                    .when(MqttConditionConfig::builder)
+                        .session()
+                            .clientId("*")
+                            .build()
+                        .build()
+                    .with(MqttWithConfig::builder)
+                        .compositeId(schema.asyncapi.compositeId)
+                        .build()
+                    .build();
+
+                return binding;
+            }
+
+            private <C> BindingConfigBuilder<C> injectMqttRoute(
+                BindingConfigBuilder<C> binding,
+                AsyncapiOperationView operation)
+            {
+                String topic = operation.channel.address.replaceAll(REGEX_ADDRESS_PARAMETER, "#");
+
+                if ("send".equals(operation.action))
+                {
+                    binding.route()
+                        .exit(config.qname)
+                        .when(MqttConditionConfig::builder)
+                            .publish()
+                                .topic(topic)
+                                .build()
+                            .build()
+                        .with(MqttWithConfig::builder)
+                            .compositeId(operation.compositeId)
+                            .build()
+                        .build();
+                }
+                else if ("receive".equals(operation.action))
+                {
+                    binding.route()
+                        .exit(config.qname)
+                        .when(MqttConditionConfig::builder)
+                            .subscribe()
+                                .topic(topic)
+                                .build()
+                            .build()
+                        .with(MqttWithConfig::builder)
+                            .compositeId(schema.asyncapi.compositeId)
+                            .build()
+                        .build();
+                }
+
+                return binding;
             }
         }
     }

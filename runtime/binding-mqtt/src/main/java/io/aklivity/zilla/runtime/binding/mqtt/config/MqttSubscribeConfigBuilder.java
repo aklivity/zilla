@@ -25,7 +25,8 @@ public class MqttSubscribeConfigBuilder<T> extends ConfigBuilder<T, MqttSubscrib
 
     private String topic;
 
-    public MqttSubscribeConfigBuilder(Function<MqttSubscribeConfig, T> mapper)
+    MqttSubscribeConfigBuilder(
+        Function<MqttSubscribeConfig, T> mapper)
     {
         this.mapper = mapper;
     }

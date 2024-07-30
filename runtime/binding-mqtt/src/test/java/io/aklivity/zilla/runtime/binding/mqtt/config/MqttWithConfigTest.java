@@ -15,19 +15,20 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.config;
 
-public final class MqttAuthorizationConfig
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+
+import org.junit.Test;
+
+public class MqttWithConfigTest
 {
-    public final String name;
-    public final MqttCredentialsConfig credentials;
-
-    public transient String qname;
-
-    public MqttAuthorizationConfig(
-        String name,
-        MqttCredentialsConfig credentials)
+    @Test
+    public void shouldBuild()
     {
-        this.name = name;
-        this.credentials = credentials;
+        MqttWithConfig with = MqttWithConfig.builder()
+            .compositeId(0xaaaa_bbbb_cccc_ddddL)
+            .build();
+
+        assertThat(with.compositeId, equalTo(0xaaaa_bbbb_cccc_ddddL));
     }
 }
-

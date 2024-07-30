@@ -44,8 +44,8 @@ public class AsyncapiServerIT
         .directory("target/zilla-itests")
         .countersBufferCapacity(8192)
         .configure(ENGINE_DRAIN_ON_CLOSE, false)
-        .configure(EngineConfiguration.ENGINE_VERBOSE, true)
-        .configure(EngineConfiguration.ENGINE_VERBOSE_COMPOSITES, true)
+        .configure(EngineConfiguration.ENGINE_VERBOSE, false)
+        .configure(EngineConfiguration.ENGINE_VERBOSE_COMPOSITES, false)
         .configurationRoot("io/aklivity/zilla/specs/binding/asyncapi/config")
         .external("asyncapi0")
         .clean();

@@ -94,11 +94,11 @@ public class MqttConditionConfigAdapterTest
     {
         MqttConditionConfig condition = MqttConditionConfig.builder()
             .inject(identity())
-            .session(new MqttSessionConfig("*"))
-            .subscribe(new MqttSubscribeConfig("reply/one"))
-            .subscribe(new MqttSubscribeConfig("reply/two"))
-            .publish(new MqttPublishConfig("command/one"))
-            .publish(new MqttPublishConfig("command/two"))
+            .session(MqttSessionConfig.builder().clientId("*").build())
+            .subscribe(MqttSubscribeConfig.builder().topic("reply/one").build())
+            .subscribe(MqttSubscribeConfig.builder().topic("reply/two").build())
+            .publish(MqttPublishConfig.builder().topic("command/one").build())
+            .publish(MqttPublishConfig.builder().topic("command/two").build())
             .build();
 
         String text = jsonb.toJson(condition);

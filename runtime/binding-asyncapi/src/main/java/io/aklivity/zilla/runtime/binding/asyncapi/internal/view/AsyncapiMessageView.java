@@ -30,6 +30,11 @@ public final class AsyncapiMessageView
     public final AsyncapiCorrelationIdView correlationId;
     public final AsyncapiMessageBindingsView bindings;
 
+    public boolean hasTraits()
+    {
+        return traits != null && !traits.isEmpty();
+    }
+
     AsyncapiMessageView(
         AsyncapiChannelView channel,
         AsyncapiResolver resolver,

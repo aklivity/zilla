@@ -33,8 +33,8 @@ public final class SseWithConfig extends WithConfig
     }
 
     SseWithConfig(
-        long tag)
+        long compositeId)
     {
-        super(tag);
+        super(compositeId);
     }
 }

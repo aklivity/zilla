@@ -34,6 +34,7 @@ public final class AsyncapiView
     public final List<AsyncapiServerView> servers;
     public final List<AsyncapiChannelView> channels;
     public final Map<String, AsyncapiOperationView> operations;
+    public final long compositeId;
 
     public boolean hasProtocol(
         String protocol)
@@ -74,6 +75,7 @@ public final class AsyncapiView
         List<AsyncapiServerConfig> configs)
     {
         this.label = label;
+        this.compositeId = compositeId(id, 0);
 
         AsyncapiResolver resolver = new AsyncapiResolver(asyncapi);
 

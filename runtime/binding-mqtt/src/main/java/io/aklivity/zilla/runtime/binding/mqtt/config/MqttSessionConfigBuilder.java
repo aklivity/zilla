@@ -15,28 +15,39 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.config;
 
-import static java.util.function.Function.identity;
-
 import java.util.function.Function;
 
-public class MqttSessionConfig
+import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
+
+public class MqttSessionConfigBuilder<T> extends ConfigBuilder<T, MqttSessionConfigBuilder<T>>
 {
-    public final String clientId;
+    private final Function<MqttSessionConfig, T> mapper;
 
-    public static MqttSessionConfigBuilder<MqttSessionConfig> builder()
-    {
-        return new MqttSessionConfigBuilder<>(identity());
-    }
+    private String clientId;
 
-    public static <T> MqttSessionConfigBuilder<T> builder(
+    MqttSessionConfigBuilder(
         Function<MqttSessionConfig, T> mapper)
     {
-        return new MqttSessionConfigBuilder<>(mapper);
+        this.mapper = mapper;
     }
 
-    MqttSessionConfig(
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Class<MqttSessionConfigBuilder<T>> thisType()
+    {
+        return (Class<MqttSessionConfigBuilder<T>>) getClass();
+    }
+
+    public MqttSessionConfigBuilder<T> clientId(
         String clientId)
     {
         this.clientId = clientId;
+        return this;
+    }
+
+    @Override
+    public T build()
+    {
+        return mapper.apply(new MqttSessionConfig(clientId));
     }
 }

@@ -115,7 +115,7 @@ catalogs:
           plain:
             host: localhost:8080
             protocol: http
-            protocolVersion: '2.0'
+            protocolVersion: '1.1'
         defaultContentType: application/json
 
         channels:

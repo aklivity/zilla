@@ -39,8 +39,6 @@ import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 import io.aklivity.zilla.runtime.model.avro.config.AvroModelConfig;
-import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
-import io.aklivity.zilla.runtime.model.protobuf.config.ProtobufModelConfig;
 
 public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
 {
@@ -103,10 +101,7 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
 
         private final class ClientBindingsHelper extends BindingsHelper
         {
-            private static final Pattern PARAMETERIZED_TOPIC_PATTERN = Pattern.compile("\\{.*?\\}");
-            private static final Pattern MODEL_CONTENT_TYPE = Pattern.compile("^application/(?:.+\\+)?(json|avro|protobuf)$");
-
-            private final Matcher modelContentType = MODEL_CONTENT_TYPE.matcher("");
+            private static final Pattern PARAMETERIZED_TOPIC_PATTERN = Pattern.compile(REGEX_ADDRESS_PARAMETER);
 
             private final Map<String, NamespaceInjector> protocols;
             private final List<String> secure;
@@ -308,48 +303,8 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                 if (channel.hasMessages())
                 {
                     final AsyncapiMessageView message = channel.messages.get(0);
-                    if (message.contentType != null &&
-                        modelContentType.reset(message.contentType).matches())
-                    {
-                        switch (modelContentType.group(1))
-                        {
-                        case "json":
-                            topic.value(JsonModelConfig::builder)
-                                .catalog()
-                                    .name("catalog0")
-                                    .schema()
-                                        .version("latest")
-                                        .subject(message.name)
-                                        .build()
-                                    .build()
-                                .build();
-                            break;
-                        case "avro":
-                            topic.value(AvroModelConfig::builder)
-                                .view("json")
-                                .catalog()
-                                    .name("catalog0")
-                                    .schema()
-                                        .version("latest")
-                                        .subject(message.name)
-                                        .build()
-                                    .build()
-                                .build();
-                            break;
-                        case "protobuf":
-                            topic.value(ProtobufModelConfig::builder)
-                                .view("json")
-                                .catalog()
-                                    .name("catalog0")
-                                    .schema()
-                                        .version("latest")
-                                        .subject(message.name)
-                                        .build()
-                                    .build()
-                                .build();
-                            break;
-                        }
-                    }
+
+                    injectPayloadModel(topic::value, message);
                 }
 
                 return topic;

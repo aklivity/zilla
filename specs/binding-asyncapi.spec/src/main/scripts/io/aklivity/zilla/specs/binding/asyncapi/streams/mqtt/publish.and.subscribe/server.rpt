@@ -23,18 +23,19 @@ accept ${serverAddress}
 accepted
 
 read zilla:begin.ext ${mqtt:matchBeginEx()
-                             .typeId(zilla:id("mqtt"))
-                             .session()
-                                .clientId("client")
-                                .build()
-                             .build()}
+                           .compositeId(core:decodeLong("0x0000_0001_0000_0000"))
+                           .typeId(zilla:id("mqtt"))
+                           .session()
+                               .clientId("client")
+                               .build()
+                           .build()}
 
 write zilla:begin.ext ${mqtt:beginEx()
-                              .typeId(zilla:id("mqtt"))
-                              .session()
+                            .typeId(zilla:id("mqtt"))
+                            .session()
                                 .clientId("client")
                                 .build()
-                              .build()}
+                            .build()}
 
 connected
 
@@ -45,12 +46,13 @@ write flush
 accepted
 
 read zilla:begin.ext ${mqtt:matchBeginEx()
-                             .typeId(zilla:id("mqtt"))
-                             .publish()
-                                .clientId("client")
-                                .topic("sensors/one")
-                                .build()
-                             .build()}
+                           .compositeId(core:decodeLong("0x0000_0001_0000_0002"))
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                               .clientId("client")
+                               .topic("sensors/one")
+                               .build()
+                           .build()}
 
 connected
 
@@ -72,11 +74,12 @@ read "asyncapiMessage"
 accepted
 
 read zilla:begin.ext ${mqtt:matchBeginEx()
-                             .typeId(zilla:id("mqtt"))
-                             .subscribe()
-                                 .clientId("client")
-                                 .filter("sensors/two", 1, "AT_MOST_ONCE", "SEND_RETAINED")
-                                 .build()
-                             .build()}
+                           .compositeId(core:decodeLong("0x0000_0001_0000_0001"))
+                           .typeId(zilla:id("mqtt"))
+                           .subscribe()
+                               .clientId("client")
+                               .filter("sensors/two", 1, "AT_MOST_ONCE", "SEND_RETAINED")
+                               .build()
+                           .build()}
 
 connected

@@ -174,6 +174,13 @@ public final class MqttFunctions
             beginExRW.wrap(writeBuffer, 0, writeBuffer.capacity());
         }
 
+        public MqttBeginExBuilder compositeId(
+            long compositeId)
+        {
+            beginExRW.compositeId(compositeId);
+            return this;
+        }
+
         public MqttBeginExBuilder typeId(
             int typeId)
         {
@@ -1185,6 +1192,7 @@ public final class MqttFunctions
 
         private final MqttBeginExFW beginExRO = new MqttBeginExFW();
 
+        private Long compositeId;
         private Integer typeId;
         private Integer kind;
         private Predicate<MqttBeginExFW> caseMatcher;
@@ -1216,6 +1224,13 @@ public final class MqttFunctions
             return matcherBuilder;
         }
 
+        public MqttBeginExMatcherBuilder compositeId(
+            long compositeId)
+        {
+            this.compositeId = compositeId;
+            return this;
+        }
+
         public MqttBeginExMatcherBuilder typeId(
             int typeId)
         {
@@ -1240,6 +1255,7 @@ public final class MqttFunctions
             final MqttBeginExFW beginEx = beginExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.capacity());
 
             if (beginEx != null &&
+                matchCompositeId(beginEx) &&
                 matchTypeId(beginEx) &&
                 matchKind(beginEx) &&
                 matchCase(beginEx))
@@ -1249,6 +1265,12 @@ public final class MqttFunctions
             }
 
             throw new Exception(beginEx.toString());
+        }
+
+        private boolean matchCompositeId(
+            final MqttBeginExFW beginEx)
+        {
+            return compositeId == null || compositeId == beginEx.compositeId();
         }
 
         private boolean matchTypeId(

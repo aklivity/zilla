@@ -15,12 +15,14 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.internal.config;
 
+import static io.aklivity.zilla.runtime.engine.config.WithConfig.NO_COMPOSITE_ID;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
 import java.util.function.LongPredicate;
 
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttConditionConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttWithConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 
 public final class MqttRouteConfig
@@ -28,6 +30,7 @@ public final class MqttRouteConfig
     public final long id;
 
     private final List<MqttConditionMatcher> when;
+    private final MqttWithConfig with;
     private final LongPredicate authorized;
 
     public MqttRouteConfig(
@@ -38,7 +41,13 @@ public final class MqttRouteConfig
             .map(MqttConditionConfig.class::cast)
             .map(MqttConditionMatcher::new)
             .collect(toList());
+        this.with = (MqttWithConfig) route.with;
         this.authorized = route.authorized;
+    }
+
+    public long compositeId()
+    {
+        return with != null ? with.compositeId : NO_COMPOSITE_ID;
     }
 
     boolean authorized(

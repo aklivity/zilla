@@ -22,6 +22,8 @@ import java.util.function.ToIntFunction;
 import java.util.function.ToLongFunction;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
+import io.aklivity.zilla.runtime.binding.http.config.HttpAuthorizationConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttAuthorizationConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
@@ -66,6 +68,30 @@ public final class AsyncapiBindingConfig
         this.resolveId = binding.resolveId;
         this.supplyCatalog = context::supplyCatalog;
         this.supplyTypeId = context::supplyTypeId;
+
+        // TODO: move to engine
+        if (options != null)
+        {
+            if (options.http != null)
+            {
+                final HttpAuthorizationConfig authorization = options.http.authorization;
+                if (authorization != null)
+                {
+                    final long namespacedId = binding.resolveId.applyAsLong(authorization.name);
+                    authorization.qname = context.supplyQName(namespacedId);
+                }
+            }
+
+            if (options.mqtt != null)
+            {
+                final MqttAuthorizationConfig authorization = options.mqtt.authorization;
+                if (authorization != null)
+                {
+                    final long namespacedId = binding.resolveId.applyAsLong(authorization.name);
+                    authorization.qname = context.supplyQName(namespacedId);
+                }
+            }
+        }
     }
 
     public AsyncapiRouteConfig resolve(

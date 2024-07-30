@@ -51,16 +51,16 @@ public class MqttAuthorizationConfigBuilder<T> extends ConfigBuilder<T, MqttAuth
         return new MqttCredentialsConfigBuilder<>(this::credentials);
     }
 
-    @Override
-    public T build()
-    {
-        return mapper.apply(new MqttAuthorizationConfig(name, credentials));
-    }
-
-    private MqttAuthorizationConfigBuilder<T> credentials(
+    public MqttAuthorizationConfigBuilder<T> credentials(
         MqttCredentialsConfig credentials)
     {
         this.credentials = credentials;
         return this;
+    }
+
+    @Override
+    public T build()
+    {
+        return mapper.apply(new MqttAuthorizationConfig(name, credentials));
     }
 }

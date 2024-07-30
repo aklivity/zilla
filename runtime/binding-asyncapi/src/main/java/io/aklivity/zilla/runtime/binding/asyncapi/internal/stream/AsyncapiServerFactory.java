@@ -40,6 +40,7 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiOperationView;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiView;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -162,11 +163,14 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
                 final ExtensionFW extensionEx = extension.get(extensionRO::wrap);
                 final long compositeId = extensionEx.compositeId();
                 final AsyncapiOperationView operation = composite.resolveOperation(compositeId);
+                final AsyncapiView specification = operation != null
+                        ? operation.specification
+                        : composite.resolveSpecification(compositeId);
 
-                if (operation != null)
+                if (specification != null)
                 {
-                    final String apiId = operation.specification.label;
-                    final String operationId = operation.name;
+                    final String apiId = specification.label;
+                    final String operationId = operation != null ? operation.name : null;
 
                     final AsyncapiRouteConfig route = binding.resolve(authorization, apiId, operationId);
 

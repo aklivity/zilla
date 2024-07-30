@@ -24,9 +24,6 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttConditionConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttConditionConfigBuilder;
-import io.aklivity.zilla.runtime.binding.mqtt.config.MqttPublishConfig;
-import io.aklivity.zilla.runtime.binding.mqtt.config.MqttSessionConfig;
-import io.aklivity.zilla.runtime.binding.mqtt.config.MqttSubscribeConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttBinding;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
@@ -38,7 +35,8 @@ public final class MqttConditionConfigAdapter implements ConditionConfigAdapterS
     private static final String PUBLISH_NAME = "publish";
     private static final String CLIENT_ID_NAME = "client-id";
     private static final String TOPIC_NAME = "topic";
-    public static final String CLIENT_ID_DEFAULT = "*";
+
+    private static final String CLIENT_ID_DEFAULT = "*";
 
     @Override
     public String type()
@@ -61,7 +59,10 @@ public final class MqttConditionConfigAdapter implements ConditionConfigAdapterS
             mqttCondition.sessions.forEach(p ->
             {
                 JsonObjectBuilder sessionJson = Json.createObjectBuilder();
-                sessionJson.add(CLIENT_ID_NAME, p.clientId);
+                if (!CLIENT_ID_DEFAULT.equals(p.clientId))
+                {
+                    sessionJson.add(CLIENT_ID_NAME, p.clientId);
+                }
                 sessions.add(sessionJson);
             });
             object.add(SESSION_NAME, sessions);
@@ -108,8 +109,10 @@ public final class MqttConditionConfigAdapter implements ConditionConfigAdapterS
             sessionsJson.forEach(s ->
             {
                 String clientId = s.asJsonObject().getString(CLIENT_ID_NAME, CLIENT_ID_DEFAULT);
-                MqttSessionConfig session = new MqttSessionConfig(clientId);
-                mqttConfig.session(session);
+
+                mqttConfig.session()
+                    .clientId(clientId)
+                    .build();
             });
         }
 
@@ -119,8 +122,10 @@ public final class MqttConditionConfigAdapter implements ConditionConfigAdapterS
             subscribesJson.forEach(s ->
             {
                 String topic = s.asJsonObject().getString(TOPIC_NAME);
-                MqttSubscribeConfig subscribe = new MqttSubscribeConfig(topic);
-                mqttConfig.subscribe(subscribe);
+
+                mqttConfig.subscribe()
+                    .topic(topic)
+                    .build();
             });
         }
 
@@ -130,8 +135,10 @@ public final class MqttConditionConfigAdapter implements ConditionConfigAdapterS
             publishesJson.forEach(p ->
             {
                 String topic = p.asJsonObject().getString(TOPIC_NAME);
-                MqttPublishConfig publish = new MqttPublishConfig(topic);
-                mqttConfig.publish(publish);
+
+                mqttConfig.publish()
+                    .topic(topic)
+                    .build();
             });
         }
 

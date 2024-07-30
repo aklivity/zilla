@@ -23,6 +23,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import jakarta.json.Json;
@@ -42,7 +45,9 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiBindin
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiCompositeConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiSchemaItem;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.kafka.AsyncapiKafkaServerBinding;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiMessageView;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiSchemaItemView;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiSchemaView;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiServerView;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiView;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
@@ -53,12 +58,15 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
+import io.aklivity.zilla.runtime.model.avro.config.AvroModelConfig;
 import io.aklivity.zilla.runtime.model.core.config.DoubleModelConfig;
 import io.aklivity.zilla.runtime.model.core.config.FloatModelConfig;
 import io.aklivity.zilla.runtime.model.core.config.Int32ModelConfig;
 import io.aklivity.zilla.runtime.model.core.config.Int64ModelConfig;
 import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
 import io.aklivity.zilla.runtime.model.core.config.StringPattern;
+import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
+import io.aklivity.zilla.runtime.model.protobuf.config.ProtobufModelConfig;
 
 public abstract class AsyncapiCompositeGenerator
 {
@@ -159,8 +167,8 @@ public abstract class AsyncapiCompositeGenerator
         {
             return namespace.name(
                 String.format("%s/%s", config.qname,
-                    String.join("+", config.options.specs.stream()
-                            .map(s -> s.label)
+                    String.join("+", Stream.of(schema) // TODO: multiple
+                            .map(s -> s.apiLabel)
                             .toList())));
         }
 
@@ -285,17 +293,35 @@ public abstract class AsyncapiCompositeGenerator
                         .map(o -> o.channel)
                         .filter(c -> c.messages != null)
                         .flatMap(c -> c.messages.stream())
-                        .filter(m -> m.payload != null)
                         .forEach(m ->
                         {
-                            final String subject = "%s-%s-payload".formatted(m.channel.name, m.name);
-                            final AsyncapiSchemaItemView schema = m.payload;
+                            if (m.payload != null)
+                            {
+                                final String subject = "%s-%s-payload".formatted(m.channel.name, m.name);
 
-                            options.schema()
-                                .subject(subject)
-                                .version("latest")
-                                .schema(toSchemaJson(jsonb, schema.model))
-                                .build();
+                                options.schema()
+                                    .subject(subject)
+                                    .version("latest")
+                                    .schema(toSchemaJson(jsonb, m.payload.model))
+                                    .build();
+                            }
+
+                            if (m.headers != null && m.headers.properties != null)
+                            {
+                                for (Map.Entry<String, AsyncapiSchemaView> header : m.headers.properties.entrySet())
+                                {
+                                    final String name = header.getKey();
+                                    final AsyncapiSchemaItemView schema = header.getValue();
+
+                                    final String subject = "%s-%s-header-%s".formatted(m.channel.name, m.name, name);
+
+                                    options.schema()
+                                        .subject(subject)
+                                        .version("latest")
+                                        .schema(toSchemaJson(jsonb, schema.model))
+                                        .build();
+                                }
+                            }
                         });
 
                     Stream.of(schema)
@@ -308,12 +334,11 @@ public abstract class AsyncapiCompositeGenerator
                         .forEach(p ->
                         {
                             final String subject = "%s-params-%s".formatted(p.channel.name, p.name);
-                            final AsyncapiSchemaItemView schema = p.schema;
 
                             options.schema()
                                 .subject(subject)
                                 .version("latest")
-                                .schema(toSchemaJson(jsonb, schema.model))
+                                .schema(toSchemaJson(jsonb, p.schema.model))
                                 .build();
                         });
                 }
@@ -356,8 +381,79 @@ public abstract class AsyncapiCompositeGenerator
 
         protected abstract class BindingsHelper
         {
+            private static final Pattern MODEL_CONTENT_TYPE = Pattern.compile("^application/(?:.+\\+)?(json|avro|protobuf)$");
+
+            protected static final String REGEX_ADDRESS_PARAMETER = "\\{[^}]+\\}";
+
+            private final Matcher modelContentType = MODEL_CONTENT_TYPE.matcher("");
+
             protected abstract <C> NamespaceConfigBuilder<C> injectAll(
                 NamespaceConfigBuilder<C> namespace);
+
+            protected final void injectPayloadModel(
+                Consumer<ModelConfig> injector,
+                AsyncapiMessageView message)
+            {
+                ModelConfig model = null;
+
+                if (message.payload instanceof AsyncapiSchemaView schema &&
+                    schema.type != null)
+                {
+                    String modelType = schema.format != null
+                        ? String.format("%s:%s", schema.type, schema.format)
+                        : schema.type;
+
+                    model = MODELS.get(modelType);
+                }
+
+                if (model == null &&
+                    message.contentType != null &&
+                    modelContentType.reset(message.contentType).matches())
+                {
+                    final String subject = "%s-%s-payload".formatted(message.channel.name, message.name);
+
+                    switch (modelContentType.group(1))
+                    {
+                    case "json":
+                        model = JsonModelConfig.builder()
+                            .catalog()
+                                .name("catalog0")
+                                .schema()
+                                    .version("latest")
+                                    .subject(subject)
+                                    .build()
+                                .build()
+                            .build();
+                        break;
+                    case "avro":
+                        model = AvroModelConfig.builder()
+                            .view("json")
+                            .catalog()
+                                .name("catalog0")
+                                .schema()
+                                    .version("latest")
+                                    .subject(subject)
+                                    .build()
+                                .build()
+                            .build();
+                        break;
+                    case "protobuf":
+                        model = ProtobufModelConfig.builder()
+                            .view("json")
+                            .catalog()
+                                .name("catalog0")
+                                .schema()
+                                    .version("latest")
+                                    .subject(subject)
+                                    .build()
+                                .build()
+                            .build();
+                        break;
+                    }
+                }
+
+                injector.accept(model);
+            }
 
             protected final <C> BindingConfigBuilder<C> injectMetrics(
                 BindingConfigBuilder<C> binding)

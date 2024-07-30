@@ -194,6 +194,7 @@ import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
+import io.aklivity.zilla.runtime.engine.config.WithConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
@@ -2954,6 +2955,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     ? REDIRECT_MASK : 0;
 
                 final MqttBeginExFW.Builder builder = mqttSessionBeginExRW.wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())
+                    .compositeId(resolved.compositeId())
                     .typeId(mqttTypeId)
                     .session(s -> s
                         .flags(connectFlags & (CLEAN_START_FLAG_MASK | WILL_FLAG_MASK))
@@ -3170,9 +3172,10 @@ public final class MqttServerFactory implements MqttStreamFactory
             if (resolved != null)
             {
                 final long resolvedId = resolved.id;
+                final long compositeId = resolved.compositeId();
 
                 stream = publishes.computeIfAbsent(topicKey, s ->
-                    new MqttPublishStream(routedId, resolvedId, topic, topicKey, binding.supplyModelConfig(topic)));
+                    new MqttPublishStream(routedId, resolvedId, compositeId, topic, topicKey, binding.supplyModelConfig(topic)));
                 stream.doPublishBegin(traceId, affinity, qos);
             }
             else
@@ -3646,7 +3649,9 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                     if (resolved != null)
                     {
-                        subscriptionsByRouteId.computeIfAbsent(resolved.id, s -> new ArrayList<>()).add(subscription);
+                        final List<Subscription> resolvedSubscriptions =
+                            subscriptionsByRouteId.computeIfAbsent(resolved.id, s -> new ArrayList<>());
+                        resolvedSubscriptions.add(subscription.withCompositeId(resolved.compositeId()));
                     }
                     else
                     {
@@ -3693,8 +3698,11 @@ public final class MqttServerFactory implements MqttStreamFactory
                             for (int level = 0; level <= maxQos; level++)
                             {
                                 int qos = level;
+                                long compositeId = !subscriptionList.isEmpty()
+                                    ? subscriptionList.get(0).compositeId
+                                    : WithConfig.NO_COMPOSITE_ID;
                                 MqttSubscribeStream stream = routeSubscribes.computeIfAbsent(qos,
-                                    s -> new MqttSubscribeStream(routedId, key, implicitSubscribe, qos));
+                                    s -> new MqttSubscribeStream(routedId, key, compositeId, implicitSubscribe, qos));
                                 subscriptionList.removeIf(s -> s.reasonCode > GRANTED_QOS_2);
                                 stream.doSubscribeBeginOrFlush(traceId, affinity, subscriptionList);
                             }
@@ -5007,6 +5015,8 @@ public final class MqttServerFactory implements MqttStreamFactory
             private int flags;
             private int reasonCode;
 
+            private long compositeId;
+
             private boolean retainAsPublished()
             {
                 return (flags & RETAIN_AS_PUBLISHED_FLAG) == RETAIN_AS_PUBLISHED_FLAG;
@@ -5037,6 +5047,13 @@ public final class MqttServerFactory implements MqttStreamFactory
             public int qos()
             {
                 return qos;
+            }
+
+            public Subscription withCompositeId(
+                long compositeId)
+            {
+                this.compositeId = compositeId;
+                return this;
             }
         }
 
@@ -5644,6 +5661,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             private final long routedId;
             private final long initialId;
             private final long replyId;
+            private final long compositeId;
             private final ValidatorHandler contentType;
             private long budgetId;
 
@@ -5669,6 +5687,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             MqttPublishStream(
                 long originId,
                 long routedId,
+                long compositeId,
                 String topic,
                 long topicKey,
                 ModelConfig config)
@@ -5677,6 +5696,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 this.routedId = routedId;
                 this.initialId = supplyInitialId.applyAsLong(routedId);
                 this.replyId = supplyReplyId.applyAsLong(initialId);
+                this.compositeId = compositeId;
                 this.topic = topic;
                 this.topicKey = topicKey;
                 this.contentType = config != null ? supplyValidator.apply(config) : null;
@@ -5693,6 +5713,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     state = MqttState.openingInitial(state);
 
                     final MqttBeginExFW beginEx = mqttPublishBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                        .compositeId(compositeId)
                         .typeId(mqttTypeId)
                         .publish(p ->
                             p.clientId(clientId)
@@ -6123,6 +6144,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             private final long routedId;
             private final long initialId;
             private final long replyId;
+            private final long compositeId;
             private long budgetId;
 
             private BudgetDebitor debitor;
@@ -6147,6 +6169,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             MqttSubscribeStream(
                 long originId,
                 long routedId,
+                long compositeId,
                 boolean adminSubscribe,
                 int qos)
             {
@@ -6154,6 +6177,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 this.routedId = routedId;
                 this.initialId = supplyInitialId.applyAsLong(routedId);
                 this.replyId = supplyReplyId.applyAsLong(initialId);
+                this.compositeId = compositeId;
                 this.subscriptions = new ArrayList<>();
                 this.adminSubscribe = adminSubscribe;
                 this.qos = qos;
@@ -6193,6 +6217,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 state = MqttState.openingInitial(state);
 
                 final MqttBeginExFW beginEx = mqttSubscribeBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                    .compositeId(compositeId)
                     .typeId(mqttTypeId)
                     .subscribe(subscribeBuilder ->
                     {

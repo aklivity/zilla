@@ -20,6 +20,7 @@ connect "zilla://streams/composite0"
          option zilla:ephemeral "test:composite0/mqtt_api"
 
 write zilla:begin.ext ${mqtt:beginEx()
+                            .compositeId(core:decodeLong("0x0000_0001_0000_0000"))
                             .typeId(zilla:id("mqtt"))
                             .session()
                               .clientId("client")
@@ -46,12 +47,13 @@ connect await RECEIVED_SESSION_STATE
          option zilla:ephemeral "test:composite0/mqtt_api"
 
 write zilla:begin.ext ${mqtt:beginEx()
-                              .typeId(zilla:id("mqtt"))
-                              .publish()
+                            .compositeId(core:decodeLong("0x0000_0001_0000_0002"))
+                            .typeId(zilla:id("mqtt"))
+                            .publish()
                                 .clientId("client")
                                 .topic("sensors/one")
                                 .build()
-                              .build()}
+                            .build()}
 
 connected
 
@@ -78,11 +80,12 @@ connect await RECEIVED_SESSION_STATE
          option zilla:ephemeral "test:composite0/mqtt_api"
 
 write zilla:begin.ext ${mqtt:beginEx()
-                             .typeId(zilla:id("mqtt"))
-                             .subscribe()
-                                 .clientId("client")
-                                 .filter("sensors/two", 1, "AT_MOST_ONCE", "SEND_RETAINED")
-                                 .build()
-                             .build()}
+                            .compositeId(core:decodeLong("0x0000_0001_0000_0001"))
+                            .typeId(zilla:id("mqtt"))
+                            .subscribe()
+                                .clientId("client")
+                                .filter("sensors/two", 1, "AT_MOST_ONCE", "SEND_RETAINED")
+                                .build()
+                            .build()}
 
 connected

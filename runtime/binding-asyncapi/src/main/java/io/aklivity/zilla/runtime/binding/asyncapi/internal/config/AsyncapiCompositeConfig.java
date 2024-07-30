@@ -26,6 +26,7 @@ import org.agrona.collections.Object2LongHashMap;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiSchemaConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiOperationView;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiView;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 
@@ -38,6 +39,7 @@ public final class AsyncapiCompositeConfig
     private final ToLongFunction<String> resolveSchemaId;
 
     private Long2ObjectHashMap<AsyncapiOperationView> operationsById;
+    private Long2ObjectHashMap<AsyncapiView> specificationsById;
 
     public AsyncapiCompositeConfig(
         List<AsyncapiSchemaConfig> schemas,
@@ -66,6 +68,10 @@ public final class AsyncapiCompositeConfig
             .map(s -> s.asyncapi)
             .flatMap(v -> v.operations.values().stream())
             .collect(toMap(o -> o.compositeId, o -> o, (o1, o2) -> o1, Long2ObjectHashMap::new));
+
+        this.specificationsById = schemas.stream()
+            .map(s -> s.asyncapi)
+            .collect(toMap(v -> v.compositeId, v -> v, (v1, v2) -> v1, Long2ObjectHashMap::new));
     }
 
     public boolean hasBindingId(
@@ -103,5 +109,11 @@ public final class AsyncapiCompositeConfig
         long compositeId)
     {
         return operationsById.get(compositeId);
+    }
+
+    public AsyncapiView resolveSpecification(
+        long compositeId)
+    {
+        return specificationsById.get(compositeId);
     }
 }

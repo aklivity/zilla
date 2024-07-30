@@ -15,19 +15,26 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.config;
 
-public final class MqttAuthorizationConfig
+import java.util.function.Function;
+
+import io.aklivity.zilla.runtime.engine.config.WithConfig;
+
+public final class MqttWithConfig extends WithConfig
 {
-    public final String name;
-    public final MqttCredentialsConfig credentials;
-
-    public transient String qname;
-
-    public MqttAuthorizationConfig(
-        String name,
-        MqttCredentialsConfig credentials)
+    public static MqttWithConfigBuilder<MqttWithConfig> builder()
     {
-        this.name = name;
-        this.credentials = credentials;
+        return new MqttWithConfigBuilder<>(MqttWithConfig.class::cast);
+    }
+
+    public static <T> MqttWithConfigBuilder<T> builder(
+        Function<WithConfig, T> mapper)
+    {
+        return new MqttWithConfigBuilder<>(mapper);
+    }
+
+    MqttWithConfig(
+        long compositeId)
+    {
+        super(compositeId);
     }
 }
-

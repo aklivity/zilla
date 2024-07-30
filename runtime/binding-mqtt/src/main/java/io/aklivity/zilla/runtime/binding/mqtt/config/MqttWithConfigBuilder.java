@@ -18,36 +18,36 @@ package io.aklivity.zilla.runtime.binding.mqtt.config;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
+import io.aklivity.zilla.runtime.engine.config.WithConfig;
 
-public class MqttPublishConfigBuilder<T> extends ConfigBuilder<T, MqttPublishConfigBuilder<T>>
+public final class MqttWithConfigBuilder<T> extends ConfigBuilder<T, MqttWithConfigBuilder<T>>
 {
-    private final Function<MqttPublishConfig, T> mapper;
+    private final Function<WithConfig, T> mapper;
 
-    private String topic;
+    private long compositeId;
 
-    MqttPublishConfigBuilder(
-        Function<MqttPublishConfig, T> mapper)
+    MqttWithConfigBuilder(
+        Function<WithConfig, T> mapper)
     {
         this.mapper = mapper;
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    protected Class<MqttPublishConfigBuilder<T>> thisType()
+    protected Class<MqttWithConfigBuilder<T>> thisType()
     {
-        return (Class<MqttPublishConfigBuilder<T>>) getClass();
+        return (Class<MqttWithConfigBuilder<T>>) getClass();
     }
 
-    public MqttPublishConfigBuilder<T> topic(
-        String topic)
+    public MqttWithConfigBuilder<T> compositeId(
+        long compositeId)
     {
-        this.topic = topic;
+        this.compositeId = compositeId;
         return this;
     }
 
-    @Override
     public T build()
     {
-        return mapper.apply(new MqttPublishConfig(topic));
+        return mapper.apply(new MqttWithConfig(compositeId));
     }
 }
