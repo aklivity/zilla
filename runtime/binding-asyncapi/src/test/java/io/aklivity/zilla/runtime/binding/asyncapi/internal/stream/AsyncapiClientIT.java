@@ -14,8 +14,10 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.stream;
 
-import static io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiConfigurationTest.ASYNCAPI_TARGET_ROUTE_ID_NAME;
+import static io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiConfigurationTest.ASYNCAPI_COMPOSITE_ROUTE_ID_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_VERBOSE;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_VERBOSE_COMPOSITES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -52,6 +54,8 @@ public class AsyncapiClientIT
         .external("http0")
         .external("kafka0")
         .external("sse0")
+        .configure(ENGINE_VERBOSE, true)
+        .configure(ENGINE_VERBOSE_COMPOSITES, true)
         .clean();
 
     @Rule
@@ -63,7 +67,7 @@ public class AsyncapiClientIT
         "${asyncapi}/mqtt/publish.and.subscribe/client",
         "${mqtt}/publish.and.subscribe/server"
     })
-    @Configure(name = ASYNCAPI_TARGET_ROUTE_ID_NAME, value = "4294967298")
+    @Configure(name = ASYNCAPI_COMPOSITE_ROUTE_ID_NAME, value = "0x0000000100000002")
     @ScriptProperty("serverAddress \"zilla://streams/mqtt0\"")
     public void shouldPublishAndSubscribe() throws Exception
     {
@@ -76,8 +80,6 @@ public class AsyncapiClientIT
         "${asyncapi}/http/create.pet/client",
         "${http}/create.pet/server"
     })
-    @Configure(name = ASYNCAPI_TARGET_ROUTE_ID_NAME, value = "4294967299")
-    @ScriptProperty("serverAddress \"zilla://streams/http0\"")
     public void shouldCreatePet() throws Exception
     {
         k3po.finish();
@@ -89,7 +91,7 @@ public class AsyncapiClientIT
         "${asyncapi}/kafka/produce.message/client",
         "${kafka}/produce.message/server"
     })
-    @Configure(name = ASYNCAPI_TARGET_ROUTE_ID_NAME, value = "4294967300")
+    @Configure(name = ASYNCAPI_COMPOSITE_ROUTE_ID_NAME, value = "0x0000000100000004")
     @ScriptProperty("serverAddress \"zilla://streams/kafka0\"")
     public void shouldProduceMessage() throws Exception
     {
@@ -102,8 +104,6 @@ public class AsyncapiClientIT
         "${asyncapi}/sse/data.multiple/client",
         "${sse}/data.multiple/server"
     })
-    @Configure(name = ASYNCAPI_TARGET_ROUTE_ID_NAME, value = "4294967301")
-    @ScriptProperty("serverAddress \"zilla://streams/sse0\"")
     public void shouldReceiveMultipleData() throws Exception
     {
         k3po.finish();

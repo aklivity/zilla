@@ -79,21 +79,23 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
 
     private final Long2ObjectHashMap<AsyncapiBindingConfig> bindings;
     private final int asyncapiTypeId;
-
+    private final long compositeRouteId;
     private final AsyncapiCompositeGenerator generator;
+
 
     public AsyncapiClientFactory(
         AsyncapiConfiguration config,
         EngineContext context)
     {
         this.context = context;
-        this.writeBuffer = context.writeBuffer();
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
+        this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.bindings = new Long2ObjectHashMap<>();
         this.asyncapiTypeId = context.supplyTypeId(AsyncapiBinding.NAME);
+        this.compositeRouteId = config.compositeRouteId();
         this.generator = new AsyncapiClientGenerator();
     }
 
@@ -165,7 +167,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
 
             if (route != null)
             {
-                final long resolvedId = route.id;
+                final long resolvedId = compositeRouteId != -1L ? compositeRouteId : route.id;
                 final String operationId = beginEx.operationId().asString();
 
                 newStream = new AsyncapiStream(

@@ -20,6 +20,7 @@ catalogs:
   catalog0:
     type: test
     options:
+      id: 2
       subject: smartylighting
       schema: |
         asyncapi: 3.0.0

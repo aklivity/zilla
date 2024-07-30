@@ -30,11 +30,13 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiCompos
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiCompositeRouteConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiChannelView;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiMessageView;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiOperationView;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfigBuilder;
+import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
@@ -49,7 +51,7 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
     {
         List<NamespaceConfig> namespaces = new LinkedList<>();
         List<AsyncapiCompositeRouteConfig> routes = new LinkedList<>();
-        for (AsyncapiSchemaConfig schema : schemas)
+        for (AsyncapiSchemaConfig schema  : schemas)
         {
             NamespaceHelper helper = new ClientNamespaceHelper(binding, schema);
             NamespaceConfig namespace = NamespaceConfig.builder()
@@ -58,19 +60,19 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
 
             namespaces.add(namespace);
 
-            Matcher routed = Pattern.compile("(http|sse|mqtt|kafka)(?:_cache)?_client0").matcher("");
+            Matcher routedType = Pattern.compile("(?:http|sse|mqtt|kafka_cache)_client0").matcher("");
             namespace.bindings.stream()
-                .filter(b -> routed.reset(b.type).matches())
+                .filter(b -> routedType.reset(b.name).matches())
                 .forEach(b ->
                 {
-                    final String operationType = routed.group(1);
-                    final int operationTypeId = binding.supplyTypeId.applyAsInt(operationType);
+                    final int operationTypeId = binding.supplyTypeId.applyAsInt(b.type);
+                    final long routeId = binding.supplyBindingId.applyAsLong(namespace, b);
 
-                    routes.add(new AsyncapiCompositeRouteConfig(
-                        b.resolveId.applyAsLong(b.name),
-                        new AsyncapiCompositeConditionConfig(
-                            schema.schemaId,
-                            operationTypeId)));
+                    final AsyncapiCompositeConditionConfig when = new AsyncapiCompositeConditionConfig(
+                        schema.schemaId,
+                        operationTypeId);
+
+                    routes.add(new AsyncapiCompositeRouteConfig(routeId, when));
                 });
         }
 
@@ -137,6 +139,7 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                     .map(s -> s.protocol)
                     .distinct()
                     .map(protocols::get)
+                    .filter(p -> p != null)
                     .forEach(p -> p.inject(namespace));
 
                 return namespace;
@@ -169,13 +172,27 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
             private <C> NamespaceConfigBuilder<C> injectTcpClient(
                 NamespaceConfigBuilder<C> namespace)
             {
+                final TcpOptionsConfig tcpOptions = config.options.tcp != null
+                        ? config.options.tcp
+                        : TcpOptionsConfig.builder()
+                            .inject(o ->
+                                Stream.of(schema)
+                                    .map(s -> s.asyncapi)
+                                    .flatMap(v -> v.servers.stream())
+                                    .findFirst()
+                                    .map(s -> o
+                                        .host(s.hostname)
+                                        .ports(new int[] { s.port }))
+                                    .get())
+                            .build();
+
                 return namespace
                     .binding()
                     .name("tcp_client0")
                     .type("tcp")
                     .kind(CLIENT)
                     .inject(this::injectMetrics)
-                    .options(config.options.tcp)
+                    .options(tcpOptions)
                 .build();
 
             }
@@ -346,18 +363,14 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
             private <C> KafkaOptionsConfigBuilder<C> injectKafkaServerOptions(
                 KafkaOptionsConfigBuilder<C> options)
             {
-                config.options.specs.stream()
-                    .flatMap(s -> s.servers.stream())
-                    .map(s -> s.url != null ? s.url : s.host)
-                    .distinct()
-                    .map(h -> h.split(":"))
-                    .forEach(hp ->
-                    {
+                Stream.of(schema)
+                    .map(s -> s.asyncapi)
+                    .flatMap(v -> v.servers.stream())
+                    .forEach(s ->
                         options.server()
-                            .host(hp[0])
-                            .port(Integer.parseInt(hp[1]))
-                            .build();
-                    });
+                            .host(s.hostname)
+                            .port(s.port)
+                            .build());
 
                 return options;
             }
@@ -366,6 +379,7 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                 NamespaceConfigBuilder<C> namespace)
             {
                 return namespace
+                    .inject(this::injectSseClient)
                     .binding()
                         .name("http_client0")
                         .type("http")
@@ -379,6 +393,7 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                 NamespaceConfigBuilder<C> namespace)
             {
                 return namespace
+                    .inject(this::injectSseClient)
                     .binding()
                         .name("http_client0")
                         .type("http")
@@ -386,6 +401,28 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                         .inject(this::injectMetrics)
                         .exit("tls_client0")
                         .build();
+            }
+
+            private <C> NamespaceConfigBuilder<C> injectSseClient(
+                NamespaceConfigBuilder<C> namespace)
+            {
+                if (Stream.of(schema)
+                    .map(s -> s.asyncapi)
+                    .flatMap(v -> v.operations.values().stream())
+                    .filter(AsyncapiOperationView::hasBindingsSse)
+                    .count() != 0L)
+                {
+                    namespace
+                        .binding()
+                            .name("sse_client0")
+                            .type("sse")
+                            .kind(CLIENT)
+                            .inject(this::injectMetrics)
+                            .exit("http_client0")
+                            .build();
+                }
+
+                return namespace;
             }
 
             private <C> NamespaceConfigBuilder<C> injectMqtt(

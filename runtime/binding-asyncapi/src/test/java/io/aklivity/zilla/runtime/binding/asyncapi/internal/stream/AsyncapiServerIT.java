@@ -15,6 +15,8 @@
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.stream;
 
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_VERBOSE;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_VERBOSE_COMPOSITES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -26,7 +28,6 @@ import org.junit.rules.Timeout;
 
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
-import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
@@ -44,8 +45,8 @@ public class AsyncapiServerIT
         .directory("target/zilla-itests")
         .countersBufferCapacity(8192)
         .configure(ENGINE_DRAIN_ON_CLOSE, false)
-        .configure(EngineConfiguration.ENGINE_VERBOSE, false)
-        .configure(EngineConfiguration.ENGINE_VERBOSE_COMPOSITES, false)
+        .configure(ENGINE_VERBOSE, false)
+        .configure(ENGINE_VERBOSE_COMPOSITES, false)
         .configurationRoot("io/aklivity/zilla/specs/binding/asyncapi/config")
         .external("asyncapi0")
         .clean();

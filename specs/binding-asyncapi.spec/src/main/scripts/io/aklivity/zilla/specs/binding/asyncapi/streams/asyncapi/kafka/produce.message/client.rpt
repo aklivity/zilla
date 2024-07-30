@@ -23,14 +23,16 @@ connect "zilla://streams/asyncapi0"
 
 write zilla:begin.ext ${asyncapi:beginEx()
                              .typeId(zilla:id("asyncapi"))
+                             .apiId(2)
                              .extension(kafka:beginEx()
-                                           .typeId(zilla:id("kafka"))
-                                           .merged()
-                                               .capabilities("PRODUCE_ONLY")
-                                               .topic("test")
-                                               .ackMode("LEADER_ONLY")
-                                               .build()
-                                            .build())
+                                             .compositeId(core:decodeLong("0x0000_0001_0000_0001"))
+                                             .typeId(zilla:id("kafka"))
+                                             .merged()
+                                                 .capabilities("PRODUCE_ONLY")
+                                                 .topic("test")
+                                                 .ackMode("LEADER_ONLY")
+                                                 .build()
+                                             .build())
                              .build()}
 
 connected

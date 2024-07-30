@@ -900,6 +900,13 @@ public final class KafkaFunctions
             beginExRW.wrap(writeBuffer, 0, writeBuffer.capacity());
         }
 
+        public KafkaBeginExBuilder compositeId(
+            long compositeId)
+        {
+            beginExRW.compositeId(compositeId);
+            return this;
+        }
+
         public KafkaBeginExBuilder typeId(
             int typeId)
         {
@@ -5248,6 +5255,7 @@ public final class KafkaFunctions
 
         private final KafkaBeginExFW beginExRO = new KafkaBeginExFW();
 
+        private Long compositeId;
         private Integer typeId;
         private Integer kind;
         private Predicate<KafkaBeginExFW> caseMatcher;
@@ -5297,6 +5305,13 @@ public final class KafkaFunctions
             return matcherBuilder;
         }
 
+        public KafkaBeginExMatcherBuilder compositeId(
+            long compositeId)
+        {
+            this.compositeId = compositeId;
+            return this;
+        }
+
         public KafkaBeginExMatcherBuilder typeId(
             int typeId)
         {
@@ -5321,6 +5336,7 @@ public final class KafkaFunctions
             final KafkaBeginExFW beginEx = beginExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.capacity());
 
             if (beginEx != null &&
+                matchCompositeId(beginEx) &&
                 matchTypeId(beginEx) &&
                 matchKind(beginEx) &&
                 matchCase(beginEx))
@@ -5330,6 +5346,12 @@ public final class KafkaFunctions
             }
 
             throw new Exception(beginEx.toString());
+        }
+
+        private boolean matchCompositeId(
+            final KafkaBeginExFW beginEx)
+        {
+            return compositeId == null || compositeId == beginEx.compositeId();
         }
 
         private boolean matchTypeId(

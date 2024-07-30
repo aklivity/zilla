@@ -19,6 +19,7 @@ import static java.util.stream.Collectors.toList;
 import java.util.List;
 import java.util.function.LongFunction;
 import java.util.function.ToIntFunction;
+import java.util.function.ToLongBiFunction;
 import java.util.function.ToLongFunction;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
@@ -29,6 +30,7 @@ import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.MetricRefConfig;
+import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 
 public final class AsyncapiBindingConfig
 {
@@ -44,6 +46,7 @@ public final class AsyncapiBindingConfig
     public final ToLongFunction<String> resolveId;
     public final LongFunction<CatalogHandler> supplyCatalog;
     public final ToIntFunction<String> supplyTypeId;
+    public final ToLongBiFunction<NamespaceConfig, BindingConfig> supplyBindingId;
 
     public transient AsyncapiCompositeConfig composite;
 
@@ -66,6 +69,7 @@ public final class AsyncapiBindingConfig
                 : List.of();
 
         this.resolveId = binding.resolveId;
+        this.supplyBindingId = context::supplyBindingId;
         this.supplyCatalog = context::supplyCatalog;
         this.supplyTypeId = context::supplyTypeId;
 

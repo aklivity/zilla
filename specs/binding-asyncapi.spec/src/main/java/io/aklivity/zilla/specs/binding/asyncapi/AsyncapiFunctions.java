@@ -94,7 +94,7 @@ public final class AsyncapiFunctions
         private final AsyncapiBeginExFW beginExRO = new AsyncapiBeginExFW();
 
         private Integer typeId;
-        private long apiId;
+        private Long apiId;
         private String operationId;
         private BytesMatcher extension;
 
@@ -166,7 +166,7 @@ public final class AsyncapiFunctions
         private boolean matchApiId(
             AsyncapiBeginExFW beginEx)
         {
-            return apiId == beginEx.apiId();
+            return apiId == null || apiId == beginEx.apiId();
         }
 
         private boolean matchOperationId(
