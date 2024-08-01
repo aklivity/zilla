@@ -286,10 +286,10 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             this.qos = qos;
             if (qos == MqttQoS.EXACTLY_ONCE.value())
             {
-                this.offsetCommit = new KafkaOffsetCommitStream(originId, resolvedId, this);
+                this.offsetCommit = new KafkaOffsetCommitStream(routedId, resolvedId, this);
             }
-            this.messages = new KafkaMessagesProxy(originId, resolvedId, affinity, this, kafkaMessagesTopic);
-            this.retained = new KafkaRetainedProxy(originId, resolvedId, affinity, this, kafkaRetainedTopic);
+            this.messages = new KafkaMessagesProxy(routedId, resolvedId, affinity, this, kafkaMessagesTopic);
+            this.retained = new KafkaRetainedProxy(routedId, resolvedId, affinity, this, kafkaRetainedTopic);
             this.clients = clients;
         }
 

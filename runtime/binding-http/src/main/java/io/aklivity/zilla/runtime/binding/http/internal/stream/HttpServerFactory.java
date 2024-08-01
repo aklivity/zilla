@@ -1082,6 +1082,9 @@ public final class HttpServerFactory implements HttpStreamFactory
                                 beginEx = newBeginEx.build();
                             }
 
+                            // route discovered after HttpBeginEx construction started
+                            codecBuffer.putLong(beginEx.offset() + HttpBeginExFW.FIELD_OFFSET_COMPOSITE_ID, route.compositeId());
+
                             HttpPolicyConfig policy = binding.access().effectivePolicy(headers);
                             final String origin = policy == CROSS_ORIGIN ? headers.get(HEADER_NAME_ORIGIN) : null;
 
@@ -5017,6 +5020,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                             }
 
                             final HttpBeginExFW beginEx = beginExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                                    .compositeId(route.compositeId())
                                     .typeId(httpTypeId)
                                     .headers(hs -> headers.forEach((n, v) -> hs.item(h -> h.name(n).value(v))))
                                     .build();
@@ -5410,6 +5414,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                                 exchangeAuth, traceId, policy, origin, contentLength, null);
 
                     final HttpBeginExFW beginEx = beginExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                            .compositeId(route.compositeId())
                             .typeId(httpTypeId)
                             .headers(hs -> headers.forEach((n, v) -> hs.item(i -> i.name(n).value(v))))
                             .build();

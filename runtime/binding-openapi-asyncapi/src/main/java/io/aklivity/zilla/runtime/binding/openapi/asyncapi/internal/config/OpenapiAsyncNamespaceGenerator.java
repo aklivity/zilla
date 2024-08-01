@@ -26,20 +26,15 @@ import java.util.function.ToLongFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiChannel;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiOperation;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiReply;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiChannelView;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiOperationView;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiReplyView;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiView;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaConditionConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithConfig;
-import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithConfigBuilder;
-import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchConfigBuilder;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchFilterConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchMergeConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithProduceAsyncHeaderConfig;
-import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithProduceConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithProduceConfigBuilder;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.Openapi;
 import io.aklivity.zilla.runtime.binding.openapi.internal.model.OpenapiHeader;
@@ -72,7 +67,7 @@ public final class OpenapiAsyncNamespaceGenerator
     public NamespaceConfig generate(
         BindingConfig binding,
         Map<String, Openapi> openapis,
-        Map<String, Asyncapi> asyncapis,
+        Map<String, AsyncapiView> asyncapis,
         ToLongFunction<String> resolveApiId)
     {
         final List<MetricRefConfig> metricRefs = binding.telemetryRef != null ?
@@ -99,7 +94,7 @@ public final class OpenapiAsyncNamespaceGenerator
         BindingConfigBuilder<C> binding,
         String qname,
         Map<String, Openapi> openapis,
-        Map<String, Asyncapi> asyncapis,
+        Map<String, AsyncapiView> asyncapis,
         List<OpenapiAsyncapiRouteConfig> routes)
     {
         for (OpenapiAsyncapiRouteConfig route : routes)
@@ -110,7 +105,7 @@ public final class OpenapiAsyncNamespaceGenerator
                     .filter(e -> e.getKey().equals(condition.apiId))
                     .map(Map.Entry::getValue)
                     .findFirst();
-                Optional<Asyncapi> asyncapiConfig = asyncapis.entrySet().stream()
+                Optional<AsyncapiView> asyncapiConfig = asyncapis.entrySet().stream()
                     .filter(e -> e.getKey().equals(route.with.apiId))
                     .map(Map.Entry::getValue)
                     .findFirst();
@@ -118,7 +113,7 @@ public final class OpenapiAsyncNamespaceGenerator
                 if (openapiConfig.isPresent() && asyncapiConfig.isPresent())
                 {
                     final Openapi openapi = openapiConfig.get();
-                    final Asyncapi asyncapi = asyncapiConfig.get();
+                    final AsyncapiView asyncapi = asyncapiConfig.get();
 
                     computeRoutes(binding, qname, condition, openapi, asyncapi);
                 }
@@ -134,7 +129,7 @@ public final class OpenapiAsyncNamespaceGenerator
         String qname,
         OpenapiAsyncapiConditionConfig condition,
         Openapi openapi,
-        Asyncapi asyncapi)
+        AsyncapiView asyncapi)
     {
         for (String item : openapi.paths.keySet())
         {
@@ -145,7 +140,7 @@ public final class OpenapiAsyncNamespaceGenerator
                     condition.operationId : path.methods().get(method).operationId;
 
                 final OpenapiOperation openapiOperation = path.methods().get(method);
-                final Optional<AsyncapiOperation> asyncapiOperation = findAsyncOperation(
+                final Optional<AsyncapiOperationView> asyncapiOperation = findAsyncOperation(
                     item, openapi, asyncapi, openapiOperation, operationId);
 
                 asyncapiOperation.ifPresent(operation ->
@@ -159,22 +154,21 @@ public final class OpenapiAsyncNamespaceGenerator
                         .method(method)
                         .path(item)
                         .build()
-                        .inject(r -> injectHttpKafkaRouteWith(r, openapi, asyncapi, openapiOperation,
-                            operation, paramNames))
+                        .inject(r -> injectHttpKafkaRouteWith(r, openapi, openapiOperation, operation, paramNames))
                         .build();
                 });
             }
         }
     }
 
-    private Optional<AsyncapiOperation> findAsyncOperation(
+    private Optional<AsyncapiOperationView> findAsyncOperation(
         String path,
         Openapi openapi,
-        Asyncapi asyncapi,
+        AsyncapiView asyncapi,
         OpenapiOperation openapiOperation,
         String operationId)
     {
-        Optional<AsyncapiOperation> operation = findAsyncOperationByOperationId(asyncapi.operations, operationId);
+        Optional<AsyncapiOperationView> operation = findAsyncOperationByOperationId(asyncapi.operations, operationId);
 
         if (operation.isEmpty() && isOpenapiOperationAsync(openapiOperation))
         {
@@ -187,8 +181,8 @@ public final class OpenapiAsyncNamespaceGenerator
         return operation;
     }
 
-    private Optional<AsyncapiOperation> findAsyncOperationByOperationId(
-        Map<String, AsyncapiOperation> operations,
+    private Optional<AsyncapiOperationView> findAsyncOperationByOperationId(
+        Map<String, AsyncapiOperationView> operations,
         String operationId)
     {
         return operations.entrySet().stream()
@@ -258,34 +252,29 @@ public final class OpenapiAsyncNamespaceGenerator
     private <C> RouteConfigBuilder<C> injectHttpKafkaRouteWith(
         RouteConfigBuilder<C> route,
         Openapi openapi,
-        Asyncapi asyncapi,
-        OpenapiOperation openapiOperation,
-        AsyncapiOperation asyncapiOperation,
+        OpenapiOperation httpOperation,
+        AsyncapiOperationView kafkaOperation,
         List<String> paramNames)
     {
-        final HttpKafkaWithConfigBuilder<HttpKafkaWithConfig> newWith = HttpKafkaWithConfig.builder();
-        final AsyncapiChannelView channel = AsyncapiChannelView
-                            .of(asyncapi.channels, asyncapiOperation.channel);
-        final String topic = channel.address();
-
-        switch (asyncapiOperation.action)
+        switch (kafkaOperation.action)
         {
         case "receive":
-            newWith.fetch(HttpKafkaWithFetchConfig.builder()
-                .topic(topic)
-                .inject(with -> injectHttpKafkaRouteFetchWith(with, openapi, openapiOperation, paramNames))
-                .build());
+            route.with(HttpKafkaWithConfig::builder)
+                .fetch()
+                    .topic(kafkaOperation.channel.address)
+                    .inject(with -> injectHttpKafkaRouteFetchWith(with, openapi, httpOperation, paramNames))
+                    .build()
+                .build();
             break;
         case "send":
-            newWith.produce(HttpKafkaWithProduceConfig.builder()
-                .topic(topic)
-                .inject(w -> injectHttpKafkaRouteProduceWith(w, openapiOperation, asyncapiOperation,
-                    asyncapi.channels, paramNames))
-                .build());
+            route.with(HttpKafkaWithConfig::builder)
+                .produce()
+                    .topic(kafkaOperation.channel.address)
+                    .inject(w -> injectHttpKafkaRouteProduceWith(w, httpOperation, kafkaOperation, paramNames))
+                    .build()
+                .build();
             break;
         }
-
-        route.with(newWith.build());
 
         return route;
     }
@@ -325,8 +314,7 @@ public final class OpenapiAsyncNamespaceGenerator
     private <C> HttpKafkaWithProduceConfigBuilder<C> injectHttpKafkaRouteProduceWith(
         HttpKafkaWithProduceConfigBuilder<C> produce,
         OpenapiOperation openapiOperation,
-        AsyncapiOperation asyncapiOperation,
-        Map<String, AsyncapiChannel> channels,
+        AsyncapiOperationView asyncapiOperation,
         List<String> paramNames)
     {
         final String key = !paramNames.isEmpty() ? String.format("${params.%s}",
@@ -357,11 +345,10 @@ public final class OpenapiAsyncNamespaceGenerator
                 }
             }
         }
-        AsyncapiReply reply = asyncapiOperation.reply;
+        AsyncapiReplyView reply = asyncapiOperation.reply;
         if (reply != null)
         {
-            AsyncapiChannelView channel = AsyncapiChannelView.of(channels, reply.channel);
-            produce.replyTo(channel.address());
+            produce.replyTo(reply.channel.address);
         }
 
         produce.build();

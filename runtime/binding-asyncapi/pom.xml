@@ -49,92 +49,87 @@
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
-      <artifactId>binding-mqtt</artifactId>
-      <version>${project.version}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.aklivity.zilla</groupId>
       <artifactId>binding-http</artifactId>
-      <version>${project.version}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.aklivity.zilla</groupId>
-      <artifactId>binding-sse</artifactId>
-      <version>${project.version}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.aklivity.zilla</groupId>
-      <artifactId>binding-kafka</artifactId>
-      <version>${project.version}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.aklivity.zilla</groupId>
-      <artifactId>binding-tcp</artifactId>
-      <version>${project.version}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.aklivity.zilla</groupId>
-      <artifactId>binding-mqtt-kafka</artifactId>
-      <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>binding-http-kafka</artifactId>
-      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>binding-kafka</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>binding-mqtt</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>binding-mqtt-kafka</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>binding-sse</artifactId>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>binding-sse-kafka</artifactId>
-      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>binding-tcp</artifactId>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>binding-tls</artifactId>
-      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>catalog-apicurio</artifactId>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>catalog-inline</artifactId>
-      <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>catalog-karapace</artifactId>
-      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>catalog-schema-registry</artifactId>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>model-core</artifactId>
-      <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>model-json</artifactId>
-      <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>model-avro</artifactId>
-      <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>model-protobuf</artifactId>
-      <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
@@ -256,36 +251,12 @@
                   </fileMappers>
                 </artifactItem>
               </artifactItems>
-              <includes>io/aklivity/zilla/specs/binding/asyncapi/schema/asyncapi.schema.patch.json,
-                io/aklivity/zilla/specs/binding/mqtt/kafka/schema/mqtt.kafka.schema.patch.json,
-                io/aklivity/zilla/specs/binding/http/schema/http.schema.patch.json,
-                io/aklivity/zilla/specs/binding/sse/schema/sse.schema.patch.json,
-                io/aklivity/zilla/specs/binding/kafka/schema/kafka.schema.patch.json,
-                io/aklivity/zilla/specs/binding/tcp/schema/tcp.schema.patch.json,
-                io/aklivity/zilla/specs/binding/tls/schema/tls.schema.patch.json,
+              <includes>
+                io/aklivity/zilla/specs/binding/asyncapi/schema/asyncapi.schema.patch.json,
                 io/aklivity/zilla/specs/binding/asyncapi/schema/asyncapi.2.6.0.schema.json,
-                io/aklivity/zilla/specs/binding/asyncapi/schema/asyncapi.3.0.1.schema.json,
-                io/aklivity/zilla/specs/binding/asyncapi/schema/asyncapi.3.0.2-zilla.schema.json
+                io/aklivity/zilla/specs/binding/asyncapi/schema/asyncapi.3.0.1.schema.json
               </includes>
               <outputDirectory>${project.build.directory}/classes</outputDirectory>
-            </configuration>
-          </execution>
-          <execution>
-            <id>extract-files</id>
-            <phase>process-resources</phase>
-            <goals>
-              <goal>unpack</goal>
-            </goals>
-            <configuration>
-              <artifactItems>
-                <artifactItem>
-                  <groupId>${project.groupId}</groupId>
-                  <artifactId>binding-asyncapi.spec</artifactId>
-                  <version>${project.version}</version>
-                  <outputDirectory>${basedir}/target/test-classes</outputDirectory>
-                  <includes>**\/*.yaml</includes>
-                </artifactItem>
-              </artifactItems>
             </configuration>
           </execution>
         </executions>
@@ -356,8 +327,6 @@
         <configuration>
           <excludes>
             <exclude>io/aklivity/zilla/runtime/binding/asyncapi/internal/types/**/*.class</exclude>
-            <exclude>io/aklivity/zilla/runtime/binding/asyncapi/internal/model/*.class</exclude>
-            <exclude>io/aklivity/zilla/runtime/binding/asyncapi/internal/model2/*.class</exclude>
           </excludes>
           <rules>
             <rule>

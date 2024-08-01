@@ -64,8 +64,10 @@ public final class SseKafkaWithResolver
 
     public SseKafkaWithResult resolve(
         long authorization,
-        SseBeginExFW sseBeginEx, SseKafkaIdHelper sseEventId)
+        SseBeginExFW sseBeginEx,
+        SseKafkaIdHelper sseEventId)
     {
+        final long compositeId = with.compositeId;
         final String8FW lastId = sseBeginEx != null ? sseBeginEx.lastId() : null;
         final DirectBuffer progress64 = sseEventId.findProgress(lastId);
         final Array32FW<KafkaOffsetFW> partitions = sseEventId.decode(progress64);
@@ -140,6 +142,6 @@ public final class SseKafkaWithResolver
 
         String eventId = with.eventId;
 
-        return new SseKafkaWithResult(topic, partitions, filters, eventId);
+        return new SseKafkaWithResult(compositeId, topic, partitions, filters, eventId);
     }
 }

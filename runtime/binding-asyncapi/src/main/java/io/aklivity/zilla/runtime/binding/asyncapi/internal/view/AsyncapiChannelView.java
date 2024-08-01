@@ -14,43 +14,55 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.view;
 
-import java.util.Map;
+import static java.util.Objects.requireNonNull;
+
+import java.util.List;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiChannel;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiMessage;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiParameter;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.resolver.AsyncapiResolver;
 
-public final class AsyncapiChannelView extends AsyncapiResolvable<AsyncapiChannel>
+public final class AsyncapiChannelView
 {
-    private final AsyncapiChannel channel;
+    public final String name;
+    public final String address;
+    public final List<AsyncapiMessageView> messages;
+    public final List<AsyncapiParameterView> parameters;
 
-    public String address()
+    public boolean hasMessages()
     {
-        return channel.address;
+        return messages != null && !messages.isEmpty();
     }
 
-    public Map<String, AsyncapiMessage> messages()
+    public boolean hasParameters()
     {
-        return channel.messages;
+        return parameters != null && !parameters.isEmpty();
     }
 
-    public Map<String, AsyncapiParameter> parameters()
+    AsyncapiChannelView(
+        AsyncapiResolver resolver,
+        AsyncapiChannel model)
     {
-        return channel.parameters;
+        this(resolver, resolver.channels.resolveRef(model.ref), model);
     }
 
-    public static AsyncapiChannelView of(
-        Map<String, AsyncapiChannel> channels,
-        AsyncapiChannel asyncapiChannel)
+    AsyncapiChannelView(
+        AsyncapiResolver resolver,
+        String name,
+        AsyncapiChannel model)
     {
-        return new AsyncapiChannelView(channels, asyncapiChannel);
-    }
+        final AsyncapiChannel resolved = resolver.channels.resolve(model);
 
-    private AsyncapiChannelView(
-        Map<String, AsyncapiChannel> channels,
-        AsyncapiChannel channel)
-    {
-        super(channels, "#/channels/(.+)");
-        this.channel = channel.ref == null ? channel : resolveRef(channel.ref);
+        this.name = requireNonNull(name);
+        this.address = resolved.address;
+        this.messages = resolved.messages != null
+            ? resolved.messages.entrySet().stream()
+                .map(e -> new AsyncapiMessageView(this, resolver, e.getKey(), e.getValue()))
+                .toList()
+            : null;
+        this.parameters = resolved.parameters != null
+            ? resolved.parameters.entrySet().stream()
+                .map(e -> new AsyncapiParameterView(this, resolver, e.getKey(), e.getValue()))
+                .toList()
+            : null;
     }
 }

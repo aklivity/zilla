@@ -32,7 +32,7 @@ public final class AsyncapiOptionsConfig extends OptionsConfig
     public final MqttOptionsConfig mqtt;
     public final KafkaOptionsConfig kafka;
     public final AsyncapiMqttKafkaConfig mqttKafka;
-    public final List<AsyncapiConfig> asyncapis;
+    public final List<AsyncapiSpecificationConfig> specs;
 
     public static AsyncapiOptionsConfigBuilder<AsyncapiOptionsConfig> builder()
     {
@@ -45,14 +45,14 @@ public final class AsyncapiOptionsConfig extends OptionsConfig
         return new AsyncapiOptionsConfigBuilder<>(mapper);
     }
 
-    public AsyncapiOptionsConfig(
+    AsyncapiOptionsConfig(
         TcpOptionsConfig tcp,
         TlsOptionsConfig tls,
         HttpOptionsConfig http,
         MqttOptionsConfig mqtt,
         KafkaOptionsConfig kafka,
         AsyncapiMqttKafkaConfig mqttKafka,
-        List<AsyncapiConfig> asyncapis)
+        List<AsyncapiSpecificationConfig> specs)
     {
         this.http = http;
         this.mqtt = mqtt;
@@ -60,6 +60,6 @@ public final class AsyncapiOptionsConfig extends OptionsConfig
         this.tls = tls;
         this.kafka = kafka;
         this.mqttKafka = mqttKafka;
-        this.asyncapis = asyncapis;
+        this.specs = specs;
     }
 }

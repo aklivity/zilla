@@ -82,17 +82,21 @@ public class InlineOptionsConfigAdapter implements OptionsConfigAdapterSpi, Json
                 JsonObject subjectsJson = object.getJsonObject(SUBJECTS_NAME);
                 for (String subject: subjectsJson.keySet())
                 {
+                    InlineSchemaConfigBuilder<?> schema = options.schema()
+                        .subject(subject);
+
                     JsonObject schemaJson = subjectsJson.getJsonObject(subject);
 
-                    String version = schemaJson.containsKey(VERSION_NAME)
+                    schema.version(schemaJson.containsKey(VERSION_NAME)
                             ? schemaJson.getString(VERSION_NAME)
-                            : VERSION_DEFAULT;
+                            : VERSION_DEFAULT);
 
-                    String schema = schemaJson.containsKey(SCHEMA_NAME)
-                            ? schemaJson.getString(SCHEMA_NAME)
-                            : null;
+                    if (schemaJson.containsKey(SCHEMA_NAME))
+                    {
+                        schema.schema(schemaJson.getString(SCHEMA_NAME));
+                    }
 
-                    options.subjects(new InlineSchemaConfig(subject, version, schema));
+                    schema.build();
                 }
             }
         }

@@ -20,6 +20,7 @@ catalogs:
   catalog0:
     type: test
     options:
+      id: 1
       subject: petstore
       schema: |
         asyncapi: 3.0.0
@@ -32,7 +33,7 @@ catalogs:
           plain:
             host: localhost:8080
             protocol: http
-            protocolVersion: '2.0'
+            protocolVersion: '1.1'
         defaultContentType: application/json
         
         channels:
@@ -107,6 +108,7 @@ catalogs:
   catalog1:
     type: test
     options:
+      id: 7
       subject: petstore
       schema: |
         asyncapi: 3.0.0

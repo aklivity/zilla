@@ -15,24 +15,19 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.config;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import jakarta.json.Json;
-import jakarta.json.JsonArray;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
+import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfigBuilder;
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
@@ -115,68 +110,48 @@ public final class KafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi,
     public OptionsConfig adaptFromJson(
         JsonObject object)
     {
-        KafkaOptionsConfigBuilder<KafkaOptionsConfig> optionsBuilder = KafkaOptionsConfig.builder();
-        JsonArray bootstrapArray = object.containsKey(BOOTSTRAP_NAME)
-                ? object.getJsonArray(BOOTSTRAP_NAME)
-                : null;
+        KafkaOptionsConfigBuilder<KafkaOptionsConfig> options = KafkaOptionsConfig.builder();
 
-        JsonArray topicsArray = object.containsKey(TOPICS_NAME)
-                ? object.getJsonArray(TOPICS_NAME)
-                : null;
-
-        JsonArray serversArray = object.containsKey(SERVERS_NAME)
-            ? object.getJsonArray(SERVERS_NAME)
-            : null;
-
-        JsonObject saslObject = object.containsKey(SASL_NAME)
-                ? object.getJsonObject(SASL_NAME)
-                : null;
-
-        if (bootstrapArray != null)
+        if (object.containsKey(BOOTSTRAP_NAME))
         {
-            List<String> bootstrap = new ArrayList<>();
-            bootstrapArray.forEach(v -> bootstrap.add(JsonString.class.cast(v).getString()));
-            optionsBuilder.bootstrap(bootstrap);
+            object.getJsonArray(BOOTSTRAP_NAME).stream()
+                .map(JsonString.class::cast)
+                .map(JsonString::getString)
+                .forEach(options::bootstrap);
         }
 
-        if (topicsArray != null)
+        if (object.containsKey(TOPICS_NAME))
         {
-            List<KafkaTopicConfig> topics = new ArrayList<>();
-            topicsArray.forEach(v -> topics.add(topic.adaptFromJson(v.asJsonObject())));
-            optionsBuilder.topics(topics);
+            object.getJsonArray(TOPICS_NAME).stream()
+                .map(JsonValue::asJsonObject)
+                .map(topic::adaptFromJson)
+                .forEach(options::topic);
         }
 
-        if (serversArray != null)
+        if (object.containsKey(SERVERS_NAME))
         {
-            List<KafkaServerConfig> servers = new ArrayList<>();
-            serversArray.forEach(v ->
-            {
-                final String server = JsonString.class.cast(v).getString();
-                final Matcher matcher = SERVER_PATTERN.matcher(server);
-                if (matcher.matches())
-                {
-                    final String host = matcher.group(1);
-                    final int port = Integer.parseInt(matcher.group(2));
-
-                    servers.add(KafkaServerConfig.builder().host(host).port(port).build());
-                }
-            });
-            optionsBuilder.servers(servers);
+            object.getJsonArray(SERVERS_NAME).stream()
+                .map(JsonString.class::cast)
+                .map(JsonString::getString)
+                .map(SERVER_PATTERN::matcher)
+                .filter(Matcher::matches)
+                .forEach(m -> options
+                    .server()
+                        .host(m.group(1))
+                        .port(Integer.parseInt(m.group(2)))
+                        .build());
         }
 
-        if (saslObject != null)
+        if (object.containsKey(SASL_NAME))
         {
-            final String mechanism = saslObject.getString(SASL_MECHANISM_NAME);
-            final String username = saslObject.getString(SASL_PLAIN_USERNAME_NAME);
-            final String password = saslObject.getString(SASL_PLAIN_PASSWORD_NAME);
-
-            optionsBuilder.sasl(KafkaSaslConfig.builder()
-                .mechanism(mechanism)
-                .username(username)
-                .password(password)
-                .build());
+            JsonObject sasl = object.getJsonObject(SASL_NAME);
+            options.sasl()
+                .mechanism(sasl.getString(SASL_MECHANISM_NAME))
+                .username(sasl.getString(SASL_PLAIN_USERNAME_NAME))
+                .password(sasl.getString(SASL_PLAIN_PASSWORD_NAME))
+                .build();
         }
 
-        return optionsBuilder.build();
+        return options.build();
     }
 }

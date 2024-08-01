@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.sse.kafka.config;
 
+import static io.aklivity.zilla.runtime.engine.config.WithConfig.NO_COMPOSITE_ID;
+
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Function;
@@ -25,14 +27,22 @@ public final class SseKafkaWithConfigBuilder<T> extends ConfigBuilder<T, SseKafk
 {
     private final Function<WithConfig, T> mapper;
 
-    public String topic;
-    public List<SseKafkaWithFilterConfig> filters;
-    public String eventId;
+    private long compositeId = NO_COMPOSITE_ID;
+    private String topic;
+    private List<SseKafkaWithFilterConfig> filters;
+    private String eventId;
 
     SseKafkaWithConfigBuilder(
         Function<WithConfig, T> mapper)
     {
         this.mapper = mapper;
+    }
+
+    public SseKafkaWithConfigBuilder<T> compositeId(
+        long compositeId)
+    {
+        this.compositeId = compositeId;
+        return this;
     }
 
     public SseKafkaWithConfigBuilder<T> topic(
@@ -71,7 +81,7 @@ public final class SseKafkaWithConfigBuilder<T> extends ConfigBuilder<T, SseKafk
     @Override
     public T build()
     {
-        return mapper.apply(new SseKafkaWithConfig(topic, filters, eventId));
+        return mapper.apply(new SseKafkaWithConfig(compositeId, topic, filters, eventId));
     }
 
     private SseKafkaWithConfigBuilder<T> filter(

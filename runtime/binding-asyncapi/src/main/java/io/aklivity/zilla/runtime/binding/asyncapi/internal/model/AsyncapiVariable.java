@@ -18,12 +18,10 @@ import java.util.List;
 
 import jakarta.json.bind.annotation.JsonbProperty;
 
-public class AsyncapiVariable
+public class AsyncapiVariable extends AbstractAsyncapiResolvable
 {
     @JsonbProperty("default")
     public String defaultValue;
     @JsonbProperty("enum")
     public List<String> values;
-    @JsonbProperty("$ref")
-    public String ref;
 }

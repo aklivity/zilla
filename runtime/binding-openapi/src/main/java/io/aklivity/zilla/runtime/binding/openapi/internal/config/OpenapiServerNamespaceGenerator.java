@@ -365,7 +365,7 @@ public final class OpenapiServerNamespaceGenerator extends OpenapiNamespaceGener
                     .name(INLINE_CATALOG_NAME)
                     .type(INLINE_CATALOG_TYPE)
                     .options(InlineOptionsConfig::builder)
-                        .subjects()
+                        .schema()
                             .inject(s -> this.injectSubjects(s, openapis))
                             .build()
                         .build()

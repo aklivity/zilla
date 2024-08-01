@@ -14,55 +14,19 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.view;
 
-import java.util.Map;
-
-import jakarta.json.bind.annotation.JsonbPropertyOrder;
-
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiCorrelationId;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.resolver.AsyncapiResolver;
 
-@JsonbPropertyOrder({
-    "type",
-    "items",
-    "properties",
-    "required"
-})
-public final class AsyncapiCorrelationIdView extends AsyncapiResolvable<AsyncapiCorrelationId>
+public final class AsyncapiCorrelationIdView
 {
-    private final AsyncapiCorrelationId correlationId;
-    private final Map<String, AsyncapiCorrelationId> correlationIds;
+    public final String location;
 
-    public String refKey()
+    AsyncapiCorrelationIdView(
+        AsyncapiResolver resolver,
+        AsyncapiCorrelationId model)
     {
-        return key;
-    }
-    public AsyncapiCorrelationId correlationId()
-    {
-        return correlationId;
-    }
+        final AsyncapiCorrelationId resolved = resolver.correlationIds.resolve(model);
 
-    public String location()
-    {
-        return correlationId.location;
-    }
-
-    public static AsyncapiCorrelationIdView of(
-        Map<String, AsyncapiCorrelationId> correlationIds,
-        AsyncapiCorrelationId correlationId)
-    {
-        return new AsyncapiCorrelationIdView(correlationIds, correlationId);
-    }
-
-    private AsyncapiCorrelationIdView(
-        Map<String, AsyncapiCorrelationId> correlationIds,
-        AsyncapiCorrelationId correlationId)
-    {
-        super(correlationIds, "#/components/correlationIds/(.+)");
-        if (correlationId.ref != null)
-        {
-            correlationId = resolveRef(correlationId.ref);
-        }
-
-        this.correlationIds = correlationIds;
-        this.correlationId = correlationId;
+        this.location = resolved.location;
     }
 }

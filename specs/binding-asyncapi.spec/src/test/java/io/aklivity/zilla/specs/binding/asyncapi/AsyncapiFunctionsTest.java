@@ -64,10 +64,10 @@ public class AsyncapiFunctionsTest
         BytesMatcher matcher = AsyncapiFunctions.matchBeginEx()
             .typeId(0x00)
             .apiId(1L)
-            .extension(new byte[] {1})
+            .extension(b -> b.get() == 1 ? new Object() : null)
             .build();
 
-        ByteBuffer byteBuf = ByteBuffer.allocate(15);
+        ByteBuffer byteBuf = ByteBuffer.allocate(23);
         MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1]);
 
         new AsyncapiBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
@@ -86,10 +86,10 @@ public class AsyncapiFunctionsTest
             .typeId(0x00)
             .apiId(1L)
             .operationId("operationId")
-            .extension(new byte[] {1})
+            .extension(b -> b.get() == 1 ? new Object() : null)
             .build();
 
-        ByteBuffer byteBuf = ByteBuffer.allocate(26);
+        ByteBuffer byteBuf = ByteBuffer.allocate(34);
         MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1]);
 
         new AsyncapiBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())

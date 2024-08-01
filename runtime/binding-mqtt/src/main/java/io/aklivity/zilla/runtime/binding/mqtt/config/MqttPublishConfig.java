@@ -15,11 +15,26 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.config;
 
+import static java.util.function.Function.identity;
+
+import java.util.function.Function;
+
 public class MqttPublishConfig
 {
     public final String topic;
 
-    public MqttPublishConfig(
+    public static MqttPublishConfigBuilder<MqttPublishConfig> builder()
+    {
+        return new MqttPublishConfigBuilder<>(identity());
+    }
+
+    public static <T> MqttPublishConfigBuilder<T> builder(
+        Function<MqttPublishConfig, T> mapper)
+    {
+        return new MqttPublishConfigBuilder<>(mapper);
+    }
+
+    MqttPublishConfig(
         String topic)
     {
         this.topic = topic;

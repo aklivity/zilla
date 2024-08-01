@@ -61,6 +61,172 @@ public class SseFunctionsTest
     }
 
     @Test
+    public void shouldMatchBeginExtension() throws Exception
+    {
+        byte[] beginEx = SseFunctions.beginEx()
+                .typeId(0x01)
+                .scheme("https")
+                .authority("localhost:9090")
+                .path("/events")
+                .lastId("id-42")
+                .build();
+
+        BytesMatcher matcher = SseFunctions.matchBeginEx()
+                .typeId(0x01)
+                .scheme("https")
+                .authority("localhost:9090")
+                .path("/events")
+                .lastId("id-42")
+                .build();
+
+        assertNotNull(matcher.match(ByteBuffer.wrap(beginEx)));
+    }
+
+    @Test
+    public void shouldMatchBeginExtensionWithInvalidUtf8() throws Exception
+    {
+        byte[] beginEx = SseFunctions.beginEx()
+                .typeId(0x01)
+                .scheme("https")
+                .authority("localhost:9090")
+                .path("/events")
+                .lastIdAsRawBytes(new byte[] {(byte) 0xc3, 0x28})
+                .build();
+
+        BytesMatcher matcher = SseFunctions.matchBeginEx()
+                .typeId(0x01)
+                .scheme("https")
+                .authority("localhost:9090")
+                .path("/events")
+                .lastIdAsRawBytes(new byte[] {(byte) 0xc3, 0x28})
+                .build();
+
+        assertNotNull(matcher.match(ByteBuffer.wrap(beginEx)));
+    }
+
+    @Test
+    public void shouldNotMatchBeginExtensionWhenEmpty() throws Exception
+    {
+        byte[] beginEx = new byte[0];
+
+        BytesMatcher matcher = SseFunctions.matchBeginEx()
+                .typeId(0x01)
+                .scheme("https")
+                .authority("localhost:9090")
+                .path("/events")
+                .lastId("id-42")
+                .build();
+
+        assertNull(matcher.match(ByteBuffer.wrap(beginEx)));
+    }
+
+    @Test
+    public void shouldNotMatchBeginExtensionWhenIncomplete() throws Exception
+    {
+        byte[] beginEx = new byte[1];
+
+        BytesMatcher matcher = SseFunctions.matchBeginEx()
+                .typeId(0x01)
+                .scheme("https")
+                .authority("localhost:9090")
+                .path("/events")
+                .lastId("id-42")
+                .build();
+
+        assertThrows(Exception.class, () -> matcher.match(ByteBuffer.wrap(beginEx)));
+    }
+
+    @Test
+    public void shouldNotMatchBeginExtensionWithDifferentTypeId()
+    {
+        byte[] beginEx = SseFunctions.beginEx()
+                .typeId(0x01)
+                .scheme("https")
+                .authority("localhost:9090")
+                .path("/events")
+                .lastId("id-42")
+                .build();
+
+        BytesMatcher matcher = SseFunctions.matchBeginEx()
+                .typeId(0x02)
+                .build();
+
+        assertThrows(Exception.class, () -> matcher.match(ByteBuffer.wrap(beginEx)));
+    }
+
+    @Test
+    public void shouldNotMatchBeginExtensionWithDifferentScheme()
+    {
+        byte[] beginEx = SseFunctions.beginEx()
+                .typeId(0x01)
+                .scheme("https")
+                .authority("localhost:9090")
+                .path("/events")
+                .lastId("id-42")
+                .build();
+
+        BytesMatcher matcher = SseFunctions.matchBeginEx()
+                .scheme("http")
+                .build();
+
+        assertThrows(Exception.class, () -> matcher.match(ByteBuffer.wrap(beginEx)));
+    }
+
+    @Test
+    public void shouldNotMatchBeginExtensionWithDifferentAuthority()
+    {
+        byte[] beginEx = SseFunctions.beginEx()
+                .typeId(0x01)
+                .scheme("https")
+                .authority("localhost:9090")
+                .path("/events")
+                .lastId("id-42")
+                .build();
+
+        BytesMatcher matcher = SseFunctions.matchBeginEx()
+                .authority("localhost:8080")
+                .build();
+
+        assertThrows(Exception.class, () -> matcher.match(ByteBuffer.wrap(beginEx)));
+    }
+
+    @Test
+    public void shouldNotMatchBeginExtensionWithDifferentPath()
+    {
+        byte[] beginEx = SseFunctions.beginEx()
+                .typeId(0x01)
+                .scheme("https")
+                .authority("localhost:9090")
+                .path("/events")
+                .lastId("id-42")
+                .build();
+
+        BytesMatcher matcher = SseFunctions.matchBeginEx()
+                .path("/not-events")
+                .build();
+
+        assertThrows(Exception.class, () -> matcher.match(ByteBuffer.wrap(beginEx)));
+    }
+
+    @Test
+    public void shouldNotMatchBeginExtensionWithDifferentLastId()
+    {
+        byte[] beginEx = SseFunctions.beginEx()
+                .typeId(0x01)
+                .scheme("https")
+                .authority("localhost:9090")
+                .path("/events")
+                .lastId("id-42")
+                .build();
+
+        BytesMatcher matcher = SseFunctions.matchBeginEx()
+                .lastId("id-43")
+                .build();
+
+        assertThrows(Exception.class, () -> matcher.match(ByteBuffer.wrap(beginEx)));
+    }
+
+    @Test
     public void shouldGenerateBeginExtension()
     {
         byte[] build = SseFunctions.beginEx()

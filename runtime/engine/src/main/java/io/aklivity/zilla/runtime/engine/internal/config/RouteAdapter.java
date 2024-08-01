@@ -85,7 +85,11 @@ public class RouteAdapter implements JsonbAdapter<RouteConfig, JsonObject>
 
         if (route.with != null)
         {
-            object.add(WITH_NAME, with.adaptToJson(route.with));
+            final JsonObject withObject = with.adaptToJson(route.with);
+            if (withObject != null)
+            {
+                object.add(WITH_NAME, withObject);
+            }
         }
 
         if (!GUARDED_DEFAULT.equals(route.guarded))

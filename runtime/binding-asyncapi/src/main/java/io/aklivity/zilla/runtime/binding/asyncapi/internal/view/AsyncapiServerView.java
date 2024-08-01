@@ -14,163 +14,87 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.view;
 
-import static org.agrona.LangUtil.rethrowUnchecked;
+import static java.util.stream.Collectors.joining;
 
 import java.net.URI;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiProtocol;
+import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiServerConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiServer;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiVariable;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.AsyncapiServerBindings;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.resolver.AsyncapiResolver;
 
 public final class AsyncapiServerView
 {
     private static final Pattern VARIABLE = Pattern.compile("\\{([^}]*.?)\\}");
-    private final Matcher variable = VARIABLE.matcher("");
 
-    private final AsyncapiServer server;
-    private final ObjectMapper objectMapper = new ObjectMapper();
-    private AsyncapiProtocol asyncapiProtocol;
-    private String defaultHost;
-    private String defaultUrl;
-    private String defaultPathname;
+    public final String name;
+    public final String url;
+    public final String host;
+    public final String hostname;
+    public final int port;
+    public final String pathname;
+    public final String protocol;
+    public final AsyncapiServerBindings bindings;
 
-    public Matcher hostMatcher;
-    public Matcher urlMatcher;
-    public Matcher pathnameMatcher;
-
-    public URI url()
+    AsyncapiServerView(
+        AsyncapiResolver resolver,
+        String name,
+        AsyncapiServer model,
+        AsyncapiServerConfig config)
     {
-        return URI.create(server.host);
+        this.name = name;
+        this.url = model.url != null
+                ? new VariableMatcher(resolver, model.url)
+                        .resolve(config != null ? config.url : null)
+                : null;
+
+        this.host = model.host != null
+            ? new VariableMatcher(resolver, model.host)
+                    .resolve(config != null ? config.host : null)
+            : null;
+
+        String urlOrHost = url != null ? url : "tcp://%s".formatted(host);
+        this.hostname = urlOrHost != null
+                ? URI.create(urlOrHost).getHost()
+                : null;
+
+        this.port = urlOrHost != null
+                ? URI.create(urlOrHost).getPort()
+                : 0;
+
+        this.pathname = model.pathname != null
+            ? new VariableMatcher(resolver, model.pathname)
+                    .resolve(config != null ? config.pathname : null)
+            : null;
+
+        this.protocol = model.protocol;
+        this.bindings = model.bindings;
     }
 
-    public List<Map<String, List<String>>> security()
+    public static final class VariableMatcher
     {
-        List<Map<String, List<String>>> security = null;
-        if (server.security != null)
+        private final Matcher matcher;
+        private final String defaultValue;
+
+        public String resolve(
+            String value)
         {
-            try
-            {
-                security = objectMapper.readValue(server.security.toString(), new TypeReference<>()
-                {
-                });
-            }
-            catch (JsonProcessingException e)
-            {
-                rethrowUnchecked(e);
-            }
+            return value != null && matcher.reset(value).matches() ? value : defaultValue;
         }
 
-        return security;
-    }
-
-    public String protocol()
-    {
-        return server.protocol;
-    }
-
-    public void resolveHost(
-        String host,
-        String url)
-    {
-        if (!defaultHost.isEmpty())
+        private VariableMatcher(
+            AsyncapiResolver resolver,
+            String value)
         {
-            server.host = (host == null || host.isEmpty()) ? defaultHost : host;
+            String regex = VARIABLE.matcher(value)
+                .replaceAll(mr -> resolver.serverVariables.resolve(mr.group(1)).values.stream()
+                    .collect(joining("|", "(", ")")));
+
+            this.matcher = Pattern.compile(regex).matcher("");
+            this.defaultValue = VARIABLE.matcher(value)
+                    .replaceAll(mr -> resolver.serverVariables.resolve(mr.group(1)).defaultValue);
         }
-        else
-        {
-            server.host = (url == null || url.isEmpty()) ? defaultUrl : url;
-        }
-    }
-
-    public String host()
-    {
-        return server.host;
-    }
-
-    public int getPort()
-    {
-        final String[] hostAndPort = host().split(":");
-        return Integer.parseInt(hostAndPort[1]);
-    }
-
-    public void resolveUrl(
-        String url)
-    {
-        server.url = (url == null || url.isEmpty()) ? defaultHost : url;
-    }
-
-    public String scheme()
-    {
-        return url().getScheme();
-    }
-
-    public String authority()
-    {
-        return String.format("%s:%d", url().getHost(), url().getPort());
-    }
-
-    public void setAsyncapiProtocol(
-        AsyncapiProtocol protocol)
-    {
-        this.asyncapiProtocol = protocol;
-    }
-
-    public AsyncapiProtocol getAsyncapiProtocol()
-    {
-        return this.asyncapiProtocol;
-    }
-
-    public static AsyncapiServerView of(
-        AsyncapiServer asyncapiServer)
-    {
-        return new AsyncapiServerView(asyncapiServer);
-    }
-
-    public static AsyncapiServerView of(
-        AsyncapiServer asyncapiServer,
-        Map<String, AsyncapiVariable> variables)
-    {
-        return new AsyncapiServerView(asyncapiServer, variables);
-    }
-
-    private AsyncapiServerView(
-        AsyncapiServer server)
-    {
-        this.server = server;
-    }
-
-    private AsyncapiServerView(
-        AsyncapiServer server,
-        Map<String, AsyncapiVariable> variables)
-    {
-        this.server = server;
-        Pattern hostPattern = Pattern.compile(variable.reset(Optional.ofNullable(server.host).orElse(""))
-            .replaceAll(mr -> AsyncapiVariableView.of(variables, server.variables.get(mr.group(1))).values().stream()
-                .collect(Collectors.joining("|", "(", ")"))));
-        this.hostMatcher = hostPattern.matcher("");
-        Pattern urlPattern = Pattern.compile(variable.reset(Optional.ofNullable(server.url).orElse(""))
-            .replaceAll(mr -> AsyncapiVariableView.of(variables, server.variables.get(mr.group(1))).values().stream()
-                .collect(Collectors.joining("|", "(", ")"))));
-        this.urlMatcher = urlPattern.matcher("");
-        Pattern pathnamePattern = Pattern.compile(variable.reset(Optional.ofNullable(server.pathname).orElse(""))
-            .replaceAll(mr -> AsyncapiVariableView.of(variables, server.variables.get(mr.group(1))).values().stream()
-                .collect(Collectors.joining("|", "(", ")"))));
-        this.pathnameMatcher = pathnamePattern.matcher("");
-        this.defaultHost = variable.reset(Optional.ofNullable(server.host).orElse(""))
-            .replaceAll(mr -> AsyncapiVariableView.of(variables, server.variables.get(mr.group(1))).defaultValue());
-        this.defaultUrl = variable.reset(Optional.ofNullable(server.url).orElse(""))
-            .replaceAll(mr -> AsyncapiVariableView.of(variables, server.variables.get(mr.group(1))).defaultValue());
-        this.defaultPathname = variable.reset(Optional.ofNullable(server.pathname).orElse(""))
-            .replaceAll(mr -> AsyncapiVariableView.of(variables, server.variables.get(mr.group(1))).defaultValue());
     }
 }

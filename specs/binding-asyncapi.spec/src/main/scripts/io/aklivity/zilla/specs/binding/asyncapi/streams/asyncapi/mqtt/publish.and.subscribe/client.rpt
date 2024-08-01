@@ -20,8 +20,9 @@ connect "zilla://streams/asyncapi0"
 
 write zilla:begin.ext ${asyncapi:beginEx()
                              .typeId(zilla:id("asyncapi"))
-                             .apiId(0)
+                             .apiId(2)
                              .extension(mqtt:beginEx()
+                                            .compositeId(core:decodeLong("0x0000_0001_0000_0000"))
                                             .typeId(zilla:id("mqtt"))
                                             .session()
                                               .clientId("client")
@@ -31,7 +32,7 @@ write zilla:begin.ext ${asyncapi:beginEx()
 
 read zilla:begin.ext ${asyncapi:matchBeginEx()
                              .typeId(zilla:id("asyncapi"))
-                             .extension(mqtt:beginEx()
+                             .extension(mqtt:matchBeginEx()
                                             .typeId(zilla:id("mqtt"))
                                             .session()
                                               .clientId("client")
@@ -52,15 +53,16 @@ connect await RECEIVED_SESSION_STATE
 
 write zilla:begin.ext ${asyncapi:beginEx()
                                    .typeId(zilla:id("asyncapi"))
-                                   .apiId(0)
+                                   .apiId(2)
                                    .operationId("sendEvents")
                                    .extension(mqtt:beginEx()
-                                                    .typeId(zilla:id("mqtt"))
-                                                    .publish()
+                                                  .compositeId(core:decodeLong("0x0000_0001_0000_0002"))
+                                                  .typeId(zilla:id("mqtt"))
+                                                  .publish()
                                                       .clientId("client")
                                                       .topic("sensors/one")
                                                       .build()
-                                                    .build())
+                                                  .build())
                                    .build()}
 
 connected
@@ -88,14 +90,15 @@ connect await DATA_PUBLISHED
 
 write zilla:begin.ext ${asyncapi:beginEx()
                              .typeId(zilla:id("asyncapi"))
-                             .apiId(0)
+                             .apiId(2)
                              .operationId("receiveEvents")
                              .extension(mqtt:beginEx()
-                                             .typeId(zilla:id("mqtt"))
-                                             .subscribe()
-                                                 .clientId("client")
-                                                 .filter("sensors/two", 1, "AT_MOST_ONCE", "SEND_RETAINED")
-                                                 .build()
-                                             .build())
+                                            .compositeId(core:decodeLong("0x0000_0001_0000_0001"))
+                                            .typeId(zilla:id("mqtt"))
+                                            .subscribe()
+                                                .clientId("client")
+                                                .filter("sensors/two", 1, "AT_MOST_ONCE", "SEND_RETAINED")
+                                                .build()
+                                            .build())
                              .build()}
 connected

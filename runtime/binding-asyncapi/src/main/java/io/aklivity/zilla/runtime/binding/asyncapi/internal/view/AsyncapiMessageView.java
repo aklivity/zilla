@@ -15,68 +15,56 @@
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.view;
 
 import java.util.List;
-import java.util.Map;
 
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiCorrelationId;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiMessage;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiMultiFormatSchema;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiSchema;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiSchemaItem;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiTrait;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.resolver.AsyncapiResolver;
 
-public final class AsyncapiMessageView extends AsyncapiResolvable<AsyncapiMessage>
+public final class AsyncapiMessageView
 {
-    private final AsyncapiMessage message;
+    public final AsyncapiChannelView channel;
+    public final String name;
+    public final AsyncapiSchemaView headers;
+    public final String contentType;
+    public final AsyncapiSchemaItemView payload;
+    public final List<AsyncapiTraitView> traits;
+    public final AsyncapiCorrelationIdView correlationId;
+    public final AsyncapiMessageBindingsView bindings;
 
-    public String refKey()
+    public boolean hasTraits()
     {
-        return key;
+        return traits != null && !traits.isEmpty();
     }
 
-    public AsyncapiSchema headers()
+    AsyncapiMessageView(
+        AsyncapiChannelView channel,
+        AsyncapiResolver resolver,
+        String name,
+        AsyncapiMessage model)
     {
-        return message.headers;
-    }
+        this.channel = channel;
 
-    public String contentType()
-    {
-        return message.contentType;
-    }
+        final AsyncapiMessage resolved = resolver.messages.resolve(model);
 
-    public AsyncapiMultiFormatSchema key()
-    {
-        return message.bindings != null && message.bindings.kafka != null
-            ? message.bindings.kafka.key
+        this.name = name;
+        this.headers = resolved.headers != null
+            ? new AsyncapiSchemaView(resolver, resolved.headers)
             : null;
-    }
-
-    public AsyncapiSchemaItem payload()
-    {
-        return message.payload;
-    }
-
-    public List<AsyncapiTrait> traits()
-    {
-        return message.traits;
-    }
-
-    public AsyncapiCorrelationId correlationId()
-    {
-        return message.correlationId;
-    }
-
-    public static AsyncapiMessageView of(
-        Map<String, AsyncapiMessage> messages,
-        AsyncapiMessage asyncapiMessage)
-    {
-        return new AsyncapiMessageView(messages, asyncapiMessage);
-    }
-
-    private AsyncapiMessageView(
-        Map<String, AsyncapiMessage> messages,
-        AsyncapiMessage message)
-    {
-        super(messages, "#/components/messages/(.+)");
-        this.message = message.ref == null ? message : resolveRef(message.ref);
+        this.contentType = resolved.contentType != null
+            ? resolved.contentType
+            : resolver.defaultContentType;
+        this.payload = resolved.payload != null
+                ? AsyncapiSchemaItemView.of(resolver, resolved.payload)
+                : null;
+        this.traits = resolved.traits != null
+                ? resolved.traits.stream()
+                    .map(m -> new AsyncapiTraitView(resolver, m))
+                    .toList()
+                : null;
+        this.correlationId = resolved.correlationId != null
+                ? new AsyncapiCorrelationIdView(resolver, resolved.correlationId)
+                : null;
+        this.bindings = resolved.bindings != null
+                ? new AsyncapiMessageBindingsView(resolver, resolved.bindings)
+                : null;
     }
 }

@@ -23,21 +23,29 @@ import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.String16FW;
 
 public class SseKafkaWithResult
 {
+    private final long compositeId;
     private final String16FW topic;
     private final Array32FW<KafkaOffsetFW> partitions;
     private final List<SseKafkaWithFilterResult> filters;
     private final String eventId;
 
     SseKafkaWithResult(
+        long compositeId,
         String16FW topic,
         Array32FW<KafkaOffsetFW> partitions,
         List<SseKafkaWithFilterResult> filters,
         String eventId)
     {
+        this.compositeId = compositeId;
         this.topic = topic;
         this.partitions = partitions;
         this.filters = filters;
         this.eventId = eventId;
+    }
+
+    public long compositeId()
+    {
+        return compositeId;
     }
 
     public String16FW topic()

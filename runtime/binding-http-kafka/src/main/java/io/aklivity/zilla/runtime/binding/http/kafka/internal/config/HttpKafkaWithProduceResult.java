@@ -58,6 +58,7 @@ public class HttpKafkaWithProduceResult
                 .partitionOffset(KafkaOffsetType.HISTORICAL.value())
                 .build();
 
+    private final long compositeId;
     private final HttpKafkaCorrelationConfig correlation;
     private final String16FW topic;
     private final KafkaAckMode acks;
@@ -71,6 +72,7 @@ public class HttpKafkaWithProduceResult
     private final boolean idempotent;
 
     HttpKafkaWithProduceResult(
+        long compositeId,
         HttpKafkaCorrelationConfig correlation,
         String16FW topic,
         KafkaAckMode acks,
@@ -83,6 +85,7 @@ public class HttpKafkaWithProduceResult
         HttpKafkaWithProduceHash hash,
         long timeout)
     {
+        this.compositeId = compositeId;
         this.correlation = correlation;
         this.topic = topic;
         this.acks = acks;
@@ -94,6 +97,11 @@ public class HttpKafkaWithProduceResult
         this.hash = hash;
         this.idempotent = idempotencyKey != null;
         this.timeout = timeout;
+    }
+
+    public long compositeId()
+    {
+        return compositeId;
     }
 
     public void updateHash(

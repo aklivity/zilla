@@ -21,6 +21,7 @@ import static java.nio.file.StandardOpenOption.WRITE;
 import static org.agrona.LangUtil.rethrowUnchecked;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertEquals;
 
 import java.net.URL;
 import java.nio.ByteBuffer;
@@ -86,7 +87,7 @@ public final class DumpRule implements TestRule
                 Files.writeString(TXT_PATH, result.getStdout());
                 assertThat(result.getExitCode(), equalTo(0));
                 assert expected0 != null;
-                assertThat(result.getStdout(), equalTo(expected0));
+                assertEquals(expected0, result.getStdout());
             }
         };
     }

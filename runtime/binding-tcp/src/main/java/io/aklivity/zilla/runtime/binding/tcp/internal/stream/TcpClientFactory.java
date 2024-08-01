@@ -653,7 +653,7 @@ public class TcpClientFactory implements TcpStreamFactory
             final long traceId = reset.traceId();
 
             assert acknowledge <= sequence;
-            assert acknowledge >= replyAck;
+            assert acknowledge >= replyAck || reset.originId() == 0L;
 
             replyAck = acknowledge;
 

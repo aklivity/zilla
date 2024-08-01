@@ -116,18 +116,26 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
 
             if (!ROUTES_DEFAULT.equals(binding.routes))
             {
-                RouteConfig lastRoute = binding.routes.get(binding.routes.size() - 1);
-                if (lastRoute.exit != null &&
+                final RouteConfig lastRoute = binding.routes.get(binding.routes.size() - 1);
+                final RouteConfig exitRoute =
+                    lastRoute.exit != null &&
                     lastRoute.guarded.isEmpty() &&
                     lastRoute.when.isEmpty() &&
-                    lastRoute.with == null)
+                    lastRoute.with == null
+                        ? lastRoute
+                        : null;
+
+                if (exitRoute != null)
                 {
                     item.add(EXIT_NAME, lastRoute.exit);
                 }
-                else
+
+                if (exitRoute == null || binding.routes.size() > 1)
                 {
                     JsonArrayBuilder routes = Json.createArrayBuilder();
-                    binding.routes.forEach(r -> routes.add(route.adaptToJson(r)));
+                    binding.routes.stream()
+                        .filter(r -> r != exitRoute)
+                        .forEach(r -> routes.add(route.adaptToJson(r)));
                     item.add(ROUTES_NAME, routes);
                 }
             }

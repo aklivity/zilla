@@ -56,15 +56,11 @@ public class MqttKafkaBindingConfig
         this.routes = binding.routes.stream().map(r -> new MqttKafkaRouteConfig(options, r)).collect(toList());
         this.clients = options != null && options.clients != null ?
             asAccessor(options.clients) : null;
-        final List<MqttKafkaRouteConfig> bootstrapRoutes = new ArrayList<>();
-        routes.forEach(r ->
-        {
-            if (options.clients.stream().anyMatch(r::matchesClient))
-            {
-                bootstrapRoutes.add(r);
-            }
-        });
-        this.bootstrapRoutes = bootstrapRoutes;
+        this.bootstrapRoutes = routes.stream()
+            .filter(r ->
+                options.clients != null &&
+                options.clients.stream().anyMatch(r::matchesClient))
+            .toList();
     }
 
     public MqttKafkaRouteConfig resolve(

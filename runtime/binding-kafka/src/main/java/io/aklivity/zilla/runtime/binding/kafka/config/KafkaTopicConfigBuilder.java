@@ -95,6 +95,22 @@ public final class KafkaTopicConfigBuilder<T> extends ConfigBuilder<T, KafkaTopi
         return this;
     }
 
+    public KafkaTopicConfigBuilder<T> headers(
+        List<KafkaTopicHeaderType> headers)
+    {
+        if (headers != null)
+        {
+            headers.forEach(this::header);
+        }
+        return this;
+    }
+
+    public KafkaTopicConfigBuilder<T> header(
+        KafkaTopicHeaderType header)
+    {
+        return header(header.name, header.path);
+    }
+
     public KafkaTopicConfigBuilder<T> header(
         String name,
         String path)
@@ -113,6 +129,12 @@ public final class KafkaTopicConfigBuilder<T> extends ConfigBuilder<T, KafkaTopi
             this.headers.add(new KafkaTopicHeaderType(name, path));
         }
         return this;
+    }
+
+    public <C extends ConfigBuilder<KafkaTopicConfigBuilder<T>, C>> C key(
+        Function<Function<ModelConfig, KafkaTopicConfigBuilder<T>>, C> key)
+    {
+        return key.apply(this::key);
     }
 
     public <C extends ConfigBuilder<KafkaTopicConfigBuilder<T>, C>> C value(

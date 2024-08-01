@@ -15,13 +15,14 @@
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.model;
 
 import java.util.List;
-import java.util.Map;
 
-public class AsyncapiOperation
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.AsyncapiOperationBindings;
+
+public class AsyncapiOperation extends AbstractAsyncapiResolvable
 {
-    public Map<String, AsyncapiBinding> bindings;
     public AsyncapiChannel channel;
     public String action;
     public AsyncapiReply reply;
     public List<AsyncapiSecurityScheme> security;
+    public AsyncapiOperationBindings bindings;
 }

@@ -25,19 +25,6 @@ public class AsyncapiServerConfigBuilder<T> extends ConfigBuilder<T, AsyncapiSer
     private String host;
     private String url;
     private String pathname;
-    AsyncapiServerConfigBuilder(
-        Function<AsyncapiServerConfig, T> mapper)
-    {
-        this.mapper = mapper;
-    }
-
-    @Override
-    @SuppressWarnings("unchecked")
-    protected Class<AsyncapiServerConfigBuilder<T>> thisType()
-    {
-        return (Class<AsyncapiServerConfigBuilder<T>>) getClass();
-    }
-
 
     public AsyncapiServerConfigBuilder<T> host(
         String host)
@@ -60,11 +47,23 @@ public class AsyncapiServerConfigBuilder<T> extends ConfigBuilder<T, AsyncapiSer
         return this;
     }
 
-
     @Override
     public T build()
     {
         return mapper.apply(
             new AsyncapiServerConfig(host, url, pathname));
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Class<AsyncapiServerConfigBuilder<T>> thisType()
+    {
+        return (Class<AsyncapiServerConfigBuilder<T>>) getClass();
+    }
+
+    AsyncapiServerConfigBuilder(
+        Function<AsyncapiServerConfig, T> mapper)
+    {
+        this.mapper = mapper;
     }
 }
