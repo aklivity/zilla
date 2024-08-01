@@ -341,23 +341,29 @@
                         },
                         "transforms":
                         {
-                            "type": "object",
-                            "additionalProperties": false,
-                            "properties":
+                            "title": "Transforms",
+                            "type": "array",
+                            "items":
                             {
-                                "extract-headers":
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties":
                                 {
-                                    "type": "object",
-                                    "patternProperties":
+                                    "extract-headers":
                                     {
-                                        "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                                        "type": "object",
+                                        "patternProperties":
                                         {
-                                            "type": "string",
-                                            "pattern": "^\\$\\{message\\.value\\.([A-Za-z_][A-Za-z0-9_]*)\\}$"
-                                        }
-                                    },
-                                    "additionalProperties": false
-                                }
+                                            "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                                            {
+                                                "type": "string",
+                                                "pattern": "^\\$\\{message\\.value\\.([A-Za-z_][A-Za-z0-9_]*)\\}$"
+                                            }
+                                        },
+                                        "additionalProperties": false
+                                    }
+                                },
+                                "maxProperties": 1
                             }
                         },
                         "key":
