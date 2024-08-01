@@ -51,7 +51,6 @@ public class AsyncapiParser
         Map<String, JsonSchema> schemas = new Object2ObjectHashMap<>();
         schemas.put("2.6.0", schema("2.6.0"));
         schemas.put("3.0.0", schema("3.0.1"));
-        schemas.put("3.0.2-zilla", schema("3.0.2-zilla"));
         this.schemas = unmodifiableMap(schemas);
     }
 

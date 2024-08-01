@@ -79,8 +79,8 @@ public class AsyncapiIT
 
     @Test
     @Specification({
-        "${asyncapi}/proxy.kafka.publish/client",
-        "${asyncapi}/proxy.kafka.publish/server"
+        "${asyncapi}/kafka/publish/client",
+        "${asyncapi}/kafka/publish/server"
     })
     public void shouldProxyPublishMessageKafka() throws Exception
     {
@@ -89,8 +89,8 @@ public class AsyncapiIT
 
     @Test
     @Specification({
-        "${asyncapi}/proxy.mqtt.publish/client",
-        "${asyncapi}/proxy.mqtt.publish/server"
+        "${asyncapi}/mqtt/publish/client",
+        "${asyncapi}/mqtt/publish/server"
     })
     public void shouldProxyPublishMessageMqtt() throws Exception
     {
