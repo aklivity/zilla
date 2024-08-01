@@ -90,6 +90,42 @@ public class AsyncapiViewTest
             info:
               title: Test API
               version: 0.1.0
+            operations:
+              onEvents:
+                action: receive
+                channel:
+                  $ref: '#/channels/events'
+                bindings:
+                  x-zilla-sse:
+                    bindingVersion: latest
+            channels:
+              events:
+                messages:
+                  note:
+                    $ref: '#/components/messages/event'
+            components:
+              messages:
+                event:
+                  payload:
+                    $ref: '#/components/schemas/event.payload'
+              schemas:
+                event.payload:
+                  schema:
+                    type: string
+            """);
+        AsyncapiView view = AsyncapiView.of(model);
+
+        assertThat(view, is(not(nullValue())));
+    }
+
+    @Test
+    public void shouldCreateWithSseBindings() throws Exception
+    {
+        Asyncapi model = new AsyncapiParser().parse("""
+            asyncapi: 3.0.0
+            info:
+              title: Test API
+              version: 0.1.0
             servers:
               local:
                 host: localhost:9092
