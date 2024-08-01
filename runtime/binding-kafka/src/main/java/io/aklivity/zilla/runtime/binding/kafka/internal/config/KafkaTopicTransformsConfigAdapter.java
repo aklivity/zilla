@@ -38,10 +38,10 @@ public final class KafkaTopicTransformsConfigAdapter implements JsonbAdapter<Kaf
     {
         JsonObjectBuilder object = Json.createObjectBuilder();
 
-        if (topic.headers != null && !topic.headers.isEmpty())
+        if (topic.extractHeaders != null && !topic.extractHeaders.isEmpty())
         {
             JsonObjectBuilder headers = Json.createObjectBuilder();
-            for (KafkaTopicHeaderType header : topic.headers)
+            for (KafkaTopicHeaderType header : topic.extractHeaders)
             {
                 headers.add(header.name, header.path);
             }

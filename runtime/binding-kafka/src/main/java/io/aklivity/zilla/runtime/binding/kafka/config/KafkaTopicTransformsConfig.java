@@ -20,7 +20,7 @@ import java.util.function.Function;
 
 public class KafkaTopicTransformsConfig
 {
-    public final List<KafkaTopicHeaderType> headers;
+    public final List<KafkaTopicHeaderType> extractHeaders;
 
     public static KafkaTopicTransformsConfigBuilder<KafkaTopicTransformsConfig> builder()
     {
@@ -34,8 +34,8 @@ public class KafkaTopicTransformsConfig
     }
 
     KafkaTopicTransformsConfig(
-        List<KafkaTopicHeaderType> headers)
+        List<KafkaTopicHeaderType> extractHeaders)
     {
-        this.headers = headers;
+        this.extractHeaders = extractHeaders;
     }
 }

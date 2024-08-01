@@ -78,9 +78,9 @@ public class KafkaTopicType
     private ConverterHandler headers(
         ConverterHandler handler)
     {
-        if (transforms != null && transforms.headers != null)
+        if (transforms != null && transforms.extractHeaders != null)
         {
-            for (KafkaTopicHeaderType header : transforms.headers)
+            for (KafkaTopicHeaderType header : transforms.extractHeaders)
             {
                 handler.extract(header.path);
             }

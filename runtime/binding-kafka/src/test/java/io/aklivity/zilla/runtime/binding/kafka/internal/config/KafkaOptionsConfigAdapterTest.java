@@ -241,8 +241,8 @@ public class KafkaOptionsConfigAdapterTest
 
         assertThat(options, not(nullValue()));
         assertThat(options.bootstrap, equalTo(singletonList("test")));
-        assertEquals(options.topics.get(0).transforms.headers.get(0).name, "correlation-id");
-        assertEquals(options.topics.get(0).transforms.headers.get(0).path, "$.correlationId");
+        assertEquals(options.topics.get(0).transforms.extractHeaders.get(0).name, "correlation-id");
+        assertEquals(options.topics.get(0).transforms.extractHeaders.get(0).path, "$.correlationId");
     }
 
     @Test

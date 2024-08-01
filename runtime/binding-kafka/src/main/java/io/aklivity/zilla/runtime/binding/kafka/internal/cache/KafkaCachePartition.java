@@ -601,12 +601,12 @@ public final class KafkaCachePartition
                     }
                 }
                 else if (transforms != null &&
-                    transforms.headers != null &&
-                    !transforms.headers.isEmpty())
+                    transforms.extractHeaders != null &&
+                    !transforms.extractHeaders.isEmpty())
                 {
                     Array32FW.Builder<KafkaHeaderFW.Builder, KafkaHeaderFW> builder =
                         trailersRW.wrap(trailersRW.buffer(), 0, trailersRW.maxLimit());
-                    for (KafkaTopicHeaderType header : transforms.headers)
+                    for (KafkaTopicHeaderType header : transforms.extractHeaders)
                     {
                         String32FW name = stringRW.set(header.name, UTF_8).build();
                         String path = header.path;
