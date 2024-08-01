@@ -51,8 +51,9 @@ bindings:
     options:
       topics:
         - name: test
-          headers:
-            correlation-id: ${message.value.correlationId}
+          transforms:
+            extract-headers:
+              correlation-id: ${message.value.correlationId}
           value:
             model: test
             capability: read
