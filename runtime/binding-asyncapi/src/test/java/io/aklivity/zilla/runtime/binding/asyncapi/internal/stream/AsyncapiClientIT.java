@@ -37,11 +37,8 @@ import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 public class AsyncapiClientIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("mqtt", "io/aklivity/zilla/specs/binding/asyncapi/streams/mqtt")
-        .addScriptRoot("http", "io/aklivity/zilla/specs/binding/asyncapi/streams/http")
-        .addScriptRoot("sse", "io/aklivity/zilla/specs/binding/asyncapi/streams/sse")
-        .addScriptRoot("kafka", "io/aklivity/zilla/specs/binding/asyncapi/streams/kafka")
-        .addScriptRoot("asyncapi", "io/aklivity/zilla/specs/binding/asyncapi/streams/asyncapi");
+        .addScriptRoot("asyncapi", "io/aklivity/zilla/specs/binding/asyncapi/streams/asyncapi")
+        .addScriptRoot("composite", "io/aklivity/zilla/specs/binding/asyncapi/streams/composite");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
@@ -65,7 +62,7 @@ public class AsyncapiClientIT
     @Configuration("client.mqtt.yaml")
     @Specification({
         "${asyncapi}/mqtt/publish.and.subscribe/client",
-        "${mqtt}/publish.and.subscribe/server"
+        "${composite}/mqtt/publish.and.subscribe/server"
     })
     @Configure(name = ASYNCAPI_COMPOSITE_ROUTE_ID_NAME, value = "0x0000000100000002")
     @ScriptProperty("serverAddress \"zilla://streams/mqtt0\"")
@@ -78,7 +75,7 @@ public class AsyncapiClientIT
     @Configuration("client.http.yaml")
     @Specification({
         "${asyncapi}/http/create.pet/client",
-        "${http}/create.pet/server"
+        "${composite}/http/create.pet/server"
     })
     public void shouldCreatePet() throws Exception
     {
@@ -89,7 +86,7 @@ public class AsyncapiClientIT
     @Configuration("client.kafka.yaml")
     @Specification({
         "${asyncapi}/kafka/produce.message/client",
-        "${kafka}/produce.message/server"
+        "${composite}/kafka/produce.message/server"
     })
     @Configure(name = ASYNCAPI_COMPOSITE_ROUTE_ID_NAME, value = "0x0000000100000004")
     @ScriptProperty("serverAddress \"zilla://streams/kafka0\"")
@@ -102,7 +99,7 @@ public class AsyncapiClientIT
     @Configuration("client.sse.yaml")
     @Specification({
         "${asyncapi}/sse/data.multiple/client",
-        "${sse}/data.multiple/server"
+        "${composite}/sse/data.multiple/server"
     })
     public void shouldReceiveMultipleData() throws Exception
     {

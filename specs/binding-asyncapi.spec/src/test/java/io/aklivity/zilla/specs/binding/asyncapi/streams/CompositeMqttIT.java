@@ -27,10 +27,10 @@ import org.junit.rules.Timeout;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 
-public class MqttIT
+public class CompositeMqttIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("mqtt", "io/aklivity/zilla/specs/binding/asyncapi/streams/mqtt");
+        .addScriptRoot("mqtt", "io/aklivity/zilla/specs/binding/asyncapi/streams/composite/mqtt");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(5, SECONDS));
 

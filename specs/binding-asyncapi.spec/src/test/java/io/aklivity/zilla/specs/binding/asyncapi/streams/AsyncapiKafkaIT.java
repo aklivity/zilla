@@ -27,23 +27,32 @@ import org.junit.rules.Timeout;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 
-public class HttpIT
+public class AsyncapiKafkaIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("http", "io/aklivity/zilla/specs/binding/asyncapi/streams/http");
+        .addScriptRoot("asyncapi", "io/aklivity/zilla/specs/binding/asyncapi/streams/asyncapi");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(5, SECONDS));
 
     @Rule
     public final TestRule chain = outerRule(k3po).around(timeout);
 
+    @Test
+    @Specification({
+        "${asyncapi}/kafka/produce.message/client",
+        "${asyncapi}/kafka/produce.message/server"
+    })
+    public void shouldProduceMessage() throws Exception
+    {
+        k3po.finish();
+    }
 
     @Test
     @Specification({
-        "${http}/create.pet/client",
-        "${http}/create.pet/server"
+        "${asyncapi}/kafka/publish/client",
+        "${asyncapi}/kafka/publish/server"
     })
-    public void shouldCreatePet() throws Exception
+    public void shouldPublishMessage() throws Exception
     {
         k3po.finish();
     }

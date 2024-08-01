@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.specs.binding.asyncapi.streams.asyncapi;
+package io.aklivity.zilla.specs.binding.asyncapi.streams;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -27,7 +27,7 @@ import org.junit.rules.Timeout;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 
-public class AsyncapiIT
+public class AsyncapiMqttIT
 {
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("asyncapi", "io/aklivity/zilla/specs/binding/asyncapi/streams/asyncapi");
@@ -49,50 +49,10 @@ public class AsyncapiIT
 
     @Test
     @Specification({
-        "${asyncapi}/http/create.pet/client",
-        "${asyncapi}/http/create.pet/server"
-    })
-    public void shouldCreatePet() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${asyncapi}/sse/data.multiple/client",
-        "${asyncapi}/sse/data.multiple/server"
-    })
-    public void shouldReceiveMultipleData() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${asyncapi}/kafka/produce.message/client",
-        "${asyncapi}/kafka/produce.message/server"
-    })
-    public void shouldProduceMessage() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${asyncapi}/kafka/publish/client",
-        "${asyncapi}/kafka/publish/server"
-    })
-    public void shouldProxyPublishMessageKafka() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${asyncapi}/mqtt/publish/client",
         "${asyncapi}/mqtt/publish/server"
     })
-    public void shouldProxyPublishMessageMqtt() throws Exception
+    public void shouldPublishMessage() throws Exception
     {
         k3po.start();
         k3po.notifyBarrier("WILL_STREAM_STARTED");

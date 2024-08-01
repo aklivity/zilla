@@ -34,10 +34,8 @@ import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 public class AsyncapiServerIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("mqtt", "io/aklivity/zilla/specs/binding/asyncapi/streams/mqtt")
-        .addScriptRoot("http", "io/aklivity/zilla/specs/binding/asyncapi/streams/http")
-        .addScriptRoot("sse", "io/aklivity/zilla/specs/binding/asyncapi/streams/sse")
-        .addScriptRoot("asyncapi", "io/aklivity/zilla/specs/binding/asyncapi/streams/asyncapi");
+        .addScriptRoot("asyncapi", "io/aklivity/zilla/specs/binding/asyncapi/streams/asyncapi")
+        .addScriptRoot("composite", "io/aklivity/zilla/specs/binding/asyncapi/streams/composite");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
@@ -57,7 +55,7 @@ public class AsyncapiServerIT
     @Test
     @Configuration("server.mqtt.yaml")
     @Specification({
-        "${mqtt}/publish.and.subscribe/client",
+        "${composite}/mqtt/publish.and.subscribe/client",
         "${asyncapi}/mqtt/publish.and.subscribe/server"
     })
     public void shouldPublishAndSubscribe() throws Exception
@@ -68,7 +66,7 @@ public class AsyncapiServerIT
     @Test
     @Configuration("server.http.yaml")
     @Specification({
-        "${http}/create.pet/client",
+        "${composite}/http/create.pet/client",
         "${asyncapi}/http/create.pet/server"
     })
     public void shouldCreatePet() throws Exception
@@ -79,7 +77,7 @@ public class AsyncapiServerIT
     @Test
     @Configuration("server.sse.yaml")
     @Specification({
-        "${sse}/data.multiple/client",
+        "${composite}/sse/data.multiple/client",
         "${asyncapi}/sse/data.multiple/server"
     })
     public void shouldReceiveMultipleData() throws Exception
@@ -90,7 +88,7 @@ public class AsyncapiServerIT
     @Test
     @Configuration("server.multi.protocol.yaml")
     @Specification({
-        "${mqtt}/publish.and.subscribe/client",
+        "${composite}/mqtt/publish.and.subscribe/client",
         "${asyncapi}/mqtt/publish.and.subscribe/server"
     })
     public void shouldPublishAndSubscribeMultipleSpec() throws Exception
@@ -101,7 +99,7 @@ public class AsyncapiServerIT
     @Test
     @Configuration("server.multi.protocol.yaml")
     @Specification({
-        "${http}/create.pet/client",
+        "${composite}/http/create.pet/client",
         "${asyncapi}/http/create.pet/server"
     })
     public void shouldCreatePetMultipleSpec() throws Exception

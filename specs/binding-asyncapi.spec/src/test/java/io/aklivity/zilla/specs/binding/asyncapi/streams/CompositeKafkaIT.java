@@ -27,22 +27,23 @@ import org.junit.rules.Timeout;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 
-public class SseIT
+public class CompositeKafkaIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("sse", "io/aklivity/zilla/specs/binding/asyncapi/streams/sse");
+        .addScriptRoot("kafka", "io/aklivity/zilla/specs/binding/asyncapi/streams/composite/kafka");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(5, SECONDS));
 
     @Rule
     public final TestRule chain = outerRule(k3po).around(timeout);
 
+
     @Test
     @Specification({
-        "${sse}/data.multiple/client",
-        "${sse}/data.multiple/server"
+        "${kafka}/produce.message/client",
+        "${kafka}/produce.message/server"
     })
-    public void shouldReceiveMultipleData() throws Exception
+    public void shouldProduceMessage() throws Exception
     {
         k3po.finish();
     }
