@@ -26,8 +26,10 @@ module io.aklivity.zilla.runtime.binding.asyncapi
     requires io.aklivity.zilla.runtime.binding.sse.kafka;
     requires io.aklivity.zilla.runtime.binding.tcp;
     requires io.aklivity.zilla.runtime.binding.tls;
+    requires io.aklivity.zilla.runtime.catalog.apicurio;
     requires io.aklivity.zilla.runtime.catalog.inline;
     requires io.aklivity.zilla.runtime.catalog.karapace;
+    requires io.aklivity.zilla.runtime.catalog.schema.registry;
     requires io.aklivity.zilla.runtime.guard.jwt;
     requires io.aklivity.zilla.runtime.vault.filesystem;
     requires io.aklivity.zilla.runtime.model.core;
