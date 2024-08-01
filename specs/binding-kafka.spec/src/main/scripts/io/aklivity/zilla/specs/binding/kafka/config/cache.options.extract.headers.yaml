@@ -52,7 +52,7 @@ bindings:
       topics:
         - name: test
           transforms:
-            extract-headers:
+            - extract-headers:
               correlation-id: ${message.value.correlationId}
           value:
             model: test
