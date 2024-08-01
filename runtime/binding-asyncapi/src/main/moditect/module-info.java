@@ -38,6 +38,12 @@ module io.aklivity.zilla.runtime.binding.asyncapi
     requires org.leadpony.justify;
 
     opens io.aklivity.zilla.runtime.binding.asyncapi.internal.model;
+    opens io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings;
+    opens io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.http;
+    opens io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.http.kafka;
+    opens io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.kafka;
+    opens io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.sse;
+    opens io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.sse.kafka;
     opens io.aklivity.zilla.runtime.binding.asyncapi.internal.view;
 
     exports io.aklivity.zilla.runtime.binding.asyncapi.config;
