@@ -43,16 +43,17 @@ import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiSpecificationCo
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiCompositeConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiSchemaItem;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.kafka.AsyncapiKafkaServerBinding;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.parser.AsyncapiParser;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiMessageView;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiSchemaItemView;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiSchemaView;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiServerView;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiView;
+import io.aklivity.zilla.runtime.catalog.apicurio.internal.config.ApicurioOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.catalog.karapace.config.KarapaceOptionsConfig;
+import io.aklivity.zilla.runtime.catalog.schema.registry.config.SchemaRegistryOptionsConfig;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfigBuilder;
@@ -250,13 +251,30 @@ public abstract class AsyncapiCompositeGenerator
                     .flatMap(v -> v.servers.stream())
                     .filter(s -> s.bindings != null)
                     .filter(s -> s.bindings.kafka != null)
+                    .filter(s -> s.bindings.kafka.schemaRegistryUrl != null)
                     .findFirst();
 
                 if (serverRef.isPresent())
                 {
                     final AsyncapiServerView server = serverRef.get();
 
-                    injectSchemaRegistry(server, namespace);
+                    final String vendor = Optional
+                            .ofNullable(server.bindings.kafka.schemaRegistryVendor)
+                            .orElse("schema-registry");
+
+                    switch (vendor)
+                    {
+                    case "apicurio":
+                        injectApicurioRegistry(server, namespace);
+                        break;
+                    case "karapace":
+                        injectKarapaceSchemaRegistry(server, namespace);
+                        break;
+                    case "schema-registry":
+                    default:
+                        injectSchemaRegistry(server, namespace);
+                        break;
+                    }
                 }
                 else
                 {
@@ -270,14 +288,44 @@ public abstract class AsyncapiCompositeGenerator
                 AsyncapiServerView server,
                 NamespaceConfigBuilder<C> namespace)
             {
-                final AsyncapiKafkaServerBinding kafka = server.bindings.kafka;
-
                 namespace
                     .catalog()
                         .name("catalog0")
-                        .type("karapace")
+                        .type("schema-registry")
+                        .options(SchemaRegistryOptionsConfig::builder)
+                            .url(server.bindings.kafka.schemaRegistryUrl)
+                            .context("default")
+                            .maxAge(Duration.ofHours(1))
+                            .build()
+                        .build();
+            }
+
+            private <C> void injectApicurioRegistry(
+                AsyncapiServerView server,
+                NamespaceConfigBuilder<C> namespace)
+            {
+                namespace
+                    .catalog()
+                        .name("catalog0")
+                        .type("apicurio-registry")
+                        .options(ApicurioOptionsConfig::builder)
+                            .url(server.bindings.kafka.schemaRegistryUrl)
+                            .groupId("default")
+                            .maxAge(Duration.ofHours(1))
+                            .build()
+                        .build();
+            }
+
+            private <C> void injectKarapaceSchemaRegistry(
+                AsyncapiServerView server,
+                NamespaceConfigBuilder<C> namespace)
+            {
+                namespace
+                    .catalog()
+                        .name("catalog0")
+                        .type("karapace-schema-registry")
                         .options(KarapaceOptionsConfig::builder)
-                            .url(kafka.schemaRegistryUrl)
+                            .url(server.bindings.kafka.schemaRegistryUrl)
                             .context("default")
                             .maxAge(Duration.ofHours(1))
                             .build()
