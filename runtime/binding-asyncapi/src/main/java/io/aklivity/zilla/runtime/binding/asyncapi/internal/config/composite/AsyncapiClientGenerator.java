@@ -285,7 +285,9 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                                     options
                                         .topic()
                                             .name(channel.address)
-                                            .headers(topic.headers)
+                                            .transforms()
+                                                .headers(topic.transforms.headers)
+                                                .build()
                                             .inject(t -> injectKafkaTopicKey(t, channel))
                                             .inject(t -> injectKafkaTopicValue(t, channel))
                                             .build()

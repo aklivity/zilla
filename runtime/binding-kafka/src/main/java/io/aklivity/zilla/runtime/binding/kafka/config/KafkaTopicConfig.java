@@ -15,7 +15,6 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.config;
 
-import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 
@@ -30,7 +29,7 @@ public class KafkaTopicConfig
     public final KafkaDeltaType deltaType;
     public final ModelConfig key;
     public final ModelConfig value;
-    public final List<KafkaTopicHeaderType> headers;
+    public final KafkaTopicTransformsConfig transforms;
 
     public static KafkaTopicConfigBuilder<KafkaTopicConfig> builder()
     {
@@ -49,14 +48,14 @@ public class KafkaTopicConfig
         KafkaDeltaType deltaType,
         ModelConfig key,
         ModelConfig value,
-        List<KafkaTopicHeaderType> headers)
+        KafkaTopicTransformsConfig transforms)
     {
         this.name = name;
         this.defaultOffset = defaultOffset;
         this.deltaType = deltaType;
         this.key = key;
         this.value = value;
-        this.headers = headers;
+        this.transforms = transforms;
     }
 
     @Override

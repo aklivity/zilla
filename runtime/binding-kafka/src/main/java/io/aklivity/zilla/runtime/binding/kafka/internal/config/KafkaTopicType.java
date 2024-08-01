@@ -15,14 +15,13 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.config;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicHeaderType;
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicTransformsConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 
@@ -34,7 +33,7 @@ public class KafkaTopicType
     public final ConverterHandler keyWriter;
     public final ConverterHandler valueReader;
     public final ConverterHandler valueWriter;
-    public final List<KafkaTopicHeaderType> headers;
+    public final KafkaTopicTransformsConfig transforms;
 
     private final Matcher topicMatch;
 
@@ -45,7 +44,7 @@ public class KafkaTopicType
         this.keyWriter = ConverterHandler.NONE;
         this.valueReader = ConverterHandler.NONE;
         this.valueWriter = ConverterHandler.NONE;
-        this.headers = new ArrayList<>();
+        this.transforms = null;
     }
 
     public KafkaTopicType(
@@ -53,7 +52,7 @@ public class KafkaTopicType
         KafkaTopicConfig topicConfig)
     {
         this.topicMatch = topicConfig.name != null ? asMatcher(topicConfig.name) : null;
-        this.headers = topicConfig.headers;
+        this.transforms = topicConfig.transforms;
         this.keyReader = Optional.ofNullable(topicConfig.key)
             .map(context::supplyReadConverter)
             .map(this::headers)
@@ -79,9 +78,12 @@ public class KafkaTopicType
     private ConverterHandler headers(
         ConverterHandler handler)
     {
-        for (KafkaTopicHeaderType header : headers)
+        if (transforms != null && transforms.headers != null)
         {
-            handler.extract(header.path);
+            for (KafkaTopicHeaderType header : transforms.headers)
+            {
+                handler.extract(header.path);
+            }
         }
         return handler;
     }

@@ -43,7 +43,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.function.IntFunction;
@@ -67,6 +66,7 @@ import org.agrona.io.DirectBufferInputStream;
 import org.agrona.io.ExpandableDirectBufferOutputStream;
 
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicHeaderType;
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicTransformsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.ArrayFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
@@ -360,14 +360,14 @@ public final class KafkaCachePartition
         ConverterHandler convertKey,
         ConverterHandler convertValue,
         boolean verbose,
-        List<KafkaTopicHeaderType> headerTypes)
+        KafkaTopicTransformsConfig transforms)
     {
         final int valueLength = value != null ? value.sizeof() : -1;
         writeEntryStart(context, traceId, bindingId, offset, entryMark, valueMark, timestamp, producerId, key,
             valueLength, null, entryFlags, deltaType, value, convertKey, convertValue, verbose);
         writeEntryContinue(value);
         writeEntryFinish(headers, deltaType, context, traceId, bindingId, FLAGS_COMPLETE, offset, entryMark, valueMark,
-            convertValue, verbose, headerTypes);
+            convertValue, verbose, transforms);
     }
 
     public void writeEntryStart(
@@ -545,7 +545,7 @@ public final class KafkaCachePartition
         MutableInteger valueMark,
         ConverterHandler convertValue,
         boolean verbose,
-        List<KafkaTopicHeaderType> headerTypes)
+        KafkaTopicTransformsConfig transforms)
     {
         final Node head = sentinel.previous;
         assert head != sentinel;
@@ -600,11 +600,13 @@ public final class KafkaCachePartition
                             context.supplyLocalName(bindingId), topic, id, offset);
                     }
                 }
-                else if (headerTypes != null && !headerTypes.isEmpty())
+                else if (transforms != null &&
+                    transforms.headers != null &&
+                    !transforms.headers.isEmpty())
                 {
                     Array32FW.Builder<KafkaHeaderFW.Builder, KafkaHeaderFW> builder =
                         trailersRW.wrap(trailersRW.buffer(), 0, trailersRW.maxLimit());
-                    for (KafkaTopicHeaderType header : headerTypes)
+                    for (KafkaTopicHeaderType header : transforms.headers)
                     {
                         String32FW name = stringRW.set(header.name, UTF_8).build();
                         String path = header.path;
