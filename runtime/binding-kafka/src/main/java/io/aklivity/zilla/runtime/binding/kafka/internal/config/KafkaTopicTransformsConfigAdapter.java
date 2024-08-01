@@ -64,7 +64,7 @@ public final class KafkaTopicTransformsConfigAdapter implements JsonbAdapter<Kaf
             for (Map.Entry<String, JsonValue> entry : headers.entrySet())
             {
                 JsonString jsonString = (JsonString) entry.getValue();
-                topicBuilder.header(entry.getKey(), jsonString.getString());
+                topicBuilder.extractHeader(entry.getKey(), jsonString.getString());
             }
         }
 

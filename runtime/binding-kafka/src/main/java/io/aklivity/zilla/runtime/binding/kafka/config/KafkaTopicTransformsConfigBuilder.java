@@ -34,13 +34,13 @@ public final class KafkaTopicTransformsConfigBuilder<T> extends ConfigBuilder<T,
     private final Matcher matcher;
     private final Matcher internalMatcher;
     private final Function<KafkaTopicTransformsConfig, T> mapper;
-    private List<KafkaTopicHeaderType> headers;
+    private List<KafkaTopicHeaderType> extractHeaders;
 
     KafkaTopicTransformsConfigBuilder(
         Function<KafkaTopicTransformsConfig, T> mapper)
     {
         this.mapper = mapper;
-        this.headers = new ArrayList<>();
+        this.extractHeaders = new ArrayList<>();
         this.matcher = PATH_PATTERN.matcher("");
         this.internalMatcher = INTERNAL_PATH_PATTERN.matcher("");
     }
@@ -52,38 +52,38 @@ public final class KafkaTopicTransformsConfigBuilder<T> extends ConfigBuilder<T,
         return (Class<KafkaTopicTransformsConfigBuilder<T>>) getClass();
     }
 
-    public KafkaTopicTransformsConfigBuilder<T> headers(
-        List<KafkaTopicHeaderType> headers)
+    public KafkaTopicTransformsConfigBuilder<T> extractHeaders(
+        List<KafkaTopicHeaderType> extractHeaders)
     {
-        if (headers != null)
+        if (extractHeaders != null)
         {
-            headers.forEach(this::header);
+            extractHeaders.forEach(this::extractHeader);
         }
         return this;
     }
 
-    public KafkaTopicTransformsConfigBuilder<T> header(
+    public KafkaTopicTransformsConfigBuilder<T> extractHeader(
         KafkaTopicHeaderType header)
     {
-        return header(header.name, header.path);
+        return extractHeader(header.name, header.path);
     }
 
-    public KafkaTopicTransformsConfigBuilder<T> header(
+    public KafkaTopicTransformsConfigBuilder<T> extractHeader(
         String name,
         String path)
     {
-        if (this.headers == null)
+        if (this.extractHeaders == null)
         {
-            this.headers = new ArrayList<>();
+            this.extractHeaders = new ArrayList<>();
         }
         if (matcher.reset(path).matches())
         {
-            this.headers.add(new KafkaTopicHeaderType(name,
+            this.extractHeaders.add(new KafkaTopicHeaderType(name,
                 String.format(INTERNAL_VALUE, matcher.group(1))));
         }
         else if (internalMatcher.reset(path).matches())
         {
-            this.headers.add(new KafkaTopicHeaderType(name, path));
+            this.extractHeaders.add(new KafkaTopicHeaderType(name, path));
         }
         return this;
     }
@@ -91,6 +91,6 @@ public final class KafkaTopicTransformsConfigBuilder<T> extends ConfigBuilder<T,
     @Override
     public T build()
     {
-        return mapper.apply(new KafkaTopicTransformsConfig(headers));
+        return mapper.apply(new KafkaTopicTransformsConfig(extractHeaders));
     }
 }

@@ -253,7 +253,7 @@ public class KafkaOptionsConfigAdapterTest
             .topic()
                 .name("test")
                 .transforms()
-                    .header("correlation-id", "${message.value.correlationId}")
+                    .extractHeader("correlation-id", "${message.value.correlationId}")
                     .build()
                 .value(TestModelConfig.builder().length(0).build())
                 .build()
