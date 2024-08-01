@@ -54,8 +54,8 @@ public class AsyncapiClientIT
         .external("http0")
         .external("kafka0")
         .external("sse0")
-        .configure(ENGINE_VERBOSE, true)
-        .configure(ENGINE_VERBOSE_COMPOSITES, true)
+        .configure(ENGINE_VERBOSE, false)
+        .configure(ENGINE_VERBOSE_COMPOSITES, false)
         .clean();
 
     @Rule

@@ -32,7 +32,7 @@ catalogs:
         servers:
           plain:
             host: localhost:8080
-            protocol: sse
+            protocol: http
         defaultContentType: application/json
         
         channels:
@@ -48,10 +48,12 @@ catalogs:
             channel:
               $ref: '#/channels/events'
             bindings:
+              x-zilla-sse:
+                 bindingVersion: latest
               x-zilla-sse-kafka:
                 filters:
                   - headers:
-                      header: "value"
+                      header: value
         
         components:
           schemas:
@@ -80,6 +82,7 @@ catalogs:
   catalog1:
     type: test
     options:
+      id: 7
       subject: eventstore
       schema: |
         asyncapi: 3.0.0

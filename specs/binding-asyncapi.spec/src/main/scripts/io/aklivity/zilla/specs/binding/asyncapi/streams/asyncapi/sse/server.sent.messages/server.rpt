@@ -19,13 +19,18 @@ accept "zilla://streams/sse0"
        option zilla:transmission "duplex"
 accepted
 
-read zilla:begin.ext ${sse:beginEx()
-                          .typeId(zilla:id("sse"))
-                          .scheme("http")
-                          .authority("localhost:8080")
-                          .path("/test")
-                          .lastId(null)
-                          .build()}
+read zilla:begin.ext ${asyncapi:matchBeginEx()
+                             .typeId(zilla:id("asyncapi"))
+                             .apiId(1)
+                             .operationId("receiveEvents")
+                             .extension(sse:matchBeginEx()
+                                   .typeId(zilla:id("sse"))
+                                   .scheme("http")
+                                   .authority("localhost:8080")
+                                   .path("/events")
+                                   .lastId(null)
+                                   .build())
+                             .build()}
 
 connected
 

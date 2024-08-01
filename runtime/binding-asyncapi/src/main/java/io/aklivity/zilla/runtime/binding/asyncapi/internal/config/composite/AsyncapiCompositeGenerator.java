@@ -37,7 +37,6 @@ import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiCatalogConfig;
-import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiParser;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiSchemaConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiServerConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiSpecificationConfig;
@@ -45,6 +44,7 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiBindin
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiCompositeConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiSchemaItem;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.kafka.AsyncapiKafkaServerBinding;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.parser.AsyncapiParser;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiMessageView;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiSchemaItemView;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiSchemaView;
@@ -140,14 +140,14 @@ public abstract class AsyncapiCompositeGenerator
     protected abstract class NamespaceHelper
     {
         protected final AsyncapiBindingConfig config;
-        protected final AsyncapiSchemaConfig schema;
+        protected final String name;
 
         protected NamespaceHelper(
             AsyncapiBindingConfig config,
-            AsyncapiSchemaConfig schema)
+            String name)
         {
             this.config = config;
-            this.schema = schema;
+            this.name = name;
         }
 
         public final <C> NamespaceConfigBuilder<C> injectAll(
@@ -165,11 +165,7 @@ public abstract class AsyncapiCompositeGenerator
         private <C> NamespaceConfigBuilder<C> injectName(
             NamespaceConfigBuilder<C> namespace)
         {
-            return namespace.name(
-                String.format("%s/%s", config.qname,
-                    String.join("+", Stream.of(schema) // TODO: multiple
-                            .map(s -> s.apiLabel)
-                            .toList())));
+            return namespace.name("%s/%s".formatted(config.qname, name));
         }
 
         private <C> NamespaceConfigBuilder<C> injectMetrics(
@@ -225,8 +221,27 @@ public abstract class AsyncapiCompositeGenerator
             return namespace;
         }
 
+        protected final String resolveIdentity(
+            String value)
+        {
+            if ("{identity}".equals(value))
+            {
+                value = String.format("${guarded['%s:jwt0'].identity}", config.namespace);
+            }
+
+            return value;
+        }
+
         protected final class CatalogsHelper
         {
+            private final AsyncapiSchemaConfig schema;
+
+            protected CatalogsHelper(
+                AsyncapiSchemaConfig schema)
+            {
+                this.schema = schema;
+            }
+
             public <C> NamespaceConfigBuilder<C> injectAll(
                 NamespaceConfigBuilder<C> namespace)
             {

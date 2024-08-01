@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.model.resolver;
 
+import java.util.Map;
+import java.util.Optional;
 import java.util.regex.Pattern;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
@@ -24,6 +26,10 @@ public final class AsyncapiCorrelationIdResolver extends AbstractAsyncapiResolve
     public AsyncapiCorrelationIdResolver(
         Asyncapi model)
     {
-        super(model.components.correlationIds, Pattern.compile("#/components/correlationIds/(.+)"));
+        super(
+            Optional.ofNullable(model.components)
+                .map(c -> c.correlationIds)
+                .orElseGet(Map::of),
+            Pattern.compile("#/components/correlationIds/(.+)"));
     }
 }

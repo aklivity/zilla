@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.config;
 
+import static io.aklivity.zilla.runtime.engine.config.WithConfig.NO_COMPOSITE_ID;
+
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
@@ -24,7 +26,7 @@ public final class MqttWithConfigBuilder<T> extends ConfigBuilder<T, MqttWithCon
 {
     private final Function<WithConfig, T> mapper;
 
-    private long compositeId;
+    private long compositeId = NO_COMPOSITE_ID;
 
     MqttWithConfigBuilder(
         Function<WithConfig, T> mapper)

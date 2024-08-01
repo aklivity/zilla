@@ -14,16 +14,14 @@
 # under the License.
 #
 
-accept "zilla://streams/asyncapi_kafka0"
+connect "zilla://streams/kafka0"
     option zilla:window 8192
     option zilla:transmission "duplex"
 
-accepted
-
-read zilla:begin.ext ${asyncapi:matchBeginEx()
+write zilla:begin.ext ${asyncapi:beginEx()
                              .typeId(zilla:id("asyncapi"))
-                             .apiId(0)
-                             .extension(kafka:matchBeginEx()
+                             .apiId(7)
+                             .extension(kafka:beginEx()
                                             .typeId(zilla:id("kafka"))
                                             .merged()
                                                 .capabilities("FETCH_ONLY")
@@ -38,40 +36,36 @@ read zilla:begin.ext ${asyncapi:matchBeginEx()
 
 connected
 
-write zilla:data.ext ${kafka:dataEx()
-                            .typeId(zilla:id("kafka"))
-                            .merged()
-                              .fetch()
-                                .timestamp(kafka:timestamp())
-                                .partition(0, 1, 2)
-                                .progress(0, 2)
-                                .progress(1, 1)
-                                .key("key")
-                                .header("header", "value")
-                                .build()
-                            .build()}
-write "Hello, world"
-write flush
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                             .fetch()
+                               .partition(0, 1, 2)
+                               .progress(0, 2)
+                               .progress(1, 1)
+                               .key("key")
+                               .header("header", "value")
+                               .build()
+                           .build()}
+read "Hello, world"
 
-write zilla:data.ext ${kafka:dataEx()
-                            .typeId(zilla:id("kafka"))
-                            .merged()
-                              .fetch()
-                                .timestamp(kafka:timestamp())
-                                .partition(0, 2, 2)
-                                .progress(0, 3)
-                                .progress(1, 1)
-                                .key("key")
-                                .header("header", "value")
-                                .build()
-                            .build()}
-write "Hello, again"
-write flush
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                             .fetch()
+                               .partition(0, 2, 2)
+                               .progress(0, 3)
+                               .progress(1, 1)
+                               .key("key")
+                               .header("header", "value")
+                               .build()
+                           .build()}
+read "Hello, again"
 
-write advise zilla:flush ${kafka:flushEx()
+read advised zilla:flush ${kafka:matchFlushEx()
                                .typeId(zilla:id("kafka"))
                                .merged()
-                                 .fetch()
+                                  .fetch()
                                    .progress(0, 2, 2, 2)
                                    .build()
                                .build()}

@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.binding.sse.config;
 
+import static io.aklivity.zilla.runtime.engine.config.WithConfig.NO_COMPOSITE_ID;
+
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
@@ -24,7 +26,7 @@ public final class SseWithConfigBuilder<T> extends ConfigBuilder<T, SseWithConfi
 {
     private final Function<WithConfig, T> mapper;
 
-    private long compositeId;
+    private long compositeId = NO_COMPOSITE_ID;
 
     SseWithConfigBuilder(
         Function<WithConfig, T> mapper)

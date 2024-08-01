@@ -20,14 +20,14 @@ connect "zilla://streams/asyncapi_proxy0"
 
 write zilla:begin.ext ${asyncapi:beginEx()
                              .typeId(zilla:id("asyncapi"))
-                             .apiId(0)
+                             .apiId(1)
                              .operationId("createCustomer")
                              .extension(http:beginEx()
                                   .typeId(zilla:id("http"))
                                   .header(":method", "POST")
                                   .header(":scheme", "http")
-                                  .header(":path", "/customer")
                                   .header(":authority", "localhost:8080")
+                                  .header(":path", "/customer")
                                   .header("content-type", "application/json")
                                   .header("content-length", "155")
                                   .header("prefer", "respond-async")
@@ -41,12 +41,12 @@ write close
 
 read zilla:begin.ext ${asyncapi:matchBeginEx()
                              .typeId(zilla:id("asyncapi"))
-                             .apiId(0)
+                             .apiId(1)
                              .extension(http:matchBeginEx()
                                    .typeId(zilla:id("http"))
                                    .header(":status", "202")
                                    .header("content-length", "0")
-                                   .header("location", "/customer;cid=3f96592e-c8f1-4167-8c46-85f2aabb70a5-966ecfabf0fe9086ce63f615b87a6bed")
+                                   .header("location", "/customer;cid=3f96592e-c8f1-4167-8c46-85f2aabb70a5-fcc9c9231b3719989b3110968d068822")
                                   .build())
                              .build()}
 
@@ -62,14 +62,14 @@ connect await RECEIVED_ASYNC_RESPONSE
 
 write zilla:begin.ext ${asyncapi:beginEx()
                              .typeId(zilla:id("asyncapi"))
-                             .apiId(0)
+                             .apiId(1)
                              .operationId("getVerifiedCustomer")
                              .extension(http:beginEx()
                                   .typeId(zilla:id("http"))
                                   .header(":method", "GET")
                                   .header(":scheme", "http")
                                   .header(":authority", "localhost:8080")
-                                  .header(":path", "/customer;cid=3f96592e-c8f1-4167-8c46-85f2aabb70a5-966ecfabf0fe9086ce63f615b87a6bed")
+                                  .header(":path", "/customer;cid=3f96592e-c8f1-4167-8c46-85f2aabb70a5-fcc9c9231b3719989b3110968d068822")
                                   .header("prefer", "respond-async")
                                   .build())
                              .build()}
@@ -79,7 +79,7 @@ write close
 
 read zilla:begin.ext ${asyncapi:matchBeginEx()
                              .typeId(zilla:id("asyncapi"))
-                             .apiId(0)
+                             .apiId(1)
                              .extension(http:matchBeginEx()
                                   .typeId(zilla:id("http"))
                                   .header(":status", "204")

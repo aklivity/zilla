@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.model.resolver;
 
+import java.util.Map;
+import java.util.Optional;
 import java.util.regex.Pattern;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
@@ -24,6 +26,10 @@ public final class AsyncapiMessageTraitResolver extends AbstractAsyncapiResolver
     public AsyncapiMessageTraitResolver(
         Asyncapi model)
     {
-        super(model.components.messageTraits, Pattern.compile("#/components/messageTraits/(.+)"));
+        super(
+            Optional.ofNullable(model.components)
+                .map(c -> c.messageTraits)
+                .orElseGet(Map::of),
+            Pattern.compile("#/components/messageTraits/(.+)"));
     }
 }

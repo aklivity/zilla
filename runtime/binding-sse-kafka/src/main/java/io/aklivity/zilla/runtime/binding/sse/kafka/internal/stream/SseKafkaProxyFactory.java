@@ -975,6 +975,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
     {
         final KafkaBeginExFW kafkaBeginEx =
             kafkaBeginExRW.wrap(writeBuffer, BeginFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
+                .compositeId(resolved.compositeId())
                 .typeId(kafkaTypeId)
                 .merged(m -> m.capabilities(c -> c.set(KafkaCapabilities.FETCH_ONLY))
                               .topic(resolved.topic())

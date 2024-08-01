@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.model.resolver;
 
+import java.util.Map;
+import java.util.Optional;
 import java.util.regex.Pattern;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
@@ -41,7 +43,11 @@ public final class AsyncapiSchemaResolver
         private ResolverImpl(
             Asyncapi model)
         {
-            super(model.components.schemas, Pattern.compile("#/components/schemas/(.+)"));
+            super(
+                Optional.ofNullable(model.components)
+                    .map(c -> c.schemas)
+                    .orElseGet(Map::of),
+                Pattern.compile("#/components/schemas/(.+)"));
         }
     }
 }

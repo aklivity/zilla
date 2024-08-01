@@ -25,6 +25,6 @@ write http:content-length
 write "{\"id\":1, \"name\":\"Snoopy\", \"tag\":\"available\"}"
 write close
 
-read http:status "200" "OK"
+read http:status "204" "No Content"
 
 read closed

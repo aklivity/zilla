@@ -88,9 +88,9 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
             AsyncapiBindingConfig config,
             AsyncapiSchemaConfig schema)
         {
-            super(config, schema);
-            this.catalogs = new CatalogsHelper();
-            this.bindings = new ClientBindingsHelper();
+            super(config, schema.apiLabel);
+            this.catalogs = new CatalogsHelper(schema);
+            this.bindings = new ClientBindingsHelper(schema);
         }
 
         protected <C> NamespaceConfigBuilder<C> injectComponents(
@@ -105,11 +105,14 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
         {
             private static final Pattern PARAMETERIZED_TOPIC_PATTERN = Pattern.compile(REGEX_ADDRESS_PARAMETER);
 
+            private final AsyncapiSchemaConfig schema;
             private final Map<String, NamespaceInjector> protocols;
             private final List<String> secure;
 
-            private ClientBindingsHelper()
+            private ClientBindingsHelper(
+                AsyncapiSchemaConfig schema)
             {
+                this.schema = schema;
                 this.protocols = Map.of(
                     "kafka", this::injectKafka,
                     "kafka-secure", this::injectKafkaSecure,
@@ -332,7 +335,7 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
             {
                 Stream.of(schema)
                     .map(s -> s.asyncapi)
-                    .flatMap(v -> v.channels.stream())
+                    .flatMap(v -> v.channels.values().stream())
                     .filter(c -> !PARAMETERIZED_TOPIC_PATTERN.matcher(c.address).find())
                     .map(c -> c.address)
                     .distinct()

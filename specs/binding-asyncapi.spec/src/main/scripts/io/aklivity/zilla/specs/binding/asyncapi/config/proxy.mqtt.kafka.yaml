@@ -20,7 +20,7 @@ catalogs:
   catalog0:
     type: test
     options:
-        id: 0
+        id: 2
         subject: smartylighting
         schema: |
           asyncapi: 3.0.0
@@ -78,7 +78,7 @@ catalogs:
   catalog1:
     type: test
     options:
-      id: 1
+      id: 7
       subject: sensor
       schema: |
         asyncapi: 3.0.0

@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.binding.http.config;
 
+import static io.aklivity.zilla.runtime.engine.config.WithConfig.NO_COMPOSITE_ID;
+
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
@@ -24,7 +26,7 @@ public final class HttpWithConfigBuilder<T> extends ConfigBuilder<T, HttpWithCon
 {
     private final Function<WithConfig, T> mapper;
 
-    private long compositeId;
+    private long compositeId = NO_COMPOSITE_ID;
 
     HttpWithConfigBuilder(
         Function<WithConfig, T> mapper)

@@ -80,9 +80,9 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
             AsyncapiBindingConfig config,
             AsyncapiSchemaConfig schema)
         {
-            super(config, schema);
-            this.catalogs = new CatalogsHelper();
-            this.bindings = new ServerBindingsHelper();
+            super(config, schema.apiLabel);
+            this.catalogs = new CatalogsHelper(schema);
+            this.bindings = new ServerBindingsHelper(schema);
         }
 
         @Override
@@ -96,12 +96,15 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
 
         private final class ServerBindingsHelper extends BindingsHelper
         {
+            private final AsyncapiSchemaConfig schema;
             private final Map<String, NamespaceInjector> protocols;
             private final List<String> plain;
             private final List<String> secure;
 
-            private ServerBindingsHelper()
+            private ServerBindingsHelper(
+                AsyncapiSchemaConfig schema)
             {
+                this.schema = schema;
                 this.protocols = Map.of(
                     "http", this::injectHttp,
                     "https", this::injectHttp,
@@ -522,7 +525,7 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
             {
                 Stream.of(schema)
                     .map(s -> s.asyncapi)
-                    .flatMap(v -> v.channels.stream())
+                    .flatMap(v -> v.channels.values().stream())
                     .filter(AsyncapiChannelView::hasMessages)
                     .forEach(c -> c.messages.stream()
                         .forEach(m ->

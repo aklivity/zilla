@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.view;
 
-import static io.aklivity.zilla.runtime.binding.asyncapi.internal.config.composite.AsyncapiCompositeId.compositeId;
-
 import java.util.List;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiOperation;

@@ -539,11 +539,11 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
     final class AsyncapiStream
     {
         private final CompositeStream delegate;
-        private final String operationId;
-        private final long apiId;
         private final long originId;
         private final long routedId;
         private final long authorization;
+        private final long apiId;
+        private final String operationId;
 
         private long initialId;
         private long replyId;

@@ -49,7 +49,7 @@ catalogs:
                 $ref: '#/components/messages/pet'
         
         operations:
-          createPet:
+          createPets:
             action: send
             bindings:
               http:

@@ -30,9 +30,9 @@ import org.agrona.collections.Object2LongHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiCatalogConfig;
-import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiParser;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiSchemaConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiSpecificationConfig;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.parser.AsyncapiParser;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiView;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.config.OpenapiAsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiCatalogConfig;

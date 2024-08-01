@@ -37,11 +37,13 @@ public final class HttpKafkaWithConfig extends WithConfig
         return new HttpKafkaWithConfigBuilder<>(mapper);
     }
 
-    public HttpKafkaWithConfig(
+    HttpKafkaWithConfig(
+        long compositeId,
         HttpKafkaCapability capability,
         HttpKafkaWithFetchConfig fetch,
         HttpKafkaWithProduceConfig produce)
     {
+        super(compositeId);
         this.capability = capability;
         this.fetch = Optional.ofNullable(fetch);
         this.produce = Optional.ofNullable(produce);

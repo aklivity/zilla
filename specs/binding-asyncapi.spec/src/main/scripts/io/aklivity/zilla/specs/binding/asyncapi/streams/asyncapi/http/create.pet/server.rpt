@@ -23,7 +23,7 @@ accepted
 read zilla:begin.ext ${asyncapi:matchBeginEx()
                              .typeId(zilla:id("asyncapi"))
                              .apiId(1)
-                             .operationId("createPet")
+                             .operationId("createPets")
                              .extension(http:matchBeginEx()
                                   .typeId(zilla:id("http"))
                                   .header(":method", "POST")
@@ -41,10 +41,10 @@ read closed
 
 write zilla:begin.ext ${asyncapi:beginEx()
                              .typeId(zilla:id("asyncapi"))
-                             .operationId("createPet")
+                             .operationId("createPets")
                              .extension(http:beginEx()
                                  .typeId(zilla:id("http"))
-                                 .header(":status", "200")
+                                 .header(":status", "204")
                                  .build())
                              .build()}
 write flush

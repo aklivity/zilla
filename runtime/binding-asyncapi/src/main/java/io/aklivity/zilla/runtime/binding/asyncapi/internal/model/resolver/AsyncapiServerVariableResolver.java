@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.model.resolver;
 
+import java.util.Map;
+import java.util.Optional;
 import java.util.regex.Pattern;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.Asyncapi;
@@ -24,6 +26,10 @@ public final class AsyncapiServerVariableResolver extends AbstractAsyncapiResolv
     public AsyncapiServerVariableResolver(
         Asyncapi model)
     {
-        super(model.components.serverVariables, Pattern.compile("#/components/serverVariables/(.+)"));
+        super(
+            Optional.ofNullable(model.components)
+                .map(c -> c.serverVariables)
+                .orElseGet(Map::of),
+            Pattern.compile("#/components/serverVariables/(.+)"));
     }
 }

@@ -15,6 +15,8 @@
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.stream;
 
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_VERBOSE;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_VERBOSE_COMPOSITES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -24,6 +26,7 @@ import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 
+import io.aklivity.k3po.runtime.junit.annotation.ScriptProperty;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
@@ -42,6 +45,8 @@ public class AsyncapiProxyIT
         .configure(ENGINE_DRAIN_ON_CLOSE, false)
         .configurationRoot("io/aklivity/zilla/specs/binding/asyncapi/config")
         .external("asyncapi_kafka0")
+        .configure(ENGINE_VERBOSE, false)
+        .configure(ENGINE_VERBOSE_COMPOSITES, false)
         .clean();
 
     @Rule
@@ -50,10 +55,10 @@ public class AsyncapiProxyIT
     @Test
     @Configuration("proxy.mqtt.kafka.yaml")
     @Specification({
-        "${asyncapi}/proxy.mqtt.publish/client",
-        "${asyncapi}/proxy.kafka.publish/server"
+        "${asyncapi}/mqtt/publish/client",
+        "${asyncapi}/kafka/publish/server"
     })
-    public void shouldPublish() throws Exception
+    public void shouldPublishViaMqttKafka() throws Exception
     {
         k3po.finish();
     }
@@ -61,10 +66,11 @@ public class AsyncapiProxyIT
     @Test
     @Configuration("proxy.http.kafka.yaml")
     @Specification({
-        "${asyncapi}/proxy.http.create.pet/client",
-        "${asyncapi}/proxy.kafka.create.pet/server"
+        "${asyncapi}/http/create.pet/client",
+        "${asyncapi}/kafka/create.pet/server"
     })
-    public void shouldCreatePet() throws Exception
+    @ScriptProperty("httpAddress \"zilla://streams/asyncapi_proxy0\"")
+    public void shouldCreatePetViaHttpKafka() throws Exception
     {
         k3po.finish();
     }
@@ -72,10 +78,10 @@ public class AsyncapiProxyIT
     @Test
     @Configuration("proxy.http.kafka.async.yaml")
     @Specification({
-        "${asyncapi}/proxy.http.async.verify.customer/client",
-        "${asyncapi}/proxy.kafka.async.verify.customer/server"
+        "${asyncapi}/http/verify.customer.async/client",
+        "${asyncapi}/kafka/verify.customer/server"
     })
-    public void shouldVerifyCustomerAsync() throws Exception
+    public void shouldVerifyCustomerAsyncViaHttpKafka() throws Exception
     {
         k3po.finish();
     }
@@ -83,10 +89,10 @@ public class AsyncapiProxyIT
     @Test
     @Configuration("proxy.sse.kafka.yaml")
     @Specification({
-        "${asyncapi}/proxy.sse.server.sent.messages/client",
-        "${asyncapi}/proxy.kafka.server.sent.messages/server"
+        "${asyncapi}/sse/server.sent.messages/client",
+        "${asyncapi}/kafka/server.sent.messages/server"
     })
-    public void shouldReceiveServerSentMessages() throws Exception
+    public void shouldReceiveServerSentMessagesViaSseKafka() throws Exception
     {
         k3po.finish();
     }
