@@ -339,18 +339,32 @@
                             "enum": [ "none", "json_patch" ],
                             "deprecated": true
                         },
-                        "headers":
+                        "transforms":
                         {
-                            "type": "object",
-                            "patternProperties":
+                            "title": "Transforms",
+                            "type": "array",
+                            "items":
                             {
-                                "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties":
                                 {
-                                    "type": "string",
-                                    "pattern": "^\\$\\{message\\.value\\.([A-Za-z_][A-Za-z0-9_]*)\\}$"
-                                }
-                            },
-                            "additionalProperties": false
+                                    "extract-headers":
+                                    {
+                                        "type": "object",
+                                        "patternProperties":
+                                        {
+                                            "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                                            {
+                                                "type": "string",
+                                                "pattern": "^\\$\\{message\\.value\\.([A-Za-z_][A-Za-z0-9_]*)\\}$"
+                                            }
+                                        },
+                                        "additionalProperties": false
+                                    }
+                                },
+                                "maxProperties": 1
+                            }
                         },
                         "key":
                         {

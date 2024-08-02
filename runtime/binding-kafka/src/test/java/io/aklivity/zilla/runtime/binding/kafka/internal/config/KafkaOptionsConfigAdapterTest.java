@@ -226,10 +226,13 @@ public class KafkaOptionsConfigAdapterTest
                 "[" +
                     "{" +
                     "\"name\": \"test\"," +
-                    "\"headers\":" +
-                    "{" +
-                    "\"correlation-id\": \"${message.value.correlationId}\"" +
-                    "}" +
+                    "\"transforms\":" +
+                    "[" +
+                        "\"extract-headers\":" +
+                        "{" +
+                            "\"correlation-id\": \"${message.value.correlationId}\"" +
+                        "}" +
+                    "]" +
                     "}" +
                 "]" +
             "}";
@@ -238,8 +241,8 @@ public class KafkaOptionsConfigAdapterTest
 
         assertThat(options, not(nullValue()));
         assertThat(options.bootstrap, equalTo(singletonList("test")));
-        assertEquals(options.topics.get(0).headers.get(0).name, "correlation-id");
-        assertEquals(options.topics.get(0).headers.get(0).path, "$.correlationId");
+        assertEquals(options.topics.get(0).transforms.extractHeaders.get(0).name, "correlation-id");
+        assertEquals(options.topics.get(0).transforms.extractHeaders.get(0).path, "$.correlationId");
     }
 
     @Test
@@ -249,7 +252,9 @@ public class KafkaOptionsConfigAdapterTest
             .bootstrap("test")
             .topic()
                 .name("test")
-                .header("correlation-id", "${message.value.correlationId}")
+                .transforms()
+                    .extractHeader("correlation-id", "${message.value.correlationId}")
+                    .build()
                 .value(TestModelConfig.builder().length(0).build())
                 .build()
             .build();
@@ -257,7 +262,7 @@ public class KafkaOptionsConfigAdapterTest
         String text = jsonb.toJson(options);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"bootstrap\":[\"test\"]," +
-            "\"topics\":[{\"name\":\"test\",\"value\":\"test\",\"headers\":{\"correlation-id\":\"$.correlationId\"}}]}"));
+        assertThat(text, equalTo("{\"bootstrap\":[\"test\"],\"topics\":[{\"name\":\"test\",\"value\":\"test\"," +
+            "\"transforms\":{\"extract-headers\":{\"correlation-id\":\"$.correlationId\"}}}]}"));
     }
 }
