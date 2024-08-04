@@ -777,22 +777,27 @@ public final class ZillaDumpCommand extends ZillaCommand
             long routedId)
         {
             int protocolTypeLabelId = 0;
-            long[] origin = lookupBindingInfo.apply(originId);
-            long[] routed = lookupBindingInfo.apply(routedId);
 
-            if (origin != null && routed != null)
+            long[] routed = lookupBindingInfo.apply(routedId);
+            if (routed != null)
             {
                 String routedBindingKind = lookupLabel.apply(localId(routed[KIND_ID_INDEX]));
                 if (SERVER_KIND.equals(routedBindingKind))
                 {
                     protocolTypeLabelId = localId(routed[ROUTED_TYPE_ID_INDEX]);
                 }
-                String originBindingKind = lookupLabel.apply(localId(routed[KIND_ID_INDEX]));
+            }
+
+            long[] origin = lookupBindingInfo.apply(originId);
+            if (origin != null)
+            {
+                String originBindingKind = lookupLabel.apply(localId(origin[KIND_ID_INDEX]));
                 if (protocolTypeLabelId == 0 && CLIENT_KIND.equals(originBindingKind))
                 {
                     protocolTypeLabelId = localId(origin[ORIGIN_TYPE_ID_INDEX]);
                 }
             }
+
             return supplyLabelCrc(protocolTypeLabelId);
         }
 
