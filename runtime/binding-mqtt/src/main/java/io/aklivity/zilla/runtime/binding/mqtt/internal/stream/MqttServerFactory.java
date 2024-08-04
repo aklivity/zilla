@@ -2883,7 +2883,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             this.keepAlive = (short) Math.min(Math.max(keepAlive, keepAliveMinimum), keepAliveMaximum);
             serverDefinedKeepAlive = this.keepAlive != keepAlive;
-            keepAliveTimeout = Math.round(TimeUnit.SECONDS.toMillis(keepAlive) * 1.5);
+            keepAliveTimeout = Math.round(TimeUnit.SECONDS.toMillis(this.keepAlive) * 1.5);
             connectFlags = flags;
             version = protocolVersion;
             doSignalKeepAliveTimeout(traceId);
