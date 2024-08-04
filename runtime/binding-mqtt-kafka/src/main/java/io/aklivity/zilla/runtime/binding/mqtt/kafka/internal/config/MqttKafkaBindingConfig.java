@@ -127,19 +127,19 @@ public class MqttKafkaBindingConfig
         {
             for (String client : clients)
             {
-                Matcher topicMatch =
-                    Pattern.compile(client.replace("{identity}", "(?<identity>[^\\s/]+)").replace("#", ".*"))
-                        .matcher("");
+                String pattern = client
+                    .replace("{identity}", "(?<identity>[^\\s/]+)")
+                    .replace("+", "[^/]+")
+                    .replace("/#", ".*");
+
+                Matcher matcher = Pattern.compile(pattern).matcher("");
 
                 Function<String, String> accessor = topic ->
-                {
-                    String result = null;
-                    if (topic != null && topicMatch.reset(topic).matches())
-                    {
-                        result = topicMatch.group("identity");
-                    }
-                    return result;
-                };
+                    topic != null &&
+                    matcher.reset(topic).matches()
+                        ? matcher.group("identity")
+                        : null;
+
                 accessors.add(accessor);
             }
         }
