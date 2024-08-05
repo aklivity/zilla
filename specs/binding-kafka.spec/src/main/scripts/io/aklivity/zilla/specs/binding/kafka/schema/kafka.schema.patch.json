@@ -349,6 +349,11 @@
                                 "additionalProperties": false,
                                 "properties":
                                 {
+                                    "extract-key":
+                                    {
+                                        "type": "string",
+                                        "additionalProperties": false
+                                    },
                                     "extract-headers":
                                     {
                                         "type": "object",

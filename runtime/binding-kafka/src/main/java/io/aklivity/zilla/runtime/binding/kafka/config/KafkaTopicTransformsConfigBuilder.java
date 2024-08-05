@@ -34,6 +34,7 @@ public final class KafkaTopicTransformsConfigBuilder<T> extends ConfigBuilder<T,
     private final Matcher matcher;
     private final Matcher internalMatcher;
     private final Function<KafkaTopicTransformsConfig, T> mapper;
+    private String extractKey;
     private List<KafkaTopicHeaderType> extractHeaders;
 
     KafkaTopicTransformsConfigBuilder(
@@ -50,6 +51,13 @@ public final class KafkaTopicTransformsConfigBuilder<T> extends ConfigBuilder<T,
     protected Class<KafkaTopicTransformsConfigBuilder<T>> thisType()
     {
         return (Class<KafkaTopicTransformsConfigBuilder<T>>) getClass();
+    }
+
+    public KafkaTopicTransformsConfigBuilder<T> extractKey(
+        String extractKey)
+    {
+        this.extractKey = extractKey;
+        return this;
     }
 
     public KafkaTopicTransformsConfigBuilder<T> extractHeaders(
@@ -91,6 +99,6 @@ public final class KafkaTopicTransformsConfigBuilder<T> extends ConfigBuilder<T,
     @Override
     public T build()
     {
-        return mapper.apply(new KafkaTopicTransformsConfig(extractHeaders));
+        return mapper.apply(new KafkaTopicTransformsConfig(extractKey, extractHeaders));
     }
 }
