@@ -1,5 +1,19 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.89...HEAD)
+
+**Implemented enhancements:**
+
+- Support `extract-headers` kafka message transform [\#1175](https://github.com/aklivity/zilla/issues/1175)
+- Simplify `sse` support in AsyncAPI specs [\#1151](https://github.com/aklivity/zilla/issues/1151)
+
+**Fixed bugs:**
+
+- Support topic pattern wildcards in `mqtt-kafka` clients [\#1178](https://github.com/aklivity/zilla/issues/1178)
+- Connecting to Aiven Kafka over TLS Throws an `java.security.InvalidAlgorithmParameterException: the trustAnchors parameter must be non-empty` Error [\#1115](https://github.com/aklivity/zilla/issues/1115)
+
 ## [0.9.89](https://github.com/aklivity/zilla/tree/0.9.89) (2024-07-22)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.88...0.9.89)
